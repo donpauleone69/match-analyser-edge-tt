@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TT Rally Tagger — STABLE v7.5</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#151a24; --panel2:#1b2230; --ink:#e6e9ef; --muted:#9aa4b2;
+    --border:#30384a; --accent:#6aa6ff; --ok:#2ecc71; --danger:#ff6b6b; --active:#ffe082;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:13px/1.42 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu}
+  .wrap{padding:12px}
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px}
+  .topbar{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;margin-bottom:10px}
+  .nameSide{display:flex;align-items:center;gap:6px;justify-content:flex-start}
+  .nameSide.right{justify-content:flex-end}
+  input.player{background:var(--panel2);border:1px solid var(--border);color:var(--ink);border-radius:8px;padding:6px 8px;width:220px;text-align:center}
+  .nameBtn{background:var(--panel2);border:1px solid var(--border);color:var(--ink);border-radius:8px;padding:4px 8px;cursor:pointer; font-size:12px}
+  .nameBtn.active{border-color:var(--accent); box-shadow:0 0 0 1px var(--accent) inset}
+  .scoregrid{display:grid; grid-template-columns:1fr 1fr; gap:8px; min-width:420px}
+  .scoreCard{display:grid; grid-template-columns:auto auto auto; gap:8px; align-items:center;
+             background:var(--panel2); border:1px solid var(--border); border-radius:10px; padding:6px 10px}
+  .pName{font-weight:800}
+  .setBox,.ptBox{display:flex; align-items:center; gap:6px; font-weight:700}
+  .tag{font-size:11px; color:var(--muted)}
+  .activeName{outline:2px solid var(--active); border-radius:6px; padding:2px 4px}
+  .serverRow{display:flex;justify-content:space-between;gap:8px;margin-bottom:8px}
+  .serverTag{font-size:11px;padding:2px 6px;border-radius:999px;border:1px solid var(--border);background:rgba(122,166,255,.15)}
+  h2{font-size:14px;margin:8px 0 6px}
+  .gridMain{display:grid; grid-template-columns:1.1fr .9fr; gap:14px}
+  .controls{display:flex; flex-direction:column; gap:10px}
+  .rightCol{display:flex; flex-direction:column; gap:10px}
+  .group{background:var(--panel2); border:1px solid var(--border); border-radius:10px; padding:10px}
+  .label{color:var(--muted); font-size:11px; margin-bottom:6px}
+  .btnrow{display:flex; gap:6px; flex-wrap:wrap; align-items:center}
+  .chip{background:var(--panel); border:1px solid var(--border); color:var(--ink); padding:6px 8px; border-radius:8px; cursor:pointer; font-size:12px}
+  .chip.active{border-color:var(--ok); box-shadow:0 0 0 1px var(--ok) inset; background:rgba(46,204,113,.12)}
+  .chip.red{border-color:var(--danger); color:#fff; background:rgba(255,107,107,.22)}
+  .chip.red.active{box-shadow:0 0 0 1px var(--danger) inset}
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+  .grid3{display:grid; grid-template-columns:repeat(3,1fr); gap:8px}
+  .btn{background:var(--panel2); border:1px solid var(--border); color:var(--ink); padding:6px 8px; border-radius:8px; cursor:pointer; font-size:12px}
+  .btn.confirm{border-color:var(--ok); box-shadow:0 0 0 1px var(--ok) inset}
+  .btn.reset{border-color:var(--danger); box-shadow:0 0 0 1px var(--danger) inset}
+  .inlineActions{display:flex; gap:8px; justify-content:flex-end}
+  .preview{font-weight:700; color:#ffd166; text-align:right}
+  .log{background:var(--panel2); border:1px solid var(--border); border-radius:10px; padding:8px; max-height:300px; overflow:auto}
+  .log h3{margin:0 0 6px; font-size:13px; text-align:right}
+  .log ol{margin:0; padding-left:24px}
+  .toolbar{display:flex; gap:8px; justify-content:flex-end}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="panel">
+    <!-- Names + Score -->
+    <div class="topbar">
+      <div class="nameSide">
+        <button class="nameBtn" id="btnP2Serve">Serve First</button>
+        <input class="player" id="pl2" placeholder="Player 2 (Top)">
+      </div>
+      <div class="scoregrid">
+        <div class="scoreCard" id="p1Card">
+          <div class="pName" id="p1NameScore">Player 1</div>
+          <div class="setBox"><span class="tag">Set</span><span id="p1Set">0</span></div>
+          <div class="ptBox"><span class="tag">Pts</span><span id="p1Pts">0</span></div>
+        </div>
+        <div class="scoreCard" id="p2Card">
+          <div class="pName" id="p2NameScore">Player 2</div>
+          <div class="setBox"><span class="tag">Set</span><span id="p2Set">0</span></div>
+          <div class="ptBox"><span class="tag">Pts</span><span id="p2Pts">0</span></div>
+        </div>
+      </div>
+      <div class="nameSide right">
+        <input class="player" id="pl1" placeholder="Player 1 (Bottom)">
+        <button class="nameBtn" id="btnP1Serve">Serve First</button>
+      </div>
+    </div>
+    <div class="serverRow">
+      <span class="serverTag" id="serverTag">Server: —</span>
+      <span class="serverTag" id="serveCount">Serves left: 2</span>
+      <span class="serverTag" id="setTag">Set: <b id="setNum">1</b> • Point: <b id="pointNum">0</b></span>
+    </div>
+
+    <div class="gridMain">
+      <!-- LEFT: controls -->
+      <div class="controls">
+        <!-- SERVE -->
+        <div id="serveSection" class="group">
+          <h2>Serve</h2>
+          <div class="group" style="padding:0; border:none; background:transparent">
+            <div class="label">Serve Type</div>
+            <div class="btnrow" data-group="serveType">
+              <button class="chip">Pendulum</button>
+              <button class="chip">Backhand</button>
+              <button class="chip">Tomahawk</button>
+              <button class="chip">Hook</button>
+              <button class="chip">Other</button>
+            </div>
+          </div>
+          <div class="grid2">
+            <div class="group">
+              <div class="label">Start/Contact (BH · M · FH)</div>
+              <div class="btnrow" data-group="serveStart">
+                <button class="chip">BH</button>
+                <button class="chip">M</button>
+                <button class="chip">FH</button>
+              </div>
+            </div>
+            <div class="group">
+              <div class="label">Spin (combined)</div>
+              <div class="btnrow" data-group="serveSpinCombo">
+                <button class="chip" data-kind="nos">No Spin</button>
+                <button class="chip" data-kind="u">Under</button>
+                <button class="chip" data-kind="t">Top</button>
+                <button class="chip" data-kind="l">Left</button>
+                <button class="chip" data-kind="r">Right</button>
+              </div>
+            </div>
+          </div>
+          <div class="grid3">
+            <div class="group">
+              <div class="label">Placement (Target + Length)</div>
+              <div class="btnrow" data-group="serveTarget">
+                <button class="chip">BH</button>
+                <button class="chip">M</button>
+                <button class="chip">FH</button>
+              </div>
+              <div class="btnrow" data-group="serveLength">
+                <button class="chip red" data-val="NET">IN THE NET</button>
+                <button class="chip" data-val="S">S</button>
+                <button class="chip" data-val="HL">HL</button>
+                <button class="chip" data-val="L">L</button>
+                <button class="chip red" data-val="LONG">MISSED LONG</button>
+              </div>
+              <div class="label" style="margin-top:6px">Speed</div>
+              <div class="btnrow" data-group="serveSpeed">
+                <button class="chip">Slow</button>
+                <button class="chip">Medium</button>
+                <button class="chip">Fast</button>
+              </div>
+              <div class="label" style="margin-top:6px; color:var(--muted)">Serve errors are always <b>Unforced</b>.</div>
+            </div>
+            <div class="group" style="display:flex;align-items:flex-end;justify-content:flex-end">
+              <div class="inlineActions">
+                <button class="btn reset" id="btnClearServe">Clear</button>
+                <button class="btn confirm" id="btnConfirmServe">Confirm Serve</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SHOT -->
+        <div id="shotSection" class="group" style="display:none">
+          <h2>Shot <span id="shotLabel" class="tag"></span></h2>
+          <div class="group" style="padding:0; border:none; background:transparent">
+            <div class="label">Stroke Type</div>
+            <div class="btnrow" data-group="strokeSide">
+              <button class="chip">Forehand</button>
+              <button class="chip">Backhand</button>
+            </div>
+            <div class="btnrow" data-group="strokeType">
+              <button class="chip" data-stroke="Push">Push</button>
+              <button class="chip" data-stroke="Flick">Flick</button>
+              <button class="chip" data-stroke="Loop">Loop</button>
+              <button class="chip" data-stroke="Hook Loop">Hook Loop</button>
+              <button class="chip" data-stroke="Fade Loop">Fade Loop</button>
+              <button class="chip" data-stroke="Drive">Drive</button>
+              <button class="chip" data-stroke="Block">Block</button>
+              <button class="chip" data-stroke="Smash">Smash</button>
+              <button class="chip" data-stroke="Lob">Lob</button>
+              <button class="chip" data-stroke="Chop">Chop</button>
+              <button class="chip" data-stroke="Dig">Dig</button>
+              <button class="chip" data-stroke="Drop Shot">Drop Shot</button>
+            </div>
+            <div class="btnrow">
+              <button class="chip" id="winnerToggle">Winner (toggle)</button>
+            </div>
+          </div>
+
+          <div class="grid3">
+            <div class="group">
+              <div class="label">Placement (Target + Length)</div>
+              <div class="btnrow" data-group="target">
+                <button class="chip">BH</button>
+                <button class="chip">M</button>
+                <button class="chip">FH</button>
+              </div>
+              <div class="btnrow" data-group="length">
+                <button class="chip red" data-val="NET">IN THE NET</button>
+                <button class="chip" data-val="S">S</button>
+                <button class="chip" data-val="M">M</button>
+                <button class="chip" data-val="L">L</button>
+                <button class="chip red" data-val="LONG">MISSED LONG</button>
+              </div>
+              <div class="btnrow" id="classifyRow">
+                <button class="chip" id="btnUFE">Unforced Error</button>
+                <button class="chip" id="btnFE">Forced Error</button>
+              </div>
+            </div>
+            <div class="group">
+              <div class="label">Spin</div>
+              <div class="btnrow" data-group="spinCombo">
+                <button class="chip" data-kind="nos">No Spin</button>
+                <button class="chip" data-kind="u">Under</button>
+                <button class="chip" data-kind="t">Top</button>
+                <button class="chip" data-kind="l">Left</button>
+                <button class="chip" data-kind="r">Right</button>
+              </div>
+              <div class="label" style="margin-top:6px">Speed</div>
+              <div class="btnrow" data-group="speed">
+                <button class="chip">S</button>
+                <button class="chip">M</button>
+                <button class="chip">F</button>
+              </div>
+              <div class="inlineActions" style="margin-top:6px">
+                <button class="btn reset" id="btnClearShot">Clear</button>
+                <button class="btn confirm" id="btnConfirmShot">Confirm Shot</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom controls -->
+        <div class="toolbar">
+          <button class="btn" id="btnUndo">Undo last entry</button>
+          <button class="btn" id="btnExportCSV">Export CSV</button>
+          <button class="btn" id="btnExportJSON">Export JSON</button>
+          <button class="btn" id="btnResetRally">Reset current rally</button>
+        </div>
+      </div>
+
+      <!-- RIGHT: current + log -->
+      <div class="rightCol">
+        <div class="group">
+          <div class="preview" id="livePreview">Current: —</div>
+        </div>
+        <div class="group">
+          <div class="log">
+            <h3>Game Log</h3>
+            <ol id="logList"></ol>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const DEFAULT_SPIN = {
+    'Push': {spin:'N', side:'0'},
+    'Flick': {spin:'T', side:'0'},
+    'Loop': {spin:'T', side:'0'},
+    'Hook Loop': {spin:'T', side:'R'},
+    'Fade Loop': {spin:'T', side:'L'},
+    'Drive': {spin:'T', side:'0'},
+    'Block': {spin:'N', side:'0'},
+    'Smash': {spin:'N', side:'0'},
+    'Lob': {spin:'N', side:'0'},
+    'Chop': {spin:'U', side:'0'},
+    'Dig': {spin:'U', side:'0'},
+    'Drop Shot': {spin:'N', side:'0'}
+  };
+
+  const S = {
+    stage: 'serve_contact',
+    server: 'P1',
+    servesLeft: 2,
+    setNum: 1,
+    pointNum: 0,
+    setScore: { P1:0, P2:0 },
+    pts: { P1:0, P2:0 },
+    lastLanding: null,
+    shotsInPoint: [], // includes Serve (shot=1) followed by Strokes
+    matchLog: [],
+    pick: {
+      serveType:null, serveSpin:null, serveSideSpin:null, serveSpeed:null, serveStart:null, serveTarget:null, serveLength:null,
+      strokeType:null, strokeSide:null, target:null, length:null, spin:null, sideSpin:null, speed:null, winner:false,
+      classify:'UFE', spinTouched:false
+    },
+    history: []
+  };
+
+  const $ = (sel, root=document)=> root.querySelector(sel);
+  const $$ = (sel, root=document)=> Array.from(root.querySelectorAll(sel));
+
+  wireUI();
+  setServer('P1'); updateHeader(); updateUI(); updateLive(); swapSections(); refreshClassify();
+
+  function snapshot(){
+    const snap = JSON.parse(JSON.stringify(S));
+    S.history.push(snap);
+  }
+  function undoLast(){
+    if(!S.history.length) return;
+    const prev = S.history.pop();
+    const keep = ['history'];
+    for(const k of Object.keys(S)){
+      if(keep.includes(k)) continue;
+      S[k] = prev[k];
+    }
+    rebuildLogUI();
+    updateHeader(); updateUI(); updateLive(); swapSections(); refreshClassify();
+  }
+
+  function wireUI(){
+    $('#btnP1Serve').addEventListener('click', ()=> setServer('P1'));
+    $('#btnP2Serve').addEventListener('click', ()=> setServer('P2'));
+    $('#btnUndo').addEventListener('click', undoLast);
+    $('#btnExportCSV').addEventListener('click', exportCSV);
+    $('#btnExportJSON').addEventListener('click', exportJSON);
+
+    $('#winnerToggle')?.addEventListener('click', (e)=>{
+      S.pick.winner = !S.pick.winner;
+      e.target.classList.toggle('active', S.pick.winner);
+      updateLive();
+    });
+
+    $('#btnUFE')?.addEventListener('click', ()=> { S.pick.classify='UFE'; refreshClassify(); updateLive(); });
+    $('#btnFE')?.addEventListener('click', ()=> { S.pick.classify='FE'; refreshClassify(); updateLive(); });
+
+    $$('[data-group]').forEach(group => {
+      group.addEventListener('click', (e)=>{
+        const btn = e.target.closest('.chip'); if(!btn) return;
+        const key = group.getAttribute('data-group');
+
+        if(key==='spinCombo' || key==='serveSpinCombo'){
+          handleSpinCombo(group, btn, key==='serveSpinCombo');
+          if(key==='spinCombo') S.pick.spinTouched = true;
+          updateLive(); return;
+        }
+        if(key==='length'){
+          selectSingle(group, btn);
+          const val = getBtnVal(btn);
+          S.pick.length = val;
+          if(val==='NET' || val==='LONG'){ S.pick.classify = 'UFE'; refreshClassify(); }
+          updateLive(); return;
+        }
+        if(key==='serveLength'){
+          selectSingle(group, btn);
+          const val = getBtnVal(btn);
+          S.pick.serveLength = val; updateLive(); return;
+        }
+        if(key==='strokeType'){
+          selectSingle(group, btn);
+          const val = btn.getAttribute('data-stroke') || btn.textContent.trim();
+          S.pick.strokeType = val;
+          if(!S.pick.spinTouched && DEFAULT_SPIN[val]){
+            const d = DEFAULT_SPIN[val];
+            S.pick.spin = d.spin; S.pick.sideSpin = d.side;
+            syncSpinButtons('spinCombo', d.spin, d.side);
+          }
+          updateLive(); return;
+        }
+
+        selectSingle(group, btn);
+        const map = {
+          serveType:'serveType', serveSpeed:'serveSpeed', serveStart:'serveStart',
+          serveTarget:'serveTarget',
+          target:'target', speed:'speed', strokeSide:'strokeSide'
+        };
+        const value = getBtnVal(btn);
+        S.pick[map[key]||key] = value;
+        updateLive();
+      });
+    });
+
+    $('#btnConfirmServe').addEventListener('click', confirmServe);
+    $('#btnConfirmShot').addEventListener('click', confirmShot);
+    $('#btnClearServe').addEventListener('click', ()=>{ clearServePick(); updateLive(); });
+    $('#btnClearShot').addEventListener('click', ()=>{ clearShotPick(); updateLive(); });
+    $('#btnResetRally').addEventListener('click', ()=>{ startNewPoint(); updateUI(); updateLive(); swapSections(); });
+  }
+
+  function getBtnVal(btn){ return btn.getAttribute('data-val') || btn.textContent.trim(); }
+  function selectSingle(group, btn){
+    $$('.chip', group).forEach(b=> b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+
+  function handleSpinCombo(group, btn, isServe){
+    const chips = $$('.chip', group);
+    const kind = btn.getAttribute('data-kind');
+
+    if(kind==='nos'){
+      chips.forEach(c=> c.classList.remove('active'));
+      btn.classList.add('active');
+      if(isServe){ S.pick.serveSpin='N'; S.pick.serveSideSpin='0'; }
+      else { S.pick.spin='N'; S.pick.sideSpin='0'; }
+      return;
+    }
+
+    btn.classList.toggle('active');
+    const activeKinds = new Set($$('.chip.active', group).map(c=> c.getAttribute('data-kind')));
+    if(activeKinds.size>0 && activeKinds.has('nos')){
+      const nosBtn = $('.chip[data-kind="nos"]', group);
+      nosBtn && nosBtn.classList.remove('active');
+      activeKinds.delete('nos');
+    }
+    if(activeKinds.has('u') && activeKinds.has('t')){
+      chips.forEach(c=>{ const k=c.getAttribute('data-kind'); if(k==='u' || k==='t'){ if(k!==kind) c.classList.remove('active'); } });
+      activeKinds.clear(); activeKinds.add(kind);
+    }
+    if(activeKinds.has('l') && activeKinds.has('r')){
+      chips.forEach(c=>{ const k=c.getAttribute('data-kind'); if(k==='l' || k==='r'){ if(k!==kind) c.classList.remove('active'); } });
+      activeKinds.clear(); activeKinds.add(kind);
+    }
+    const spinVal = activeKinds.has('u') ? 'U' : activeKinds.has('t') ? 'T' : (activeKinds.size===0 ? null : 'N');
+    const sideVal = activeKinds.has('l') ? 'L' : activeKinds.has('r') ? 'R' : (activeKinds.has('nos') ? '0' : null);
+    if(isServe){
+      if(spinVal) S.pick.serveSpin = spinVal;
+      if(sideVal!==null) S.pick.serveSideSpin = sideVal;
+      if(activeKinds.size===0){ S.pick.serveSpin=null; S.pick.serveSideSpin=null; }
+    }else{
+      if(spinVal) S.pick.spin = spinVal;
+      if(sideVal!==null) S.pick.sideSpin = sideVal;
+      if(activeKinds.size===0){ S.pick.spin=null; S.pick.sideSpin=null; }
+    }
+  }
+
+  function setServer(who){
+    S.server = who; S.servesLeft = 2;
+    startNewPoint();
+    updateHeader(); swapSections();
+  }
+
+  function startNewPoint(){
+    S.stage = 'serve_contact';
+    S.lastLanding = null;
+    S.shotsInPoint = []; // new rally, no shots yet
+    clearServePick(); clearShotPick();
+    updateShotLabel();
+  }
+
+  function currentHitter(){
+    if(S.stage==='serve_contact') return S.server;
+    if(!S.lastLanding) return S.server;
+    return (S.lastLanding.half==='top') ? 'P2' : 'P1';
+  }
+  function currentHitterName(){ return currentHitter()==='P1' ? (plName('#pl1')||'Player 1') : (plName('#pl2')||'Player 2'); }
+  function plName(id){
+    if(id==='P1') return $('#pl1').value || 'Player 1';
+    if(id==='P2') return $('#pl2').value || 'Player 2';
+    return $(id).value || (id==='#pl1'?'Player 1':'Player 2');
+  }
+  function bothNamesEntered(){ return ($('#pl1').value||'').trim() && ($('#pl2').value||'').trim(); }
+
+  function updateHeader(){
+    $('#p1NameScore').textContent = plName('#pl1')||'Player 1';
+    $('#p2NameScore').textContent = plName('#pl2')||'Player 2';
+    $('#p1Card').classList.toggle('activeName', currentHitter()==='P1');
+    $('#p2Card').classList.toggle('activeName', currentHitter()==='P2');
+    $('#serverTag').textContent = 'Server: ' + (S.server==='P1'? plName('#pl1'): plName('#pl2'));
+    $('#serveCount').textContent = 'Serves left: ' + S.servesLeft;
+    $('#setNum').textContent = S.setNum;
+    $('#pointNum').textContent = S.pointNum;
+    $('#p1Set').textContent = S.setScore.P1;
+    $('#p2Set').textContent = S.setScore.P2;
+    $('#p1Pts').textContent = S.pts.P1;
+    $('#p2Pts').textContent = S.pts.P2;
+    $('#btnP1Serve').classList.toggle('active', S.server==='P1');
+    $('#btnP2Serve').classList.toggle('active', S.server==='P2');
+  }
+  function updateUI(){ updateHeader(); updateShotLabel(); }
+  function swapSections(){
+    const serveOn = (S.stage==='serve_contact');
+    $('#serveSection').style.display = serveOn ? '' : 'none';
+    $('#shotSection').style.display  = serveOn ? 'none' : '';
+  }
+
+  // Shot ordinal within a point includes Serve as 1
+  function shotOrdinalInPoint(){
+    return S.shotsInPoint.length + 1;
+  }
+  function labelForShot(n){
+    if(n===1) return 'Serve';
+    if(n===2) return 'Receive';
+    if(n===3) return '3rd ball';
+    return `Ball ${n}`;
+  }
+  function updateShotLabel(){
+    if(S.stage==='serve_contact'){ $('#shotLabel').textContent = ''; return; }
+    const n = shotOrdinalInPoint();
+    $('#shotLabel').textContent = `(${labelForShot(n)})`;
+  }
+
+  function updateLive(){
+    if(S.stage==='serve_contact'){
+      const s = S.pick;
+      const len = s.serveLength||'?';
+      const err = (len==='NET'||len==='LONG') ? ' · UFE' : '';
+      setLive(`${currentHitterName()} Serve: ${s.serveType||'?'} | Spin:${s.serveSpin||'?'} / ${s.serveSideSpin||'?'} | Spd:${s.serveSpeed||'?'} | Start:${s.serveStart||'?'} → ${(len==='NET'||len==='LONG')?len:(s.serveTarget||'?')+'-'+len}${err}`);
+    } else {
+      const s = S.pick;
+      const n = shotOrdinalInPoint();
+      const label = labelForShot(n);
+      const len = s.length||'?';
+      const err = (len==='NET'||len==='LONG') ? ` · ${s.classify||'UFE'}` : '';
+      setLive(`${currentHitterName()} ${s.strokeSide||'?'} ${s.strokeType||'?'} (${label}) | → ${(len==='NET'||len==='LONG')?len:(s.target||'?')+'-'+len} | Spin:${s.spin||'?'} / ${s.sideSpin||'?'} | Spd:${s.speed||'?'}${err}${s.winner?' · WINNER':''}`);
+    }
+  }
+  function setLive(t){ $('#livePreview').textContent = 'Current: ' + t; }
+
+  function confirmServe(){
+    if(!bothNamesEntered()){ alert('Please enter both player names before starting.'); return; }
+    const s = S.pick;
+    if(!s.serveStart || !s.serveLength) return;
+    snapshot();
+
+    const shotNum = shotOrdinalInPoint(); // should be 1 for serve
+    if(s.serveLength==='NET' || s.serveLength==='LONG'){
+      const finalServe = {
+        type:'Serve', shotNum, label: labelForShot(shotNum), player: currentHitter(),
+        serveType:s.serveType, spin:s.serveSpin, sideSpin:s.serveSideSpin, speed:s.serveSpeed,
+        startSide:s.serveStart, target:s.serveTarget||'—', length:s.serveLength,
+        outcome:{kind:(s.serveLength==='NET'?'net':'long'), class:'UFE'}
+      };
+      // Log and end point
+      addToLog(finalServe);
+      endPointWithWinner(opponentOf(currentHitter()), [finalServe], true);
+      return;
+    }
+
+    if(!s.serveTarget) return;
+    const shot = {
+      type:'Serve', shotNum, label: labelForShot(shotNum), player: currentHitter(),
+      serveType:s.serveType, spin:s.serveSpin, sideSpin:s.serveSideSpin, speed:s.serveSpeed,
+      startSide:s.serveStart, target:s.serveTarget, length:s.serveLength
+    };
+    S.shotsInPoint.push(shot); addToLog(shot);
+    S.lastLanding = { half: (S.server==='P1'?'top':'bottom'), col: s.serveTarget };
+    clearServePick();
+    S.stage='rally_target'; updateUI(); updateLive(); swapSections();
+  }
+
+  function confirmShot(){
+    const s = S.pick;
+    if(!s.strokeSide || !s.strokeType) return;
+    snapshot();
+
+    const shotNum = shotOrdinalInPoint(); // 2 for receive, etc.
+    if(s.winner && s.length!=='NET' && s.length!=='LONG'){
+      const final = makeStroke({ shotNum, label: labelForShot(shotNum), outcome:{kind:'in', class:'WIN'} });
+      // log then end point
+      addToLog(final);
+      endPointWithWinner(currentHitter(), [final], true);
+      return;
+    }
+
+    if(s.length==='NET' || s.length==='LONG'){
+      const final = makeStroke({ shotNum, label: labelForShot(shotNum), length:s.length, target:s.target||'—', outcome:{kind:(s.length==='NET'?'net':'long'), class:S.pick.classify||'UFE'} });
+      addToLog(final);
+      endPointWithWinner(opponentOf(currentHitter()), [final], true);
+      return;
+    }
+
+    if(!s.target || !s.length) return;
+    const shot = makeStroke({ shotNum, label: labelForShot(shotNum) });
+    S.shotsInPoint.push(shot); addToLog(shot);
+
+    const hitterHalf = currentHitter()==='P1' ? 'bottom' : 'top';
+    const landingHalf = (hitterHalf==='top') ? 'bottom' : 'top';
+    S.lastLanding = {half: landingHalf, col: s.target};
+
+    clearShotPick(); updateUI(); updateLive(); updateShotLabel();
+  }
+
+  function makeStroke(override){
+    const s = S.pick;
+    return Object.assign({
+      type:'Stroke', player: currentHitter(),
+      strokeSide:s.strokeSide, strokeType:s.strokeType,
+      startSide:autoStartCol()||'?', target:s.target||'?', length:s.length||'?',
+      spin:s.spin, sideSpin:s.sideSpin, speed:s.speed
+    }, override||{});
+  }
+
+  function endPointWithWinner(winner, extraShots, alreadyLogged){
+    // Build point record from shotsInPoint (+ any final shot passed in)
+    const shotsAll = alreadyLogged ? [...S.shotsInPoint, ...extraShots] : [...S.shotsInPoint, ...(extraShots||[])];
+    const pointRecord = { set: S.setNum, point: S.pointNum+1, winner, shots: shotsAll };
+    S.matchLog.push(pointRecord);
+
+    if(winner==='P1') S.pts.P1++; else S.pts.P2++;
+    addToLogText(`→ point_to=${plName(winner)} | score=${S.pts.P1}-${S.pts.P2} | no=${S.setNum}.${S.pointNum+1}`);
+
+    S.pointNum += 1;
+    rotateServeIfNeeded();
+
+    // New rally
+    startNewPoint();
+    updateHeader(); updateLive(); swapSections();
+    checkSetComplete();
+  }
+
+  function checkSetComplete(){
+    const p1=S.pts.P1, p2=S.pts.P2;
+    if((p1>=11 || p2>=11) && Math.abs(p1-p2)>=2){
+      const setWinner = (p1>p2)?'P1':'P2';
+      S.setScore[setWinner] += 1;
+      S.setNum += 1;
+      S.pointNum = 0;
+      S.pts.P1 = 0; S.pts.P2 = 0;
+      addToLogText(`— set_to=${plName(setWinner)} —`);
+      updateHeader();
+    }
+  }
+
+  function rotateServeIfNeeded(){
+    S.servesLeft -= 1;
+    if(S.servesLeft<=0){ S.server = (S.server==='P1'?'P2':'P1'); S.servesLeft = 2; }
+  }
+
+  function clearServePick(){
+    S.pick.serveType=S.pick.serveSpin=S.pick.serveSideSpin=S.pick.serveSpeed=S.pick.serveStart=S.pick.serveTarget=S.pick.serveLength=null;
+    clearGroup('serveType'); clearGroup('serveSpinCombo'); clearGroup('serveSpeed'); clearGroup('serveStart'); clearGroup('serveTarget'); clearGroup('serveLength');
+  }
+  function clearShotPick(){
+    S.pick.strokeType=S.pick.strokeSide=S.pick.target=S.pick.length=S.pick.spin=S.pick.sideSpin=S.pick.speed=null;
+    S.pick.winner=false; S.pick.classify='UFE'; S.pick.spinTouched=false;
+    clearGroup('strokeType'); clearGroup('strokeSide'); clearGroup('spinCombo'); clearGroup('target'); clearGroup('length'); clearGroup('speed');
+    $('#winnerToggle')?.classList.remove('active'); refreshClassify();
+  }
+  function clearGroup(key){
+    const g = document.querySelector('[data-group="'+key+'"]'); if(!g) return;
+    $$('.chip', g).forEach(b=> b.classList.remove('active'));
+  }
+  function syncSpinButtons(groupKey, spin, side){
+    const g = document.querySelector('[data-group="'+groupKey+'"]'); if(!g) return;
+    $$('.chip', g).forEach(b=> b.classList.remove('active'));
+    if(spin==='N'){ $('.chip[data-kind="nos"]', g).classList.add('active'); }
+    if(spin==='U'){ $('.chip[data-kind="u"]', g).classList.add('active'); }
+    if(spin==='T'){ $('.chip[data-kind="t"]', g).classList.add('active'); }
+    if(side==='L'){ $('.chip[data-kind="l"]', g).classList.add('active'); }
+    if(side==='R'){ $('.chip[data-kind="r"]', g).classList.add('active'); }
+  }
+
+  function autoStartCol(){ return S.lastLanding ? S.lastLanding.col : null; }
+  function opponentOf(p){ return p==='P1' ? 'P2' : 'P1'; }
+
+  // Logging
+  function addToLog(shot){
+    const list = $('#logList'); const li = document.createElement('li');
+    li.textContent = kvLineFor(shot);
+    list.appendChild(li);
+    const logBox = list.parentElement; logBox.scrollTop = logBox.scrollHeight;
+  }
+  function addToLogText(t){
+    const list = $('#logList'); const li = document.createElement('li');
+    li.textContent = t;
+    list.appendChild(li);
+    const logBox = list.parentElement; logBox.scrollTop = logBox.scrollHeight;
+  }
+  function kvLineFor(shot){
+    const fields = [
+      `set=${S.setNum}`, `point=${S.pointNum+1}`, `shot=${shot.shotNum||shotOrdinalInPoint()}`, `label=${shot.label||labelForShot(shot.shotNum||shotOrdinalInPoint())}`,
+      `player=${plName(shot.player)}`, `type=${shot.type}`
+    ];
+    if(shot.type==='Serve'){
+      fields.push(`serveType=${shot.serveType||''}`, `start=${shot.startSide||''}`, `target=${shot.length==='NET'||shot.length==='LONG' ? '—' : (shot.target||'')}`,
+                  `length=${shot.length||''}`, `spin=${shot.spin||''}`, `sidespin=${shot.sideSpin||''}`, `speed=${shot.speed||''}`);
+    } else {
+      fields.push(`side=${shot.strokeSide||''}`, `stroke=${shot.strokeType||''}`, `start=${shot.startSide||''}`,
+                  `target=${shot.length==='NET'||shot.length==='LONG' ? '—' : (shot.target||'')}`, `length=${shot.length||''}`,
+                  `spin=${shot.spin||''}`, `sidespin=${shot.sideSpin||''}`, `speed=${shot.speed||''}`);
+    }
+    if(shot.outcome){
+      if(shot.outcome.class==='WIN'){ fields.push(`outcome=WINNER`); }
+      else { fields.push(`outcome=${(shot.outcome.kind||'').toUpperCase()}_${shot.outcome.class}`); }
+    }
+    return fields.join(' | ');
+  }
+
+  function rebuildLogUI(){
+    const list = $('#logList'); list.innerHTML='';
+    for(const pt of S.matchLog){
+      let idx = 0;
+      for(const sh of pt.shots){
+        idx++;
+        const label = labelForShot(idx);
+        const fields = [
+          `set=${pt.set}`, `point=${pt.point}`, `shot=${idx}`, `label=${label}`,
+          `player=${plName(sh.player)}`, `type=${sh.type}`
+        ];
+        if(sh.type==='Serve'){
+          fields.push(`serveType=${sh.serveType||''}`, `start=${sh.startSide||''}`, `target=${sh.length==='NET'||sh.length==='LONG' ? '—' : (sh.target||'')}`,
+                      `length=${sh.length||''}`, `spin=${sh.spin||''}`, `sidespin=${sh.sideSpin||''}`, `speed=${sh.speed||''}`);
+        } else {
+          fields.push(`side=${sh.strokeSide||''}`, `stroke=${sh.strokeType||''}`, `start=${sh.startSide||''}`,
+                      `target=${sh.length==='NET'||sh.length==='LONG' ? '—' : (sh.target||'')}`, `length=${sh.length||''}`,
+                      `spin=${sh.spin||''}`, `sidespin=${sh.sideSpin||''}`, `speed=${sh.speed||''}`);
+        }
+        if(sh.outcome){
+          if(sh.outcome.class==='WIN'){ fields.push(`outcome=WINNER`); }
+          else { fields.push(`outcome=${(sh.outcome.kind||'').toUpperCase()}_${sh.outcome.class}`); }
+        }
+        list.appendChild(Object.assign(document.createElement('li'), {textContent: fields.join(' | ')}));
+      }
+      list.appendChild(Object.assign(document.createElement('li'), {textContent: `→ point_to=${plName(pt.winner)} | score=${S.pts.P1}-${S.pts.P2} | no=${pt.set}.${pt.point}`}));
+    }
+  }
+
+  // Clean CSV export
+  function exportCSV(){
+    const headers = [
+      'Set','Point','Shot','Label','Player','Type',
+      'StrokeSide','StrokeType','ServeType','Start','Target','Length',
+      'Spin','SideSpin','Speed','OutcomeKind','OutcomeClass','kv_line'
+    ];
+    const rows = [headers];
+
+    for(const pt of S.matchLog){
+      let idx = 0;
+      for(const sh of pt.shots){
+        idx++;
+        const label = labelForShot(idx);
+        const outcomeKind = sh.outcome ? (sh.outcome.kind||'') : '';
+        const outcomeClass = sh.outcome ? (sh.outcome.class||'') : '';
+        const kv = [
+          `set=${pt.set}`, `point=${pt.point}`, `shot=${idx}`, `label=${label}`,
+          `player=${plName(sh.player)}`, `type=${sh.type}`,
+          ...(sh.type==='Serve'
+            ? [`serveType=${sh.serveType||''}`, `start=${sh.startSide||''}`, `target=${sh.length==='NET'||sh.length==='LONG' ? '—' : (sh.target||'')}`, `length=${sh.length||''}`, `spin=${sh.spin||''}`, `sidespin=${sh.sideSpin||''}`, `speed=${sh.speed||''}`]
+            : [`side=${sh.strokeSide||''}`, `stroke=${sh.strokeType||''}`, `start=${sh.startSide||''}`, `target=${sh.length==='NET'||sh.length==='LONG' ? '—' : (sh.target||'')}`, `length=${sh.length||''}`, `spin=${sh.spin||''}`, `sidespin=${sh.sideSpin||''}`, `speed=${sh.speed||''}`]
+          ),
+          ...(sh.outcome ? [sh.outcome.class==='WIN' ? `outcome=WINNER` : `outcome=${(sh.outcome.kind||'').toUpperCase()}_${sh.outcome.class}`] : [])
+        ].join(' | ');
+
+        rows.push([
+          pt.set, pt.point, idx, label,
+          plName(sh.player), sh.type,
+          sh.strokeSide||'', sh.strokeType||'',
+          sh.serveType||'',
+          sh.startSide||'',
+          sh.target||'',
+          sh.length||'',
+          sh.spin||'',
+          sh.sideSpin||'',
+          sh.speed||'',
+          outcomeKind, outcomeClass, kv
+        ]);
+      }
+    }
+
+    const csv = rows.map(r=> r.map(v=> `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+    downloadBlob(csv, 'text/csv', 'tt_game_log.csv');
+  }
+
+  function exportJSON(){
+    const data = {
+      players: { P1: plName('P1'), P2: plName('P2') },
+      sets: S.setScore,
+      points: S.pts,
+      matchLog: S.matchLog
+    };
+    const json = JSON.stringify(data, null, 2);
+    downloadBlob(json, 'application/json', 'tt_game_log.json');
+  }
+
+  function downloadBlob(content, type, filename){
+    const blob = new Blob([content], {type});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+})();</script>
+</body>
+</html>

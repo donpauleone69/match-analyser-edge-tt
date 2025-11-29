@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TT Rally Tagger — Serve/Score/Preview + Under-Table Status</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#151a24; --panel2:#1b2230; --ink:#e6e9ef; --muted:#9aa4b2;
+    --grid:#2b3447; --border:#30384a; --table:#0b4a86; --accent:#6aa6ff; --accent2:#7ee787; --danger:#ff6b6b;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Arial}
+  .wrap{display:grid;grid-template-columns:2fr 1fr;gap:12px;padding:12px;min-height:100vh}
+  /* Left: table */
+  .left{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px}
+  .scorebar{display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:6px}
+  .score{font-size:20px;font-weight:700;padding:6px 10px;border:1px solid var(--border);border-radius:8px;background:var(--panel2)}
+  .serverTag{font-size:12px;padding:2px 6px;border-radius:999px;border:1px solid var(--border);background:rgba(122,166,255,.15)}
+  .nameRow{display:flex;justify-content:space-between;align-items:center}
+  .nameRow .side{display:flex;align-items:center;gap:8px}
+  input.player{background:var(--panel2);border:1px solid var(--border);color:var(--ink);border-radius:10px;padding:8px 10px;width:70%;text-align:center}
+  .nameBtn{background:var(--panel2);border:1px solid var(--border);color:var(--ink);border-radius:10px;padding:6px 10px;cursor:pointer}
+  .nameBtn.active{border-color:var(--accent); box-shadow:0 0 0 1px var(--accent) inset}
+  .courtWrap{position:relative}
+  .court{
+    position:relative;border-radius:12px;overflow:hidden;background:var(--table);
+    border:1px solid var(--border); aspect-ratio: 19/10; min-height:300px;
+    display:grid; grid-template-rows: 1fr 1fr; /* top half, bottom half */
+  }
+  .overlay{position:absolute; inset:0; pointer-events:none}
+  .half{
+    position:relative; display:grid; grid-template-columns:repeat(3, 1fr);
+    grid-template-rows:repeat(3, 1fr); border-bottom:1px solid #ffffff;
+  }
+  .half.bottom{border-bottom:none; border-top:1px solid #ffffff;}
+  /* grid cell */
+  .cell{
+    position:relative; border:1px solid var(--grid); display:flex; align-items:center; justify-content:center;
+    color:#eaf2ff; font-weight:600; letter-spacing:.3px; text-shadow:0 1px 0 rgba(0,0,0,.25);
+    user-select:none; cursor:pointer;
+  }
+  .cell small{display:block;color:var(--muted);font-weight:500;letter-spacing:0;text-shadow:none}
+  .cell:hover{background:rgba(255,255,255,0.05)}
+  .net{position:absolute; left:0; right:0; top:50%; height:2px; background:#fff; transform:translateY(-50%)}
+  /* Labels help */
+  .axisLabels{
+    position:absolute; inset:0; pointer-events:none; display:flex; align-items:center; justify-content:center; gap:10px;
+    color:#fff; font-weight:700; text-transform:uppercase; opacity:.5;
+  }
+  .axisLabels .rowLab{position:absolute; left:6px; font-size:12px; writing-mode:vertical-rl; text-orientation:upright; top:8px}
+  .axisLabels .colLab{position:absolute; bottom:6px; font-size:12px}
+  .axisLabels .sideTag{position:absolute; top:6px; right:8px; background:rgba(0,0,0,.25); padding:2px 6px; border-radius:8px; font-size:12px}
+  /* Under-table status + log */
+  .underbar{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:8px}
+  .playerBadge{display:flex; align-items:center; gap:8px}
+  .pill{font-size:12px;padding:4px 8px;border-radius:999px;border:1px solid var(--border); background:var(--panel2); color:var(--ink)}
+  .handPill{border-color:var(--accent); background:rgba(106,166,255,.12)}
+  .rolePill{border-color:var(--accent2); background:rgba(126,231,135,.12)}
+  .log{flex:1; margin-left:12px; background:var(--panel2); border:1px solid var(--border); border-radius:10px; padding:8px; max-height:200px; overflow:auto}
+  .log h3{margin:0 0 6px; font-size:14px}
+  .log ol{margin:0; padding-left:18px}
+  /* Right panel */
+  .right{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:12px}
+  h2{font-size:16px;margin:0 0 4px}
+  .section{border-top:1px solid var(--border); padding-top:10px}
+  .group{margin:6px 0}
+  .label{color:var(--muted); font-size:12px; margin-bottom:4px}
+  .btnrow{display:flex; gap:8px; flex-wrap:wrap}
+  .chip{background:var(--panel2); border:1px solid var(--border); color:var(--ink); padding:8px 10px; border-radius:10px; cursor:pointer}
+  .chip:active{transform:translateY(1px)}
+  .chip.active{border-color:var(--accent); box-shadow:0 0 0 1px var(--accent) inset}
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+  .btn{background:var(--panel2); border:1px solid var(--border); color:var(--ink); padding:8px 10px; border-radius:10px; cursor:pointer}
+  .btn.confirm{border-color:var(--accent2); box-shadow:0 0 0 1px var(--accent2) inset}
+  .btn.danger{border-color:var(--danger); box-shadow:0 0 0 1px var(--danger) inset}
+  /* Responsive */
+  @media (max-width: 980px){ .wrap{grid-template-columns:1fr} input.player{width:60%} .underbar{flex-direction:column; align-items:stretch} .log{margin-left:0} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="left">
+    <div class="scorebar">
+      <span class="serverTag" id="serverTag">Server: —</span>
+      <div class="score" id="scoreText">0 — 0</div>
+      <span class="serverTag" id="serveCount">Serves left: 2</span>
+    </div>
+
+    <div class="nameRow">
+      <div class="side">
+        <button class="nameBtn" id="btnP2Serve">Serve First</button>
+        <input class="player" id="pl2" placeholder="Player 2 name">
+      </div>
+      <div class="side">
+        <input class="player" id="pl1" placeholder="Player 1 name">
+        <button class="nameBtn" id="btnP1Serve">Serve First</button>
+      </div>
+    </div>
+
+    <div class="courtWrap">
+      <div class="court" id="court">
+        <svg class="overlay" id="overlay"></svg>
+        <div class="net" aria-hidden="true"></div>
+        <!-- Top half: Player 2 -->
+        <div class="half top" data-half="top">
+          <div class="cell" data-depth="S" data-col="FH">S-FH<small>Short / FH</small></div>
+          <div class="cell" data-depth="S" data-col="M">S-M<small>Short / M</small></div>
+          <div class="cell" data-depth="S" data-col="BH">S-BH<small>Short / BH</small></div>
+          <div class="cell" data-depth="H" data-col="FH">H-FH<small>Half / FH</small></div>
+          <div class="cell" data-depth="H" data-col="M">H-M<small>Half / M</small></div>
+          <div class="cell" data-depth="H" data-col="BH">H-BH<small>Half / BH</small></div>
+          <div class="cell" data-depth="L" data-col="FH">L-FH<small>Long / FH</small></div>
+          <div class="cell" data-depth="L" data-col="M">L-M<small>Long / M</small></div>
+          <div class="cell" data-depth="L" data-col="BH">L-BH<small>Long / BH</small></div>
+        </div>
+        <!-- Bottom half: Player 1 -->
+        <div class="half bottom" data-half="bottom">
+          <div class="cell" data-depth="S" data-col="FH">S-FH<small>Short / FH</small></div>
+          <div class="cell" data-depth="S" data-col="M">S-M<small>Short / M</small></div>
+          <div class="cell" data-depth="S" data-col="BH">S-BH<small>Short / BH</small></div>
+          <div class="cell" data-depth="H" data-col="FH">H-FH<small>Half / FH</small></div>
+          <div class="cell" data-depth="H" data-col="M">H-M<small>Half / M</small></div>
+          <div class="cell" data-depth="H" data-col="BH">H-BH<small>Half / BH</small></div>
+          <div class="cell" data-depth="L" data-col="FH">L-FH<small>Long / FH</small></div>
+          <div class="cell" data-depth="L" data-col="M">L-M<small>Long / M</small></div>
+          <div class="cell" data-depth="L" data-col="BH">L-BH<small>Long / BH</small></div>
+        </div>
+        <div class="axisLabels">
+          <div class="sideTag">Top: Player 2</div>
+          <div class="rowLab">S H L</div>
+          <div class="colLab">FH &nbsp; M &nbsp; BH</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Under-table status + log -->
+    <div class="underbar">
+      <div class="playerBadge">
+        <span class="pill rolePill" id="underRole">Receiver</span>
+        <span class="pill" id="underPlayer">Player 1 (Bottom)</span>
+        <span class="pill handPill" id="underHand">—</span>
+      </div>
+      <div class="log">
+        <h3>Rally Log</h3>
+        <ol id="logList"></ol>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="right">
+    <div class="section">
+      <h2>Serve</h2>
+      <div class="group">
+        <div class="label">Serve Type</div>
+        <div class="btnrow" data-group="serveType">
+          <button class="chip">Pendulum</button>
+          <button class="chip">Backhand</button>
+          <button class="chip">Tomahawk</button>
+          <button class="chip">Hook</button>
+          <button class="chip">Other</button>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="group">
+          <div class="label">Spin</div>
+          <div class="btnrow" data-group="serveSpin">
+            <button class="chip">Under</button>
+            <button class="chip">Top</button>
+            <button class="chip">NoSpin</button>
+          </div>
+        </div>
+        <div class="group">
+          <div class="label">SideSpin</div>
+          <div class="btnrow" data-group="serveSide">
+            <button class="chip">Left</button>
+            <button class="chip">Right</button>
+            <button class="chip">NoSide</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="label">Speed</div>
+        <div class="btnrow" data-group="serveSpeed">
+          <button class="chip">Slow</button>
+          <button class="chip">Medium</button>
+          <button class="chip">Fast</button>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="group">
+          <div class="label">Start/Contact Side (click server half)</div>
+          <div class="btnrow" data-group="serveStart">
+            <button class="chip">FH</button>
+            <button class="chip">BH</button>
+            <button class="chip">M</button>
+          </div>
+        </div>
+        <div class="group">
+          <div class="label">Target (click receiver half)</div>
+          <div class="btnrow" data-group="serveTarget">
+            <button class="chip">FH</button>
+            <button class="chip">BH</button>
+            <button class="chip">M</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="group">
+          <div class="label">Length</div>
+          <div class="btnrow" data-group="serveLength">
+            <button class="chip">S</button>
+            <button class="chip">H</button>
+            <button class="chip">L</button>
+          </div>
+        </div>
+      </div>
+      <div class="btnrow">
+        <button class="btn" id="btnClearServe">Clear Preview</button>
+        <button class="btn confirm" id="btnConfirmServe">Confirm Serve</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Rally Stroke</h2>
+
+      <div class="grid2">
+        <div class="group">
+          <div class="label">Target (or click opposite half)</div>
+          <div class="btnrow" data-group="target">
+            <button class="chip">FH</button>
+            <button class="chip">BH</button>
+            <button class="chip">M</button>
+          </div>
+        </div>
+        <div class="group">
+          <div class="label">Length</div>
+          <div class="btnrow" data-group="length">
+            <button class="chip">S</button>
+            <button class="chip">H</button>
+            <button class="chip">L</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="group">
+          <div class="label">Spin</div>
+          <div class="btnrow" data-group="spin">
+            <button class="chip">U</button>
+            <button class="chip">T</button>
+            <button class="chip">N</button>
+            <button class="chip">M</button>
+          </div>
+        </div>
+        <div class="group">
+          <div class="label">SideSpin</div>
+          <div class="btnrow" data-group="sideSpin">
+            <button class="chip">L</button>
+            <button class="chip">R</button>
+            <button class="chip">0</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="group">
+          <div class="label">Speed</div>
+          <div class="btnrow" data-group="speed">
+            <button class="chip">S</button>
+            <button class="chip">M</button>
+            <button class="chip">F</button>
+          </div>
+        </div>
+        <div class="group">
+          <div class="label">Stroke Type + Side</div>
+          <div class="btnrow" data-group="strokeSide">
+            <button class="chip">Forehand</button>
+            <button class="chip">Backhand</button>
+          </div>
+          <div class="btnrow" data-group="strokeType">
+            <button class="chip">Push</button>
+            <button class="chip">Flick</button>
+            <button class="chip">Loop</button>
+            <button class="chip">Block</button>
+            <button class="chip">Drive</button>
+            <button class="chip">Smash</button>
+            <button class="chip">Lob</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="btnrow">
+        <button class="btn" id="btnClearShot">Clear Preview</button>
+        <button class="btn confirm" id="btnConfirmShot">Confirm Shot</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Outcome</h2>
+      <div class="grid2">
+        <div class="group">
+          <div class="label">Who/Type</div>
+          <div class="btnrow" data-group="outcome">
+            <button class="chip">MW</button>
+            <button class="chip">OW</button>
+            <button class="chip">MUE</button>
+            <button class="chip">OUE</button>
+          </div>
+        </div>
+        <div class="group">
+          <div class="label">Err Dir</div>
+          <div class="btnrow" data-group="errDir">
+            <button class="chip">Net</button>
+            <button class="chip">Long</button>
+            <button class="chip">Side</button>
+            <button class="chip">Edge</button>
+            <button class="chip">–</button>
+          </div>
+        </div>
+      </div>
+      <div class="btnrow">
+        <button class="btn confirm" id="btnConfirmOutcome">Confirm Outcome</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+(function(){
+  const state = {
+    stage: 'serve_contact', // serve_contact -> serve_target -> rally_target
+    server: 'P1', // 'P1' or 'P2'
+    servesLeft: 2,
+    score: { P1:0, P2:0 },
+    lastLanding: null,
+    shots: [],
+    selections: {
+      serveType:null, serveSpin:null, serveSideSpin:null, serveSpeed:null, serveStart:null, serveTarget:null, serveLength:null,
+      strokeType:null, strokeSide:null, target:null, length:null, spin:null, sideSpin:null, speed:null,
+      outcome:null, errDir:null
+    },
+    preview: { origin:null, target:null } // {cx,cy,half,depth,col}
+  };
+
+  const $ = (sel, root=document)=> root.querySelector(sel);
+  const $$ = (sel, root=document)=> Array.from(root.querySelectorAll(sel));
+
+  // Serving first buttons
+  const btnP1 = $('#btnP1Serve'), btnP2 = $('#btnP2Serve');
+  btnP1.addEventListener('click', ()=> setServer('P1'));
+  btnP2.addEventListener('click', ()=> setServer('P2'));
+  function setServer(who){
+    state.server = who; state.servesLeft = 2; updateScoreUI();
+    btnP1.classList.toggle('active', who==='P1');
+    btnP2.classList.toggle('active', who==='P2');
+    state.stage = 'serve_contact';
+    clearPreview(); updateUnderbar();
+  }
+
+  // Score + underbar UI
+  function plName(id){ return $(id).value || (id==='#pl1'?'Player 1':'Player 2'); }
+  function updateScoreUI(){
+    $('#serverTag').textContent = 'Server: ' + (state.server==='P1'? plName('#pl1'): plName('#pl2'));
+    $('#serveCount').textContent = 'Serves left: ' + state.servesLeft;
+    $('#scoreText').textContent = state.score.P1 + ' — ' + state.score.P2;
+  }
+  function updateUnderbar(){
+    const role = (state.server==='P1') ? 'Server (Bottom)' : 'Receiver (Bottom)';
+    $('#underRole').textContent = role;
+    $('#underPlayer').textContent = plName('#pl1') + ' (Bottom)';
+    const hand = state.selections.strokeSide || '—';
+    $('#underHand').textContent = 'Hand: ' + hand;
+  }
+  updateScoreUI(); updateUnderbar();
+
+  // Button groups selection (single-select with highlight)
+  $$('[data-group]').forEach(group => {
+    group.addEventListener('click', (e)=>{
+      const btn = e.target.closest('.chip'); if(!btn) return;
+      $$('.chip', group).forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      const key = group.getAttribute('data-group');
+      const map = {
+        serveType:'serveType', serveSpin:'serveSpin', serveSide:'serveSideSpin', serveSpeed:'serveSpeed', serveStart:'serveStart',
+        serveTarget:'serveTarget', serveLength:'serveLength',
+        target:'target', length:'length', spin:'spin', sideSpin:'sideSpin', speed:'speed',
+        strokeType:'strokeType', strokeSide:'strokeSide',
+        outcome:'outcome', errDir:'errDir'
+      };
+      state.selections[map[key]||key] = btn.textContent.trim();
+      if(key==='strokeSide') updateUnderbar();
+    });
+  });
+
+  // Court clicking -> preview line
+  const court = $('#court');
+  const overlay = $('#overlay');
+  court.addEventListener('click', (e)=>{
+    const cell = e.target.closest('.cell'); if(!cell) return;
+    const halfEl = cell.closest('.half');
+    const half = halfEl.getAttribute('data-half');
+    const depth = cell.getAttribute('data-depth');
+    const col = cell.getAttribute('data-col');
+    const {cx,cy} = cellCenter(cell);
+
+    if(state.stage === 'serve_contact'){
+      // must be clicked on server half
+      const serverHalf = state.server==='P1' ? 'bottom' : 'top';
+      if(half !== serverHalf){ flashMsg('Click on the SERVER half for contact.'); return; }
+      state.preview.origin = {cx,cy,half,depth,col};
+      state.selections.serveStart = col;
+      drawPreview();
+      state.stage = 'serve_target';
+    } else if(state.stage === 'serve_target'){
+      // must be clicked on receiver half
+      const recvHalf = state.server==='P1' ? 'top' : 'bottom';
+      if(half !== recvHalf){ flashMsg('Click on the RECEIVER half for target.'); return; }
+      state.preview.target = {cx,cy,half,depth,col};
+      state.selections.serveTarget = col;
+      state.selections.serveLength = depth;
+      drawPreview();
+    } else {
+      // rally targeting: alternate halves from last landing
+      if(!state.lastLanding){ flashMsg('Confirm the serve first.'); return; }
+      const nextHalf = state.lastLanding.half==='top' ? 'bottom' : 'top';
+      if(half !== nextHalf){ flashMsg('Click on the opposite half from last landing.'); return; }
+      state.preview.origin = {cx:state.lastLanding.cx, cy:state.lastLanding.cy, half:state.lastLanding.half, depth:state.lastLanding.depth, col:state.lastLanding.col};
+      state.preview.target = {cx,cy,half,depth,col};
+      state.selections.target = col;
+      state.selections.length = depth;
+      drawPreview();
+    }
+  });
+
+  function cellCenter(cell){
+    const cRect = $('#court').getBoundingClientRect();
+    const r = cell.getBoundingClientRect();
+    const cx = r.left - cRect.left + r.width/2;
+    const cy = r.top - cRect.top + r.height/2;
+    return {cx,cy};
+  }
+
+  function drawPreview(){
+    overlay.innerHTML = '';
+    if(!state.preview.origin || !state.preview.target) return;
+    const o = state.preview.origin, t = state.preview.target;
+    const svgNS = 'http://www.w3.org/2000/svg';
+    const line = document.createElementNS(svgNS, 'line');
+    line.setAttribute('x1', o.cx); line.setAttribute('y1', o.cy);
+    line.setAttribute('x2', t.cx); line.setAttribute('y2', t.cy);
+    line.setAttribute('stroke', 'white'); line.setAttribute('stroke-width', '2');
+    line.setAttribute('marker-end', 'url(#arrow)');
+    const defs = document.createElementNS(svgNS, 'defs');
+    const marker = document.createElementNS(svgNS, 'marker');
+    marker.setAttribute('id','arrow'); marker.setAttribute('viewBox','0 0 10 10');
+    marker.setAttribute('refX','8'); marker.setAttribute('refY','5');
+    marker.setAttribute('markerWidth','6'); marker.setAttribute('markerHeight','6'); marker.setAttribute('orient','auto-start-reverse');
+    const path = document.createElementNS(svgNS, 'path'); path.setAttribute('d','M 0 0 L 10 5 L 0 10 z'); path.setAttribute('fill','white');
+    marker.appendChild(path); defs.appendChild(marker);
+    overlay.appendChild(defs); overlay.appendChild(line);
+  }
+
+  function clearPreview(){ overlay.innerHTML=''; state.preview.origin=null; state.preview.target=null; }
+
+  // Confirm serve
+  $('#btnConfirmServe').addEventListener('click', ()=>{
+    const s = state.selections;
+    if(!state.preview.origin || !state.preview.target){ flashMsg('Click contact on server half, then target on receiver half.'); return; }
+    const shot = {
+      type:'Serve',
+      server: state.server,
+      serveType: s.serveType, spin: s.serveSpin, sideSpin: s.serveSideSpin, speed: s.serveSpeed,
+      startSide: s.serveStart,
+      target: state.preview.target.col, length: state.preview.target.depth
+    };
+    state.shots.push(shot);
+    addToLog(shot);
+    state.lastLanding = { ...state.preview.target };
+    clearPreview();
+    state.stage = 'rally_target';
+    updateUnderbar();
+  });
+  $('#btnClearServe').addEventListener('click', clearPreview);
+
+  // Confirm shot
+  $('#btnConfirmShot').addEventListener('click', ()=>{
+    const s = state.selections;
+    if(!state.lastLanding){ flashMsg('Serve first.'); return; }
+    if(!state.preview.target){ flashMsg('Click a target on the opposite half.'); return; }
+    const shot = {
+      type:'Stroke',
+      strokeSide: s.strokeSide, strokeType: s.strokeType,
+      target: state.preview.target.col, length: state.preview.target.depth,
+      spin: s.spin, sideSpin: s.sideSpin, speed: s.speed
+    };
+    state.shots.push(shot);
+    addToLog(shot);
+    state.lastLanding = { ...state.preview.target };
+    clearPreview();
+    updateUnderbar();
+  });
+  $('#btnClearShot').addEventListener('click', clearPreview);
+
+  // Confirm outcome -> awards point, rotate serve if needed, reset for next rally
+  $('#btnConfirmOutcome').addEventListener('click', ()=>{
+    const oc = state.selections.outcome;
+    if(!oc){ flashMsg('Select an outcome first.'); return; }
+    if(oc==='MW' || oc==='OUE') state.score.P1 += 1;
+    else if(oc==='OW' || oc==='MUE') state.score.P2 += 1;
+    updateScoreUI();
+    state.servesLeft -= 1;
+    if(state.servesLeft<=0){ state.server = (state.server==='P1'?'P2':'P1'); state.servesLeft = 2; }
+    updateScoreUI();
+    addToLog({type:'Outcome', outcome:oc, errDir: state.selections.errDir });
+    // reset rally
+    state.stage='serve_contact'; state.shots=[]; state.lastLanding=null; clearPreview();
+    // clear selections (keep serve type last used selected? not for now)
+    $$('.chip.active').forEach(b=>b.classList.remove('active'));
+    updateUnderbar();
+  });
+
+  // Rally log (now under the table)
+  function addToLog(shot){
+    const list = $('#logList');
+    const li = document.createElement('li');
+    if(shot.type==='Serve'){
+      li.textContent = `Serve (${nameFor(state.server)}): ${shot.serveType||'?'} | Spin:${shot.spin||'?'} ${shot.sideSpin?('/ '+shot.sideSpin):''} | Speed:${shot.speed||'?'} | Start:${shot.startSide||'?'} → ${shot.target}-${shot.length}`;
+    } else if(shot.type==='Stroke'){
+      li.textContent = `${shot.strokeSide||'?'} ${shot.strokeType||'?'} → ${shot.target}-${shot.length} | Spin:${shot.spin||'?'} ${shot.sideSpin?('/ '+shot.sideSpin):''} | Speed:${shot.speed||'?'}`;
+    } else if(shot.type==='Outcome'){
+      li.textContent = `Outcome: ${shot.outcome}${shot.errDir?(' ('+shot.errDir+')'):''} | Score ${state.score.P1}–${state.score.P2} (Server: ${nameFor(state.server)}, ${state.servesLeft} left)`;
+    }
+    list.appendChild(li);
+    const container = list.parentElement;
+    container.scrollTop = container.scrollHeight;
+  }
+
+  function nameFor(p){ return p==='P1' ? ($('#pl1').value || 'Player 1') : ($('#pl2').value || 'Player 2'); }
+
+  function flashMsg(s){ console.warn(s); }
+
+  // Init defaults
+  setServer('P1');
+})();
+</script>
+</body>
+</html>

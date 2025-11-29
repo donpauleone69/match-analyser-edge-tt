@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TT Rally Tagger — Prototype</title>
+<style>
+  :root{
+    --bg: #0f1115;
+    --panel: #1b1f2a;
+    --panel-2:#222836;
+    --text:#e6e9ef;
+    --muted:#9aa4b2;
+    --accent:#6aa6ff;
+    --accent-2:#7ee787;
+    --danger:#ff6b6b;
+    --warn:#ffd166;
+    --border:#30384a;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font:14px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, "Apple Color Emoji","Segoe UI Emoji";
+  }
+  .wrap{
+    display:grid;
+    grid-template-columns: 2.1fr 1fr;
+    gap:12px;
+    padding:12px;
+    height:100vh;
+  }
+  #courtWrap{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:10px;
+    display:flex;
+    flex-direction:column;
+    min-height:0;
+  }
+  #court{
+    flex:1;
+    width:100%;
+    border-radius:8px;
+    background:#0b4a86;
+    display:block;
+  }
+  .toolbar{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:8px 4px 0;
+    flex-wrap:wrap;
+  }
+  .tag{background:var(--panel-2); padding:6px 8px; border:1px solid var(--border); border-radius:8px; display:inline-flex; gap:6px; align-items:center}
+  .chip{
+    background:transparent; color:var(--text); border:1px solid var(--border);
+    padding:3px 8px; border-radius:999px; cursor:pointer;
+  }
+  .chip.active{border-color:var(--accent); box-shadow:0 0 0 1px var(--accent) inset}
+  .chip.warn{border-color:var(--warn); color:var(--warn)}
+  .chip.danger{border-color:var(--danger); color:var(--danger)}
+  #sidePanel{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:12px;
+    display:flex;
+    flex-direction:column;
+    min-height:0;
+  }
+  h2{font-size:16px; margin:0 0 8px}
+  .section{border-top:1px solid var(--border); margin-top:10px; padding-top:10px}
+  .btn{
+    border:1px solid var(--border);
+    background:var(--panel-2); color:var(--text);
+    padding:8px 10px; border-radius:8px; cursor:pointer;
+  }
+  .btn:disabled{opacity:.5; cursor:not-allowed}
+  .btn-row{display:flex; gap:8px; flex-wrap:wrap}
+  .kbd{
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    background:#111621; color:#cbd5e1; border:1px solid var(--border); border-bottom-color:#1a2233;
+    padding:1px 6px; border-radius:6px; font-size:12px;
+  }
+  .hotgrid{display:grid; grid-template-columns:repeat(6, max-content); gap:6px 10px; align-items:center}
+  .scroll{overflow:auto}
+  .rallyRow{display:flex; gap:6px; flex-wrap:wrap}
+  .shotChip{
+    border:1px solid var(--border);
+    padding:4px 6px; border-radius:8px; background:transparent; cursor:pointer;
+    white-space:nowrap;
+  }
+  .shotChip:hover{border-color:var(--accent)}
+  .status{color:var(--muted); font-size:12px}
+  .pill{padding:2px 8px; border-radius:999px; border:1px solid var(--border);}
+  .ok{color:var(--accent-2); border-color:var(--accent-2)}
+  .grid-2{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+  .foot{margin-top:auto; display:flex; justify-content:space-between; align-items:center; gap:8px}
+  .small{font-size:12px; color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="courtWrap">
+    <canvas id="court"></canvas>
+    <div class="toolbar">
+      <span class="pill" id="phasePill">Phase: Serve</span>
+      <span class="pill" id="playerPill">Player: A</span>
+      <span class="pill" id="stickyPill">Sticky: —</span>
+      <span class="status" id="hint">Click server bounce (own half)…</span>
+      <div style="margin-left:auto" class="btn-row">
+        <button class="btn" id="btnUndo">Undo <span class="kbd">Backspace</span></button>
+        <button class="btn" id="btnNew">New rally <span class="kbd">N</span></button>
+        <button class="btn" id="btnExport">Export CSV</button>
+      </div>
+    </div>
+  </div>
+  <div id="sidePanel">
+    <h2>Controls</h2>
+    <div class="grid-2">
+      <div>
+        <div><strong>Side</strong></div>
+        <div class="btn-row" id="sideBtns">
+          <button class="btn" data-side="BH">BH <span class="kbd">Q</span></button>
+          <button class="btn" data-side="FH">FH <span class="kbd">W</span></button>
+          <button class="btn" id="clearSide">Clear</button>
+        </div>
+      </div>
+      <div>
+        <div><strong>Stroke</strong></div>
+        <div class="btn-row" id="strokeBtns">
+          <button class="btn" data-stroke="Push">Push <span class="kbd">1</span></button>
+          <button class="btn" data-stroke="Chop">Chop <span class="kbd">2</span></button>
+          <button class="btn" data-stroke="Block">Block <span class="kbd">3</span></button>
+          <button class="btn" data-stroke="Drive">Drive <span class="kbd">4</span></button>
+          <button class="btn" data-stroke="Loop">Loop <span class="kbd">5</span></button>
+          <button class="btn" data-stroke="Flick">Flick <span class="kbd">6</span></button>
+          <button class="btn" data-stroke="Counter">Counter <span class="kbd">7</span></button>
+          <button class="btn" data-stroke="Smash">Smash <span class="kbd">8</span></button>
+        </div>
+      </div>
+      <div>
+        <div><strong>Spin</strong></div>
+        <div class="btn-row" id="spinBtns">
+          <button class="btn" data-spin="None">No <span class="kbd">A</span></button>
+          <button class="btn" data-spin="Side">Side <span class="kbd">S</span></button>
+          <button class="btn" data-spin="Top">Top <span class="kbd">D</span></button>
+          <button class="btn" data-spin="Back">Back <span class="kbd">F</span></button>
+          <button class="btn" data-spin="Kick">Kick <span class="kbd">G</span></button>
+        </div>
+      </div>
+      <div>
+        <div><strong>Serve spin</strong></div>
+        <div class="btn-row" id="serveSpinBtns">
+          <button class="btn" data-sspin="Back">Back <span class="kbd">V</span></button>
+          <button class="btn" data-sspin="Side">Side <span class="kbd">B</span></button>
+          <button class="btn" data-sspin="Top">Top <span class="kbd">N</span></button>
+          <button class="btn" data-sspin="None">No <span class="kbd">M</span></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div><strong>Outcome</strong></div>
+      <div class="btn-row">
+        <button class="btn" id="btnWin">Win <span class="kbd">;</span></button>
+        <button class="btn" id="btnFE">Forced <span class="kbd">'</span></button>
+        <button class="btn" id="btnUE">Unforced <span class="kbd">Enter</span></button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="rallyRow" id="rallyRow"></div>
+      <div class="small" id="serialOut"></div>
+    </div>
+
+    <div class="section scroll" style="max-height:34vh">
+      <h2>Hotkeys</h2>
+      <div class="hotgrid small">
+        <span class="kbd">Q</span><span>BH</span>
+        <span class="kbd">W</span><span>FH</span>
+        <span class="kbd">1–8</span><span>Stroke</span>
+        <span class="kbd">A S D F G</span><span>Spin</span>
+        <span class="kbd">V B N M</span><span>Serve spin</span>
+        <span class="kbd">;</span><span>Win</span>
+        <span class="kbd">'</span><span>Forced error</span>
+        <span class="kbd">Enter</span><span>Unforced error</span>
+        <span class="kbd">Backspace</span><span>Undo shot</span>
+        <span class="kbd">Tab</span><span>Toggle Player</span>
+        <span class="kbd">N</span><span>New rally</span>
+      </div>
+    </div>
+
+    <div class="foot">
+      <div class="small">Rallies: <span id="rallyCount">0</span></div>
+      <div class="small">© Prototype</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ====== Geometry & Canvas ======
+const canvas = document.getElementById('court');
+const ctx = canvas.getContext('2d');
+let DPR = Math.max(1, window.devicePixelRatio || 1);
+
+function resizeCanvas(){
+  const wrap = document.getElementById('courtWrap');
+  const w = wrap.clientWidth - 20; // padding
+  const h = wrap.clientHeight - 100; // toolbar space
+  // keep aspect ~ 2:1
+  const width = Math.min(w, h * 1.9);
+  const height = width/1.9;
+  canvas.style.width = width + 'px';
+  canvas.style.height = height + 'px';
+  canvas.width = Math.round(width * DPR);
+  canvas.height = Math.round(height * DPR);
+  draw();
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+// Court logical coords: (0,0) top-left, (1,1) bottom-right
+function draw(){
+  const w = canvas.width, h = canvas.height;
+  ctx.clearRect(0,0,w,h);
+  // table
+  ctx.fillStyle = '#0b4a86';
+  ctx.fillRect(0,0,w,h);
+  // net line (middle)
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 2 * DPR;
+  ctx.beginPath();
+  ctx.moveTo(0, h/2);
+  ctx.lineTo(w, h/2);
+  ctx.stroke();
+  // 9-zone grid (vertical thirds and horizontal thirds per side)
+  ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+  ctx.lineWidth = 1 * DPR;
+  // vertical thirds
+  for(let i=1;i<=2;i++){
+    ctx.beginPath();
+    ctx.moveTo((w*i)/3, 0);
+    ctx.lineTo((w*i)/3, h);
+    ctx.stroke();
+  }
+  // horizontal thirds
+  for(let i=1;i<=2;i++){
+    ctx.beginPath();
+    ctx.moveTo(0, (h*i)/3);
+    ctx.lineTo(w, (h*i)/3);
+    ctx.stroke();
+  }
+  // draw shots / serve bounces
+  drawMarkers();
+}
+
+function toLogical(evt){
+  const rect = canvas.getBoundingClientRect();
+  const x = (evt.clientX - rect.left) / rect.width;
+  const y = (evt.clientY - rect.top) / rect.height;
+  return {x, y};
+}
+
+function zoneFrom(x, y){
+  // depth: Short (top third), Half (middle third), Long (bottom third)
+  // width: BH (left third), M (middle), FH (right third) from top-down fixed POV
+  const depth = y < 1/3 ? 'S' : y < 2/3 ? 'H' : 'L';
+  const width = x < 1/3 ? 'BH' : x < 2/3 ? 'M' : 'FH';
+  return {depth, width};
+}
+
+function drawCircle(px, py, hollow=false){
+  const r = 6 * DPR;
+  ctx.beginPath();
+  ctx.arc(px, py, r, 0, Math.PI*2);
+  ctx.lineWidth = 2 * DPR;
+  if(hollow){
+    ctx.strokeStyle = '#ffffff';
+    ctx.stroke();
+  }else{
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
+  }
+}
+
+function drawArrow(x1, y1, x2, y2){
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 2 * DPR;
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
+  // arrow head
+  const ang = Math.atan2(y2-y1, x2-x1);
+  const size = 8 * DPR;
+  ctx.beginPath();
+  ctx.moveTo(x2, y2);
+  ctx.lineTo(x2 - size*Math.cos(ang - Math.PI/6), y2 - size*Math.sin(ang - Math.PI/6));
+  ctx.lineTo(x2 - size*Math.cos(ang + Math.PI/6), y2 - size*Math.sin(ang + Math.PI/6));
+  ctx.closePath();
+  ctx.fillStyle = '#ffffff';
+  ctx.fill();
+}
+
+// ====== Data Model ======
+let rallies = [];
+let current = newRally();
+
+function newRally(){
+  return {
+    id: 'R' + String(Date.now()) + '-' + Math.floor(Math.random()*1000),
+    shots: [],
+    outcome: null
+  }
+}
+
+function addShot(shot){
+  current.shots.push(shot);
+  updateUI();
+  draw();
+}
+
+function undoShot(){
+  if(current.shots.length>0){
+    current.shots.pop();
+    current.outcome = null;
+    updateUI();
+    draw();
+  }
+}
+
+function finishRally(type){
+  current.outcome = type;
+  rallies.push(current);
+  current = newRally();
+  updateUI();
+  draw();
+}
+
+// ====== Sticky modifiers ======
+let stickySide = null; // 'FH' | 'BH' | null
+let stickyStroke = null; // string
+let stickySpin = null; // string
+let serveSpin = 'Back'; // default
+
+// ====== Phase & Player Handling ======
+let phase = 'serve1'; // serve1 -> serve2 -> rally
+let player = 'A'; // A serves initially
+
+function togglePlayer(){
+  player = (player === 'A') ? 'B' : 'A';
+  document.getElementById('playerPill').textContent = 'Player: ' + player;
+}
+
+function phaseText(){
+  const map = {serve1:'Serve (bounce)', serve2:'Serve (landing)', rally:'Rally'};
+  return map[phase];
+}
+
+function hintText(){
+  if(phase==='serve1') return 'Click server bounce (own half)…';
+  if(phase==='serve2') return 'Click serve landing (opponent half)…';
+  return 'Click landing for next shot…';
+}
+
+// ====== Marker rendering ======
+function drawMarkers(){
+  const w = canvas.width, h = canvas.height;
+  // draw arrows per shot origin->landing
+  // model stores shots with origin/landing in logical (0..1)
+  for(const shot of current.shots){
+    const x1 = shot.origin.x * w, y1 = shot.origin.y * h;
+    const x2 = shot.landing.x * w, y2 = shot.landing.y * h;
+    drawArrow(x1, y1, x2, y2);
+    // landing marker filled, origin hollow
+    drawCircle(x1, y1, true);
+    drawCircle(x2, y2, false);
+  }
+}
+
+canvas.addEventListener('click', (evt)=>{
+  const p = toLogical(evt);
+  if(phase==='serve1'){
+    // first point must be on server half (top if A serves, bottom if B? We'll fix POV: A serves from top half initially)
+    const bounce = p;
+    current._serveBounce = bounce;
+    phase = 'serve2';
+  }else if(phase==='serve2'){
+    const land = p;
+    // build serve shot
+    const origin = current._serveBounce;
+    const shot = {
+      idx: current.shots.length,
+      player: player,
+      type: 'Serve',
+      side: stickySide, stroke: 'Serve', spin: serveSpin,
+      origin, landing: land,
+      zone_from: zoneFrom(origin.x, origin.y),
+      zone_to: zoneFrom(land.x, land.y),
+      shorthand: 'SV(' + serveSpin + '):' + zoneCode(zoneFrom(origin.x, origin.y)) + '→' + zoneCode(zoneFrom(land.x, land.y))
+    };
+    addShot(shot);
+    phase = 'rally';
+    togglePlayer(); // receiver next
+  }else{
+    // normal rally tap: landing location for the shot from previous landing
+    const shots = current.shots;
+    let origin;
+    if(shots.length>0){
+      origin = shots[shots.length-1].landing;
+    }else{
+      // should not happen but fallback to center top
+      origin = {x:.5, y:.15};
+    }
+    const land = p;
+    const shot = {
+      idx: shots.length,
+      player: player,
+      type: 'Stroke',
+      side: stickySide,
+      stroke: stickyStroke,
+      spin: stickySpin,
+      origin, landing: land,
+      zone_from: zoneFrom(origin.x, origin.y),
+      zone_to: zoneFrom(land.x, land.y),
+    };
+    shot.shorthand = shorthandFor(shot);
+    addShot(shot);
+    togglePlayer();
+  }
+  updateUI();
+  draw();
+});
+
+function zoneCode(z){ return `${z.depth}-${z.width}`; }
+
+function shorthandFor(shot){
+  const side = shot.side || '?';
+  const stroke = (shot.stroke||'').slice(0,2).toUpperCase(); // Pu, Dr, Lo, etc.
+  const to = zoneCode(shot.zone_to);
+  if(shot.type==='Serve'){
+    return `SV(${shot.spin||'—'}):${zoneCode(shot.zone_from)}→${to}`;
+  }
+  return `${side}-${stroke}→${to}`;
+}
+
+// ====== UI bindings ======
+function updateUI(){
+  document.getElementById('phasePill').textContent = 'Phase: ' + phaseText();
+  document.getElementById('hint').textContent = hintText();
+  document.getElementById('stickyPill').textContent = 'Sticky: ' +
+    [(stickySide||'—'), (stickyStroke||'—'), (stickySpin||'—')].join(' / ');
+  // rally chips
+  const row = document.getElementById('rallyRow');
+  row.innerHTML = '';
+  current.shots.forEach((s, i)=>{
+    const el = document.createElement('button');
+    el.className = 'shotChip';
+    el.textContent = `${i+1}:${s.shorthand}`;
+    el.title = JSON.stringify(s, null, 2);
+    el.onclick = ()=>{
+      // quick edit cycle stroke
+      const strokes = [null,'Push','Chop','Block','Drive','Loop','Flick','Counter','Smash'];
+      const idx = strokes.indexOf(s.stroke);
+      s.stroke = strokes[(idx+1)%strokes.length];
+      s.shorthand = shorthandFor(s);
+      updateUI(); draw();
+    };
+    row.appendChild(el);
+  });
+  document.getElementById('serialOut').textContent = serializeRally(current);
+  document.getElementById('rallyCount').textContent = String(rallies.length);
+}
+
+document.getElementById('btnUndo').onclick = ()=>{
+  undoShot();
+  if(current.shots.length===0){ phase='serve1'; }
+  updateUI();
+};
+document.getElementById('btnNew').onclick = ()=>{ rallies.push(current); current = newRally(); phase='serve1'; updateUI(); draw(); };
+document.getElementById('btnExport').onclick = exportCSV;
+
+document.getElementById('btnWin').onclick = ()=>{ finishRally('Win'); };
+document.getElementById('btnFE').onclick = ()=>{ finishRally('Forced'); };
+document.getElementById('btnUE').onclick = ()=>{ finishRally('Unforced'); };
+
+// Side buttons
+document.getElementById('sideBtns').addEventListener('click', (e)=>{
+  const b = e.target.closest('button[data-side]'); if(!b) return;
+  stickySide = b.dataset.side;
+  updateUI();
+});
+document.getElementById('clearSide').onclick = ()=>{ stickySide = null; updateUI(); };
+
+// Stroke buttons
+document.getElementById('strokeBtns').addEventListener('click', (e)=>{
+  const b = e.target.closest('button[data-stroke]'); if(!b) return;
+  stickyStroke = b.dataset.stroke;
+  updateUI();
+});
+
+// Spin buttons
+document.getElementById('spinBtns').addEventListener('click', (e)=>{
+  const b = e.target.closest('button[data-spin]'); if(!b) return;
+  stickySpin = b.dataset.spin;
+  updateUI();
+});
+
+// Serve spin buttons
+document.getElementById('serveSpinBtns').addEventListener('click', (e)=>{
+  const b = e.target.closest('button[data-sspin]'); if(!b) return;
+  serveSpin = b.dataset.sspin;
+  updateUI();
+});
+
+// ====== Keyboard shortcuts ======
+window.addEventListener('keydown', (e)=>{
+  if(e.key==='Backspace'){ e.preventDefault(); undoShot(); if(current.shots.length===0) phase='serve1'; updateUI(); return; }
+  if(e.key.toLowerCase()==='q'){ stickySide='BH'; updateUI(); return; }
+  if(e.key.toLowerCase()==='w'){ stickySide='FH'; updateUI(); return; }
+  const strokeMap = {'1':'Push','2':'Chop','3':'Block','4':'Drive','5':'Loop','6':'Flick','7':'Counter','8':'Smash'};
+  if(strokeMap[e.key]){ stickyStroke = strokeMap[e.key]; updateUI(); return; }
+  const spinMap = {a:'None', s:'Side', d:'Top', f:'Back', g:'Kick'};
+  if(spinMap[e.key.toLowerCase()]){ stickySpin = spinMap[e.key.toLowerCase()]; updateUI(); return; }
+  const sspinMap = {v:'Back', b:'Side', n:'Top', m:'None'};
+  if(sspinMap[e.key.toLowerCase()]){ serveSpin = sspinMap[e.key.toLowerCase()]; updateUI(); return; }
+  if(e.key===';'){ finishRally('Win'); return; }
+  if(e.key==="'"){ finishRally('Forced'); return; }
+  if(e.key==='Enter'){ finishRally('Unforced'); return; }
+  if(e.key.toLowerCase()==='n'){ rallies.push(current); current = newRally(); phase='serve1'; updateUI(); draw(); return; }
+  if(e.key==='Tab'){ e.preventDefault(); togglePlayer(); }
+});
+
+// ====== Serialization & Export ======
+function serializeRally(r){
+  return r.shots.map(s=>s.shorthand).join(' , ') + (r.outcome?` [${r.outcome}]`:'');
+}
+
+function csvEscape(v){
+  if(v==null) return '';
+  const s = String(v);
+  if(/[",\n]/.test(s)) return '"' + s.replace(/"/g,'""') + '"';
+  return s;
+}
+
+function exportCSV(){
+  // per-shot rows across all rallies
+  const rows = [];
+  const header = [
+    'rally_id','shot_idx','player','type','side','stroke','spin',
+    'serve_spin','origin_x','origin_y','land_x','land_y',
+    'from_depth','from_width','to_depth','to_width','shorthand','outcome'
+  ];
+  rows.push(header.join(','));
+  for(const r of [...rallies, current]){
+    for(const s of r.shots){
+      rows.push([
+        r.id, s.idx, s.player, s.type, s.side||'', s.stroke||'', (s.spin||''),
+        (s.type==='Serve'? serveSpin : ''),
+        s.origin.x.toFixed(4), s.origin.y.toFixed(4), s.landing.x.toFixed(4), s.landing.y.toFixed(4),
+        s.zone_from.depth, s.zone_from.width, s.zone_to.depth, s.zone_to.width,
+        s.shorthand, r.outcome||''
+      ].map(csvEscape).join(','));
+    }
+  }
+  const blob = new Blob([rows.join('\n')], {type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'tt_rallies.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// Init
+updateUI();
+</script>
+</body>
+</html>

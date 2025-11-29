@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TT Rally Tagger — STABLE v6 (Compact UI)</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#151a24; --panel2:#1b2230; --ink:#e6e9ef; --muted:#9aa4b2;
+    --grid:#2b3447; --border:#30384a; --table:#0b4a86; --accent:#6aa6ff; --ok:#2ecc71; --danger:#ff6b6b; --active:#ffe082;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:13px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu}
+  .wrap{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px;min-height:100vh}
+  .left,.right{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:10px}
+  .left{display:flex;flex-direction:column;gap:6px}
+  .right{display:flex;flex-direction:column;gap:10px}
+  .scorebar{display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:8px; margin-bottom:2px}
+  .nameInline{display:flex; justify-content:flex-start; gap:6px; align-items:center}
+  .nameInline.right{justify-content:flex-end}
+  input.player{background:var(--panel2);border:1px solid var(--border);color:var(--ink);border-radius:8px;padding:6px 8px;width:180px;text-align:center}
+  .nameBtn{background:var(--panel2);border:1px solid var(--border);color:var(--ink);border-radius:8px;padding:4px 8px;cursor:pointer; font-size:12px}
+  .nameBtn.active{border-color:var(--accent); box-shadow:0 0 0 1px var(--accent) inset}
+  .score{font-size:20px;font-weight:800;padding:4px 12px;border:1px solid var(--border);border-radius:10px;background:var(--panel2);display:flex;align-items:center;gap:8px}
+  .serverTag{font-size:11px;padding:2px 6px;border-radius:999px;border:1px solid var(--border);background:rgba(122,166,255,.15)}
+  .stripHint{display:none}
+  .courtWrap{position:relative}
+  .court{
+    position:relative;border-radius:10px;overflow:hidden;background:var(--table);
+    border:1px solid var(--border); aspect-ratio: 19/12; min-height:200px;
+    display:grid; grid-template-rows: auto 1fr auto 1fr auto;
+  }
+  .half{ position:relative; display:grid; grid-template-columns:repeat(3, 1fr); grid-template-rows:repeat(3, 1fr); z-index:1 }
+  .cell{ position:relative; border:1px solid var(--grid); display:flex; align-items:center; justify-content:center;
+    color:#eaf2ff; font-weight:700; letter-spacing:.2px; text-shadow:0 1px 0 rgba(0,0,0,.25);
+    user-select:none; cursor:pointer; transition:background .15s, box-shadow .15s; pointer-events:auto; font-size:11px; padding:2px }
+  .cell small{display:block;color:var(--muted);font-weight:500;letter-spacing:0;text-shadow:none; font-size:9px}
+  .cell:hover{background:rgba(255,255,255,0.05)}
+  .cell.active{background:rgba(46,204,113,.35); box-shadow:inset 0 0 0 2px var(--ok)}
+  .cell.next{background:rgba(255,255,255,.06); box-shadow:inset 0 0 0 2px rgba(255,255,255,.25)}
+  .cell.start{background:rgba(255,224,130,.18); box-shadow:inset 0 0 0 2px var(--active)}
+  .longRow{display:flex; gap:6px; padding:4px; background:#123b6d; z-index:0}
+  .longBtn{flex:1; text-align:center; padding:4px 6px; border-radius:8px; border:1px dashed var(--danger); background:rgba(255,107,107,.18); color:#fff; font-weight:800; cursor:pointer; font-size:11px}
+  .longBtn span{display:block; font-size:9px; color:#ffd2d2}
+  .netRow{display:flex; align-items:center; justify-content:center; gap:8px; padding:4px; background:#0f2e59; border-top:2px solid #fff; border-bottom:2px solid #fff; z-index:0}
+  .netBtn{padding:6px 8px; border-radius:10px; border:1px dashed var(--danger); background:rgba(255,107,107,.2); color:#fff; font-weight:900; cursor:pointer; font-size:12px}
+  .underbar{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:4px}
+  .playerBadge{display:flex; align-items:center; gap:6px}
+  .pill{font-size:11px;padding:3px 6px;border-radius:999px;border:1px solid var(--border); background:var(--panel2); color:var(--ink)}
+  .handPill{border-color:var(--ok); background:rgba(46,204,113,.12)}
+  .rolePill{border-color:var(--accent); background:rgba(106,166,255,.12)}
+  .previewLine{margin:0 8px 0 auto; font-weight:700; color:#ffd166; font-size:12px}
+  .log{background:var(--panel2); border:1px solid var(--border); border-radius:10px; padding:8px; max-height:180px; overflow:auto; margin-top:6px}
+  .log h3{margin:0 0 6px; font-size:13px}
+  .log ol{margin:0; padding-left:18px}
+  h2{font-size:14px;margin:0 0 4px}
+  .section{border-top:1px solid var(--border); padding-top:8px}
+  .group{margin:6px 0}
+  .label{color:var(--muted); font-size:11px; margin-bottom:4px}
+  .btnrow{display:flex; gap:6px; flex-wrap:wrap}
+  .chip{background:var(--panel2); border:1px solid var(--border); color:var(--ink); padding:6px 8px; border-radius:8px; cursor:pointer; font-size:12px}
+  .chip:active{transform:translateY(1px)}
+  .chip.active{border-color:var(--ok); box-shadow:0 0 0 1px var(--ok) inset; background:rgba(46,204,113,.12)}
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+  .btn{background:var(--panel2); border:1px solid var(--border); color:var(--ink); padding:6px 8px; border-radius:8px; cursor:pointer; font-size:12px}
+  .btn.confirm{border-color:var(--ok); box-shadow:0 0 0 1px var(--ok) inset}
+  .btn.reset{border-color:var(--danger); box-shadow:0 0 0 1px var(--danger) inset}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="left">
+    <div class="scorebar">
+      <div class="nameInline">
+        <button class="nameBtn" id="btnP2Serve">Serve First</button>
+        <input class="player" id="pl2" placeholder="Player 2 (Top)">
+      </div>
+      <div class="score" id="scoreText">
+        <span id="plLeftName">P1</span>
+        <span>—</span>
+        <span id="plRightName">P2</span>
+      </div>
+      <div class="nameInline right">
+        <input class="player" id="pl1" placeholder="Player 1 (Bottom)">
+        <button class="nameBtn" id="btnP1Serve">Serve First</button>
+      </div>
+    </div>
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:8px">
+      <span class="serverTag" id="serverTag">Server: —</span>
+      <span class="serverTag" id="serveCount">Serves left: 2</span>
+    </div>
+
+    <div class="courtWrap" id="courtWrap">
+      <div class="court" id="court">
+        <div class="longRow">
+          <button class="longBtn" data-long="top">MISS LONG (Top end)<span>ball over top baseline</span></button>
+        </div>
+        <div class="half top" data-half="top">
+          <div class="cell" data-depth="L" data-col="FH">L-FH<small>Long / FH</small></div>
+          <div class="cell" data-depth="L" data-col="M">L-M<small>Long / M</small></div>
+          <div class="cell" data-depth="L" data-col="BH">L-BH<small>Long / BH</small></div>
+          <div class="cell" data-depth="H" data-col="FH">H-FH<small>Half / FH</small></div>
+          <div class="cell" data-depth="H" data-col="M">H-M<small>Half / M</small></div>
+          <div class="cell" data-depth="H" data-col="BH">H-BH<small>Half / BH</small></div>
+          <div class="cell" data-depth="S" data-col="FH">S-FH<small>Short / FH</small></div>
+          <div class="cell" data-depth="S" data-col="M">S-M<small>Short / M</small></div>
+          <div class="cell" data-depth="S" data-col="BH">S-BH<small>Short / BH</small></div>
+        </div>
+        <div class="netRow">
+          <button class="netBtn" id="btnNet">IN THE NET (current hitter)</button>
+        </div>
+        <div class="half bottom" data-half="bottom">
+          <div class="cell" data-depth="S" data-col="BH">S-BH<small>Short / BH</small></div>
+          <div class="cell" data-depth="S" data-col="M">S-M<small>Short / M</small></div>
+          <div class="cell" data-depth="S" data-col="FH">S-FH<small>Short / FH</small></div>
+          <div class="cell" data-depth="H" data-col="BH">H-BH<small>Half / BH</small></div>
+          <div class="cell" data-depth="H" data-col="M">H-M<small>Half / M</small></div>
+          <div class="cell" data-depth="H" data-col="FH">H-FH<small>Half / FH</small></div>
+          <div class="cell" data-depth="L" data-col="BH">L-BH<small>Long / BH</small></div>
+          <div class="cell" data-depth="L" data-col="M">L-M<small>Long / M</small></div>
+          <div class="cell" data-depth="L" data-col="FH">L-FH<small>Long / FH</small></div>
+        </div>
+        <div class="longRow">
+          <button class="longBtn" data-long="bottom">MISS LONG (Bottom end)<span>ball over bottom baseline</span></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="underbar">
+      <div class="playerBadge">
+        <span class="pill rolePill" id="underRole">Receiver</span>
+        <span class="pill" id="underPlayer">Player 1 (Bottom)</span>
+        <span class="pill handPill" id="underHand">Hand: —</span>
+      </div>
+      <div class="previewLine" id="livePreview">Current: —</div>
+    </div>
+    <div class="log">
+      <h3>Rally Log</h3>
+      <ol id="logList"></ol>
+    </div>
+  </div>
+
+  <div class="right">
+    <div class="section">
+      <h2>Serve</h2>
+      <div class="group">
+        <div class="label">Serve Type</div>
+        <div class="btnrow" data-group="serveType">
+          <button class="chip">Pendulum</button>
+          <button class="chip">Backhand</button>
+          <button class="chip">Tomahawk</button>
+          <button class="chip">Hook</button>
+          <button class="chip">Other</button>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="group">
+          <div class="label">Start/Contact Side (click server half)</div>
+          <div class="btnrow" data-group="serveStart">
+            <button class="chip">BH</button>
+            <button class="chip">M</button>
+            <button class="chip">FH</button>
+          </div>
+        </div>
+        <div class="group">
+          <div class="label">Target (click receiver half)</div>
+          <div class="btnrow" data-group="serveTarget">
+            <button class="chip">BH</button>
+            <button class="chip">M</button>
+            <button class="chip">FH</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="group">
+          <div class="label">Speed</div>
+          <div class="btnrow" data-group="serveSpeed">
+            <button class="chip">Slow</button>
+            <button class="chip">Medium</button>
+            <button class="chip">Fast</button>
+          </div>
+        </div>
+        <div class="group">
+          <div class="label">Length</div>
+          <div class="btnrow" data-group="serveLength">
+            <button class="chip" data-val="S">S</button>
+            <button class="chip" data-val="HL">HL</button>
+            <button class="chip" data-val="L">L</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="label">Spin (combined)</div>
+        <div class="btnrow" data-group="serveSpinCombo">
+          <button class="chip" data-kind="nos">No Spin</button>
+          <button class="chip" data-kind="u">Under</button>
+          <button class="chip" data-kind="t">Top</button>
+          <button class="chip" data-kind="l">Left</button>
+          <button class="chip" data-kind="r">Right</button>
+        </div>
+      </div>
+
+      <div class="btnrow">
+        <button class="btn reset" id="btnClearServe">Clear</button>
+        <button class="btn confirm" id="btnConfirmServe">Confirm Serve</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Rally Stroke</h2>
+
+      <div class="group">
+        <div class="label">Stroke Type</div>
+        <div class="btnrow" data-group="strokeSide">
+          <button class="chip">Forehand</button>
+          <button class="chip">Backhand</button>
+        </div>
+        <div class="btnrow" data-group="strokeType">
+          <button class="chip">Push</button>
+          <button class="chip">Flick</button>
+          <button class="chip">Loop</button>
+          <button class="chip">Block</button>
+          <button class="chip">Drive</button>
+          <button class="chip">Smash</button>
+          <button class="chip">Lob</button>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="label">Spin (combined)</div>
+        <div class="btnrow" data-group="spinCombo">
+          <button class="chip" data-kind="nos">No Spin</button>
+          <button class="chip" data-kind="u">Under</button>
+          <button class="chip" data-kind="t">Top</button>
+          <button class="chip" data-kind="l">Left</button>
+          <button class="chip" data-kind="r">Right</button>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="group">
+          <div class="label">Target (or click opposite half)</div>
+          <div class="btnrow" data-group="target">
+            <button class="chip">BH</button>
+            <button class="chip">M</button>
+            <button class="chip">FH</button>
+          </div>
+        </div>
+        <div class="group">
+          <div class="label">Length</div>
+          <div class="btnrow" data-group="length">
+            <button class="chip" data-val="S">S</button>
+            <button class="chip" data-val="M">M</button>
+            <button class="chip" data-val="L">L</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="group">
+          <div class="label">Speed</div>
+          <div class="btnrow" data-group="speed">
+            <button class="chip">S</button>
+            <button class="chip">M</button>
+            <button class="chip">F</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="btnrow">
+        <button class="btn reset" id="btnClearShot">Clear</button>
+        <button class="btn confirm" id="btnConfirmShot">Confirm Shot</button>
+      </div>
+
+      <div class="btnrow">
+        <button class="btn" id="btnResetRally">Reset Rally</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="miniPanel" id="miniOutcome" style="display:none; position:fixed; left:50%; top:18px; transform:translateX(-50%); background:#1b2230; border:1px solid #30384a; border-radius:12px; padding:10px; z-index:9999">
+  <div class="miniRow" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap">
+    <span class="miniTitle" id="miniText" style="font-weight:700; margin-right:8px">Classify: </span>
+    <button class="chip" data-class="UFE">Unforced error</button>
+    <button class="chip" data-class="FE">Forced error</button>
+    <button class="chip" data-class="WIN">Winner by opponent</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  const S = {
+    stage: 'serve_contact',
+    server: 'P1',
+    servesLeft: 2,
+    score: { P1:0, P2:0 },
+    lastLanding: null,
+    shots: [],
+    pick: {
+      serveType:null, serveSpin:null, serveSideSpin:null, serveSpeed:null, serveStart:null, serveTarget:null, serveLength:null,
+      strokeType:null, strokeSide:null, target:null, length:null, spin:null, sideSpin:null, speed:null
+    },
+    preview: { origin:null, target:null },
+    pendingOutcome: null
+  };
+
+  const $ = (sel, root=document)=> root.querySelector(sel);
+  const $$ = (sel, root=document)=> Array.from(root.querySelectorAll(sel));
+
+  wireUI();
+  setServer('P1'); updateUI();
+
+  function wireUI(){
+    $('#btnP1Serve').addEventListener('click', ()=> setServer('P1'));
+    $('#btnP2Serve').addEventListener('click', ()=> setServer('P2'));
+
+    $$('[data-group]').forEach(group => {
+      group.addEventListener('click', (e)=>{
+        const btn = e.target.closest('.chip'); if(!btn) return;
+        const key = group.getAttribute('data-group');
+
+        if(key==='spinCombo' || key==='serveSpinCombo'){
+          handleSpinCombo(group, btn, key==='serveSpinCombo');
+          updateLivePreview();
+          return;
+        }
+
+        $$('.chip', group).forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+
+        const map = {
+          serveType:'serveType', serveSpeed:'serveSpeed', serveStart:'serveStart',
+          serveTarget:'serveTarget', serveLength:'serveLength',
+          target:'target', length:'length', speed:'speed',
+          strokeType:'strokeType', strokeSide:'strokeSide'
+        };
+        const value = btn.getAttribute('data-val') || btn.textContent.trim();
+        S.pick[map[key]||key] = value;
+        if(key==='strokeSide') $('#underHand').textContent = 'Hand: ' + S.pick.strokeSide;
+        if(key==='serveTarget' || key==='serveLength' || key==='target' || key==='length'){ highlightFromButtons(); }
+        updateLivePreview();
+      });
+    });
+
+    $('#court').addEventListener('click', onCourtClick);
+    $('#btnNet').addEventListener('click', ()=> openClassifier('net', currentHitterHalf(), currentHitter()));
+    $$('.longBtn').forEach(b=> b.addEventListener('click', ()=>{
+      const side = b.getAttribute('data-long');
+      const hitter = (side==='top') ? 'P1' : 'P2';
+      openClassifier('long', side, hitter);
+    }));
+
+    $$('#miniOutcome .chip').forEach(btn => btn.addEventListener('click', ()=>{
+      if(!S.pendingOutcome) return;
+      const cls = btn.getAttribute('data-class');
+      finalizePoint(S.pendingOutcome.kind, cls, S.pendingOutcome.hitter);
+      S.pendingOutcome = null;
+      $('#miniOutcome').style.display = 'none';
+    }));
+
+    $('#btnConfirmServe').addEventListener('click', confirmServe);
+    $('#btnConfirmShot').addEventListener('click', confirmStroke);
+    $('#btnClearServe').addEventListener('click', ()=>{ S.preview={origin:null,target:null}; highlightStartFromContext(); setLive('—'); });
+    $('#btnClearShot').addEventListener('click', ()=>{ S.preview.target=null; highlightFromButtons(); setLive('—'); });
+    $('#btnResetRally').addEventListener('click', ()=>{ resetRally(); updateUI(); });
+  }
+
+  function handleSpinCombo(group, btn, isServe){
+    const chips = $$('.chip', group);
+    const kind = btn.getAttribute('data-kind');
+
+    if(kind==='nos'){
+      chips.forEach(c=> c.classList.remove('active'));
+      btn.classList.add('active');
+      if(isServe){ S.pick.serveSpin='N'; S.pick.serveSideSpin='0'; }
+      else { S.pick.spin='N'; S.pick.sideSpin='0'; }
+      return;
+    }
+
+    btn.classList.toggle('active');
+    const activeKinds = new Set($$('.chip.active', group).map(c=> c.getAttribute('data-kind')));
+
+    if(activeKinds.size>0 && activeKinds.has('nos')){
+      const nosBtn = $('.chip[data-kind="nos"]', group);
+      nosBtn && nosBtn.classList.remove('active');
+      activeKinds.delete('nos');
+    }
+
+    if(activeKinds.has('u') && activeKinds.has('t')){
+      chips.forEach(c=>{ const k=c.getAttribute('data-kind'); if(k==='u' || k==='t'){ if(k!==kind) c.classList.remove('active'); } });
+      activeKinds.clear(); activeKinds.add(kind);
+    }
+    if(activeKinds.has('l') && activeKinds.has('r')){
+      chips.forEach(c=>{ const k=c.getAttribute('data-kind'); if(k==='l' || k==='r'){ if(k!==kind) c.classList.remove('active'); } });
+      activeKinds.clear(); activeKinds.add(kind);
+    }
+
+    const spinVal = activeKinds.has('u') ? 'U' : activeKinds.has('t') ? 'T' : (activeKinds.size===0 ? null : 'N');
+    const sideVal = activeKinds.has('l') ? 'L' : activeKinds.has('r') ? 'R' : (activeKinds.has('nos') ? '0' : null);
+
+    if(isServe){
+      if(spinVal) S.pick.serveSpin = spinVal;
+      if(sideVal!==null) S.pick.serveSideSpin = sideVal;
+      if(activeKinds.size===0){ S.pick.serveSpin=null; S.pick.serveSideSpin=null; }
+    }else{
+      if(spinVal) S.pick.spin = spinVal;
+      if(sideVal!==null) S.pick.sideSpin = sideVal;
+      if(activeKinds.size===0){ S.pick.spin=null; S.pick.sideSpin=null; }
+    }
+  }
+
+  function setServer(who){
+    S.server = who; S.servesLeft = 2; S.stage = 'serve_contact';
+    $('#btnP1Serve').classList.toggle('active', who==='P1');
+    $('#btnP2Serve').classList.toggle('active', who==='P2');
+    resetRally();
+    updateUI();
+  }
+  function plName(id){ return $(id).value || (id==='#pl1'?'Player 1':'Player 2'); }
+  function currentHitter(){
+    if(S.stage==='serve_contact' || S.stage==='serve_target') return S.server;
+    if(!S.lastLanding) return S.server;
+    return (S.lastLanding.half==='top') ? 'P2' : 'P1';
+  }
+  function currentHitterHalf(){ return currentHitter()==='P1' ? 'bottom' : 'top'; }
+  function currentHitterName(){ return currentHitter()==='P1' ? (plName('#pl1')||'Player 1') : (plName('#pl2')||'Player 2'); }
+
+  function updateUI(){
+    $('#serverTag').textContent = 'Server: ' + (S.server==='P1'? plName('#pl1'): plName('#pl2'));
+    $('#serveCount').textContent = 'Serves left: ' + S.servesLeft;
+    $('#scoreText').innerHTML = `<span id="left">${plName('#pl1')}</span> <span>—</span> <span id="right">${plName('#pl2')}</span>`;
+    $('#underPlayer').textContent = (plName('#pl1')||'Player 1') + ' (Bottom)';
+    setLive('—');
+    highlightStartFromContext();
+  }
+  function setLive(txt){ $('#livePreview').textContent = 'Current: ' + txt; }
+
+  function autoStartCol(){ return S.lastLanding ? S.lastLanding.col : null; }
+  function clearCellHighlights(){ $$('.cell').forEach(c=>c.classList.remove('active','next','start')); }
+  function setHalfHint(half){ $$('.half[data-half="'+half+'"] .cell').forEach(c=> c.classList.add('next')); }
+  function highlightStartFromContext(){
+    clearCellHighlights();
+    if(S.stage==='serve_contact'){
+      setHalfHint(S.server==='P1'?'bottom':'top');
+    } else if(S.stage==='serve_target'){
+      setHalfHint(S.server==='P1'?'top':'bottom');
+    } else if(S.stage==='rally_target' && S.lastLanding){
+      const hitterHalf = currentHitterHalf();
+      const col = autoStartCol();
+      if(col){
+        $$('.half[data-half="'+hitterHalf+'"] .cell[data-col="'+col+'"]').forEach(c=> c.classList.add('start'));
+      }
+      const landingHalf = (hitterHalf==='top') ? 'bottom' : 'top';
+      setHalfHint(landingHalf);
+    }
+  }
+  function highlightFromButtons(){
+    clearCellHighlights();
+    if(S.stage==='serve_contact'){ setHalfHint(S.server==='P1'?'bottom':'top'); return; }
+    if(S.stage==='serve_target'){
+      const recvHalf = S.server==='P1' ? 'top' : 'bottom';
+      const col = S.pick.serveTarget, depth = mapServeDepth(S.pick.serveLength);
+      if(col && depth){
+        const cell = document.querySelector(`.half[data-half="${recvHalf}"] .cell[data-col="${col}"][data-depth="${depth}"]`);
+        if(cell) cell.classList.add('active');
+      } else { setHalfHint(recvHalf); }
+      return;
+    }
+    const hitterHalf = currentHitterHalf();
+    const landingHalf = (hitterHalf==='top') ? 'bottom' : 'top';
+    const col = S.pick.target, depth = mapRallyDepth(S.pick.length);
+    if(col && depth){
+      const cell = document.querySelector(`.half[data-half="${landingHalf}"] .cell[data-col="${col}"][data-depth="${depth}"]`);
+      if(cell) cell.classList.add('active');
+    } else { setHalfHint(landingHalf); }
+    const startCol = autoStartCol();
+    if(startCol){
+      $$('.half[data-half="'+hitterHalf+'"] .cell[data-col="'+startCol+'"]').forEach(c=> c.classList.add('start'));
+    }
+  }
+  function mapServeDepth(val){ if(val==='HL') return 'H'; return val || null; }
+  function mapRallyDepth(val){ if(val==='M') return 'H'; return val || null; }
+
+  function onCourtClick(e){
+    const cell = e.target.closest('.cell'); if(!cell) return;
+    const halfEl = cell.closest('.half'); const half = halfEl.getAttribute('data-half');
+    const depth = cell.getAttribute('data-depth'); const col = cell.getAttribute('data-col');
+    clearCellHighlights();
+
+    if(S.stage === 'serve_contact'){
+      const serverHalf = S.server==='P1' ? 'bottom' : 'top';
+      if(half !== serverHalf){ return; }
+      S.preview.origin = {half,depth,col};
+      S.pick.serveStart = col; syncGroup('serveStart', col);
+      S.stage = 'serve_target';
+      setHalfHint(serverHalf==='bottom'?'top':'bottom');
+      cell.classList.add('active');
+    } else if(S.stage === 'serve_target'){
+      const recvHalf = S.server==='P1' ? 'top' : 'bottom';
+      if(half !== recvHalf){ return; }
+      S.preview.target = {half,depth,col};
+      S.pick.serveTarget = col; S.pick.serveLength = depth==='H' ? 'HL' : depth;
+      syncGroup('serveTarget', col); syncGroupVal('serveLength', S.pick.serveLength);
+      cell.classList.add('active');
+    } else {
+      const hitterHalf = currentHitterHalf();
+      const landingHalf = (hitterHalf==='top') ? 'bottom' : 'top';
+      if(half !== landingHalf){ return; }
+      S.preview.origin = {...S.lastLanding};
+      S.preview.target = {half,depth,col};
+      S.pick.target = col; S.pick.length = depth==='H' ? 'M' : depth;
+      syncGroup('target', col); syncGroupVal('length', S.pick.length);
+      cell.classList.add('active');
+    }
+    updateLivePreview();
+  }
+
+  function updateLivePreview(){
+    if(S.stage.startsWith('serve')){
+      const s = S.pick;
+      setLive(`${currentHitterName()} Serve: ${s.serveType||'?'} | Spin:${s.serveSpin||'?'} / ${s.serveSideSpin||'?'} | Spd:${s.serveSpeed||'?'} | Start:${s.serveStart||'?'} → ${s.serveTarget||'?'}-${s.serveLength||'?'}`);
+    } else {
+      const s = S.pick;
+      setLive(`${currentHitterName()} ${s.strokeSide||'?'} ${s.strokeType||'?'} | Start:${autoStartCol()||'?'} → ${s.target||'?'}-${s.length||'?'} | Spin:${s.spin||'?'} / ${s.sideSpin||'?'} | Spd:${s.speed||'?'}`);
+    }
+  }
+
+  function confirmServe(){
+    if(!S.preview.origin || !S.preview.target) return;
+    const s = S.pick;
+    const shot = {
+      type:'Serve', player: currentHitter(),
+      serveType:s.serveType, spin:s.serveSpin, sideSpin:s.serveSideSpin, speed:s.serveSpeed,
+      startSide:s.serveStart, target:S.preview.target.col, length:s.serveLength
+    };
+    S.shots.push(shot); addToLog(shot);
+    S.lastLanding = {...S.preview.target};
+    S.stage='rally_target';
+    clearGroups(['serveType','serveSpeed','serveStart','serveTarget','serveLength','serveSpinCombo']);
+    S.preview = {origin:null, target:null};
+    setLive('—'); highlightStartFromContext();
+  }
+
+  function confirmStroke(){
+    if(!S.lastLanding || !S.preview.target) return;
+    const s = S.pick;
+    const shot = {
+      type:'Stroke', player: currentHitter(),
+      strokeSide:s.strokeSide, strokeType:s.strokeType,
+      startSide:autoStartCol()||'?',
+      target:S.preview.target.col, length:s.length,
+      spin:s.spin, sideSpin:s.sideSpin, speed:s.speed
+    };
+    S.shots.push(shot); addToLog(shot);
+    S.lastLanding = {...S.preview.target};
+    clearGroups(['target','length','spinCombo','speed','strokeSide','strokeType']);
+    S.preview.target = null;
+    setLive('—'); highlightStartFromContext();
+  }
+
+  function openClassifier(kind, side, hitter){
+    S.pendingOutcome = {kind, side, hitter};
+    const who = hitter==='P1' ? (plName('#pl1')||'Player 1') : (plName('#pl2')||'Player 2');
+    $('#miniText').textContent = `${who} — ${kind.toUpperCase()} · classify`;
+    $('#miniOutcome').style.display = 'block';
+  }
+  function finalizePoint(kind, cls, hitter){
+    let finalShot;
+    if(S.stage==='serve_contact' || S.stage==='serve_target'){
+      finalShot = {
+        type:'Serve', player: hitter,
+        serveType:S.pick.serveType, spin:S.pick.serveSpin, sideSpin:S.pick.serveSideSpin, speed:S.pick.serveSpeed,
+        startSide:S.pick.serveStart || (S.preview.origin && S.preview.origin.col) || '?',
+        target:(S.preview.target && S.preview.target.col) || S.pick.serveTarget || '?',
+        length:S.pick.serveLength || (S.preview.target ? (S.preview.target.depth==='H'?'HL':S.preview.target.depth) : '?'),
+        outcome:{kind, class:cls}
+      };
+    } else {
+      finalShot = {
+        type:'Stroke', player: hitter,
+        strokeSide:S.pick.strokeSide, strokeType:S.pick.strokeType,
+        startSide:autoStartCol()||'?',
+        target:S.pick.target || (S.preview.target && S.preview.target.col) || '?',
+        length:S.pick.length || (S.preview.target ? (S.preview.target.depth==='H'?'M':S.preview.target.depth) : '?'),
+        spin:S.pick.spin, sideSpin:S.pick.sideSpin, speed:S.pick.speed,
+        outcome:{kind, class:cls}
+      };
+    }
+    const winner = hitter==='P1' ? 'P2' : 'P1';
+    S.score[winner] += 1;
+    addToLog(finalShot, winner);
+    rotateServeIfNeeded();
+    resetRally();
+    updateUI();
+  }
+
+  function rotateServeIfNeeded(){
+    S.servesLeft -= 1;
+    if(S.servesLeft<=0){ S.server = (S.server==='P1'?'P2':'P1'); S.servesLeft = 2; }
+  }
+  function resetRally(){
+    S.stage='serve_contact'; S.shots=[]; S.lastLanding=null; S.preview={origin:null,target:null};
+    clearGroups(['target','length','spinCombo','speed','strokeSide','strokeType','serveType','serveSpeed','serveStart','serveTarget','serveLength','serveSpinCombo']);
+    setLive('—'); highlightStartFromContext();
+  }
+  function clearGroups(arr){
+    arr.forEach(k=>{
+      const g = document.querySelector('[data-group="'+k+'"]'); if(!g) return;
+      $$('.chip', g).forEach(b=> b.classList.remove('active'));
+    });
+  }
+  function syncGroup(group, val){
+    const g = document.querySelector('[data-group="'+group+'"]'); if(!g) return;
+    $$('.chip', g).forEach(b=> b.classList.toggle('active', (b.getAttribute('data-val')||b.textContent.trim())===val));
+  }
+  function syncGroupVal(group, val){ syncGroup(group, val); }
+
+  function addToLog(shot, winnerIfAny){
+    const list = $('#logList'); const li = document.createElement('li');
+    const nameP = (p)=> p==='P1' ? (plName('#pl1')||'Player 1') : (plName('#pl2')||'Player 2');
+    if(shot.type==='Serve'){
+      const base = `${nameP(shot.player)} Serve: ${shot.serveType||'?'} | Spin:${shot.spin||'?'} / ${shot.sideSpin||'?'} | Spd:${shot.speed||'?'} | Start:${shot.startSide||'?'} → ${shot.target||'?'}-${shot.length||'?'}`;
+      if(shot.outcome){
+        const nameCls = {'UFE':'Unforced', 'FE':'Forced', 'WIN':'Winner'}[shot.outcome.class] || '';
+        const winName = winnerIfAny ? nameP(winnerIfAny) : '—';
+        li.textContent = `${base} · Outcome: ${shot.outcome.kind.toUpperCase()} · ${nameCls} → point to ${winName} | Score ${S.score.P1}–${S.score.P2}`;
+      } else { li.textContent = `${base}`; }
+    } else {
+      const base = `${nameP(shot.player)} ${shot.strokeSide||'?'} ${shot.strokeType||'?'} | Start:${shot.startSide||'?'} → ${shot.target||'?'}-${shot.length||'?'} | Spin:${shot.spin||'?'} / ${shot.sideSpin||'?'} | Spd:${shot.speed||'?'}`;
+      if(shot.outcome){
+        const nameCls = {'UFE':'Unforced', 'FE':'Forced', 'WIN':'Winner'}[shot.outcome.class] || '';
+        const winName = winnerIfAny ? nameP(winnerIfAny) : '—';
+        li.textContent = `${base} · Outcome: ${shot.outcome.kind.toUpperCase()} · ${nameCls} → point to ${winName} | Score ${S.score.P1}–${S.score.P2}`;
+      } else { li.textContent = `${base}`; }
+    }
+    list.appendChild(li);
+    list.parentElement.scrollTop = list.parentElement.scrollHeight;
+  }
+})();</script>
+</body>
+</html>

@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TT Rally Tagger — Net/Long + Highlight Sync</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#151a24; --panel2:#1b2230; --ink:#e6e9ef; --muted:#9aa4b2;
+    --grid:#2b3447; --border:#30384a; --table:#0b4a86; --accent:#6aa6ff; --ok:#2ecc71; --danger:#ff6b6b;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu}
+  .wrap{display:grid;grid-template-columns:2fr 1fr;gap:12px;padding:12px;min-height:100vh}
+  /* Left */
+  .left{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px}
+  .scorebar{display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:6px}
+  .score{font-size:20px;font-weight:700;padding:6px 10px;border:1px solid var(--border);border-radius:8px;background:var(--panel2)}
+  .serverTag{font-size:12px;padding:2px 6px;border-radius:999px;border:1px solid var(--border);background:rgba(122,166,255,.15)}
+  .nameRow{display:flex;justify-content:space-between;align-items:center}
+  .nameRow .side{display:flex;align-items:center;gap:8px}
+  input.player{background:var(--panel2);border:1px solid var(--border);color:var(--ink);border-radius:10px;padding:8px 10px;width:70%;text-align:center}
+  .nameBtn{background:var(--panel2);border:1px solid var(--border);color:var(--ink);border-radius:10px;padding:6px 10px;cursor:pointer}
+  .nameBtn.active{border-color:var(--accent); box-shadow:0 0 0 1px var(--accent) inset}
+  .courtWrap{position:relative}
+  .court{
+    position:relative;border-radius:12px;overflow:hidden;background:var(--table);
+    border:1px solid var(--border); aspect-ratio: 19/10; min-height:320px;
+    display:grid; grid-template-rows: 1fr 1fr;
+  }
+  .overlay{position:absolute; inset:0; pointer-events:none}
+  .half{
+    position:relative; display:grid; grid-template-columns:repeat(3, 1fr);
+    grid-template-rows:repeat(3, 1fr); border-bottom:1px solid #ffffff;
+  }
+  .half.bottom{border-bottom:none; border-top:1px solid #ffffff;}
+  .cell{
+    position:relative; border:1px solid var(--grid); display:flex; align-items:center; justify-content:center;
+    color:#eaf2ff; font-weight:700; letter-spacing:.2px; text-shadow:0 1px 0 rgba(0,0,0,.25);
+    user-select:none; cursor:pointer; transition:background .15s, box-shadow .15s;
+  }
+  .cell small{display:block;color:var(--muted);font-weight:500;letter-spacing:0;text-shadow:none}
+  .cell:hover{background:rgba(255,255,255,0.05)}
+  .cell.active{background:rgba(46,204,113,.35); box-shadow:inset 0 0 0 2px var(--ok)}
+  .cell.next{background:rgba(255,255,255,.06); box-shadow:inset 0 0 0 2px rgba(255,255,255,.25)}
+  .net{position:absolute; left:0; right:0; top:50%; height:2px; background:#fff; transform:translateY(-50%)}
+  /* Outcome zones */
+  .zone{position:absolute; left:0; right:0; height:18px; display:flex; align-items:center; justify-content:center;
+        font-size:12px; color:#fff; opacity:.8; cursor:pointer; font-weight:700; text-transform:uppercase}
+  .zone.netTop{top:calc(50% - 19px); background:rgba(255,107,107,.25); border-top:1px dashed rgba(255,107,107,.7)}
+  .zone.netBottom{top:50%; background:rgba(255,107,107,.25); border-bottom:1px dashed rgba(255,107,107,.7)}
+  .zone.longTop{top:0; height:16px; background:rgba(255,107,107,.15)}
+  .zone.longBottom{bottom:0; height:16px; background:rgba(255,107,107,.15)}
+  /* Labels */
+  .axisLabels{position:absolute; inset:0; pointer-events:none; display:flex; align-items:center; justify-content:center; gap:10px;
+              color:#fff; font-weight:700; text-transform:uppercase; opacity:.5}
+  .axisLabels .rowLab{position:absolute; left:6px; font-size:12px; writing-mode:vertical-rl; text-orientation:upright; top:8px}
+  .axisLabels .colLab{position:absolute; bottom:6px; font-size:12px}
+  .axisLabels .sideTag{position:absolute; top:6px; right:8px; background:rgba(0,0,0,.25); padding:2px 6px; border-radius:8px; font-size:12px}
+  /* Under-table */
+  .underbar{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:8px}
+  .playerBadge{display:flex; align-items:center; gap:8px}
+  .pill{font-size:12px;padding:4px 8px;border-radius:999px;border:1px solid var(--border); background:var(--panel2); color:var(--ink)}
+  .handPill{border-color:var(--ok); background:rgba(46,204,113,.12)}
+  .rolePill{border-color:var(--accent); background:rgba(106,166,255,.12)}
+  .log{flex:1; margin-left:12px; background:var(--panel2); border:1px solid var(--border); border-radius:10px; padding:8px; max-height:200px; overflow:auto}
+  .log h3{margin:0 0 6px; font-size:14px}
+  .log ol{margin:0; padding-left:18px}
+  /* Right */
+  .right{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:12px}
+  h2{font-size:16px;margin:0 0 4px}
+  .section{border-top:1px solid var(--border); padding-top:10px}
+  .group{margin:6px 0}
+  .label{color:var(--muted); font-size:12px; margin-bottom:4px}
+  .btnrow{display:flex; gap:8px; flex-wrap:wrap}
+  .chip{background:var(--panel2); border:1px solid var(--border); color:var(--ink); padding:8px 10px; border-radius:10px; cursor:pointer}
+  .chip:active{transform:translateY(1px)}
+  .chip.active{border-color:var(--ok); box-shadow:0 0 0 1px var(--ok) inset; background:rgba(46,204,113,.12)}
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+  .btn{background:var(--panel2); border:1px solid var(--border); color:var(--ink); padding:8px 10px; border-radius:10px; cursor:pointer}
+  .btn.confirm{border-color:var(--ok); box-shadow:0 0 0 1px var(--ok) inset}
+  .btn.reset{border-color:var(--danger); box-shadow:0 0 0 1px var(--danger) inset}
+  @media (max-width: 980px){ .wrap{grid-template-columns:1fr} input.player{width:60%} .underbar{flex-direction:column; align-items:stretch} .log{margin-left:0} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="left">
+    <div class="scorebar">
+      <span class="serverTag" id="serverTag">Server: —</span>
+      <div class="score" id="scoreText">0 — 0</div>
+      <span class="serverTag" id="serveCount">Serves left: 2</span>
+    </div>
+
+    <div class="nameRow">
+      <div class="side">
+        <button class="nameBtn" id="btnP2Serve">Serve First</button>
+        <input class="player" id="pl2" placeholder="Player 2 name">
+      </div>
+      <div class="side">
+        <input class="player" id="pl1" placeholder="Player 1 name">
+        <button class="nameBtn" id="btnP1Serve">Serve First</button>
+      </div>
+    </div>
+
+    <div class="courtWrap">
+      <div class="court" id="court">
+        <svg class="overlay" id="overlay"></svg>
+        <!-- Outcome zones -->
+        <div class="zone longTop" data-outcome="long" data-side="top" title="Ball long (top)"></div>
+        <div class="zone netTop" data-outcome="net" data-side="top">NET</div>
+        <div class="zone netBottom" data-outcome="net" data-side="bottom">NET</div>
+        <div class="zone longBottom" data-outcome="long" data-side="bottom" title="Ball long (bottom)"></div>
+        <div class="net" aria-hidden="true"></div>
+        <!-- Top half: Player 2 (viewer-facing) FH-M-BH -->
+        <div class="half top" data-half="top">
+          <div class="cell" data-depth="S" data-col="FH">S-FH<small>Short / FH</small></div>
+          <div class="cell" data-depth="S" data-col="M">S-M<small>Short / M</small></div>
+          <div class="cell" data-depth="S" data-col="BH">S-BH<small>Short / BH</small></div>
+          <div class="cell" data-depth="H" data-col="FH">H-FH<small>Half / FH</small></div>
+          <div class="cell" data-depth="H" data-col="M">H-M<small>Half / M</small></div>
+          <div class="cell" data-depth="H" data-col="BH">H-BH<small>Half / BH</small></div>
+          <div class="cell" data-depth="L" data-col="FH">L-FH<small>Long / FH</small></div>
+          <div class="cell" data-depth="L" data-col="M">L-M<small>Long / M</small></div>
+          <div class="cell" data-depth="L" data-col="BH">L-BH<small>Long / BH</small></div>
+        </div>
+        <!-- Bottom half: Player 1 (flipped) BH-M-FH -->
+        <div class="half bottom" data-half="bottom">
+          <div class="cell" data-depth="S" data-col="BH">S-BH<small>Short / BH</small></div>
+          <div class="cell" data-depth="S" data-col="M">S-M<small>Short / M</small></div>
+          <div class="cell" data-depth="S" data-col="FH">S-FH<small>Short / FH</small></div>
+          <div class="cell" data-depth="H" data-col="BH">H-BH<small>Half / BH</small></div>
+          <div class="cell" data-depth="H" data-col="M">H-M<small>Half / M</small></div>
+          <div class="cell" data-depth="H" data-col="FH">H-FH<small>Half / FH</small></div>
+          <div class="cell" data-depth="L" data-col="BH">L-BH<small>Long / BH</small></div>
+          <div class="cell" data-depth="L" data-col="M">L-M<small>Long / M</small></div>
+          <div class="cell" data-depth="L" data-col="FH">L-FH<small>Long / FH</small></div>
+        </div>
+        <div class="axisLabels">
+          <div class="sideTag">Top: Player 2 (far)</div>
+          <div class="rowLab">S H L</div>
+          <div class="colLab">FH &nbsp; M &nbsp; BH (Bottom flips)</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="underbar">
+      <div class="playerBadge">
+        <span class="pill rolePill" id="underRole">Receiver</span>
+        <span class="pill" id="underPlayer">Player 1 (Bottom)</span>
+        <span class="pill handPill" id="underHand">Hand: —</span>
+      </div>
+      <div class="log">
+        <h3>Rally Log</h3>
+        <ol id="logList"></ol>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="right">
+    <div class="section">
+      <h2>Serve</h2>
+      <div class="group">
+        <div class="label">Serve Type</div>
+        <div class="btnrow" data-group="serveType">
+          <button class="chip">Pendulum</button>
+          <button class="chip">Backhand</button>
+          <button class="chip">Tomahawk</button>
+          <button class="chip">Hook</button>
+          <button class="chip">Other</button>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="group">
+          <div class="label">Spin</div>
+          <div class="btnrow" data-group="serveSpin">
+            <button class="chip">Under</button>
+            <button class="chip">Top</button>
+            <button class="chip">NoSpin</button>
+          </div>
+        </div>
+        <div class="group">
+          <div class="label">SideSpin</div>
+          <div class="btnrow" data-group="serveSide">
+            <button class="chip">Left</button>
+            <button class="chip">Right</button>
+            <button class="chip">NoSide</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="label">Speed</div>
+        <div class="btnrow" data-group="serveSpeed">
+          <button class="chip">Slow</button>
+          <button class="chip">Medium</button>
+          <button class="chip">Fast</button>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="group">
+          <div class="label">Start/Contact Side (click server half)</div>
+          <div class="btnrow" data-group="serveStart">
+            <button class="chip">FH</button>
+            <button class="chip">BH</button>
+            <button class="chip">M</button>
+          </div>
+        </div>
+        <div class="group">
+          <div class="label">Target (click receiver half)</div>
+          <div class="btnrow" data-group="serveTarget">
+            <button class="chip">FH</button>
+            <button class="chip">BH</button>
+            <button class="chip">M</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="group">
+          <div class="label">Length</div>
+          <div class="btnrow" data-group="serveLength">
+            <button class="chip">S</button>
+            <button class="chip">H</button>
+            <button class="chip">L</button>
+          </div>
+        </div>
+      </div>
+      <div class="btnrow">
+        <button class="btn reset" id="btnClearServe">Clear Preview</button>
+        <button class="btn confirm" id="btnConfirmServe">Confirm Serve</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Rally Stroke</h2>
+
+      <div class="grid2">
+        <div class="group">
+          <div class="label">Target (or click opposite half)</div>
+          <div class="btnrow" data-group="target">
+            <button class="chip">FH</button>
+            <button class="chip">BH</button>
+            <button class="chip">M</button>
+          </div>
+        </div>
+        <div class="group">
+          <div class="label">Length</div>
+          <div class="btnrow" data-group="length">
+            <button class="chip">S</button>
+            <button class="chip">H</button>
+            <button class="chip">L</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="group">
+          <div class="label">Spin</div>
+          <div class="btnrow" data-group="spin">
+            <button class="chip">U</button>
+            <button class="chip">T</button>
+            <button class="chip">N</button>
+            <button class="chip">M</button>
+          </div>
+        </div>
+        <div class="group">
+          <div class="label">SideSpin</div>
+          <div class="btnrow" data-group="sideSpin">
+            <button class="chip">L</button>
+            <button class="chip">R</button>
+            <button class="chip">0</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="group">
+          <div class="label">Speed</div>
+          <div class="btnrow" data-group="speed">
+            <button class="chip">S</button>
+            <button class="chip">M</button>
+            <button class="chip">F</button>
+          </div>
+        </div>
+        <div class="group">
+          <div class="label">Stroke Type + Side</div>
+          <div class="btnrow" data-group="strokeSide">
+            <button class="chip">Forehand</button>
+            <button class="chip">Backhand</button>
+          </div>
+          <div class="btnrow" data-group="strokeType">
+            <button class="chip">Push</button>
+            <button class="chip">Flick</button>
+            <button class="chip">Loop</button>
+            <button class="chip">Block</button>
+            <button class="chip">Drive</button>
+            <button class="chip">Smash</button>
+            <button class="chip">Lob</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="btnrow">
+        <button class="btn reset" id="btnClearShot">Clear Preview</button>
+        <button class="btn confirm" id="btnConfirmShot">Confirm Shot</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const state = {
+    stage: 'serve_contact',
+    server: 'P1',
+    servesLeft: 2,
+    score: { P1:0, P2:0 },
+    lastLanding: null,
+    shots: [],
+    selections: {
+      serveType:null, serveSpin:null, serveSideSpin:null, serveSpeed:null, serveStart:null, serveTarget:null, serveLength:null,
+      strokeType:null, strokeSide:null, target:null, length:null, spin:null, sideSpin:null, speed:null
+    },
+    preview: { origin:null, target:null }
+  };
+
+  const $ = (sel, root=document)=> root.querySelector(sel);
+  const $$ = (sel, root=document)=> Array.from(root.querySelectorAll(sel));
+
+  // Server choice
+  $('#btnP1Serve').addEventListener('click', ()=> setServer('P1'));
+  $('#btnP2Serve').addEventListener('click', ()=> setServer('P2'));
+  function setServer(who){
+    state.server = who; state.servesLeft = 2; state.stage = 'serve_contact';
+    $('#btnP1Serve').classList.toggle('active', who==='P1');
+    $('#btnP2Serve').classList.toggle('active', who==='P2');
+    clearPreview(); clearActiveCells(); syncUnderbar(); updateScoreUI();
+  }
+
+  // Score + underbar
+  function plName(id){ return $(id).value || (id==='#pl1'?'Player 1':'Player 2'); }
+  function updateScoreUI(){
+    $('#serverTag').textContent = 'Server: ' + (state.server==='P1'? plName('#pl1'): plName('#pl2'));
+    $('#serveCount').textContent = 'Serves left: ' + state.servesLeft;
+    $('#scoreText').textContent = state.score.P1 + ' — ' + state.score.P2;
+  }
+  function syncUnderbar(){
+    $('#underRole').textContent = (state.server==='P1') ? 'Server (Bottom)' : 'Receiver (Bottom)';
+    $('#underPlayer').textContent = plName('#pl1') + ' (Bottom)';
+    $('#underHand').textContent = 'Hand: ' + (state.selections.strokeSide || '—');
+  }
+  updateScoreUI(); syncUnderbar();
+
+  // Button groups (single-select)
+  $$('[data-group]').forEach(group => {
+    group.addEventListener('click', (e)=>{
+      const btn = e.target.closest('.chip'); if(!btn) return;
+      $$('.chip', group).forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      const key = group.getAttribute('data-group');
+      const map = {
+        serveType:'serveType', serveSpin:'serveSpin', serveSide:'serveSideSpin', serveSpeed:'serveSpeed', serveStart:'serveStart',
+        serveTarget:'serveTarget', serveLength:'serveLength',
+        target:'target', length:'length', spin:'spin', sideSpin:'sideSpin', speed:'speed',
+        strokeType:'strokeType', strokeSide:'strokeSide'
+      };
+      state.selections[map[key]||key] = btn.textContent.trim();
+      if(key==='strokeSide') syncUnderbar();
+      if(key==='serveTarget' || key==='serveLength' || key==='target' || key==='length'){ highlightMatchingCell(); }
+    });
+  });
+
+  // Court clicking (cells)
+  const court = $('#court'), overlay = $('#overlay');
+  court.addEventListener('click', (e)=>{
+    const cell = e.target.closest('.cell'); if(!cell) return;
+    const halfEl = cell.closest('.half'); const half = halfEl.getAttribute('data-half');
+    const depth = cell.getAttribute('data-depth'); const col = cell.getAttribute('data-col');
+    const {cx,cy} = cellCenter(cell);
+    clearActiveCells(); cell.classList.add('active');
+
+    if(state.stage === 'serve_contact'){
+      const serverHalf = state.server==='P1' ? 'bottom' : 'top';
+      if(half !== serverHalf){ flash('Click on the SERVER half for contact.'); return; }
+      state.preview.origin = {cx,cy,half,depth,col};
+      state.selections.serveStart = col; syncGroupValue('serveStart', col);
+      drawPreview();
+      state.stage = 'serve_target';
+      setNextHalfHighlight(serverHalf==='bottom'?'top':'bottom');
+    } else if(state.stage === 'serve_target'){
+      const recvHalf = state.server==='P1' ? 'top' : 'bottom';
+      if(half !== recvHalf){ flash('Click on the RECEIVER half for target.'); return; }
+      state.preview.target = {cx,cy,half,depth,col};
+      state.selections.serveTarget = col; state.selections.serveLength = depth;
+      syncGroupValue('serveTarget', col); syncGroupValue('serveLength', depth);
+      drawPreview();
+    } else {
+      if(!state.lastLanding){ flash('Confirm the serve first.'); return; }
+      const nextHalf = state.lastLanding.half==='top' ? 'bottom' : 'top';
+      if(half !== nextHalf){ flash('Click on the opposite half from last landing.'); return; }
+      state.preview.origin = {...state.lastLanding};
+      state.preview.target = {cx,cy,half,depth,col};
+      state.selections.target = col; state.selections.length = depth;
+      syncGroupValue('target', col); syncGroupValue('length', depth);
+      drawPreview();
+    }
+  });
+
+  // Outcome zones: net/long
+  $$('.zone').forEach(z => {
+    z.addEventListener('click', ()=>{
+      const type = z.getAttribute('data-outcome'); // 'net' or 'long'
+      const hitter = currentHitter();
+      const winner = hitter==='P1' ? 'P2' : 'P1';
+      addToLog({type:'OutcomeQuick', detail:type.toUpperCase(), hitter, winner});
+      state.score[winner] += 1;
+      rotateServeIfNeeded();
+      resetRallyForNextServe();
+    });
+  });
+
+  function currentHitter(){
+    if(state.stage==='serve_contact' || state.stage==='serve_target'){ return state.server; }
+    if(!state.lastLanding) return state.server;
+    return state.lastLanding.half==='top' ? 'P1' : 'P2';
+    // (Top landing means P1 will hit next; bottom landing means P2 will hit next)
+  }
+
+  // Confirm serve
+  $('#btnConfirmServe').addEventListener('click', ()=>{
+    if(!state.preview.origin || !state.preview.target){ flash('Click contact on server half, then target on receiver half.'); return; }
+    const s = state.selections;
+    const shot = {
+      type:'Serve', server: state.server, serveType:s.serveType, spin:s.serveSpin, sideSpin:s.serveSideSpin, speed:s.serveSpeed,
+      startSide:s.serveStart, target: state.preview.target.col, length: state.preview.target.depth
+    };
+    state.shots.push(shot); addToLog(shot);
+    state.lastLanding = {...state.preview.target};
+    clearPreview(); clearActiveCells(); setNextHalfHighlight(state.lastLanding.half==='top'?'bottom':'top');
+    state.stage='rally_target';
+    resetGroup(['serveTarget','serveLength','serveStart']);
+  });
+  $('#btnClearServe').addEventListener('click', ()=>{ clearPreview(); clearActiveCells(); });
+
+  // Confirm shot
+  $('#btnConfirmShot').addEventListener('click', ()=>{
+    if(!state.lastLanding){ flash('Serve first.'); return; }
+    if(!state.preview.target){ flash('Click a target on the opposite half.'); return; }
+    const s = state.selections;
+    const shot = {
+      type:'Stroke', strokeSide:s.strokeSide, strokeType:s.strokeType,
+      target: state.preview.target.col, length: state.preview.target.depth,
+      spin:s.spin, sideSpin:s.sideSpin, speed:s.speed
+    };
+    state.shots.push(shot); addToLog(shot);
+    state.lastLanding = {...state.preview.target};
+    clearPreview(); clearActiveCells(); setNextHalfHighlight(state.lastLanding.half==='top'?'bottom':'top');
+    resetGroup(['target','length']);
+  });
+  $('#btnClearShot').addEventListener('click', ()=>{ clearPreview(); clearActiveCells(); });
+
+  // Utilities
+  function cellCenter(cell){
+    const cRect = $('#court').getBoundingClientRect();
+    const r = cell.getBoundingClientRect();
+    return {cx: r.left - cRect.left + r.width/2, cy: r.top - cRect.top + r.height/2};
+  }
+  function drawPreview(){
+    overlay.innerHTML = '';
+    if(!state.preview.origin || !state.preview.target) return;
+    const o = state.preview.origin, t = state.preview.target;
+    const svgNS = 'http://www.w3.org/2000/svg';
+    const defs = document.createElementNS(svgNS, 'defs');
+    const marker = document.createElementNS(svgNS, 'marker');
+    marker.setAttribute('id','arrow'); marker.setAttribute('viewBox','0 0 10 10');
+    marker.setAttribute('refX','8'); marker.setAttribute('refY','5');
+    marker.setAttribute('markerWidth','6'); marker.setAttribute('markerHeight','6'); marker.setAttribute('orient','auto-start-reverse');
+    const path = document.createElementNS(svgNS, 'path'); path.setAttribute('d','M 0 0 L 10 5 L 0 10 z'); path.setAttribute('fill','white');
+    marker.appendChild(path); defs.appendChild(marker);
+    const line = document.createElementNS(svgNS, 'line');
+    line.setAttribute('x1', o.cx); line.setAttribute('y1', o.cy);
+    line.setAttribute('x2', t.cx); line.setAttribute('y2', t.cy);
+    line.setAttribute('stroke', 'white'); line.setAttribute('stroke-width', '2');
+    line.setAttribute('marker-end', 'url(#arrow)');
+    overlay.appendChild(defs); overlay.appendChild(line);
+  }
+  function clearPreview(){ overlay.innerHTML=''; state.preview.origin=null; state.preview.target=null; }
+  function clearActiveCells(){ $$('.cell').forEach(c=>c.classList.remove('active','next')); }
+  function setNextHalfHighlight(half){
+    $$('.half[data-half="'+half+'"] .cell').forEach(c=> c.classList.add('next'));
+  }
+  function syncGroupValue(group, val){
+    const g = document.querySelector('[data-group="'+group+'"]'); if(!g) return;
+    $$('.chip', g).forEach(b=> b.classList.toggle('active', b.textContent.trim()===val));
+  }
+  function highlightMatchingCell(){
+    clearActiveCells();
+    const half = (state.stage==='serve_contact' || state.stage==='serve_target')
+                 ? (state.server==='P1' ? 'top' : 'bottom')
+                 : (state.lastLanding && state.lastLanding.half==='top' ? 'bottom' : 'top');
+    const col = (state.stage.startsWith('serve') ? state.selections.serveTarget : state.selections.target);
+    const depth = (state.stage.startsWith('serve') ? state.selections.serveLength : state.selections.length);
+    if(!col || !depth) return;
+    const cell = document.querySelector('.half[data-half="'+half+'"] .cell[data-col="'+col+'"][data-depth="'+depth+'"]');
+    if(cell){ cell.classList.add('active'); }
+  }
+  function resetGroup(groups){
+    groups.forEach(k=>{
+      const el = document.querySelector('[data-group="'+k+'"]');
+      if(!el) return;
+      $$('.chip', el).forEach(b=> b.classList.remove('active'));
+    });
+  }
+  function rotateServeIfNeeded(){
+    state.servesLeft -= 1;
+    if(state.servesLeft<=0){ state.server = (state.server==='P1'?'P2':'P1'); state.servesLeft = 2; }
+    updateScoreUI();
+  }
+  function resetRallyForNextServe(){
+    state.stage='serve_contact'; state.shots=[]; state.lastLanding=null;
+    clearPreview(); clearActiveCells(); setNextHalfHighlight(state.server==='P1'?'bottom':'top');
+    resetGroup(['target','length','serveStart','serveTarget','serveLength']);
+    syncUnderbar(); updateScoreUI();
+  }
+
+  // Log
+  function addToLog(shot){
+    const list = $('#logList'); const li = document.createElement('li');
+    if(shot.type==='Serve'){
+      li.textContent = `Serve (${nameFor(state.server)}): ${shot.serveType||'?'} | Spin:${shot.spin||'?'} | Side:${shot.sideSpin||'?'} | Spd:${shot.speed||'?'} | Start:${shot.startSide||'?'} → ${shot.target}-${shot.length}`;
+    } else if(shot.type==='Stroke'){
+      li.textContent = `${shot.strokeSide||'?'} ${shot.strokeType||'?'} → ${shot.target}-${shot.length} | Spin:${shot.spin||'?'} | Side:${shot.sideSpin||'?'} | Spd:${shot.speed||'?'}`;
+    } else if(shot.type==='OutcomeQuick'){
+      li.textContent = `Point over: ${shot.detail} by ${nameFor(shot.hitter)} → point to ${nameFor(shot.winner)} | Score ${state.score.P1}–${state.score.P2} (Server: ${nameFor(state.server)}, ${state.servesLeft} left)`;
+    }
+    list.appendChild(li);
+    list.parentElement.scrollTop = list.parentElement.scrollHeight;
+  }
+  function nameFor(p){ return p==='P1' ? ($('#pl1').value || 'Player 1') : ($('#pl2').value || 'Player 2'); }
+
+  // Init
+  setServer('P1');
+})();
+</script>
+</body>
+</html>

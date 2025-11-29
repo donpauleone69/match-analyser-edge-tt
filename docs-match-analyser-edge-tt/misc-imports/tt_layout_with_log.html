@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TT Rally Tagger — Layout + Rally Log</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#151a24; --panel2:#1b2230; --ink:#e6e9ef; --muted:#9aa4b2;
+    --grid:#2b3447; --border:#30384a; --table:#0b4a86; --accent:#6aa6ff; --accent2:#7ee787;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Arial}
+  .wrap{display:grid;grid-template-columns:2fr 1fr;gap:12px;padding:12px;min-height:100vh}
+  /* Left: table */
+  .left{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px}
+  .nameTop,.nameBottom{display:flex;justify-content:center}
+  input.player{background:var(--panel2);border:1px solid var(--border);color:var(--ink);border-radius:10px;padding:10px 12px;width:60%;text-align:center}
+  .court{
+    position:relative;border-radius:12px;overflow:hidden;background:var(--table);
+    border:1px solid var(--border); aspect-ratio: 19/10; min-height:300px;
+    display:grid; grid-template-rows: 1fr 1fr; /* top half, bottom half */
+  }
+  .half{
+    position:relative; display:grid; grid-template-columns:repeat(3, 1fr);
+    grid-template-rows:repeat(3, 1fr); border-bottom:1px solid #ffffff;
+  }
+  .half.bottom{border-bottom:none; border-top:1px solid #ffffff;}
+  /* grid cell */
+  .cell{
+    position:relative; border:1px solid var(--grid); display:flex; align-items:center; justify-content:center;
+    color:#eaf2ff; font-weight:600; letter-spacing:.3px; text-shadow:0 1px 0 rgba(0,0,0,.25);
+    user-select:none; cursor:pointer;
+  }
+  .cell small{display:block;color:var(--muted);font-weight:500;letter-spacing:0;text-shadow:none}
+  .cell:hover{background:rgba(255,255,255,0.05)}
+  .net{position:absolute; left:0; right:0; top:50%; height:2px; background:#fff; transform:translateY(-50%)}
+  /* Labels help */
+  .axisLabels{
+    position:absolute; inset:0; pointer-events:none; display:flex; align-items:center; justify-content:center; gap:10px;
+    color:#fff; font-weight:700; text-transform:uppercase; opacity:.5;
+  }
+  .axisLabels .rowLab{position:absolute; left:6px; font-size:12px; writing-mode:vertical-rl; text-orientation:upright; top:8px}
+  .axisLabels .colLab{position:absolute; bottom:6px; font-size:12px}
+  .axisLabels .sideTag{position:absolute; top:6px; right:8px; background:rgba(0,0,0,.25); padding:2px 6px; border-radius:8px; font-size:12px}
+  /* Right panel */
+  .right{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:12px}
+  h2{font-size:16px;margin:0 0 4px}
+  .section{border-top:1px solid var(--border); padding-top:10px}
+  .group{margin:6px 0}
+  .label{color:var(--muted); font-size:12px; margin-bottom:4px}
+  .btnrow{display:flex; gap:8px; flex-wrap:wrap}
+  .chip{background:var(--panel2); border:1px solid var(--border); color:var(--ink); padding:8px 10px; border-radius:10px; cursor:pointer}
+  .chip:active{transform:translateY(1px)}
+  .chip.active{border-color:var(--accent); box-shadow:0 0 0 1px var(--accent) inset}
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+  .legend{display:grid; grid-template-columns:repeat(3,1fr); gap:4px; margin-top:6px}
+  .legend div{font-size:12px; color:var(--muted); text-align:center}
+  .log{background:var(--panel2); border:1px solid var(--border); border-radius:10px; padding:8px; max-height:200px; overflow:auto}
+  .log h3{margin:0 0 6px; font-size:14px}
+  .log ol{margin:0; padding-left:18px}
+  .controlsTop{display:flex; gap:8px; align-items:center; justify-content:space-between}
+  .btn{background:var(--panel2); border:1px solid var(--border); color:var(--ink); padding:8px 10px; border-radius:10px; cursor:pointer}
+  .btn:active{transform:translateY(1px)}
+  /* Responsive */
+  @media (max-width: 980px){ .wrap{grid-template-columns:1fr} input.player{width:90%} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="left">
+    <div class="nameTop"><input class="player" id="pl2" placeholder="Player 2 name"></div>
+    <div class="court" id="court">
+      <div class="net" aria-hidden="true"></div>
+      <!-- Top half: Player 2 -->
+      <div class="half top">
+        <!-- Rows: Short, Half-long, Long; Cols: FH, M, BH -->
+        <div class="cell" data-depth="S" data-col="FH">S-FH<small>Short / FH</small></div>
+        <div class="cell" data-depth="S" data-col="M">S-M<small>Short / M</small></div>
+        <div class="cell" data-depth="S" data-col="BH">S-BH<small>Short / BH</small></div>
+        <div class="cell" data-depth="H" data-col="FH">H-FH<small>Half / FH</small></div>
+        <div class="cell" data-depth="H" data-col="M">H-M<small>Half / M</small></div>
+        <div class="cell" data-depth="H" data-col="BH">H-BH<small>Half / BH</small></div>
+        <div class="cell" data-depth="L" data-col="FH">L-FH<small>Long / FH</small></div>
+        <div class="cell" data-depth="L" data-col="M">L-M<small>Long / M</small></div>
+        <div class="cell" data-depth="L" data-col="BH">L-BH<small>Long / BH</small></div>
+      </div>
+      <!-- Bottom half: Player 1 -->
+      <div class="half bottom">
+        <div class="cell" data-depth="S" data-col="FH">S-FH<small>Short / FH</small></div>
+        <div class="cell" data-depth="S" data-col="M">S-M<small>Short / M</small></div>
+        <div class="cell" data-depth="S" data-col="BH">S-BH<small>Short / BH</small></div>
+        <div class="cell" data-depth="H" data-col="FH">H-FH<small>Half / FH</small></div>
+        <div class="cell" data-depth="H" data-col="M">H-M<small>Half / M</small></div>
+        <div class="cell" data-depth="H" data-col="BH">H-BH<small>Half / BH</small></div>
+        <div class="cell" data-depth="L" data-col="FH">L-FH<small>Long / FH</small></div>
+        <div class="cell" data-depth="L" data-col="M">L-M<small>Long / M</small></div>
+        <div class="cell" data-depth="L" data-col="BH">L-BH<small>Long / BH</small></div>
+      </div>
+      <div class="axisLabels">
+        <div class="sideTag">Top: Player 2</div>
+        <div class="rowLab">S H L</div>
+        <div class="colLab">FH &nbsp; M &nbsp; BH</div>
+      </div>
+    </div>
+    <div class="nameBottom"><input class="player" id="pl1" placeholder="Player 1 name"></div>
+  </div>
+
+  <div class="right">
+    <div class="controlsTop">
+      <h2>Controls</h2>
+      <div>
+        <button class="btn" id="btnNew">New Rally</button>
+        <button class="btn" id="btnUndo">Undo</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="label">First shot is always a serve</div>
+      <div class="group">
+        <div class="label">Serve Type</div>
+        <div class="btnrow" data-group="serveType">
+          <button class="chip">Pendulum</button>
+          <button class="chip">Backhand</button>
+          <button class="chip">Tomahawk</button>
+          <button class="chip">Hook</button>
+          <button class="chip">Other</button>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="group">
+          <div class="label">Spin</div>
+          <div class="btnrow" data-group="serveSpin">
+            <button class="chip">Under</button>
+            <button class="chip">Top</button>
+            <button class="chip">NoSpin</button>
+          </div>
+        </div>
+        <div class="group">
+          <div class="label">SideSpin</div>
+          <div class="btnrow" data-group="serveSide">
+            <button class="chip">Left</button>
+            <button class="chip">Right</button>
+            <button class="chip">NoSide</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="label">Speed</div>
+        <div class="btnrow" data-group="serveSpeed">
+          <button class="chip">Slow</button>
+          <button class="chip">Medium</button>
+          <button class="chip">Fast</button>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="group">
+          <div class="label">Start/Contact Side</div>
+          <div class="btnrow" data-group="serveStart">
+            <button class="chip">FH</button>
+            <button class="chip">BH</button>
+            <button class="chip">M</button>
+          </div>
+        </div>
+        <div class="group">
+          <div class="label">Target (or click table)</div>
+          <div class="btnrow" data-group="serveTarget">
+            <button class="chip">FH</button>
+            <button class="chip">BH</button>
+            <button class="chip">M</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="group">
+          <div class="label">Length</div>
+          <div class="btnrow" data-group="serveLength">
+            <button class="chip">S</button>
+            <button class="chip">H</button>
+            <button class="chip">L</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Rally Stroke</h2>
+
+      <div class="grid2">
+        <div class="group">
+          <div class="label">Target (or click table)</div>
+          <div class="btnrow" data-group="target">
+            <button class="chip">FH</button>
+            <button class="chip">BH</button>
+            <button class="chip">M</button>
+          </div>
+        </div>
+        <div class="group">
+          <div class="label">Length</div>
+          <div class="btnrow" data-group="length">
+            <button class="chip">S</button>
+            <button class="chip">H</button>
+            <button class="chip">L</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="group">
+          <div class="label">Spin</div>
+          <div class="btnrow" data-group="spin">
+            <button class="chip">U</button>
+            <button class="chip">T</button>
+            <button class="chip">N</button>
+            <button class="chip">M</button>
+          </div>
+        </div>
+        <div class="group">
+          <div class="label">SideSpin</div>
+          <div class="btnrow" data-group="sideSpin">
+            <button class="chip">L</button>
+            <button class="chip">R</button>
+            <button class="chip">0</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="group">
+          <div class="label">Speed</div>
+          <div class="btnrow" data-group="speed">
+            <button class="chip">S</button>
+            <button class="chip">M</button>
+            <button class="chip">F</button>
+          </div>
+        </div>
+        <div class="group">
+          <div class="label">Stroke Type + Side</div>
+          <div class="btnrow" data-group="strokeSide">
+            <button class="chip">Forehand</button>
+            <button class="chip">Backhand</button>
+          </div>
+          <div class="btnrow" data-group="strokeType">
+            <button class="chip">Push</button>
+            <button class="chip">Flick</button>
+            <button class="chip">Loop</button>
+            <button class="chip">Block</button>
+            <button class="chip">Drive</button>
+            <button class="chip">Smash</button>
+            <button class="chip">Lob</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Outcome</h2>
+      <div class="grid2">
+        <div class="group">
+          <div class="label">Who/Type</div>
+          <div class="btnrow" data-group="outcome">
+            <button class="chip">MW</button>
+            <button class="chip">OW</button>
+            <button class="chip">MUE</button>
+            <button class="chip">OUE</button>
+          </div>
+        </div>
+        <div class="group">
+          <div class="label">Err Dir</div>
+          <div class="btnrow" data-group="errDir">
+            <button class="chip">Net</button>
+            <button class="chip">Long</button>
+            <button class="chip">Side</button>
+            <button class="chip">Edge</button>
+            <button class="chip">–</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section log">
+      <h3>Rally Log</h3>
+      <ol id="logList"></ol>
+    </div>
+
+  </div>
+</div>
+
+<script>
+(function(){
+  const state = {
+    stage: 'serve', // 'serve' or 'rally'
+    shots: [],
+    selections: {
+      serveType:null, serveSpin:null, serveSide:null, serveSpeed:null, serveTarget:null, serveLength:null, serveSideSpin:null,
+      strokeType:null, strokeSide:null, target:null, length:null, spin:null, sideSpin:null, speed:null,
+      outcome:null, errDir:null
+    }
+  };
+
+  function $(sel, root=document){ return root.querySelector(sel); }
+  function $all(sel, root=document){ return Array.from(root.querySelectorAll(sel)); }
+
+  // Toggle active chip per group
+  $all('[data-group]').forEach(group => {
+    group.addEventListener('click', (e)=>{
+      const btn = e.target.closest('.chip'); if(!btn) return;
+      $all('.chip', group).forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      const g = group.getAttribute('data-group');
+      state.selections[mapGroupKey(g)] = btn.textContent.trim();
+      // console.log(g, '=>', state.selections[mapGroupKey(g)]);
+    });
+  });
+
+  function mapGroupKey(g){
+    // map dataset group names to state keys
+    const map = {
+      serveType:'serveType', serveSpin:'serveSpin', serveSide:'serveSideSpin', serveSpeed:'serveSpeed', serveStart:'serveStart',
+      serveTarget:'serveTarget', serveLength:'serveLength',
+      target:'target', length:'length', spin:'spin', sideSpin:'sideSpin', speed:'speed',
+      strokeType:'strokeType', strokeSide:'strokeSide',
+      outcome:'outcome', errDir:'errDir'
+    };
+    return map[g]||g;
+  }
+
+  // Court clicks -> append to log
+  const court = $('#court');
+  court.addEventListener('click', (e)=>{
+    const cell = e.target.closest('.cell'); if(!cell) return;
+    const depth = cell.getAttribute('data-depth');
+    const col = cell.getAttribute('data-col');
+    if(state.stage === 'serve'){
+      const s = state.selections;
+      const shot = {
+        type:'Serve',
+        serveType: s.serveType, spin: s.serveSpin, sideSpin: s.serveSideSpin, speed: s.serveSpeed,
+        startSide: s.serveStart, target: col, length: depth
+      };
+      state.shots.push(shot);
+      addToLog(shot, state.shots.length);
+      state.stage = 'rally';
+    } else {
+      const s = state.selections;
+      const shot = {
+        type:'Stroke',
+        strokeSide: s.strokeSide, strokeType: s.strokeType,
+        target: col, length: depth,
+        spin: s.spin, sideSpin: s.sideSpin, speed: s.speed
+      };
+      state.shots.push(shot);
+      addToLog(shot, state.shots.length);
+    }
+  });
+
+  // Buttons
+  $('#btnUndo').addEventListener('click', ()=>{
+    if(state.shots.length>0){
+      state.shots.pop();
+      const list = $('#logList');
+      if(list.lastChild) list.removeChild(list.lastChild);
+      if(state.shots.length===0) state.stage='serve';
+    }
+  });
+  $('#btnNew').addEventListener('click', ()=>{
+    state.stage='serve'; state.shots=[];
+    $('#logList').innerHTML='';
+  });
+
+  function addToLog(shot, idx){
+    const li = document.createElement('li');
+    if(shot.type==='Serve'){
+      li.textContent = `Serve: ${shot.serveType||'?'} | Spin:${shot.spin||'?'} ${shot.sideSpin?('/ '+shot.sideSpin):''} | Speed:${shot.speed||'?'} | Start:${shot.startSide||'?'} → ${shot.target}-${shot.length}`;
+    } else {
+      li.textContent = `${shot.strokeSide||'?'} ${shot.strokeType||'?'} → ${shot.target}-${shot.length} | Spin:${shot.spin||'?'} ${shot.sideSpin?('/ '+shot.sideSpin):''} | Speed:${shot.speed||'?'}`;
+    }
+    $('#logList').appendChild(li);
+    // Auto-scroll log to bottom
+    $('#logList').parentElement.scrollTop = $('#logList').parentElement.scrollHeight;
+  }
+})();
+</script>
+</body>
+</html>
