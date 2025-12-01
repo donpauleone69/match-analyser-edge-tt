@@ -729,5 +729,105 @@ Replaces `serveSpinPrimary` + `serveSpinStrength` with single 9-cell grid based 
 
 ---
 
-*Last updated: 2025-12-01 08:00 UTC*
+### 2025-12-01: v0.9.1 — Foundation Implementation
+
+**Context:** Executed the implementation plan to build the foundational architecture for the new two-part tagging workflow.
+
+#### New Files Created
+
+##### Rules Layer (`app/src/rules/`)
+
+| File | Purpose |
+|------|---------|
+| `types.ts` | Domain types (PlayerId, ShotQuality, ServeSpin, ServeType, etc.) |
+| `calculateServer.ts` | Serve order engine (2-each rule, deuce handling) |
+| `deriveEndOfPoint.ts` | End-of-point derivation (winner, landingType, pointEndType) |
+| `index.ts` | Rules layer exports |
+
+##### UI Components (`app/src/ui-mine/`)
+
+| Component | Purpose |
+|-----------|---------|
+| `Button/` | Wrapper with shortcut display support |
+| `Card/` | Re-export of shadcn Card |
+| `Badge/` | Re-export of shadcn Badge |
+| `Icon/` | Centralized icon registry (features NEVER import lucide directly) |
+| `SpinGrid/` | 3×3 serve spin selector with numpad support |
+| `LandingZoneGrid/` | 3×3 landing zone selector |
+| `PositionGrid/` | 3×3 player position selector |
+| `SpeedControls/` | Playback speed presets (Tag: 0.25-1×, FF: 1.5-4×) |
+
+##### Tagging Feature (`app/src/features/tagging/`)
+
+| Folder | Contents |
+|--------|----------|
+| `models.ts` | View model types (MatchPanelVM, RallyDetailVM, etc.) |
+| `derive/` | View model derivation hooks (useDeriveMatchPanel, etc.) |
+| `blocks/` | Presentational components (ScoreDisplayBlock, RallyPodBlock) |
+| `sections/` | Page sections (MatchPanelSection, TaggingControlsSection) |
+| `composers/` | Route-level orchestration (TaggingScreenComposer) |
+
+##### Pages & Routes
+
+| File | Purpose |
+|------|---------|
+| `pages/TaggingScreen.tsx` | New unified tagging page |
+| Route: `/matches/new/tagging` | New tagging workflow entry |
+| Route: `/matches/:id/tagging` | Existing match tagging |
+
+#### Store Updates (`app/src/stores/taggingStore.ts`)
+
+**New State Fields:**
+- `matchDate`, `videoStartSetScore`, `videoStartPointsScore`
+- `firstServeTimestamp`, `videoCoverage`, `taggingMode`
+- `matchResult`, `finalSetScore`, `finalPointsScore`
+- `currentGameIndex`, `games[]`
+- `step2Complete`, `currentReviewRallyIndex`
+- `showMatchDetailsModal`, `showMatchCompletionModal`, `showEndOfPointModal`
+- `pendingEndOfPoint`, `lastPrunedContacts`
+
+**New Actions:**
+- `setMatchDetails()`, `setMatchCompletion()`
+- `markEndOfSet()`
+- `setCurrentReviewRally()`, `nextReviewRally()`, `prevReviewRally()`
+- `setRallyPointEndType()`, `setRallyLuckType()`
+- `openEndOfPointModal()`, `closeEndOfPointModal()`, `confirmEndOfPoint()`
+- `autoPruneContacts()`, `undoLastPrune()`
+- `getCurrentRally()`
+
+#### Types Migration
+
+- `app/src/types/index.ts` now re-exports from `@/rules/types`
+- Backward compatible — existing imports still work
+- New code should import from `@/rules/types` or `@/rules`
+
+#### Configuration Updates
+
+| File | Change |
+|------|--------|
+| `tsconfig.app.json` | Added `baseUrl` and `paths` for `@/*` alias |
+| `vite.config.ts` | Added `resolve.alias` for `@` path |
+
+#### Architecture Alignment
+
+Implementation follows the architecture defined in `Architecture.md`:
+- **Composers** access stores and call derive hooks
+- **Sections** receive view models via props
+- **Blocks** are presentational only (no store access)
+- **Rules** are pure functions (no React, no IO)
+- **ui-mine** wraps shadcn primitives with project theming
+
+#### Keyboard Shortcuts Implemented
+
+| Key | Action |
+|-----|--------|
+| `Space` | Add contact |
+| `Enter` | End rally (scoring) |
+| `L` | End rally (let/no score) |
+| `Backspace` | Undo last contact |
+| `Shift+S` | Mark end of set |
+
+---
+
+*Last updated: 2025-12-01 18:45 UTC*
 

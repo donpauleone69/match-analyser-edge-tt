@@ -1,78 +1,74 @@
-// Player types
-export interface Player {
-  id: string
-  name: string
-  rating?: number
-}
+/**
+ * Edge TT Match Analyser — Type Exports
+ * 
+ * This file re-exports types from the rules layer for backward compatibility.
+ * New code should import directly from '@/rules/types'.
+ */
 
-// Match types
-export interface Match {
-  id: string
-  player1: Player
-  player2: Player
-  firstServerId: string
-  matchDate: string
-  videoSource?: string
-  hasVideo: boolean
-  step1Complete: boolean
-  step2Complete: boolean
-}
+// Re-export all types from rules layer
+export type {
+  PlayerId,
+  Player,
+  ShotQuality,
+  ServeSpin,
+  ServeType,
+  Wing,
+  ShotType,
+  EssentialShotType,
+  InferredSpin,
+  LandingType,
+  LandingZone,
+  PositionSector,
+  PositionDistance,
+  PointEndType,
+  LuckType,
+  TaggingMode,
+  VideoCoverage,
+  MatchResult,
+  ServeIssueCause,
+  ReceiveIssueCause,
+  ThirdBallIssueCause,
+  UnforcedErrorCause,
+  Contact,
+  Rally,
+  EssentialShotData,
+  FullShotData,
+  EndOfPointData,
+  MatchDetailsInput,
+  MatchCompletionInput,
+  MarkerType,
+  TimelineMarker,
+  Game,
+  Match,
+} from '../rules/types'
 
-// Game types
-export interface Game {
-  id: string
-  matchId: string
-  gameNumber: number
-  player1FinalScore: number
-  player2FinalScore: number
-  winnerId?: string
-  hasVideo: boolean
-}
+// Re-export constants
+export {
+  ERROR_QUALITIES,
+  IN_PLAY_QUALITIES,
+  isErrorQuality,
+  SERVE_SPIN_GRID,
+  SERVE_SPIN_NUMPAD,
+  SERVE_WING_MAP,
+  deriveServeWing,
+  ESSENTIAL_SHOT_TYPES,
+  SHOT_TYPE_SPIN_MAP,
+  deriveInferredSpin,
+  LANDING_ZONE_GRID,
+  deriveLandingType,
+  POSITION_SECTOR_GRID,
+  getPositionDistance,
+} from '../rules/types'
 
-// Rally types
-export interface Rally {
-  id: string
-  gameId: string
-  rallyIndex: number
-  isScoring: boolean
-  winnerId?: 'player1' | 'player2'
-  endOfPointTime?: number // Timestamp when rally ended (movable in review)
-  player1ScoreAfter: number
-  player2ScoreAfter: number
-  serverId: 'player1' | 'player2'
-  receiverId: 'player1' | 'player2'
-  hasVideoData: boolean
-  contacts: Contact[]
-  isHighlight?: boolean // Mark as highlight for export filtering
-}
-
-// Contact types (Step 1 tagging)
-export interface Contact {
-  id: string
-  rallyId: string
-  time: number // seconds in video
-  shotIndex: number
-}
-
-// Timeline marker types
-export type MarkerType = 'contact' | 'rally-end-score' | 'rally-end-no-score'
-
-export interface TimelineMarker {
-  id: string
-  time: number
-  type: MarkerType
-  rallyId?: string
-}
-
-// Tagging session state
+// Tagging session state (kept for backward compatibility)
 export interface TaggingSession {
   matchId: string
   currentTime: number
   isPlaying: boolean
   playbackSpeed: number
-  contacts: Contact[]
-  rallies: Rally[]
-  currentRallyContacts: Contact[] // Contacts in the current (open) rally
+  contacts: import('../rules/types').Contact[]
+  rallies: import('../rules/types').Rally[]
+  currentRallyContacts: import('../rules/types').Contact[]
   player1Score: number
   player2Score: number
   currentServerId: string

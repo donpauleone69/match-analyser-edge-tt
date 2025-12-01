@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AppShell } from './components/layout'
-import { Dashboard, MatchSetup, Matches, Step1ContactTagger, Step1Review } from './pages'
+import { Dashboard, MatchSetup, Matches, Step1ContactTagger, Step1Review, TaggingScreen } from './pages'
 
 function App() {
   return (
@@ -22,6 +22,10 @@ function App() {
         <Route path="/matches/:id/step1" element={<Step1ContactTagger />} />
         <Route path="/matches/new/review" element={<Step1Review />} />
         <Route path="/matches/:id/review" element={<Step1Review />} />
+        
+        {/* New unified tagging screen (v0.8.0) */}
+        <Route path="/matches/new/tagging" element={<TaggingScreen />} />
+        <Route path="/matches/:id/tagging" element={<TaggingScreen />} />
       </Routes>
     </BrowserRouter>
   )
