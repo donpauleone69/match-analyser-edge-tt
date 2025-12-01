@@ -10,4 +10,6 @@ export { RallyPodBlock, type RallyPodBlockProps } from './RallyPodBlock'
 export { ContactButtonBlock, type ContactButtonBlockProps } from './ContactButtonBlock'
 export { WinnerSelectBlock, type WinnerSelectBlockProps } from './WinnerSelectBlock'
 export { MatchDetailsModalBlock, type MatchDetailsModalBlockProps, type MatchDetailsFormData } from './MatchDetailsModalBlock'
+export { ShotRowBlock, type ShotRowBlockProps } from './ShotRowBlock'
+export { MatchCompletionModalBlock, type MatchCompletionModalBlockProps, type MatchCompletionFormData } from './MatchCompletionModalBlock'
 

@@ -42,7 +42,6 @@ export function TaggingScreenComposer({ className }: TaggingScreenComposerProps)
     setCurrentReviewRally,
     selectWinner,
     setVideoUrl,
-    setIsPlaying,
     initMatch,
     setMatchDetails,
     rallies,

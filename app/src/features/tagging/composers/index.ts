@@ -6,4 +6,5 @@
  */
 
 export { TaggingScreenComposer, type TaggingScreenComposerProps } from './TaggingScreenComposer'
+export { RallyDetailComposer, type RallyDetailComposerProps } from './RallyDetailComposer'
 
