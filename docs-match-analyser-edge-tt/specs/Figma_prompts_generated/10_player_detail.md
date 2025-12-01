@@ -1,4 +1,4 @@
-# 11 - Player Detail
+# 10 - Player Detail
 
 ## Screen Purpose
 View/edit a single player
@@ -22,13 +22,14 @@ A. Basic Info:
 
 B. Recent Matches section:
 - List of 3-5 most recent matches involving this player
-- Each shows opponent, score, date
+- Each shows opponent, score, date, tagging mode badge
 - "View All Matches" link
 
 C. Quick Stats (read-only summary):
 - Total matches played
 - Win rate %
 - Serve fault rate %
+- Most common shot type
 
 3. Actions (bottom):
 - "Save Changes" primary button
@@ -40,4 +41,5 @@ Typography: Labels above inputs, rating number large
 
 Style: Simple edit form, essential information only
 ```
+
 

@@ -116,6 +116,21 @@ CREATE TABLE IF NOT EXISTS matches (
     step1Complete BOOLEAN DEFAULT FALSE,  -- TRUE when Step 1 tagging is finished
     step2Complete BOOLEAN DEFAULT FALSE,  -- TRUE when Step 2 tagging is finished
     
+    -- Video start context (for partial/truncated videos) [v0.8.0]
+    videoStartSetScore TEXT DEFAULT '0-0',      -- Set score when video started
+    videoStartPointsScore TEXT DEFAULT '0-0',   -- Points score when video started
+    firstServeTimestamp NUMERIC,                -- Seconds into video of first serve
+    videoCoverage TEXT CHECK (videoCoverage IN ('full', 'truncatedStart', 'truncatedEnd', 'truncatedBoth')) 
+        DEFAULT 'full',
+    
+    -- Match completion details [v0.8.0]
+    matchResult TEXT CHECK (matchResult IN ('player1', 'player2', 'incomplete')),
+    finalSetScore TEXT,                         -- e.g. "3-2"
+    finalPointsScore TEXT,                      -- e.g. "11-9" (last set)
+    
+    -- Tagging mode preference [v0.8.0]
+    taggingMode TEXT CHECK (taggingMode IN ('essential', 'full')) DEFAULT 'full',
+    
     -- Timestamps
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -180,6 +195,9 @@ CREATE TABLE IF NOT EXISTS games (
     -- For partial video coverage (video starts mid-game)
     videoStartPlayer1Score SMALLINT DEFAULT 0,  -- Score when video/tagging began
     videoStartPlayer2Score SMALLINT DEFAULT 0,  -- Score when video/tagging began
+    
+    -- End of set marker [v0.8.0]
+    endOfSetTimestamp NUMERIC,                  -- Video timestamp marking end of set
     
     -- Timestamps
     created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -251,6 +269,9 @@ CREATE TABLE IF NOT EXISTS rallies (
     
     opponentLuckOvercome BOOLEAN DEFAULT FALSE,
         -- TRUE if winner overcame earlier lucky net/edge by opponent
+    
+    -- [v0.8.0] Highlight flag for v2 compilation features
+    isHighlight BOOLEAN DEFAULT FALSE,
     
     -- Timestamps
     created_at TIMESTAMPTZ DEFAULT NOW()
@@ -381,22 +402,37 @@ CREATE TABLE IF NOT EXISTS shots (
         'BHLong', 'MidLong', 'FHLong'
     )),  -- Only valid when landingType = 'inPlay'
     
-    -- Q5: Shot Quality
-    shotQuality TEXT CHECK (shotQuality IN ('good', 'average', 'weak')) NOT NULL,
+    -- Q5: Shot Quality [v0.8.0 - expanded with error types]
+    -- Error types (inNet, missedLong, missedWide) enable derivation of landingType and winnerId
+    shotQuality TEXT CHECK (shotQuality IN (
+        'good', 'average', 'weak',
+        'inNet', 'missedLong', 'missedWide'
+    )) NOT NULL,
     
     --------------------
     -- SERVE FIELDS (only when isServe = TRUE)
     --------------------
     
+    -- [v0.8.0] Updated serve type list (added lollipop, removed shovel)
     serveType TEXT CHECK (serveType IN (
         'pendulum', 'reversePendulum', 'tomahawk', 
-        'backhand', 'hook', 'shovel', 'other'
+        'backhand', 'hook', 'lollipop', 'other'
     )),
     
+    -- [v0.8.0] Serve spin as 3x3 grid (replaces serveSpinPrimary + serveSpinStrength)
+    -- Grid based on ball contact point: topspin at top, backspin at bottom
+    serveSpin TEXT CHECK (serveSpin IN (
+        'topLeft', 'topspin', 'topRight',
+        'sideLeft', 'noSpin', 'sideRight',
+        'backLeft', 'backspin', 'backRight'
+    )),
+    
+    -- DEPRECATED: Use serveSpin instead (kept for migration compatibility)
     serveSpinPrimary TEXT CHECK (serveSpinPrimary IN (
         'under', 'top', 'sideLeft', 'sideRight', 'none'
     )),
     
+    -- DEPRECATED: Use serveSpin instead (kept for migration compatibility)
     serveSpinStrength TEXT CHECK (serveSpinStrength IN (
         'low', 'medium', 'heavy'
     )),
@@ -584,38 +620,91 @@ BHMid     MidMid     FHMid
 BHLong    MidLong    FHLong
 ```
 
-### 8.8 Shot Quality
-- `good`, `average`, `weak`
+### 8.8 Shot Quality [v0.8.0 - expanded]
 
-### 8.9 Serve Type
-- `pendulum`, `reversePendulum`, `tomahawk`, `backhand`, `hook`, `shovel`, `other`
+In-play qualities:
+- `good` – strong shot, pressured opponent
+- `average` – neutral shot
+- `weak` – poor shot, gave advantage
 
-### 8.10 Serve Spin Primary
+Error qualities (derive landingType automatically):
+- `inNet` – shot hit the net → `landingType = 'net'`
+- `missedLong` – shot went off the end → `landingType = 'offLong'`
+- `missedWide` – shot went off the side → `landingType = 'wide'`
+
+### 8.9 Serve Type [v0.8.0 - updated]
+- `pendulum`, `reversePendulum`, `tomahawk`, `backhand`, `hook`, `lollipop`, `other`
+
+**Serve Type → Wing Derivation:**
+| Serve Type | Wing |
+|------------|:----:|
+| `pendulum` | FH |
+| `reversePendulum` | BH |
+| `tomahawk` | FH |
+| `backhand` | BH |
+| `hook` | FH |
+| `lollipop` | FH |
+| `other` | FH |
+
+### 8.10 Serve Spin (3×3 Grid) [v0.8.0 - new]
+
+Ball contact point perspective (topspin at top, backspin at bottom):
+
+```
+┌─────────────────────────────────────────┐
+│  topLeft     │   topspin    │ topRight   │
+│     (7)      │     (8)      │    (9)     │
+├──────────────┼──────────────┼────────────┤
+│  sideLeft    │   noSpin     │ sideRight  │
+│     (4)      │     (5)      │    (6)     │
+├──────────────┼──────────────┼────────────┤
+│  backLeft    │  backspin    │ backRight  │
+│     (1)      │     (2)      │    (3)     │
+└─────────────────────────────────────────┘
+```
+
+Values: `topLeft`, `topspin`, `topRight`, `sideLeft`, `noSpin`, `sideRight`, `backLeft`, `backspin`, `backRight`
+
+### 8.11 Serve Spin Primary (DEPRECATED)
 - `under`, `top`, `sideLeft`, `sideRight`, `none`
+- **Note:** Replaced by `serveSpin` 3×3 grid in v0.8.0
 
-### 8.11 Serve Spin Strength
+### 8.12 Serve Spin Strength (DEPRECATED)
 - `low`, `medium`, `heavy`
+- **Note:** Replaced by `serveSpin` 3×3 grid in v0.8.0
 
-### 8.12 Fault Type
+### 8.13 Fault Type
 - `net`, `long`, `wide`, `other`
+- **Note:** Can be derived from `shotQuality` error types in v0.8.0
 
-### 8.13 Serve Issue Cause
+### 8.14 Serve Issue Cause
 - `technicalExecution`, `badDecision`, `tooHigh`, `tooLong`, `notEnoughSpin`, `easyToRead`
 
-### 8.14 Receive Issue Cause
+### 8.15 Receive Issue Cause
 - `misreadSpinType`, `misreadSpinAmount`, `technicalExecution`, `badDecision`
 
-### 8.15 Third Ball Issue Cause
+### 8.16 Third Ball Issue Cause
 - `incorrectPreparation`, `unexpectedReturn`, `technicalExecution`, `badDecision`, `tooAggressive`, `tooPassive`
 
-### 8.16 Point End Type
+### 8.17 Point End Type
 - `winnerShot`, `forcedError`, `unforcedError`, `serviceFault`, `receiveError`, `other`
 
-### 8.17 Luck Type
+### 8.18 Luck Type
 - `none`, `luckyNet`, `luckyEdgeTable`, `luckyEdgeBat`
 
-### 8.18 Unforced Error Cause
+### 8.19 Unforced Error Cause
 - `technicalExecution`, `badDecision`, `tooAggressive`, `tooPassive`
+
+### 8.20 Essential Mode Shot Types [v0.8.0]
+
+Simplified shot type list for Essential tagging mode (9 types):
+
+```
+Defensive:  push, chop, block, lob
+Neutral:    drive, flick
+Aggressive: loop, smash
+Fallback:   other
+```
 
 ---
 
@@ -654,9 +743,10 @@ Field population rules are defined in the workflow spec. Key conditional rules:
 | Rule | Description |
 |------|-------------|
 | Min 1 contact per rally | Every rally must have at least 1 contact (the serve); validation error otherwise |
-| shotType required for non-serves | If `isServe = FALSE`, then `shotType` must not be NULL |
+| shotType required for non-serves | If `isServe = FALSE` AND `taggingMode = 'full'`, then `shotType` must not be NULL |
 | Fault = weak | If `isFault = TRUE`, then `shotQuality` must be `weak` |
 | Non-scoring rallies skip Step 2 | Rallies with `isScoring = FALSE` are not annotated in Step 2 (contacts recorded but no shots) |
+| Essential mode nullable fields | If `taggingMode = 'essential'`, `positionSector`, `shotType`, `landingZone` may be NULL |
 
 #### Game Boundary Detection
 
@@ -665,13 +755,27 @@ Field population rules are defined in the workflow spec. Key conditional rules:
 - System suggests game end based on score; user confirms or overrides
 - `firstServerId` is editable; changing it recalculates all `serverId`/`receiverId` values
 
-#### Winner/Error Attribution
+#### Winner/Error Attribution [v0.8.0 - enhanced derivation]
 
 The ending shot of a rally is determined by:
 1. Last shot's `playerId` identifies who hit the final ball
-2. Last shot's `landingType` determines outcome:
-   - `net`, `offLong`, `wide` → that player made an error
-   - `inPlay` → opponent couldn't return (winner or forced error)
+2. Last shot's `shotQuality` determines outcome:
+   - `inNet`, `missedLong`, `missedWide` → that player made an error → winner is OTHER player
+   - `good`, `average`, `weak` → ball was in play → winner is THIS player (opponent couldn't return)
+
+**Derivation from shotQuality:**
+
+| Last Shot Quality | Derived landingType | Derived winnerId | pointEndType |
+|-------------------|---------------------|------------------|--------------|
+| `inNet` | `net` | Other player | Ask: forced/unforced (or serviceFault/receiveError) |
+| `missedLong` | `offLong` | Other player | Ask: forced/unforced (or serviceFault/receiveError) |
+| `missedWide` | `wide` | Other player | Ask: forced/unforced (or serviceFault/receiveError) |
+| `good`/`average`/`weak` | `inPlay` | This player | `winnerShot` |
+
+**Special cases for error shots:**
+- If `shotIndex = 1` (serve) and error quality → `pointEndType = 'serviceFault'`
+- If `shotIndex = 2` (return) and error quality → `pointEndType = 'receiveError'`
+- If `shotIndex >= 3` and error quality → Ask user: Forced or Unforced?
 
 #### Distance-Based Shot Type Filtering
 

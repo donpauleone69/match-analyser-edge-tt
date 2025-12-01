@@ -519,7 +519,7 @@ interface Rally {
 
 ### Not Yet Implemented (Backlog)
 
-1. **Delete entire rally** - Currently can only delete individual shots
+1. ~~**Delete entire rally**~~ - ✅ Implemented in v0.7.0
 2. **Reorder rallies** - In case rallies were tagged out of order
 3. **Merge rallies** - Combine two rallies that were mistakenly split
 4. **Split rally** - Divide a rally that was mistakenly combined
@@ -527,9 +527,148 @@ interface Rally {
 
 ### Open Questions
 
-1. Should winner time default to last contact time, or a few frames after?
-2. Should there be a "rally end" marker separate from winner time for no-score rallies?
+1. ~~Should winner time default to last contact time, or a few frames after?~~ → Resolved: Uses current video time when rally ends
+2. ~~Should there be a "rally end" marker separate from winner time for no-score rallies?~~ → Resolved: endOfPointTime is separate from winnerId
 3. Should contacts store which player made the shot (for Step 2 pre-population)?
+
+---
+
+### 2025-12-01: MVP Flowchange — Unified Two-Part Workflow
+
+**Context:** User testing revealed workflow improvements for the tagging process.
+
+#### Major Changes
+
+See `MVP_flowchange_spec.md` for full specification. Summary:
+
+1. **Unified Layout** — Both Part 1 (Match Framework) and Part 2 (Rally Detail) use same screen structure
+2. **Match Details Modal** — Pre-tagging setup captures video start context, match date, and first serve
+3. **Match Panel** — Collapsible tree structure on left sidebar
+4. **Essential Mode** — Simplified tagging for faster workflow (see below)
+5. **Full Mode** — Detailed tagging with position sector, diagnostics, and luck tracking
+6. **Sequential Rally Focus** — Part 2 expands only active rally, others collapse
+7. **Preview Buffer** — Shot loops show +0.2s past next timestamp without changing stored values
+8. **Progress Indicator** — "Rally X of Y" header
+9. **Misclick Auto-Pruning** — Contacts after error shots automatically removed with undo option
+
+#### Shot Quality Expansion
+
+**Before:** `good`, `average`, `weak`
+
+**After:** `good`, `average`, `weak`, `inNet`, `missedLong`, `missedWide`
+
+This enables automatic derivation of:
+- `landingType` (error qualities map to net/offLong/wide)
+- `winnerId` (error = other player wins)
+- `pointEndType` (partial — only forced/unforced needs asking for rally errors)
+
+#### Serve Spin Grid (3×3)
+
+Replaces `serveSpinPrimary` + `serveSpinStrength` with single 9-cell grid based on ball contact point:
+
+```
+┌─────────────────────────────────────────┐
+│  topLeft     │   topspin    │ topRight   │
+├──────────────┼──────────────┼────────────┤
+│  sideLeft    │   noSpin     │ sideRight  │
+├──────────────┼──────────────┼────────────┤
+│  backLeft    │  backspin    │ backRight  │
+└─────────────────────────────────────────┘
+```
+
+#### Serve Type Update
+
+- **Added:** `lollipop`
+- **Removed:** `shovel`
+- **Wing derivation:** All serve types now derive wing automatically (Pendulum=FH, ReversePendulum=BH, etc.)
+
+#### Essential Mode (Final)
+
+| Shot | Questions | Inputs |
+|------|-----------|:------:|
+| Serve | Type → Spin → Landing Zone → Quality | 4 (3 if error) |
+| Rally Shot | Wing → Type → Landing Zone → Quality | 4 (3 if error) |
+| End of Point | Forced/Unforced? (if error, shot 3+) | 0-1 |
+
+**Totals:** ~12 inputs for 3-shot rally, ~20 for 5-shot rally
+
+#### Full Mode (Final)
+
+| Shot | Questions | Inputs |
+|------|-----------|:------:|
+| Serve | Type → Position → Spin → Landing Zone → Quality (+issue?) | 5-6 |
+| Rally Shot | Wing → Position → Type → Landing Zone → Quality (+issue?) | 4-5 |
+| End of Point | Forced/Unforced? → Luck → (Error cause?) | 1-3 |
+
+**Totals:** ~16-18 inputs for 3-shot rally, ~26-30 for 5-shot rally
+
+#### New Data Fields
+
+| Field | Table | Purpose |
+|-------|-------|---------|
+| `videoStartSetScore` | matches | Set score when video started (e.g. "1-1") |
+| `videoStartPointsScore` | matches | Points score when video started (e.g. "5-3") |
+| `firstServeTimestamp` | matches | Video timestamp of first serve |
+| `videoCoverage` | matches | Full / truncatedStart / truncatedEnd / truncatedBoth |
+| `matchResult` | matches | Final winner (player1 / player2 / incomplete) |
+| `finalSetScore` | matches | Final set score string |
+| `finalPointsScore` | matches | Final points of last set |
+| `taggingMode` | matches | essential / full |
+| `endOfSetTimestamp` | games | Video timestamp marking set end |
+| `serveSpin` | shots | 3×3 grid value (replaces spinPrimary + spinStrength) |
+| `isHighlight` | rallies | Boolean for v2 highlight compilations |
+
+#### Schema Changes Summary
+
+| Change | Field | Table |
+|--------|-------|-------|
+| **Add** | `serveSpin` (9-cell grid) | shots |
+| **Deprecate** | `serveSpinPrimary` | shots |
+| **Deprecate** | `serveSpinStrength` | shots |
+| **Modify** | `shotQuality` (add error types) | shots |
+| **Modify** | `serveType` (add lollipop, remove shovel) | shots |
+| **Add** | `isHighlight` | rallies |
+| **Add** | Match framework fields | matches |
+| **Add** | `endOfSetTimestamp` | games |
+
+#### New Store State
+
+| Field | Purpose |
+|-------|---------|
+| `activeRallyIndex` | Which rally is being detailed in Part 2 |
+| `activeShotIndex` | Which shot within active rally |
+| `previewBufferSeconds` | Loop buffer (default 0.2s) |
+| `loopSpeed` | Preview loop speed (default 0.5x) |
+
+#### Keyboard Shortcuts Update (Part 1)
+
+| Key | Action |
+|-----|--------|
+| Space | Mark contact / Start new rally |
+| → | End rally + Fast Forward |
+| ← | Slow down |
+| **E** | End of Set marker (new) |
+| K | Play/Pause |
+| Ctrl+Z | Undo |
+
+#### Playback Speed Changes
+
+| Mode | Default | Options |
+|------|---------|---------|
+| Tagging | **0.25×** (was 0.75×) | 0.125×, 0.25×, 0.5×, 0.75×, 1× |
+| Fast Forward | 1× | 0.5×, 1×, 2×, 3×, 4×, 5× |
+| Preview Loop | 0.5× | 0.25×, 0.5×, 0.75×, 1× |
+
+#### Derivation Logic
+
+| Derived Field | Source |
+|---------------|--------|
+| `landingType` | `shotQuality` error types |
+| `winnerId` | Last shot quality + player |
+| `pointEndType` | Partial (serviceFault/receiveError auto, forced/unforced asked) |
+| `isFault` | Serve + error quality |
+| Serve `wing` | `serveType` mapping |
+| `inferredSpin` | `shotType` mapping |
 
 ---
 
@@ -544,8 +683,51 @@ interface Rally {
 | 2025-12-01 | 0.5.0 | Step 1 Tagger redesign: fast-forward workflow, settings sidebar, deferred winner |
 | 2025-12-01 | 0.6.0 | Step 1 Review: shot labels, end-of-point, first server selection, server overlay |
 | 2025-12-01 | 0.7.0 | Delete rally, server auto-alternate with manual override, video export optimization |
+| 2025-12-01 | 0.8.0 | MVP Flowchange: unified layout, match framework phase, rally detail phase, essential mode |
+| 2025-12-01 | 0.8.1 | Figma design prompts updated for new two-part workflow |
 
 ---
 
-*Last updated: 2025-12-01 05:00 UTC*
+### 2025-12-01: Figma Design Prompts Update (v0.8.1)
+
+**Context:** Updated all Figma AI prompts to reflect the new two-part workflow specification.
+
+#### Files Updated
+
+| File | Change |
+|------|--------|
+| `Screens.md` | Complete inventory rewrite with new screen list, user flow, keyboard shortcuts |
+| `02_match_setup.md` | Updated to show Match Details Modal trigger |
+| `04_part1_match_framework.md` | **NEW** — Replaces Step 1 Contact Tagger |
+| `05_part2_rally_detail.md` | **NEW** — Replaces Step 1 Review + Step 2 Shot Detail |
+| `06_match_stats.md` | Updated with tagging mode badge, new quality types |
+| `07_player_stats.md` | Updated with mode filter, error breakdown |
+| `08_match_history.md` | Updated with Part 1/2 badges, highlight count |
+| `11_settings.md` | Updated with tagging mode default, new speed presets |
+| `12_match_details_modal.md` | **NEW** — Pre-tagging setup modal |
+| `13_match_completion_modal.md` | **NEW** — Post-tagging completion modal |
+| `14_shot_question_modal.md` | **NEW** — Essential/Full mode shot annotation |
+| `15_end_of_point_modal.md` | **NEW** — Rally completion with derivation display |
+| `16_spin_grid_component.md` | **NEW** — 3×3 serve spin selector |
+| `17_speed_controls_panel.md` | **NEW** — Tagging/FF/Loop speed controls |
+| `DS_04_video_tagging_components.md` | Complete rewrite with Match Panel, unified layout |
+
+#### Files Removed
+
+| File | Reason |
+|------|--------|
+| `04_step1_contact_tagger.md` | Replaced by Part 1: Match Framework |
+| `05_step1_review.md` | Merged into Part 2: Rally Detail |
+| `06_step2_shot_detail.md` | Merged into Part 2: Rally Detail |
+| `13_winner_dialog.md` | Replaced by End of Point Modal |
+| `14_serve_detail_panel.md` | Integrated into Shot Question Modal |
+
+#### Screen Count Change
+
+**Before:** 14 screens + 4 DS prompts
+**After:** 17 screens/modals/components + 4 DS prompts
+
+---
+
+*Last updated: 2025-12-01 08:00 UTC*
 

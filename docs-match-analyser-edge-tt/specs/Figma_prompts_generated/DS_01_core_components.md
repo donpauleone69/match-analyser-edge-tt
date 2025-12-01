@@ -49,3 +49,4 @@ All components should use the color palette: Background #1a1a1a, Cards #252525, 
 Font: Plus Jakarta Sans or DM Sans, geometric and clean.
 ```
 
+

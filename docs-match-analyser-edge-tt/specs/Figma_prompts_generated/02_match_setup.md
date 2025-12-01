@@ -1,7 +1,7 @@
 # 02 - Match Setup
 
 ## Screen Purpose
-Configure players, match structure, video source
+Configure players, match structure, video source — triggers Match Details Modal for video matches
 
 ---
 
@@ -22,16 +22,18 @@ Form sections from top to bottom:
 - Below each: checkbox "Extended diagnostics for this player"
 
 2. Match config section:
-- First Server toggle: Two large radio-style buttons "P1 Serves First" / "P2 Serves First"
 - Match Date: Date picker input, pre-filled with today
 - Game Structure: Dropdown showing "Best of 5 to 11"
+- Tournament/Context: Optional dropdown (Friendly, Minor Tournament, Tournament, National)
 
 3. Video section:
 - "Select Video" file picker button with selected filename display and duration
 - Checkbox: "No video available (results only)"
+- Helper text: "Match should be a single video file"
 
 4. Action:
-- Bottom: Full-width primary button "Start Step 1 Tagging" (disabled state if form incomplete)
+- Bottom: Full-width primary button "Continue to Tagging" (disabled state if form incomplete)
+- Note: This opens Match Details Modal for video matches, or Game Score Entry for no-video
 
 Color scheme: Dark theme (#1a1a1a background), form sections in darker cards (#252525), teal accent (#14b8a6) for primary actions, input fields with subtle borders
 
@@ -39,4 +41,14 @@ Typography: Geometric sans-serif, clear labels above inputs
 
 Style: Clean form layout, clear visual hierarchy, obvious primary action at bottom
 ```
+
+---
+
+## Notes (v0.8.0)
+
+- Match Date moved here from Match Details Modal for better flow
+- When user clicks "Continue to Tagging" with video selected:
+  - Opens Match Details Modal to capture first serve timestamp, starting scores, first server
+- When user clicks "Continue to Tagging" with "No video" checked:
+  - Goes directly to Game Score Entry screen
 

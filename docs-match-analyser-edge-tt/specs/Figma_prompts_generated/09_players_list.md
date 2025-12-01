@@ -1,4 +1,4 @@
-# 10 - Players List
+# 09 - Players List
 
 ## Screen Purpose
 Manage player records
@@ -35,4 +35,5 @@ Typography: Names prominent, stats secondary
 
 Style: Simple management view, easy to browse and find players
 ```
+
 
