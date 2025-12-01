@@ -1,12 +1,19 @@
 /**
- * MatchDetailsModalBlock — Pre-tagging setup modal
+ * MatchDetailsModalBlock — Pre-tagging setup modal (CRITICAL FIRST STEP)
  * 
- * Captures: player names, match date, first server, tagging mode
+ * Captures the Match Framework that enables ALL server derivation:
+ * - Player names
+ * - Match date
+ * - First server (enables server calculation for all rallies)
+ * - First serve timestamp (user locates in video)
+ * - Starting scores (for partial videos)
+ * - Tagging mode (Essential vs Full)
  */
 
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import { Button, Icon, Card, CardHeader, CardTitle, CardContent } from '@/ui-mine'
+import { formatTime } from '@/lib/utils'
 import type { PlayerId, TaggingMode } from '@/rules/types'
 
 export interface MatchDetailsFormData {
@@ -17,11 +24,13 @@ export interface MatchDetailsFormData {
   taggingMode: TaggingMode
   videoStartSetScore: string
   videoStartPointsScore: string
+  firstServeTimestamp: number | null
 }
 
 export interface MatchDetailsModalBlockProps {
   isOpen: boolean
   initialData?: Partial<MatchDetailsFormData>
+  currentVideoTime: number
   onSubmit: (data: MatchDetailsFormData) => void
   onCancel?: () => void
   className?: string
@@ -30,6 +39,7 @@ export interface MatchDetailsModalBlockProps {
 export function MatchDetailsModalBlock({
   isOpen,
   initialData,
+  currentVideoTime,
   onSubmit,
   onCancel,
   className,
@@ -42,6 +52,7 @@ export function MatchDetailsModalBlock({
     taggingMode: initialData?.taggingMode || 'essential',
     videoStartSetScore: initialData?.videoStartSetScore || '0-0',
     videoStartPointsScore: initialData?.videoStartPointsScore || '0-0',
+    firstServeTimestamp: initialData?.firstServeTimestamp ?? null,
   })
   
   if (!isOpen) return null
@@ -178,6 +189,35 @@ export function MatchDetailsModalBlock({
               </div>
             </div>
             
+            {/* First Serve Timestamp (CRITICAL) */}
+            <div className="pt-2 border-t border-neutral-700">
+              <label className="block text-sm font-medium text-neutral-300 mb-2">
+                First Serve Timestamp
+                <span className="text-danger ml-1">*</span>
+              </label>
+              <p className="text-xs text-neutral-400 mb-2">
+                Navigate video to the first serve, then click "Mark First Serve"
+              </p>
+              <div className="flex gap-2 items-center">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => updateField('firstServeTimestamp', currentVideoTime)}
+                >
+                  <Icon name="target" size="sm" />
+                  Mark First Serve
+                </Button>
+                {formData.firstServeTimestamp !== null ? (
+                  <span className="text-sm font-mono text-success">
+                    {formatTime(formData.firstServeTimestamp)}
+                  </span>
+                ) : (
+                  <span className="text-sm text-neutral-500">Not set</span>
+                )}
+              </div>
+            </div>
+            
             {/* Video Start Score (optional) */}
             <div className="pt-2 border-t border-neutral-700">
               <label className="block text-sm font-medium text-neutral-400 mb-2">
@@ -214,11 +254,21 @@ export function MatchDetailsModalBlock({
                   Cancel
                 </Button>
               )}
-              <Button type="submit" variant="primary" fullWidth>
+              <Button 
+                type="submit" 
+                variant="primary" 
+                fullWidth
+                disabled={formData.firstServeTimestamp === null}
+              >
                 <Icon name="check" size="sm" />
                 Start Tagging
               </Button>
             </div>
+            {formData.firstServeTimestamp === null && (
+              <p className="text-xs text-warning text-center mt-2">
+                Please mark the first serve timestamp before starting
+              </p>
+            )}
           </form>
         </CardContent>
       </Card>

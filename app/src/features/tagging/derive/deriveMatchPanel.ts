@@ -73,6 +73,9 @@ export function useDerivePointDetailsTree(): PointDetailsTreeVM {
         isCurrentReview: index === currentReviewRallyIndex,
         isHighlight: rally.isHighlight || false,
         hasError,
+        // Part 2 - expanded view data
+        contacts: rally.contacts,
+        endOfPointTime: rally.endOfPointTime,
       }
       
       currentGameRallies.push(node)
@@ -85,7 +88,6 @@ export function useDerivePointDetailsTree(): PointDetailsTreeVM {
       
       if (maxScore >= 11 && lead >= 2) {
         // Game ended
-        const game = games[currentGameNumber - 1]
         gameNodes.push({
           gameNumber: currentGameNumber,
           player1Score: p1,

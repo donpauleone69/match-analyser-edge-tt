@@ -7,11 +7,10 @@
 
 import type { 
   PlayerId, 
-  Rally, 
-  Contact,
   TaggingMode,
   PointEndType,
   ShotQuality,
+  Contact,
 } from '@/rules/types'
 
 // =============================================================================
@@ -40,6 +39,9 @@ export interface RallyTreeNodeVM {
   isCurrentReview: boolean
   isHighlight: boolean
   hasError: boolean // Server mismatch, missing winner, etc.
+  // Part 2 - expanded view
+  contacts?: Contact[]
+  endOfPointTime?: number
 }
 
 export interface GameNodeVM {

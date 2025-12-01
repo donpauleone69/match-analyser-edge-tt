@@ -115,8 +115,8 @@ class VideoExportService {
   async exportHighlights(options: ExportOptions): Promise<Blob> {
     const {
       rallies,
-      player1Name,
-      player2Name,
+      player1Name: _player1Name,
+      player2Name: _player2Name,
       videoFile,
       includeScoreOverlay,
       paddingBefore = 0.5,
@@ -306,7 +306,7 @@ class VideoExportService {
       // Ignore cleanup errors
     }
 
-    return new Blob([data], { type: 'video/mp4' })
+    return new Blob([data as BlobPart], { type: 'video/mp4' })
   }
 
   async exportSingleRally(

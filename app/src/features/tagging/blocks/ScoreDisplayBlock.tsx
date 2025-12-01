@@ -25,7 +25,6 @@ export function ScoreDisplayBlock({
   currentServerId,
   className,
 }: ScoreDisplayBlockProps) {
-  const [p1Sets, p2Sets] = setScore.split('-').map(Number)
   const [p1Points, p2Points] = pointsScore.split('-').map(Number)
   
   return (

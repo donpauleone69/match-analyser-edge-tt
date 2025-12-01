@@ -829,5 +829,130 @@ Implementation follows the architecture defined in `Architecture.md`:
 
 ---
 
-*Last updated: 2025-12-01 18:45 UTC*
+### 2025-12-01: v0.9.4 — Unified Tagging Screen Implementation
+
+**Context:** Implemented the complete unified tagging screen with both Part 1 (Match Framework) and Part 2 (Rally Detail) on a single page.
+
+#### Critical Requirements Implemented
+
+| REQ | Description | Status |
+|-----|-------------|--------|
+| REQ-1 | Match Details Modal MUST complete before Part 1 begins | ✅ |
+| REQ-3 | First serve timestamp manually located and stored | ✅ |
+| REQ-6 | Part 2 processes rallies sequentially (no random access) | ✅ |
+| REQ-9 | Server derived from first server + 2-serve rule | ✅ |
+| REQ-10 | Error quality auto-prunes subsequent shots | ✅ |
+
+#### Match Details Modal Updates
+
+The Match Details Modal now captures the critical first serve timestamp:
+
+| Field | Purpose |
+|-------|---------|
+| Player 1 Name | Identity |
+| Player 2 Name | Identity |
+| Match Date | Metadata |
+| First Server | Enables server derivation for all rallies |
+| Starting Set Score | For partial videos (e.g., "1-1") |
+| Starting Points Score | For partial videos (e.g., "5-3") |
+| **First Serve Timestamp** | **NEW** — User locates in video, marks with button |
+
+**Validation:** Submit button disabled until first serve timestamp is marked.
+
+#### Store Updates
+
+**New State Fields:**
+- `taggingPhase: 'setup' | 'part1' | 'part2'` — Current workflow phase
+- `activeRallyIndex: number` — Current rally in Part 2
+- `activeShotIndex: number` — Current shot within rally (1-based)
+- `shotQuestionStep: number` — Current question step (1-4 for Essential)
+
+**New Actions:**
+- `setTaggingPhase(phase)` — Transition between phases
+- `initMatchFramework(data)` — Initialize match from Match Details Modal
+- `advanceToNextShot()` — Move to next shot in Part 2
+- `advanceToNextRally()` — Move to next rally in Part 2
+- `setShotQuestionStep(step)` — Set current question step
+
+#### MatchPanelSection Part 2 Mode
+
+The left panel now supports Part 2 mode with:
+- Active rally expanded to show shot list
+- Future rallies locked (grayed, no click)
+- Completed rallies show checkmark
+- Current shot highlighted
+- End of Point row at bottom of shot list
+
+#### ShotQuestionSection Created
+
+New section for inline shot tagging questions:
+
+**Essential Mode - Serve:**
+1. Type (7 options, keys 1-7)
+2. Spin Grid (3x3, numpad 1-9)
+3. Landing Zone (3x3, numpad 1-9) — SKIP if error quality
+4. Quality (6 options, G/A/W/N/L/D)
+
+**Essential Mode - Rally Shot:**
+1. Wing (F/B)
+2. Type (9 options, keys 1-9)
+3. Landing Zone (3x3)
+4. Quality (6 options)
+
+#### Video Loop Behavior
+
+Part 2 video now uses constrained playback:
+- `loopOnEnd: true` for shots (loops from shot start to next shot + 0.2s)
+- `loopOnEnd: false` for end-of-point (still frame)
+
+#### Phase Transitions
+
+- **Setup → Part 1:** After Match Details Modal submit
+- **Part 1 → Part 2:** "Complete Part 1 → Start Shot Tagging" button
+
+#### Files Deleted
+
+| File | Reason |
+|------|--------|
+| `pages/Step1ContactTagger.tsx` | Replaced by unified TaggingScreen |
+| `pages/Step1Review.tsx` | Merged into TaggingScreen Part 2 |
+| `pages/RallyDetailScreen.tsx` | Merged into TaggingScreen Part 2 |
+| `features/tagging/composers/RallyDetailComposer.tsx` | Merged into TaggingScreenComposer |
+| `features/tagging/sections/RallyDetailSection.tsx` | Replaced by MatchPanelSection Part 2 mode |
+
+#### Routes Cleaned Up
+
+**Removed:**
+- `/matches/new/step1`
+- `/matches/:id/step1`
+- `/matches/new/review`
+- `/matches/:id/review`
+- `/matches/new/rally-detail`
+- `/matches/:id/rally-detail`
+
+**Active:**
+- `/matches/new/tagging` — Unified tagging screen
+- `/matches/:id/tagging` — Unified tagging screen (existing match)
+
+---
+
+## Version History
+
+| Date | Version | Summary |
+|------|---------|---------|
+| 2025-12-01 | 0.1.0 | Initial implementation with Step 1 tagger and review |
+| 2025-12-01 | 0.2.0 | Added timing conventions, constrained playback, video export |
+| 2025-12-01 | 0.3.0 | FFmpeg.wasm fix, quality presets, frame rate options |
+| 2025-12-01 | 0.4.0 | Insert rally, highlight feature, looping behavior, layout fixes |
+| 2025-12-01 | 0.5.0 | Step 1 Tagger redesign: fast-forward workflow, settings sidebar, deferred winner |
+| 2025-12-01 | 0.6.0 | Step 1 Review: shot labels, end-of-point, first server selection, server overlay |
+| 2025-12-01 | 0.7.0 | Delete rally, server auto-alternate with manual override, video export optimization |
+| 2025-12-01 | 0.8.0 | MVP Flowchange: unified layout, match framework phase, rally detail phase, essential mode |
+| 2025-12-01 | 0.8.1 | Figma design prompts updated for new two-part workflow |
+| 2025-12-01 | 0.9.1 | Foundation implementation: rules layer, UI components, tagging feature scaffold |
+| 2025-12-01 | **0.9.4** | **Unified tagging screen: Match Details Modal, Part 2 sequential flow, ShotQuestionSection** |
+
+---
+
+*Last updated: 2025-12-01 20:30 UTC*
 

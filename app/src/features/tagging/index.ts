@@ -7,10 +7,10 @@
  */
 
 // Composers (route-level)
-export { TaggingScreenComposer, RallyDetailComposer } from './composers'
+export { TaggingScreenComposer } from './composers'
 
 // Sections (page regions)
-export { MatchPanelSection, TaggingControlsSection, RallyDetailSection } from './sections'
+export { MatchPanelSection, TaggingControlsSection, ShotQuestionSection } from './sections'
 
 // Blocks (presentational)
 export { ScoreDisplayBlock, RallyPodBlock, ContactButtonBlock, ShotRowBlock } from './blocks'

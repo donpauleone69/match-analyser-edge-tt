@@ -50,6 +50,7 @@ import {
   Circle,
   CircleDot,
   Star,
+  Flag,
   
   // UI
   Settings,
@@ -113,6 +114,7 @@ const icons = {
   circle: Circle,
   'circle-dot': CircleDot,
   star: Star,
+  flag: Flag,
   
   // UI
   settings: Settings,

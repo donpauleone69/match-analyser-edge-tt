@@ -2,27 +2,42 @@
  * MatchPanelSection — Left panel showing match details and point tree
  * 
  * Section component — receives view models via props, renders blocks.
+ * 
+ * Part 1: Shows rallies as they're created
+ * Part 2: Shows rallies with expandable shot list, sequential navigation
  */
 
 import { cn } from '@/lib/utils'
 import { Card, CardHeader, CardTitle, CardContent, Badge, Icon } from '@/ui-mine'
 import { ScoreDisplayBlock } from '../blocks/ScoreDisplayBlock'
 import { RallyPodBlock } from '../blocks/RallyPodBlock'
+import { ShotRowBlock } from '../blocks/ShotRowBlock'
+import { formatTime } from '@/lib/utils'
 import type { MatchPanelVM, PointDetailsTreeVM } from '../models'
+import type { TaggingPhase } from '@/stores/taggingStore'
 
 export interface MatchPanelSectionProps {
   matchPanel: MatchPanelVM
   pointTree: PointDetailsTreeVM
+  taggingPhase?: TaggingPhase
+  activeRallyIndex?: number
+  activeShotIndex?: number
   onRallyClick: (rallyId: string) => void
+  onShotClick?: (rallyId: string, shotIndex: number) => void
   className?: string
 }
 
 export function MatchPanelSection({
   matchPanel,
   pointTree,
+  taggingPhase = 'part1',
+  activeRallyIndex = 0,
+  activeShotIndex = 1,
   onRallyClick,
+  onShotClick,
   className,
 }: MatchPanelSectionProps) {
+  const isPart2 = taggingPhase === 'part2'
   return (
     <div className={cn('flex flex-col gap-4 h-full', className)}>
       {/* Match Info Card */}
@@ -94,13 +109,83 @@ export function MatchPanelSection({
                   
                   {/* Rallies */}
                   <div className="flex flex-col gap-0.5 pl-2">
-                    {game.rallies.map(rally => (
-                      <RallyPodBlock
-                        key={rally.id}
-                        {...rally}
-                        onClick={() => onRallyClick(rally.id)}
-                      />
-                    ))}
+                    {game.rallies.map((rally, rallyIdx) => {
+                      // In Part 2, determine rally status
+                      const globalRallyIndex = pointTree.games
+                        .slice(0, pointTree.games.indexOf(game))
+                        .reduce((acc, g) => acc + g.rallies.length, 0) + rallyIdx
+                      
+                      const isActiveRally = isPart2 && globalRallyIndex === activeRallyIndex
+                      const isCompletedRally = isPart2 && globalRallyIndex < activeRallyIndex
+                      const isLockedRally = isPart2 && globalRallyIndex > activeRallyIndex
+                      
+                      return (
+                        <div key={rally.id}>
+                          {/* Rally header */}
+                          <RallyPodBlock
+                            {...rally}
+                            onClick={() => !isLockedRally && onRallyClick(rally.id)}
+                            className={cn(
+                              isLockedRally && 'opacity-50 cursor-not-allowed',
+                              isCompletedRally && 'border-l-2 border-success',
+                              isActiveRally && 'border-l-2 border-brand-primary bg-brand-primary/10'
+                            )}
+                          />
+                          
+                          {/* Expanded shot list for active rally in Part 2 */}
+                          {isActiveRally && rally.contacts && rally.contacts.length > 0 && (
+                            <div className="ml-4 mt-1 mb-2 space-y-0.5">
+                              {rally.contacts.map((contact, shotIdx) => {
+                                const shotNumber = shotIdx + 1
+                                const isServe = shotNumber === 1
+                                const isReturn = shotNumber === 2
+                                const isCurrentShot = shotNumber === activeShotIndex
+                                const isCompletedShot = shotNumber < activeShotIndex
+                                
+                                return (
+                                  <ShotRowBlock
+                                    key={contact.id}
+                                    shotIndex={shotNumber}
+                                    time={contact.time}
+                                    formattedTime={formatTime(contact.time)}
+                                    isServe={isServe}
+                                    isReturn={isReturn}
+                                    playerId={rally.serverId === 'player1' 
+                                      ? (shotNumber % 2 === 1 ? 'player1' : 'player2')
+                                      : (shotNumber % 2 === 1 ? 'player2' : 'player1')
+                                    }
+                                    playerName={rally.serverId === 'player1'
+                                      ? (shotNumber % 2 === 1 ? matchPanel.player1Name : matchPanel.player2Name)
+                                      : (shotNumber % 2 === 1 ? matchPanel.player2Name : matchPanel.player1Name)
+                                    }
+                                    isTagged={isCompletedShot}
+                                    isSelected={isCurrentShot}
+                                    onClick={() => onShotClick?.(rally.id, shotNumber)}
+                                    onPlayClick={() => {}}
+                                  />
+                                )
+                              })}
+                              
+                              {/* End of Point row */}
+                              <div className={cn(
+                                'flex items-center gap-2 px-3 py-1.5 rounded text-xs',
+                                activeShotIndex > rally.contacts.length
+                                  ? 'bg-brand-primary/20 border border-brand-primary'
+                                  : 'bg-neutral-800 opacity-60'
+                              )}>
+                                <Icon name="flag" size="sm" className="text-neutral-400" />
+                                <span className="text-neutral-300">End of Point</span>
+                                {rally.endOfPointTime && (
+                                  <span className="ml-auto font-mono text-neutral-500">
+                                    {formatTime(rally.endOfPointTime)}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
               ))}

@@ -18,6 +18,9 @@ import {
 // TYPES
 // =============================================================================
 
+// Tagging phases
+export type TaggingPhase = 'setup' | 'part1' | 'part2'
+
 interface TaggingState {
   // Match setup info
   matchId: string | null
@@ -57,9 +60,17 @@ interface TaggingState {
   rallies: Rally[]
   currentRallyContacts: Contact[] // Contacts in current open rally
   
-  // Workflow state
+  // Workflow state - v0.9.4 unified workflow
+  taggingPhase: TaggingPhase // 'setup' | 'part1' | 'part2'
   step1Complete: boolean // Part 1: Match Framework complete
   step2Complete: boolean // Part 2: Rally Detail complete
+  
+  // Part 2 - Sequential rally/shot navigation
+  activeRallyIndex: number // Current rally being tagged in Part 2
+  activeShotIndex: number // Current shot within rally (1-based)
+  shotQuestionStep: number // Current question step (1-4 for Essential)
+  
+  // Legacy - for backwards compatibility
   currentReviewRallyIndex: number // Index of rally being reviewed in Part 2
   
   // UI state
@@ -91,6 +102,24 @@ interface TaggingState {
     finalPointsScore: string
     videoCoverage: VideoCoverage
   }) => void
+  
+  // Actions - Phase transitions
+  setTaggingPhase: (phase: TaggingPhase) => void
+  initMatchFramework: (data: {
+    player1Name: string
+    player2Name: string
+    matchDate: string
+    firstServerId: PlayerId
+    taggingMode: TaggingMode
+    videoStartSetScore: string
+    videoStartPointsScore: string
+    firstServeTimestamp: number
+  }) => void
+  
+  // Actions - Part 2 Sequential Navigation
+  advanceToNextShot: () => void
+  advanceToNextRally: () => void
+  setShotQuestionStep: (step: number) => void
   
   // Actions - Video
   setCurrentTime: (time: number) => void
@@ -199,9 +228,13 @@ const initialState = {
   rallies: [] as Rally[],
   currentRallyContacts: [] as Contact[],
   
-  // Workflow
+  // Workflow - v0.9.4
+  taggingPhase: 'setup' as TaggingPhase,
   step1Complete: false,
   step2Complete: false,
+  activeRallyIndex: 0,
+  activeShotIndex: 1,
+  shotQuestionStep: 1,
   currentReviewRallyIndex: 0,
   
   // UI
@@ -255,6 +288,65 @@ export const useTaggingStore = create<TaggingState>()(
           showMatchCompletionModal: false,
         })
       },
+      
+      // Phase transitions
+      setTaggingPhase: (phase) => set({ taggingPhase: phase }),
+      
+      initMatchFramework: (data) => {
+        // This is the CRITICAL first step that establishes the framework
+        // for all server derivation throughout the match
+        set({
+          matchId: generateId(),
+          player1Name: data.player1Name,
+          player2Name: data.player2Name,
+          matchDate: data.matchDate,
+          firstServerId: data.firstServerId,
+          currentServerId: data.firstServerId,
+          taggingMode: data.taggingMode,
+          videoStartSetScore: data.videoStartSetScore,
+          videoStartPointsScore: data.videoStartPointsScore,
+          firstServeTimestamp: data.firstServeTimestamp,
+          taggingPhase: 'part1',
+          showMatchDetailsModal: false,
+        })
+      },
+      
+      // Part 2 Sequential Navigation
+      advanceToNextShot: () => {
+        const { activeRallyIndex, activeShotIndex, rallies } = get()
+        const currentRally = rallies[activeRallyIndex]
+        if (!currentRally) return
+        
+        const totalShots = currentRally.contacts.length
+        
+        if (activeShotIndex < totalShots) {
+          // Move to next shot in same rally
+          set({ 
+            activeShotIndex: activeShotIndex + 1,
+            shotQuestionStep: 1,
+          })
+        } else {
+          // All shots done, this is end-of-point
+          // The end-of-point logic will handle advancing to next rally
+        }
+      },
+      
+      advanceToNextRally: () => {
+        const { activeRallyIndex, rallies } = get()
+        
+        if (activeRallyIndex < rallies.length - 1) {
+          set({
+            activeRallyIndex: activeRallyIndex + 1,
+            activeShotIndex: 1,
+            shotQuestionStep: 1,
+          })
+        } else {
+          // All rallies complete
+          set({ step2Complete: true })
+        }
+      },
+      
+      setShotQuestionStep: (step) => set({ shotQuestionStep: step }),
       
       // Video controls
       setCurrentTime: (time) => set({ currentTime: time }),
@@ -996,8 +1088,12 @@ export const useTaggingStore = create<TaggingState>()(
         currentRallyContacts: state.currentRallyContacts,
         
         // Workflow
+        taggingPhase: state.taggingPhase,
         step1Complete: state.step1Complete,
         step2Complete: state.step2Complete,
+        activeRallyIndex: state.activeRallyIndex,
+        activeShotIndex: state.activeShotIndex,
+        shotQuestionStep: state.shotQuestionStep,
         currentReviewRallyIndex: state.currentReviewRallyIndex,
       }),
     }

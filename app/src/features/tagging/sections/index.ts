@@ -7,5 +7,5 @@
 
 export { MatchPanelSection, type MatchPanelSectionProps } from './MatchPanelSection'
 export { TaggingControlsSection, type TaggingControlsSectionProps } from './TaggingControlsSection'
-export { RallyDetailSection, type RallyDetailSectionProps } from './RallyDetailSection'
+export { ShotQuestionSection, type ShotQuestionSectionProps } from './ShotQuestionSection'
 

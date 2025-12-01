@@ -48,11 +48,6 @@ const SpeedControls = forwardRef<HTMLDivElement, SpeedControlsProps>(
     compact = false,
   }, ref) => {
     
-    const allSpeeds = [
-      ...(showTaggingPresets ? TAGGING_SPEEDS : []),
-      ...(showFFPresets ? FF_SPEEDS : []),
-    ]
-    
     return (
       <div
         ref={ref}
