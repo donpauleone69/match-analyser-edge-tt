@@ -414,6 +414,107 @@ endRallyWithoutWinner: () => void
 
 ---
 
+### 2025-12-01: Step 1 Review - Enhanced Workflow
+
+**Context:** Reduced mental load during tagging by deferring winner selection. Review page now handles more of the data entry.
+
+#### Shot Labeling
+
+| Shot Index | Label |
+|------------|-------|
+| 1 | Serve |
+| 2 | Receive |
+| 3+ | Shot N |
+
+#### Rally Timeline Structure (Top to Bottom)
+
+1. **Server** - Toggle with ←→
+2. **Serve** - Shot 1, cyan highlight
+3. **Receive** - Shot 2, orange highlight
+4. **Shot 3, 4, ...** - Additional shots
+5. **End of Point** - Movable timestamp with ←→ frame step (purple)
+6. **Winner** - Player choice with ←→
+
+#### Data Model Change
+
+```typescript
+// Rally type
+interface Rally {
+  // ... other fields
+  endOfPointTime?: number  // Renamed from winnerTime - movable timestamp
+  winnerId?: 'player1' | 'player2'  // Player choice only
+}
+```
+
+#### First Server Selection
+
+- Prompt shown at top of Review page when rallies exist
+- Buttons for Player 1 / Player 2
+- `setFirstServerAndRecalculate()` action recalculates all rally servers
+
+#### Server Name Overlay
+
+- When viewing Serve (Shot 1), large server name appears overlaid on video
+- Semi-transparent, doesn't block video but makes server obvious
+
+#### Timeline Bug Fix
+
+- Video container now uses `h-[45vh] max-h-[350px] overflow-hidden`
+- Added `compact={true}` prop to VideoPlayer
+- Timeline bar now appears correctly below video
+
+---
+
+### 2025-12-01: Delete Rally & Server Auto-Alternate
+
+**Context:** Need ability to delete entire rallies. Server assignment should follow table tennis rules (2 serves each) with manual override capability.
+
+#### Delete Rally
+
+- Added `deleteRally(rallyId)` action to store
+- Keyboard shortcut: `Shift+Delete` deletes entire rally
+- Delete button (trash icon) in rally header
+- Automatically recalculates scores and rally indices
+
+#### Server Auto-Alternate with Manual Override
+
+- `setFirstServerAndRecalculate(player)` - sets first server, recalculates all rally servers
+- `recalculateServersFromRally(rallyId)` - after manual server change, recalculates subsequent rallies
+- Each player serves twice (2 serves each), then switches
+- Manual change applies from that rally forward
+
+---
+
+### 2025-12-01: Video Export Optimization
+
+**Context:** Video export was jittery and slow. User wants pure stream copy without re-encoding.
+
+#### Changes
+
+1. **Default Mode: Fast Export (Stream Copy)**
+   - No re-encoding - frames copied exactly as-is
+   - Original quality preserved
+   - Uses `-c copy` for both video and audio
+   - Output seeking (`-ss` after `-i`) for frame accuracy
+
+2. **Re-encode Mode (Optional)**
+   - Only when "Re-encode video" toggle is ON
+   - Quality and frame rate settings available
+   - Slower but allows customization
+
+3. **Export Only Uses**:
+   - Serve timestamp (first contact of rally)
+   - End of Point timestamp
+   - No other markers processed
+
+#### UI Changes
+
+- "Include score overlay" renamed to "Re-encode video"
+- Default is OFF (fast stream copy)
+- Shows "Fast, original quality" vs "Slower, customizable quality"
+
+---
+
 ## Pending Considerations
 
 ### Not Yet Implemented (Backlog)
@@ -441,8 +542,10 @@ endRallyWithoutWinner: () => void
 | 2025-12-01 | 0.3.0 | FFmpeg.wasm fix, quality presets, frame rate options |
 | 2025-12-01 | 0.4.0 | Insert rally, highlight feature, looping behavior, layout fixes |
 | 2025-12-01 | 0.5.0 | Step 1 Tagger redesign: fast-forward workflow, settings sidebar, deferred winner |
+| 2025-12-01 | 0.6.0 | Step 1 Review: shot labels, end-of-point, first server selection, server overlay |
+| 2025-12-01 | 0.7.0 | Delete rally, server auto-alternate with manual override, video export optimization |
 
 ---
 
-*Last updated: 2025-12-01 03:00 UTC*
+*Last updated: 2025-12-01 05:00 UTC*
 

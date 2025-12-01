@@ -54,11 +54,14 @@ interface TaggingState {
   updateContactTime: (contactId: string, newTime: number) => void
   updateRallyServer: (rallyId: string, serverId: 'player1' | 'player2') => void
   updateRallyWinner: (rallyId: string, winnerId: 'player1' | 'player2') => void
-  updateWinnerTime: (rallyId: string, time: number) => void
+  updateEndOfPointTime: (rallyId: string, time: number) => void
   deleteContact: (rallyId: string, contactId: string) => void
+  deleteRally: (rallyId: string) => void
   addContactToRally: (rallyId: string, time: number) => void
   toggleRallyHighlight: (rallyId: string) => void
   insertRallyAtTime: (time: number) => string // Returns the new rally ID
+  setFirstServerAndRecalculate: (firstServer: 'player1' | 'player2') => void
+  recalculateServersFromRally: (rallyId: string) => void // After manual server change
   completeStep1: () => void
   
   // Helpers
@@ -201,7 +204,7 @@ export const useTaggingStore = create<TaggingState>()(
           rallyIndex: rallies.length + 1,
           isScoring: true,
           winnerId: undefined, // To be set in review
-          winnerTime: currentTime, // Use current time as placeholder
+          endOfPointTime: currentTime, // Use current time as placeholder
           player1ScoreAfter: player1Score, // Score not updated until winner is set
           player2ScoreAfter: player2Score,
           serverId: currentServerId,
@@ -231,7 +234,7 @@ export const useTaggingStore = create<TaggingState>()(
         
         // Set winner time to the last contact's time
         const lastContact = currentRallyContacts[currentRallyContacts.length - 1]
-        const winnerTime = lastContact ? lastContact.time : 0
+        const endOfPointTime = lastContact ? lastContact.time : 0
         
         const newRally: Rally = {
           id: rallyId,
@@ -239,7 +242,7 @@ export const useTaggingStore = create<TaggingState>()(
           rallyIndex: rallies.length + 1,
           isScoring: true,
           winnerId,
-          winnerTime,
+          endOfPointTime,
           player1ScoreAfter: newP1Score,
           player2ScoreAfter: newP2Score,
           serverId: currentServerId,
@@ -344,10 +347,10 @@ export const useTaggingStore = create<TaggingState>()(
         })
       },
       
-      updateWinnerTime: (rallyId, time) => {
+      updateEndOfPointTime: (rallyId, time) => {
         const { rallies } = get()
         const updatedRallies = rallies.map(rally => 
-          rally.id === rallyId ? { ...rally, winnerTime: time } : rally
+          rally.id === rallyId ? { ...rally, endOfPointTime: time } : rally
         )
         set({ rallies: updatedRallies })
       },
@@ -373,6 +376,44 @@ export const useTaggingStore = create<TaggingState>()(
         })
         
         set({ contacts: updatedContacts, rallies: updatedRallies })
+      },
+
+      deleteRally: (rallyId) => {
+        const { rallies, contacts, firstServerId } = get()
+        
+        // Remove rally
+        const remainingRallies = rallies.filter(r => r.id !== rallyId)
+        
+        // Remove contacts belonging to this rally
+        const remainingContacts = contacts.filter(c => c.rallyId !== rallyId)
+        
+        // Recalculate rally indices and scores
+        let p1Score = 0
+        let p2Score = 0
+        const updatedRallies = remainingRallies.map((rally, idx) => {
+          const serverId = calculateServer(p1Score, p2Score, firstServerId)
+          
+          if (rally.isScoring && rally.winnerId) {
+            if (rally.winnerId === 'player1') p1Score++
+            else p2Score++
+          }
+          
+          return {
+            ...rally,
+            rallyIndex: idx + 1,
+            serverId,
+            receiverId: serverId === 'player1' ? 'player2' : 'player1',
+            player1ScoreAfter: p1Score,
+            player2ScoreAfter: p2Score,
+          }
+        })
+        
+        set({ 
+          rallies: updatedRallies, 
+          contacts: remainingContacts,
+          player1Score: p1Score,
+          player2Score: p2Score,
+        })
       },
       
       addContactToRally: (rallyId, time) => {
@@ -455,7 +496,7 @@ export const useTaggingStore = create<TaggingState>()(
           rallyIndex: insertIndex + 1,
           isScoring: true,
           winnerId: undefined, // Needs to be set
-          winnerTime: undefined, // Needs to be set
+          endOfPointTime: undefined, // Needs to be set
           player1ScoreAfter: p1Score,
           player2ScoreAfter: p2Score,
           serverId,
@@ -495,6 +536,94 @@ export const useTaggingStore = create<TaggingState>()(
         })
         
         return rallyId
+      },
+
+      setFirstServerAndRecalculate: (firstServer) => {
+        const { rallies } = get()
+        
+        // Recalculate all server assignments based on new first server
+        let p1Score = 0
+        let p2Score = 0
+        
+        const updatedRallies = rallies.map((rally, index) => {
+          // Calculate who should be serving based on score
+          const serverId = calculateServer(p1Score, p2Score, firstServer)
+          const receiverId = serverId === 'player1' ? 'player2' : 'player1'
+          
+          // Update score after this rally if it's scoring
+          if (rally.isScoring && rally.winnerId) {
+            if (rally.winnerId === 'player1') p1Score++
+            else p2Score++
+          }
+          
+          return {
+            ...rally,
+            serverId,
+            receiverId,
+          }
+        })
+        
+        set({ 
+          firstServerId: firstServer,
+          currentServerId: firstServer,
+          rallies: updatedRallies,
+        })
+      },
+
+      recalculateServersFromRally: (rallyId) => {
+        // After manual server change, recalculate all subsequent rallies
+        // based on the manually set server for this rally
+        const { rallies } = get()
+        
+        const rallyIndex = rallies.findIndex(r => r.id === rallyId)
+        if (rallyIndex === -1) return
+        
+        const manualRally = rallies[rallyIndex]
+        const manualServer = manualRally.serverId
+        
+        // Calculate score at this rally
+        let p1Score = 0
+        let p2Score = 0
+        for (let i = 0; i < rallyIndex; i++) {
+          if (rallies[i].isScoring && rallies[i].winnerId === 'player1') p1Score++
+          if (rallies[i].isScoring && rallies[i].winnerId === 'player2') p2Score++
+        }
+        
+        // Determine what first server would need to be for this rally to have manualServer
+        // We'll use the manual server as the "anchor" and calculate forward from there
+        const updatedRallies = rallies.map((rally, idx) => {
+          if (idx < rallyIndex) return rally // Don't change rallies before
+          
+          if (idx === rallyIndex) {
+            // This is the manually changed rally - keep it as is
+            if (rally.isScoring && rally.winnerId) {
+              if (rally.winnerId === 'player1') p1Score++
+              else p2Score++
+            }
+            return rally
+          }
+          
+          // For subsequent rallies, alternate every 2 serves from the manual server
+          const pointsSinceManual = (idx - rallyIndex)
+          // Every 2 points, server changes
+          const serveBlocksSinceManual = Math.floor(pointsSinceManual / 2)
+          const serverId = serveBlocksSinceManual % 2 === 0 
+            ? manualServer 
+            : (manualServer === 'player1' ? 'player2' : 'player1')
+          
+          if (rally.isScoring && rally.winnerId) {
+            if (rally.winnerId === 'player1') p1Score++
+            else p2Score++
+          }
+          
+          return {
+            ...rally,
+            serverId,
+            receiverId: serverId === 'player1' ? 'player2' : 'player1',
+          }
+        })
+        
+        set({ rallies: updatedRallies })
       },
       
       completeStep1: () => {

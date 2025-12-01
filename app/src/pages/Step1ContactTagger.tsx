@@ -188,17 +188,18 @@ export function Step1ContactTagger() {
       <div className="flex-1 flex min-h-0">
         {/* Left: Video and Timeline */}
         <div className="flex-1 flex flex-col min-h-0">
-          {/* Video Player - constrained height */}
-          <div className="h-[50vh] max-h-[400px] shrink-0">
+          {/* Video Player - constrained height with overflow hidden */}
+          <div className="h-[45vh] max-h-[350px] shrink-0 overflow-hidden bg-bg-app">
             <VideoPlayer 
               ref={videoPlayerRef}
               videoSrc={videoUrl || undefined} 
               onVideoSelect={(url) => setVideoUrl(url)}
+              compact={true}
             />
           </div>
 
-          {/* Timeline */}
-          <div className="shrink-0">
+          {/* Timeline - always below video */}
+          <div className="shrink-0 border-t border-neutral-700">
             <Timeline />
           </div>
 

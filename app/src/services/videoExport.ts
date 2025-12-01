@@ -148,7 +148,7 @@ class VideoExportService {
     let validRallies = rallies.filter(r => 
       r.isScoring && 
       r.contacts.length > 0 && 
-      r.winnerTime !== undefined
+      r.endOfPointTime !== undefined
     )
 
     if (highlightsOnly) {
@@ -161,7 +161,7 @@ class VideoExportService {
 
     const clips: RallyClip[] = validRallies.map(rally => {
       const startTime = Math.max(0, rally.contacts[0].time - paddingBefore)
-      const endTime = (rally.winnerTime || rally.contacts[rally.contacts.length - 1].time) + paddingAfter
+      const endTime = (rally.endOfPointTime || rally.contacts[rally.contacts.length - 1].time) + paddingAfter
       const score = `${rally.player1ScoreAfter}-${rally.player2ScoreAfter}`
       return { rally, startTime, endTime, score }
     })
@@ -233,12 +233,14 @@ class VideoExportService {
             ])
           }
         } else {
-          // Stream copy - preserves original quality and frame rate
+          // Stream copy - preserves original quality and frame rate EXACTLY
+          // No re-encoding at all, just cuts at keyframes
+          const duration = clip.endTime - clip.startTime
           await this.ffmpeg.exec([
-            '-ss', clip.startTime.toFixed(3),
             '-i', 'input.mp4',
-            '-t', (clip.endTime - clip.startTime).toFixed(3),
-            '-c', 'copy',
+            '-ss', clip.startTime.toFixed(3),  // Output seeking (after -i) for frame accuracy
+            '-t', duration.toFixed(3),
+            '-c', 'copy',                      // Pure stream copy - no encoding
             '-y',
             clipFilename,
           ])

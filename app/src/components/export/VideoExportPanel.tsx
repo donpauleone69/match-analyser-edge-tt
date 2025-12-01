@@ -15,7 +15,7 @@ export function VideoExportPanel({ className }: VideoExportPanelProps) {
   const { rallies, player1Name, player2Name } = useTaggingStore()
   
   const [videoFile, setVideoFile] = useState<File | null>(null)
-  const [includeScoreOverlay, setIncludeScoreOverlay] = useState(true)
+  const [includeScoreOverlay, setIncludeScoreOverlay] = useState(false) // Default OFF for fast stream copy
   const [paddingBefore, setPaddingBefore] = useState(0.5)
   const [paddingAfter, setPaddingAfter] = useState(1.0)
   const [highlightsOnly, setHighlightsOnly] = useState(false)
@@ -29,7 +29,7 @@ export function VideoExportPanel({ className }: VideoExportPanelProps) {
   const validRallies = rallies.filter(r => 
     r.isScoring && 
     r.contacts.length > 0 && 
-    r.winnerTime !== undefined
+    r.endOfPointTime !== undefined
   )
 
   const highlightRallies = validRallies.filter(r => r.isHighlight)
@@ -90,9 +90,9 @@ export function VideoExportPanel({ className }: VideoExportPanelProps) {
   // Calculate estimated duration and size
   const ralliesToExport = highlightsOnly ? highlightRallies : validRallies
   const estimatedDuration = ralliesToExport.reduce((sum, rally) => {
-    if (!rally.contacts.length || !rally.winnerTime) return sum
+    if (!rally.contacts.length || !rally.endOfPointTime) return sum
     const start = rally.contacts[0].time - paddingBefore
-    const end = rally.winnerTime + paddingAfter
+    const end = rally.endOfPointTime + paddingAfter
     return sum + Math.max(0, end - start)
   }, 0)
 
@@ -171,7 +171,12 @@ export function VideoExportPanel({ className }: VideoExportPanelProps) {
 
         {/* Score overlay toggle */}
         <label className="flex items-center justify-between">
-          <span className="text-sm text-neutral-300">Include score overlay</span>
+          <div>
+            <span className="text-sm text-neutral-300">Re-encode video</span>
+            <p className="text-xs text-neutral-500">
+              {includeScoreOverlay ? 'Slower, customizable quality' : 'Fast, original quality'}
+            </p>
+          </div>
           <button
             onClick={() => setIncludeScoreOverlay(!includeScoreOverlay)}
             className={cn(

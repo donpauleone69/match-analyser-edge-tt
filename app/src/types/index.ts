@@ -35,12 +35,12 @@ export interface Rally {
   gameId: string
   rallyIndex: number
   isScoring: boolean
-  winnerId?: string
-  winnerTime?: number // Timestamp when rally ended (winning shot)
+  winnerId?: 'player1' | 'player2'
+  endOfPointTime?: number // Timestamp when rally ended (movable in review)
   player1ScoreAfter: number
   player2ScoreAfter: number
-  serverId: string
-  receiverId: string
+  serverId: 'player1' | 'player2'
+  receiverId: 'player1' | 'player2'
   hasVideoData: boolean
   contacts: Contact[]
   isHighlight?: boolean // Mark as highlight for export filtering
