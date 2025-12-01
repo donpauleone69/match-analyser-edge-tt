@@ -8,7 +8,7 @@
  * - Handles actions
  */
 
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTaggingStore } from '@/stores/taggingStore'
 import { 
   useDeriveMatchPanel, 
@@ -18,14 +18,20 @@ import {
 } from '../derive'
 import { MatchPanelSection } from '../sections/MatchPanelSection'
 import { TaggingControlsSection } from '../sections/TaggingControlsSection'
+import { WinnerSelectBlock } from '../blocks/WinnerSelectBlock'
+import { MatchDetailsModalBlock, type MatchDetailsFormData } from '../blocks/MatchDetailsModalBlock'
+import { VideoPlayer, type VideoPlayerHandle } from '@/components/tagging/VideoPlayer'
 import { cn } from '@/lib/utils'
+import type { PlayerId } from '@/rules/types'
 
 export interface TaggingScreenComposerProps {
   className?: string
 }
 
 export function TaggingScreenComposer({ className }: TaggingScreenComposerProps) {
-  // Store actions
+  const videoRef = useRef<VideoPlayerHandle>(null)
+  
+  // Store state and actions
   const {
     addContact,
     endRallyScore,
@@ -34,8 +40,24 @@ export function TaggingScreenComposer({ className }: TaggingScreenComposerProps)
     markEndOfSet,
     setPlaybackSpeed,
     setCurrentReviewRally,
+    selectWinner,
+    setVideoUrl,
+    setIsPlaying,
+    initMatch,
+    setMatchDetails,
     rallies,
+    showWinnerDialog,
+    showMatchDetailsModal,
+    player1Name,
+    player2Name,
+    videoUrl,
+    isPlaying,
+    matchId,
+    taggingMode,
   } = useTaggingStore()
+  
+  // Show setup modal when explicitly requested (for editing match details)
+  const [showSetupModal, setShowSetupModal] = useState(false)
   
   // Derived view models
   const matchPanel = useDeriveMatchPanel()
@@ -75,6 +97,39 @@ export function TaggingScreenComposer({ className }: TaggingScreenComposerProps)
     }
   }, [rallies, setCurrentReviewRally])
   
+  const handleSelectWinner = useCallback((winnerId: PlayerId) => {
+    selectWinner(winnerId)
+  }, [selectWinner])
+  
+  const handleVideoSelect = useCallback((url: string) => {
+    setVideoUrl(url)
+  }, [setVideoUrl])
+  
+  const handleMatchSetup = useCallback((data: MatchDetailsFormData) => {
+    // Initialize match with form data
+    initMatch(data.player1Name, data.player2Name, data.firstServerId, null)
+    setMatchDetails({
+      matchDate: data.matchDate,
+      videoStartSetScore: data.videoStartSetScore,
+      videoStartPointsScore: data.videoStartPointsScore,
+      firstServeTimestamp: 0,
+      taggingMode: data.taggingMode,
+    })
+    setShowSetupModal(false)
+  }, [initMatch, setMatchDetails])
+  
+  const handleTogglePlay = useCallback(() => {
+    if (isPlaying) {
+      videoRef.current?.pause()
+    } else {
+      videoRef.current?.play()
+    }
+  }, [isPlaying])
+  
+  const handleStepFrame = useCallback((direction: 'forward' | 'backward') => {
+    videoRef.current?.stepFrame(direction)
+  }, [])
+  
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -86,8 +141,16 @@ export function TaggingScreenComposer({ className }: TaggingScreenComposerProps)
       switch (e.code) {
         case 'Space':
           e.preventDefault()
+          if (showWinnerDialog) {
+            // Don't add contact while winner dialog is open
+            return
+          }
+          // Space adds contact (video pauses automatically on contact)
           if (taggingControls.canAddContact) {
             handleContact()
+          } else {
+            // Toggle play/pause when no video or can't add contact
+            handleTogglePlay()
           }
           break
         case 'Enter':
@@ -114,15 +177,37 @@ export function TaggingScreenComposer({ className }: TaggingScreenComposerProps)
             handleEndOfSet()
           }
           break
+        case 'ArrowLeft':
+          e.preventDefault()
+          handleStepFrame('backward')
+          break
+        case 'ArrowRight':
+          e.preventDefault()
+          handleStepFrame('forward')
+          break
+        case 'Digit1':
+        case 'Numpad1':
+          if (showWinnerDialog) {
+            e.preventDefault()
+            handleSelectWinner('player1')
+          }
+          break
+        case 'Digit2':
+        case 'Numpad2':
+          if (showWinnerDialog) {
+            e.preventDefault()
+            handleSelectWinner('player2')
+          }
+          break
       }
     }
     
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [taggingControls, handleContact, handleEndRallyScore, handleEndRallyNoScore, handleUndo, handleEndOfSet])
+  }, [taggingControls, handleContact, handleEndRallyScore, handleEndRallyNoScore, handleUndo, handleEndOfSet, showWinnerDialog, handleSelectWinner, handleTogglePlay, handleStepFrame])
   
   return (
-    <div className={cn('flex h-full gap-4 p-4', className)}>
+    <div className={cn('flex h-full gap-4 p-4 relative', className)}>
       {/* Left Panel - Match Info */}
       <div className="w-80 shrink-0">
         <MatchPanelSection
@@ -134,9 +219,14 @@ export function TaggingScreenComposer({ className }: TaggingScreenComposerProps)
       
       {/* Center - Video + Controls */}
       <div className="flex-1 flex flex-col gap-4">
-        {/* Video Player Area (placeholder for now) */}
-        <div className="flex-1 bg-neutral-900 rounded-lg flex items-center justify-center">
-          <span className="text-neutral-500">Video Player Area</span>
+        {/* Video Player */}
+        <div className="flex-1 bg-neutral-900 rounded-lg overflow-hidden">
+          <VideoPlayer
+            ref={videoRef}
+            videoSrc={videoUrl || undefined}
+            onVideoSelect={handleVideoSelect}
+            showTimeOverlay={true}
+          />
         </div>
         
         {/* Tagging Controls */}
@@ -154,10 +244,28 @@ export function TaggingScreenComposer({ className }: TaggingScreenComposerProps)
         </div>
       </div>
       
-      {/* Right Panel - Timeline/Preview (optional) */}
-      {/* <div className="w-64 shrink-0">
-        <TimelineSection />
-      </div> */}
+      {/* Winner Selection Modal */}
+      {showWinnerDialog && (
+        <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-50">
+          <WinnerSelectBlock
+            player1Name={player1Name}
+            player2Name={player2Name}
+            onSelect={handleSelectWinner}
+          />
+        </div>
+      )}
+      
+      {/* Match Setup Modal */}
+      <MatchDetailsModalBlock
+        isOpen={showSetupModal || showMatchDetailsModal}
+        initialData={{
+          player1Name,
+          player2Name,
+          taggingMode,
+        }}
+        onSubmit={handleMatchSetup}
+        onCancel={matchId ? () => setShowSetupModal(false) : undefined}
+      />
     </div>
   )
 }

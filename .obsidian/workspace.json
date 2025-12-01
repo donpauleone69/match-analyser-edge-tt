@@ -185,6 +185,8 @@
   },
   "active": "153b47c532f3ef40",
   "lastOpenFiles": [
+    "app/src/features/tagging/blocks/MatchDetailsModalBlock.tsx",
+    "app/src/features/tagging/blocks/WinnerSelectBlock.tsx",
     "app/src/pages/TaggingScreen.tsx",
     "app/src/features/tagging/index.ts",
     "app/src/features/tagging/composers/index.ts",
@@ -194,8 +196,6 @@
     "app/src/features/tagging/sections/TaggingControlsSection.tsx",
     "app/src/features/tagging/sections/MatchPanelSection.tsx",
     "app/src/features/tagging/sections",
-    "app/src/features/tagging/blocks/index.ts",
-    "app/src/features/tagging/blocks/ContactButtonBlock.tsx",
     "docs-match-analyser-edge-tt/Glossary.md",
     "docs-match-analyser-edge-tt/Architecture.md",
     "docs-match-analyser-edge-tt/architecture/architecture_scaffolding_template.md",

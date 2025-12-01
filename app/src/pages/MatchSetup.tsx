@@ -52,7 +52,7 @@ export function MatchSetup() {
     
     // Navigate to appropriate screen
     if (hasVideo) {
-      navigate('/matches/new/step1')
+      navigate('/matches/new/tagging')
     } else {
       navigate('/matches/new/scores')
     }
