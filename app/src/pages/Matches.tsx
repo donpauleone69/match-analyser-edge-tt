@@ -1,0 +1,129 @@
+import { Link } from 'react-router-dom'
+import { Plus, Filter } from 'lucide-react'
+import { Header } from '../components/layout'
+import { Button, Card, Badge } from '../components/ui'
+
+// Mock data
+const matches = [
+  {
+    id: '1',
+    player1: 'Marcus Chen',
+    player2: 'Anna Kowalski',
+    score: '3-2',
+    date: 'Nov 29, 2025',
+    status: 'complete' as const,
+    games: [
+      { p1: 11, p2: 9 },
+      { p1: 8, p2: 11 },
+      { p1: 11, p2: 7 },
+      { p1: 9, p2: 11 },
+      { p1: 11, p2: 6 },
+    ],
+  },
+  {
+    id: '2',
+    player1: 'Marcus Chen',
+    player2: 'John Smith',
+    score: '2-0',
+    date: 'Nov 28, 2025',
+    status: 'step2' as const,
+    games: [
+      { p1: 11, p2: 5 },
+      { p1: 11, p2: 8 },
+    ],
+  },
+  {
+    id: '3',
+    player1: 'Wei Liu',
+    player2: 'Marcus Chen',
+    score: '1-3',
+    date: 'Nov 25, 2025',
+    status: 'step1' as const,
+    games: [
+      { p1: 11, p2: 9 },
+      { p1: 6, p2: 11 },
+      { p1: 8, p2: 11 },
+      { p1: 5, p2: 11 },
+    ],
+  },
+]
+
+const statusConfig = {
+  complete: { label: 'Complete', variant: 'success' as const },
+  step2: { label: 'Step 2 In Progress', variant: 'warning' as const },
+  step1: { label: 'Step 1 In Progress', variant: 'info' as const },
+}
+
+export function Matches() {
+  return (
+    <div className="min-h-screen">
+      <Header title="Matches" />
+      
+      <div className="p-6 max-w-4xl mx-auto space-y-6">
+        {/* Actions Bar */}
+        <div className="flex items-center justify-between">
+          <Button variant="ghost" size="sm">
+            <Filter className="h-4 w-4 mr-2" />
+            Filter
+          </Button>
+          <Link to="/matches/new">
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              New Match
+            </Button>
+          </Link>
+        </div>
+
+        {/* Match List */}
+        <div className="space-y-4">
+          {matches.map((match) => (
+            <Link key={match.id} to={`/matches/${match.id}`}>
+              <Card variant="interactive" className="hover:border-brand-primary/50">
+                <div className="p-4">
+                  <div className="flex items-start justify-between">
+                    {/* Left: Players and Date */}
+                    <div className="space-y-1">
+                      <div className="text-lg font-semibold text-neutral-100">
+                        {match.player1} vs {match.player2}
+                      </div>
+                      <div className="text-sm text-neutral-400">{match.date}</div>
+                    </div>
+                    
+                    {/* Right: Score and Status */}
+                    <div className="text-right space-y-2">
+                      <div className="text-2xl font-bold font-mono text-neutral-50">
+                        {match.score}
+                      </div>
+                      <Badge variant={statusConfig[match.status].variant}>
+                        {statusConfig[match.status].label}
+                      </Badge>
+                    </div>
+                  </div>
+
+                  {/* Game Scores */}
+                  <div className="mt-4 flex gap-2">
+                    {match.games.map((game, idx) => (
+                      <div
+                        key={idx}
+                        className="px-3 py-1.5 rounded bg-bg-elevated text-sm font-mono"
+                      >
+                        <span className={game.p1 > game.p2 ? 'text-success' : 'text-neutral-400'}>
+                          {game.p1}
+                        </span>
+                        <span className="text-neutral-600 mx-1">-</span>
+                        <span className={game.p2 > game.p1 ? 'text-success' : 'text-neutral-400'}>
+                          {game.p2}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+

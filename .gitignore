@@ -33,3 +33,8 @@ build/
 *.temp
 .cache/
 
+# Videos files
+videos/
+docs-match-analyser-edge-tt/videos/
+*.MOV
+*.mp4

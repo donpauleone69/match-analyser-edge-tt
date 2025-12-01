@@ -60,8 +60,9 @@ ALTER TABLE players ADD COLUMN IF NOT EXISTS equipmentLongPips BOOLEAN DEFAULT F
 ALTER TABLE players ADD COLUMN IF NOT EXISTS equipmentShortPips BOOLEAN DEFAULT FALSE;
 ALTER TABLE players ADD COLUMN IF NOT EXISTS equipmentAntiSpin BOOLEAN DEFAULT FALSE;
 
--- Rating for matchmaking/seeding
-ALTER TABLE players ADD COLUMN IF NOT EXISTS rating INTEGER DEFAULT 1000;
+-- Rating for matchmaking/seeding (1 = Beginner, 10 = Professional)
+ALTER TABLE players ADD COLUMN IF NOT EXISTS rating SMALLINT 
+    CHECK (rating >= 1 AND rating <= 10) DEFAULT 5;
 ```
 
 ### 1.3 Indexes
@@ -94,8 +95,12 @@ CREATE TABLE IF NOT EXISTS matches (
         -- Examples: 'to11_bestOf5', 'to11_bestOf7', 'to21_bestOf3'
     serviceRule TEXT NOT NULL DEFAULT '2_each_to_10_then_alternate',
     
-    -- Video source
-    videoSource TEXT,  -- Local file path or URL
+    -- Match date
+    matchDate DATE,  -- Date when the match was played
+    
+    -- Video source (nullable - matches may not have video)
+    videoSource TEXT,  -- Local file path or URL (NULL if no video available)
+    hasVideo BOOLEAN DEFAULT FALSE,  -- Flag indicating if video is available for this match
     
     -- Extra question scopes (per-match configuration)
     serveExtraFor TEXT CHECK (serveExtraFor IN ('none', 'player1', 'player2', 'both')) 
@@ -106,6 +111,10 @@ CREATE TABLE IF NOT EXISTS matches (
         DEFAULT 'none',
     unforcedErrorExtraFor TEXT CHECK (unforcedErrorExtraFor IN ('none', 'player1', 'player2', 'both')) 
         DEFAULT 'none',
+    
+    -- Workflow state
+    step1Complete BOOLEAN DEFAULT FALSE,  -- TRUE when Step 1 tagging is finished
+    step2Complete BOOLEAN DEFAULT FALSE,  -- TRUE when Step 2 tagging is finished
     
     -- Timestamps
     created_at TIMESTAMPTZ DEFAULT NOW()
@@ -127,6 +136,9 @@ ALTER TABLE matches ADD COLUMN IF NOT EXISTS player2Score INTEGER DEFAULT 0;
 
 ALTER TABLE matches ADD COLUMN IF NOT EXISTS started_at TIMESTAMPTZ;
 ALTER TABLE matches ADD COLUMN IF NOT EXISTS ended_at TIMESTAMPTZ;
+
+-- Note: matchDate should be set during match creation or import
+-- If not provided, it can default to created_at date, but should be editable
 ```
 
 ### 2.3 Indexes
@@ -134,33 +146,94 @@ ALTER TABLE matches ADD COLUMN IF NOT EXISTS ended_at TIMESTAMPTZ;
 ```sql
 CREATE INDEX IF NOT EXISTS idx_matches_players ON matches (player1Id, player2Id);
 CREATE INDEX IF NOT EXISTS idx_matches_context_created ON matches (matchContext, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_matches_date ON matches (matchDate DESC);
+CREATE INDEX IF NOT EXISTS idx_matches_has_video ON matches (hasVideo);
 ```
 
 ---
 
-## 3. Rallies
+## 3. Games
 
-Represents a single rally (point attempt) within a match.
+Represents a single game within a match (e.g., Game 1, Game 2, etc. in a best-of-5).
 
 ### 3.1 MVP Fields
+
+```sql
+CREATE TABLE IF NOT EXISTS games (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    
+    matchId UUID NOT NULL REFERENCES matches(id) ON DELETE CASCADE,
+    
+    -- Game position in match
+    gameNumber SMALLINT NOT NULL,  -- 1-based (Game 1, 2, 3...)
+    
+    -- Final scores (always required)
+    player1FinalScore SMALLINT NOT NULL,  -- e.g., 11
+    player2FinalScore SMALLINT NOT NULL,  -- e.g., 9
+    
+    -- Winner (derived from scores, but stored for convenience)
+    winnerId UUID REFERENCES players(id) ON DELETE RESTRICT,
+    
+    -- Video coverage
+    hasVideo BOOLEAN DEFAULT TRUE,  -- FALSE if this game was not filmed
+    
+    -- For partial video coverage (video starts mid-game)
+    videoStartPlayer1Score SMALLINT DEFAULT 0,  -- Score when video/tagging began
+    videoStartPlayer2Score SMALLINT DEFAULT 0,  -- Score when video/tagging began
+    
+    -- Timestamps
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    
+    UNIQUE(matchId, gameNumber)
+);
+```
+
+### 3.2 Indexes
+
+```sql
+CREATE INDEX IF NOT EXISTS idx_games_match ON games (matchId);
+CREATE INDEX IF NOT EXISTS idx_games_match_number ON games (matchId, gameNumber);
+CREATE INDEX IF NOT EXISTS idx_games_winner ON games (winnerId);
+```
+
+---
+
+## 4. Rallies
+
+Represents a single rally (point attempt) within a game.
+
+### 4.1 MVP Fields
 
 ```sql
 CREATE TABLE IF NOT EXISTS rallies (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     
     matchId UUID NOT NULL REFERENCES matches(id) ON DELETE CASCADE,
+    gameId UUID NOT NULL REFERENCES games(id) ON DELETE CASCADE,
     
-    -- Rally position in match
-    rallyIndex INTEGER NOT NULL,  -- 1-based order within match
+    -- Rally position
+    rallyIndex INTEGER NOT NULL,  -- 1-based order within game
     
     -- Scoring
     isScoring BOOLEAN NOT NULL DEFAULT TRUE,
     winnerId UUID REFERENCES players(id) ON DELETE RESTRICT,
         -- NULL when isScoring = FALSE
     
+    -- Score after this rally (stored for convenience, derived from rally winners)
+    player1ScoreAfter SMALLINT NOT NULL DEFAULT 0,
+    player2ScoreAfter SMALLINT NOT NULL DEFAULT 0,
+    
     -- Server/Receiver (derived from firstServerId + serviceRule + score)
     serverId UUID NOT NULL REFERENCES players(id) ON DELETE RESTRICT,
     receiverId UUID NOT NULL REFERENCES players(id) ON DELETE RESTRICT,
+    
+    -- Video coverage (for partial video scenarios)
+    hasVideoData BOOLEAN DEFAULT TRUE,  -- FALSE if this rally is score-only (no contacts/shots)
+    
+    -- Error correction flags (for unintentional errors during tagging)
+    serverCorrected BOOLEAN DEFAULT FALSE,  -- TRUE if server was manually corrected
+    scoreCorrected BOOLEAN DEFAULT FALSE,   -- TRUE if score was manually corrected
+    correctionNotes TEXT,  -- Optional notes about corrections made
     
     -- Contact boundaries (FK to first and last contact of rally)
     startContactId UUID,  -- FK added after contacts table created
@@ -184,33 +257,32 @@ CREATE TABLE IF NOT EXISTS rallies (
 );
 ```
 
-### 3.2 Extended Fields (Post-MVP)
+### 4.2 Extended Fields (Post-MVP)
 
 ```sql
--- Set/game tracking for detailed score reconstruction
-ALTER TABLE rallies ADD COLUMN IF NOT EXISTS setNumber SMALLINT DEFAULT 1;
-ALTER TABLE rallies ADD COLUMN IF NOT EXISTS gameNumber SMALLINT DEFAULT 1;
-
+-- Timestamps for rally duration analysis
 ALTER TABLE rallies ADD COLUMN IF NOT EXISTS started_at TIMESTAMPTZ;
 ALTER TABLE rallies ADD COLUMN IF NOT EXISTS ended_at TIMESTAMPTZ;
 ```
 
-### 3.3 Indexes
+### 4.3 Indexes
 
 ```sql
 CREATE INDEX IF NOT EXISTS idx_rallies_match ON rallies (matchId);
-CREATE INDEX IF NOT EXISTS idx_rallies_match_index ON rallies (matchId, rallyIndex);
+CREATE INDEX IF NOT EXISTS idx_rallies_game ON rallies (gameId);
+CREATE INDEX IF NOT EXISTS idx_rallies_game_index ON rallies (gameId, rallyIndex);
 CREATE INDEX IF NOT EXISTS idx_rallies_server_match ON rallies (serverId, matchId);
 CREATE INDEX IF NOT EXISTS idx_rallies_winner ON rallies (winnerId);
+CREATE INDEX IF NOT EXISTS idx_rallies_has_video ON rallies (hasVideoData);
 ```
 
 ---
 
-## 4. Contacts
+## 5. Contacts
 
 Represents a single ball contact (timestamp marker from Step 1).
 
-### 4.1 MVP Fields
+### 5.1 MVP Fields
 
 ```sql
 CREATE TABLE IF NOT EXISTS contacts (
@@ -235,7 +307,7 @@ ALTER TABLE rallies ADD CONSTRAINT fk_rallies_end_contact
     FOREIGN KEY (endContactId) REFERENCES contacts(id) ON DELETE SET NULL;
 ```
 
-### 4.2 Indexes
+### 5.2 Indexes
 
 ```sql
 CREATE INDEX IF NOT EXISTS idx_contacts_rally ON contacts (rallyId);
@@ -245,11 +317,11 @@ CREATE INDEX IF NOT EXISTS idx_contacts_time ON contacts (time);
 
 ---
 
-## 5. Shots
+## 6. Shots
 
 Represents the detailed annotation for a single contact (from Step 2).
 
-### 5.1 MVP Fields
+### 6.1 MVP Fields
 
 ```sql
 CREATE TABLE IF NOT EXISTS shots (
@@ -279,9 +351,23 @@ CREATE TABLE IF NOT EXISTS shots (
     )) NOT NULL,
     
     -- Q3: Shot Type (NULL for serves, which use serveType)
+    -- Ordered from most defensive to most aggressive
+    -- NOTE: Valid shot types are filtered by positionSector distance (see shots_table.md)
     shotType TEXT CHECK (shotType IN (
-        'shortTouch', 'push', 'dig', 'chop', 'block', 'chopBlock',
-        'lob', 'drive', 'loop', 'powerLoop', 'smash', 'flick', 'banana', 'other'
+        -- Defensive
+        'lob', 'chop', 'chopBlock', 'dropShot', 'shortTouch', 'push',
+        -- Neutral
+        'block', 'drive', 'flick', 'slowSpinLoop',
+        -- Aggressive
+        'loop', 'fastLoop', 'smash',
+        -- Fallback
+        'other'
+    )),
+    
+    -- Inferred spin (derived from shotType, stored for query convenience)
+    -- See shots_table.md for shotType → inferredSpin mapping
+    inferredSpin TEXT CHECK (inferredSpin IN (
+        'heavyTopspin', 'topspin', 'noSpin', 'backspin', 'heavyBackspin'
     )),
     
     -- Q4: Landing / End Point
@@ -357,7 +443,7 @@ CREATE TABLE IF NOT EXISTS shots (
 );
 ```
 
-### 5.2 Extended Fields (Post-MVP / AI Training)
+### 6.2 Extended Fields (Post-MVP / AI Training)
 
 ```sql
 -- Placement coordinates for heatmaps and ML
@@ -386,7 +472,7 @@ ALTER TABLE shots ADD COLUMN IF NOT EXISTS errorType TEXT CHECK (errorType IN (
 ));
 ```
 
-### 5.3 Indexes
+### 6.3 Indexes
 
 ```sql
 -- Primary query patterns
@@ -403,92 +489,145 @@ CREATE INDEX IF NOT EXISTS idx_shots_landing ON shots (landingType, landingZone)
 
 ---
 
-## 6. Migration Order
+## 7. Migration Order
 
 When setting up the database:
 
 1. `players`
 2. `matches`
-3. `rallies` (without contact FKs initially)
-4. `contacts`
-5. Add FK constraints to `rallies` for start/end contacts
-6. `shots`
-7. Indexes (all tables)
+3. `games`
+4. `rallies` (without contact FKs initially)
+5. `contacts`
+6. Add FK constraints to `rallies` for start/end contacts
+7. `shots`
+8. Indexes (all tables)
 
 ---
 
-## 7. Enum Reference
+## 8. Enum Reference
 
-### 7.1 Player Scope Enums
+### 8.1 Player Scope Enums
 - **extraQuestionScope**: `none`, `player1`, `player2`, `both`
 
-### 7.2 Wing
+### 8.2 Wing
 - `FH`, `BH`
 
-### 7.3 Position Sector (3×3 Grid)
+### 8.3 Position Sector (3×3 Grid)
 ```
 closeLeft   closeMid   closeRight
 midLeft     midMid     midRight
 farLeft     farMid     farRight
 ```
 
-### 7.4 Shot Type
-- Defensive → Offensive: `shortTouch`, `push`, `dig`, `chop`, `block`, `chopBlock`, `lob`, `drive`, `loop`, `powerLoop`, `smash`, `flick`, `banana`, `other`
+### 8.4 Shot Type
 
-### 7.5 Landing Type
+Ordered from most defensive to most aggressive:
+
+**Defensive:**
+- `lob` – high arcing ball, typically from far distance
+- `chop` – heavy backspin, mid/far distance
+- `chopBlock` – backspin/sidespin block from close
+- `dropShot` – soft placement with light backspin
+- `shortTouch` – minimal spin, close to table
+- `push` – backspin stroke, close to table
+
+**Neutral:**
+- `block` – controlled return with light topspin
+- `drive` – medium topspin, mid distance
+- `flick` – quick topspin/sidespin from close
+- `slowSpinLoop` – heavy topspin loop with less speed
+
+**Aggressive:**
+- `loop` – topspin attack, close/mid distance
+- `fastLoop` – fast topspin with medium-heavy spin
+- `smash` – flat power shot, close distance
+
+**Fallback:**
+- `other` – any shot not covered above
+
+### 8.5 Inferred Spin
+
+Spin is inferred from shot type (not entered manually). See `shots_table.md` for full mapping.
+
+- `heavyTopspin` – strong forward rotation (loops)
+- `topspin` – moderate forward rotation (drives, flicks, blocks)
+- `noSpin` – flat or minimal rotation (smash, drop shot, short touch)
+- `backspin` – moderate backward rotation (push, chop block)
+- `heavyBackspin` – strong backward rotation (chops)
+
+**Shot Type → Inferred Spin Mapping:**
+
+| Shot Type | Inferred Spin |
+|-----------|---------------|
+| `lob` | `topspin` |
+| `chop` | `heavyBackspin` |
+| `chopBlock` | `backspin` |
+| `dropShot` | `noSpin` |
+| `shortTouch` | `noSpin` |
+| `push` | `backspin` |
+| `block` | `topspin` |
+| `drive` | `topspin` |
+| `flick` | `topspin` |
+| `slowSpinLoop` | `heavyTopspin` |
+| `loop` | `heavyTopspin` |
+| `fastLoop` | `heavyTopspin` |
+| `smash` | `noSpin` |
+| `other` | `noSpin` |
+
+### 8.6 Landing Type
 - `inPlay`, `net`, `offLong`, `wide`
 
-### 7.6 Landing Zone (3×3 Grid, opponent's perspective)
+### 8.7 Landing Zone (3×3 Grid, opponent's perspective)
 ```
 BHShort   MidShort   FHShort
 BHMid     MidMid     FHMid
 BHLong    MidLong    FHLong
 ```
 
-### 7.7 Shot Quality
+### 8.8 Shot Quality
 - `good`, `average`, `weak`
 
-### 7.8 Serve Type
+### 8.9 Serve Type
 - `pendulum`, `reversePendulum`, `tomahawk`, `backhand`, `hook`, `shovel`, `other`
 
-### 7.9 Serve Spin Primary
+### 8.10 Serve Spin Primary
 - `under`, `top`, `sideLeft`, `sideRight`, `none`
 
-### 7.10 Serve Spin Strength
+### 8.11 Serve Spin Strength
 - `low`, `medium`, `heavy`
 
-### 7.11 Fault Type
+### 8.12 Fault Type
 - `net`, `long`, `wide`, `other`
 
-### 7.12 Serve Issue Cause
+### 8.13 Serve Issue Cause
 - `technicalExecution`, `badDecision`, `tooHigh`, `tooLong`, `notEnoughSpin`, `easyToRead`
 
-### 7.13 Receive Issue Cause
+### 8.14 Receive Issue Cause
 - `misreadSpinType`, `misreadSpinAmount`, `technicalExecution`, `badDecision`
 
-### 7.14 Third Ball Issue Cause
+### 8.15 Third Ball Issue Cause
 - `incorrectPreparation`, `unexpectedReturn`, `technicalExecution`, `badDecision`, `tooAggressive`, `tooPassive`
 
-### 7.15 Point End Type
+### 8.16 Point End Type
 - `winnerShot`, `forcedError`, `unforcedError`, `serviceFault`, `receiveError`, `other`
 
-### 7.16 Luck Type
+### 8.17 Luck Type
 - `none`, `luckyNet`, `luckyEdgeTable`, `luckyEdgeBat`
 
-### 7.17 Unforced Error Cause
+### 8.18 Unforced Error Cause
 - `technicalExecution`, `badDecision`, `tooAggressive`, `tooPassive`
 
 ---
 
-## 8. Notes
+## 9. Notes
 
-### 8.1 Consistency with Specs
+### 9.1 Consistency with Specs
 
 All enum values and field definitions are consistent with:
 - `Tagger2StepUserFlow.md` (Section 8: Data Schema)
 - `MVP_Spec_and_Architecture.md` (Section 5: Database Mapping)
 
-### 8.2 Business Logic
+### 9.2 Business Logic
 
 Field population rules are defined in the workflow spec. Key conditional rules:
 
@@ -496,14 +635,71 @@ Field population rules are defined in the workflow spec. Key conditional rules:
 |-------|-----------|
 | `serveType`, `serveSpinPrimary`, `serveSpinStrength` | `isServe = TRUE` |
 | `faultType` | `isFault = TRUE` |
+| `shotQuality` (for faults) | Always `weak` when `isFault = TRUE` |
 | `serveIssueCause` | `isServe = TRUE` AND `shotQuality = 'weak'` AND `serveExtraFor` enabled for player |
 | `receiveIssueCause` | `isReturnOfServe = TRUE` AND (error OR weak) AND `receiveExtraFor` enabled for player |
 | `thirdBallIssueCause` | `shotIndex = 3` AND `shotQuality = 'weak'` AND `thirdBallExtraFor` enabled for player |
 | `unforcedErrorCause` | `pointEndType = 'unforcedError'` AND `unforcedErrorExtraFor` enabled for player |
-| `landingZone` | `landingType = 'inPlay'` |
-| `shotType` | `isServe = FALSE` (serves use `serveType` instead) |
+| `landingZone` | `landingType = 'inPlay'` (always from opponent's perspective) |
+| `shotType` | Required when `isServe = FALSE` (serves use `serveType` instead); filtered by `positionSector` distance |
+| `inferredSpin` | Derived from `shotType` (see mapping in Section 8.5) |
+| `player1ScoreAfter`, `player2ScoreAfter` | Calculated and stored when rally ends |
+| `serverCorrected` | Set to TRUE when server is manually corrected due to error |
+| `scoreCorrected` | Set to TRUE when score is manually corrected due to error |
+| `hasVideoData` | FALSE for rallies that are score-only (no contacts/shots) |
+| `matchDate` | Should be set during match creation; can default to created_at date but should be editable |
 
-### 8.3 AI Future-Proofing
+#### Validation Rules
+
+| Rule | Description |
+|------|-------------|
+| Min 1 contact per rally | Every rally must have at least 1 contact (the serve); validation error otherwise |
+| shotType required for non-serves | If `isServe = FALSE`, then `shotType` must not be NULL |
+| Fault = weak | If `isFault = TRUE`, then `shotQuality` must be `weak` |
+| Non-scoring rallies skip Step 2 | Rallies with `isScoring = FALSE` are not annotated in Step 2 (contacts recorded but no shots) |
+
+#### Game Boundary Detection
+
+- Game ends when a player reaches the target score (e.g., 11) with at least 2-point lead
+- At deuce (both players ≥ 10), service alternates every point
+- System suggests game end based on score; user confirms or overrides
+- `firstServerId` is editable; changing it recalculates all `serverId`/`receiverId` values
+
+#### Winner/Error Attribution
+
+The ending shot of a rally is determined by:
+1. Last shot's `playerId` identifies who hit the final ball
+2. Last shot's `landingType` determines outcome:
+   - `net`, `offLong`, `wide` → that player made an error
+   - `inPlay` → opponent couldn't return (winner or forced error)
+
+#### Distance-Based Shot Type Filtering
+
+The UI should filter available shot types based on the selected position sector distance:
+
+| Distance | Valid Shot Types |
+|----------|------------------|
+| Close (closeLeft/Mid/Right) | `chopBlock`, `dropShot`, `shortTouch`, `push`, `block`, `flick`, `loop`, `fastLoop`, `smash`, `other` |
+| Mid (midLeft/Mid/Right) | `chop`, `drive`, `slowSpinLoop`, `loop`, `fastLoop`, `other` |
+| Far (farLeft/Mid/Right) | `lob`, `chop`, `other` |
+
+Invalid shot types should be greyed out or hidden in the UI to reduce cognitive load and improve data accuracy.
+
+#### Inferred Spin Derivation
+
+The `inferredSpin` field is automatically populated based on `shotType`:
+
+| Shot Type → | Inferred Spin |
+|-------------|---------------|
+| `slowSpinLoop`, `loop`, `fastLoop` | `heavyTopspin` |
+| `lob`, `block`, `drive`, `flick` | `topspin` |
+| `dropShot`, `shortTouch`, `smash`, `other` | `noSpin` |
+| `push`, `chopBlock` | `backspin` |
+| `chop` | `heavyBackspin` |
+
+This derivation should happen automatically when saving a shot record.
+
+### 9.3 AI Future-Proofing
 
 The extended fields in Section 5.2 (`placementX/Y`, `contactHeight/Depth`, `phase`, `outcome`) are designed to support:
 - ML model training for shot prediction
@@ -515,6 +711,51 @@ These can be populated via:
 - Manual tagging (post-MVP)
 - Computer vision inference
 - Semi-automated estimation from video timestamps
+
+### 9.4 Video Coverage and Partial Tagging
+
+The schema supports partial video coverage scenarios where video may not cover the entire match.
+
+#### Video Requirements
+
+- **Single video per match**: Users must combine multiple video files before importing
+- **UI reminder**: Display note that match should be in a single video file
+
+#### Partial Coverage Levels
+
+1. **Per-Game Coverage** (`games.hasVideo`):
+   - Some games may be filmed, others not
+   - Games without video: only `player1FinalScore`, `player2FinalScore` recorded
+   - Games with video: full Step 1/2 tagging available
+
+2. **Mid-Game Video Start** (`games.videoStartPlayer1Score`, `videoStartPlayer2Score`):
+   - Video may start partway through a game
+   - Enter the score when video/tagging began
+   - Rallies before video start are score-only (`hasVideoData = FALSE`)
+
+3. **Per-Rally Coverage** (`rallies.hasVideoData`):
+   - Within a game, some rallies may have full tagging, others score-only
+   - `hasVideoData = TRUE`: full contacts + shots tagging
+   - `hasVideoData = FALSE`: only `winnerId` recorded, no contacts/shots
+
+#### Example Scenario
+
+"Video starts at 5-3 in Game 2, ends at 9-8, but final score was 11-9":
+- Game 2: `hasVideo = TRUE`, `videoStartPlayer1Score = 5`, `videoStartPlayer2Score = 3`
+- Rallies 1-8 (before video): `hasVideoData = FALSE`, just winners recorded
+- Rallies 9-16 (during video): `hasVideoData = TRUE`, full tagging
+- Rallies 17-20 (after video): `hasVideoData = FALSE`, just winners recorded
+- Game 2 final: `player1FinalScore = 11`, `player2FinalScore = 9`
+
+### 9.5 Error Correction
+
+The system accounts for unintentional errors during tagging:
+
+- **Wrong Server**: If the wrong player is recorded as server for a rally, set `serverCorrected = TRUE` and update `serverId`/`receiverId` accordingly
+- **Wrong Score**: If score is entered incorrectly, set `scoreCorrected = TRUE` and update the match scores
+- **Correction Notes**: Use `correctionNotes` to document any corrections made (optional but recommended for audit trail)
+
+These flags help maintain data integrity and allow for analysis of correction patterns.
 
 ---
 

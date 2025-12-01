@@ -84,13 +84,13 @@ When **RALLY END – NO SCORE** is pressed:
   - `isScoring = false`
   - `winnerId = null`
 - Score/state unchanged.
-- Non-scoring rallies may be skipped in Step 2 or analysed separately.
+- **Non-scoring rallies are skipped in Step 2** (contacts are recorded for timeline visualization, but no shot annotation is required).
 
 ### 1.5 Service Order Reconstruction
 
 Using:
 
-- `firstServerId` (from match configuration),
+- `firstServerId` (from match configuration – **editable**; changing it recalculates all assignments),
 - `serviceRule` (e.g. 2 serves each until 10–10, then alternate),
 - Ordered list of **scoring** rallies and their winners,
 
@@ -98,9 +98,34 @@ the system determines for each rally:
 
 - `serverId`
 - `receiverId`
-- Score at rally start.
+- Score at rally start (`player1ScoreAfter`, `player2ScoreAfter` stored on each rally).
+
+**Deuce handling:** At 10-10 (or higher with both scores equal), service alternates every point automatically.
 
 Step 2 does **not** ask about score or server.
+
+### 1.6 Game Boundary Detection
+
+Game boundaries are detected using a **hybrid approach**:
+
+1. **System suggests** game end when a player reaches the target score (e.g., 11) with at least a 2-point lead.
+2. **User confirms or overrides** – necessary because real-world scoring errors happen.
+
+Each game is stored in the `games` table with:
+- `gameNumber` (1, 2, 3...)
+- `player1FinalScore`, `player2FinalScore`
+- `hasVideo` (bool) – whether this game has video coverage
+- `videoStartPlayer1Score`, `videoStartPlayer2Score` – for partial video (video starts mid-game)
+
+### 1.7 Partial Video Coverage
+
+Video may not cover the entire match. The system handles:
+
+- **Games without video**: Set `hasVideo = FALSE` on the game; enter scores only.
+- **Video starts mid-game**: Set `videoStartPlayer1Score`, `videoStartPlayer2Score` to the score when tagging began.
+- **Rallies without video**: Set `hasVideoData = FALSE` on the rally; only `winnerId` is recorded (no contacts/shots).
+
+**Single video requirement:** Users must combine multiple video files into a single file before importing.
 
 ---
 
@@ -159,47 +184,65 @@ These apply to **all shots** except where explicitly replaced (serve replaces Q3
 
 ### Q2 – Position Sector (9-cell grid)
 
-The hitter’s approximate position at contact, as a 3×3 grid:
+The hitter's approximate position at contact, as a 3×3 grid:
 
-- Horizontal: `Left`, `Middle`, `Right` (from hitter’s perspective).
+- Horizontal: `Left`, `Middle`, `Right` (from hitter's perspective).
 - Distance: `Close`, `Mid`, `Far`.
 
 Grid:
 
 - CloseLeft, CloseMid, CloseRight  
 - MidLeft,   MidMid,   MidRight  
-- FarLeft,   FarMid,   FarRight  
+- FarLeft,   FarMid,   FarRight
+
+> **Serve note:** For serves, all 9 sectors are available but **close sectors should be visually emphasized** in the UI (most serves are hit from close to the table).  
 
 ### Q3 – Shot Type (defensive → offensive)
 
-A **fixed** palette of shot types (non-serve contacts):
+A **fixed** palette of shot types (non-serve contacts), ordered from most defensive to most aggressive:
 
-- `shortTouch`
-- `push`
-- `dig` (heavy push / over-table chop)
-- `chop`
-- `block`
-- `chopBlock`
-- `lob`
-- `drive`
-- `loop`
-- `powerLoop`
-- `smash`
-- `flick`
-- `banana` (chiquita)
-- `other`
+**Defensive:**
+- `lob` – high arcing ball, typically from far distance
+- `chop` – heavy backspin, mid/far distance
+- `chopBlock` – backspin/sidespin block from close
+- `dropShot` – soft placement with light backspin
+- `shortTouch` – minimal spin, close to table
+- `push` – backspin stroke, close to table
+
+**Neutral:**
+- `block` – controlled return with light topspin
+- `drive` – medium topspin, mid distance
+- `flick` – quick topspin/sidespin from close
+- `slowSpinLoop` – heavy topspin loop with less speed
+
+**Aggressive:**
+- `loop` – topspin attack, close/mid distance
+- `fastLoop` – fast topspin with medium-heavy spin
+- `smash` – flat power shot, close distance
+
+**Fallback:**
+- `other` – any shot not covered above
 
 Rules:
 
 - Layout is stable (no reordering).
-- Some types may be disabled/greyed when position sector makes them unrealistic.
-- Likely types may be visually highlighted based on context, but not moved.
+- Shot types are **filtered by distance** based on Q2 (Position Sector):
+  - **Close** (closeLeft/Mid/Right): `chopBlock`, `dropShot`, `shortTouch`, `push`, `block`, `flick`, `loop`, `fastLoop`, `smash`, `other`
+  - **Mid** (midLeft/Mid/Right): `chop`, `drive`, `slowSpinLoop`, `loop`, `fastLoop`, `other`
+  - **Far** (farLeft/Mid/Right): `lob`, `chop`, `other`
+- Invalid shot types for the selected distance should be greyed out or hidden.
+- **Spin is inferred** from shot type automatically (not entered manually):
+  - `heavyTopspin`: loops (`slowSpinLoop`, `loop`, `fastLoop`)
+  - `topspin`: `lob`, `block`, `drive`, `flick`
+  - `noSpin`: `dropShot`, `shortTouch`, `smash`, `other`
+  - `backspin`: `push`, `chopBlock`
+  - `heavyBackspin`: `chop`
 
 > **Serve exception:** For the first shot in a rally (`isServe = true`), Q3 is replaced by **Serve Type** (see Section 4).
 
 ### Q4 – Landing / End Point
 
-Where the ball landed (or error occurred) on the opponent’s side:
+Where the ball landed (or error occurred) on the opponent's side:
 
 - **In-play landing**: one of 9 zones:
   - Horizontal: opponent `BH`, `Middle`, `FH`
@@ -211,6 +254,8 @@ Where the ball landed (or error occurred) on the opponent’s side:
   - `WIDE`
 
 If Q4 selects NET/OFF/WIDE, the shot is recorded as an error by the hitter.
+
+> **Perspective note:** Landing zones are **always from the opponent's perspective** (i.e., the receiver for serves, the next player for rallies). This applies universally to all shots including serves.
 
 ### Q5 – Shot Quality
 
@@ -414,43 +459,62 @@ Options (stored as `unforcedErrorCause`):
 
 ## 8. Data Schema (Conceptual)
 
-This section defines the conceptual data model; actual implementation may use SQL tables, Core Data entities, or similar.
+This section defines the conceptual data model. Implementation uses Postgres (Supabase) with local IndexedDB (Dexie.js) for offline-first support.
 
 ### 8.1 Match
 
 - `matchId`
 - `player1Id`, `player2Id`
-- `firstServerId`
+- `firstServerId` – editable; changing recalculates all server assignments
 - `gameStructure` (string/enum)
 - `serviceRule` (string/enum)
-- `videoSource` (path/URL)
+- `matchDate` (date) – date when the match was played
+- `videoSource` (path/URL) – single video file per match
+- `hasVideo` (bool) – flag indicating if video is available
+- `step1Complete` (bool) – TRUE when Step 1 tagging is finished
+- `step2Complete` (bool) – TRUE when Step 2 tagging is finished
 - `extraQuestionScope`:
   - `serveExtraFor` ∈ {`none`, `player1`, `player2`, `both`}
   - `receiveExtraFor` ∈ {`none`, `player1`, `player2`, `both`}
   - `thirdBallExtraFor` ∈ {`none`, `player1`, `player2`, `both`}
   - `unforcedErrorExtraFor` ∈ {`none`, `player1`, `player2`, `both`}
 
-### 8.2 Rally
+### 8.2 Game
+
+- `gameId`
+- `matchId`
+- `gameNumber` (1, 2, 3...)
+- `player1FinalScore`, `player2FinalScore` – actual final score
+- `winnerId`
+- `hasVideo` (bool) – FALSE if this game was not filmed
+- `videoStartPlayer1Score`, `videoStartPlayer2Score` – score when video/tagging began (for mid-game starts)
+
+### 8.3 Rally
 
 - `rallyId`
-- `matchId`
-- `rallyIndex`
+- `matchId`, `gameId`
+- `rallyIndex` – 1-based within game
 - `isScoring` (bool)
 - `winnerId` (nullable if non-scoring)
+- `player1ScoreAfter`, `player2ScoreAfter` – score after this rally
 - `serverId`, `receiverId`
+- `hasVideoData` (bool) – FALSE for score-only rallies (no contacts/shots)
 - `startContactId`, `endContactId`
 - `pointEndType`
 - `luckType`
 - `opponentLuckOvercome` (bool)
+- `serverCorrected` (bool) – flag if server was manually corrected due to error
+- `scoreCorrected` (bool) – flag if score was manually corrected due to error
+- `correctionNotes` (text, optional) – notes about corrections made
 
-### 8.3 Contact
+### 8.4 Contact
 
 - `contactId`
 - `rallyId`
 - `time` (seconds into video)
 - `shotIndex` (1-based index within rally)
 
-### 8.4 Shot
+### 8.5 Shot
 
 General shot fields:
 
@@ -464,9 +528,13 @@ General shot fields:
   - `closeLeft`, `closeMid`, `closeRight`,
   - `midLeft`, `midMid`, `midRight`,
   - `farLeft`, `farMid`, `farRight`
-- `shotType` – enum (nullable for serve shots):
-  - `shortTouch`, `push`, `dig`, `chop`, `block`, `chopBlock`,
-  - `lob`, `drive`, `loop`, `powerLoop`, `smash`, `flick`, `banana`, `other`
+- `shotType` – enum (NULL for serves; **required for all other shots**), ordered defensive → aggressive:
+  - Defensive: `lob`, `chop`, `chopBlock`, `dropShot`, `shortTouch`, `push`
+  - Neutral: `block`, `drive`, `flick`, `slowSpinLoop`
+  - Aggressive: `loop`, `fastLoop`, `smash`
+  - Fallback: `other`
+- `inferredSpin` – enum (derived from `shotType`, not entered manually):
+  - `heavyTopspin`, `topspin`, `noSpin`, `backspin`, `heavyBackspin`
 - `landingType` – enum:
   - `inPlay`
   - `net`
@@ -504,7 +572,7 @@ Only populated when `isServe = true`.
   - `medium`
   - `heavy`
 
-- `isFault` – bool
+- `isFault` – bool (when TRUE, `shotQuality` is always `weak`)
 
 - `faultType` – enum (nullable, only meaningful when `isFault = true`):
   - `net`
@@ -557,10 +625,24 @@ Only populated when `pointEndType = unforcedError` and unforced-error extra ques
 
 ---
 
-## 9. UX Summary
+## 9. Validation Rules
+
+The following rules are enforced:
+
+| Rule | Description |
+|------|-------------|
+| Min 1 contact per rally | Every rally (with `hasVideoData = TRUE`) must have at least 1 contact (the serve) |
+| shotType required | For non-serve shots (`isServe = FALSE`), `shotType` must not be NULL |
+| Fault = weak | If `isFault = TRUE`, then `shotQuality` must be `weak` |
+| Non-scoring skipped | Rallies with `isScoring = FALSE` are not annotated in Step 2 |
+
+---
+
+## 10. UX Summary
 
 - **Step 1**: ultra-light real-time tagging: tap contacts → mark rally ends → pick rally winners.
 - **Step 2**: controlled and guided shot-by-shot tagging: one shot at a time, stable Q1–Q5, with conditional extras where they add the most value.
 - Extra diagnostics can target Player 1, Player 2, both, or neither, depending on coaching context.
+- **Partial video**: games/rallies without video are entered as scores only.
 
 The result is a **deep, accurate dataset** suitable for advanced analysis of serve, receive, rally structure, shot quality, and player strengths/weaknesses.
