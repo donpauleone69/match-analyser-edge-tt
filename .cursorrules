@@ -1,0 +1,150 @@
+# Edge TT Match Analyser — Cursor Rules
+
+## Project Identity
+
+- **Project Name:** Edge TT Match Analyser
+- **NOT** the same as "Edge TT" (club session management app) — these are separate projects
+- **Purpose:** Table tennis match video tagging and analysis tool
+- **Stack:** Vite + React 18 + TypeScript + Zustand + Tailwind CSS
+
+---
+
+## Folder Structure
+
+```
+app/src/
+  pages/              # Route components (thin, import Composers)
+  features/           # Feature-specific UI & orchestration
+    <feature>/
+      composers/      # Route-level composition
+      sections/       # Page sections (larger UI regions)
+      blocks/         # Smaller UI units (presentational)
+      derive/         # View model derivation hooks
+      models.ts       # View model types
+  rules/              # Pure domain logic (NO React, NO IO)
+  stores/             # Zustand stores
+  ui-mine/            # Shared UI kit (folder-per-component)
+  components/
+    ui/               # shadcn primitives (NEVER import in features)
+    layout/           # AppShell, Sidebar
+  helpers/            # Pure utilities
+  styles/             # Global CSS, theme
+```
+
+---
+
+## Naming Conventions
+
+### Components
+- Composers: `<Thing>Composer.tsx` → `TaggingScreenComposer.tsx`
+- Sections: `<Thing>Section.tsx` → `MatchPanelSection.tsx`
+- Blocks: `<Thing>Block.tsx` → `RallyPodBlock.tsx`
+
+### Hooks
+- Derive: `derive<Thing>.ts` → exports `useDerive<Thing>()`
+
+### Rules (pure functions)
+- Calculate: `calculate<Thing>()` → `calculateServer()`
+- Derive: `derive<Thing>()` → `deriveEndOfPoint()`
+- Validate: `validate<Thing>()` → `validateShot()`
+
+### Store Actions
+- Create: `add<Thing>`, `create<Thing>`
+- Update: `update<Thing>`, `set<Thing>`
+- Delete: `delete<Thing>`, `remove<Thing>`
+- Toggle: `toggle<Thing>`
+
+---
+
+## Import Rules
+
+- Features import from `@/ui-mine`, NEVER from `@/components/ui`
+- Features NEVER import `lucide-react` directly — use `@/ui-mine/Icon`
+- Use path aliases: `@/features/...`, `@/rules/...`, `@/ui-mine/...`, `@/stores/...`
+
+---
+
+## Code Rules
+
+### `rules/` Layer
+- Pure functions only — NO React, NO IO, NO side effects
+- Deterministic: same inputs → same outputs
+- These are the heart of domain logic
+
+### `features/` Layer
+- Composers access stores and call derive hooks
+- Sections receive view models via props
+- Blocks are presentational only (props in → JSX out, no store access)
+
+### `stores/` Layer
+- Zustand with persist middleware (localStorage)
+- Actions are the only way to modify state
+- Actions should not throw — handle errors gracefully
+
+### `ui-mine/` Layer
+- Visual components only — no domain logic, no IO
+- Folder-per-component structure
+- Can use shadcn primitives and lucide internally
+
+---
+
+## Before Making Changes
+
+- Read existing code in a file before editing it
+- Check `Architecture.md` before proposing structural changes
+- Check `DataSchema.md` before modifying types or store fields
+- Check `specAddendumMVP.md` for prior decisions on the feature
+
+---
+
+## After Making Changes
+
+- Update `docs-match-analyser-edge-tt/specs/specAddendumMVP.md` for significant changes
+- Document: UI/UX changes, data model changes, store actions, behavior changes
+- Include rationale where relevant
+- Update version history table
+
+---
+
+## Avoid
+
+- Don't create folders outside the defined structure without discussion
+- Don't add npm dependencies without checking if existing tools suffice
+- Don't import from `@/components/ui` in features
+- Don't put domain logic in components — move to `rules/`
+- Don't put React code in `rules/`
+- Don't create documentation files unless explicitly requested
+- Don't over-engineer — MVP first, polish later
+
+---
+
+## Testing (MVP)
+
+- No formal tests required for MVP
+- Manual testing in browser is sufficient
+- Keep `rules/` functions pure (easy to test later when stable)
+
+---
+
+## Domain Context
+
+- Two-part tagging workflow:
+  - Part 1: Match Framework — mark contacts and rally boundaries
+  - Part 2: Rally Detail — review timestamps, answer shot questions
+- Tagging modes: Essential (4 questions/shot) vs Full (5+ questions/shot)
+- Local-first with Zustand — future Supabase migration planned
+- Video is local file (blob URL), not uploaded to server
+
+---
+
+## Source of Truth Documents
+
+| Document | Path |
+|----------|------|
+| Architecture | `docs-match-analyser-edge-tt/Architecture.md` |
+| Data Schema | `docs-match-analyser-edge-tt/DataSchema.md` |
+| Glossary | `docs-match-analyser-edge-tt/Glossary.md` |
+| Current Spec | `docs-match-analyser-edge-tt/specs/MVP_flowchange_spec.md` |
+| Changelog | `docs-match-analyser-edge-tt/specs/specAddendumMVP.md` |
+| Tasks | `docs-match-analyser-edge-tt/specs/MVP_flowchange_tasks.md` |
+
