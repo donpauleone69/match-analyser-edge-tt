@@ -797,6 +797,7 @@ export function TaggingScreenComposer({ className }: TaggingScreenComposerProps)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [
     taggingPhase,
+    frameworkState,  // CRITICAL: Used in Space, ArrowLeft, ArrowRight, Enter, Backspace, KeyE handlers
     taggingControls,
     handleContact,
     startNewRallyWithServe,
@@ -816,6 +817,10 @@ export function TaggingScreenComposer({ className }: TaggingScreenComposerProps)
     rallies,
     handleDeleteRally,
     handleToggleHighlight,
+    confirmRally,  // Also used in Enter handler (line 685)
+    redoCurrentRally,  // Used in Backspace handler (line 707)
+    endSetFramework,  // Used in KeyE handler (line 746)
+    confirmRallyReview,  // Used in Enter handler (line 690)
   ])
   
   return (
