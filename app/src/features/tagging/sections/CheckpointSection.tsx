@@ -16,7 +16,7 @@ export interface CheckpointSectionProps {
   serverId: PlayerId
   receiverName: string
   duration: number // in seconds
-  contacts: { time: number; shotIndex: number }[]
+  shots: { time: number; shotIndex: number }[]
   onConfirm: () => void
   onRedo: () => void
   className?: string
@@ -28,7 +28,7 @@ export function CheckpointSection({
   serverName,
   serverId,
   duration,
-  contacts,
+  shots,
   onConfirm,
   onRedo,
   className,
@@ -41,9 +41,9 @@ export function CheckpointSection({
   
   const formatDuration = (d: number) => `${d.toFixed(1)}s`
   
-  // Calculate start and end times from contacts
-  const startTime = contacts.length > 0 ? contacts[0].time : 0
-  const endTime = contacts.length > 0 ? contacts[contacts.length - 1].time : 0
+  // Calculate start and end times from shots
+  const startTime = shots.length > 0 ? shots[0].time : 0
+  const endTime = shots.length > 0 ? shots[shots.length - 1].time : 0
   
   return (
     <Card className={cn('p-6', className)}>
@@ -93,9 +93,9 @@ export function CheckpointSection({
               {formatTime(startTime)}
             </span>
             <div className="flex-1 h-8 bg-neutral-800 rounded relative flex items-center px-2">
-              {contacts.map((contact, idx) => (
+              {shots.map((shot, idx) => (
                 <div
-                  key={contact.shotIndex}
+                  key={shot.shotIndex}
                   className={cn(
                     'w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold',
                     idx === 0 
@@ -150,6 +150,7 @@ export function CheckpointSection({
     </Card>
   )
 }
+
 
 
 

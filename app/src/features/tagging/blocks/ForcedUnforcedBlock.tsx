@@ -39,7 +39,7 @@ export function ForcedUnforcedBlock({
     <Card className={cn('w-full max-w-sm', className)}>
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-base">
-          <Icon name="help-circle" size="md" className="text-warning" />
+          <Icon name="info" size="md" className="text-warning" />
           End of Point — Shot {shotIndex}
         </CardTitle>
       </CardHeader>
@@ -64,7 +64,7 @@ export function ForcedUnforcedBlock({
             onClick={() => onSelect('forcedError')}
             className="flex-1"
           >
-            <Icon name="zap" size="sm" />
+            <Icon name="alert" size="sm" />
             Forced
           </Button>
           
@@ -74,7 +74,7 @@ export function ForcedUnforcedBlock({
             onClick={() => onSelect('unforcedError')}
             className="flex-1"
           >
-            <Icon name="minus-circle" size="sm" />
+            <Icon name="circle" size="sm" />
             Unforced
           </Button>
         </div>
@@ -109,6 +109,7 @@ export function ForcedUnforcedBlock({
     </Card>
   )
 }
+
 
 
 

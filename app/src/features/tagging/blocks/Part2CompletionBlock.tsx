@@ -30,7 +30,7 @@ export function Part2CompletionBlock({
     <Card className={cn('w-full max-w-md text-center', className)}>
       <CardHeader className="pb-4">
         <div className="mx-auto mb-4 w-16 h-16 rounded-full bg-success/20 flex items-center justify-center">
-          <Icon name="check-circle" size="xl" className="text-success" />
+          <Icon name="circle" size="xl" className="text-success" />
         </div>
         <CardTitle className="text-2xl">Tagging Complete!</CardTitle>
       </CardHeader>
@@ -51,13 +51,13 @@ export function Part2CompletionBlock({
             onClick={onViewStats}
             className="w-full"
           >
-            <Icon name="bar-chart-2" size="sm" />
+            <Icon name="info" size="sm" />
             View Match Stats
           </Button>
           
           <Button 
             variant="secondary" 
-            size="md" 
+            size="default" 
             onClick={onBackToMatches}
             className="w-full"
           >
@@ -72,4 +72,5 @@ export function Part2CompletionBlock({
     </Card>
   )
 }
+
 

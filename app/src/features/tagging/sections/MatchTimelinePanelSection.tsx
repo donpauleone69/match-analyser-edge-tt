@@ -17,7 +17,7 @@ import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import { Icon } from '@/ui-mine'
 import { formatTime } from '@/lib/utils'
-import type { PlayerId, Rally, Contact, Game } from '@/rules/types'
+import type { PlayerId, Rally, Shot, Set } from '@/rules/types'
 
 // =============================================================================
 // TYPES
@@ -31,9 +31,9 @@ export interface MatchTimelinePanelSectionProps {
   matchFormat: string
   
   // Data
-  games: Game[]
+  sets: Set[]
   rallies: Rally[]
-  currentRallyContacts?: Contact[] // In-progress rally not yet saved
+  currentRallyShots?: Shot[] // In-progress rally not yet saved
   currentServerId?: PlayerId // Who's serving the in-progress rally
   
   // Current state
@@ -50,9 +50,9 @@ export interface MatchTimelinePanelSectionProps {
   
   // Interaction
   onRallyClick?: (rallyId: string) => void
-  onShotClick?: (contactId: string) => void
-  onDeleteContact?: (contactId: string) => void
-  onNudgeContact?: (contactId: string, direction: 'earlier' | 'later') => void
+  onShotClick?: (shotId: string) => void
+  onDeleteContact?: (shotId: string) => void
+  onNudgeContact?: (shotId: string, direction: 'earlier' | 'later') => void
   
   className?: string
 }
@@ -72,17 +72,17 @@ function getShotLabel(shotIndex: number): string {
 }
 
 // Group rallies by game/set
-function groupRalliesByGame(rallies: Rally[], games: Game[]): Map<string, Rally[]> {
+function groupRalliesByGame(rallies: Rally[], sets: Set[]): Map<string, Rally[]> {
   const grouped = new Map<string, Rally[]>()
   
-  for (const game of games) {
+  for (const game of sets) {
     grouped.set(game.id, [])
   }
   
   for (const rally of rallies) {
-    const existing = grouped.get(rally.gameId) || []
+    const existing = grouped.get(rally.setId) || []
     existing.push(rally)
-    grouped.set(rally.gameId, existing)
+    grouped.set(rally.setId, existing)
   }
   
   return grouped
@@ -97,9 +97,9 @@ export function MatchTimelinePanelSection({
   player2Name,
   matchDate,
   matchFormat,
-  games,
+  sets,
   rallies,
-  currentRallyContacts = [],
+  currentRallyShots = [],
   currentServerId,
   currentSetIndex,
   currentRallyIndex,
@@ -113,7 +113,7 @@ export function MatchTimelinePanelSection({
   onNudgeContact,
   className,
 }: MatchTimelinePanelSectionProps) {
-  const [expandedRallies, setExpandedRallies] = useState<Set<string>>(new Set())
+  const [expandedRallies, setExpandedRallies] = useState<globalThis.Set<string>>(new globalThis.Set())
   const [inProgressExpanded, setInProgressExpanded] = useState(true)
   
   // Auto-expand current rally when it changes
@@ -129,10 +129,10 @@ export function MatchTimelinePanelSection({
   
   // Keep in-progress rally expanded
   useEffect(() => {
-    if (currentRallyContacts.length > 0) {
+    if (currentRallyShots.length > 0) {
       setInProgressExpanded(true)
     }
-  }, [currentRallyContacts.length])
+  }, [currentRallyShots.length])
   
   const toggleRally = (rallyId: string) => {
     setExpandedRallies(prev => {
@@ -146,7 +146,7 @@ export function MatchTimelinePanelSection({
     })
   }
   
-  const ralliesByGame = groupRalliesByGame(rallies, games)
+  const ralliesByGame = groupRalliesByGame(rallies, sets)
   
   // Player color coding
   const player1Color = 'text-cyan-400'
@@ -159,7 +159,7 @@ export function MatchTimelinePanelSection({
       <div className="px-3 py-2 bg-neutral-800 border-b border-neutral-700">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Icon name="trophy" size="sm" className="text-brand-primary" />
+            <Icon name="target" size="sm" className="text-brand-primary" />
             <span className="font-medium text-sm text-neutral-100">
               {player1Name} vs {player2Name}
             </span>
@@ -178,7 +178,7 @@ export function MatchTimelinePanelSection({
       
       {/* Timeline Content */}
       <div className="flex-1 overflow-y-auto">
-        {games.length === 0 && rallies.length === 0 ? (
+        {sets.length === 0 && rallies.length === 0 ? (
           <div className="flex items-center justify-center h-full text-neutral-500 text-sm">
             {taggingPhase === 'setup' 
               ? 'Mark first serve to begin' 
@@ -186,7 +186,7 @@ export function MatchTimelinePanelSection({
           </div>
         ) : (
           <div className="py-2">
-            {games.map((game, gameIndex) => {
+            {sets.map((game, gameIndex) => {
               const gameRallies = ralliesByGame.get(game.id) || []
               const isCurrentSet = gameIndex === currentSetIndex
               
@@ -198,7 +198,7 @@ export function MatchTimelinePanelSection({
                     isCurrentSet ? 'text-brand-primary bg-brand-primary/10' : 'text-neutral-400'
                   )}>
                     <Icon name="flag" size="xs" />
-                    Set {game.gameNumber}
+                    Set {game.setNumber}
                     {isCurrentSet && taggingPhase !== 'part2' && (
                       <span className="text-[10px] bg-brand-primary/20 px-1.5 py-0.5 rounded">
                         Current
@@ -254,7 +254,7 @@ export function MatchTimelinePanelSection({
                             Rally {rallyInSetIndex + 1}
                           </span>
                           <span className="text-xs text-neutral-500">
-                            {rally.contacts.length} shot{rally.contacts.length !== 1 ? 's' : ''}
+                            {rally.shots.length} shot{rally.shots.length !== 1 ? 's' : ''}
                           </span>
                           {/* Server name with color */}
                           {serverName && (
@@ -275,33 +275,33 @@ export function MatchTimelinePanelSection({
                         {/* Expanded: Shot rows */}
                         {isExpanded && (
                           <div className="ml-4 border-l border-neutral-700/50">
-                            {rally.contacts.map((contact, contactIndex) => {
+                            {rally.shots.map((shot, contactIndex) => {
                               const isCurrentShot = isCurrentRally && 
                                 currentShotIndex !== undefined &&
                                 contactIndex + 1 === currentShotIndex
                               
                               return (
                                 <div
-                                  key={contact.id}
+                                  key={shot.id}
                                   className={cn(
                                     'group px-3 py-1 flex items-center gap-2 text-xs',
                                     isCurrentShot ? 'bg-info/10 text-info' : 'hover:bg-neutral-800/50'
                                   )}
                                 >
                                   <button
-                                    onClick={() => onShotClick?.(contact.id)}
+                                    onClick={() => onShotClick?.(shot.id)}
                                     className="flex items-center gap-2 flex-1 text-left"
                                   >
                                     <span className={cn(
                                       'w-12',
                                       isCurrentShot ? 'text-info' : 'text-neutral-400'
                                     )}>
-                                      {getShotLabel(contact.shotIndex)}
+                                      {getShotLabel(shot.shotIndex)}
                                     </span>
                                     <span className="font-mono text-neutral-500">
-                                      {formatTime(contact.time)}
+                                      {formatTime(shot.time)}
                                     </span>
-                                    {contact.isTagged && (
+                                    {shot.isTagged && (
                                       <Icon name="check" size="xs" className="text-success" />
                                     )}
                                   </button>
@@ -309,23 +309,23 @@ export function MatchTimelinePanelSection({
                                   {taggingPhase === 'part1' && (
                                     <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity">
                                       <button
-                                        onClick={() => onNudgeContact?.(contact.id, 'earlier')}
+                                        onClick={() => onNudgeContact?.(shot.id, 'earlier')}
                                         className="p-0.5 hover:bg-neutral-700 rounded"
                                         title="Nudge earlier"
                                       >
                                         <Icon name="chevron-left" size="xs" className="text-neutral-400" />
                                       </button>
                                       <button
-                                        onClick={() => onNudgeContact?.(contact.id, 'later')}
+                                        onClick={() => onNudgeContact?.(shot.id, 'later')}
                                         className="p-0.5 hover:bg-neutral-700 rounded"
                                         title="Nudge later"
                                       >
                                         <Icon name="chevron-right" size="xs" className="text-neutral-400" />
                                       </button>
                                       <button
-                                        onClick={() => onDeleteContact?.(contact.id)}
+                                        onClick={() => onDeleteContact?.(shot.id)}
                                         className="p-0.5 hover:bg-danger/20 rounded"
-                                        title="Delete contact"
+                                        title="Delete shot"
                                       >
                                         <Icon name="x" size="xs" className="text-danger/70" />
                                       </button>
@@ -350,8 +350,8 @@ export function MatchTimelinePanelSection({
                     )
                   })}
                   
-                  {/* In-Progress Rally (currentRallyContacts - not yet saved) */}
-                  {isCurrentSet && currentRallyContacts.length > 0 && (
+                  {/* In-Progress Rally (currentRallyShots - not yet saved) */}
+                  {isCurrentSet && currentRallyShots.length > 0 && (
                     <div className="border-l-2 border-brand-primary/50 ml-3 animate-pulse">
                       <button
                         onClick={() => setInProgressExpanded(!inProgressExpanded)}
@@ -363,10 +363,10 @@ export function MatchTimelinePanelSection({
                           className="text-brand-primary"
                         />
                         <span className="text-sm font-medium text-brand-primary">
-                          Rally {(ralliesByGame.get(games[currentSetIndex]?.id)?.length || 0) + 1}
+                          Rally {(ralliesByGame.get(sets[currentSetIndex]?.id)?.length || 0) + 1}
                         </span>
                         <span className="text-xs text-brand-primary/70">
-                          {currentRallyContacts.length} shot{currentRallyContacts.length !== 1 ? 's' : ''}
+                          {currentRallyShots.length} shot{currentRallyShots.length !== 1 ? 's' : ''}
                         </span>
                         {/* Current server */}
                         {currentServerId && (
@@ -382,37 +382,37 @@ export function MatchTimelinePanelSection({
                       {/* Expanded: In-progress shots */}
                       {inProgressExpanded && (
                         <div className="ml-4 border-l border-brand-primary/30">
-                          {currentRallyContacts.map((contact, idx) => (
+                          {currentRallyShots.map((shot, idx) => (
                             <div
-                              key={contact.id}
+                              key={shot.id}
                               className="group px-3 py-1 flex items-center gap-2 text-xs hover:bg-neutral-800/50"
                             >
                               <span className="w-12 text-neutral-400">
                                 {getShotLabel(idx + 1)}
                               </span>
                               <span className="font-mono text-neutral-500">
-                                {formatTime(contact.time)}
+                                {formatTime(shot.time)}
                               </span>
-                              {/* Nudge/Delete controls for in-progress contacts */}
+                              {/* Nudge/Delete controls for in-progress shots */}
                               <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity ml-auto">
                                 <button
-                                  onClick={() => onNudgeContact?.(contact.id, 'earlier')}
+                                  onClick={() => onNudgeContact?.(shot.id, 'earlier')}
                                   className="p-0.5 hover:bg-neutral-700 rounded"
                                   title="Nudge earlier"
                                 >
                                   <Icon name="chevron-left" size="xs" className="text-neutral-400" />
                                 </button>
                                 <button
-                                  onClick={() => onNudgeContact?.(contact.id, 'later')}
+                                  onClick={() => onNudgeContact?.(shot.id, 'later')}
                                   className="p-0.5 hover:bg-neutral-700 rounded"
                                   title="Nudge later"
                                 >
                                   <Icon name="chevron-right" size="xs" className="text-neutral-400" />
                                 </button>
                                 <button
-                                  onClick={() => onDeleteContact?.(contact.id)}
+                                  onClick={() => onDeleteContact?.(shot.id)}
                                   className="p-0.5 hover:bg-danger/20 rounded"
-                                  title="Delete contact"
+                                  title="Delete shot"
                                 >
                                   <Icon name="x" size="xs" className="text-danger/70" />
                                 </button>
@@ -427,8 +427,8 @@ export function MatchTimelinePanelSection({
                   {/* Set Summary (if game is complete) */}
                   {game.winnerId && (
                     <div className="px-3 py-1.5 text-xs text-neutral-400 bg-neutral-800/30 flex items-center gap-2">
-                      <Icon name="check-circle" size="xs" className="text-success" />
-                      Set {game.gameNumber} End — Winner: {
+                      <Icon name="circle" size="xs" className="text-success" />
+                      Set {game.setNumber} End — Winner: {
                         game.winnerId === 'player1' ? player1Name : player2Name
                       } ({game.player1FinalScore}-{game.player2FinalScore})
                     </div>
@@ -444,7 +444,7 @@ export function MatchTimelinePanelSection({
       {matchResult && matchResult !== 'incomplete' && (
         <div className="px-3 py-2 bg-success/10 border-t border-success/20">
           <div className="flex items-center gap-2 text-sm">
-            <Icon name="trophy" size="sm" className="text-success" />
+            <Icon name="target" size="sm" className="text-success" />
             <span className="text-success font-medium">
               Match Complete — Winner: {matchResult === 'player1' ? player1Name : player2Name}
             </span>
@@ -458,7 +458,7 @@ export function MatchTimelinePanelSection({
       {matchResult === 'incomplete' && (
         <div className="px-3 py-2 bg-warning/10 border-t border-warning/20">
           <div className="flex items-center gap-2 text-sm text-warning">
-            <Icon name="alert-triangle" size="sm" />
+            <Icon name="warning" size="sm" />
             <span>Match Incomplete</span>
           </div>
         </div>
@@ -466,4 +466,5 @@ export function MatchTimelinePanelSection({
     </div>
   )
 }
+
 

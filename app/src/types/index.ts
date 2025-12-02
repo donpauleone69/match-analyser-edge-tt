@@ -9,6 +9,10 @@
 export type {
   PlayerId,
   Player,
+  PlayerProfile,
+  Handedness,
+  Playstyle,
+  RubberType,
   ShotQuality,
   ServeSpin,
   ServeType,
@@ -29,8 +33,9 @@ export type {
   ReceiveIssueCause,
   ThirdBallIssueCause,
   UnforcedErrorCause,
-  Contact,
+  Shot,
   Rally,
+  Set,
   EssentialShotData,
   FullShotData,
   EndOfPointData,
@@ -38,7 +43,6 @@ export type {
   MatchCompletionInput,
   MarkerType,
   TimelineMarker,
-  Game,
   Match,
 } from '../rules/types'
 
@@ -66,9 +70,9 @@ export interface TaggingSession {
   currentTime: number
   isPlaying: boolean
   playbackSpeed: number
-  contacts: import('../rules/types').Contact[]
+  shots: import('../rules/types').Shot[]
   rallies: import('../rules/types').Rally[]
-  currentRallyContacts: import('../rules/types').Contact[]
+  currentRallyShots: import('../rules/types').Shot[]
   player1Score: number
   player2Score: number
   currentServerId: string

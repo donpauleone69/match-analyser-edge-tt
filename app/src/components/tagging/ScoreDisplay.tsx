@@ -8,11 +8,11 @@ export function ScoreDisplay() {
     player1Score,
     player2Score,
     currentServerId,
-    currentRallyContacts,
+    currentRallyShots,
   } = useTaggingStore()
 
   const serverName = currentServerId === 'player1' ? player1Name : player2Name
-  const contactCount = currentRallyContacts.length
+  const contactCount = currentRallyShots.length
 
   return (
     <div className="h-12 bg-bg-card flex items-center justify-between px-4 border-y border-neutral-700">
@@ -45,12 +45,12 @@ export function ScoreDisplay() {
 
       {/* Server indicator */}
       <div className="flex items-center gap-6">
-        {/* Contact count for current rally */}
+        {/* Shot count for current rally */}
         {contactCount > 0 && (
           <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-brand-primary-muted">
             <Circle className="w-2 h-2 fill-brand-primary text-brand-primary" />
             <span className="text-sm font-medium text-brand-primary">
-              {contactCount} contact{contactCount !== 1 ? 's' : ''}
+              {contactCount} shot{contactCount !== 1 ? 's' : ''}
             </span>
           </div>
         )}

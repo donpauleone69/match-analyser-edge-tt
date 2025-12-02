@@ -10,7 +10,7 @@ import type {
   TaggingMode,
   PointEndType,
   ShotQuality,
-  Contact,
+  Shot,
 } from '@/rules/types'
 
 // =============================================================================
@@ -40,12 +40,12 @@ export interface RallyTreeNodeVM {
   isHighlight: boolean
   hasError: boolean // Server mismatch, missing winner, etc.
   // Part 2 - expanded view
-  contacts?: Contact[]
+  shots?: Shot[]
   endOfPointTime?: number
 }
 
 export interface GameNodeVM {
-  gameNumber: number
+  setNumber: number
   player1Score: number
   player2Score: number
   winnerId?: string
@@ -54,7 +54,7 @@ export interface GameNodeVM {
 }
 
 export interface PointDetailsTreeVM {
-  games: GameNodeVM[]
+  sets: GameNodeVM[]
   totalRallies: number
   ralliesWithErrors: number
 }
@@ -77,7 +77,7 @@ export interface TimelineMarkerVM {
   id: string
   time: number
   position: number // 0-100 (percentage)
-  type: 'contact' | 'rally-end' | 'end-of-set'
+  type: 'shot' | 'rally-end' | 'end-of-set'
   isInCurrentRally: boolean
 }
 

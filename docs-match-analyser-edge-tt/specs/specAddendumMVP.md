@@ -6,6 +6,206 @@
 
 ## Change Log
 
+### 2025-12-02: Comprehensive Terminology Standardization & Player Profiles
+
+**Context:** Major refactoring to standardize terminology across the entire codebase, add Player Profile types for future database implementation, and fix critical data completeness bugs.
+
+#### Terminology Changes
+
+**Standardized naming throughout codebase:**
+- ❌ `Contact` → ✅ `Shot` (more accurate - represents a ball contact/shot)
+- ❌ `Game` → ✅ `Set` (correct table tennis terminology)
+- ✅ `Rally` → ✅ `Rally` (no change - already correct ITTF term)
+
+**Rationale:**
+- "Contact" was technically accurate but ambiguous
+- "Game" conflicts with TT terminology (a game is called a "set")
+- "Rally" is the official ITTF term for an exchange of shots ending in a point
+- Consistency with industry standards and future database integration
+
+#### Shot Type Enhancements
+
+**Added `'serve'` to shot type enums:**
+- `EssentialShotType`: Now 10 types (added 'serve')
+- `ShotType` (Full Mode): Now 15 types (added 'serve')
+- `ESSENTIAL_SHOT_TYPES` array updated
+- `SHOT_TYPE_SPIN_MAP` updated with `serve: 'unknown'`
+
+**Auto-population logic:**
+- When `shotIndex === 1`, `shotType` is automatically set to `'serve'`
+- Ensures data completeness - no more blank shotType for serves
+- Consistent data structure across all shots
+
+**Added `'unknown'` to InferredSpin:**
+- Used for serves when spin cannot be inferred from shotType alone
+- Honest representation (unknown vs guessing noSpin)
+- Actual `serveSpin` field still captures detailed serve spin
+
+#### Player Profile Types (Database-Ready)
+
+**Added new types for future Supabase migration:**
+```typescript
+interface PlayerProfile {
+  id: string
+  first_name: string
+  last_name: string
+  date_of_birth: string | null
+  club_id: string | null  // 'lagos' | 'padernense' | 'other'
+  handedness: Handedness  // 'left' | 'right'
+  playstyle: Playstyle    // 'attack' | 'allround' | 'defence'
+  rubber_forehand: RubberType  // 'inverted' | 'shortPips' | 'longPips' | 'antiSpin'
+  rubber_backhand: RubberType
+  profile_picture_url: string | null
+  bio: string | null
+  is_archived: boolean
+  created_at: string
+  updated_at: string
+}
+```
+
+**New enums:**
+- `Handedness`: 'left' | 'right'
+- `Playstyle`: 'attack' | 'allround' | 'defence'
+- `RubberType`: 'inverted' | 'shortPips' | 'longPips' | 'antiSpin'
+
+#### Database Schema Updates
+
+**Created comprehensive ERD:**
+- New document: `docs-match-analyser-edge-tt/specs/DatabaseERD.md`
+- Complete entity relationship diagram (Mermaid format)
+- 5 tables: Players, Matches, Sets, Rallies, Shots
+- Foreign key relationships documented
+- Indexes and cardinality defined
+
+**Table name changes:**
+- `contacts` → `shots` (consistent with code)
+- `games` → `sets` (correct TT terminology)
+- `rallies` → `rallies` (no change)
+
+**Field name changes:**
+- `gameId` → `setId`
+- `gameNumber` → `setNumber`
+- `currentGameIndex` → `currentSetIndex`
+
+#### Store State Updates
+
+**Added to TaggingState:**
+- `players: PlayerProfile[]` - For future multi-match player management
+- `sets: Set[]` (renamed from `games`)
+- `shots: Shot[]` (renamed from `contacts`)
+- `currentRallyShots: Shot[]` (renamed from `currentRallyContacts`)
+
+**Action renames:**
+- `addContact()` → `addShot()`
+- `updateContact()` → `updateShot()`
+- `deleteContact()` → `deleteShot()`
+- `updateContactTime()` → `updateShotTime()`
+- `updateContactShotData()` → `updateShotData()`
+- `completeContactTagging()` → `completeShotTagging()`
+- `nudgeContact()` → `nudgeShot()`
+- `autoPruneContacts()` → `autoPruneShots()`
+- `addContactToRally()` → `addShotToRally()`
+
+**Set-related renames:**
+- `checkGameEnd()` → `checkSetEnd()` (with legacy alias)
+- `GameEndInput/Result` → `SetEndInput/Result` types
+
+#### Timeline Marker Updates
+
+**MarkerType updated:**
+- `'contact'` → `'shot'`
+- More descriptive and consistent
+
+#### Files Changed
+
+**Core Types (app/src/rules/types.ts):**
+- Added PlayerProfile, Handedness, Playstyle, RubberType
+- Renamed Contact → Shot
+- Renamed Game → Set
+- Added 'serve' to ShotType and EssentialShotType
+- Added 'unknown' to InferredSpin
+- Updated SHOT_TYPE_SPIN_MAP
+
+**Store (app/src/stores/taggingStore.ts):**
+- Complete state property renames
+- All action renames
+- Auto-populate shotType='serve' logic
+- Added players: PlayerProfile[] state
+
+**Features (34 component files):**
+- All tagging feature components updated
+- All data-viewer components updated
+- All props, variables, and function calls updated
+
+**Documentation:**
+- DatabaseERD.md (created new)
+- Architecture.md (terminology updated)
+- DataSchema.md (terminology updated)
+- Glossary.md (definitions updated)
+
+#### Breaking Changes
+
+⚠️ **localStorage Structure Change:**
+- Old sessions with Contact/Game terminology incompatible
+- Users must export data before upgrading
+- Fresh start required with new terminology
+
+**Persist mapping updated:**
+```typescript
+partialize: (state) => ({
+  // ...
+  sets: state.sets,        // Was: games
+  shots: state.shots,      // Was: contacts  
+  currentRallyShots: state.currentRallyShots,  // Was: currentRallyContacts
+  players: state.players,  // NEW
+})
+```
+
+#### Data Export Updates
+
+**CSV Headers:**
+- "shots" table (was "contacts")
+- "Sets" table (was "Games")  
+- "Rallies" table (unchanged)
+
+**JSON Structure:**
+- All arrays use new property names
+- Type-safe with updated TypeScript definitions
+
+#### Migration Notes
+
+**Git Branch:** `refactor/terminology-standardization`
+
+**Files Renamed:**
+- `ContactButtonBlock.tsx` → `ShotButtonBlock.tsx`
+- Data viewer sections updated in-place (untracked files)
+
+**Automated Migration:**
+- Node.js script processed 34 files
+- Systematic find-replace patterns
+- Preserved formatting and structure
+
+#### Testing Required
+
+- ✅ TypeScript compilation (2 minor warnings only)
+- ⏳ Manual browser testing
+- ⏳ Part 1 framework tagging
+- ⏳ Part 2 shot detail tagging (verify shotType='serve' auto-populates)
+- ⏳ Data Viewer display
+- ⏳ CSV/JSON export
+
+#### Rationale
+
+This refactoring provides:
+1. **Clarity:** "Shot" is clearer than "Contact"
+2. **Standards Compliance:** "Set" follows official ITTF terminology
+3. **Database Readiness:** Player profiles designed for Supabase
+4. **Data Completeness:** shotType='serve' always populated
+5. **Future-Proof:** Schema ready for multi-match player analysis
+6. **Consistency:** Same terms in code, UI, database, and documentation
+
+---
+
 ### 2025-12-02: Rally Checkpoint Flow Implementation
 
 **Context:** Major architectural change to implement the new Rally Checkpoint Flow specification. This flow processes matches set-by-set with rally-by-rally checkpoints during the framework phase.
@@ -84,6 +284,60 @@ type FrameworkState =
 
 - `docs-match-analyser-edge-tt/chat_notes/Spec_RallyCheckpointFlow.md`
 - `docs-match-analyser-edge-tt/specs/Implementation_RallyCheckpointFlow.md`
+
+---
+
+### 2025-12-02: Winner Shot Point End Type Bug Fix
+
+**Context:** Critical bug discovered where `pointEndType` was not being populated for rallies ending with winner shots (in-play qualities: good, average, weak).
+
+#### Bug Description
+
+During Part 2 tagging, when the last shot of a rally had an **in-play quality** (good/average/weak):
+- The shot quality and landing zone were correctly saved
+- The code entered the End of Rally step
+- **BUG:** `deriveEndOfPoint()` was never called for winner shots
+- **BUG:** `pointEndType` remained `undefined` → exported as `N/A` in data
+- **BUG:** `winnerId` was not automatically derived from the last shot player
+
+This only affected winner shots. Error shots (serviceFault, receiveError, forcedError, unforcedError) were working correctly.
+
+#### Root Cause
+
+In `handleLandingZoneSelect` (TaggingScreenComposer.tsx line 428-447):
+- When completing the last shot with in-play quality
+- Code entered End of Rally step with `null` values
+- Missing call to `deriveEndOfPoint()` for winner shot derivation
+
+#### Fix Applied
+
+Updated `handleLandingZoneSelect` to:
+1. Call `deriveEndOfPoint()` when last shot has in-play quality
+2. Auto-derive `pointEndType = 'winnerShot'`
+3. Auto-derive `winnerId` from the player who hit the last shot
+4. Immediately persist both values to the rally (no user input needed)
+
+This follows the same auto-derivation pattern used for serviceFault and receiveError.
+
+#### Data Impact
+
+**Before Fix:**
+- Rallies ending with winner shots → `pointEndType = undefined` (N/A in exports)
+
+**After Fix:**
+- Rallies ending with winner shots → `pointEndType = 'winnerShot'` ✅
+
+#### Files Changed
+
+- `app/src/features/tagging/composers/TaggingScreenComposer.tsx`: Fixed `handleLandingZoneSelect`
+
+#### Rationale
+
+The `deriveEndOfPoint()` function in `rules/deriveEndOfPoint.ts` already contains the correct logic:
+- In-play quality → `pointEndType = 'winnerShot'`, `winnerId = playerId`
+- It was simply not being called for the winner shot case
+
+This fix ensures data completeness and consistency with the domain logic defined in the rules layer.
 
 ---
 

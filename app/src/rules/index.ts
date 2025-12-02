@@ -32,7 +32,8 @@ export {
   createLetResult,
   completeEndOfPoint,
   calculateScoreAfterRally,
-  checkGameEnd,
+  checkSetEnd,
+  checkGameEnd,  // Legacy alias
   calculateContactsToPrune,
   type LastShotInput,
   type DerivedEndOfPoint,
@@ -40,8 +41,10 @@ export {
   type CompleteEndOfPointInput,
   type ScoreUpdateInput,
   type ScoreUpdateResult,
-  type GameEndInput,
-  type GameEndResult,
+  type SetEndInput,
+  type SetEndResult,
+  type GameEndInput,  // Legacy alias
+  type GameEndResult,  // Legacy alias
   type AutoPruneInput,
   type AutoPruneResult,
 } from './deriveEndOfPoint'

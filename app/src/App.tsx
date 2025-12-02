@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AppShell } from './components/layout'
-import { Dashboard, Matches, TaggingScreen, MatchAnalysis } from './pages'
+import { Dashboard, Matches, TaggingScreen, MatchAnalysis, DataViewer } from './pages'
 
 function App() {
   return (
@@ -11,6 +11,7 @@ function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/matches" element={<Matches />} />
           <Route path="/matches/:id" element={<Dashboard />} /> {/* TODO: Match detail */}
+          <Route path="/data-viewer" element={<DataViewer />} />
           <Route path="/players" element={<Dashboard />} /> {/* TODO: Players list */}
           <Route path="/stats" element={<Dashboard />} /> {/* TODO: Stats */}
           <Route path="/settings" element={<Dashboard />} /> {/* TODO: Settings */}

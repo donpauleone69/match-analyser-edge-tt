@@ -4,6 +4,7 @@ import {
   Swords,
   Users,
   BarChart3,
+  Database,
   Settings,
 } from 'lucide-react'
 import { cn } from '../../lib/utils'
@@ -13,6 +14,7 @@ const navItems = [
   { to: '/matches', icon: Swords, label: 'Matches' },
   { to: '/players', icon: Users, label: 'Players' },
   { to: '/stats', icon: BarChart3, label: 'Stats' },
+  { to: '/data-viewer', icon: Database, label: 'Data Viewer' },
   { to: '/settings', icon: Settings, label: 'Settings' },
 ]
 

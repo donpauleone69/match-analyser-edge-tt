@@ -132,7 +132,7 @@ export function ShotRowBlock({
           type="button"
           onClick={handleDelete}
           className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-danger/20 text-neutral-500 hover:text-danger transition-all"
-          title="Delete contact (Delete)"
+          title="Delete shot (Delete)"
         >
           <Icon name="trash" size="xs" />
         </button>
@@ -140,4 +140,5 @@ export function ShotRowBlock({
     </div>
   )
 }
+
 

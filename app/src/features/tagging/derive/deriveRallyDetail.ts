@@ -38,8 +38,8 @@ export function useDeriveRallyDetail(): RallyDetailVM | null {
       ? (rally.winnerId === 'player1' ? player1Name : player2Name)
       : undefined
     
-    // Build shots from contacts
-    const shots: ShotVM[] = rally.contacts.map((contact, index) => {
+    // Build shots from shots
+    const shots: ShotVM[] = rally.shots.map((shot, index) => {
       const isServe = index === 0
       const isReturn = index === 1
       
@@ -49,10 +49,10 @@ export function useDeriveRallyDetail(): RallyDetailVM | null {
       const playerName = playerId === 'player1' ? player1Name : player2Name
       
       return {
-        id: contact.id,
-        shotIndex: contact.shotIndex,
-        time: contact.time,
-        formattedTime: formatTime(contact.time),
+        id: shot.id,
+        shotIndex: shot.shotIndex,
+        time: shot.time,
+        formattedTime: formatTime(shot.time),
         isServe,
         isReturn,
         playerId,
@@ -90,24 +90,24 @@ export function useDeriveRallyDetail(): RallyDetailVM | null {
  */
 export function useDeriveTaggingControls(): TaggingControlsVM {
   const {
-    currentRallyContacts,
-    isPlaying,
+    currentRallyShots,
+    // isPlaying,  // Unused
     videoUrl,
   } = useTaggingStore()
   
   return useMemo(() => {
     const hasVideo = !!videoUrl
-    const isInRally = currentRallyContacts.length > 0
+    const isInRally = currentRallyShots.length > 0
     
     return {
-      // Changed: Allow adding contacts while video is playing (per testing feedback)
+      // Changed: Allow adding shots while video is playing (per testing feedback)
       canAddContact: hasVideo,
       canEndRally: isInRally,
       canUndo: isInRally,
-      canEndSet: !isInRally, // REQ-4: Only allow after rally is complete (no open contacts)
-      currentRallyContactCount: currentRallyContacts.length,
+      canEndSet: !isInRally, // REQ-4: Only allow after rally is complete (no open shots)
+      currentRallyContactCount: currentRallyShots.length,
       isInRally,
     }
-  }, [currentRallyContacts, videoUrl])
+  }, [currentRallyShots, videoUrl])
 }
 

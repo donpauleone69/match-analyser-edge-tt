@@ -57,7 +57,7 @@ export function MatchCompletionModalBlock({
     <Card className={cn('w-full max-w-md', className)}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Icon name="flag" size="md" className="text-success" />
+          <Icon name="flag" size="lg" className="text-success" />
           Complete Part 1 — Match Framework
         </CardTitle>
       </CardHeader>
@@ -165,3 +165,4 @@ export function MatchCompletionModalBlock({
     </Card>
   )
 }
+

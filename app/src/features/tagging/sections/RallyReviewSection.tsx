@@ -9,14 +9,14 @@
 import { cn } from '@/lib/utils'
 import { Button, Card, Icon } from '@/ui-mine'
 import { formatTime } from '@/lib/utils'
-import type { PlayerId, Contact, PointEndType } from '@/rules/types'
+import type { PlayerId, Shot, PointEndType } from '@/rules/types'
 
 export interface RallyReviewSectionProps {
   rallyNumber: number
   serverName: string
   serverId: PlayerId
   receiverName: string
-  contacts: Contact[]
+  shots: Shot[]
   endOfPointTime: number
   winnerId?: PlayerId
   winnerName?: string
@@ -30,12 +30,12 @@ export interface RallyReviewSectionProps {
 }
 
 // Get which shot index should be highlighted based on video time
-function getHighlightedShotIndex(currentTime: number, contacts: Contact[]): number {
-  if (contacts.length === 0) return -1
+function getHighlightedShotIndex(currentTime: number, shots: Shot[]): number {
+  if (shots.length === 0) return -1
   
-  // Find the last contact whose time is <= current time
-  for (let i = contacts.length - 1; i >= 0; i--) {
-    if (currentTime >= contacts[i].time) {
+  // Find the last shot whose time is <= current time
+  for (let i = shots.length - 1; i >= 0; i--) {
+    if (currentTime >= shots[i].time) {
       return i
     }
   }
@@ -43,19 +43,19 @@ function getHighlightedShotIndex(currentTime: number, contacts: Contact[]): numb
 }
 
 // Format shot description for display
-function getShotDescription(contact: Contact, isServe: boolean): string {
+function getShotDescription(shot: Shot, isServe: boolean): string {
   const parts: string[] = []
   
   if (isServe) {
-    if (contact.serveType) parts.push(contact.serveType)
-    if (contact.serveSpin) parts.push(contact.serveSpin)
+    if (shot.serveType) parts.push(shot.serveType)
+    if (shot.serveSpin) parts.push(shot.serveSpin)
   } else {
-    if (contact.wing) parts.push(contact.wing)
-    if (contact.shotType) parts.push(contact.shotType)
+    if (shot.wing) parts.push(shot.wing)
+    if (shot.shotType) parts.push(shot.shotType)
   }
   
-  if (contact.shotQuality) parts.push(contact.shotQuality)
-  if (contact.landingZone) parts.push(contact.landingZone)
+  if (shot.shotQuality) parts.push(shot.shotQuality)
+  if (shot.landingZone) parts.push(shot.landingZone)
   
   return parts.length > 0 ? parts.join(' • ') : '...'
 }
@@ -73,7 +73,7 @@ function getPointEndTypeLabel(type: PointEndType | undefined): string {
     case 'unforcedError': return 'Unforced Error'
     case 'serviceFault': return 'Service Fault'
     case 'receiveError': return 'Receive Error'
-    case 'letReplay': return 'Let'
+    case 'let': return 'Let'
     default: return ''
   }
 }
@@ -82,7 +82,7 @@ export function RallyReviewSection({
   rallyNumber,
   serverName,
   serverId,
-  contacts,
+  shots,
   endOfPointTime,
   winnerId,
   winnerName,
@@ -94,7 +94,7 @@ export function RallyReviewSection({
   onConfirm,
   className,
 }: RallyReviewSectionProps) {
-  const highlightedIndex = getHighlightedShotIndex(currentVideoTime, contacts)
+  const highlightedIndex = getHighlightedShotIndex(currentVideoTime, shots)
   
   // Color coding for players
   const getPlayerColor = (id: PlayerId) => 
@@ -123,7 +123,7 @@ export function RallyReviewSection({
           </div>
           <div className="flex items-center gap-2">
             <span className="text-neutral-400">Shots:</span>
-            <span className="font-medium text-neutral-200">{contacts.length}</span>
+            <span className="font-medium text-neutral-200">{shots.length}</span>
           </div>
           {winnerId && (
             <>
@@ -145,7 +145,7 @@ export function RallyReviewSection({
         
         {/* Shot List with Sync Highlights */}
         <div className="bg-neutral-800/50 rounded-lg overflow-hidden">
-          {contacts.map((contact, index) => {
+          {shots.map((shot, index) => {
             const isHighlighted = index === highlightedIndex
             const isServe = index === 0
             const playerId = isServe || index % 2 === 0 
@@ -155,7 +155,7 @@ export function RallyReviewSection({
             
             return (
               <div
-                key={contact.id}
+                key={shot.id}
                 className={cn(
                   'px-3 py-2 flex items-center gap-3 text-sm transition-all duration-200',
                   isHighlighted 
@@ -181,12 +181,12 @@ export function RallyReviewSection({
                   'flex-1',
                   isHighlighted ? 'text-white' : 'text-neutral-300'
                 )}>
-                  {getShotDescription(contact, isServe)}
+                  {getShotDescription(shot, isServe)}
                 </span>
                 
                 {/* Time */}
                 <span className="font-mono text-xs text-neutral-500">
-                  {formatTime(contact.time)}
+                  {formatTime(shot.time)}
                 </span>
               </div>
             )
@@ -234,6 +234,7 @@ export function RallyReviewSection({
     </Card>
   )
 }
+
 
 
 

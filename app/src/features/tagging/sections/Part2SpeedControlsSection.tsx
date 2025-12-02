@@ -3,7 +3,7 @@
  * 
  * Provides controls for:
  * - Loop playback speed (0.25x, 0.5x, 0.75x, 1x)
- * - Preview buffer time (how much time after contact to include in loop)
+ * - Preview buffer time (how much time after shot to include in loop)
  */
 
 import { cn } from '@/lib/utils'
@@ -78,11 +78,12 @@ export function Part2SpeedControlsSection({
             ))}
           </div>
           <p className="text-[10px] text-neutral-500 mt-1">
-            Time after contact to include in preview loop
+            Time after shot to include in preview loop
           </p>
         </div>
       </CardContent>
     </Card>
   )
 }
+
 

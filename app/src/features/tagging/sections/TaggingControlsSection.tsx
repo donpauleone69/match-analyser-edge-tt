@@ -2,13 +2,13 @@
  * TaggingControlsSection — Main tagging controls for Part 1
  * 
  * Split layout per spec:
- * - Left: Tagging buttons (Contact, End Rally, Let, Undo, End Set)
+ * - Left: Tagging buttons (Shot, End Rally, Let, Undo, End Set)
  * - Right: Speed controls (both Tag and FF speeds always visible)
  */
 
 import { cn } from '@/lib/utils'
 import { Button, Icon, Card } from '@/ui-mine'
-import { ContactButtonBlock } from '../blocks/ContactButtonBlock'
+import { ShotButtonBlock } from '../blocks/ShotButtonBlock'
 import type { TaggingControlsVM, VideoControlsVM } from '../models'
 
 // Speed presets per spec
@@ -35,7 +35,7 @@ export interface TaggingControlsSectionProps {
 
 export function TaggingControlsSection({
   controls,
-  videoControls,
+  // videoControls,  // Unused
   isInFFMode = false,
   taggingSpeed = 0.5,
   ffSpeed = 1,
@@ -71,9 +71,9 @@ export function TaggingControlsSection({
       <div className="flex gap-6">
         {/* Left Column: Tagging Buttons */}
         <div className="flex-1 flex flex-col gap-3">
-          {/* Main Contact Button */}
+          {/* Main Shot Button */}
           <div className="flex justify-center">
-            <ContactButtonBlock
+            <ShotButtonBlock
               onClick={onContact}
               disabled={!controls.canAddContact}
               contactCount={controls.currentRallyContactCount}
@@ -84,7 +84,7 @@ export function TaggingControlsSection({
           <div className="flex items-center justify-center gap-2">
             <Button
               variant="success"
-              size="md"
+              size="default"
               onClick={onEndRallyScore}
               disabled={!controls.canEndRally}
               shortcut="→"
@@ -95,7 +95,7 @@ export function TaggingControlsSection({
             
             <Button
               variant="secondary"
-              size="md"
+              size="default"
               onClick={onEndRallyNoScore}
               disabled={!controls.canEndRally}
               shortcut="L"
@@ -224,3 +224,4 @@ function SpeedButton({ speed, isActive, isCurrentMode, onClick, variant = 'tag' 
     </button>
   )
 }
+

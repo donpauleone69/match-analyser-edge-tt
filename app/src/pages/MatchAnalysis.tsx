@@ -7,10 +7,10 @@
 
 import { useTaggingStore } from '@/stores/taggingStore'
 import { Card, Button, Icon } from '@/ui-mine'
-import { formatTime } from '@/lib/utils'
+// import { formatTime } from '@/lib/utils'  // Unused for now
 import { cn } from '@/lib/utils'
 import { useNavigate } from 'react-router-dom'
-import type { Rally, Contact, PlayerId, PointEndType, ShotQuality } from '@/rules/types'
+import type { Rally } from '@/rules/types'
 
 // =============================================================================
 // STATISTICS CALCULATION
@@ -96,7 +96,7 @@ function calculateStats(
   
   for (const rally of rallies) {
     // Rally shot count
-    const shotCount = rally.contacts.length
+    const shotCount = rally.shots.length
     stats.totalShots += shotCount
     stats.longestRally = Math.max(stats.longestRally, shotCount)
     if (shotCount > 0) {
@@ -158,10 +158,10 @@ function calculateStats(
     }
     
     // Shot quality distribution
-    for (const contact of rally.contacts) {
-      if (contact.shotQuality) {
-        stats.qualityDistribution[contact.shotQuality] = 
-          (stats.qualityDistribution[contact.shotQuality] || 0) + 1
+    for (const shot of rally.shots) {
+      if (shot.shotQuality) {
+        stats.qualityDistribution[shot.shotQuality] = 
+          (stats.qualityDistribution[shot.shotQuality] || 0) + 1
       }
     }
   }
@@ -241,7 +241,7 @@ export function MatchAnalysis() {
     rallies,
     matchDate,
     matchFormat,
-    games,
+    sets,
     matchResult,
     firstServerId,
   } = useTaggingStore()
@@ -455,8 +455,8 @@ export function MatchAnalysis() {
                     : rally.winnerId === 'player2' 
                       ? player2Name 
                       : '-'
-                  const duration = rally.endOfPointTime && rally.contacts.length > 0
-                    ? (rally.endOfPointTime - rally.contacts[0].time).toFixed(1)
+                  const duration = rally.endOfPointTime && rally.shots.length > 0
+                    ? (rally.endOfPointTime - rally.shots[0].time).toFixed(1)
                     : '-'
                   
                   return (
@@ -471,7 +471,7 @@ export function MatchAnalysis() {
                       )}>
                         {serverName}
                       </td>
-                      <td className="py-2 px-2">{rally.contacts.length}</td>
+                      <td className="py-2 px-2">{rally.shots.length}</td>
                       <td className={cn(
                         'py-2 px-2',
                         rally.winnerId === 'player1' ? 'text-cyan-400' : 

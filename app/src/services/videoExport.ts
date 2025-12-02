@@ -147,7 +147,7 @@ class VideoExportService {
 
     let validRallies = rallies.filter(r => 
       r.isScoring && 
-      r.contacts.length > 0 && 
+      r.shots.length > 0 && 
       r.endOfPointTime !== undefined
     )
 
@@ -160,8 +160,8 @@ class VideoExportService {
     }
 
     const clips: RallyClip[] = validRallies.map(rally => {
-      const startTime = Math.max(0, rally.contacts[0].time - paddingBefore)
-      const endTime = (rally.endOfPointTime || rally.contacts[rally.contacts.length - 1].time) + paddingAfter
+      const startTime = Math.max(0, rally.shots[0].time - paddingBefore)
+      const endTime = (rally.endOfPointTime || rally.shots[rally.shots.length - 1].time) + paddingAfter
       const score = `${rally.player1ScoreAfter}-${rally.player2ScoreAfter}`
       return { rally, startTime, endTime, score }
     })

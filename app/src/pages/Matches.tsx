@@ -13,7 +13,7 @@ const matches = [
     score: '3-2',
     date: 'Nov 29, 2025',
     status: 'complete' as const,
-    games: [
+    sets: [
       { p1: 11, p2: 9 },
       { p1: 8, p2: 11 },
       { p1: 11, p2: 7 },
@@ -28,7 +28,7 @@ const matches = [
     score: '2-0',
     date: 'Nov 28, 2025',
     status: 'step2' as const,
-    games: [
+    sets: [
       { p1: 11, p2: 5 },
       { p1: 11, p2: 8 },
     ],
@@ -40,7 +40,7 @@ const matches = [
     score: '1-3',
     date: 'Nov 25, 2025',
     status: 'step1' as const,
-    games: [
+    sets: [
       { p1: 11, p2: 9 },
       { p1: 6, p2: 11 },
       { p1: 8, p2: 11 },
@@ -73,7 +73,7 @@ export function Matches() {
   const hasInProgressMatch = matchId && taggingPhase !== 'setup' && !step2Complete
   
   const getProgressLabel = () => {
-    if (!step1Complete) return 'Part 1: Contact Tagging'
+    if (!step1Complete) return 'Part 1: Shot Tagging'
     if (!step2Complete) return 'Part 2: Shot Details'
     return 'Complete'
   }
@@ -166,9 +166,9 @@ export function Matches() {
                     </div>
                   </div>
 
-                  {/* Game Scores */}
+                  {/* Set Scores */}
                   <div className="mt-4 flex gap-2">
-                    {match.games.map((game, idx) => (
+                    {match.sets.map((game, idx) => (
                       <div
                         key={idx}
                         className="px-3 py-1.5 rounded bg-bg-elevated text-sm font-mono"

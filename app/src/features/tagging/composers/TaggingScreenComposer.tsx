@@ -4,7 +4,7 @@
  * Unified screen for both Part 1 (Match Framework) and Part 2 (Rally Detail).
  * Uses taggingPhase to determine which mode to render:
  * - 'setup': Show Match Setup Panel inline below video
- * - 'part1': Contact tagging mode
+ * - 'part1': shot tagging mode
  * - 'part2': Sequential shot tagging mode
  * 
  * Composer component:
@@ -56,7 +56,7 @@ export function TaggingScreenComposer({ className }: TaggingScreenComposerProps)
   
   // State for pending error data (used in EndOfRallySection)
   const [pendingErrorData, setPendingErrorData] = useState<{
-    contactId: string
+    shotId: string
     errorPlayerId: PlayerId
     winnerId: PlayerId
     shotIndex: number
@@ -76,7 +76,7 @@ export function TaggingScreenComposer({ className }: TaggingScreenComposerProps)
   
   // Store state and actions
   const {
-    addContact,
+    addShot,
     startNewRallyWithServe,
     endRallyScore,
     endRallyNoScore,
@@ -90,12 +90,12 @@ export function TaggingScreenComposer({ className }: TaggingScreenComposerProps)
     advanceToNextShot,
     advanceToNextRally,
     setShotQuestionStep,
-    deleteContact,
+    deleteShot,
     deleteRally,
     toggleRallyHighlight,
-    updateContactShotData,
-    completeContactTagging,
-    autoPruneContacts,
+    updateShotData,
+    completeShotTagging,
+    autoPruneShots,
     undoLastPrune,
     setRallyPointEndType,
     updateRallyWinner,
@@ -122,16 +122,16 @@ export function TaggingScreenComposer({ className }: TaggingScreenComposerProps)
     goToPreviousShot,
     step2Complete,
     matchId,
-    games,
-    currentGameIndex,
+    sets,
+    currentSetIndex,
     matchDate,
     matchFormat,
     matchResult,
     finalSetScore,
-    currentRallyContacts,
+    currentRallyShots,
     currentServerId,
-    nudgeContact,
-    deleteInProgressContact,
+    nudgeShot,
+    deleteInProgressShot,
     // Rally Checkpoint Flow
     frameworkState,
     confirmRally,
@@ -142,16 +142,16 @@ export function TaggingScreenComposer({ className }: TaggingScreenComposerProps)
   
   // Get current rally and shot for Part 2
   const currentRally = rallies[activeRallyIndex]
-  const currentContact = currentRally?.contacts[activeShotIndex - 1]
-  const nextContact = currentRally?.contacts[activeShotIndex]
-  const isLastShot = currentRally && activeShotIndex >= currentRally.contacts.length
+  const currentShot = currentRally?.shots[activeShotIndex - 1]
+  const nextContact = currentRally?.shots[activeShotIndex]
+  const isLastShot = currentRally && activeShotIndex >= currentRally.shots.length
   
-  // Initialize contact playerId when entering Part 2
+  // Initialize shot playerId when entering Part 2
   useEffect(() => {
-    if (taggingPhase !== 'part2' || !currentRally || !currentContact) return
+    if (taggingPhase !== 'part2' || !currentRally || !currentShot) return
     
     // Skip if already has playerId
-    if (currentContact.playerId) return
+    if (currentShot.playerId) return
     
     // Determine player for this shot (alternating from server)
     // Shot 1 (serve) = server, Shot 2 (return) = receiver, Shot 3 = server, etc.
@@ -160,8 +160,8 @@ export function TaggingScreenComposer({ className }: TaggingScreenComposerProps)
       ? currentRally.serverId 
       : currentRally.receiverId
     
-    updateContactShotData(currentContact.id, { playerId })
-  }, [taggingPhase, activeRallyIndex, activeShotIndex, currentContact?.id, currentContact?.playerId, currentRally?.serverId, currentRally?.receiverId, updateContactShotData])
+    updateShotData(currentShot.id, { playerId })
+  }, [taggingPhase, activeRallyIndex, activeShotIndex, currentShot?.id, currentShot?.playerId, currentRally?.serverId, currentRally?.receiverId, updateShotData])
   
   // Calculate constrained playback based on current state
   // - rally_review: Loop entire rally (for RallyReviewSection)
@@ -172,8 +172,8 @@ export function TaggingScreenComposer({ className }: TaggingScreenComposerProps)
       ? {
           // Rally review: Loop entire rally for synced highlights
           enabled: true,
-          startTime: currentRally.contacts[0]?.time || 0,
-          endTime: currentRally.endOfPointTime || currentRally.contacts[currentRally.contacts.length - 1]?.time || 0,
+          startTime: currentRally.shots[0]?.time || 0,
+          endTime: currentRally.endOfPointTime || currentRally.shots[currentRally.shots.length - 1]?.time || 0,
           loopOnEnd: true,
         }
       : taggingPhase === 'part2' && currentRally
@@ -181,17 +181,17 @@ export function TaggingScreenComposer({ className }: TaggingScreenComposerProps)
           ? {
               // End of rally step: Show end of point area (no loop)
               enabled: true,
-              startTime: Math.max(0, (currentRally.endOfPointTime || currentContact?.time || 0) - 1),
-              endTime: (currentRally.endOfPointTime || currentContact?.time || 0) + 1,
+              startTime: Math.max(0, (currentRally.endOfPointTime || currentShot?.time || 0) - 1),
+              endTime: (currentRally.endOfPointTime || currentShot?.time || 0) + 1,
               loopOnEnd: false,
             }
-          : currentContact
+          : currentShot
             ? {
                 enabled: true,
-                startTime: currentContact.time,
+                startTime: currentShot.time,
                 endTime: nextContact 
                   ? nextContact.time + previewBufferSeconds // Use store value
-                  : (currentRally?.endOfPointTime || currentContact.time + 1),
+                  : (currentRally?.endOfPointTime || currentShot.time + 1),
                 loopOnEnd: !isLastShot, // Loop for shots, still frame for end-of-point
               }
             : undefined
@@ -203,13 +203,13 @@ export function TaggingScreenComposer({ className }: TaggingScreenComposerProps)
       setPlaybackSpeed(loopSpeed)
       // Auto-play the video loop when entering Part 2
       setTimeout(() => {
-        if (currentContact) {
-          videoRef.current?.seek(currentContact.time)
+        if (currentShot) {
+          videoRef.current?.seek(currentShot.time)
           videoRef.current?.play()
         }
       }, 100)
     }
-  }, [taggingPhase, loopSpeed, setPlaybackSpeed, currentContact?.time])
+  }, [taggingPhase, loopSpeed, setPlaybackSpeed, currentShot?.time])
   
   // Derived view models
   const videoControls = useDeriveVideoControls()
@@ -251,8 +251,8 @@ export function TaggingScreenComposer({ className }: TaggingScreenComposerProps)
   
   // Action handlers
   const handleContact = useCallback(() => {
-    addContact()
-  }, [addContact])
+    addShot()
+  }, [addShot])
   
   const handleEndRallyScore = useCallback(() => {
     endRallyScore()
@@ -286,26 +286,26 @@ export function TaggingScreenComposer({ className }: TaggingScreenComposerProps)
     // Could be enabled in future for jumping to specific shots
   }, [])
   
-  // Panel contact manipulation
-  const handleNudgeContact = useCallback((contactId: string, direction: 'earlier' | 'later') => {
-    nudgeContact(contactId, direction)
-  }, [nudgeContact])
+  // Panel shot manipulation
+  const handleNudgeContact = useCallback((shotId: string, direction: 'earlier' | 'later') => {
+    nudgeShot(shotId, direction)
+  }, [nudgeShot])
   
-  const handleDeleteContact = useCallback((contactId: string) => {
+  const handleDeleteContact = useCallback((shotId: string) => {
     // Check if this is in-progress or completed rally
-    const inProgress = currentRallyContacts.find(c => c.id === contactId)
+    const inProgress = currentRallyShots.find(c => c.id === shotId)
     if (inProgress) {
-      if (confirm('Delete this contact?')) {
-        deleteInProgressContact(contactId)
+      if (confirm('Delete this shot?')) {
+        deleteInProgressShot(shotId)
       }
     } else {
       // For completed rallies, find the rally and delete
-      const rally = rallies.find(r => r.contacts.some(c => c.id === contactId))
-      if (rally && confirm('Delete this contact?')) {
-        deleteContact(rally.id, contactId)
+      const rally = rallies.find(r => r.shots.some(c => c.id === shotId))
+      if (rally && confirm('Delete this shot?')) {
+        deleteShot(rally.id, shotId)
       }
     }
-  }, [currentRallyContacts, rallies, deleteInProgressContact, deleteContact])
+  }, [currentRallyShots, rallies, deleteInProgressShot, deleteShot])
   
   const handleSelectWinner = useCallback((winnerId: PlayerId) => {
     selectWinner(winnerId)
@@ -365,7 +365,7 @@ export function TaggingScreenComposer({ className }: TaggingScreenComposerProps)
   
   // Delete last rally (Shift+Delete)
   const handleDeleteRally = useCallback((rallyId: string) => {
-    if (confirm('Delete this rally and all its contacts?')) {
+    if (confirm('Delete this rally and all its shots?')) {
       deleteRally(rallyId)
     }
   }, [deleteRally])
@@ -403,80 +403,91 @@ export function TaggingScreenComposer({ className }: TaggingScreenComposerProps)
   
   // Shot question handlers for Part 2
   const handleServeTypeSelect = useCallback((type: ServeType) => {
-    if (!currentContact) return
+    if (!currentShot) return
     
     // Persist serve type and auto-derive wing
-    updateContactShotData(currentContact.id, { 
+    updateShotData(currentShot.id, { 
       serveType: type,
       wing: deriveServeWing(type)
     })
     
     // Move to next question (spin)
     setShotQuestionStep(2)
-  }, [currentContact, setShotQuestionStep, updateContactShotData])
+  }, [currentShot, setShotQuestionStep, updateShotData])
   
   const handleSpinSelect = useCallback((spin: ServeSpin) => {
-    if (!currentContact) return
+    if (!currentShot) return
     
     // Persist spin
-    updateContactShotData(currentContact.id, { serveSpin: spin })
+    updateShotData(currentShot.id, { serveSpin: spin })
     
     // Move to next question (quality — REORDERED)
     setShotQuestionStep(3)
-  }, [currentContact, setShotQuestionStep, updateContactShotData])
+  }, [currentShot, setShotQuestionStep, updateShotData])
   
   const handleLandingZoneSelect = useCallback((zone: LandingZone) => {
-    if (!currentContact) return
+    if (!currentShot || !currentRally) return
     
     // Persist landing zone
-    updateContactShotData(currentContact.id, { landingZone: zone })
+    updateShotData(currentShot.id, { landingZone: zone })
     
     // Landing is the last step for non-errors, complete the shot
-    completeContactTagging(currentContact.id, currentContact.shotQuality!)
+    completeShotTagging(currentShot.id, currentShot.shotQuality!)
     
     // If this is the last shot, enter End of Rally step instead of advancing
     if (isLastShot) {
-      // For non-error shots on last shot, we need to ask who won
-      // (Could be a winner shot, or opponent made an error not captured in video)
+      // Derive end-of-point for winner shot (in-play quality)
+      const playerId = currentShot.playerId || (activeShotIndex % 2 === 1 ? currentRally.serverId : currentRally.receiverId)
+      const derived = deriveEndOfPoint({
+        playerId,
+        shotIndex: activeShotIndex,
+        shotQuality: currentShot.shotQuality!,
+      })
+      
+      // Winner shot: player who hit last shot wins, point end type is 'winnerShot'
       setIsEndOfRallyStep(true)
-      setEndOfRallyWinner(null)
-      setEndOfRallyEndType(null)
+      setEndOfRallyWinner(derived.winnerId || playerId)
+      setEndOfRallyEndType('winnerShot')
+      
+      // Persist to rally immediately (winner shots are auto-derived, no user input needed)
+      setRallyPointEndType(currentRally.id, 'winnerShot')
+      updateRallyWinner(currentRally.id, derived.winnerId || playerId)
     } else {
       advanceToNextShot()
     }
-  }, [currentContact, isLastShot, advanceToNextShot, updateContactShotData, completeContactTagging])
+  }, [currentShot, currentRally, isLastShot, activeShotIndex, advanceToNextShot, updateShotData, completeShotTagging, setRallyPointEndType, updateRallyWinner])
   
   const handleWingSelect = useCallback((wing: 'forehand' | 'backhand') => {
-    if (!currentContact) return
+    if (!currentShot) return
     
     // Persist wing
-    updateContactShotData(currentContact.id, { wing: wing === 'forehand' ? 'FH' : 'BH' })
+    updateShotData(currentShot.id, { wing: wing === 'forehand' ? 'FH' : 'BH' })
     
     // Move to next question (shot type)
     setShotQuestionStep(2)
-  }, [currentContact, setShotQuestionStep, updateContactShotData])
+  }, [currentShot, setShotQuestionStep, updateShotData])
   
   const handleShotTypeSelect = useCallback((type: EssentialShotType) => {
-    if (!currentContact) return
+    if (!currentShot) return
     
     // Persist shot type
-    updateContactShotData(currentContact.id, { shotType: type })
+    updateShotData(currentShot.id, { shotType: type })
     
     // Move to next question (quality — REORDERED)
     setShotQuestionStep(3)
-  }, [currentContact, setShotQuestionStep, updateContactShotData])
+  }, [currentShot, setShotQuestionStep, updateShotData])
   
   const handleQualitySelect = useCallback((quality: ShotQuality) => {
-    if (!currentContact || !currentRally) return
+    if (!currentShot || !currentRally) return
     
     const isError = ['inNet', 'missedLong', 'missedWide'].includes(quality)
     
     if (isError) {
       // Error quality: skip landing zone, complete immediately
-      completeContactTagging(currentContact.id, quality)
+      completeShotTagging(currentShot.id, quality)
       
       // Derive end-of-point
-      const playerId = currentContact.playerId || (activeShotIndex % 2 === 1 ? currentRally.serverId : currentRally.receiverId)
+      const playerId = currentShot.playerId || (activeShotIndex % 2 === 1 ? currentRally.serverId : currentRally.receiverId)
       const derived = deriveEndOfPoint({
         playerId,
         shotIndex: activeShotIndex,
@@ -485,7 +496,7 @@ export function TaggingScreenComposer({ className }: TaggingScreenComposerProps)
       
       // Auto-prune if error is not on last shot (shot after this one shouldn't exist)
       if (!isLastShot) {
-        const pruneResult = autoPruneContacts(currentRally.id, activeShotIndex)
+        const pruneResult = autoPruneShots(currentRally.id, activeShotIndex)
         if (pruneResult.prunedCount > 0) {
           setPruneToast({ count: pruneResult.prunedCount, rallyId: currentRally.id })
           setTimeout(() => setPruneToast(null), 5000)
@@ -499,7 +510,7 @@ export function TaggingScreenComposer({ className }: TaggingScreenComposerProps)
       if (derived.needsForcedUnforcedQuestion) {
         // Need to ask forced/unforced
         setPendingErrorData({
-          contactId: currentContact.id,
+          shotId: currentShot.id,
           errorPlayerId: playerId,
           winnerId: derived.winnerId!,
           shotIndex: activeShotIndex,
@@ -518,10 +529,10 @@ export function TaggingScreenComposer({ className }: TaggingScreenComposerProps)
       }
     } else {
       // In-play quality: persist and move to landing zone (step 4)
-      updateContactShotData(currentContact.id, { shotQuality: quality })
+      updateShotData(currentShot.id, { shotQuality: quality })
       setShotQuestionStep(4)
     }
-  }, [currentContact, currentRally, activeShotIndex, isLastShot, completeContactTagging, updateContactShotData, setShotQuestionStep, setRallyPointEndType, updateRallyWinner, autoPruneContacts])
+  }, [currentShot, currentRally, activeShotIndex, isLastShot, completeShotTagging, updateShotData, setShotQuestionStep, setRallyPointEndType, updateRallyWinner, autoPruneShots])
   
   // Forced/Unforced handler (now used in EndOfRallySection)
   const handleForcedUnforcedSelect = useCallback((type: 'forcedError' | 'unforcedError') => {
@@ -596,7 +607,7 @@ export function TaggingScreenComposer({ className }: TaggingScreenComposerProps)
         case 'Space':
           e.preventDefault()
           if (showWinnerDialog) {
-            // Don't add contact while winner dialog is open
+            // Don't add shot while winner dialog is open
             return
           }
           // Rally Checkpoint Flow: Space behavior depends on frameworkState
@@ -606,7 +617,7 @@ export function TaggingScreenComposer({ className }: TaggingScreenComposerProps)
             // Don't call exitFFMode - frameworkState transition handles speed
             setPlaybackSpeed(taggingSpeed)
           } else if (frameworkState === 'tagging') {
-            // Normal tagging mode = add contact
+            // Normal tagging mode = add shot
             if (taggingControls.canAddContact) {
               handleContact()
             }
@@ -679,8 +690,8 @@ export function TaggingScreenComposer({ className }: TaggingScreenComposerProps)
             confirmRallyReview()
             // Seek to next rally if available
             const nextRally = rallies[activeRallyIndex + 1]
-            if (nextRally && nextRally.contacts.length > 0) {
-              videoRef.current?.seek(nextRally.contacts[0].time)
+            if (nextRally && nextRally.shots.length > 0) {
+              videoRef.current?.seek(nextRally.shots[0].time)
               videoRef.current?.play()
             }
           } else if (taggingControls.canEndRally) {
@@ -704,7 +715,7 @@ export function TaggingScreenComposer({ className }: TaggingScreenComposerProps)
               handleDeleteRally(lastRally.id)
             }
           } else {
-            // Delete/Backspace: Delete last contact (only when not at checkpoint)
+            // Delete/Backspace: Delete last shot (only when not at checkpoint)
             if (taggingControls.canUndo) {
               handleUndo()
             }
@@ -735,8 +746,8 @@ export function TaggingScreenComposer({ className }: TaggingScreenComposerProps)
               endSetFramework()
               // Seek to first rally for shot detail
               const firstRally = rallies[0]
-              if (firstRally.contacts.length > 0) {
-                videoRef.current?.seek(firstRally.contacts[0].time)
+              if (firstRally.shots.length > 0) {
+                videoRef.current?.seek(firstRally.shots[0].time)
               }
               videoRef.current?.play()
             }
@@ -816,11 +827,11 @@ export function TaggingScreenComposer({ className }: TaggingScreenComposerProps)
           player2Name={player2Name}
           matchDate={matchDate}
           matchFormat={matchFormat}
-          games={games}
+          sets={sets}
           rallies={rallies}
-          currentRallyContacts={currentRallyContacts}
+          currentRallyShots={currentRallyShots}
           currentServerId={currentServerId}
-          currentSetIndex={currentGameIndex}
+          currentSetIndex={currentSetIndex}
           currentRallyIndex={taggingPhase === 'part2' ? activeRallyIndex : undefined}
           currentShotIndex={taggingPhase === 'part2' ? activeShotIndex : undefined}
           matchResult={matchResult}
@@ -871,14 +882,14 @@ export function TaggingScreenComposer({ className }: TaggingScreenComposerProps)
             {frameworkState === 'checkpoint' && (
               <CheckpointSection
                 rallyNumber={rallies.length + 1}
-                contactCount={currentRallyContacts.length}
+                contactCount={currentRallyShots.length}
                 serverName={currentServerId === 'player1' ? player1Name : player2Name}
                 serverId={currentServerId}
                 receiverName={currentServerId === 'player1' ? player2Name : player1Name}
-                duration={currentRallyContacts.length > 0 
-                  ? currentTime - currentRallyContacts[0].time 
+                duration={currentRallyShots.length > 0 
+                  ? currentTime - currentRallyShots[0].time 
                   : 0}
-                contacts={currentRallyContacts}
+                shots={currentRallyShots}
                 onConfirm={() => {
                   confirmRally()
                   setPlaybackSpeed(ffSpeed)
@@ -949,7 +960,7 @@ export function TaggingScreenComposer({ className }: TaggingScreenComposerProps)
                   serverName={currentRally.serverId === 'player1' ? player1Name : player2Name}
                   serverId={currentRally.serverId}
                   receiverName={currentRally.serverId === 'player1' ? player2Name : player1Name}
-                  contacts={currentRally.contacts}
+                  shots={currentRally.shots}
                   endOfPointTime={currentRally.endOfPointTime || 0}
                   winnerId={currentRally.winnerId}
                   winnerName={currentRally.winnerId === 'player1' ? player1Name : currentRally.winnerId === 'player2' ? player2Name : undefined}
@@ -968,8 +979,8 @@ export function TaggingScreenComposer({ className }: TaggingScreenComposerProps)
                     confirmRallyReview()
                     // Seek to next rally if available
                     const nextRally = rallies[activeRallyIndex + 1]
-                    if (nextRally && nextRally.contacts.length > 0) {
-                      videoRef.current?.seek(nextRally.contacts[0].time)
+                    if (nextRally && nextRally.shots.length > 0) {
+                      videoRef.current?.seek(nextRally.shots[0].time)
                       videoRef.current?.play()
                     }
                   }}
@@ -981,9 +992,9 @@ export function TaggingScreenComposer({ className }: TaggingScreenComposerProps)
                   totalRallies={rallies.length}
                   player1Name={player1Name}
                   player2Name={player2Name}
-                  lastShotPlayerId={currentContact?.playerId || (activeShotIndex % 2 === 1 ? currentRally.serverId : currentRally.receiverId)}
-                  lastShotQuality={currentContact?.shotQuality}
-                  endOfPointTime={currentRally.endOfPointTime || currentContact?.time || 0}
+                  lastShotPlayerId={currentShot?.playerId || (activeShotIndex % 2 === 1 ? currentRally.serverId : currentRally.receiverId)}
+                  lastShotQuality={currentShot?.shotQuality}
+                  endOfPointTime={currentRally.endOfPointTime || currentShot?.time || 0}
                   derivedWinnerId={endOfRallyWinner || undefined}
                   derivedPointEndType={endOfRallyEndType || undefined}
                   needsWinnerSelection={!endOfRallyWinner}
@@ -1022,7 +1033,7 @@ export function TaggingScreenComposer({ className }: TaggingScreenComposerProps)
                   </button>
                   <span>
                     Rally {activeRallyIndex + 1} of {rallies.length} • 
-                    Shot {activeShotIndex} of {currentRally.contacts.length}
+                    Shot {activeShotIndex} of {currentRally.shots.length}
                   </span>
                   <button
                     onClick={() => advanceToNextShot()}
@@ -1112,3 +1123,5 @@ export function TaggingScreenComposer({ className }: TaggingScreenComposerProps)
     </div>
   )
 }
+
+

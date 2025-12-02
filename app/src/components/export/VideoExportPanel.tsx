@@ -28,7 +28,7 @@ export function VideoExportPanel({ className }: VideoExportPanelProps) {
   // Filter valid rallies for export
   const validRallies = rallies.filter(r => 
     r.isScoring && 
-    r.contacts.length > 0 && 
+    r.shots.length > 0 && 
     r.endOfPointTime !== undefined
   )
 
@@ -90,8 +90,8 @@ export function VideoExportPanel({ className }: VideoExportPanelProps) {
   // Calculate estimated duration and size
   const ralliesToExport = highlightsOnly ? highlightRallies : validRallies
   const estimatedDuration = ralliesToExport.reduce((sum, rally) => {
-    if (!rally.contacts.length || !rally.endOfPointTime) return sum
-    const start = rally.contacts[0].time - paddingBefore
+    if (!rally.shots.length || !rally.endOfPointTime) return sum
+    const start = rally.shots[0].time - paddingBefore
     const end = rally.endOfPointTime + paddingAfter
     return sum + Math.max(0, end - start)
   }, 0)

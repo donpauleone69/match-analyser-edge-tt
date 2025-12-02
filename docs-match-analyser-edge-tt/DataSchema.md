@@ -14,7 +14,7 @@ All definitions are consistent with the authoritative specs:
 ## Overview
 
 The schema supports:
-1. **Step 1** – Real-time contact & rally tagging
+1. **Step 1** – Real-time shot & rally tagging
 2. **Step 2** – Shot-by-shot detail entry
 3. **Stats & Analytics** – Post-match analysis
 
@@ -169,18 +169,18 @@ CREATE INDEX IF NOT EXISTS idx_matches_has_video ON matches (hasVideo);
 
 ## 3. Games
 
-Represents a single game within a match (e.g., Game 1, Game 2, etc. in a best-of-5).
+Represents a single game within a match (e.g., Set 1, Set 2, etc. in a best-of-5).
 
 ### 3.1 MVP Fields
 
 ```sql
-CREATE TABLE IF NOT EXISTS games (
+CREATE TABLE IF NOT EXISTS sets (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     
     matchId UUID NOT NULL REFERENCES matches(id) ON DELETE CASCADE,
     
-    -- Game position in match
-    gameNumber SMALLINT NOT NULL,  -- 1-based (Game 1, 2, 3...)
+    -- Set position in match
+    setNumber SMALLINT NOT NULL,  -- 1-based (Set 1, 2, 3...)
     
     -- Final scores (always required)
     player1FinalScore SMALLINT NOT NULL,  -- e.g., 11
@@ -202,16 +202,16 @@ CREATE TABLE IF NOT EXISTS games (
     -- Timestamps
     created_at TIMESTAMPTZ DEFAULT NOW(),
     
-    UNIQUE(matchId, gameNumber)
+    UNIQUE(matchId, setNumber)
 );
 ```
 
 ### 3.2 Indexes
 
 ```sql
-CREATE INDEX IF NOT EXISTS idx_games_match ON games (matchId);
-CREATE INDEX IF NOT EXISTS idx_games_match_number ON games (matchId, gameNumber);
-CREATE INDEX IF NOT EXISTS idx_games_winner ON games (winnerId);
+CREATE INDEX IF NOT EXISTS idx_games_match ON sets (matchId);
+CREATE INDEX IF NOT EXISTS idx_games_match_number ON sets (matchId, setNumber);
+CREATE INDEX IF NOT EXISTS idx_games_winner ON sets (winnerId);
 ```
 
 ---
@@ -227,7 +227,7 @@ CREATE TABLE IF NOT EXISTS rallies (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     
     matchId UUID NOT NULL REFERENCES matches(id) ON DELETE CASCADE,
-    gameId UUID NOT NULL REFERENCES games(id) ON DELETE CASCADE,
+    setId UUID NOT NULL REFERENCES sets(id) ON DELETE CASCADE,
     
     -- Rally position
     rallyIndex INTEGER NOT NULL,  -- 1-based order within game
@@ -246,16 +246,16 @@ CREATE TABLE IF NOT EXISTS rallies (
     receiverId UUID NOT NULL REFERENCES players(id) ON DELETE RESTRICT,
     
     -- Video coverage (for partial video scenarios)
-    hasVideoData BOOLEAN DEFAULT TRUE,  -- FALSE if this rally is score-only (no contacts/shots)
+    hasVideoData BOOLEAN DEFAULT TRUE,  -- FALSE if this rally is score-only (no shots/shots)
     
     -- Error correction flags (for unintentional errors during tagging)
     serverCorrected BOOLEAN DEFAULT FALSE,  -- TRUE if server was manually corrected
     scoreCorrected BOOLEAN DEFAULT FALSE,   -- TRUE if score was manually corrected
     correctionNotes TEXT,  -- Optional notes about corrections made
     
-    -- Contact boundaries (FK to first and last contact of rally)
-    startContactId UUID,  -- FK added after contacts table created
-    endContactId UUID,    -- FK added after contacts table created
+    -- Shot boundaries (FK to first and last shot of rally)
+    startContactId UUID,  -- FK added after shots table created
+    endContactId UUID,    -- FK added after shots table created
     
     -- End-of-rally classification
     pointEndType TEXT CHECK (pointEndType IN (
@@ -290,8 +290,8 @@ ALTER TABLE rallies ADD COLUMN IF NOT EXISTS ended_at TIMESTAMPTZ;
 
 ```sql
 CREATE INDEX IF NOT EXISTS idx_rallies_match ON rallies (matchId);
-CREATE INDEX IF NOT EXISTS idx_rallies_game ON rallies (gameId);
-CREATE INDEX IF NOT EXISTS idx_rallies_game_index ON rallies (gameId, rallyIndex);
+CREATE INDEX IF NOT EXISTS idx_rallies_game ON rallies (setId);
+CREATE INDEX IF NOT EXISTS idx_rallies_game_index ON rallies (setId, rallyIndex);
 CREATE INDEX IF NOT EXISTS idx_rallies_server_match ON rallies (serverId, matchId);
 CREATE INDEX IF NOT EXISTS idx_rallies_winner ON rallies (winnerId);
 CREATE INDEX IF NOT EXISTS idx_rallies_has_video ON rallies (hasVideoData);
@@ -301,12 +301,12 @@ CREATE INDEX IF NOT EXISTS idx_rallies_has_video ON rallies (hasVideoData);
 
 ## 5. Contacts
 
-Represents a single ball contact (timestamp marker from Step 1).
+Represents a single ball shot (timestamp marker from Step 1).
 
 ### 5.1 MVP Fields
 
 ```sql
-CREATE TABLE IF NOT EXISTS contacts (
+CREATE TABLE IF NOT EXISTS shots (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     
     rallyId UUID NOT NULL REFERENCES rallies(id) ON DELETE CASCADE,
@@ -321,26 +321,26 @@ CREATE TABLE IF NOT EXISTS contacts (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Add FK constraints to rallies after contacts table exists
+-- Add FK constraints to rallies after shots table exists
 ALTER TABLE rallies ADD CONSTRAINT fk_rallies_start_contact 
-    FOREIGN KEY (startContactId) REFERENCES contacts(id) ON DELETE SET NULL;
+    FOREIGN KEY (startContactId) REFERENCES shots(id) ON DELETE SET NULL;
 ALTER TABLE rallies ADD CONSTRAINT fk_rallies_end_contact 
-    FOREIGN KEY (endContactId) REFERENCES contacts(id) ON DELETE SET NULL;
+    FOREIGN KEY (endContactId) REFERENCES shots(id) ON DELETE SET NULL;
 ```
 
 ### 5.2 Indexes
 
 ```sql
-CREATE INDEX IF NOT EXISTS idx_contacts_rally ON contacts (rallyId);
-CREATE INDEX IF NOT EXISTS idx_contacts_rally_shot ON contacts (rallyId, shotIndex);
-CREATE INDEX IF NOT EXISTS idx_contacts_time ON contacts (time);
+CREATE INDEX IF NOT EXISTS idx_contacts_rally ON shots (rallyId);
+CREATE INDEX IF NOT EXISTS idx_contacts_rally_shot ON shots (rallyId, shotIndex);
+CREATE INDEX IF NOT EXISTS idx_contacts_time ON shots (time);
 ```
 
 ---
 
 ## 6. Shots
 
-Represents the detailed annotation for a single contact (from Step 2).
+Represents the detailed annotation for a single shot (from Step 2).
 
 ### 6.1 MVP Fields
 
@@ -349,13 +349,13 @@ CREATE TABLE IF NOT EXISTS shots (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     
     -- Links
-    contactId UUID NOT NULL REFERENCES contacts(id) ON DELETE CASCADE,
+    shotId UUID NOT NULL REFERENCES shots(id) ON DELETE CASCADE,
     matchId UUID NOT NULL REFERENCES matches(id) ON DELETE CASCADE,
     rallyId UUID NOT NULL REFERENCES rallies(id) ON DELETE CASCADE,
     playerId UUID NOT NULL REFERENCES players(id) ON DELETE RESTRICT,
     
     -- Shot position in rally
-    shotIndex SMALLINT NOT NULL,  -- Mirrors contact.shotIndex for query convenience
+    shotIndex SMALLINT NOT NULL,  -- Mirrors shot.shotIndex for query convenience
     
     -- Flags
     isServe BOOLEAN NOT NULL DEFAULT FALSE,
@@ -420,7 +420,7 @@ CREATE TABLE IF NOT EXISTS shots (
     )),
     
     -- [v0.8.0] Serve spin as 3x3 grid (replaces serveSpinPrimary + serveSpinStrength)
-    -- Grid based on ball contact point: topspin at top, backspin at bottom
+    -- Grid based on ball shot point: topspin at top, backspin at bottom
     serveSpin TEXT CHECK (serveSpin IN (
         'topLeft', 'topspin', 'topRight',
         'sideLeft', 'noSpin', 'sideRight',
@@ -486,7 +486,7 @@ CREATE TABLE IF NOT EXISTS shots (
 ALTER TABLE shots ADD COLUMN IF NOT EXISTS placementX NUMERIC;
 ALTER TABLE shots ADD COLUMN IF NOT EXISTS placementY NUMERIC;
 
--- Contact height/depth for 3D analysis
+-- Shot height/depth for 3D analysis
 ALTER TABLE shots ADD COLUMN IF NOT EXISTS contactHeight NUMERIC;
 ALTER TABLE shots ADD COLUMN IF NOT EXISTS contactDepth NUMERIC;
 
@@ -512,7 +512,7 @@ ALTER TABLE shots ADD COLUMN IF NOT EXISTS errorType TEXT CHECK (errorType IN (
 
 ```sql
 -- Primary query patterns
-CREATE INDEX IF NOT EXISTS idx_shots_contact ON shots (contactId);
+CREATE INDEX IF NOT EXISTS idx_shots_contact ON shots (shotId);
 CREATE INDEX IF NOT EXISTS idx_shots_match_rally_index ON shots (matchId, rallyId, shotIndex);
 CREATE INDEX IF NOT EXISTS idx_shots_player ON shots (playerId);
 
@@ -531,10 +531,10 @@ When setting up the database:
 
 1. `players`
 2. `matches`
-3. `games`
-4. `rallies` (without contact FKs initially)
-5. `contacts`
-6. Add FK constraints to `rallies` for start/end contacts
+3. `sets`
+4. `rallies` (without shot FKs initially)
+5. `shots`
+6. Add FK constraints to `rallies` for start/end shots
 7. `shots`
 8. Indexes (all tables)
 
@@ -648,7 +648,7 @@ Error qualities (derive landingType automatically):
 
 ### 8.10 Serve Spin (3×3 Grid) [v0.8.0 - new]
 
-Ball contact point perspective (topspin at top, backspin at bottom):
+Ball shot point perspective (topspin at top, backspin at bottom):
 
 ```
 ┌─────────────────────────────────────────┐
@@ -735,22 +735,22 @@ Field population rules are defined in the workflow spec. Key conditional rules:
 | `player1ScoreAfter`, `player2ScoreAfter` | Calculated and stored when rally ends |
 | `serverCorrected` | Set to TRUE when server is manually corrected due to error |
 | `scoreCorrected` | Set to TRUE when score is manually corrected due to error |
-| `hasVideoData` | FALSE for rallies that are score-only (no contacts/shots) |
+| `hasVideoData` | FALSE for rallies that are score-only (no shots/shots) |
 | `matchDate` | Should be set during match creation; can default to created_at date but should be editable |
 
 #### Validation Rules
 
 | Rule | Description |
 |------|-------------|
-| Min 1 contact per rally | Every rally must have at least 1 contact (the serve); validation error otherwise |
+| Min 1 shot per rally | Every rally must have at least 1 shot (the serve); validation error otherwise |
 | shotType required for non-serves | If `isServe = FALSE` AND `taggingMode = 'full'`, then `shotType` must not be NULL |
 | Fault = weak | If `isFault = TRUE`, then `shotQuality` must be `weak` |
-| Non-scoring rallies skip Step 2 | Rallies with `isScoring = FALSE` are not annotated in Step 2 (contacts recorded but no shots) |
+| Non-scoring rallies skip Step 2 | Rallies with `isScoring = FALSE` are not annotated in Step 2 (shots recorded but no shots) |
 | Essential mode nullable fields | If `taggingMode = 'essential'`, `positionSector`, `shotType`, `landingZone` may be NULL |
 
-#### Game Boundary Detection
+#### Set Boundary Detection
 
-- Game ends when a player reaches the target score (e.g., 11) with at least 2-point lead
+- Set ends when a player reaches the target score (e.g., 11) with at least 2-point lead
 - At deuce (both players ≥ 10), service alternates every point
 - System suggests game end based on score; user confirms or overrides
 - `firstServerId` is editable; changing it recalculates all `serverId`/`receiverId` values
@@ -827,29 +827,29 @@ The schema supports partial video coverage scenarios where video may not cover t
 
 #### Partial Coverage Levels
 
-1. **Per-Game Coverage** (`games.hasVideo`):
-   - Some games may be filmed, others not
+1. **Per-Set Coverage** (`sets.hasVideo`):
+   - Some sets may be filmed, others not
    - Games without video: only `player1FinalScore`, `player2FinalScore` recorded
    - Games with video: full Step 1/2 tagging available
 
-2. **Mid-Game Video Start** (`games.videoStartPlayer1Score`, `videoStartPlayer2Score`):
+2. **Mid-Set Video Start** (`sets.videoStartPlayer1Score`, `videoStartPlayer2Score`):
    - Video may start partway through a game
    - Enter the score when video/tagging began
    - Rallies before video start are score-only (`hasVideoData = FALSE`)
 
 3. **Per-Rally Coverage** (`rallies.hasVideoData`):
    - Within a game, some rallies may have full tagging, others score-only
-   - `hasVideoData = TRUE`: full contacts + shots tagging
-   - `hasVideoData = FALSE`: only `winnerId` recorded, no contacts/shots
+   - `hasVideoData = TRUE`: full shots + shots tagging
+   - `hasVideoData = FALSE`: only `winnerId` recorded, no shots/shots
 
 #### Example Scenario
 
-"Video starts at 5-3 in Game 2, ends at 9-8, but final score was 11-9":
-- Game 2: `hasVideo = TRUE`, `videoStartPlayer1Score = 5`, `videoStartPlayer2Score = 3`
+"Video starts at 5-3 in Set 2, ends at 9-8, but final score was 11-9":
+- Set 2: `hasVideo = TRUE`, `videoStartPlayer1Score = 5`, `videoStartPlayer2Score = 3`
 - Rallies 1-8 (before video): `hasVideoData = FALSE`, just winners recorded
 - Rallies 9-16 (during video): `hasVideoData = TRUE`, full tagging
 - Rallies 17-20 (after video): `hasVideoData = FALSE`, just winners recorded
-- Game 2 final: `player1FinalScore = 11`, `player2FinalScore = 9`
+- Set 2 final: `player1FinalScore = 11`, `player2FinalScore = 9`
 
 ### 9.5 Error Correction
 

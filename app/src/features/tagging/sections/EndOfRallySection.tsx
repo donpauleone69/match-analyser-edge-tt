@@ -62,7 +62,7 @@ export function EndOfRallySection({
   derivedPointEndType,
   needsWinnerSelection,
   needsForcedUnforced,
-  onEndOfPointTimeChange,
+  // onEndOfPointTimeChange,  // Unused
   onWinnerSelect,
   onForcedUnforcedSelect,
   onConfirm,
@@ -238,7 +238,7 @@ export function EndOfRallySection({
           </p>
           <div className="grid grid-cols-2 gap-3">
             <Button
-              variant={selectedWinner === 'player1' ? 'brand' : 'secondary'}
+              variant={selectedWinner === 'player1' ? 'primary' : 'secondary'}
               onClick={() => handleWinnerSelect('player1')}
               className="flex-col h-auto py-3"
             >
@@ -246,7 +246,7 @@ export function EndOfRallySection({
               <kbd className="text-xs opacity-50 mt-1">1</kbd>
             </Button>
             <Button
-              variant={selectedWinner === 'player2' ? 'brand' : 'secondary'}
+              variant={selectedWinner === 'player2' ? 'primary' : 'secondary'}
               onClick={() => handleWinnerSelect('player2')}
               className="flex-col h-auto py-3"
             >
@@ -261,7 +261,7 @@ export function EndOfRallySection({
       {derivedWinnerId && !needsForcedUnforced && (
         <div className="mb-4 p-3 bg-success/10 border border-success/20 rounded-lg">
           <div className="flex items-center gap-2">
-            <Icon name="check-circle" size="sm" className="text-success" />
+            <Icon name="circle" size="sm" className="text-success" />
             <span className="text-sm text-success">
               Winner: {derivedWinnerId === 'player1' ? player1Name : player2Name}
             </span>
@@ -286,7 +286,7 @@ export function EndOfRallySection({
           </p>
           <div className="grid grid-cols-2 gap-3">
             <Button
-              variant={selectedEndType === 'forcedError' ? 'brand' : 'secondary'}
+              variant={selectedEndType === 'forcedError' ? 'primary' : 'secondary'}
               onClick={() => handleForcedUnforcedSelect('forcedError')}
               className="flex-col h-auto py-3"
             >
@@ -295,7 +295,7 @@ export function EndOfRallySection({
               <kbd className="text-xs opacity-50 mt-1">F</kbd>
             </Button>
             <Button
-              variant={selectedEndType === 'unforcedError' ? 'brand' : 'secondary'}
+              variant={selectedEndType === 'unforcedError' ? 'primary' : 'secondary'}
               onClick={() => handleForcedUnforcedSelect('unforcedError')}
               className="flex-col h-auto py-3"
             >
@@ -309,7 +309,7 @@ export function EndOfRallySection({
       
       {/* Confirm Button */}
       <Button
-        variant="brand"
+        variant="primary"
         size="lg"
         onClick={onConfirm}
         disabled={!canConfirm}
@@ -321,4 +321,5 @@ export function EndOfRallySection({
     </div>
   )
 }
+
 

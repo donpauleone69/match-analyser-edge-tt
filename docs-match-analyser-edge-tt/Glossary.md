@@ -13,8 +13,8 @@ This glossary defines terms used throughout the Edge TT Match Analyser project. 
 
 ## Table Tennis Domain Terms
 
-### Contact
-A single ball strike by a player during a rally. In the tagging workflow, contacts are marked at the moment of shot preparation (backswing), not the exact moment of ball contact.
+### Shot
+A single ball strike by a player during a rally. In the tagging workflow, shots are marked at the moment of shot preparation (backswing), not the exact moment of ball shot.
 
 ### Deuce
 A game state where both players have reached 10 points (10-10 or higher). During deuce, players alternate serves every point instead of every two points.
@@ -37,8 +37,8 @@ An error made by a player under pressure from a difficult shot by the opponent. 
 ### Full Mode
 A detailed tagging mode that captures 5+ questions per shot, including position sector, full shot type list, and diagnostic questions. Provides more data for analysis.
 
-### Game
-A single game within a match, typically played to 11 points (win by 2). A match consists of multiple games (best of 3, 5, or 7).
+### Set
+A single game within a match, typically played to 11 points (win by 2). A match consists of multiple sets (best of 3, 5, or 7).
 
 ### Landing Type
 Where the ball landed after a shot: `inPlay`, `net`, `offLong`, or `wide`. Derived from shot quality for error shots.
@@ -56,10 +56,10 @@ A high defensive shot, typically hit from far back, intended to buy time and res
 An aggressive topspin shot, the primary attacking stroke in modern table tennis.
 
 ### Match
-A complete competitive encounter between two players, consisting of multiple games (typically best of 3, 5, or 7).
+A complete competitive encounter between two players, consisting of multiple sets (typically best of 3, 5, or 7).
 
 ### Match Framework
-Part 1 of the tagging workflow. The user marks all contacts and rally boundaries in a single pass through the video, creating the structural skeleton of the match.
+Part 1 of the tagging workflow. The user marks all shots and rally boundaries in a single pass through the video, creating the structural skeleton of the match.
 
 ### Point End Type
 How a rally concluded: `winnerShot`, `forcedError`, `unforcedError`, `serviceFault`, `receiveError`, or `let`.
@@ -71,7 +71,7 @@ A 3×3 grid representing where the player was standing when they hit the shot. U
 A controlled backspin shot, typically used to keep the ball low and prevent the opponent from attacking.
 
 ### Rally
-A sequence of shots between the serve and the end of the point. Includes all contacts from serve to point conclusion.
+A sequence of shots between the serve and the end of the point. Includes all shots from serve to point conclusion.
 
 ### Rally Detail
 Part 2 of the tagging workflow. The user reviews timestamps and answers shot questions for each rally sequentially.
@@ -83,7 +83,7 @@ The second shot in a rally — the receiver's response to the serve.
 The first shot of a rally, initiating play. Must be tossed at least 16cm and struck behind the end line.
 
 ### Serve Spin
-The rotation applied to a serve, represented as a 3×3 grid based on ball contact point (topspin family at top, backspin family at bottom, sidespin on sides).
+The rotation applied to a serve, represented as a 3×3 grid based on ball shot point (topspin family at top, backspin family at bottom, sidespin on sides).
 
 ### Serve Type
 The technique used to execute a serve: `pendulum`, `reversePendulum`, `tomahawk`, `backhand`, `hook`, `lollipop`, or `other`.
@@ -92,7 +92,7 @@ The technique used to execute a serve: `pendulum`, `reversePendulum`, `tomahawk`
 A serve that fails (goes into net, off table, or wide). Automatically results in a point for the receiver.
 
 ### Shot
-A single stroke by a player. In this app, "shot" and "contact" are often used interchangeably.
+A single stroke by a player. In this app, "shot" and "shot" are often used interchangeably.
 
 ### Shot Quality
 Assessment of how well a shot was executed: `good`, `average`, `weak`, or error types (`inNet`, `missedLong`, `missedWide`).
@@ -125,7 +125,7 @@ A route-level React component that orchestrates a feature's UI. Accesses stores,
 ### Constrained Playback
 Video playback mode where the video only plays within defined time boundaries (e.g., a single shot's duration) and optionally loops.
 
-### Contact Tagger
+### Shot Tagger
 The original name for Part 1 of the tagging workflow. Now called "Match Framework."
 
 ### Derive Hook
@@ -144,7 +144,7 @@ A rally marked as notable by the user (press H). Used for filtering during expor
 The left sidebar in the tagging screens showing match details, rally tree, and match result.
 
 ### Misclick Auto-Pruning
-Automatic deletion of contacts that follow an error-marked shot, with undo capability. Prevents invalid data from shots that couldn't have happened.
+Automatic deletion of shots that follow an error-marked shot, with undo capability. Prevents invalid data from shots that couldn't have happened.
 
 ### Preview Buffer
 Extra time (default 0.2s) shown past the next timestamp when looping a shot preview. Display-only; doesn't alter stored timestamps.
@@ -159,7 +159,7 @@ A major part of a page, defining layout for a zone. Receives view models from Co
 The right sidebar panel for controlling playback speeds (tagging speed, fast forward speed, loop speed, preview buffer).
 
 ### Spin Grid
-A 3×3 grid UI component for selecting serve spin based on ball contact point. Numpad 1–9 keyboard mapping.
+A 3×3 grid UI component for selecting serve spin based on ball shot point. Numpad 1–9 keyboard mapping.
 
 ### Store
 A Zustand state container that holds application state and actions. Persisted to localStorage.
@@ -168,10 +168,10 @@ A Zustand state container that holds application state and actions. Persisted to
 The level of detail captured during shot annotation: Essential (4 questions) or Full (5+ questions).
 
 ### Tagging Speed
-The video playback speed during active contact marking. Default 0.25x. Options: 0.125x, 0.25x, 0.5x, 0.75x, 1x.
+The video playback speed during active shot marking. Default 0.25x. Options: 0.125x, 0.25x, 0.5x, 0.75x, 1x.
 
 ### Timeline
-A visual representation of contacts and rally boundaries along the video duration.
+A visual representation of shots and rally boundaries along the video duration.
 
 ### View Model
 A TypeScript type representing the shape of data the UI needs to render. Created by derive hooks from store data + rules.
