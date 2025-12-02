@@ -1,6 +1,6 @@
 # Edge TT Match Analyser - Database Entity Relationship Diagram
 
-> **Version:** 1.0.0  
+> **Version:** 1.1.0  
 > **Date:** 2025-12-02  
 > **Status:** Design Document (Pre-Supabase Migration)
 
@@ -8,20 +8,121 @@
 
 ## Overview
 
-This document defines the complete database schema for the Edge TT Match Analyser application, including the new **Player Profiles** table and relationships between all entities.
+This document defines the complete database schema for the Edge TT Match Analyser application. It shows **two schemas**:
+
+1. **Current Implementation** - localStorage structure (v0.9.x)
+2. **Future Database** - Supabase/PostgreSQL schema with Player Profiles
 
 ---
 
-## Entity Relationship Diagram
+## Current Implementation (localStorage v0.9.x)
+
+**Status:** ✅ Implemented and Working
+
+**Storage:** Browser localStorage, key: `tt-tagger-session`
+
+**Player Handling:** Simple strings (no player table)
+
+```mermaid
+erDiagram
+    MATCHES ||--|{ SETS : "contains"
+    SETS ||--|{ RALLIES : "contains"
+    RALLIES ||--|{ SHOTS : "contains"
+
+    MATCHES {
+        string matchId PK
+        string player1Name "NOT NULL"
+        string player2Name "NOT NULL"
+        enum firstServerId "player1 | player2"
+        string matchFormat
+        string tournament
+        date matchDate
+        enum taggingMode "essential | full"
+        enum videoCoverage
+        enum matchResult
+        string finalSetScore
+        string finalPointsScore
+        int player1Score "Sets won"
+        int player2Score "Sets won"
+        boolean step1Complete
+        boolean step2Complete
+    }
+
+    SETS {
+        string id PK
+        string matchId FK
+        int setNumber
+        int player1FinalScore
+        int player2FinalScore
+        string winnerId "player1 | player2"
+        boolean hasVideo
+        decimal endOfSetTimestamp
+    }
+
+    RALLIES {
+        string id PK
+        string setId FK
+        int rallyIndex
+        enum serverId "player1 | player2"
+        enum receiverId "player1 | player2"
+        boolean isScoring
+        enum winnerId "player1 | player2"
+        int player1ScoreAfter
+        int player2ScoreAfter
+        decimal endOfPointTime
+        enum pointEndType
+        enum luckType
+        boolean hasVideoData
+        boolean isHighlight
+        boolean frameworkConfirmed
+        boolean detailComplete
+    }
+
+    SHOTS {
+        string id PK
+        string rallyId FK
+        decimal time
+        int shotIndex
+        enum playerId "player1 | player2"
+        enum serveType
+        enum serveSpin
+        enum wing "FH | BH"
+        enum shotType "serve | push | loop etc"
+        enum shotQuality
+        enum landingZone
+        enum landingType "DERIVED"
+        enum inferredSpin "DERIVED"
+        boolean isTagged
+    }
+```
+
+**Note:** Player Profiles are stored separately but not yet linked:
+```typescript
+players: PlayerProfile[]  // Empty array, future use
+```
+
+---
+
+## Future Database Schema (Supabase/PostgreSQL)
+
+**Status:** 🔵 Designed, Not Yet Implemented
+
+**Migration Planned:** When moving to Supabase
+
+**Player Handling:** Relational with Player Profiles table
+
+---
+
+## Entity Relationship Diagram (Future)
 
 ```mermaid
 erDiagram
     PLAYERS ||--o{ MATCHES_PLAYER1 : "is player1 in"
     PLAYERS ||--o{ MATCHES_PLAYER2 : "is player2 in"
     PLAYERS ||--o{ MATCHES_FIRST_SERVER : "first server in"
-    MATCHES ||--|{ GAMES : "contains"
-    GAMES ||--|{ RALLIES : "contains"
-    RALLIES ||--|{ CONTACTS : "contains"
+    MATCHES ||--|{ SETS : "contains"
+    SETS ||--|{ RALLIES : "contains"
+    RALLIES ||--|{ SHOTS : "contains"
 
     PLAYERS {
         uuid id PK
@@ -95,7 +196,7 @@ erDiagram
         boolean detail_complete "DEFAULT false"
     }
 
-    CONTACTS {
+    SHOTS {
         uuid id PK
         uuid rally_id FK "NOT NULL, REFERENCES rallies(id)"
         decimal time "NOT NULL, seconds in video"
@@ -394,31 +495,39 @@ For a typical **Best of 5 match** (3 sets played):
 | Contacts | ~240  | 4 shots per rally avg  |
 
 **For 100 matches tagged:**
-- Players: ~50 unique players
+- Players: ~50 unique players (future)
 - Matches: 100
-- Games: ~300
+- Sets: ~300
 - Rallies: ~6,000
-- Contacts: ~24,000
+- Shots: ~24,000
 
 ---
 
 ## Migration Path
 
-### Current (v0.9.x) - localStorage
-- No Player table (just player1Name, player2Name strings)
-- No foreign keys (IDs are strings, not UUIDs)
-- All data in single localStorage key
+### **Current (v0.9.x)** - localStorage ✅ IMPLEMENTED
+- ✅ No Player table (just player1Name, player2Name strings)
+- ✅ No foreign keys (IDs are strings, not UUIDs)
+- ✅ All data in single localStorage key: `tt-tagger-session`
+- ✅ Terminology updated: Shot, Rally, Set
+- ✅ PlayerProfile types defined but not connected
+- ✅ `players: PlayerProfile[]` array exists (empty, for future)
 
-### Phase 1 - Add Player Management (localStorage)
-- Add `players: Player[]` to localStorage
-- Change matches to use `player1_id`, `player2_id`
-- Maintain backward compatibility
+### **Phase 1** - Add Player Management (localStorage) ⏳ NOT STARTED
+- Add Player create/edit UI
+- Populate `players: PlayerProfile[]` array
+- Change matches to use `player1_id`, `player2_id` (references to players array)
+- Add player selection dropdown in match setup
+- Lookup player names from players array
+- Enable multi-match storage with player history
 
-### Phase 2 - Supabase Migration
+### **Phase 2** - Supabase Migration ⏳ NOT STARTED
 - Create tables in Supabase (PostgreSQL)
 - Migrate localStorage data to Supabase
 - Implement RLS (Row Level Security) policies
 - Real-time subscriptions for multi-user
+- UUID primary keys
+- Foreign key constraints
 
 ---
 
@@ -446,9 +555,10 @@ For a typical **Best of 5 match** (3 sets played):
 
 ## Version History
 
-| Version | Date       | Changes                              |
-| ------- | ---------- | ------------------------------------ |
-| 1.0.0   | 2025-12-02 | Initial ERD with Player table design |
+| Version | Date       | Changes                                                    |
+| ------- | ---------- | ---------------------------------------------------------- |
+| 1.1.0   | 2025-12-02 | Updated with current vs future schemas, terminology fixed  |
+| 1.0.0   | 2025-12-02 | Initial ERD with Player table design                       |
 
 ---
 
