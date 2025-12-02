@@ -95,6 +95,7 @@ export interface TaggingControlsVM {
   canAddContact: boolean
   canEndRally: boolean
   canUndo: boolean
+  canEndSet: boolean // REQ-4: Only allow after rally is complete
   currentRallyContactCount: number
   isInRally: boolean
 }

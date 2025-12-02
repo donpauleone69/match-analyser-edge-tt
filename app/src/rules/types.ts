@@ -349,11 +349,40 @@ export type UnforcedErrorCause =
 // CONTACT & RALLY TYPES
 // =============================================================================
 
+/**
+ * Contact represents a ball contact in the match.
+ * In the unified workflow, Contact = Shot — shot data fields are stored directly here.
+ * 
+ * Part 1: Only id, rallyId, time, shotIndex are set
+ * Part 2: Shot data fields are filled in during detailed tagging
+ */
 export interface Contact {
   id: string
   rallyId: string
   time: number // seconds in video
   shotIndex: number
+  
+  // Shot data fields (filled in Part 2)
+  playerId?: PlayerId
+  
+  // Serve-specific fields (shotIndex === 1)
+  serveType?: ServeType
+  serveSpin?: ServeSpin
+  
+  // Rally shot fields (shotIndex > 1)
+  wing?: Wing
+  shotType?: EssentialShotType
+  
+  // Common fields
+  landingZone?: LandingZone
+  shotQuality?: ShotQuality
+  
+  // Derived fields (calculated, not input)
+  landingType?: LandingType
+  inferredSpin?: InferredSpin
+  
+  // Metadata
+  isTagged?: boolean // True when Part 2 tagging complete for this shot
 }
 
 export interface Rally {
@@ -372,6 +401,9 @@ export interface Rally {
   isHighlight?: boolean
   pointEndType?: PointEndType
   luckType?: LuckType
+  // Rally Checkpoint Flow tracking
+  frameworkConfirmed?: boolean
+  detailComplete?: boolean
 }
 
 // =============================================================================

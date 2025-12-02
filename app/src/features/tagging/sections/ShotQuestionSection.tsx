@@ -3,22 +3,21 @@
  * 
  * Multi-step question flow based on tagging mode:
  * 
- * Essential Mode - Serve:
+ * Essential Mode - Serve (3-4 inputs):
  * 1. Serve Type (7 options, keys 1-7)
  * 2. Spin Grid (3x3, numpad 1-9)
- * 3. Landing Zone (3x3, numpad 1-9) - SKIP if error quality
- * 4. Quality (6 options, G/A/W/N/L/D)
+ * 3. Quality (6 options, G/A/W/N/L/D)
+ * 4. Landing Zone (3x3, numpad 1-9) — SKIP if error quality
  * 
- * Essential Mode - Rally Shot:
+ * Essential Mode - Rally Shot (3-4 inputs):
  * 1. Wing (F/B)
  * 2. Shot Type (9 options, keys 1-9)
- * 3. Landing Zone (3x3) - SKIP if error quality
- * 4. Quality (6 options)
+ * 3. Quality (6 options)
+ * 4. Landing Zone (3x3) — SKIP if error quality
  * 
  * On Quality selection:
- * - If error (N/L/D) → trigger derivation + auto-prune check
- * - If last shot → derive end-of-point
- * - Auto-advance to next shot
+ * - If error (N/L/D) → skip landing zone, trigger derivation + auto-prune
+ * - If in-play (G/A/W) → proceed to landing zone
  */
 
 import { useEffect } from 'react'
@@ -30,11 +29,12 @@ import type {
   ServeSpin, 
   ShotQuality,
   EssentialShotType,
+  LandingZone,
 } from '@/rules/types'
 
-// Question step types
-type ServeQuestionStep = 'type' | 'spin' | 'landing' | 'quality'
-type RallyShotQuestionStep = 'wing' | 'type' | 'landing' | 'quality'
+// Question step types — REORDERED: Quality before Landing
+type ServeQuestionStep = 'type' | 'spin' | 'quality' | 'landing'
+type RallyShotQuestionStep = 'wing' | 'type' | 'quality' | 'landing'
 
 export interface ShotQuestionSectionProps {
   isServe: boolean
@@ -43,7 +43,7 @@ export interface ShotQuestionSectionProps {
   currentStep: number
   onServeTypeSelect: (type: ServeType) => void
   onSpinSelect: (spin: ServeSpin) => void
-  onLandingZoneSelect: (zone: number) => void
+  onLandingZoneSelect: (zone: LandingZone) => void
   onQualitySelect: (quality: ShotQuality) => void
   onWingSelect: (wing: 'forehand' | 'backhand') => void
   onShotTypeSelect: (type: EssentialShotType) => void
@@ -98,13 +98,14 @@ export function ShotQuestionSection({
   className,
 }: ShotQuestionSectionProps) {
   // Determine current question based on shot type and step
+  // REORDERED: Quality (step 3) before Landing (step 4)
   const getServeStepLabel = (step: number): ServeQuestionStep => {
-    const steps: ServeQuestionStep[] = ['type', 'spin', 'landing', 'quality']
+    const steps: ServeQuestionStep[] = ['type', 'spin', 'quality', 'landing']
     return steps[step - 1] || 'type'
   }
   
   const getRallyShotStepLabel = (step: number): RallyShotQuestionStep => {
-    const steps: RallyShotQuestionStep[] = ['wing', 'type', 'landing', 'quality']
+    const steps: RallyShotQuestionStep[] = ['wing', 'type', 'quality', 'landing']
     return steps[step - 1] || 'wing'
   }
   
@@ -122,10 +123,10 @@ export function ShotQuestionSection({
         return
       }
       
-      // Quality shortcuts (always available)
+      // Quality shortcuts (G/A/W/N/L/D) — now step 3
       const qualityKey = e.key.toUpperCase()
       const qualityOption = QUALITY_OPTIONS.find(q => q.key === qualityKey)
-      if (qualityOption && (currentQuestion === 'quality' || (!isServe && currentStep === 4))) {
+      if (qualityOption && currentQuestion === 'quality') {
         e.preventDefault()
         onQualitySelect(qualityOption.value)
         return
@@ -158,8 +159,8 @@ export function ShotQuestionSection({
           // Spin grid uses numpad 1-9
           onSpinSelect(getSpinFromNumpad(numKey))
         } else if (currentQuestion === 'landing') {
-          // Landing zone uses numpad 1-9
-          onLandingZoneSelect(numKey)
+          // Landing zone uses numpad 1-9 — now step 4
+          onLandingZoneSelect(getLandingZoneFromNumpad(numKey))
         }
       }
     }
@@ -176,6 +177,16 @@ export function ShotQuestionSection({
       1: 'backLeft', 2: 'backspin', 3: 'backRight',
     }
     return spinMap[num] || 'noSpin'
+  }
+  
+  // Map numpad to landing zone values
+  const getLandingZoneFromNumpad = (num: number): LandingZone => {
+    const zoneMap: Record<number, LandingZone> = {
+      7: 'BHShort', 8: 'MidShort', 9: 'FHShort',
+      4: 'BHMid', 5: 'MidMid', 6: 'FHMid',
+      1: 'BHLong', 2: 'MidLong', 3: 'FHLong',
+    }
+    return zoneMap[num] || 'MidMid'
   }
   
   return (
@@ -284,26 +295,7 @@ export function ShotQuestionSection({
           </div>
         )}
         
-        {/* Landing Zone Question */}
-        {currentQuestion === 'landing' && (
-          <div>
-            <p className="text-sm text-neutral-300 mb-3">Where did it land? (Numpad 1-9)</p>
-            <LandingZoneGrid
-              value={undefined}
-              onChange={(zone) => {
-                // Map LandingZone to number for the callback
-                const zoneMap: Record<string, number> = {
-                  'BHShort': 7, 'MidShort': 8, 'FHShort': 9,
-                  'BHMid': 4, 'MidMid': 5, 'FHMid': 6,
-                  'BHLong': 1, 'MidLong': 2, 'FHLong': 3,
-                }
-                onLandingZoneSelect(zoneMap[zone] || 5)
-              }}
-            />
-          </div>
-        )}
-        
-        {/* Quality Question */}
+        {/* Quality Question — now step 3 */}
         {currentQuestion === 'quality' && (
           <div>
             <p className="text-sm text-neutral-300 mb-3">Shot quality?</p>
@@ -322,8 +314,19 @@ export function ShotQuestionSection({
               ))}
             </div>
             <p className="text-xs text-neutral-500 mt-2 text-center">
-              Error types (N/L/D) will end the rally
+              Error types (N/L/D) will skip landing zone and end the rally
             </p>
+          </div>
+        )}
+        
+        {/* Landing Zone Question — now step 4 (skipped if error quality) */}
+        {currentQuestion === 'landing' && (
+          <div>
+            <p className="text-sm text-neutral-300 mb-3">Where did it land? (Numpad 1-9)</p>
+            <LandingZoneGrid
+              value={undefined}
+              onChange={(zone) => onLandingZoneSelect(zone)}
+            />
           </div>
         )}
       </CardContent>

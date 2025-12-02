@@ -24,6 +24,8 @@ export interface MatchPanelSectionProps {
   activeShotIndex?: number
   onRallyClick: (rallyId: string) => void
   onShotClick?: (rallyId: string, shotIndex: number) => void
+  onDeleteContact?: (rallyId: string, contactId: string) => void
+  onDeleteRally?: (rallyId: string) => void
   className?: string
 }
 
@@ -35,6 +37,8 @@ export function MatchPanelSection({
   activeShotIndex = 1,
   onRallyClick,
   onShotClick,
+  onDeleteContact,
+  onDeleteRally,
   className,
 }: MatchPanelSectionProps) {
   const isPart2 = taggingPhase === 'part2'
@@ -125,6 +129,7 @@ export function MatchPanelSection({
                           <RallyPodBlock
                             {...rally}
                             onClick={() => !isLockedRally && onRallyClick(rally.id)}
+                            onDelete={onDeleteRally ? () => onDeleteRally(rally.id) : undefined}
                             className={cn(
                               isLockedRally && 'opacity-50 cursor-not-allowed',
                               isCompletedRally && 'border-l-2 border-success',
@@ -162,6 +167,7 @@ export function MatchPanelSection({
                                     isSelected={isCurrentShot}
                                     onClick={() => onShotClick?.(rally.id, shotNumber)}
                                     onPlayClick={() => {}}
+                                    onDelete={onDeleteContact ? () => onDeleteContact(rally.id, contact.id) : undefined}
                                   />
                                 )
                               })}

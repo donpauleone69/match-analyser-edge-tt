@@ -1,9 +1,10 @@
 import { Link } from 'react-router-dom'
-import { Plus, Filter } from 'lucide-react'
+import { Plus, Filter, Play, Trash2 } from 'lucide-react'
 import { Header } from '../components/layout'
 import { Button, Card, Badge } from '../components/ui'
+import { useTaggingStore } from '../stores/taggingStore'
 
-// Mock data
+// Mock data for completed matches (future: fetch from DB)
 const matches = [
   {
     id: '1',
@@ -55,11 +56,76 @@ const statusConfig = {
 }
 
 export function Matches() {
+  // Get current in-progress match from store
+  const {
+    matchId,
+    player1Name,
+    player2Name,
+    matchDate,
+    taggingPhase,
+    rallies,
+    step1Complete,
+    step2Complete,
+    resetForNewMatch,
+  } = useTaggingStore()
+  
+  // Check if there's an in-progress match
+  const hasInProgressMatch = matchId && taggingPhase !== 'setup' && !step2Complete
+  
+  const getProgressLabel = () => {
+    if (!step1Complete) return 'Part 1: Contact Tagging'
+    if (!step2Complete) return 'Part 2: Shot Details'
+    return 'Complete'
+  }
+  
+  const handleDeleteInProgress = () => {
+    if (confirm(`Delete in-progress match "${player1Name} vs ${player2Name}"?`)) {
+      resetForNewMatch()
+    }
+  }
+  
   return (
     <div className="min-h-screen">
       <Header title="Matches" />
       
       <div className="p-6 max-w-4xl mx-auto space-y-6">
+        {/* In-Progress Match Banner */}
+        {hasInProgressMatch && (
+          <Card className="border-warning/50 bg-warning/5">
+            <div className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <Badge variant="warning">In Progress</Badge>
+                    <span className="text-sm text-neutral-400">{getProgressLabel()}</span>
+                  </div>
+                  <div className="text-lg font-semibold text-neutral-100">
+                    {player1Name} vs {player2Name}
+                  </div>
+                  <div className="text-sm text-neutral-400">
+                    {matchDate || 'No date'} • {rallies.length} rallies tagged
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleDeleteInProgress}
+                    className="p-2 text-neutral-400 hover:text-danger hover:bg-danger/10 rounded transition-colors"
+                    title="Delete in-progress match"
+                  >
+                    <Trash2 className="h-5 w-5" />
+                  </button>
+                  <Link to={`/matches/${matchId}/tagging`}>
+                    <Button variant="primary">
+                      <Play className="h-4 w-4 mr-2" />
+                      Resume Tagging
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </Card>
+        )}
+        
         {/* Actions Bar */}
         <div className="flex items-center justify-between">
           <Button variant="ghost" size="sm">

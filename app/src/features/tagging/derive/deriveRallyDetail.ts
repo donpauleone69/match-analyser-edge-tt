@@ -100,12 +100,14 @@ export function useDeriveTaggingControls(): TaggingControlsVM {
     const isInRally = currentRallyContacts.length > 0
     
     return {
-      canAddContact: hasVideo && !isPlaying,
+      // Changed: Allow adding contacts while video is playing (per testing feedback)
+      canAddContact: hasVideo,
       canEndRally: isInRally,
       canUndo: isInRally,
+      canEndSet: !isInRally, // REQ-4: Only allow after rally is complete (no open contacts)
       currentRallyContactCount: currentRallyContacts.length,
       isInRally,
     }
-  }, [currentRallyContacts, isPlaying, videoUrl])
+  }, [currentRallyContacts, videoUrl])
 }
 

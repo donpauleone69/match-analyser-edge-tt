@@ -221,8 +221,8 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
 
   return (
     <div className={cn(
-      "relative bg-bg-app w-full overflow-hidden",
-      compact ? "aspect-[16/10]" : "aspect-video"
+      "relative bg-bg-app w-full h-full overflow-hidden",
+      // Removed aspect ratio classes - container should control sizing
     )}>
       {/* Video Element */}
       {effectiveVideoSrc ? (

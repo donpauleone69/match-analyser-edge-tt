@@ -6,6 +6,331 @@
 
 ## Change Log
 
+### 2025-12-02: Rally Checkpoint Flow Implementation
+
+**Context:** Major architectural change to implement the new Rally Checkpoint Flow specification. This flow processes matches set-by-set with rally-by-rally checkpoints during the framework phase.
+
+#### New State Machine
+
+Added `FrameworkState` type to manage the new flow:
+```typescript
+type FrameworkState = 
+  | 'setup'           // Match setup, mark first serve
+  | 'tagging'         // Marking contacts for current rally
+  | 'checkpoint'      // Rally ended, confirm or redo
+  | 'ff_mode'         // Fast forward to find next serve
+  | 'shot_detail'     // Part 2: answering questions per shot
+  | 'rally_review'    // End of rally summary with video sync
+  | 'set_complete'    // Set finished, move to next or complete match
+  | 'match_complete'  // All sets done
+```
+
+#### New Store Actions
+
+- `confirmRally()` - Saves rally at checkpoint, transitions to FF mode
+- `redoCurrentRally()` - Clears current rally, seeks back to previous end
+- `redoFromRally(index)` - Deletes rallies from index, allows multi-checkpoint redo
+- `endSetFramework()` - Transitions from FF mode to shot detail phase
+- `confirmRallyReview()` - Confirms rally review, advances to next rally
+
+#### New UI Components
+
+1. **CheckpointSection** (`app/src/features/tagging/sections/CheckpointSection.tsx`)
+   - Shows rally summary after ending a rally
+   - Displays contact count, server, duration, timeline preview
+   - Confirm (Enter) / Redo (Backspace) actions
+
+2. **RallyReviewSection** (`app/src/features/tagging/sections/RallyReviewSection.tsx`)
+   - End-of-rally review with video sync
+   - Shot list highlights in sync with looping video
+   - End-of-point time nudge controls
+   - Player stats summary
+
+3. **MatchAnalysis** (`app/src/pages/MatchAnalysis.tsx`)
+   - Displays match statistics and analysis
+   - Head-to-head comparison (points won, winners, errors)
+   - Serve statistics and point end type distribution
+   - Shot quality distribution
+   - Rally details table
+
+#### Updated Keyboard Shortcuts
+
+| State | Key | Action |
+|-------|-----|--------|
+| Tagging | `Space` | Mark contact |
+| Tagging | `→` | End rally → Checkpoint |
+| Checkpoint | `Enter` | Confirm → Save → FF mode |
+| Checkpoint | `Backspace` | Redo current rally |
+| FF Mode | `Space` | Mark serve → Start next rally |
+| FF Mode | `E` | End set → Shot detail phase |
+| FF Mode | `←` `→` | Adjust FF speed |
+| Rally Review | `Enter` | Confirm → Next rally |
+
+#### Rally Data Model Updates
+
+- Added `frameworkConfirmed?: boolean` to Rally interface
+- Added `detailComplete?: boolean` to Rally interface
+- Timeline panel now shows ✓ for confirmed rallies with green border
+
+#### Files Changed
+
+- `app/src/stores/taggingStore.ts`: New state, actions, persist config
+- `app/src/rules/types.ts`: Rally interface updated
+- `app/src/features/tagging/composers/TaggingScreenComposer.tsx`: Integrated new flow
+- `app/src/features/tagging/sections/MatchTimelinePanelSection.tsx`: Confirmed rally indicators
+- `app/src/App.tsx`: Added /matches/analysis route
+
+#### Spec Documents Created
+
+- `docs-match-analyser-edge-tt/chat_notes/Spec_RallyCheckpointFlow.md`
+- `docs-match-analyser-edge-tt/specs/Implementation_RallyCheckpointFlow.md`
+
+---
+
+### 2025-12-02: Server Calculation & End-of-Point Timestamp Fixes
+
+**Context:** Two additional bugs found during testing:
+1. Server was same for every point
+2. End-of-point timestamp was duplicate of last shot timestamp
+
+#### Bug Analysis
+
+**Bug 1: Server Never Changes**
+
+Root cause in `startNewRallyWithServe`:
+```typescript
+// BEFORE (buggy)
+const totalPoints = player1Score + player2Score  // PROBLEM: Scores never update in Part 1!
+const serveBlock = Math.floor(totalPoints / 2)
+```
+
+In Part 1, winner is not determined, so scores don't change. `totalPoints` is always the same, so server calculation always returns the same player.
+
+**Fix:** Use rally count instead of score:
+```typescript
+// AFTER (fixed)
+const rallyCount = rallies.length  // Use completed rally count
+const serveBlock = Math.floor(rallyCount / 2)
+const isFirstServerBlock = serveBlock % 2 === 0
+const nextServerId = isFirstServerBlock ? firstServerId : otherPlayer
+```
+
+**Bug 2: Wrong End-of-Point Timestamp**
+
+Root cause in `endRallyScore`:
+```typescript
+// BEFORE (buggy)
+const lastContact = currentRallyContacts[currentRallyContacts.length - 1]
+const endOfPointTime = lastContact ? lastContact.time : 0  // Wrong! Uses last contact time
+```
+
+**Fix:** Use current video time (when user presses →):
+```typescript
+// AFTER (fixed)
+const endOfPointTime = currentTime  // Correct! Uses video time when rally ended
+```
+
+#### Files Changed
+- `app/src/stores/taggingStore.ts`:
+  - `startNewRallyWithServe`: Server now based on rally count
+  - `endRallyScore`: End-of-point now uses `currentTime`
+  - `selectWinner`: End-of-point now uses `currentTime`
+
+---
+
+### 2025-12-02: Critical Architecture Fixes - Double-Counting & End of Rally
+
+**Context:** Testing revealed two fundamental architectural issues:
+1. Serves were being counted twice (in two rallies)
+2. Part 2 had no proper "End of Rally" step for winner determination
+
+#### Root Cause Analysis
+
+**Bug 1: Double-Counting Serves**
+
+The `startNewRallyWithServe` function was creating a rally AND adding the serve to `currentRallyContacts`. Then `endRallyScore` created ANOTHER rally from `currentRallyContacts`.
+
+```
+Flow (BEFORE - Buggy):
+1. startNewRallyWithServe() → Creates Rally N+1 with serve, ALSO adds serve to currentRallyContacts
+2. addContact() → Adds contacts to currentRallyContacts
+3. endRallyScore() → Creates Rally N+2 from currentRallyContacts (includes same serve!)
+Result: Serve exists in BOTH Rally N+1 and Rally N+2
+```
+
+**Bug 2: Missing End of Rally Step**
+
+Part 2 jumped directly from last shot to next rally without:
+- Allowing end-of-point timestamp editing
+- Asking who won for non-error endings
+- Handling forced/unforced error questions properly
+
+#### Fixes Applied
+
+**1. Fixed `startNewRallyWithServe`**
+
+```typescript
+// BEFORE (buggy): Created rally immediately
+startNewRallyWithServe: () => {
+  const newRally = { ..., contacts: [serveContact] }
+  set({
+    rallies: [...rallies, newRally],  // Rally created here!
+    currentRallyContacts: [serveContact],  // And here!
+  })
+}
+
+// AFTER (correct): Only adds to buffer, rally created at end
+startNewRallyWithServe: () => {
+  // Safety check for double-trigger
+  if (currentRallyContacts.length > 0) return
+  
+  // Calculate next server
+  const nextServerId = calculateNextServer(...)
+  
+  // Add serve to buffer - NO RALLY CREATED
+  set({
+    currentRallyContacts: [serveContact],
+    currentServerId: nextServerId,
+  })
+}
+```
+
+**2. Added `EndOfRallySection` Component**
+
+New step after all shots are tagged that allows:
+- End-of-point timestamp editing (← → keys)
+- Winner selection (if not auto-derived)
+- Forced/Unforced error question (when applicable)
+- Rally confirmation before advancing
+
+**3. Updated Part 2 Flow**
+
+```
+Flow (AFTER - Correct):
+For each shot:
+  1. Answer questions (type, spin/wing, quality, landing)
+  2. If error quality → auto-derive winner, enter End of Rally step
+
+After last shot (non-error):
+  1. Enter End of Rally step
+  2. User selects winner (opponent error or winner shot)
+  3. If opponent error, ask forced/unforced
+  4. Confirm → advance to next rally
+```
+
+#### New Component
+
+```typescript
+// app/src/features/tagging/sections/EndOfRallySection.tsx
+interface EndOfRallySectionProps {
+  // Rally info
+  rallyIndex: number
+  totalRallies: number
+  
+  // Players
+  player1Name: string
+  player2Name: string
+  lastShotPlayerId: PlayerId
+  lastShotQuality?: ShotQuality
+  
+  // End of point
+  endOfPointTime: number
+  
+  // Derived winner (if automatically determined)
+  derivedWinnerId?: PlayerId
+  derivedPointEndType?: PointEndType
+  
+  // State flags
+  needsWinnerSelection: boolean
+  needsForcedUnforced: boolean
+  
+  // Callbacks
+  onEndOfPointTimeChange: (time: number) => void
+  onWinnerSelect: (winnerId: PlayerId) => void
+  onForcedUnforcedSelect: (type: 'forcedError' | 'unforcedError') => void
+  onConfirm: () => void
+  onStepFrame: (direction: 'forward' | 'backward') => void
+}
+```
+
+#### Keyboard Shortcuts (End of Rally Step)
+
+| Key | Action |
+|-----|--------|
+| ← / → | Nudge end-of-point time by 1 frame |
+| 1 | Select Player 1 as winner |
+| 2 | Select Player 2 as winner |
+| F | Select Forced Error |
+| U | Select Unforced Error |
+| Enter/Space | Confirm and advance |
+
+---
+
+### 2025-12-02: Part 1 Tagging Workflow Fixes (Post-Testing)
+
+**Context:** User testing revealed several critical bugs and UX issues in the Part 1 tagging workflow.
+
+#### Bug Fixes
+
+1. **Double-Counting Serves Fixed**
+   - **Before:** `initMatchFramework` created Rally #1 with serve contact, then `endRallyScore` created a NEW rally with all contacts (including the same serve). Result: duplicate rallies.
+   - **After:** `initMatchFramework` only adds the serve to `currentRallyContacts` (no rally created). Rally is created only when user ends the rally via `endRallyScore`.
+   - **Impact:** Serve is now counted once per rally, not twice.
+
+2. **Set Limit Validation**
+   - **Before:** User could end sets beyond the match format limit (e.g., 11 sets for a "Best of 3").
+   - **After:** `markEndOfSet` now validates against `matchFormat` and prevents creating sets beyond the maximum.
+   - **Formats:** bestOf3 (3 max), bestOf5 (5 max), bestOf7 (7 max), singleSet (1 max).
+
+#### UX Improvements
+
+3. **Timeline Panel Enhancements**
+   - **Auto-expand current rally:** When rally changes, it auto-expands in the panel.
+   - **In-progress rally display:** Shows `currentRallyContacts` with animated border, "In Progress" badge.
+   - **Server shown in rally header:** Server name with color coding (cyan for P1, amber for P2).
+   - **Nudge/Delete controls:** Hover over shots to show ◀ ▶ (nudge ±33ms) and ✕ (delete) buttons.
+
+4. **Default Tagging Speed**
+   - **Before:** 0.25x (too slow)
+   - **After:** 0.5x (user preference)
+   - **Store default:** `playbackSpeed` now initializes to 0.5 instead of 1.
+
+#### Store Changes
+
+```typescript
+// New actions
+nudgeContact: (contactId: string, direction: 'earlier' | 'later', frameMs?: number) => void
+deleteInProgressContact: (contactId: string) => void
+
+// Modified action - no rally created until endRallyScore
+initMatchFramework: (data) => {
+  // Creates first contact in currentRallyContacts only
+  // NO rally created here - deferred to endRallyScore
+}
+
+// Modified action - validates against matchFormat
+markEndOfSet: () => {
+  // Calculates maxSets from matchFormat
+  // Prevents creating sets beyond limit
+}
+```
+
+#### Timeline Panel Props Added
+
+```typescript
+interface MatchTimelinePanelSectionProps {
+  // NEW: In-progress rally data
+  currentRallyContacts?: Contact[]
+  currentServerId?: PlayerId
+  
+  // NEW: Contact manipulation
+  onNudgeContact?: (contactId: string, direction: 'earlier' | 'later') => void
+  onDeleteContact?: (contactId: string) => void
+}
+```
+
+---
+
 ### 2025-12-01: Step 1 Review Page - Enhanced Rally Timeline
 
 **Context:** During implementation of the Step 1 Review page, we identified opportunities to make the review workflow more intuitive and complete.
@@ -950,9 +1275,516 @@ Part 2 video now uses constrained playback:
 | 2025-12-01 | 0.8.0 | MVP Flowchange: unified layout, match framework phase, rally detail phase, essential mode |
 | 2025-12-01 | 0.8.1 | Figma design prompts updated for new two-part workflow |
 | 2025-12-01 | 0.9.1 | Foundation implementation: rules layer, UI components, tagging feature scaffold |
-| 2025-12-01 | **0.9.4** | **Unified tagging screen: Match Details Modal, Part 2 sequential flow, ShotQuestionSection** |
+| 2025-12-01 | 0.9.4 | Unified tagging screen: Match Details Modal, Part 2 sequential flow, ShotQuestionSection |
+| 2025-12-01 | **0.9.5** | **Bug fixes: inline setup panel, responsive video, FF mode, delete buttons** |
 
 ---
 
-*Last updated: 2025-12-01 20:30 UTC*
+### 2025-12-01: v0.9.5 — Tagging Screen Bug Fixes
+
+**Context:** User testing revealed critical issues blocking the core tagging workflow.
+
+#### Issues Fixed
+
+| # | Issue | Impact | Solution |
+|---|-------|--------|----------|
+| 1 | Modal blocks video — cannot mark first serve | Critical | Converted to inline panel below video |
+| 2 | Video crops when wide instead of containing | Visual | Removed fixed aspect ratio classes |
+| 3 | Space pauses video instead of marking contact | Core workflow broken | Restored proper keyboard handling |
+| 4 | No delete/undo for misinputs | Cannot fix mistakes | Added delete buttons + keyboard shortcuts |
+| 5 | FF mode not working | Core workflow broken | Implemented FF mode state and auto-play |
+
+#### Fix 1: Inline Setup Panel
+
+**Before:** `MatchDetailsModalBlock` — modal overlay blocked video navigation
+
+**After:** `MatchSetupPanelBlock` — inline panel below video during setup phase
+
+Layout during setup:
+```
+┌────────────────────────────────────────────────────┐
+│ Left Panel          │ Video Player                 │
+│ (empty until        │ ┌────────────────────────┐   │
+│  setup complete)    │ │   [Video playback]     │   │
+│                     │ └────────────────────────┘   │
+│                     │ ┌────────────────────────┐   │
+│                     │ │ MATCH SETUP PANEL      │   │
+│                     │ │ [Inline form...]       │   │
+│                     │ │ [Start Tagging →]      │   │
+│                     │ └────────────────────────┘   │
+└────────────────────────────────────────────────────┘
+```
+
+**Files Changed:**
+- **Created:** `blocks/MatchSetupPanelBlock.tsx`
+- **Updated:** `composers/TaggingScreenComposer.tsx` — renders inline panel in setup phase
+
+#### Fix 2: Video Responsive Sizing
+
+**Before:** `aspect-video` class forced 16:9, causing vertical cropping on wide screens
+
+**After:** `w-full h-full` with parent using `flex-1 min-h-0` for proper flex containment
+
+**Files Changed:**
+- `components/tagging/VideoPlayer.tsx` — removed `aspect-video` and `aspect-[16/10]`
+- `composers/TaggingScreenComposer.tsx` — video container uses `flex-1 min-h-0`
+
+#### Fix 3: Restored Tagging Behavior (Per Spec Section 1.2.3-1.2.4)
+
+**Keyboard Shortcuts Updated:**
+
+| Key | Before | After (Per Spec) |
+|-----|--------|------------------|
+| Space | Toggle play/pause | Mark contact (NO pause) |
+| → | Step frame | End rally + enter FF mode |
+| ← | Step frame | Decrease FF speed / exit FF |
+| K | (none) | Play/Pause (dedicated) |
+
+**Speed Presets (Per Spec Section 1.2.4):**
+
+| Mode | Default | Options |
+|------|---------|---------|
+| Tagging | 0.25× | 0.125×, 0.25×, 0.5×, 0.75×, 1× |
+| Fast Forward | 1× | 0.5×, 1×, 2×, 3×, 4×, 5× |
+
+**FF Mode Behavior:**
+- Activated on `→` (end rally)
+- Auto-plays at FF speed
+- `←` decreases speed or exits
+- Space marks new rally serve + exits FF mode
+
+**Local State Added (not persisted):**
+```typescript
+// In TaggingScreenComposer
+const [isInFFMode, setIsInFFMode] = useState(false)
+const [taggingSpeed, setTaggingSpeed] = useState(0.25)
+const [ffSpeed, setFFSpeed] = useState(1)
+```
+
+#### Fix 3b: Split Control Panel Layout
+
+**Before:** Single row of controls
+
+**After:** Two-column layout:
+
+```
+┌─────────────────────────────┬───────────────────┐
+│ TAGGING BUTTONS             │ SPEED CONTROLS    │
+│                             │                   │
+│ [    CONTACT    ]           │ Tag: .125 [.25]   │
+│                             │      .5  .75  1x  │
+│ [End Rally] [Let]           │                   │
+│                             │ FF:  .5  [1x]  2x │
+│ [Undo] [End Set]            │      3x  4x   5x  │
+└─────────────────────────────┴───────────────────┘
+```
+
+- Both Tag and FF speed rows always visible
+- Active mode highlighted (Tag vs FF)
+- Clicking speed sets it for that mode
+
+**Files Changed:**
+- `sections/TaggingControlsSection.tsx` — complete rewrite with split layout
+
+#### Fix 4: Delete/Undo Functionality
+
+**Capabilities Added:**
+
+| Action | UI | Keyboard |
+|--------|-----|----------|
+| Delete contact | Trash icon on shot row (hover) | Delete |
+| Delete rally | Trash icon on rally header (hover) | Shift+Delete |
+| Undo last contact | Undo button | Ctrl+Z / Backspace |
+| Toggle highlight | — | H |
+
+**Props Added:**
+- `RallyPodBlock.onDelete?: () => void`
+- `ShotRowBlock.onDelete?: () => void`
+- `MatchPanelSection.onDeleteContact?: (rallyId, contactId) => void`
+- `MatchPanelSection.onDeleteRally?: (rallyId) => void`
+
+**Files Changed:**
+- `blocks/RallyPodBlock.tsx` — added delete button (hidden until hover)
+- `blocks/ShotRowBlock.tsx` — added delete button (hidden until hover)
+- `sections/MatchPanelSection.tsx` — wires delete callbacks
+- `composers/TaggingScreenComposer.tsx` — handles delete actions
+
+#### Fix 5: End-of-Point Component
+
+**New Component:** `ForcedUnforcedBlock.tsx`
+
+For Shot 3+ errors, displays:
+- Error player and winner names
+- Forced vs Unforced buttons
+- Keyboard hints (F/U keys)
+
+**Per Spec Section 1.10:**
+
+| Last Shot Quality | Shot Index | Derived Winner | Derived pointEndType | User Input |
+|-------------------|------------|----------------|----------------------|------------|
+| Error | 1 (Serve) | Receiver | `serviceFault` | None |
+| Error | 2 (Return) | Server | `receiveError` | None |
+| Error | 3+ | Other player | — | Forced/Unforced? |
+| In-play | Any | Shooter | `winnerShot` | None |
+
+#### Files Summary
+
+**New Files:**
+- `app/src/features/tagging/blocks/MatchSetupPanelBlock.tsx`
+- `app/src/features/tagging/blocks/ForcedUnforcedBlock.tsx`
+
+**Modified Files:**
+- `app/src/features/tagging/composers/TaggingScreenComposer.tsx`
+- `app/src/features/tagging/sections/TaggingControlsSection.tsx`
+- `app/src/features/tagging/sections/MatchPanelSection.tsx`
+- `app/src/features/tagging/blocks/RallyPodBlock.tsx`
+- `app/src/features/tagging/blocks/ShotRowBlock.tsx`
+- `app/src/features/tagging/blocks/index.ts`
+- `app/src/components/tagging/VideoPlayer.tsx`
+
+---
+
+### 2025-12-01: Gap Resolution Task List Created
+
+**Context:** Actionable task list created to close all gaps identified in the Gap Analysis.
+
+#### Task List Summary
+
+| Phase | Focus | Tasks | Est. Hours |
+|-------|-------|-------|------------|
+| **Phase 1** | Shot Data Persistence | 5 tasks | 4-5 hrs |
+| **Phase 2** | Part 1 Completion Flow | 3 tasks | 2-3 hrs |
+| **Phase 3** | End-of-Point Integration | 3 tasks | 2-3 hrs |
+| **Phase 4** | Part 2 UX Polish | 4 tasks | 2-3 hrs |
+| **Phase 5** | Full Mode Implementation | 4 tasks | 4-5 hrs |
+| **Phase 6** | Minor Polish | 4 tasks | 1-2 hrs |
+| **Total** | | **23 tasks** | **15-21 hrs** |
+
+#### Critical Tasks (P0)
+
+| Task ID | Description | Files |
+|---------|-------------|-------|
+| TASK-GAP-001 | Add Shot entity to store types | `rules/types.ts` |
+| TASK-GAP-002 | Add shots array to store state | `stores/taggingStore.ts` |
+| TASK-GAP-003 | Add shot CRUD actions | `stores/taggingStore.ts` |
+| TASK-GAP-004 | Wire ShotQuestionSection to store | `TaggingScreenComposer.tsx` |
+| TASK-GAP-006 | Create MatchCompletionModalBlock | NEW |
+| TASK-GAP-009 | Wire ForcedUnforcedBlock to workflow | `TaggingScreenComposer.tsx` |
+
+#### File Created
+
+| File | Purpose |
+|------|---------|
+| `specs/GapResolution_Tasks.md` | Full task list with code snippets and execution checklist |
+
+---
+
+### 2025-12-01: Gap Resolution Phases 1-3 Implemented (v0.9.6)
+
+**Context:** Executed first 3 phases of the Gap Resolution Task List to enable shot data persistence, Part 1 completion flow, and end-of-point integration.
+
+#### Phase 1: Shot Data Persistence ✅
+
+**Contact = Shot model implemented.** Shot data fields added directly to Contact interface:
+
+```typescript
+interface Contact {
+  // Existing fields
+  id, rallyId, time, shotIndex
+  
+  // NEW: Shot data fields
+  playerId?: PlayerId
+  serveType?: ServeType
+  serveSpin?: ServeSpin
+  wing?: Wing
+  shotType?: EssentialShotType
+  landingZone?: LandingZone
+  shotQuality?: ShotQuality
+  landingType?: LandingType    // Derived
+  inferredSpin?: InferredSpin  // Derived
+  isTagged?: boolean           // Completion flag
+}
+```
+
+**New store actions:**
+- `updateContactShotData(contactId, data)` — Partial update for shot fields
+- `completeContactTagging(contactId, quality)` — Complete with derived fields
+
+**Question order changed:**
+- Old: Type → Spin → Landing → Quality
+- New: Type → Spin → Quality → Landing (skip landing if error)
+
+#### Phase 2: Part 1 Completion Flow ✅
+
+**New component:** `MatchCompletionModalBlock` captures:
+- Match result (Player 1 / Player 2 / Incomplete)
+- Final set score
+- Final points score  
+- Video coverage type
+
+**New store action:**
+- `completeMatchFramework(data)` — Sets completion data and transitions to Part 2
+
+**UX flow:**
+1. User clicks "Complete Part 1 → Start Shot Tagging"
+2. Modal opens with completion form
+3. On submit, transitions to Part 2 with rally/shot indices reset
+
+#### Phase 3: End-of-Point Integration ✅
+
+**Forced/Unforced inline question** (not modal):
+- Shows when error quality selected on shot 3+
+- Replaces shot questions in same area
+- Keyboard shortcuts: F = Forced, U = Unforced
+
+**Auto-prune with undo toast:**
+- When error quality selected, subsequent contacts auto-deleted
+- 5-second toast with undo button
+- Dismissible with × button
+
+**Error handling flow:**
+```
+Quality selected → Is Error?
+├── NO → Go to Landing Zone (step 4)
+└── YES → Complete contact + Derive pointEndType
+    ├── Shot 1 → serviceFault (auto)
+    ├── Shot 2 → receiveError (auto)
+    └── Shot 3+ → Show F/U inline question
+        └── After selection → Set pointEndType → Auto-prune → Advance
+```
+
+#### Files Changed
+
+| File | Change |
+|------|--------|
+| `rules/types.ts` | Extended Contact interface with shot fields |
+| `stores/taggingStore.ts` | Added shot data actions + completeMatchFramework |
+| `features/tagging/sections/ShotQuestionSection.tsx` | Reordered questions, updated types |
+| `features/tagging/blocks/MatchCompletionModalBlock.tsx` | NEW: Part 1 completion modal |
+| `features/tagging/composers/TaggingScreenComposer.tsx` | Wired all handlers, F/U inline, undo toast |
+| `features/tagging/blocks/index.ts` | Exported new component |
+
+---
+
+### 2025-12-02: MVP Testing Feedback Implementation (v0.9.8)
+
+**Context:** Major refactoring based on Paul's full testing feedback. See `NotesTestingMVPPaul.md`.
+
+#### Phase A: Data Model Updates ✅
+- **Tournament dropdown**: Friendly, Club, Regional, National (enum)
+- **Match format**: Best of 1, 3, 5, 7 (default 5)
+- **Video start score**: Split into 4 fields (P1 Sets, P2 Sets, P1 Points, P2 Points)
+- **Default tagging speed**: Changed 0.25x → 0.5x
+
+#### Phase B: Mark First Serve Creates Rally ✅
+- "Mark First Serve" now creates Rally #1 with serve contact immediately
+- Rally appears in timeline panel instantly
+
+#### Phase C: Unified MatchTimelinePanelSection ✅
+- **NEW component**: Linear timeline panel replacing MatchPanelSection
+- Persistent across all phases (setup, part1, part2)
+- Set-relative rally numbering (Set 2, Rally 1)
+- Expandable rally rows showing shots
+- End of Point timestamps visible
+- Set summary lines
+- Match completion footer
+
+#### Phase E: Part 1 Workflow Fixes ✅
+- **Removed winner dialog** from Part 1 (winner set in Part 2)
+- **Spacebar marks contact** while video is playing
+- **→ arrow = End Rally + FF mode** (creates new rally container)
+- **Spacebar in FF mode = mark serve** + exit FF + resume tagging speed
+- **Real-time panel updates** as contacts are added
+
+#### Phase F: Video Playback Fixes ✅
+- **Auto-play** from first serve after "Start Tagging"
+- **Frame-step with ←/→ arrows** (when not in FF mode)
+- **Part 2 auto-play** with constrained playback loop
+
+#### Phase G: Routing Cleanup ✅
+- `/matches/new` now goes directly to TaggingScreen
+- Removed MatchSetup page route
+- Inline setup panel in TaggingScreen
+
+#### New Actions
+```typescript
+startNewRallyWithServe: () => void  // Creates new rally with serve at current time
+```
+
+#### Files Changed/Created
+| File | Change |
+|------|--------|
+| `sections/MatchTimelinePanelSection.tsx` | NEW: Unified timeline panel |
+| `blocks/MatchSetupPanelBlock.tsx` | Tournament/format dropdowns, 4 score fields |
+| `derive/deriveRallyDetail.ts` | Allow contact marking while playing |
+| `stores/taggingStore.ts` | startNewRallyWithServe, endRallyScore without winner |
+| `composers/TaggingScreenComposer.tsx` | New panel, auto-play, keyboard fixes |
+| `App.tsx` | Routing update |
+| `pages/index.ts` | Removed MatchSetup export |
+
+#### Keyboard Shortcuts (Part 1)
+| Key | Not in Rally | In Rally | FF Mode |
+|-----|--------------|----------|---------|
+| Space | Add contact | Add contact | Mark serve + exit FF |
+| → | Frame step | End rally + FF | Increase FF speed |
+| ← | Frame step | Frame step | Decrease FF speed / exit |
+| K | Toggle play | Toggle play | Toggle play |
+
+---
+
+### 2025-12-01: Gap Resolution Phases 4 & 6 Implemented (v0.9.7)
+
+**Context:** Completed remaining phases of the Gap Resolution Task List.
+
+#### Phase 4: Part 2 UX Polish ✅
+
+**New component:** `Part2SpeedControlsSection`
+- Loop speed control (0.25x, 0.5x, 0.75x, 1x)
+- Preview buffer control (0.1s - 0.5s)
+- Rendered alongside shot questions in Part 2
+
+**New store fields:**
+```typescript
+loopSpeed: number        // Default 0.5
+previewBufferSeconds: number  // Default 0.2
+```
+
+**New actions:**
+- `setLoopSpeed(speed)` — Change loop playback speed
+- `setPreviewBuffer(seconds)` — Change preview buffer duration
+- `goToPreviousShot()` — Navigate back in Part 2
+
+**End of Set constraint (REQ-4):**
+- `canEndSet` added to `TaggingControlsVM`
+- End Set button disabled during open rally
+
+#### Phase 6: Minor Polish ✅
+
+**Match format dropdown:**
+- Options: Best of 3/5/7 to 11, Best of 3 to 21, Single Set
+- Stored in `matchFormat` field
+
+**Tournament field:**
+- Optional text input for match context
+- Stored in `tournament` field
+
+**Part 2 completion modal:**
+- `Part2CompletionBlock` shows when all rallies tagged
+- Primary action: "View Match Stats"
+- Secondary: "Back to Matches"
+
+**Navigation in Part 2:**
+- Previous/Next buttons added
+- `goToPreviousShot` navigates back through rallies
+
+#### Files Changed
+
+| File | Change |
+|------|--------|
+| `sections/Part2SpeedControlsSection.tsx` | NEW: Loop/buffer controls |
+| `blocks/Part2CompletionBlock.tsx` | NEW: Completion screen |
+| `blocks/MatchSetupPanelBlock.tsx` | Added matchFormat, tournament fields |
+| `sections/TaggingControlsSection.tsx` | End Set button disabled constraint |
+| `derive/deriveRallyDetail.ts` | Added canEndSet to controls |
+| `models.ts` | Updated TaggingControlsVM |
+| `stores/taggingStore.ts` | Added speed settings, goToPreviousShot, format/tournament |
+| `composers/TaggingScreenComposer.tsx` | Wired all new features |
+
+#### All Gap Resolution Complete ✅
+
+| Phase | Status |
+|-------|--------|
+| Phase 1: Shot Data Persistence | ✅ Complete |
+| Phase 2: Part 1 Completion Flow | ✅ Complete |
+| Phase 3: End-of-Point Integration | ✅ Complete |
+| Phase 4: Part 2 UX Polish | ✅ Complete |
+| Phase 5: Full Mode | ⏸️ Deferred |
+| Phase 6: Minor Polish | ✅ Complete |
+
+---
+
+### 2025-12-01: Gap Resolution Task List — Clarifications Applied (v1.1.0)
+
+**Context:** User clarifications received and applied to the Gap Resolution Task List.
+
+#### Clarifications Applied
+
+| # | Decision | Impact |
+|---|----------|--------|
+| 1 | **Contact = Shot** | No separate Shot entity needed. Shot data fields added directly to Contact interface. Simplifies data model. |
+| 2 | **Essential Mode only** | Full Mode deferred for post-MVP. Phase 5 removed from task list. |
+| 3 | **Question order: Quality → Landing** | Landing Zone step moved after Quality. Skipped entirely if error quality selected. |
+| 4 | **Completion → View Match Stats** | Part 2 completion modal shows "View Match Stats" as primary action. |
+| 5 | **Clean slate** | No data migration needed. Can assume fresh localStorage. |
+| 6 | **5 second undo toast** | Auto-prune undo toast persists for 5 seconds with dismiss button. |
+
+#### Updated Task List Summary
+
+| Phase | Focus | Tasks | Est. Hours |
+|-------|-------|-------|------------|
+| **Phase 1** | Shot Data on Contact | 4 tasks | 3-4 hrs |
+| **Phase 2** | Part 1 Completion Flow | 3 tasks | 2-3 hrs |
+| **Phase 3** | End-of-Point Integration | 3 tasks | 2-3 hrs |
+| **Phase 4** | Part 2 UX Polish | 4 tasks | 2-3 hrs |
+| **Phase 5** | ~~Full Mode~~ | ~~DEFERRED~~ | — |
+| **Phase 6** | Minor Polish | 4 tasks | 1-2 hrs |
+| **Total** | | **18 tasks** | **10-15 hrs** |
+
+#### Key Changes from v1.0.0
+
+1. **Merged Shot into Contact** — Tasks 001-004 simplified to extend Contact type instead of creating separate Shot entity
+2. **Removed Phase 5** — Tasks 016-019 deferred (Full Mode)
+3. **New Question Order** — Quality before Landing Zone, with skip logic on error
+
+#### File Updated
+
+| File | Change |
+|------|--------|
+| `specs/GapResolution_Tasks.md` | Updated to v1.1.0 with clarifications |
+
+---
+
+### 2025-12-01: Gap Analysis Report Created (v0.9.5)
+
+**Context:** Comprehensive gap analysis comparing current implementation against MVP Flowchange Specification.
+
+#### Summary
+
+| Category | Completion |
+|----------|------------|
+| Data Types | 100% ✅ |
+| Store State Fields | 100% ✅ |
+| Store Actions | 78% 🟡 |
+| Rules Engine | 100% ✅ |
+| UI Components | 73% 🟡 |
+| Workflow Requirements | 73% 🟡 |
+| **Overall** | **~75%** |
+
+#### Critical Gaps Identified
+
+| Priority | Gap | Impact |
+|----------|-----|--------|
+| **P0** | Shot data not persisted | No analysis possible |
+| **P0** | Match Completion Modal missing | Part 1 → Part 2 transition incomplete |
+| **P1** | Forced/Unforced flow not triggered | Point classification incomplete |
+| **P1** | Auto-prune not triggered | REQ-10 unfulfilled |
+| **P2** | Full Mode not implemented | Only Essential works |
+| **P2** | Loop/preview speed controls missing | Part 2 UX |
+
+#### Files Created
+
+| File | Purpose |
+|------|---------|
+| `specs/GapAnalysis_v0.9.5.md` | Full gap analysis with implementation recommendations |
+
+#### Recommended Next Steps
+
+1. Add Shot entity to store and persist shot data
+2. Wire Forced/Unforced block to workflow
+3. Create Match Completion Modal
+4. Add Part 2 speed controls
+
+---
+
+*Last updated: 2025-12-01*
 

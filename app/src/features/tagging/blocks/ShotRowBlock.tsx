@@ -21,6 +21,7 @@ export interface ShotRowBlockProps {
   isSelected: boolean
   onClick: () => void
   onPlayClick: () => void
+  onDelete?: () => void
   className?: string
 }
 
@@ -55,12 +56,18 @@ export function ShotRowBlock({
   isSelected,
   onClick,
   onPlayClick,
+  onDelete,
   className,
 }: ShotRowBlockProps) {
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    onDelete?.()
+  }
+  
   return (
     <div
       className={cn(
-        'flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors',
+        'group flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors',
         isSelected 
           ? 'bg-brand-primary/20 border border-brand-primary' 
           : 'bg-neutral-800 hover:bg-neutral-700',
@@ -117,6 +124,18 @@ export function ShotRowBlock({
         <Icon name="check" size="sm" className="text-success" />
       ) : (
         <Icon name="circle" size="sm" className="text-neutral-500" />
+      )}
+      
+      {/* Delete button (hidden until hover) */}
+      {onDelete && (
+        <button
+          type="button"
+          onClick={handleDelete}
+          className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-danger/20 text-neutral-500 hover:text-danger transition-all"
+          title="Delete contact (Delete)"
+        >
+          <Icon name="trash" size="xs" />
+        </button>
       )}
     </div>
   )
