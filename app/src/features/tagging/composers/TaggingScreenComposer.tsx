@@ -614,7 +614,7 @@ export function TaggingScreenComposer({ className }: TaggingScreenComposerProps)
             // Space in FF mode = mark serve → go to tagging state
             startNewRallyWithServe()
             // Don't call exitFFMode - frameworkState transition handles speed
-            setPlaybackSpeed(taggingSpeed)
+            applySpeed(taggingSpeed)
           } else if (frameworkState === 'tagging') {
             // Normal tagging mode = add shot
             if (taggingControls.canAddContact) {
@@ -682,7 +682,7 @@ export function TaggingScreenComposer({ className }: TaggingScreenComposerProps)
           if (frameworkState === 'checkpoint') {
             // Checkpoint: Confirm rally → FF mode
             confirmRally()
-            setPlaybackSpeed(ffSpeed)
+            applySpeed(ffSpeed)
             videoRef.current?.play()
           } else if (frameworkState === 'rally_review') {
             // Rally review: Confirm → next rally or set complete
@@ -705,7 +705,7 @@ export function TaggingScreenComposer({ className }: TaggingScreenComposerProps)
           if (frameworkState === 'checkpoint') {
             const seekTime = redoCurrentRally()
             videoRef.current?.seek(seekTime)
-            setPlaybackSpeed(ffSpeed)
+            applySpeed(ffSpeed)
             videoRef.current?.play()
           } else if (e.shiftKey) {
             // Shift+Delete: Delete last rally
@@ -797,7 +797,8 @@ export function TaggingScreenComposer({ className }: TaggingScreenComposerProps)
   }, [
     taggingPhase,
     frameworkState,  // CRITICAL: Used in Space, ArrowLeft, ArrowRight, Enter, Backspace, KeyE handlers
-    taggingSpeed,  // Used in Space handler when exiting FF mode (line 618)
+    taggingSpeed,  // Used in Space handler when exiting FF mode (line 617)
+    applySpeed,  // Used to set playback speed (lines 617, 685, 708, 902, 908)
     taggingControls,
     handleContact,
     startNewRallyWithServe,
@@ -817,10 +818,10 @@ export function TaggingScreenComposer({ className }: TaggingScreenComposerProps)
     rallies,
     handleDeleteRally,
     handleToggleHighlight,
-    confirmRally,  // Also used in Enter handler (line 685)
-    redoCurrentRally,  // Used in Backspace handler (line 707)
+    confirmRally,  // Used in Enter handler (line 684)
+    redoCurrentRally,  // Used in Backspace handler (line 706)
     endSetFramework,  // Used in KeyE handler (line 746)
-    confirmRallyReview,  // Used in Enter handler (line 690)
+    confirmRallyReview,  // Used in Enter handler (line 689)
   ])
   
   return (
@@ -899,13 +900,13 @@ export function TaggingScreenComposer({ className }: TaggingScreenComposerProps)
                 shots={currentRallyShots}
                 onConfirm={() => {
                   confirmRally()
-                  setPlaybackSpeed(ffSpeed)
+                  applySpeed(ffSpeed)
                   videoRef.current?.play()
                 }}
                 onRedo={() => {
                   const seekTime = redoCurrentRally()
                   videoRef.current?.seek(seekTime)
-                  setPlaybackSpeed(ffSpeed)
+                  applySpeed(ffSpeed)
                   videoRef.current?.play()
                 }}
               />
