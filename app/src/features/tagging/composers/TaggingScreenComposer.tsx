@@ -846,10 +846,12 @@ export function TaggingScreenComposer({ className }: TaggingScreenComposerProps)
       
       {/* Center - Video + Controls */}
       <div className="flex-1 flex flex-col gap-4 min-w-0">
-        {/* Video Player - Fixed: use flex-1 min-h-0 for proper containment */}
+        {/* Video Player - Adaptive height based on phase */}
         <div className={cn(
           'bg-neutral-900 rounded-lg overflow-hidden min-h-0',
-          taggingPhase === 'part2' ? 'h-[50%]' : 'flex-1'
+          taggingPhase === 'part2' ? 'h-[50%]' : 
+          taggingPhase === 'setup' ? 'h-[40%]' :  // Setup: Leave room for form below
+          'flex-1'  // Part 1: Full height
         )}>
           <VideoPlayer
             ref={videoRef}
@@ -862,7 +864,7 @@ export function TaggingScreenComposer({ className }: TaggingScreenComposerProps)
         
         {/* Setup Phase: Inline Setup Panel below video */}
         {taggingPhase === 'setup' && (
-          <div className="shrink-0">
+          <div className="flex-1 overflow-y-auto">
             <MatchSetupPanelBlock
               currentVideoTime={currentTime}
               initialData={{
