@@ -1071,18 +1071,24 @@ export function TaggingScreenComposer({ className }: TaggingScreenComposerProps)
       )}
       
       {/* Match Completion Modal (Part 1 -> Part 2 transition) */}
-      {localShowCompletionModal && (
-        <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-50">
-          <MatchCompletionModalBlock
-            player1Name={player1Name}
-            player2Name={player2Name}
-            currentSetScore={`${player1Score}-${player2Score}`}
-            currentPointsScore={`${player1Score}-${player2Score}`}
-            onSubmit={handleCompleteMatchFramework}
-            onCancel={handleCloseCompletionModal}
-          />
-        </div>
-      )}
+      {localShowCompletionModal && (() => {
+        // Calculate sets won by each player
+        const player1SetsWon = sets.filter(s => s.winnerId === 'player1').length
+        const player2SetsWon = sets.filter(s => s.winnerId === 'player2').length
+        
+        return (
+          <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-50">
+            <MatchCompletionModalBlock
+              player1Name={player1Name}
+              player2Name={player2Name}
+              currentSetScore={`${player1SetsWon}-${player2SetsWon}`}  // Sets won
+              currentPointsScore={`${player1Score}-${player2Score}`}  // Points in current set
+              onSubmit={handleCompleteMatchFramework}
+              onCancel={handleCloseCompletionModal}
+            />
+          </div>
+        )
+      })()}
       
       {/* Part 2 Completion Modal */}
       {taggingPhase === 'part2' && step2Complete && (
