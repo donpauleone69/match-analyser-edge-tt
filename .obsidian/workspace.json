@@ -200,6 +200,7 @@
   },
   "active": "1db28fbb6890bf8d",
   "lastOpenFiles": [
+    "CLEAR_LOCALSTORAGE_INSTRUCTIONS.md",
     "verify-and-fix.js",
     "diagnose-runtime.js",
     "clear-localstorage.html",
@@ -210,7 +211,6 @@
     "migrate-terminology.js",
     "docs-match-analyser-edge-tt/PlayerData/PlayerData for database.csv",
     "docs-match-analyser-edge-tt/PlayerData",
-    "docs-match-analyser-edge-tt/New folder",
     "Brainstorming Shortcuts for shots.md",
     "docs-match-analyser-edge-tt/specs/DatabaseERD.md",
     "docs-match-analyser-edge-tt/specs/logicanddiagrams.md",
