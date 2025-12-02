@@ -338,17 +338,16 @@ export function TaggingScreenComposer({ className }: TaggingScreenComposerProps)
       firstServeTimestamp: data.firstServeTimestamp!,
     })
     
-    // Seek video to first serve timestamp and start playing at tagging speed
+    // Seek video to first serve timestamp
     videoRef.current?.seek(data.firstServeTimestamp)
-    setPlaybackSpeed(taggingSpeed)
+    
+    // Set initial speed to default tagging speed
+    applySpeed(DEFAULT_TAGGING_SPEED)
     
     // Small delay to let the seek complete, then start playing
     setTimeout(() => {
       videoRef.current?.play()
     }, 100)
-    
-    // Set initial speed to default tagging speed
-    applySpeed(DEFAULT_TAGGING_SPEED)
   }, [initMatchFramework, applySpeed])
   
   const handleTogglePlay = useCallback(() => {
@@ -798,6 +797,7 @@ export function TaggingScreenComposer({ className }: TaggingScreenComposerProps)
   }, [
     taggingPhase,
     frameworkState,  // CRITICAL: Used in Space, ArrowLeft, ArrowRight, Enter, Backspace, KeyE handlers
+    taggingSpeed,  // Used in Space handler when exiting FF mode (line 618)
     taggingControls,
     handleContact,
     startNewRallyWithServe,

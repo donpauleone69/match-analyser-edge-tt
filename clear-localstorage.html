@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Clear localStorage</title>
+</head>
+<body>
+  <h1>localStorage Cleaner</h1>
+  <pre id="output"></pre>
+  <script>
+    const output = document.getElementById('output');
+    
+    // Show current localStorage
+    output.textContent = 'Current localStorage:\n';
+    output.textContent += JSON.stringify(localStorage, null, 2) + '\n\n';
+    
+    // Clear it
+    localStorage.clear();
+    
+    output.textContent += 'localStorage cleared!\n\n';
+    output.textContent += 'Please close this and refresh your app.\n';
+    output.textContent += 'Navigate to: http://localhost:5173/matches/new';
+  </script>
+</body>
+</html>
+

@@ -79,7 +79,22 @@ export function EndOfRallySection({
     if (derivedPointEndType) setSelectedEndType(derivedPointEndType)
   }, [derivedWinnerId, derivedPointEndType])
   
-  // Keyboard shortcuts
+  // Define callback handlers first (so they can be used in useEffect dependencies)
+  const handleWinnerSelect = useCallback((winnerId: PlayerId) => {
+    setSelectedWinner(winnerId)
+    onWinnerSelect(winnerId)
+  }, [onWinnerSelect])
+  
+  const handleForcedUnforcedSelect = useCallback((type: 'forcedError' | 'unforcedError') => {
+    setSelectedEndType(type)
+    onForcedUnforcedSelect(type)
+  }, [onForcedUnforcedSelect])
+  
+  // Determine if we can proceed
+  const canConfirm = selectedWinner !== null && 
+    (!needsForcedUnforced || selectedEndType !== null)
+  
+  // Keyboard shortcuts (moved after handler definitions)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
@@ -139,21 +154,16 @@ export function EndOfRallySection({
     
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [needsWinnerSelection, needsForcedUnforced, selectedWinner, onStepFrame])
-  
-  const handleWinnerSelect = useCallback((winnerId: PlayerId) => {
-    setSelectedWinner(winnerId)
-    onWinnerSelect(winnerId)
-  }, [onWinnerSelect])
-  
-  const handleForcedUnforcedSelect = useCallback((type: 'forcedError' | 'unforcedError') => {
-    setSelectedEndType(type)
-    onForcedUnforcedSelect(type)
-  }, [onForcedUnforcedSelect])
-  
-  // Determine if we can proceed
-  const canConfirm = selectedWinner !== null && 
-    (!needsForcedUnforced || selectedEndType !== null)
+  }, [
+    needsWinnerSelection,
+    needsForcedUnforced,
+    selectedWinner,
+    canConfirm,  // Used in Enter/Space handler
+    onStepFrame,
+    handleWinnerSelect,  // Used in Digit1/2 handlers
+    handleForcedUnforcedSelect,  // Used in KeyF/U handlers
+    onConfirm,  // Used in Enter/Space handler
+  ])
   
   // Get last shot outcome description
   const getLastShotDescription = () => {
