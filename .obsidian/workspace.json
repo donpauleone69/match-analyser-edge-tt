@@ -185,6 +185,7 @@
   },
   "active": "153b47c532f3ef40",
   "lastOpenFiles": [
+    "app/src/features/tagging-ui-prototype-v2/blocks/ButtonGrid.tsx",
     "docs-match-analyser-edge-tt/chat_notes/button_layout_flexible_width.md",
     "app/src/features/tagging-ui-prototype-v2/archived/DirectionButtonBlock.tsx",
     "app/src/ui-mine/TableTennisButtons/index.ts",
@@ -221,7 +222,6 @@
     "docs-match-analyser-edge-tt/chat_notes/PlayerProfile_Spec.md",
     "docs-match-analyser-edge-tt/chat_notes/FOR_MVP_gestures_Intents_Inference_Engine.md",
     "CLEAR_LOCALSTORAGE_INSTRUCTIONS.md",
-    "Brainstorming Shortcuts for shots.md",
     "app/dist/vite.svg"
   ]
 }

@@ -45,18 +45,21 @@ export function TableTennisButtonBase({
         'bg-transparent border-none p-0 cursor-pointer rounded-lg overflow-hidden',
         'transition-all duration-150 shadow-md active:scale-95',
         'focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2',
-        // Flexible width with fixed height (Option 1 implementation)
-        'flex-1',          // Share available space equally
-        'min-w-0',         // Allow shrinking below content size
-        'h-24',            // Fixed height: 96px (24 * 4px)
-        'max-w-[180px]',   // Prevent excessive stretching on large screens
+        // Square buttons that maximize available space
+        'h-full',          // Fill grid cell height
+        'aspect-square',   // Keep buttons square by default (width = height)
+        // Remove inline spacing from SVG children
+        '[&>svg]:block',   // Make SVG block element to remove inline gaps
         disabled && 'cursor-not-allowed opacity-60',
         className
       )}
+      style={{
+        // Constrain width to never exceed container height (for square buttons in wide grid cells)
+        // This ensures direction buttons stay square even in 3-button layouts
+        maxWidth: 'var(--button-grid-height, 100%)',
+      }}
     >
-      <div className="w-full h-full">
-        {children}
-      </div>
+      {children}
     </button>
   )
 }

@@ -20,7 +20,7 @@ export function RightMidButton({ onClick, disabled, size = 'square', className }
       title="Right → Middle"
       className={className}
     >
-      <svg viewBox="0 0 100 100" className="w-full h-full">
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="w-full h-full">
         <path d="M10,4 L90,4 Q96,4 96,10 L96,50 L4,50 L4,10 Q4,4 10,4" fill="#2563eb"/>
         <path d="M4,50 L96,50 L96,90 Q96,96 90,96 L10,96 Q4,96 4,90 Z" fill="#2563eb"/>
         <rect x="4" y="4" width="92" height="92" fill="none" stroke="#fff" strokeWidth="1.5" rx="8"/>

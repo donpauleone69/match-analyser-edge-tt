@@ -121,7 +121,7 @@ export function Phase1TimestampComposer({ onCompletePhase1, className }: Phase1T
   }
   
   return (
-    <div className={cn('h-dvh overflow-hidden flex flex-col bg-bg-surface', className)}>
+    <div className={cn('fixed inset-0 flex flex-col bg-bg-surface overflow-hidden', className)}>
       {/* Shot Log - Top (scrollable) */}
       <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-2 bg-bg-surface">
         <div className="text-sm text-neutral-500 mb-3">Shot Log</div>
@@ -231,7 +231,7 @@ export function Phase1TimestampComposer({ onCompletePhase1, className }: Phase1T
       </div>
       
       {/* Controls - Bottom - 1x4 button layout */}
-      <div className="shrink-0 px-4 py-4 bg-bg-card border-t border-neutral-700">
+      <div className="shrink-0 bg-bg-card border-t border-neutral-700">
         <Phase1ControlsBlock
           rallyState={rallyState}
           onServeShot={handleServeShot}

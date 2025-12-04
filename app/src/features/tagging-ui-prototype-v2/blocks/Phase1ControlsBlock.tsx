@@ -19,6 +19,7 @@ import {
   ServeButton,
   ShotButton,
 } from '@/ui-mine'
+import { ButtonGrid } from './ButtonGrid'
 
 export type RallyState = 'before-serve' | 'after-serve'
 export type EndCondition = 'innet' | 'long' | 'winner'
@@ -44,7 +45,7 @@ export function Phase1ControlsBlock({
   const isBeforeServe = rallyState === 'before-serve'
   
   return (
-    <div className={cn('grid grid-cols-4 gap-3', className)}>
+    <ButtonGrid columns={4} className={className}>
       {/* Shot Missed Button */}
       <ShotMissedButton
         onClick={onShotMissed}
@@ -69,7 +70,7 @@ export function Phase1ControlsBlock({
       ) : (
         <ShotButton onClick={onServeShot} />
       )}
-    </div>
+    </ButtonGrid>
   )
 }
 

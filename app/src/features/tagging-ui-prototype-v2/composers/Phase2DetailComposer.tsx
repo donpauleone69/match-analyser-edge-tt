@@ -11,6 +11,7 @@
 import { useState, useRef } from 'react'
 import { cn } from '@/lib/utils'
 import type { Phase1Shot, Phase1Rally } from './Phase1TimestampComposer'
+import { ButtonGrid } from '../blocks'
 import {
   Button,
   // Serve direction buttons
@@ -204,7 +205,7 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className }: P
   }
   
   return (
-    <div className={cn('h-dvh overflow-hidden flex flex-col bg-bg-surface', className)}>
+    <div className={cn('fixed inset-0 flex flex-col bg-bg-surface overflow-hidden', className)}>
       {/* Shot Log - Top (scrollable) */}
       <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-2 bg-bg-surface">
         <div className="text-sm text-neutral-500 mb-3">Shot Log</div>
@@ -277,43 +278,42 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className }: P
       </div>
       
       {/* Question Controls - Bottom */}
-      <div className="shrink-0 px-4 py-4 bg-bg-card border-t border-neutral-700">
-        <div className="w-full max-w-4xl mx-auto">
-          {/* Serve questions */}
-          {currentShot.isServe && currentStep === 'direction' && (
-            <div className="flex gap-3 justify-center">
-              <LeftLeftButton onClick={() => handleAnswer('direction', 'left_left')} />
-              <LeftMidButton onClick={() => handleAnswer('direction', 'left_mid')} />
-              <LeftRightButton onClick={() => handleAnswer('direction', 'left_right')} />
-              <RightLeftButton onClick={() => handleAnswer('direction', 'right_left')} />
-              <RightMidButton onClick={() => handleAnswer('direction', 'right_mid')} />
-              <RightRightButton onClick={() => handleAnswer('direction', 'right_right')} />
-            </div>
-          )}
-          {currentShot.isServe && currentStep === 'length' && (
-            <div className="flex gap-3 justify-center">
-              <ShortButton onClick={() => handleAnswer('length', 'short')} />
-              <HalfLongButton onClick={() => handleAnswer('length', 'halflong')} />
-              <DeepButton onClick={() => handleAnswer('length', 'deep')} />
-            </div>
-          )}
-          {currentShot.isServe && currentStep === 'spin' && (
-            <div className="flex gap-3 justify-center">
-              <UnderspinButton onClick={() => handleAnswer('spin', 'underspin')} />
-              <NoSpinButton onClick={() => handleAnswer('spin', 'nospin')} />
-              <TopspinButton onClick={() => handleAnswer('spin', 'topspin')} />
-            </div>
-          )}
-          
-          {/* Regular shot questions */}
-          {!currentShot.isServe && !currentShot.isError && currentStep === 'stroke' && (
-            <div className="flex gap-3 justify-center">
-              <BackhandButton onClick={() => handleAnswer('stroke', 'backhand')} />
-              <ForehandButton onClick={() => handleAnswer('stroke', 'forehand')} />
-            </div>
-          )}
-          {!currentShot.isServe && !currentShot.isError && currentStep === 'direction' && (
-            <div className="flex gap-3 justify-center">
+      <div className="shrink-0 bg-bg-card border-t border-neutral-700">
+        {/* Serve questions */}
+        {currentShot.isServe && currentStep === 'direction' && (
+          <ButtonGrid columns={6}>
+            <LeftLeftButton onClick={() => handleAnswer('direction', 'left_left')} className="!w-full !aspect-auto" />
+            <LeftMidButton onClick={() => handleAnswer('direction', 'left_mid')} className="!w-full !aspect-auto" />
+            <LeftRightButton onClick={() => handleAnswer('direction', 'left_right')} className="!w-full !aspect-auto" />
+            <RightLeftButton onClick={() => handleAnswer('direction', 'right_left')} className="!w-full !aspect-auto" />
+            <RightMidButton onClick={() => handleAnswer('direction', 'right_mid')} className="!w-full !aspect-auto" />
+            <RightRightButton onClick={() => handleAnswer('direction', 'right_right')} className="!w-full !aspect-auto" />
+          </ButtonGrid>
+        )}
+        {currentShot.isServe && currentStep === 'length' && (
+          <ButtonGrid columns={3}>
+            <ShortButton onClick={() => handleAnswer('length', 'short')} />
+            <HalfLongButton onClick={() => handleAnswer('length', 'halflong')} />
+            <DeepButton onClick={() => handleAnswer('length', 'deep')} />
+          </ButtonGrid>
+        )}
+        {currentShot.isServe && currentStep === 'spin' && (
+          <ButtonGrid columns={3}>
+            <UnderspinButton onClick={() => handleAnswer('spin', 'underspin')} />
+            <NoSpinButton onClick={() => handleAnswer('spin', 'nospin')} />
+            <TopspinButton onClick={() => handleAnswer('spin', 'topspin')} />
+          </ButtonGrid>
+        )}
+        
+        {/* Regular shot questions */}
+        {!currentShot.isServe && !currentShot.isError && currentStep === 'stroke' && (
+          <ButtonGrid columns={2}>
+            <BackhandButton onClick={() => handleAnswer('stroke', 'backhand')} />
+            <ForehandButton onClick={() => handleAnswer('stroke', 'forehand')} />
+          </ButtonGrid>
+        )}
+        {!currentShot.isServe && !currentShot.isError && currentStep === 'direction' && (
+          <ButtonGrid columns={3}>
               {getPreviousDirection() === 'left' && (
                 <>
                   <LeftLeftButton onClick={() => handleAnswer('direction', 'left_left')} />
@@ -343,49 +343,50 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className }: P
                   <MidRightButton onClick={() => handleAnswer('direction', 'mid_right')} />
                 </>
               )}
-            </div>
-          )}
-          {!currentShot.isServe && !currentShot.isError && currentStep === 'intent' && (
-            <div className="flex gap-3 justify-center">
-              <DefensiveButton onClick={() => handleAnswer('intent', 'defensive')} />
-              <NeutralButton onClick={() => handleAnswer('intent', 'neutral')} />
-              <AggressiveButton onClick={() => handleAnswer('intent', 'aggressive')} />
-            </div>
-          )}
-          
-          {/* Error shot questions */}
-          {currentShot.isError && currentStep === 'stroke' && (
-            <div className="flex gap-3 justify-center">
-              <BackhandButton onClick={() => handleAnswer('stroke', 'backhand')} />
-              <ForehandButton onClick={() => handleAnswer('stroke', 'forehand')} />
-            </div>
-          )}
-          {currentShot.isError && currentStep === 'intent' && (
-            <div className="flex gap-3 justify-center">
-              <DefensiveButton onClick={() => handleAnswer('intent', 'defensive')} />
-              <NeutralButton onClick={() => handleAnswer('intent', 'neutral')} />
-              <AggressiveButton onClick={() => handleAnswer('intent', 'aggressive')} />
-            </div>
-          )}
-          {currentShot.isError && currentStep === 'errorType' && (
-            <div className="flex gap-3 justify-center">
-              <button
-                type="button"
-                onClick={() => handleAnswer('errorType', 'forced')}
-                className="flex-1 max-w-[180px] h-24 px-4 rounded-lg text-xl font-bold text-white bg-orange-600 hover:bg-orange-700 transition-all duration-150 shadow-md active:scale-95"
-              >
-                Forced
-              </button>
-              <button
-                type="button"
-                onClick={() => handleAnswer('errorType', 'unforced')}
-                className="flex-1 max-w-[180px] h-24 px-4 rounded-lg text-xl font-bold text-white bg-red-600 hover:bg-red-700 transition-all duration-150 shadow-md active:scale-95"
-              >
-                Unforced
-              </button>
-            </div>
-          )}
-        </div>
+          </ButtonGrid>
+        )}
+        {!currentShot.isServe && !currentShot.isError && currentStep === 'intent' && (
+          <ButtonGrid columns={3}>
+            <DefensiveButton onClick={() => handleAnswer('intent', 'defensive')} />
+            <NeutralButton onClick={() => handleAnswer('intent', 'neutral')} />
+            <AggressiveButton onClick={() => handleAnswer('intent', 'aggressive')} />
+          </ButtonGrid>
+        )}
+        
+        {/* Error shot questions */}
+        {currentShot.isError && currentStep === 'stroke' && (
+          <ButtonGrid columns={2}>
+            <BackhandButton onClick={() => handleAnswer('stroke', 'backhand')} />
+            <ForehandButton onClick={() => handleAnswer('stroke', 'forehand')} />
+          </ButtonGrid>
+        )}
+        {currentShot.isError && currentStep === 'intent' && (
+          <ButtonGrid columns={3}>
+            <DefensiveButton onClick={() => handleAnswer('intent', 'defensive')} />
+            <NeutralButton onClick={() => handleAnswer('intent', 'neutral')} />
+            <AggressiveButton onClick={() => handleAnswer('intent', 'aggressive')} />
+          </ButtonGrid>
+        )}
+        {currentShot.isError && currentStep === 'errorType' && (
+          <ButtonGrid columns={2}>
+            <button
+              type="button"
+              onClick={() => handleAnswer('errorType', 'forced')}
+              className="h-full aspect-square px-4 rounded-lg text-xl font-bold text-white bg-orange-600 hover:bg-orange-700 transition-all duration-150 shadow-md active:scale-95"
+              style={{ maxWidth: 'var(--button-grid-height, 100%)' }}
+            >
+              Forced
+            </button>
+            <button
+              type="button"
+              onClick={() => handleAnswer('errorType', 'unforced')}
+              className="h-full aspect-square px-4 rounded-lg text-xl font-bold text-white bg-red-600 hover:bg-red-700 transition-all duration-150 shadow-md active:scale-95"
+              style={{ maxWidth: 'var(--button-grid-height, 100%)' }}
+            >
+              Unforced
+            </button>
+          </ButtonGrid>
+        )}
       </div>
     </div>
   )
