@@ -38,3 +38,6 @@ videos/
 docs-match-analyser-edge-tt/videos/
 *.MOV
 *.mp4
+
+# Executable files
+*.exe
