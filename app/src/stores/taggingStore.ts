@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { Contact, Rally, TimelineMarker } from '../types'
+import type { Shot, Rally, Set, TimelineMarker } from '../types'
 import type {
   PlayerId,
   TaggingMode,
@@ -8,7 +8,15 @@ import type {
   MatchResult,
   PointEndType,
   LuckType,
-  Game,
+  ShotQuality,
+  LandingType,
+  InferredSpin,
+  ShotType,
+  PlayerProfile,
+} from '../rules/types'
+import {
+  deriveLandingType,
+  deriveInferredSpin,
 } from '../rules/types'
 import {
   calculateServer as calculateServerRule,
@@ -18,8 +26,19 @@ import {
 // TYPES
 // =============================================================================
 
-// Tagging phases
+// Legacy tagging phases (being replaced)
 export type TaggingPhase = 'setup' | 'part1' | 'part2'
+
+// NEW: Framework state machine for Rally Checkpoint Flow
+export type FrameworkState = 
+  | 'setup'           // Match setup, mark first serve
+  | 'tagging'         // Marking shots for current rally
+  | 'checkpoint'      // Rally ended, confirm or redo
+  | 'ff_mode'         // Fast forward to find next serve
+  | 'shot_detail'     // Part 2: answering questions per shot
+  | 'rally_review'    // End of rally summary with video sync
+  | 'set_complete'    // Set finished, move to next or complete match
+  | 'match_complete'  // All sets done
 
 interface TaggingState {
   // Match setup info
@@ -31,11 +50,15 @@ interface TaggingState {
   
   // v0.8.0 - Match details
   matchDate: string | null
-  videoStartSetScore: string
-  videoStartPointsScore: string
+  player1StartSets: number
+  player2StartSets: number
+  player1StartPoints: number
+  player2StartPoints: number
   firstServeTimestamp: number | null
   videoCoverage: VideoCoverage
   taggingMode: TaggingMode
+  matchFormat: string
+  tournament: string
   
   // v0.8.0 - Match completion
   matchResult: MatchResult | null
@@ -48,27 +71,38 @@ interface TaggingState {
   isPlaying: boolean
   playbackSpeed: number
   
-  // Game state
-  currentGameIndex: number
-  games: Game[]
+  // Set state
+  currentSetIndex: number
+  sets: Set[]
   player1Score: number
   player2Score: number
   currentServerId: PlayerId
   
+  // Player profiles (for future use)
+  players: PlayerProfile[]
+  
   // Tagging data
-  contacts: Contact[]
+  shots: Shot[]
   rallies: Rally[]
-  currentRallyContacts: Contact[] // Contacts in current open rally
+  currentRallyShots: Shot[] // Shots in current open rally
   
   // Workflow state - v0.9.4 unified workflow
-  taggingPhase: TaggingPhase // 'setup' | 'part1' | 'part2'
+  taggingPhase: TaggingPhase // 'setup' | 'part1' | 'part2' (legacy)
   step1Complete: boolean // Part 1: Match Framework complete
   step2Complete: boolean // Part 2: Rally Detail complete
+  
+  // NEW: Rally Checkpoint Flow state machine
+  frameworkState: FrameworkState
+  currentSetNumber: number
   
   // Part 2 - Sequential rally/shot navigation
   activeRallyIndex: number // Current rally being tagged in Part 2
   activeShotIndex: number // Current shot within rally (1-based)
   shotQuestionStep: number // Current question step (1-4 for Essential)
+  
+  // Part 2 - Preview settings
+  loopSpeed: number // Playback speed for shot preview loop (0.25-1x)
+  previewBufferSeconds: number // Time after shot to include in loop (0.1-0.5s)
   
   // Legacy - for backwards compatibility
   currentReviewRallyIndex: number // Index of rally being reviewed in Part 2
@@ -84,15 +118,18 @@ interface TaggingState {
   } | null
   
   // Undo stack for auto-prune
-  lastPrunedContacts: Contact[]
+  lastPrunedShots: Shot[]
   
   // Actions - Match Setup
+  resetForNewMatch: () => void // Clear all state for a fresh new match
   initMatch: (p1: string, p2: string, firstServer: PlayerId, videoUrl: string | null) => void
   setVideoUrl: (url: string | null) => void
   setMatchDetails: (details: {
     matchDate: string
-    videoStartSetScore: string
-    videoStartPointsScore: string
+    player1StartSets: number
+    player2StartSets: number
+    player1StartPoints: number
+    player2StartPoints: number
     firstServeTimestamp: number
     taggingMode: TaggingMode
   }) => void
@@ -111,15 +148,30 @@ interface TaggingState {
     matchDate: string
     firstServerId: PlayerId
     taggingMode: TaggingMode
-    videoStartSetScore: string
-    videoStartPointsScore: string
+    matchFormat: string
+    tournament: string
+    player1StartSets: number
+    player2StartSets: number
+    player1StartPoints: number
+    player2StartPoints: number
     firstServeTimestamp: number
+  }) => void
+  completeMatchFramework: (data: {
+    matchResult: MatchResult
+    finalSetScore: string
+    finalPointsScore: string
+    videoCoverage: VideoCoverage
   }) => void
   
   // Actions - Part 2 Sequential Navigation
   advanceToNextShot: () => void
   advanceToNextRally: () => void
   setShotQuestionStep: (step: number) => void
+  goToPreviousShot: () => void
+  
+  // Actions - Part 2 Preview Settings
+  setLoopSpeed: (speed: number) => void
+  setPreviewBuffer: (seconds: number) => void
   
   // Actions - Video
   setCurrentTime: (time: number) => void
@@ -128,7 +180,8 @@ interface TaggingState {
   setPlaybackSpeed: (speed: number) => void
   
   // Actions - Tagging (Part 1)
-  addContact: () => void
+  addShot: () => void
+  startNewRallyWithServe: () => void // Creates new rally with serve shot at current time
   endRallyScore: () => void
   endRallyNoScore: () => void
   endRallyWithoutWinner: () => void // Ends rally, winner set in review
@@ -136,14 +189,25 @@ interface TaggingState {
   undoLastContact: () => void
   markEndOfSet: () => void // Mark current time as end of set
   
+  // NEW: Rally Checkpoint Flow actions
+  confirmRally: () => void // Checkpoint → save rally → FF mode
+  redoCurrentRally: () => number // Checkpoint → clear → seek back → returns seek time
+  redoFromRally: (rallyIndex: number) => number // Delete rallies from index, returns seek time
+  endSetFramework: () => void // FF mode → shot_detail phase
+  confirmRallyReview: () => void // Rally review → next rally or set complete
+  startNextSet: () => void // Start framework for next set
+  setFrameworkState: (state: FrameworkState) => void
+  
   // Actions - Review (Part 1)
-  updateContactTime: (contactId: string, newTime: number) => void
+  nudgeShot: (setId: string, direction: 'earlier' | 'later', frameMs?: number) => void
+  updateShotTime: (setId: string, newTime: number) => void
   updateRallyServer: (rallyId: string, serverId: PlayerId) => void
   updateRallyWinner: (rallyId: string, winnerId: PlayerId) => void
   updateEndOfPointTime: (rallyId: string, time: number) => void
-  deleteContact: (rallyId: string, contactId: string) => void
+  deleteShot: (rallyId: string, setId: string) => void
+  deleteInProgressShot: (setId: string) => void // Delete from currentRallyShots
   deleteRally: (rallyId: string) => void
-  addContactToRally: (rallyId: string, time: number) => void
+  addShotToRally: (rallyId: string, time: number) => void
   toggleRallyHighlight: (rallyId: string) => void
   insertRallyAtTime: (time: number) => string // Returns the new rally ID
   setFirstServerAndRecalculate: (firstServer: PlayerId) => void
@@ -164,8 +228,12 @@ interface TaggingState {
   confirmEndOfPoint: (pointEndType: PointEndType) => void
   
   // Actions - Auto-prune
-  autoPruneContacts: (rallyId: string, errorShotIndex: number) => void
+  autoPruneShots: (rallyId: string, errorShotIndex: number) => { prunedCount: number }
   undoLastPrune: (rallyId: string) => void
+  
+  // Actions - Shot Shot Data (Part 2)
+  updateShotData: (setId: string, data: Partial<Shot>) => void
+  completeShotTagging: (setId: string, finalQuality: ShotQuality) => void
   
   // Helpers
   getTimelineMarkers: () => TimelineMarker[]
@@ -199,11 +267,15 @@ const initialState = {
   
   // v0.8.0 - Match details
   matchDate: null as string | null,
-  videoStartSetScore: '0-0',
-  videoStartPointsScore: '0-0',
+  player1StartSets: 0,
+  player2StartSets: 0,
+  player1StartPoints: 0,
+  player2StartPoints: 0,
   firstServeTimestamp: null as number | null,
   videoCoverage: 'full' as VideoCoverage,
   taggingMode: 'essential' as TaggingMode,
+  matchFormat: 'bestOf5',
+  tournament: 'friendly',
   
   // v0.8.0 - Match completion
   matchResult: null as MatchResult | null,
@@ -214,19 +286,22 @@ const initialState = {
   currentTime: 0,
   duration: 0,
   isPlaying: false,
-  playbackSpeed: 1,
+  playbackSpeed: 0.5, // Default tagging speed
   
-  // Game state
-  currentGameIndex: 0,
-  games: [] as Game[],
+  // Set state
+  currentSetIndex: 0,
+  sets: [] as Set[],
   player1Score: 0,
   player2Score: 0,
   currentServerId: 'player1' as PlayerId,
   
+  // Player profiles (for future use)
+  players: [] as PlayerProfile[],
+  
   // Tagging data
-  contacts: [] as Contact[],
+  shots: [] as Shot[],
   rallies: [] as Rally[],
-  currentRallyContacts: [] as Contact[],
+  currentRallyShots: [] as Shot[],
   
   // Workflow - v0.9.4
   taggingPhase: 'setup' as TaggingPhase,
@@ -237,6 +312,14 @@ const initialState = {
   shotQuestionStep: 1,
   currentReviewRallyIndex: 0,
   
+  // NEW: Rally Checkpoint Flow
+  frameworkState: 'setup' as FrameworkState,
+  currentSetNumber: 1,
+  
+  // Part 2 - Preview settings
+  loopSpeed: 0.5,
+  previewBufferSeconds: 0.2,
+  
   // UI
   showWinnerDialog: false,
   showMatchDetailsModal: false,
@@ -245,7 +328,7 @@ const initialState = {
   pendingEndOfPoint: null as { winnerId: PlayerId; needsForcedUnforced: boolean } | null,
   
   // Undo stack
-  lastPrunedContacts: [] as Contact[],
+  lastPrunedShots: [] as Shot[],
 }
 
 export const useTaggingStore = create<TaggingState>()(
@@ -254,6 +337,56 @@ export const useTaggingStore = create<TaggingState>()(
       ...initialState,
       
       // Match Setup
+      resetForNewMatch: () => {
+        // Clear ALL match state for a fresh new match
+        set({
+          ...initialState,
+          matchId: null,
+          player1Name: 'Player 1',
+          player2Name: 'Player 2',
+          firstServerId: 'player1',
+          currentServerId: 'player1',
+          videoUrl: null,
+          matchDate: null,
+          player1StartSets: 0,
+          player2StartSets: 0,
+          player1StartPoints: 0,
+          player2StartPoints: 0,
+          firstServeTimestamp: null,
+          taggingMode: 'essential',
+          matchFormat: 'bestOf5',
+          tournament: 'friendly',
+          matchResult: null,
+          finalSetScore: null,
+          finalPointsScore: null,
+          // Clear game state
+          sets: [],
+          rallies: [],
+          shots: [],
+          currentRallyShots: [],
+          player1Score: 0,
+          player2Score: 0,
+          currentSetIndex: 0,
+          // Reset workflow
+          taggingPhase: 'setup',
+          step1Complete: false,
+          step2Complete: false,
+          activeRallyIndex: 0,
+          activeShotIndex: 1,
+          shotQuestionStep: 1,
+          // Rally Checkpoint Flow
+          frameworkState: 'setup',
+          currentSetNumber: 1,
+          // Clear UI state
+          showWinnerDialog: false,
+          showMatchDetailsModal: false,
+          showMatchCompletionModal: false,
+          showEndOfPointModal: false,
+          pendingEndOfPoint: null,
+          lastPrunedShots: [],
+        })
+      },
+      
       initMatch: (p1, p2, firstServer, videoUrl) => {
         set({
           ...initialState,
@@ -271,8 +404,10 @@ export const useTaggingStore = create<TaggingState>()(
       setMatchDetails: (details) => {
         set({
           matchDate: details.matchDate,
-          videoStartSetScore: details.videoStartSetScore,
-          videoStartPointsScore: details.videoStartPointsScore,
+          player1StartSets: details.player1StartSets,
+          player2StartSets: details.player2StartSets,
+          player1StartPoints: details.player1StartPoints,
+          player2StartPoints: details.player2StartPoints,
           firstServeTimestamp: details.firstServeTimestamp,
           taggingMode: details.taggingMode,
           showMatchDetailsModal: false,
@@ -295,19 +430,74 @@ export const useTaggingStore = create<TaggingState>()(
       initMatchFramework: (data) => {
         // This is the CRITICAL first step that establishes the framework
         // for all server derivation throughout the match
+        const matchId = generateId()
+        const string = generateId()
+        const shotId = generateId()
+        
+        // Create the first shot (serve) at the marked timestamp
+        // Rally is NOT created here - it's created when user ends the rally
+        const firstContact: Shot = {
+          id: string,
+          rallyId: '', // Will be assigned when rally ends
+          time: data.firstServeTimestamp,
+          shotIndex: 1,
+        }
+        
+        // Create the first game
+        const firstGame: Set = {
+          id: string,
+          matchId: matchId,
+          setNumber: data.player1StartSets + data.player2StartSets + 1,
+          player1FinalScore: data.player1StartPoints,
+          player2FinalScore: data.player2StartPoints,
+          hasVideo: true,
+        }
+        
         set({
-          matchId: generateId(),
+          matchId: matchId,
           player1Name: data.player1Name,
           player2Name: data.player2Name,
           matchDate: data.matchDate,
           firstServerId: data.firstServerId,
           currentServerId: data.firstServerId,
           taggingMode: data.taggingMode,
-          videoStartSetScore: data.videoStartSetScore,
-          videoStartPointsScore: data.videoStartPointsScore,
+          matchFormat: data.matchFormat,
+          tournament: data.tournament,
+          player1StartSets: data.player1StartSets,
+          player2StartSets: data.player2StartSets,
+          player1StartPoints: data.player1StartPoints,
+          player2StartPoints: data.player2StartPoints,
+          player1Score: data.player1StartPoints,
+          player2Score: data.player2StartPoints,
           firstServeTimestamp: data.firstServeTimestamp,
           taggingPhase: 'part1',
           showMatchDetailsModal: false,
+          // Initialize with first game, NO rally yet (created at end)
+          sets: [firstGame],
+          rallies: [],
+          shots: [],
+          // First serve is the first shot in the open rally
+          currentRallyShots: [firstContact],
+          currentSetIndex: 0,
+          // NEW: Rally Checkpoint Flow - start in tagging state
+          frameworkState: 'tagging',
+          currentSetNumber: 1,
+        })
+      },
+      
+      completeMatchFramework: (data) => {
+        // Complete Part 1 and transition to Part 2
+        set({
+          matchResult: data.matchResult,
+          finalSetScore: data.finalSetScore,
+          finalPointsScore: data.finalPointsScore,
+          videoCoverage: data.videoCoverage,
+          step1Complete: true,
+          showMatchCompletionModal: false,
+          taggingPhase: 'part2',
+          activeRallyIndex: 0,
+          activeShotIndex: 1,
+          shotQuestionStep: 1,
         })
       },
       
@@ -317,7 +507,7 @@ export const useTaggingStore = create<TaggingState>()(
         const currentRally = rallies[activeRallyIndex]
         if (!currentRally) return
         
-        const totalShots = currentRally.contacts.length
+        const totalShots = currentRally.shots.length
         
         if (activeShotIndex < totalShots) {
           // Move to next shot in same rally
@@ -348,6 +538,31 @@ export const useTaggingStore = create<TaggingState>()(
       
       setShotQuestionStep: (step) => set({ shotQuestionStep: step }),
       
+      goToPreviousShot: () => {
+        const { activeRallyIndex, activeShotIndex, rallies } = get()
+        
+        if (activeShotIndex > 1) {
+          // Go to previous shot in same rally
+          set({ 
+            activeShotIndex: activeShotIndex - 1,
+            shotQuestionStep: 1,
+          })
+        } else if (activeRallyIndex > 0) {
+          // Go to last shot of previous rally
+          const prevRally = rallies[activeRallyIndex - 1]
+          set({
+            activeRallyIndex: activeRallyIndex - 1,
+            activeShotIndex: prevRally.shots.length,
+            shotQuestionStep: 1,
+          })
+        }
+        // If at first shot of first rally, do nothing
+      },
+      
+      // Part 2 Preview Settings
+      setLoopSpeed: (speed) => set({ loopSpeed: speed }),
+      setPreviewBuffer: (seconds) => set({ previewBufferSeconds: seconds }),
+      
       // Video controls
       setCurrentTime: (time) => set({ currentTime: time }),
       setDuration: (duration) => set({ duration }),
@@ -355,32 +570,91 @@ export const useTaggingStore = create<TaggingState>()(
       setPlaybackSpeed: (speed) => set({ playbackSpeed: speed }),
       
       // Tagging
-      addContact: () => {
-        const { currentTime, currentRallyContacts } = get()
-        const newContact: Contact = {
+      addShot: () => {
+        const { currentTime, currentRallyShots, frameworkState } = get()
+        
+        // Only allow adding shots when in tagging state
+        if (frameworkState !== 'tagging') return
+        
+        const shotIndex = currentRallyShots.length + 1
+        const newShot: Shot = {
           id: generateId(),
-          rallyId: '', // Will be assigned when rally ends
+          rallyId: '', // Will be assigned when rally is confirmed
           time: currentTime,
-          shotIndex: currentRallyContacts.length + 1,
+          shotIndex,
+          // Auto-populate shotType='serve' for first shot
+          ...(shotIndex === 1 ? { shotType: 'serve' as const } : {}),
         }
-        set({ currentRallyContacts: [...currentRallyContacts, newContact] })
+        set({ currentRallyShots: [...currentRallyShots, newShot] })
+      },
+      
+      startNewRallyWithServe: () => {
+        // Rally Checkpoint Flow: Mark serve → transition to tagging state
+        // Called when user presses Space in FF mode to mark next serve
+        const { currentTime, rallies, firstServerId, currentRallyShots, frameworkState } = get()
+        
+        // Only allow marking serve when in FF mode
+        if (frameworkState !== 'ff_mode') {
+          console.warn('startNewRallyWithServe called but not in ff_mode')
+          return
+        }
+        
+        // Safety check: If there are already shots in the buffer, don't overwrite
+        if (currentRallyShots.length > 0) {
+          console.warn('startNewRallyWithServe called but currentRallyShots is not empty')
+          return
+        }
+        
+        // Calculate next server based on RALLY COUNT (not score)
+        // In Part 1, we don't know winners yet, so we can't use score
+        // Table tennis rule: serves change every 2 points
+        const rallyCount = rallies.length
+        const serveBlock = Math.floor(rallyCount / 2)
+        const isFirstServerBlock = serveBlock % 2 === 0
+        const nextServerId: PlayerId = isFirstServerBlock ? firstServerId : (firstServerId === 'player1' ? 'player2' : 'player1')
+        
+        // Create serve shot - rallyId will be assigned when confirmed
+        const serveContact: Shot = {
+          id: generateId(),
+          rallyId: '', // Assigned when rally is confirmed at checkpoint
+          time: currentTime,
+          shotIndex: 1,
+        }
+        
+        // Add serve to currentRallyShots buffer and transition to tagging state
+        set({
+          currentRallyShots: [serveContact],
+          currentServerId: nextServerId,
+          frameworkState: 'tagging',
+        })
       },
       
       endRallyScore: () => {
-        const { currentRallyContacts } = get()
-        if (currentRallyContacts.length === 0) return
-        set({ showWinnerDialog: true })
+        // Rally Checkpoint Flow: End rally → transition to checkpoint state
+        // Rally creation happens when user confirms at checkpoint
+        const { currentRallyShots, frameworkState } = get()
+        
+        // Only allow ending rally when in tagging state
+        if (frameworkState !== 'tagging') return
+        if (currentRallyShots.length === 0) return
+        
+        // Transition to checkpoint state - rally NOT created yet
+        // Video should be paused by the component
+        set({
+          frameworkState: 'checkpoint',
+          showWinnerDialog: false,
+        })
       },
       
       endRallyNoScore: () => {
-        const { currentRallyContacts, rallies, player1Score, player2Score, currentServerId } = get()
+        const { currentRallyShots, rallies, player1Score, player2Score, currentServerId } = get()
         
-        if (currentRallyContacts.length === 0) return
+        if (currentRallyShots.length === 0) return
         
         const rallyId = generateId()
         const newRally: Rally = {
           id: rallyId,
-          gameId: 'game1',
+          setId: 'game1',
           rallyIndex: rallies.length + 1,
           isScoring: false,
           player1ScoreAfter: player1Score,
@@ -388,27 +662,27 @@ export const useTaggingStore = create<TaggingState>()(
           serverId: currentServerId,
           receiverId: currentServerId === 'player1' ? 'player2' : 'player1',
           hasVideoData: true,
-          contacts: currentRallyContacts.map(c => ({ ...c, rallyId })),
+          shots: currentRallyShots.map(c => ({ ...c, rallyId })),
         }
         
         set({
           rallies: [...rallies, newRally],
-          contacts: [...get().contacts, ...newRally.contacts],
-          currentRallyContacts: [],
+          shots: [...get().shots, ...newRally.shots],
+          currentRallyShots: [],
         })
       },
 
       endRallyWithoutWinner: () => {
         // Ends rally as scoring but without winner assigned yet
         // Winner will be set in Step 1 Review
-        const { currentRallyContacts, rallies, player1Score, player2Score, currentServerId, currentTime } = get()
+        const { currentRallyShots, rallies, player1Score, player2Score, currentServerId, currentTime } = get()
         
-        if (currentRallyContacts.length === 0) return
+        if (currentRallyShots.length === 0) return
         
         const rallyId = generateId()
         const newRally: Rally = {
           id: rallyId,
-          gameId: 'game1',
+          setId: 'game1',
           rallyIndex: rallies.length + 1,
           isScoring: true,
           winnerId: undefined, // To be set in review
@@ -418,20 +692,20 @@ export const useTaggingStore = create<TaggingState>()(
           serverId: currentServerId,
           receiverId: currentServerId === 'player1' ? 'player2' : 'player1',
           hasVideoData: true,
-          contacts: currentRallyContacts.map(c => ({ ...c, rallyId })),
+          shots: currentRallyShots.map(c => ({ ...c, rallyId })),
         }
         
         set({
           rallies: [...rallies, newRally],
-          contacts: [...get().contacts, ...newRally.contacts],
-          currentRallyContacts: [],
+          shots: [...get().shots, ...newRally.shots],
+          currentRallyShots: [],
         })
       },
       
       selectWinner: (winnerId) => {
-        const { currentRallyContacts, rallies, player1Score, player2Score, currentServerId, firstServerId } = get()
+        const { currentTime, currentRallyShots, rallies, player1Score, player2Score, currentServerId, firstServerId } = get()
         
-        if (currentRallyContacts.length === 0) {
+        if (currentRallyShots.length === 0) {
           set({ showWinnerDialog: false })
           return
         }
@@ -440,13 +714,12 @@ export const useTaggingStore = create<TaggingState>()(
         const newP1Score = winnerId === 'player1' ? player1Score + 1 : player1Score
         const newP2Score = winnerId === 'player2' ? player2Score + 1 : player2Score
         
-        // Set winner time to the last contact's time
-        const lastContact = currentRallyContacts[currentRallyContacts.length - 1]
-        const endOfPointTime = lastContact ? lastContact.time : 0
+        // End of point time = current video time when rally ends
+        const endOfPointTime = currentTime
         
         const newRally: Rally = {
           id: rallyId,
-          gameId: 'game1',
+          setId: 'game1',
           rallyIndex: rallies.length + 1,
           isScoring: true,
           winnerId,
@@ -456,7 +729,7 @@ export const useTaggingStore = create<TaggingState>()(
           serverId: currentServerId,
           receiverId: currentServerId === 'player1' ? 'player2' : 'player1',
           hasVideoData: true,
-          contacts: currentRallyContacts.map(c => ({ ...c, rallyId })),
+          shots: currentRallyShots.map(c => ({ ...c, rallyId })),
         }
         
         // Calculate next server
@@ -464,8 +737,8 @@ export const useTaggingStore = create<TaggingState>()(
         
         set({
           rallies: [...rallies, newRally],
-          contacts: [...get().contacts, ...newRally.contacts],
-          currentRallyContacts: [],
+          shots: [...get().shots, ...newRally.shots],
+          currentRallyShots: [],
           player1Score: newP1Score,
           player2Score: newP2Score,
           currentServerId: nextServer,
@@ -474,30 +747,66 @@ export const useTaggingStore = create<TaggingState>()(
       },
       
       undoLastContact: () => {
-        const { currentRallyContacts } = get()
-        if (currentRallyContacts.length > 0) {
-          set({ currentRallyContacts: currentRallyContacts.slice(0, -1) })
+        const { currentRallyShots } = get()
+        if (currentRallyShots.length > 0) {
+          set({ currentRallyShots: currentRallyShots.slice(0, -1) })
         }
       },
       
       // Review actions
-      updateContactTime: (contactId, newTime) => {
-        const { rallies, contacts } = get()
+      nudgeShot: (shotId, direction, frameMs = 33) => {
+        // Nudge a shot time by one frame (~33ms for 30fps)
+        const delta = direction === 'earlier' ? -frameMs : frameMs
+        const { rallies, shots, currentRallyShots } = get()
         
-        // Update in contacts array
-        const updatedContacts = contacts.map(c => 
-          c.id === contactId ? { ...c, time: newTime } : c
+        // Check if it's in currentRallyShots (in-progress rally)
+        const inProgressIndex = currentRallyShots.findIndex(c => c.id === shotId)
+        if (inProgressIndex >= 0) {
+          const shot = currentRallyShots[inProgressIndex]
+          const newTime = Math.max(0, shot.time + delta)
+          const updated = [...currentRallyShots]
+          updated[inProgressIndex] = { ...shot, time: newTime }
+          set({ currentRallyShots: updated })
+          return
+        }
+        
+        // Otherwise update in completed rallies
+        const shot = shots.find(c => c.id === shotId)
+        if (!shot) return
+        
+        const newTime = Math.max(0, shot.time + delta)
+        
+        const updatedContacts = shots.map(c => 
+          c.id === shotId ? { ...c, time: newTime } : c
+        )
+        
+        const updatedRallies = rallies.map(rally => ({
+          ...rally,
+          shots: rally.shots.map(c => 
+            c.id === shotId ? { ...c, time: newTime } : c
+          ),
+        }))
+        
+        set({ shots: updatedContacts, rallies: updatedRallies })
+      },
+      
+      updateShotTime: (shotId, newTime) => {
+        const { rallies, shots } = get()
+        
+        // Update in shots array
+        const updatedContacts = shots.map(c => 
+          c.id === shotId ? { ...c, time: newTime } : c
         )
         
         // Update in rallies
         const updatedRallies = rallies.map(rally => ({
           ...rally,
-          contacts: rally.contacts.map(c => 
-            c.id === contactId ? { ...c, time: newTime } : c
+          shots: rally.shots.map(c => 
+            c.id === shotId ? { ...c, time: newTime } : c
           ),
         }))
         
-        set({ contacts: updatedContacts, rallies: updatedRallies })
+        set({ shots: updatedContacts, rallies: updatedRallies })
       },
       
       updateRallyServer: (rallyId, serverId) => {
@@ -563,37 +872,45 @@ export const useTaggingStore = create<TaggingState>()(
         set({ rallies: updatedRallies })
       },
       
-      deleteContact: (rallyId, contactId) => {
-        const { rallies, contacts } = get()
+      deleteShot: (rallyId, shotId) => {
+        const { rallies, shots } = get()
         
-        // Remove from contacts array
-        const updatedContacts = contacts.filter(c => c.id !== contactId)
+        // Remove from shots array
+        const updatedContacts = shots.filter(c => c.id !== shotId)
         
         // Remove from rally and re-index
         const updatedRallies = rallies.map(rally => {
           if (rally.id !== rallyId) return rally
           
-          const filteredContacts = rally.contacts.filter(c => c.id !== contactId)
+          const filteredContacts = rally.shots.filter(c => c.id !== shotId)
           // Re-index shot numbers
           const reindexedContacts = filteredContacts.map((c, idx) => ({
             ...c,
             shotIndex: idx + 1
           }))
           
-          return { ...rally, contacts: reindexedContacts }
+          return { ...rally, shots: reindexedContacts }
         })
         
-        set({ contacts: updatedContacts, rallies: updatedRallies })
+        set({ shots: updatedContacts, rallies: updatedRallies })
+      },
+      
+      deleteInProgressShot: (shotId) => {
+        const { currentRallyShots } = get()
+        const filtered = currentRallyShots.filter(c => c.id !== shotId)
+        // Re-index shot numbers
+        const reindexed = filtered.map((c, idx) => ({ ...c, shotIndex: idx + 1 }))
+        set({ currentRallyShots: reindexed })
       },
 
       deleteRally: (rallyId) => {
-        const { rallies, contacts, firstServerId } = get()
+        const { rallies, shots, firstServerId } = get()
         
         // Remove rally
         const remainingRallies = rallies.filter(r => r.id !== rallyId)
         
-        // Remove contacts belonging to this rally
-        const remainingContacts = contacts.filter(c => c.rallyId !== rallyId)
+        // Remove shots belonging to this rally
+        const remainingContacts = shots.filter(c => c.rallyId !== rallyId)
         
         // Recalculate rally indices and scores
         let p1Score = 0
@@ -618,40 +935,40 @@ export const useTaggingStore = create<TaggingState>()(
         
         set({ 
           rallies: updatedRallies, 
-          contacts: remainingContacts,
+          shots: remainingContacts,
           player1Score: p1Score,
           player2Score: p2Score,
         })
       },
       
-      addContactToRally: (rallyId, time) => {
-        const { rallies, contacts } = get()
+      addShotToRally: (rallyId, time) => {
+        const { rallies, shots } = get()
         
         const rally = rallies.find(r => r.id === rallyId)
         if (!rally) return
         
-        const newContact: Contact = {
+        const newContact: Shot = {
           id: Math.random().toString(36).substr(2, 9),
           rallyId,
           time,
-          shotIndex: rally.contacts.length + 1,
+          shotIndex: rally.shots.length + 1,
         }
         
-        // Add to contacts array
-        const updatedContacts = [...contacts, newContact]
+        // Add to shots array
+        const updatedContacts = [...shots, newContact]
         
         // Add to rally and sort by time, then re-index
         const updatedRallies = rallies.map(r => {
           if (r.id !== rallyId) return r
           
-          const newContacts = [...r.contacts, newContact]
+          const newContacts = [...r.shots, newContact]
             .sort((a, b) => a.time - b.time)
             .map((c, idx) => ({ ...c, shotIndex: idx + 1 }))
           
-          return { ...r, contacts: newContacts }
+          return { ...r, shots: newContacts }
         })
         
-        set({ contacts: updatedContacts, rallies: updatedRallies })
+        set({ shots: updatedContacts, rallies: updatedRallies })
       },
       
       toggleRallyHighlight: (rallyId) => {
@@ -665,13 +982,13 @@ export const useTaggingStore = create<TaggingState>()(
       },
 
       insertRallyAtTime: (time) => {
-        const { rallies, firstServerId, contacts } = get()
+        const { rallies, firstServerId, shots } = get()
         
         // Find where to insert based on time
-        // Look at first contact time of each rally to determine position
+        // Look at first shot time of each rally to determine position
         let insertIndex = rallies.length
         for (let i = 0; i < rallies.length; i++) {
-          const rallyFirstContactTime = rallies[i].contacts[0]?.time ?? Infinity
+          const rallyFirstContactTime = rallies[i].shots[0]?.time ?? Infinity
           if (time < rallyFirstContactTime) {
             insertIndex = i
             break
@@ -688,19 +1005,20 @@ export const useTaggingStore = create<TaggingState>()(
         
         const serverId = calculateServer(p1Score, p2Score, firstServerId)
         
-        // Create new rally with a single contact at the given time
+        // Create new rally with a single shot at the given time
         const rallyId = generateId()
-        const contactId = generateId()
-        const newContact: Contact = {
-          id: contactId,
+        const shotId = generateId()
+        const newShot: Shot = {
+          id: shotId,
           rallyId,
           time,
           shotIndex: 1,
+          shotType: 'serve',  // Auto-populate serve
         }
         
         const newRally: Rally = {
           id: rallyId,
-          gameId: 'game1',
+          setId: 'game1',
           rallyIndex: insertIndex + 1,
           isScoring: true,
           winnerId: undefined, // Needs to be set
@@ -710,7 +1028,7 @@ export const useTaggingStore = create<TaggingState>()(
           serverId,
           receiverId: serverId === 'player1' ? 'player2' : 'player1',
           hasVideoData: true,
-          contacts: [newContact],
+          shots: [newShot],
           isHighlight: false,
         }
         
@@ -740,7 +1058,7 @@ export const useTaggingStore = create<TaggingState>()(
         
         set({ 
           rallies: updatedRallies,
-          contacts: [...contacts, newContact],
+          shots: [...shots, newShot],
         })
         
         return rallyId
@@ -835,9 +1153,9 @@ export const useTaggingStore = create<TaggingState>()(
       },
       
       completeStep1: () => {
-        const { currentRallyContacts } = get()
+        const { currentRallyShots } = get()
         // Don't allow completion if there's an open rally
-        if (currentRallyContacts.length > 0) return
+        if (currentRallyShots.length > 0) return
         set({ step1Complete: true, currentReviewRallyIndex: 0 })
       },
       
@@ -912,73 +1230,163 @@ export const useTaggingStore = create<TaggingState>()(
       },
       
       // Auto-prune Actions
-      autoPruneContacts: (rallyId, errorShotIndex) => {
-        const { rallies, contacts } = get()
+      autoPruneShots: (rallyId, errorShotIndex) => {
+        const { rallies, shots } = get()
         
         const rally = rallies.find(r => r.id === rallyId)
-        if (!rally) return
+        if (!rally) return { prunedCount: 0 }
         
-        // Find contacts to prune (shot index > error shot index)
-        const contactsToPrune = rally.contacts.filter(c => c.shotIndex > errorShotIndex)
-        if (contactsToPrune.length === 0) return
+        // Find shots to prune (shot index > error shot index)
+        const contactsToPrune = rally.shots.filter(c => c.shotIndex > errorShotIndex)
+        if (contactsToPrune.length === 0) return { prunedCount: 0 }
         
         const contactIdsToRemove = contactsToPrune.map(c => c.id)
         
-        // Store pruned contacts for undo
-        const prunedContacts = contacts.filter(c => contactIdsToRemove.includes(c.id))
+        // Store pruned shots for undo
+        const prunedContacts = shots.filter(c => contactIdsToRemove.includes(c.id))
         
-        // Remove from contacts array
-        const updatedContacts = contacts.filter(c => !contactIdsToRemove.includes(c.id))
+        // Remove from shots array
+        const updatedContacts = shots.filter(c => !contactIdsToRemove.includes(c.id))
         
         // Remove from rally
         const updatedRallies = rallies.map(r => {
           if (r.id !== rallyId) return r
           return {
             ...r,
-            contacts: r.contacts.filter(c => !contactIdsToRemove.includes(c.id)),
+            shots: r.shots.filter(c => !contactIdsToRemove.includes(c.id)),
           }
         })
         
         set({
-          contacts: updatedContacts,
+          shots: updatedContacts,
           rallies: updatedRallies,
-          lastPrunedContacts: prunedContacts,
+          lastPrunedShots: prunedContacts,
         })
+        
+        return { prunedCount: prunedContacts.length }
       },
       
       undoLastPrune: (rallyId) => {
-        const { rallies, contacts, lastPrunedContacts } = get()
+        const { rallies, shots, lastPrunedShots } = get()
         
-        if (lastPrunedContacts.length === 0) return
+        if (lastPrunedShots.length === 0) return
         
-        // Restore contacts
-        const restoredContacts = [...contacts, ...lastPrunedContacts]
+        // Restore shots
+        const restoredContacts = [...shots, ...lastPrunedShots]
         
         // Restore to rally and re-sort by time
         const updatedRallies = rallies.map(r => {
           if (r.id !== rallyId) return r
-          const allContacts = [...r.contacts, ...lastPrunedContacts]
+          const allContacts = [...r.shots, ...lastPrunedShots]
             .sort((a, b) => a.time - b.time)
             .map((c, idx) => ({ ...c, shotIndex: idx + 1 }))
-          return { ...r, contacts: allContacts }
+          return { ...r, shots: allContacts }
         })
         
         set({
-          contacts: restoredContacts,
+          shots: restoredContacts,
           rallies: updatedRallies,
-          lastPrunedContacts: [],
+          lastPrunedShots: [],
         })
+      },
+      
+      // Shot Shot Data Actions (Part 2)
+      updateShotData: (shotId, data) => {
+        const { shots, rallies } = get()
+        
+        // Update in shots array
+        const updatedContacts = shots.map(c => 
+          c.id === shotId ? { ...c, ...data } : c
+        )
+        
+        // Update in rally's shots array
+        const updatedRallies = rallies.map(rally => ({
+          ...rally,
+          shots: rally.shots.map(c => 
+            c.id === shotId ? { ...c, ...data } : c
+          ),
+        }))
+        
+        set({ shots: updatedContacts, rallies: updatedRallies })
+      },
+      
+      completeShotTagging: (shotId, finalQuality) => {
+        const { shots, rallies } = get()
+        
+        // Find the shot
+        const shot = shots.find(c => c.id === shotId)
+        if (!shot) return
+        
+        // Derive landing type from quality
+        const landingType: LandingType = deriveLandingType(finalQuality)
+        
+        // Derive inferred spin from shot type (if applicable)
+        const inferredSpin: InferredSpin | undefined = shot.shotType 
+          ? deriveInferredSpin(shot.shotType as ShotType)
+          : undefined
+        
+        const updateData: Partial<Shot> = { 
+          shotQuality: finalQuality, 
+          landingType, 
+          inferredSpin, 
+          isTagged: true 
+        }
+        
+        // Update in shots array
+        const updatedContacts = shots.map(c => 
+          c.id === shotId ? { ...c, ...updateData } : c
+        )
+        
+        // Update in rally's shots array
+        const updatedRallies = rallies.map(rally => ({
+          ...rally,
+          shots: rally.shots.map(c => 
+            c.id === shotId ? { ...c, ...updateData } : c
+          ),
+        }))
+        
+        set({ shots: updatedContacts, rallies: updatedRallies })
       },
       
       // Mark end of set
       markEndOfSet: () => {
-        const { currentTime, games, currentGameIndex, player1Score, player2Score } = get()
+        const { currentTime, sets, currentSetIndex, player1Score, player2Score, matchFormat } = get()
+        
+        // Calculate max sets based on match format
+        const getMaxSets = (format: string): number => {
+          if (format === 'bestOf3') return 3
+          if (format === 'bestOf5') return 5
+          if (format === 'bestOf7') return 7
+          if (format === 'bestOf3_21') return 3
+          if (format === 'bestOf5_21') return 5
+          if (format === 'singleSet') return 1
+          return 5 // Default
+        }
+        
+        const maxSets = getMaxSets(matchFormat || 'bestOf5')
+        const currentSetNumber = currentSetIndex + 1
+        
+        // Don't allow ending more sets than the match format allows
+        if (currentSetNumber >= maxSets) {
+          // This is the final set - just update it, don't create a new one
+          const updatedGames = [...sets]
+          if (updatedGames[currentSetIndex]) {
+            updatedGames[currentSetIndex] = {
+              ...updatedGames[currentSetIndex],
+              endOfSetTimestamp: currentTime,
+              player1FinalScore: player1Score,
+              player2FinalScore: player2Score,
+            }
+          }
+          set({ sets: updatedGames })
+          return
+        }
         
         // Update current game with end timestamp
-        const updatedGames = [...games]
-        if (updatedGames[currentGameIndex]) {
-          updatedGames[currentGameIndex] = {
-            ...updatedGames[currentGameIndex],
+        const updatedGames = [...sets]
+        if (updatedGames[currentSetIndex]) {
+          updatedGames[currentSetIndex] = {
+            ...updatedGames[currentSetIndex],
             endOfSetTimestamp: currentTime,
             player1FinalScore: player1Score,
             player2FinalScore: player2Score,
@@ -988,7 +1396,7 @@ export const useTaggingStore = create<TaggingState>()(
           updatedGames.push({
             id: generateId(),
             matchId: get().matchId || '',
-            gameNumber: currentGameIndex + 1,
+            setNumber: currentSetIndex + 1,
             player1FinalScore: player1Score,
             player2FinalScore: player2Score,
             hasVideo: true,
@@ -996,12 +1404,200 @@ export const useTaggingStore = create<TaggingState>()(
           })
         }
         
+        // Create next game
+        updatedGames.push({
+          id: generateId(),
+          matchId: get().matchId || '',
+          setNumber: currentSetIndex + 2,
+          player1FinalScore: 0,
+          player2FinalScore: 0,
+          hasVideo: true,
+        })
+        
         // Start new game
         set({
-          games: updatedGames,
-          currentGameIndex: currentGameIndex + 1,
+          sets: updatedGames,
+          currentSetIndex: currentSetIndex + 1,
           player1Score: 0,
           player2Score: 0,
+        })
+      },
+      
+      // =========================================================================
+      // NEW: Rally Checkpoint Flow Actions
+      // =========================================================================
+      
+      setFrameworkState: (state) => set({ frameworkState: state }),
+      
+      confirmRally: () => {
+        const { currentRallyShots, rallies, currentServerId, currentTime, firstServerId, sets, currentSetIndex } = get()
+        
+        if (currentRallyShots.length === 0) return
+        
+        // Create rally from current shots
+        const rallyId = generateId()
+        const setId = sets[currentSetIndex]?.id || generateId()
+        const receiverId: PlayerId = currentServerId === 'player1' ? 'player2' : 'player1'
+        
+        const newRally: Rally = {
+          id: rallyId,
+          setId: setId,
+          rallyIndex: rallies.length + 1,
+          isScoring: true,
+          endOfPointTime: currentTime,
+          serverId: currentServerId,
+          receiverId: receiverId,
+          hasVideoData: true,
+          player1ScoreAfter: 0,  // Will be calculated by scoreAfterRally
+          player2ScoreAfter: 0,  // Will be calculated by scoreAfterRally
+          shots: currentRallyShots.map(c => ({ ...c, rallyId })),
+          // NEW: Framework tracking
+          frameworkConfirmed: true,
+          detailComplete: false,
+        }
+        
+        // Calculate next server based on rally count (not score - that's Part 2)
+        const newRallyCount = rallies.length + 1
+        const serveBlock = Math.floor(newRallyCount / 2)
+        const isFirstServerBlock = serveBlock % 2 === 0
+        const nextServerId: PlayerId = isFirstServerBlock 
+          ? firstServerId 
+          : (firstServerId === 'player1' ? 'player2' : 'player1')
+        
+        set({
+          rallies: [...rallies, newRally],
+          shots: [...get().shots, ...currentRallyShots.map(c => ({ ...c, rallyId }))],
+          currentRallyShots: [],
+          currentServerId: nextServerId,
+          frameworkState: 'ff_mode',
+        })
+      },
+      
+      redoCurrentRally: () => {
+        const { rallies, firstServeTimestamp } = get()
+        
+        // Get previous rally's end time (or first serve time if Rally 1)
+        const seekTime = rallies.length > 0 
+          ? rallies[rallies.length - 1].endOfPointTime || 0
+          : firstServeTimestamp || 0
+        
+        set({
+          currentRallyShots: [],
+          frameworkState: 'ff_mode',
+        })
+        
+        return seekTime
+      },
+      
+      redoFromRally: (rallyIndex: number) => {
+        const { rallies, shots, firstServeTimestamp, firstServerId } = get()
+        
+        if (rallyIndex < 0 || rallyIndex >= rallies.length) {
+          return firstServeTimestamp || 0
+        }
+        
+        // Get seek time (previous rally's end or first serve)
+        const seekTime = rallyIndex > 0 
+          ? rallies[rallyIndex - 1].endOfPointTime || 0
+          : firstServeTimestamp || 0
+        
+        // Delete rallies from index onward
+        const remainingRallies = rallies.slice(0, rallyIndex)
+        
+        // Delete shots from deleted rallies
+        const deletedRallyIds = new Set(rallies.slice(rallyIndex).map(r => r.id))
+        const remainingContacts = shots.filter(c => !deletedRallyIds.has(c.rallyId))
+        
+        // Recalculate server for next rally
+        const newRallyCount = remainingRallies.length
+        const serveBlock = Math.floor(newRallyCount / 2)
+        const isFirstServerBlock = serveBlock % 2 === 0
+        const nextServerId: PlayerId = isFirstServerBlock 
+          ? firstServerId 
+          : (firstServerId === 'player1' ? 'player2' : 'player1')
+        
+        set({
+          rallies: remainingRallies,
+          shots: remainingContacts,
+          currentRallyShots: [],
+          currentServerId: nextServerId,
+          frameworkState: 'ff_mode',
+        })
+        
+        return seekTime
+      },
+      
+      endSetFramework: () => {
+        // Transition from FF mode to shot detail phase
+        const { rallies } = get()
+        
+        if (rallies.length === 0) return
+        
+        set({
+          frameworkState: 'shot_detail',
+          activeRallyIndex: 0,
+          activeShotIndex: 1,
+          shotQuestionStep: 1,
+          // Also update legacy phase for compatibility
+          taggingPhase: 'part2',
+        })
+      },
+      
+      confirmRallyReview: () => {
+        const { activeRallyIndex, rallies, currentSetNumber } = get()
+        
+        // Mark current rally detail as complete
+        const updatedRallies = rallies.map((r, idx) => 
+          idx === activeRallyIndex ? { ...r, detailComplete: true } : r
+        )
+        
+        if (activeRallyIndex < rallies.length - 1) {
+          // Move to next rally
+          set({
+            rallies: updatedRallies,
+            activeRallyIndex: activeRallyIndex + 1,
+            activeShotIndex: 1,
+            shotQuestionStep: 1,
+            frameworkState: 'shot_detail',
+          })
+        } else {
+          // All rallies in set complete
+          set({
+            rallies: updatedRallies,
+            frameworkState: 'set_complete',
+            step2Complete: true,
+          })
+        }
+      },
+      
+      startNextSet: () => {
+        const { currentSetNumber, sets, matchId } = get()
+        const nextSetNumber = currentSetNumber + 1
+        
+        // Create new game for next set
+        const newGame: Set = {
+          id: generateId(),
+          matchId: matchId || '',
+          setNumber: nextSetNumber,
+          player1FinalScore: 0,
+          player2FinalScore: 0,
+          hasVideo: true,
+        }
+        
+        set({
+          currentSetNumber: nextSetNumber,
+          currentSetIndex: sets.length,
+          sets: [...sets, newGame],
+          // Clear rally data for new set
+          rallies: [],
+          shots: [],
+          currentRallyShots: [],
+          // Reset to framework state
+          frameworkState: 'ff_mode',
+          activeRallyIndex: 0,
+          activeShotIndex: 1,
+          shotQuestionStep: 1,
+          step2Complete: false,
         })
       },
       
@@ -1012,31 +1608,31 @@ export const useTaggingStore = create<TaggingState>()(
       },
       
       getTimelineMarkers: () => {
-        const { contacts, rallies, currentRallyContacts } = get()
+        const { shots, rallies, currentRallyShots } = get()
         const markers: TimelineMarker[] = []
         
-        // Add contact markers from completed rallies
-        contacts.forEach(contact => {
+        // Add shot markers from completed rallies
+        shots.forEach(shot => {
           markers.push({
-            id: contact.id,
-            time: contact.time,
-            type: 'contact',
-            rallyId: contact.rallyId,
+            id: shot.id,
+            time: shot.time,
+            type: 'shot',
+            rallyId: shot.rallyId,
           })
         })
         
-        // Add current rally contacts
-        currentRallyContacts.forEach(contact => {
+        // Add current rally shots
+        currentRallyShots.forEach(shot => {
           markers.push({
-            id: contact.id,
-            time: contact.time,
-            type: 'contact',
+            id: shot.id,
+            time: shot.time,
+            type: 'shot',
           })
         })
         
-        // Add rally end markers (use last contact time of each rally)
+        // Add rally end markers (use last shot time of each rally)
         rallies.forEach(rally => {
-          const lastContact = rally.contacts[rally.contacts.length - 1]
+          const lastContact = rally.shots[rally.shots.length - 1]
           if (lastContact) {
             markers.push({
               id: `rally-end-${rally.id}`,
@@ -1064,28 +1660,35 @@ export const useTaggingStore = create<TaggingState>()(
         
         // v0.8.0 - Match details
         matchDate: state.matchDate,
-        videoStartSetScore: state.videoStartSetScore,
-        videoStartPointsScore: state.videoStartPointsScore,
+        player1StartSets: state.player1StartSets,
+        player2StartSets: state.player2StartSets,
+        player1StartPoints: state.player1StartPoints,
+        player2StartPoints: state.player2StartPoints,
         firstServeTimestamp: state.firstServeTimestamp,
         videoCoverage: state.videoCoverage,
         taggingMode: state.taggingMode,
+        matchFormat: state.matchFormat,
+        tournament: state.tournament,
         
         // v0.8.0 - Match completion
         matchResult: state.matchResult,
         finalSetScore: state.finalSetScore,
         finalPointsScore: state.finalPointsScore,
         
-        // Game state
-        currentGameIndex: state.currentGameIndex,
-        games: state.games,
+        // Set state
+        currentSetIndex: state.currentSetIndex,
+        sets: state.sets,
         player1Score: state.player1Score,
         player2Score: state.player2Score,
         currentServerId: state.currentServerId,
         
+        // Player profiles
+        players: state.players,
+        
         // Tagging data
-        contacts: state.contacts,
+        shots: state.shots,
         rallies: state.rallies,
-        currentRallyContacts: state.currentRallyContacts,
+        currentRallyShots: state.currentRallyShots,
         
         // Workflow
         taggingPhase: state.taggingPhase,
@@ -1095,7 +1698,21 @@ export const useTaggingStore = create<TaggingState>()(
         activeShotIndex: state.activeShotIndex,
         shotQuestionStep: state.shotQuestionStep,
         currentReviewRallyIndex: state.currentReviewRallyIndex,
+        // Rally Checkpoint Flow
+        frameworkState: state.frameworkState,
+        currentSetNumber: state.currentSetNumber,
+        
+        // Part 2 preview settings
+        loopSpeed: state.loopSpeed,
+        previewBufferSeconds: state.previewBufferSeconds,
       }),
     }
   )
 )
+
+
+
+
+
+
+

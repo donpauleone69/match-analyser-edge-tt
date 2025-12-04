@@ -18,6 +18,52 @@ export interface Player {
 }
 
 // =============================================================================
+// PLAYER PROFILE TYPES (for future database)
+// =============================================================================
+
+/**
+ * Player profile for match analysis and scouting.
+ * Stored in database for head-to-head analysis, opponent profiling, etc.
+ */
+export interface PlayerProfile {
+  // System fields
+  id: string
+  created_at: string
+  updated_at: string
+  
+  // Identity
+  first_name: string
+  last_name: string
+  date_of_birth: string | null
+  profile_picture_url: string | null
+  
+  // Club affiliation
+  club_id: string | null  // 'lagos' | 'padernense' | 'other'
+  
+  // Playing characteristics
+  handedness: Handedness
+  playstyle: Playstyle
+  
+  // Equipment
+  rubber_forehand: RubberType
+  rubber_backhand: RubberType
+  
+  // Optional metadata
+  bio: string | null
+  is_archived: boolean
+}
+
+export type Handedness = 'left' | 'right'
+
+export type Playstyle = 'attack' | 'allround' | 'defence'
+
+export type RubberType = 
+  | 'inverted' 
+  | 'shortPips' 
+  | 'longPips' 
+  | 'antiSpin'
+
+// =============================================================================
 // SHOT QUALITY (v0.8.0 - expanded with error types)
 // =============================================================================
 
@@ -52,7 +98,7 @@ export function isErrorQuality(quality: ShotQuality): boolean {
 // =============================================================================
 
 /**
- * Serve spin based on ball contact point.
+ * Serve spin based on ball shot point.
  * 
  * Grid layout (numpad mapping):
  * 
@@ -60,8 +106,8 @@ export function isErrorQuality(quality: ShotQuality): boolean {
  *   sideLeft(4)   noSpin(5)     sideRight(6)
  *   backLeft(1)   backspin(2)   backRight(3)
  * 
- * Top row = topspin family (contact top of ball)
- * Bottom row = backspin family (contact bottom of ball)
+ * Top row = topspin family (shot top of ball)
+ * Bottom row = backspin family (shot bottom of ball)
  */
 export type ServeSpin =
   | 'topLeft' | 'topspin' | 'topRight'
@@ -128,10 +174,12 @@ export type Wing = 'FH' | 'BH'
 // =============================================================================
 
 /**
- * Full shot type list (14 types for Full Mode).
- * Ordered from most defensive to most aggressive.
+ * Full shot type list (15 types for Full Mode).
+ * Ordered from serve, then most defensive to most aggressive.
  */
 export type ShotType =
+  // Serve
+  | 'serve'
   // Defensive
   | 'lob'
   | 'chop'
@@ -152,9 +200,10 @@ export type ShotType =
   | 'other'
 
 /**
- * Essential mode shot types (9 types for faster tagging).
+ * Essential mode shot types (10 types for faster tagging).
  */
 export type EssentialShotType =
+  | 'serve'
   | 'push'
   | 'chop'
   | 'block'
@@ -166,7 +215,7 @@ export type EssentialShotType =
   | 'other'
 
 export const ESSENTIAL_SHOT_TYPES: EssentialShotType[] = [
-  'push', 'chop', 'block', 'lob', 'drive', 'flick', 'loop', 'smash', 'other'
+  'serve', 'push', 'chop', 'block', 'lob', 'drive', 'flick', 'loop', 'smash', 'other'
 ]
 
 // =============================================================================
@@ -177,6 +226,7 @@ export const ESSENTIAL_SHOT_TYPES: EssentialShotType[] = [
  * Spin inferred from shot type (not entered manually).
  */
 export type InferredSpin =
+  | 'unknown'
   | 'heavyTopspin'
   | 'topspin'
   | 'noSpin'
@@ -187,6 +237,7 @@ export type InferredSpin =
  * Shot type → Inferred spin mapping.
  */
 export const SHOT_TYPE_SPIN_MAP: Record<ShotType, InferredSpin> = {
+  serve: 'unknown',  // Serve spin is captured separately via serveSpin field
   lob: 'topspin',
   chop: 'heavyBackspin',
   chopBlock: 'backspin',
@@ -346,19 +397,49 @@ export type UnforcedErrorCause =
   | 'tooPassive'
 
 // =============================================================================
-// CONTACT & RALLY TYPES
+// SHOT & RALLY TYPES
 // =============================================================================
 
-export interface Contact {
+/**
+ * Shot represents a ball shot in the match.
+ * 
+ * Part 1: Only id, rallyId, time, shotIndex are set
+ * Part 2: Shot data fields are filled in during detailed tagging
+ * 
+ * Note: shotType field is auto-populated to 'serve' when shotIndex === 1
+ */
+export interface Shot {
   id: string
   rallyId: string
   time: number // seconds in video
   shotIndex: number
+  
+  // Shot data fields (filled in Part 2)
+  playerId?: PlayerId
+  
+  // Serve-specific fields (shotIndex === 1)
+  serveType?: ServeType
+  serveSpin?: ServeSpin
+  
+  // Rally shot fields (shotIndex > 1) OR auto-populated 'serve' for shotIndex === 1
+  wing?: Wing
+  shotType?: EssentialShotType
+  
+  // Common fields
+  landingZone?: LandingZone
+  shotQuality?: ShotQuality
+  
+  // Derived fields (calculated, not input)
+  landingType?: LandingType
+  inferredSpin?: InferredSpin
+  
+  // Metadata
+  isTagged?: boolean // True when Part 2 tagging complete for this shot
 }
 
 export interface Rally {
   id: string
-  gameId: string
+  setId: string  // References Set (formerly setId)
   rallyIndex: number
   isScoring: boolean
   winnerId?: PlayerId
@@ -368,10 +449,13 @@ export interface Rally {
   serverId: PlayerId
   receiverId: PlayerId
   hasVideoData: boolean
-  contacts: Contact[]
+  shots: Shot[]  // Array of shots in this rally
   isHighlight?: boolean
   pointEndType?: PointEndType
   luckType?: LuckType
+  // Rally Checkpoint Flow tracking
+  frameworkConfirmed?: boolean
+  detailComplete?: boolean
 }
 
 // =============================================================================
@@ -441,7 +525,7 @@ export interface MatchCompletionInput {
 // TIMELINE MARKER TYPES
 // =============================================================================
 
-export type MarkerType = 'contact' | 'rally-end-score' | 'rally-end-no-score' | 'end-of-set'
+export type MarkerType = 'shot' | 'rally-end-score' | 'rally-end-no-score' | 'end-of-set'
 
 export interface TimelineMarker {
   id: string
@@ -451,13 +535,13 @@ export interface TimelineMarker {
 }
 
 // =============================================================================
-// GAME TYPE
+// SET TYPE
 // =============================================================================
 
-export interface Game {
+export interface Set {
   id: string
   matchId: string
-  gameNumber: number
+  setNumber: number  // Set number (formerly setNumber)
   player1FinalScore: number
   player2FinalScore: number
   winnerId?: string

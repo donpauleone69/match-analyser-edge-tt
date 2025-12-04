@@ -213,44 +213,49 @@ export function calculateScoreAfterRally(input: ScoreUpdateInput): ScoreUpdateRe
 }
 
 // =============================================================================
-// GAME END DETECTION
+// SET END DETECTION
 // =============================================================================
 
-export interface GameEndInput {
+export interface SetEndInput {
   player1Score: number
   player2Score: number
   targetScore?: number
 }
 
-export interface GameEndResult {
-  isGameEnd: boolean
+export interface SetEndResult {
+  isSetEnd: boolean
   winnerId: PlayerId | null
 }
 
 /**
- * Check if the game has ended based on score.
+ * Check if the set has ended based on score.
  * Standard rules: first to 11 with 2-point lead.
  */
-export function checkGameEnd(input: GameEndInput): GameEndResult {
+export function checkSetEnd(input: SetEndInput): SetEndResult {
   const { player1Score, player2Score, targetScore = 11 } = input
   
   const maxScore = Math.max(player1Score, player2Score)
   const minScore = Math.min(player1Score, player2Score)
   const lead = maxScore - minScore
   
-  // Game ends when someone reaches target with 2+ lead
+  // Set ends when someone reaches target with 2+ lead
   if (maxScore >= targetScore && lead >= 2) {
     return {
-      isGameEnd: true,
+      isSetEnd: true,
       winnerId: player1Score > player2Score ? 'player1' : 'player2',
     }
   }
   
   return {
-    isGameEnd: false,
+    isSetEnd: false,
     winnerId: null,
   }
 }
+
+// Legacy aliases for backward compatibility during migration
+export const checkGameEnd = checkSetEnd
+export type GameEndInput = SetEndInput
+export type GameEndResult = SetEndResult
 
 // =============================================================================
 // HELPERS
@@ -270,7 +275,7 @@ function formatLandingType(landingType: LandingType): string {
 // =============================================================================
 
 export interface AutoPruneInput {
-  contacts: Array<{ id: string; shotIndex: number }>
+  shots: Array<{ id: string; shotIndex: number }>
   errorShotIndex: number
 }
 
@@ -280,15 +285,15 @@ export interface AutoPruneResult {
 }
 
 /**
- * Identify contacts to auto-delete after an error-marked shot.
+ * Identify shots to auto-delete after an error-marked shot.
  * 
  * If a shot at index N is marked as an error (ending the rally),
- * any contacts at index > N must be misclicks and should be pruned.
+ * any shots at index > N must be misclicks and should be pruned.
  */
 export function calculateContactsToPrune(input: AutoPruneInput): AutoPruneResult {
-  const { contacts, errorShotIndex } = input
+  const { shots, errorShotIndex } = input
   
-  const contactsToDelete = contacts
+  const contactsToDelete = shots
     .filter(c => c.shotIndex > errorShotIndex)
     .map(c => c.id)
   

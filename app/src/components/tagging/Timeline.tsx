@@ -37,7 +37,7 @@ export function Timeline() {
               key={marker.id}
               className={cn(
                 'absolute top-1/2 -translate-y-1/2 -translate-x-1/2',
-                marker.type === 'contact' && 'w-0.5 h-5 bg-cyan-400',
+                marker.type === 'shot' && 'w-0.5 h-5 bg-cyan-400',
                 marker.type === 'rally-end-score' && 'w-1 h-7 bg-success rounded-sm',
                 marker.type === 'rally-end-no-score' && 'w-1 h-7 bg-warning rounded-sm'
               )}
@@ -61,7 +61,7 @@ export function Timeline() {
       <div className="absolute right-4 bottom-1 flex items-center gap-3 text-xs text-neutral-400">
         <div className="flex items-center gap-1">
           <div className="w-2 h-3 bg-cyan-400 rounded-sm" />
-          <span>Contact</span>
+          <span>Shot</span>
         </div>
         <div className="flex items-center gap-1">
           <div className="w-2 h-3 bg-success rounded-sm" />

@@ -423,7 +423,7 @@ Section/Block (renders view model)
 
 1. User presses `→` key
 2. `TaggingScreenComposer` calls `endRallyWithoutWinner()`
-3. Store action creates new Rally, clears currentRallyContacts
+3. Store action creates new Rally, clears currentRallyShots
 4. Components re-render with new state
 5. `useDeriveRallyDetail()` computes view model for display
 
@@ -457,8 +457,8 @@ Section/Block (renders view model)
 
 | Type | Pattern | Example |
 |------|---------|---------|
-| Create | `add<Thing>`, `create<Thing>` | `addContact()` |
-| Update | `update<Thing>`, `set<Thing>` | `updateContactTime()` |
+| Create | `add<Thing>`, `create<Thing>` | `addShot()` |
+| Update | `update<Thing>`, `set<Thing>` | `updateShotTime()` |
 | Delete | `delete<Thing>`, `remove<Thing>` | `deleteRally()` |
 | Toggle | `toggle<Thing>` | `toggleRallyHighlight()` |
 

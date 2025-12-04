@@ -6,6 +6,934 @@
 
 ## Change Log
 
+### 2025-12-03: UI Prototype V2 - Mobile-Optimized Layout with Integrated Video Player
+
+**Context:** Reorganized layout for optimal mobile (iPhone) viewing experience. Video player now integrated directly in the prototype interface.
+
+#### Mobile-First Layout Structure
+
+**Changes:**
+- Complete layout reorganization for mobile optimization:
+  1. **Shot Log** (top) - Scrollable area with all shot history
+  2. **Video Player** (middle) - Fixed aspect-video ratio, full width
+  3. **Status Strip** (below video) - Current rally/shot and progress info
+  4. **Controls** (bottom) - Button inputs (Phase 1 or Phase 2 questions)
+- Integrated VideoPlayer component from main tagging feature
+- Video player uses `aspect-video` for proper 16:9 display
+- Shot log now has `flex-1 min-h-0 overflow-y-auto` for proper scrolling
+- All other sections use `shrink-0` to maintain fixed heights
+
+**Rationale:**
+- **Shot log at top:** Easy to reference while tagging, scrolls independently
+- **Video in middle:** Prime viewing position, doesn't require scrolling
+- **Status below video:** Contextual information right where you're looking
+- **Controls at bottom:** Thumb-friendly zone for iPhone single-hand use
+- Fixed video height ensures consistent viewing experience
+
+**Implementation Details:**
+- Added `VideoPlayer` import and ref to both Phase1 and Phase2 composers
+- Connected to Zustand store for video URL and playback state
+- Video player shows time overlay for precise timestamp marking
+- Uses `compact={true}` mode for space efficiency
+
+#### Files Changed
+
+- `app/src/features/tagging-ui-prototype-v2/composers/Phase1TimestampComposer.tsx`
+  - Added VideoPlayer component import and ref
+  - Reorganized layout: Shot Log → Video → Status → Controls
+  - Shot log now scrolls independently
+- `app/src/features/tagging-ui-prototype-v2/composers/Phase2DetailComposer.tsx`
+  - Added VideoPlayer component import and ref
+  - Reorganized layout: Shot Log → Video → Status → Controls
+  - Shot log now scrolls independently
+
+#### Impact
+
+**Usability:**
+- **One-handed iPhone use:** Video and controls in optimal positions
+- **No scrolling required:** Video always visible while tagging
+- **Context preservation:** Shot log accessible without losing video view
+- **Thumb zone optimization:** Controls at bottom for easy reach
+
+**Visual Design:**
+- Clean vertical stack optimized for portrait mobile viewing
+- Video maintains proper aspect ratio
+- Clear visual hierarchy from top to bottom
+
+**Development:**
+- Video player fully integrated (not separate window/screen)
+- Consistent with main tagging interface patterns
+- Uses existing VideoPlayer component (no duplication)
+
+#### Testing Required
+
+- ⏳ Mobile: Shot log scrolls independently of video
+- ⏳ Mobile: Video player displays at full width with correct aspect ratio
+- ⏳ Mobile: Status strip shows current question/rally info
+- ⏳ Mobile: Controls remain accessible at bottom (no scrolling needed)
+- ⏳ Video playback: Play/pause/seek functions work correctly
+- ⏳ Video time overlay: Timestamps visible for shot marking
+
+---
+
+### 2025-12-03: UI Prototype V2 - Major Refinements to Phase 1 & Phase 2 Interfaces
+
+**Context:** Comprehensive refinement of Tagging UI Prototype V2 based on user testing feedback. Simplified button layout, improved error placement capture, enhanced text styling, and consistent capitalization throughout.
+
+#### Phase 1: Three-Button Layout with Inline Error Placement
+
+**Changes:**
+- Replaced 4-button layout (Out | In-Net | Win | Serve/Shot) with 3-button layout:
+  - **New layout:** Fault | Win | Serve/Shot
+- Implemented inline error placement flow:
+  - When user clicks "Fault", button row is replaced with: In-Net | Long
+  - After selecting In-Net or Long, rally ends with error placement recorded
+  - Returns to normal 3-button layout for next rally
+- Updated color scheme for Phase 1:
+  - Fault: `bg-red-600 hover:bg-red-700` (danger/error)
+  - In-Net: `bg-red-600 hover:bg-red-700` (same as Fault parent)
+  - Long: `bg-red-600 hover:bg-red-700` (same as Fault parent)
+  - Win: `bg-green-600 hover:bg-green-700` (success)
+  - Serve/Shot: `bg-blue-600 hover:bg-blue-700` (primary action)
+- Added `flex items-center justify-center` to all buttons for proper text centering
+- Button heights consistent at `h-20` (80px)
+
+**Rationale:**
+- Single "Fault" button simplifies initial decision (fault vs win vs continue)
+- Immediate error placement capture (In-Net vs Long) provides better context while watching video
+- In-line UI replacement keeps user focused on same screen area
+- Consistent red color for all fault types reinforces error concept
+- Three buttons allow larger touch targets
+
+**Data Model Changes:**
+- `Phase1Rally` interface now includes `errorPlacement?: 'innet' | 'long'` field
+- `EndCondition` type updated to `'innet' | 'long' | 'winner'`
+- Error rallies have `isError: true` with `errorPlacement` storing the specific fault type
+
+#### Phase 2: Reduced Spin Options and Improved Layout
+
+**Changes:**
+- Reduced spin options from 4 to 3:
+  - **Removed:** "Side Spin"
+  - **Kept:** Under Spin, No Spin, Top Spin
+- Updated spin button color scheme:
+  - Under Spin: `bg-indigo-600 hover:bg-indigo-700`
+  - No Spin: `bg-slate-600 hover:bg-slate-700`
+  - Top Spin: `bg-violet-600 hover:bg-violet-700`
+- Updated intent button colors:
+  - Defensive: `bg-blue-600 hover:bg-blue-700` (unchanged)
+  - Neutral: `bg-amber-600 hover:bg-amber-700` (changed from yellow)
+  - Aggressive: `bg-orange-600 hover:bg-orange-700` (unchanged)
+- Moved question headers from gray bar above buttons to status strip:
+  - **Before:** Gray header bar showed "Serve: Length?"
+  - **After:** Status strip shows "Serve: Length?" alongside progress
+  - Removes visual clutter and reduces vertical space
+- Fixed button text alignment:
+  - Added `flex items-center justify-center` to all buttons
+  - Added `whitespace-nowrap overflow-hidden text-ellipsis` for long labels
+  - Ensures consistent centering across all button types
+
+**Rationale:**
+- Three spin types cover most common serves (side spin rarely used in tagging context)
+- Improved color scheme provides better visual distinction between options
+- Amber (instead of yellow) for "Neutral" intent provides better contrast and accessibility
+- Moving question text to status bar:
+  - Reduces redundancy (question context already in status)
+  - Maximizes button area for easier tapping
+  - Cleaner visual hierarchy
+- Text alignment fixes prevent overlap issues with longer labels (e.g., "Defensive")
+
+**TypeScript Changes:**
+- Updated `DetailedShot` interface: `spin?: 'under' | 'nospin' | 'topspin'` (removed 'sidespin')
+
+#### Consistent Capitalization: Title Case Throughout
+
+**Changes:**
+- All button labels updated to Title Case:
+  - **Phase 1:** "Fault", "Win", "Serve", "Shot", "In-Net", "Long"
+  - **Phase 2 Serves:** "Left", "Right", "Line", "Diagonal", "Short", "Half-Long", "Long", "Under Spin", "No Spin", "Top Spin"
+  - **Phase 2 Shots:** "Backhand", "Forehand", "Defensive", "Neutral", "Aggressive", "Forced", "Unforced"
+- Previously inconsistent (mix of UPPERCASE, Title Case, and lowercase)
+
+**Rationale:**
+- Consistent capitalization improves professional appearance
+- Title Case is more readable than ALL CAPS for longer labels
+- Reduces cognitive load by eliminating inconsistent styling
+
+#### Files Changed
+
+**Phase 1:**
+- `app/src/features/tagging-ui-prototype-v2/blocks/Phase1ControlsBlock.tsx`
+  - Complete rewrite: 3-button layout with conditional error placement UI
+  - Updated props interface to support new flow
+  - Applied new color scheme and text alignment fixes
+- `app/src/features/tagging-ui-prototype-v2/composers/Phase1TimestampComposer.tsx`
+  - Added `showErrorPlacementUI` state
+  - Split rally end logic into separate handlers: `handleFault()`, `handleFaultErrorPlacement()`, `handleWin()`
+  - Updated rally display labels to show "In-Net" and "Long" instead of "In Net" and "Out"
+  - Updated `Phase1Rally` interface with `errorPlacement` field
+
+**Phase 2:**
+- `app/src/features/tagging-ui-prototype-v2/composers/Phase2DetailComposer.tsx`
+  - Reduced `spinOptions` to 3 buttons with new color scheme
+  - Updated intent button colors (Neutral: amber instead of yellow)
+  - Added `getCurrentQuestionLabel()` function to build question text for status bar
+  - Updated status strip to show: `{shotLabel}: {currentQuestionLabel}?`
+  - Removed `buildHeader()` function (no longer needed)
+  - Removed `header` prop from all `SequentialQuestionBlock` calls
+  - Updated rally end condition labels: "In-Net" and "Long" instead of "In Net" and "Out"
+- `app/src/features/tagging-ui-prototype-v2/blocks/SequentialQuestionBlock.tsx`
+  - Removed `header` prop from interface
+  - Removed gray header bar div
+  - Added `flex items-center justify-center` to button styling
+  - Added `whitespace-nowrap overflow-hidden text-ellipsis` for text overflow handling
+
+#### Impact
+
+**Usability:**
+- Phase 1 flow is now simpler: Fault → (pick In-Net or Long) → done
+- Error placement is captured immediately while context is fresh
+- Larger 3-button layout provides bigger touch targets
+- Cleaner Phase 2 interface with question text in status bar instead of redundant header
+- Consistent text styling reduces confusion
+
+**Visual Design:**
+- Cohesive color scheme across both phases
+- Professional Title Case capitalization throughout
+- Proper text alignment prevents overlap issues
+- Reduced visual clutter with header removal
+
+**Data Quality:**
+- Error placement (In-Net vs Long) now captured in Phase 1
+- More granular error data for analysis
+- Consistent with actual game rules (different consequences for In-Net vs Long)
+
+#### Testing Required
+
+- ⏳ Phase 1: Fault button triggers In-Net/Long choice (replaces button row)
+- ⏳ Phase 1: In-Net and Long buttons end rally correctly
+- ⏳ Phase 1: All buttons have centered text and consistent height
+- ⏳ Phase 1: Serve changes to Shot after first press
+- ⏳ Phase 2: Only 3 spin buttons appear (no Side Spin)
+- ⏳ Phase 2: Question text appears in status bar, not above buttons
+- ⏳ Phase 2: Intent buttons (Defensive/Neutral/Aggressive) have centered text without overlap
+- ⏳ All buttons use Title Case consistently
+- ⏳ Color scheme is visually cohesive and accessible
+
+---
+
+### 2025-12-03: UI Prototype - Error Shot Layout Alignment & Button Height Increase
+
+**Context:** Refinement of Phase 2 tagging UI prototype to improve layout consistency across all input screens and enhance thumb accessibility on mobile devices.
+
+#### Error Shot Screen Layout Alignment
+
+**Changes:**
+- Added column headers ("Stroke", "Type") above toggle buttons, matching Standard Shot and Serve screens
+- Added "Toggles:" row label (fixed width `w-20`) for consistency with other screens
+- Removed "Error Shot" label and "Skip" button from error shot screen
+- Updated error type buttons to use consistent red color scheme:
+  - Unforced: `bg-danger/60` (muted red when active)
+  - Forced: `bg-danger` (full red when active)
+  - Both use `focus:ring-danger`
+
+**Rationale:**
+- Consistent layout across all Phase 2 input screens improves cognitive load
+- Column headers make it clear what each toggle controls
+- Red color scheme for both error types maintains visual consistency (both are errors)
+- Removing redundant labels reduces clutter and maximizes input area
+
+**Final Layout:**
+```
+         Stroke         Type                   <- Column headers
+Toggles: [Backhand]    [Unforced]             <- Fixed label + 2 red buttons
+Intent:  [Defensive] [Neutral] [Aggressive]   <- Fixed label + 3 buttons
+```
+
+#### Button Height Increase
+
+**Changes:**
+- Increased all button vertical padding from `py-2.5` (0.625rem / 10px) to `py-3.5` (0.875rem / 14px)
+- Applied across all Phase 2 input screens:
+  - Standard Shot: Wing/Direction/Quality toggles, Intent buttons
+  - Error Shot: Wing/Error Type toggles, Intent buttons
+  - Serve: Contact/Direction toggles, Length buttons, Spin buttons
+
+**Rationale:**
+- Larger touch targets improve thumb accessibility on mobile devices
+- 14px padding provides comfortable tapping area for single-hand iPhone use
+- Consistent button height across all screens enhances visual harmony
+- Additional 4px (2px top + 2px bottom) increases button height from ~42px to ~50px
+
+#### Files Changed
+
+- `app/src/features/tagging-ui-prototype/composers/Phase2DetailComposer.tsx`
+  - Error shot screen: Added column headers, "Toggles:" label, updated error type button colors
+  - Removed error shot label and skip button
+  - Increased all button heights to `py-3.5`
+- `app/src/features/tagging-ui-prototype/blocks/ServeDetailBlock.tsx`
+  - Increased all button heights to `py-3.5`
+
+#### Impact
+
+**Usability:**
+- Consistent layout reduces learning curve for users switching between shot types
+- Larger buttons reduce mis-taps and improve input speed on mobile
+- Red error type buttons provide immediate visual feedback
+
+**Visual Design:**
+- All screens now follow the same layout pattern
+- Column headers and fixed-width labels create clean vertical alignment
+- Increased button height creates more balanced proportions
+
+#### Testing Required
+
+- ⏳ Manual test: Navigate through Phase 2 → verify error shot screen has column headers
+- ⏳ Manual test: Check button heights on mobile → verify comfortable thumb tapping
+- ⏳ Manual test: Toggle between Forced/Unforced → verify both buttons appear red when selected
+- ⏳ Manual test: Verify no "Error Shot" label or "Skip" button appears
+
+---
+
+### 2025-12-02: Bug Fixes - End of Rally Flow & Keyboard Shortcuts
+
+**Context:** Fixed two critical bugs in the End of Rally workflow and keyboard shortcut handling discovered during code review.
+
+#### Bug 1: Missing `endOfPointTime` Initialization
+
+**Issue:**
+- When transitioning to End of Rally step (both winner shot and error paths), `endOfPointTime` was not initialized on the rally
+- User could adjust time with arrow keys, but if they confirmed immediately, `endOfPointTime` remained `undefined`
+- This caused data completeness issues downstream
+
+**Fix:**
+- Added `updateEndOfPointTime(currentRally.id, currentShot.time)` in both code paths:
+  - Winner shot path (line ~454): When last shot has in-play quality
+  - Error shot path (line ~508): When any shot has error quality
+- Now `endOfPointTime` is automatically set to the shot's timestamp when entering End of Rally step
+- User can still adjust with arrow keys if needed
+
+**Files Changed:**
+- `app/src/features/tagging/composers/TaggingScreenComposer.tsx`
+
+#### Bug 2: `Shift+Delete` Not Working at Checkpoint
+
+**Issue:**
+- When `Shift+Delete` was pressed at checkpoint state, the code checked `frameworkState === 'checkpoint'` first
+- This caused redo logic to execute instead of delete rally logic
+- The `else if (e.shiftKey)` branch was never reached when at checkpoint
+
+**Fix:**
+- Reordered keyboard handler conditions to check `e.shiftKey` first
+- Now `Shift+Delete` works in any state (including checkpoint)
+- Logic order:
+  1. `if (e.shiftKey)` → Delete last rally (priority)
+  2. `else if (frameworkState === 'checkpoint')` → Redo rally
+  3. `else` → Delete last shot
+
+**Files Changed:**
+- `app/src/features/tagging/composers/TaggingScreenComposer.tsx` (lines ~701-722)
+
+#### Impact
+
+**Bug 1:**
+- Ensures data completeness for all rallies
+- Prevents `undefined` timestamps in exported data
+- Fixes potential crashes in data analysis features
+
+**Bug 2:**
+- Restores expected `Shift+Delete` functionality
+- Users can now delete rallies from checkpoint state
+- More intuitive keyboard shortcut behavior
+
+#### Testing Required
+
+- ✅ TypeScript compilation passes
+- ⏳ Manual test: Tag rally, confirm End of Rally immediately → verify `endOfPointTime` is set
+- ⏳ Manual test: Press `Shift+Delete` at checkpoint → verify last rally is deleted
+- ⏳ Manual test: Press `Delete` at checkpoint without Shift → verify redo behavior
+
+---
+
+### 2025-12-02: Comprehensive Terminology Standardization & Player Profiles
+
+**Context:** Major refactoring to standardize terminology across the entire codebase, add Player Profile types for future database implementation, and fix critical data completeness bugs.
+
+#### Terminology Changes
+
+**Standardized naming throughout codebase:**
+- ❌ `Contact` → ✅ `Shot` (more accurate - represents a ball contact/shot)
+- ❌ `Game` → ✅ `Set` (correct table tennis terminology)
+- ✅ `Rally` → ✅ `Rally` (no change - already correct ITTF term)
+
+**Rationale:**
+- "Contact" was technically accurate but ambiguous
+- "Game" conflicts with TT terminology (a game is called a "set")
+- "Rally" is the official ITTF term for an exchange of shots ending in a point
+- Consistency with industry standards and future database integration
+
+#### Shot Type Enhancements
+
+**Added `'serve'` to shot type enums:**
+- `EssentialShotType`: Now 10 types (added 'serve')
+- `ShotType` (Full Mode): Now 15 types (added 'serve')
+- `ESSENTIAL_SHOT_TYPES` array updated
+- `SHOT_TYPE_SPIN_MAP` updated with `serve: 'unknown'`
+
+**Auto-population logic:**
+- When `shotIndex === 1`, `shotType` is automatically set to `'serve'`
+- Ensures data completeness - no more blank shotType for serves
+- Consistent data structure across all shots
+
+**Added `'unknown'` to InferredSpin:**
+- Used for serves when spin cannot be inferred from shotType alone
+- Honest representation (unknown vs guessing noSpin)
+- Actual `serveSpin` field still captures detailed serve spin
+
+#### Player Profile Types (Database-Ready)
+
+**Added new types for future Supabase migration:**
+```typescript
+interface PlayerProfile {
+  id: string
+  first_name: string
+  last_name: string
+  date_of_birth: string | null
+  club_id: string | null  // 'lagos' | 'padernense' | 'other'
+  handedness: Handedness  // 'left' | 'right'
+  playstyle: Playstyle    // 'attack' | 'allround' | 'defence'
+  rubber_forehand: RubberType  // 'inverted' | 'shortPips' | 'longPips' | 'antiSpin'
+  rubber_backhand: RubberType
+  profile_picture_url: string | null
+  bio: string | null
+  is_archived: boolean
+  created_at: string
+  updated_at: string
+}
+```
+
+**New enums:**
+- `Handedness`: 'left' | 'right'
+- `Playstyle`: 'attack' | 'allround' | 'defence'
+- `RubberType`: 'inverted' | 'shortPips' | 'longPips' | 'antiSpin'
+
+#### Database Schema Updates
+
+**Created comprehensive ERD:**
+- New document: `docs-match-analyser-edge-tt/specs/DatabaseERD.md`
+- Complete entity relationship diagram (Mermaid format)
+- 5 tables: Players, Matches, Sets, Rallies, Shots
+- Foreign key relationships documented
+- Indexes and cardinality defined
+
+**Table name changes:**
+- `contacts` → `shots` (consistent with code)
+- `games` → `sets` (correct TT terminology)
+- `rallies` → `rallies` (no change)
+
+**Field name changes:**
+- `gameId` → `setId`
+- `gameNumber` → `setNumber`
+- `currentGameIndex` → `currentSetIndex`
+
+#### Store State Updates
+
+**Added to TaggingState:**
+- `players: PlayerProfile[]` - For future multi-match player management
+- `sets: Set[]` (renamed from `games`)
+- `shots: Shot[]` (renamed from `contacts`)
+- `currentRallyShots: Shot[]` (renamed from `currentRallyContacts`)
+
+**Action renames:**
+- `addContact()` → `addShot()`
+- `updateContact()` → `updateShot()`
+- `deleteContact()` → `deleteShot()`
+- `updateContactTime()` → `updateShotTime()`
+- `updateContactShotData()` → `updateShotData()`
+- `completeContactTagging()` → `completeShotTagging()`
+- `nudgeContact()` → `nudgeShot()`
+- `autoPruneContacts()` → `autoPruneShots()`
+- `addContactToRally()` → `addShotToRally()`
+
+**Set-related renames:**
+- `checkGameEnd()` → `checkSetEnd()` (with legacy alias)
+- `GameEndInput/Result` → `SetEndInput/Result` types
+
+#### Timeline Marker Updates
+
+**MarkerType updated:**
+- `'contact'` → `'shot'`
+- More descriptive and consistent
+
+#### Files Changed
+
+**Core Types (app/src/rules/types.ts):**
+- Added PlayerProfile, Handedness, Playstyle, RubberType
+- Renamed Contact → Shot
+- Renamed Game → Set
+- Added 'serve' to ShotType and EssentialShotType
+- Added 'unknown' to InferredSpin
+- Updated SHOT_TYPE_SPIN_MAP
+
+**Store (app/src/stores/taggingStore.ts):**
+- Complete state property renames
+- All action renames
+- Auto-populate shotType='serve' logic
+- Added players: PlayerProfile[] state
+
+**Features (34 component files):**
+- All tagging feature components updated
+- All data-viewer components updated
+- All props, variables, and function calls updated
+
+**Documentation:**
+- DatabaseERD.md (created new)
+- Architecture.md (terminology updated)
+- DataSchema.md (terminology updated)
+- Glossary.md (definitions updated)
+
+#### Breaking Changes
+
+⚠️ **localStorage Structure Change:**
+- Old sessions with Contact/Game terminology incompatible
+- Users must export data before upgrading
+- Fresh start required with new terminology
+
+**Persist mapping updated:**
+```typescript
+partialize: (state) => ({
+  // ...
+  sets: state.sets,        // Was: games
+  shots: state.shots,      // Was: contacts  
+  currentRallyShots: state.currentRallyShots,  // Was: currentRallyContacts
+  players: state.players,  // NEW
+})
+```
+
+#### Data Export Updates
+
+**CSV Headers:**
+- "shots" table (was "contacts")
+- "Sets" table (was "Games")  
+- "Rallies" table (unchanged)
+
+**JSON Structure:**
+- All arrays use new property names
+- Type-safe with updated TypeScript definitions
+
+#### Migration Notes
+
+**Git Branch:** `refactor/terminology-standardization`
+
+**Files Renamed:**
+- `ContactButtonBlock.tsx` → `ShotButtonBlock.tsx`
+- Data viewer sections updated in-place (untracked files)
+
+**Automated Migration:**
+- Node.js script processed 34 files
+- Systematic find-replace patterns
+- Preserved formatting and structure
+
+#### Testing Required
+
+- ✅ TypeScript compilation (2 minor warnings only)
+- ⏳ Manual browser testing
+- ⏳ Part 1 framework tagging
+- ⏳ Part 2 shot detail tagging (verify shotType='serve' auto-populates)
+- ⏳ Data Viewer display
+- ⏳ CSV/JSON export
+
+#### Rationale
+
+This refactoring provides:
+1. **Clarity:** "Shot" is clearer than "Contact"
+2. **Standards Compliance:** "Set" follows official ITTF terminology
+3. **Database Readiness:** Player profiles designed for Supabase
+4. **Data Completeness:** shotType='serve' always populated
+5. **Future-Proof:** Schema ready for multi-match player analysis
+6. **Consistency:** Same terms in code, UI, database, and documentation
+
+---
+
+### 2025-12-02: Rally Checkpoint Flow Implementation
+
+**Context:** Major architectural change to implement the new Rally Checkpoint Flow specification. This flow processes matches set-by-set with rally-by-rally checkpoints during the framework phase.
+
+#### New State Machine
+
+Added `FrameworkState` type to manage the new flow:
+```typescript
+type FrameworkState = 
+  | 'setup'           // Match setup, mark first serve
+  | 'tagging'         // Marking contacts for current rally
+  | 'checkpoint'      // Rally ended, confirm or redo
+  | 'ff_mode'         // Fast forward to find next serve
+  | 'shot_detail'     // Part 2: answering questions per shot
+  | 'rally_review'    // End of rally summary with video sync
+  | 'set_complete'    // Set finished, move to next or complete match
+  | 'match_complete'  // All sets done
+```
+
+#### New Store Actions
+
+- `confirmRally()` - Saves rally at checkpoint, transitions to FF mode
+- `redoCurrentRally()` - Clears current rally, seeks back to previous end
+- `redoFromRally(index)` - Deletes rallies from index, allows multi-checkpoint redo
+- `endSetFramework()` - Transitions from FF mode to shot detail phase
+- `confirmRallyReview()` - Confirms rally review, advances to next rally
+
+#### New UI Components
+
+1. **CheckpointSection** (`app/src/features/tagging/sections/CheckpointSection.tsx`)
+   - Shows rally summary after ending a rally
+   - Displays contact count, server, duration, timeline preview
+   - Confirm (Enter) / Redo (Backspace) actions
+
+2. **RallyReviewSection** (`app/src/features/tagging/sections/RallyReviewSection.tsx`)
+   - End-of-rally review with video sync
+   - Shot list highlights in sync with looping video
+   - End-of-point time nudge controls
+   - Player stats summary
+
+3. **MatchAnalysis** (`app/src/pages/MatchAnalysis.tsx`)
+   - Displays match statistics and analysis
+   - Head-to-head comparison (points won, winners, errors)
+   - Serve statistics and point end type distribution
+   - Shot quality distribution
+   - Rally details table
+
+#### Updated Keyboard Shortcuts
+
+| State | Key | Action |
+|-------|-----|--------|
+| Tagging | `Space` | Mark contact |
+| Tagging | `→` | End rally → Checkpoint |
+| Checkpoint | `Enter` | Confirm → Save → FF mode |
+| Checkpoint | `Backspace` | Redo current rally |
+| FF Mode | `Space` | Mark serve → Start next rally |
+| FF Mode | `E` | End set → Shot detail phase |
+| FF Mode | `←` `→` | Adjust FF speed |
+| Rally Review | `Enter` | Confirm → Next rally |
+
+#### Rally Data Model Updates
+
+- Added `frameworkConfirmed?: boolean` to Rally interface
+- Added `detailComplete?: boolean` to Rally interface
+- Timeline panel now shows ✓ for confirmed rallies with green border
+
+#### Files Changed
+
+- `app/src/stores/taggingStore.ts`: New state, actions, persist config
+- `app/src/rules/types.ts`: Rally interface updated
+- `app/src/features/tagging/composers/TaggingScreenComposer.tsx`: Integrated new flow
+- `app/src/features/tagging/sections/MatchTimelinePanelSection.tsx`: Confirmed rally indicators
+- `app/src/App.tsx`: Added /matches/analysis route
+
+#### Spec Documents Created
+
+- `docs-match-analyser-edge-tt/chat_notes/Spec_RallyCheckpointFlow.md`
+- `docs-match-analyser-edge-tt/specs/Implementation_RallyCheckpointFlow.md`
+
+---
+
+### 2025-12-02: Winner Shot Point End Type Bug Fix
+
+**Context:** Critical bug discovered where `pointEndType` was not being populated for rallies ending with winner shots (in-play qualities: good, average, weak).
+
+#### Bug Description
+
+During Part 2 tagging, when the last shot of a rally had an **in-play quality** (good/average/weak):
+- The shot quality and landing zone were correctly saved
+- The code entered the End of Rally step
+- **BUG:** `deriveEndOfPoint()` was never called for winner shots
+- **BUG:** `pointEndType` remained `undefined` → exported as `N/A` in data
+- **BUG:** `winnerId` was not automatically derived from the last shot player
+
+This only affected winner shots. Error shots (serviceFault, receiveError, forcedError, unforcedError) were working correctly.
+
+#### Root Cause
+
+In `handleLandingZoneSelect` (TaggingScreenComposer.tsx line 428-447):
+- When completing the last shot with in-play quality
+- Code entered End of Rally step with `null` values
+- Missing call to `deriveEndOfPoint()` for winner shot derivation
+
+#### Fix Applied
+
+Updated `handleLandingZoneSelect` to:
+1. Call `deriveEndOfPoint()` when last shot has in-play quality
+2. Auto-derive `pointEndType = 'winnerShot'`
+3. Auto-derive `winnerId` from the player who hit the last shot
+4. Immediately persist both values to the rally (no user input needed)
+
+This follows the same auto-derivation pattern used for serviceFault and receiveError.
+
+#### Data Impact
+
+**Before Fix:**
+- Rallies ending with winner shots → `pointEndType = undefined` (N/A in exports)
+
+**After Fix:**
+- Rallies ending with winner shots → `pointEndType = 'winnerShot'` ✅
+
+#### Files Changed
+
+- `app/src/features/tagging/composers/TaggingScreenComposer.tsx`: Fixed `handleLandingZoneSelect`
+
+#### Rationale
+
+The `deriveEndOfPoint()` function in `rules/deriveEndOfPoint.ts` already contains the correct logic:
+- In-play quality → `pointEndType = 'winnerShot'`, `winnerId = playerId`
+- It was simply not being called for the winner shot case
+
+This fix ensures data completeness and consistency with the domain logic defined in the rules layer.
+
+---
+
+### 2025-12-02: Server Calculation & End-of-Point Timestamp Fixes
+
+**Context:** Two additional bugs found during testing:
+1. Server was same for every point
+2. End-of-point timestamp was duplicate of last shot timestamp
+
+#### Bug Analysis
+
+**Bug 1: Server Never Changes**
+
+Root cause in `startNewRallyWithServe`:
+```typescript
+// BEFORE (buggy)
+const totalPoints = player1Score + player2Score  // PROBLEM: Scores never update in Part 1!
+const serveBlock = Math.floor(totalPoints / 2)
+```
+
+In Part 1, winner is not determined, so scores don't change. `totalPoints` is always the same, so server calculation always returns the same player.
+
+**Fix:** Use rally count instead of score:
+```typescript
+// AFTER (fixed)
+const rallyCount = rallies.length  // Use completed rally count
+const serveBlock = Math.floor(rallyCount / 2)
+const isFirstServerBlock = serveBlock % 2 === 0
+const nextServerId = isFirstServerBlock ? firstServerId : otherPlayer
+```
+
+**Bug 2: Wrong End-of-Point Timestamp**
+
+Root cause in `endRallyScore`:
+```typescript
+// BEFORE (buggy)
+const lastContact = currentRallyContacts[currentRallyContacts.length - 1]
+const endOfPointTime = lastContact ? lastContact.time : 0  // Wrong! Uses last contact time
+```
+
+**Fix:** Use current video time (when user presses →):
+```typescript
+// AFTER (fixed)
+const endOfPointTime = currentTime  // Correct! Uses video time when rally ended
+```
+
+#### Files Changed
+- `app/src/stores/taggingStore.ts`:
+  - `startNewRallyWithServe`: Server now based on rally count
+  - `endRallyScore`: End-of-point now uses `currentTime`
+  - `selectWinner`: End-of-point now uses `currentTime`
+
+---
+
+### 2025-12-02: Critical Architecture Fixes - Double-Counting & End of Rally
+
+**Context:** Testing revealed two fundamental architectural issues:
+1. Serves were being counted twice (in two rallies)
+2. Part 2 had no proper "End of Rally" step for winner determination
+
+#### Root Cause Analysis
+
+**Bug 1: Double-Counting Serves**
+
+The `startNewRallyWithServe` function was creating a rally AND adding the serve to `currentRallyContacts`. Then `endRallyScore` created ANOTHER rally from `currentRallyContacts`.
+
+```
+Flow (BEFORE - Buggy):
+1. startNewRallyWithServe() → Creates Rally N+1 with serve, ALSO adds serve to currentRallyContacts
+2. addContact() → Adds contacts to currentRallyContacts
+3. endRallyScore() → Creates Rally N+2 from currentRallyContacts (includes same serve!)
+Result: Serve exists in BOTH Rally N+1 and Rally N+2
+```
+
+**Bug 2: Missing End of Rally Step**
+
+Part 2 jumped directly from last shot to next rally without:
+- Allowing end-of-point timestamp editing
+- Asking who won for non-error endings
+- Handling forced/unforced error questions properly
+
+#### Fixes Applied
+
+**1. Fixed `startNewRallyWithServe`**
+
+```typescript
+// BEFORE (buggy): Created rally immediately
+startNewRallyWithServe: () => {
+  const newRally = { ..., contacts: [serveContact] }
+  set({
+    rallies: [...rallies, newRally],  // Rally created here!
+    currentRallyContacts: [serveContact],  // And here!
+  })
+}
+
+// AFTER (correct): Only adds to buffer, rally created at end
+startNewRallyWithServe: () => {
+  // Safety check for double-trigger
+  if (currentRallyContacts.length > 0) return
+  
+  // Calculate next server
+  const nextServerId = calculateNextServer(...)
+  
+  // Add serve to buffer - NO RALLY CREATED
+  set({
+    currentRallyContacts: [serveContact],
+    currentServerId: nextServerId,
+  })
+}
+```
+
+**2. Added `EndOfRallySection` Component**
+
+New step after all shots are tagged that allows:
+- End-of-point timestamp editing (← → keys)
+- Winner selection (if not auto-derived)
+- Forced/Unforced error question (when applicable)
+- Rally confirmation before advancing
+
+**3. Updated Part 2 Flow**
+
+```
+Flow (AFTER - Correct):
+For each shot:
+  1. Answer questions (type, spin/wing, quality, landing)
+  2. If error quality → auto-derive winner, enter End of Rally step
+
+After last shot (non-error):
+  1. Enter End of Rally step
+  2. User selects winner (opponent error or winner shot)
+  3. If opponent error, ask forced/unforced
+  4. Confirm → advance to next rally
+```
+
+#### New Component
+
+```typescript
+// app/src/features/tagging/sections/EndOfRallySection.tsx
+interface EndOfRallySectionProps {
+  // Rally info
+  rallyIndex: number
+  totalRallies: number
+  
+  // Players
+  player1Name: string
+  player2Name: string
+  lastShotPlayerId: PlayerId
+  lastShotQuality?: ShotQuality
+  
+  // End of point
+  endOfPointTime: number
+  
+  // Derived winner (if automatically determined)
+  derivedWinnerId?: PlayerId
+  derivedPointEndType?: PointEndType
+  
+  // State flags
+  needsWinnerSelection: boolean
+  needsForcedUnforced: boolean
+  
+  // Callbacks
+  onEndOfPointTimeChange: (time: number) => void
+  onWinnerSelect: (winnerId: PlayerId) => void
+  onForcedUnforcedSelect: (type: 'forcedError' | 'unforcedError') => void
+  onConfirm: () => void
+  onStepFrame: (direction: 'forward' | 'backward') => void
+}
+```
+
+#### Keyboard Shortcuts (End of Rally Step)
+
+| Key | Action |
+|-----|--------|
+| ← / → | Nudge end-of-point time by 1 frame |
+| 1 | Select Player 1 as winner |
+| 2 | Select Player 2 as winner |
+| F | Select Forced Error |
+| U | Select Unforced Error |
+| Enter/Space | Confirm and advance |
+
+---
+
+### 2025-12-02: Part 1 Tagging Workflow Fixes (Post-Testing)
+
+**Context:** User testing revealed several critical bugs and UX issues in the Part 1 tagging workflow.
+
+#### Bug Fixes
+
+1. **Double-Counting Serves Fixed**
+   - **Before:** `initMatchFramework` created Rally #1 with serve contact, then `endRallyScore` created a NEW rally with all contacts (including the same serve). Result: duplicate rallies.
+   - **After:** `initMatchFramework` only adds the serve to `currentRallyContacts` (no rally created). Rally is created only when user ends the rally via `endRallyScore`.
+   - **Impact:** Serve is now counted once per rally, not twice.
+
+2. **Set Limit Validation**
+   - **Before:** User could end sets beyond the match format limit (e.g., 11 sets for a "Best of 3").
+   - **After:** `markEndOfSet` now validates against `matchFormat` and prevents creating sets beyond the maximum.
+   - **Formats:** bestOf3 (3 max), bestOf5 (5 max), bestOf7 (7 max), singleSet (1 max).
+
+#### UX Improvements
+
+3. **Timeline Panel Enhancements**
+   - **Auto-expand current rally:** When rally changes, it auto-expands in the panel.
+   - **In-progress rally display:** Shows `currentRallyContacts` with animated border, "In Progress" badge.
+   - **Server shown in rally header:** Server name with color coding (cyan for P1, amber for P2).
+   - **Nudge/Delete controls:** Hover over shots to show ◀ ▶ (nudge ±33ms) and ✕ (delete) buttons.
+
+4. **Default Tagging Speed**
+   - **Before:** 0.25x (too slow)
+   - **After:** 0.5x (user preference)
+   - **Store default:** `playbackSpeed` now initializes to 0.5 instead of 1.
+
+#### Store Changes
+
+```typescript
+// New actions
+nudgeContact: (contactId: string, direction: 'earlier' | 'later', frameMs?: number) => void
+deleteInProgressContact: (contactId: string) => void
+
+// Modified action - no rally created until endRallyScore
+initMatchFramework: (data) => {
+  // Creates first contact in currentRallyContacts only
+  // NO rally created here - deferred to endRallyScore
+}
+
+// Modified action - validates against matchFormat
+markEndOfSet: () => {
+  // Calculates maxSets from matchFormat
+  // Prevents creating sets beyond limit
+}
+```
+
+#### Timeline Panel Props Added
+
+```typescript
+interface MatchTimelinePanelSectionProps {
+  // NEW: In-progress rally data
+  currentRallyContacts?: Contact[]
+  currentServerId?: PlayerId
+  
+  // NEW: Contact manipulation
+  onNudgeContact?: (contactId: string, direction: 'earlier' | 'later') => void
+  onDeleteContact?: (contactId: string) => void
+}
+```
+
+---
+
 ### 2025-12-01: Step 1 Review Page - Enhanced Rally Timeline
 
 **Context:** During implementation of the Step 1 Review page, we identified opportunities to make the review workflow more intuitive and complete.
@@ -950,9 +1878,627 @@ Part 2 video now uses constrained playback:
 | 2025-12-01 | 0.8.0 | MVP Flowchange: unified layout, match framework phase, rally detail phase, essential mode |
 | 2025-12-01 | 0.8.1 | Figma design prompts updated for new two-part workflow |
 | 2025-12-01 | 0.9.1 | Foundation implementation: rules layer, UI components, tagging feature scaffold |
-| 2025-12-01 | **0.9.4** | **Unified tagging screen: Match Details Modal, Part 2 sequential flow, ShotQuestionSection** |
+| 2025-12-01 | 0.9.4 | Unified tagging screen: Match Details Modal, Part 2 sequential flow, ShotQuestionSection |
+| 2025-12-01 | 0.9.5 | Bug fixes: inline setup panel, responsive video, FF mode, delete buttons |
+| 2025-12-03 | **0.9.6** | **UI Prototype: Error shot layout alignment, increased button heights for mobile** |
 
 ---
 
-*Last updated: 2025-12-01 20:30 UTC*
+### 2025-12-01: v0.9.5 — Tagging Screen Bug Fixes
+
+**Context:** User testing revealed critical issues blocking the core tagging workflow.
+
+#### Issues Fixed
+
+| # | Issue | Impact | Solution |
+|---|-------|--------|----------|
+| 1 | Modal blocks video — cannot mark first serve | Critical | Converted to inline panel below video |
+| 2 | Video crops when wide instead of containing | Visual | Removed fixed aspect ratio classes |
+| 3 | Space pauses video instead of marking contact | Core workflow broken | Restored proper keyboard handling |
+| 4 | No delete/undo for misinputs | Cannot fix mistakes | Added delete buttons + keyboard shortcuts |
+| 5 | FF mode not working | Core workflow broken | Implemented FF mode state and auto-play |
+
+#### Fix 1: Inline Setup Panel
+
+**Before:** `MatchDetailsModalBlock` — modal overlay blocked video navigation
+
+**After:** `MatchSetupPanelBlock` — inline panel below video during setup phase
+
+Layout during setup:
+```
+┌────────────────────────────────────────────────────┐
+│ Left Panel          │ Video Player                 │
+│ (empty until        │ ┌────────────────────────┐   │
+│  setup complete)    │ │   [Video playback]     │   │
+│                     │ └────────────────────────┘   │
+│                     │ ┌────────────────────────┐   │
+│                     │ │ MATCH SETUP PANEL      │   │
+│                     │ │ [Inline form...]       │   │
+│                     │ │ [Start Tagging →]      │   │
+│                     │ └────────────────────────┘   │
+└────────────────────────────────────────────────────┘
+```
+
+**Files Changed:**
+- **Created:** `blocks/MatchSetupPanelBlock.tsx`
+- **Updated:** `composers/TaggingScreenComposer.tsx` — renders inline panel in setup phase
+
+#### Fix 2: Video Responsive Sizing
+
+**Before:** `aspect-video` class forced 16:9, causing vertical cropping on wide screens
+
+**After:** `w-full h-full` with parent using `flex-1 min-h-0` for proper flex containment
+
+**Files Changed:**
+- `components/tagging/VideoPlayer.tsx` — removed `aspect-video` and `aspect-[16/10]`
+- `composers/TaggingScreenComposer.tsx` — video container uses `flex-1 min-h-0`
+
+#### Fix 3: Restored Tagging Behavior (Per Spec Section 1.2.3-1.2.4)
+
+**Keyboard Shortcuts Updated:**
+
+| Key | Before | After (Per Spec) |
+|-----|--------|------------------|
+| Space | Toggle play/pause | Mark contact (NO pause) |
+| → | Step frame | End rally + enter FF mode |
+| ← | Step frame | Decrease FF speed / exit FF |
+| K | (none) | Play/Pause (dedicated) |
+
+**Speed Presets (Per Spec Section 1.2.4):**
+
+| Mode | Default | Options |
+|------|---------|---------|
+| Tagging | 0.25× | 0.125×, 0.25×, 0.5×, 0.75×, 1× |
+| Fast Forward | 1× | 0.5×, 1×, 2×, 3×, 4×, 5× |
+
+**FF Mode Behavior:**
+- Activated on `→` (end rally)
+- Auto-plays at FF speed
+- `←` decreases speed or exits
+- Space marks new rally serve + exits FF mode
+
+**Local State Added (not persisted):**
+```typescript
+// In TaggingScreenComposer
+const [isInFFMode, setIsInFFMode] = useState(false)
+const [taggingSpeed, setTaggingSpeed] = useState(0.25)
+const [ffSpeed, setFFSpeed] = useState(1)
+```
+
+#### Fix 3b: Split Control Panel Layout
+
+**Before:** Single row of controls
+
+**After:** Two-column layout:
+
+```
+┌─────────────────────────────┬───────────────────┐
+│ TAGGING BUTTONS             │ SPEED CONTROLS    │
+│                             │                   │
+│ [    CONTACT    ]           │ Tag: .125 [.25]   │
+│                             │      .5  .75  1x  │
+│ [End Rally] [Let]           │                   │
+│                             │ FF:  .5  [1x]  2x │
+│ [Undo] [End Set]            │      3x  4x   5x  │
+└─────────────────────────────┴───────────────────┘
+```
+
+- Both Tag and FF speed rows always visible
+- Active mode highlighted (Tag vs FF)
+- Clicking speed sets it for that mode
+
+**Files Changed:**
+- `sections/TaggingControlsSection.tsx` — complete rewrite with split layout
+
+#### Fix 4: Delete/Undo Functionality
+
+**Capabilities Added:**
+
+| Action | UI | Keyboard |
+|--------|-----|----------|
+| Delete contact | Trash icon on shot row (hover) | Delete |
+| Delete rally | Trash icon on rally header (hover) | Shift+Delete |
+| Undo last contact | Undo button | Ctrl+Z / Backspace |
+| Toggle highlight | — | H |
+
+**Props Added:**
+- `RallyPodBlock.onDelete?: () => void`
+- `ShotRowBlock.onDelete?: () => void`
+- `MatchPanelSection.onDeleteContact?: (rallyId, contactId) => void`
+- `MatchPanelSection.onDeleteRally?: (rallyId) => void`
+
+**Files Changed:**
+- `blocks/RallyPodBlock.tsx` — added delete button (hidden until hover)
+- `blocks/ShotRowBlock.tsx` — added delete button (hidden until hover)
+- `sections/MatchPanelSection.tsx` — wires delete callbacks
+- `composers/TaggingScreenComposer.tsx` — handles delete actions
+
+#### Fix 5: End-of-Point Component
+
+**New Component:** `ForcedUnforcedBlock.tsx`
+
+For Shot 3+ errors, displays:
+- Error player and winner names
+- Forced vs Unforced buttons
+- Keyboard hints (F/U keys)
+
+**Per Spec Section 1.10:**
+
+| Last Shot Quality | Shot Index | Derived Winner | Derived pointEndType | User Input |
+|-------------------|------------|----------------|----------------------|------------|
+| Error | 1 (Serve) | Receiver | `serviceFault` | None |
+| Error | 2 (Return) | Server | `receiveError` | None |
+| Error | 3+ | Other player | — | Forced/Unforced? |
+| In-play | Any | Shooter | `winnerShot` | None |
+
+#### Files Summary
+
+**New Files:**
+- `app/src/features/tagging/blocks/MatchSetupPanelBlock.tsx`
+- `app/src/features/tagging/blocks/ForcedUnforcedBlock.tsx`
+
+**Modified Files:**
+- `app/src/features/tagging/composers/TaggingScreenComposer.tsx`
+- `app/src/features/tagging/sections/TaggingControlsSection.tsx`
+- `app/src/features/tagging/sections/MatchPanelSection.tsx`
+- `app/src/features/tagging/blocks/RallyPodBlock.tsx`
+- `app/src/features/tagging/blocks/ShotRowBlock.tsx`
+- `app/src/features/tagging/blocks/index.ts`
+- `app/src/components/tagging/VideoPlayer.tsx`
+
+---
+
+### 2025-12-01: Gap Resolution Task List Created
+
+**Context:** Actionable task list created to close all gaps identified in the Gap Analysis.
+
+#### Task List Summary
+
+| Phase | Focus | Tasks | Est. Hours |
+|-------|-------|-------|------------|
+| **Phase 1** | Shot Data Persistence | 5 tasks | 4-5 hrs |
+| **Phase 2** | Part 1 Completion Flow | 3 tasks | 2-3 hrs |
+| **Phase 3** | End-of-Point Integration | 3 tasks | 2-3 hrs |
+| **Phase 4** | Part 2 UX Polish | 4 tasks | 2-3 hrs |
+| **Phase 5** | Full Mode Implementation | 4 tasks | 4-5 hrs |
+| **Phase 6** | Minor Polish | 4 tasks | 1-2 hrs |
+| **Total** | | **23 tasks** | **15-21 hrs** |
+
+#### Critical Tasks (P0)
+
+| Task ID | Description | Files |
+|---------|-------------|-------|
+| TASK-GAP-001 | Add Shot entity to store types | `rules/types.ts` |
+| TASK-GAP-002 | Add shots array to store state | `stores/taggingStore.ts` |
+| TASK-GAP-003 | Add shot CRUD actions | `stores/taggingStore.ts` |
+| TASK-GAP-004 | Wire ShotQuestionSection to store | `TaggingScreenComposer.tsx` |
+| TASK-GAP-006 | Create MatchCompletionModalBlock | NEW |
+| TASK-GAP-009 | Wire ForcedUnforcedBlock to workflow | `TaggingScreenComposer.tsx` |
+
+#### File Created
+
+| File | Purpose |
+|------|---------|
+| `specs/GapResolution_Tasks.md` | Full task list with code snippets and execution checklist |
+
+---
+
+### 2025-12-01: Gap Resolution Phases 1-3 Implemented (v0.9.6)
+
+**Context:** Executed first 3 phases of the Gap Resolution Task List to enable shot data persistence, Part 1 completion flow, and end-of-point integration.
+
+#### Phase 1: Shot Data Persistence ✅
+
+**Contact = Shot model implemented.** Shot data fields added directly to Contact interface:
+
+```typescript
+interface Contact {
+  // Existing fields
+  id, rallyId, time, shotIndex
+  
+  // NEW: Shot data fields
+  playerId?: PlayerId
+  serveType?: ServeType
+  serveSpin?: ServeSpin
+  wing?: Wing
+  shotType?: EssentialShotType
+  landingZone?: LandingZone
+  shotQuality?: ShotQuality
+  landingType?: LandingType    // Derived
+  inferredSpin?: InferredSpin  // Derived
+  isTagged?: boolean           // Completion flag
+}
+```
+
+**New store actions:**
+- `updateContactShotData(contactId, data)` — Partial update for shot fields
+- `completeContactTagging(contactId, quality)` — Complete with derived fields
+
+**Question order changed:**
+- Old: Type → Spin → Landing → Quality
+- New: Type → Spin → Quality → Landing (skip landing if error)
+
+#### Phase 2: Part 1 Completion Flow ✅
+
+**New component:** `MatchCompletionModalBlock` captures:
+- Match result (Player 1 / Player 2 / Incomplete)
+- Final set score
+- Final points score  
+- Video coverage type
+
+**New store action:**
+- `completeMatchFramework(data)` — Sets completion data and transitions to Part 2
+
+**UX flow:**
+1. User clicks "Complete Part 1 → Start Shot Tagging"
+2. Modal opens with completion form
+3. On submit, transitions to Part 2 with rally/shot indices reset
+
+#### Phase 3: End-of-Point Integration ✅
+
+**Forced/Unforced inline question** (not modal):
+- Shows when error quality selected on shot 3+
+- Replaces shot questions in same area
+- Keyboard shortcuts: F = Forced, U = Unforced
+
+**Auto-prune with undo toast:**
+- When error quality selected, subsequent contacts auto-deleted
+- 5-second toast with undo button
+- Dismissible with × button
+
+**Error handling flow:**
+```
+Quality selected → Is Error?
+├── NO → Go to Landing Zone (step 4)
+└── YES → Complete contact + Derive pointEndType
+    ├── Shot 1 → serviceFault (auto)
+    ├── Shot 2 → receiveError (auto)
+    └── Shot 3+ → Show F/U inline question
+        └── After selection → Set pointEndType → Auto-prune → Advance
+```
+
+#### Files Changed
+
+| File | Change |
+|------|--------|
+| `rules/types.ts` | Extended Contact interface with shot fields |
+| `stores/taggingStore.ts` | Added shot data actions + completeMatchFramework |
+| `features/tagging/sections/ShotQuestionSection.tsx` | Reordered questions, updated types |
+| `features/tagging/blocks/MatchCompletionModalBlock.tsx` | NEW: Part 1 completion modal |
+| `features/tagging/composers/TaggingScreenComposer.tsx` | Wired all handlers, F/U inline, undo toast |
+| `features/tagging/blocks/index.ts` | Exported new component |
+
+---
+
+### 2025-12-02: MVP Testing Feedback Implementation (v0.9.8)
+
+**Context:** Major refactoring based on Paul's full testing feedback. See `NotesTestingMVPPaul.md`.
+
+#### Phase A: Data Model Updates ✅
+- **Tournament dropdown**: Friendly, Club, Regional, National (enum)
+- **Match format**: Best of 1, 3, 5, 7 (default 5)
+- **Video start score**: Split into 4 fields (P1 Sets, P2 Sets, P1 Points, P2 Points)
+- **Default tagging speed**: Changed 0.25x → 0.5x
+
+#### Phase B: Mark First Serve Creates Rally ✅
+- "Mark First Serve" now creates Rally #1 with serve contact immediately
+- Rally appears in timeline panel instantly
+
+#### Phase C: Unified MatchTimelinePanelSection ✅
+- **NEW component**: Linear timeline panel replacing MatchPanelSection
+- Persistent across all phases (setup, part1, part2)
+- Set-relative rally numbering (Set 2, Rally 1)
+- Expandable rally rows showing shots
+- End of Point timestamps visible
+- Set summary lines
+- Match completion footer
+
+#### Phase E: Part 1 Workflow Fixes ✅
+- **Removed winner dialog** from Part 1 (winner set in Part 2)
+- **Spacebar marks contact** while video is playing
+- **→ arrow = End Rally + FF mode** (creates new rally container)
+- **Spacebar in FF mode = mark serve** + exit FF + resume tagging speed
+- **Real-time panel updates** as contacts are added
+
+#### Phase F: Video Playback Fixes ✅
+- **Auto-play** from first serve after "Start Tagging"
+- **Frame-step with ←/→ arrows** (when not in FF mode)
+- **Part 2 auto-play** with constrained playback loop
+
+#### Phase G: Routing Cleanup ✅
+- `/matches/new` now goes directly to TaggingScreen
+- Removed MatchSetup page route
+- Inline setup panel in TaggingScreen
+
+#### New Actions
+```typescript
+startNewRallyWithServe: () => void  // Creates new rally with serve at current time
+```
+
+#### Files Changed/Created
+| File | Change |
+|------|--------|
+| `sections/MatchTimelinePanelSection.tsx` | NEW: Unified timeline panel |
+| `blocks/MatchSetupPanelBlock.tsx` | Tournament/format dropdowns, 4 score fields |
+| `derive/deriveRallyDetail.ts` | Allow contact marking while playing |
+| `stores/taggingStore.ts` | startNewRallyWithServe, endRallyScore without winner |
+| `composers/TaggingScreenComposer.tsx` | New panel, auto-play, keyboard fixes |
+| `App.tsx` | Routing update |
+| `pages/index.ts` | Removed MatchSetup export |
+
+#### Keyboard Shortcuts (Part 1)
+| Key | Not in Rally | In Rally | FF Mode |
+|-----|--------------|----------|---------|
+| Space | Add contact | Add contact | Mark serve + exit FF |
+| → | Frame step | End rally + FF | Increase FF speed |
+| ← | Frame step | Frame step | Decrease FF speed / exit |
+| K | Toggle play | Toggle play | Toggle play |
+
+---
+
+### 2025-12-01: Gap Resolution Phases 4 & 6 Implemented (v0.9.7)
+
+**Context:** Completed remaining phases of the Gap Resolution Task List.
+
+#### Phase 4: Part 2 UX Polish ✅
+
+**New component:** `Part2SpeedControlsSection`
+- Loop speed control (0.25x, 0.5x, 0.75x, 1x)
+- Preview buffer control (0.1s - 0.5s)
+- Rendered alongside shot questions in Part 2
+
+**New store fields:**
+```typescript
+loopSpeed: number        // Default 0.5
+previewBufferSeconds: number  // Default 0.2
+```
+
+**New actions:**
+- `setLoopSpeed(speed)` — Change loop playback speed
+- `setPreviewBuffer(seconds)` — Change preview buffer duration
+- `goToPreviousShot()` — Navigate back in Part 2
+
+**End of Set constraint (REQ-4):**
+- `canEndSet` added to `TaggingControlsVM`
+- End Set button disabled during open rally
+
+#### Phase 6: Minor Polish ✅
+
+**Match format dropdown:**
+- Options: Best of 3/5/7 to 11, Best of 3 to 21, Single Set
+- Stored in `matchFormat` field
+
+**Tournament field:**
+- Optional text input for match context
+- Stored in `tournament` field
+
+**Part 2 completion modal:**
+- `Part2CompletionBlock` shows when all rallies tagged
+- Primary action: "View Match Stats"
+- Secondary: "Back to Matches"
+
+**Navigation in Part 2:**
+- Previous/Next buttons added
+- `goToPreviousShot` navigates back through rallies
+
+#### Files Changed
+
+| File | Change |
+|------|--------|
+| `sections/Part2SpeedControlsSection.tsx` | NEW: Loop/buffer controls |
+| `blocks/Part2CompletionBlock.tsx` | NEW: Completion screen |
+| `blocks/MatchSetupPanelBlock.tsx` | Added matchFormat, tournament fields |
+| `sections/TaggingControlsSection.tsx` | End Set button disabled constraint |
+| `derive/deriveRallyDetail.ts` | Added canEndSet to controls |
+| `models.ts` | Updated TaggingControlsVM |
+| `stores/taggingStore.ts` | Added speed settings, goToPreviousShot, format/tournament |
+| `composers/TaggingScreenComposer.tsx` | Wired all new features |
+
+#### All Gap Resolution Complete ✅
+
+| Phase | Status |
+|-------|--------|
+| Phase 1: Shot Data Persistence | ✅ Complete |
+| Phase 2: Part 1 Completion Flow | ✅ Complete |
+| Phase 3: End-of-Point Integration | ✅ Complete |
+| Phase 4: Part 2 UX Polish | ✅ Complete |
+| Phase 5: Full Mode | ⏸️ Deferred |
+| Phase 6: Minor Polish | ✅ Complete |
+
+---
+
+### 2025-12-01: Gap Resolution Task List — Clarifications Applied (v1.1.0)
+
+**Context:** User clarifications received and applied to the Gap Resolution Task List.
+
+#### Clarifications Applied
+
+| # | Decision | Impact |
+|---|----------|--------|
+| 1 | **Contact = Shot** | No separate Shot entity needed. Shot data fields added directly to Contact interface. Simplifies data model. |
+| 2 | **Essential Mode only** | Full Mode deferred for post-MVP. Phase 5 removed from task list. |
+| 3 | **Question order: Quality → Landing** | Landing Zone step moved after Quality. Skipped entirely if error quality selected. |
+| 4 | **Completion → View Match Stats** | Part 2 completion modal shows "View Match Stats" as primary action. |
+| 5 | **Clean slate** | No data migration needed. Can assume fresh localStorage. |
+| 6 | **5 second undo toast** | Auto-prune undo toast persists for 5 seconds with dismiss button. |
+
+#### Updated Task List Summary
+
+| Phase | Focus | Tasks | Est. Hours |
+|-------|-------|-------|------------|
+| **Phase 1** | Shot Data on Contact | 4 tasks | 3-4 hrs |
+| **Phase 2** | Part 1 Completion Flow | 3 tasks | 2-3 hrs |
+| **Phase 3** | End-of-Point Integration | 3 tasks | 2-3 hrs |
+| **Phase 4** | Part 2 UX Polish | 4 tasks | 2-3 hrs |
+| **Phase 5** | ~~Full Mode~~ | ~~DEFERRED~~ | — |
+| **Phase 6** | Minor Polish | 4 tasks | 1-2 hrs |
+| **Total** | | **18 tasks** | **10-15 hrs** |
+
+#### Key Changes from v1.0.0
+
+1. **Merged Shot into Contact** — Tasks 001-004 simplified to extend Contact type instead of creating separate Shot entity
+2. **Removed Phase 5** — Tasks 016-019 deferred (Full Mode)
+3. **New Question Order** — Quality before Landing Zone, with skip logic on error
+
+#### File Updated
+
+| File | Change |
+|------|--------|
+| `specs/GapResolution_Tasks.md` | Updated to v1.1.0 with clarifications |
+
+---
+
+### 2025-12-01: Gap Analysis Report Created (v0.9.5)
+
+**Context:** Comprehensive gap analysis comparing current implementation against MVP Flowchange Specification.
+
+#### Summary
+
+| Category | Completion |
+|----------|------------|
+| Data Types | 100% ✅ |
+| Store State Fields | 100% ✅ |
+| Store Actions | 78% 🟡 |
+| Rules Engine | 100% ✅ |
+| UI Components | 73% 🟡 |
+| Workflow Requirements | 73% 🟡 |
+| **Overall** | **~75%** |
+
+#### Critical Gaps Identified
+
+| Priority | Gap | Impact |
+|----------|-----|--------|
+| **P0** | Shot data not persisted | No analysis possible |
+| **P0** | Match Completion Modal missing | Part 1 → Part 2 transition incomplete |
+| **P1** | Forced/Unforced flow not triggered | Point classification incomplete |
+| **P1** | Auto-prune not triggered | REQ-10 unfulfilled |
+| **P2** | Full Mode not implemented | Only Essential works |
+| **P2** | Loop/preview speed controls missing | Part 2 UX |
+
+#### Files Created
+
+| File | Purpose |
+|------|---------|
+| `specs/GapAnalysis_v0.9.5.md` | Full gap analysis with implementation recommendations |
+
+#### Recommended Next Steps
+
+1. Add Shot entity to store and persist shot data
+2. Wire Forced/Unforced block to workflow
+3. Create Match Completion Modal
+4. Add Part 2 speed controls
+
+---
+
+### 2025-12-04: SVG Button Components for Tagging UI Prototype V2
+
+**Context:** Extracted complete set of table tennis button designs from HTML mockup into reusable React components for the V2 prototype interface.
+
+#### Button Component Architecture
+
+**Changes:**
+- Created `@/ui-mine/TableTennisButtons/` folder with 22 button components
+- Implemented shared `TableTennisButtonBase` wrapper for consistent behavior
+- All buttons use inline SVG from `tt-buttons-complete-v1.html` design
+- Buttons support square (100x100) and rect (55x100) size variants
+
+**Component Structure:**
+```
+TableTennisButtons/
+  TableTennisButtonBase.tsx       // Shared wrapper with hover/focus/disabled
+  
+  Phase 1 Buttons (5):
+  - ShotMissedButton (red both halves)
+  - InNetButton (blue top, red bottom)
+  - WinningShotButton (green both halves)
+  - ServeButton (blue with "TAG SERVE")
+  - ShotButton (blue with "TAG SHOT")
+  
+  Direction Buttons (9):
+  - LeftLeftButton, LeftMidButton, LeftRightButton
+  - MidLeftButton, MidMidButton, MidRightButton
+  - RightLeftButton, RightMidButton, RightRightButton
+  
+  Serve Depth Buttons (3):
+  - ShortButton, HalfLongButton, DeepButton
+  
+  Spin Type Buttons (3):
+  - UnderspinButton, NoSpinButton, TopspinButton
+  
+  Shot Type Buttons (2):
+  - BackhandButton, ForehandButton
+  
+  Intent Buttons (3):
+  - DefensiveButton, NeutralButton, AggressiveButton
+```
+
+#### Phase 1 Updates
+
+**Changes:**
+- Updated `Phase1ControlsBlock` to use 4 SVG buttons in single row
+- Removed split UI for error placement (In-Net | Long)
+- All 4 buttons now active after first serve: ShotMissed, InNet, WinningShot, Serve/Shot
+- Serve/Shot button changes label and SVG dynamically based on rally state
+
+**Rationale:**
+- Consolidates rally-ending actions into single view
+- Visual feedback via distinctive colors (red for errors, green for winners, blue for continuation)
+- Mobile-friendly: 4 buttons fit in one row on mobile screens
+- Eliminates modal/split UI state management
+
+#### Phase 2 Updates
+
+**Changes:**
+- Replaced all `SequentialQuestionBlock` uses with specific SVG button components
+- **Serve sequence:** Direction (6 buttons) → Depth (3 buttons) → Spin (3 buttons)
+  - Direction consolidates contact point + landing zone into single step
+  - 6 serve direction buttons: left_left through right_right (excludes mid start positions)
+- **Shot sequence:** Stroke (2 buttons) → Direction (3 buttons, dynamic) → Intent (3 buttons)
+  - Dynamic direction logic: Shows 3 buttons based on previous shot landing zone
+  - If previous ended left → show left_left, left_mid, left_right
+  - If previous ended mid → show mid_left, mid_mid, mid_right
+  - If previous ended right → show right_left, right_mid, right_right
+- **Error sequence:** Stroke → Intent → Error Type (Forced/Unforced as text buttons)
+- Updated question labels in status bar for clarity
+
+**Direction Data Model:**
+- Changed from `'line' | 'diagonal'` to specific trajectories
+- Type: `'left_left' | 'left_mid' | 'left_right' | 'mid_left' | 'mid_mid' | 'mid_right' | 'right_left' | 'right_mid' | 'right_right'`
+- Captures ball trajectory across the table (start position → end position)
+- Simplifies data model while capturing sufficient information for analysis
+
+**Rationale:**
+- **Serve direction consolidation:** Eliminates redundant contact question (server position = first bounce position)
+- **6 buttons for serves:** Fits on single mobile row, captures essential trajectory data
+- **Dynamic shot direction:** Reduces cognitive load by showing only relevant options based on ball position
+- **Visual buttons:** Arrows clearly indicate ball trajectory, faster recognition than text labels
+- **Data richness:** Direction type provides enough data for ML model to infer player positioning and shot patterns
+
+#### Files Changed
+
+**New Files:**
+- `app/src/ui-mine/TableTennisButtons/TableTennisButtonBase.tsx` (base wrapper)
+- 22 individual button component files in `TableTennisButtons/`
+- `app/src/ui-mine/TableTennisButtons/index.ts` (exports)
+
+**Modified Files:**
+- `app/src/ui-mine/index.ts` (added TableTennisButtons exports)
+- `app/src/features/tagging-ui-prototype-v2/blocks/Phase1ControlsBlock.tsx` (4-button SVG layout)
+- `app/src/features/tagging-ui-prototype-v2/composers/Phase1TimestampComposer.tsx` (updated handlers for 4-button interface)
+- `app/src/features/tagging-ui-prototype-v2/composers/Phase2DetailComposer.tsx` (replaced all question blocks with SVG buttons, added dynamic direction logic)
+
+**Archived:**
+- `app/src/features/tagging-ui-prototype-v2/blocks/DirectionButtonBlock.tsx` → archived/
+
+#### Impact
+
+- **UI Consistency:** All buttons now use consistent table tennis visual metaphor
+- **Mobile Optimization:** Button layouts designed to fit on iPhone screens in single rows
+- **Data Quality:** Direction tracking provides richer trajectory data for analysis
+- **Development Velocity:** Reusable button components can be used across all tagging UIs
+- **Future ML Training:** Direction data sufficient for model to infer player positions and patterns
+
+---
+
+*Last updated: 2025-12-04*
 

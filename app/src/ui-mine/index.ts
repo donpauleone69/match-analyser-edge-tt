@@ -31,3 +31,6 @@ export { SpeedControls, TAGGING_SPEEDS, FF_SPEEDS, formatSpeed, type SpeedContro
 // export { VideoPlayer } from './VideoPlayer' // TODO: migrate existing
 // export { Timeline } from './Timeline' // TODO: migrate existing
 
+// Table Tennis Buttons (for tagging-ui-prototype-v2)
+export * from './TableTennisButtons'
+

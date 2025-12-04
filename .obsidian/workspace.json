@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "docs-match-analyser-edge-tt/specs/DesignSystem.md",
+                "file": "docs-match-analyser-edge-tt/chat_notes/Final/Final/gestures_Intents_Inference_Engine.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "DesignSystem"
+              "title": "gestures_Intents_Inference_Engine"
             }
           }
         ]
@@ -78,7 +78,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300
+    "width": 363.5
   },
   "right": {
     "id": "3331fa25f99f7fa3",
@@ -185,31 +185,43 @@
   },
   "active": "153b47c532f3ef40",
   "lastOpenFiles": [
-    "app/dist/index.html",
-    "app/dist/assets/index-DWEghhG0.css",
-    "app/dist/assets/index-DAo43BZT.js",
-    "app/dist/assets",
-    "app/dist/vite.svg",
-    "app/dist/ffmpeg/ffmpeg-core.wasm",
-    "app/dist/ffmpeg/ffmpeg-core.js",
-    "app/dist/ffmpeg",
-    "app/dist",
-    "app/src/features/tagging/sections/ShotQuestionSection.tsx",
-    "app/src/features/tagging/blocks/MatchCompletionModalBlock.tsx",
-    "app/src/pages/RallyDetailScreen.tsx",
-    "docs-match-analyser-edge-tt/Glossary.md",
-    "docs-match-analyser-edge-tt/Architecture.md",
-    "docs-match-analyser-edge-tt/architecture/architecture_scaffolding_template.md",
-    "docs-match-analyser-edge-tt/DataSchema.md",
-    "docs-match-analyser-edge-tt/Tagger2StepUserFlow.md",
-    "docs-match-analyser-edge-tt/MVP_schemav2.md",
-    "docs-match-analyser-edge-tt/MVPschemav2.md",
-    "docs-match-analyser-edge-tt/MVP_schemaupdates.md",
-    "docs-match-analyser-edge-tt/MVP_DataSchema.md",
-    "docs-match-analyser-edge-tt/MVP_AIfutureproofingSchema.md",
-    "docs-match-analyser-edge-tt/v2_AItraining.md",
-    "docs-match-analyser-edge-tt/AIfutureproofingSchema.md",
-    "docs-match-analyser-edge-tt/MVPschemaupdates.md",
-    "docs-match-analyser-edge-tt/AItraining.md"
+    "docs-match-analyser-edge-tt/chat_notes/button_layout_flexible_width.md",
+    "app/src/features/tagging-ui-prototype-v2/archived/DirectionButtonBlock.tsx",
+    "app/src/ui-mine/TableTennisButtons/index.ts",
+    "app/src/ui-mine/TableTennisButtons/AggressiveButton.tsx",
+    "app/src/ui-mine/TableTennisButtons/NeutralButton.tsx",
+    "app/src/ui-mine/TableTennisButtons/DefensiveButton.tsx",
+    "app/src/ui-mine/TableTennisButtons/ForehandButton.tsx",
+    "app/src/ui-mine/TableTennisButtons/BackhandButton.tsx",
+    "app/src/ui-mine/TableTennisButtons/TopspinButton.tsx",
+    "app/src/ui-mine/TableTennisButtons/NoSpinButton.tsx",
+    "app/src/ui-mine/TableTennisButtons/UnderspinButton.tsx",
+    "docs-match-analyser-edge-tt/chat_notes/Final/Final/download.png",
+    "app/src/features/tagging-ui-prototype-v2/archived/README.md",
+    "app/src/features/tagging-ui-prototype-v1/archived/README.md",
+    "app/src/features/tagging-ui-prototype/archived/README.md",
+    "docs-match-analyser-edge-tt/chat_notes/Final/Final/UIcodesnip.md",
+    "docs-match-analyser-edge-tt/chat_notes/Final/FastTrack_TaggingV2_Plan.md",
+    "docs-match-analyser-edge-tt/chat_notes/Final/Implementation_Plan_MVP_Next.md",
+    "docs-match-analyser-edge-tt/chat_notes/Final/Final/PlayerProfile_Spec.md",
+    "docs-match-analyser-edge-tt/chat_notes/Final/Final/serve_input_spec.md",
+    "docs-match-analyser-edge-tt/chat_notes/Final/Final/Shots_Schema_Spec.md",
+    "docs-match-analyser-edge-tt/chat_notes/Final/Final/gestures_Intents_Inference_Engine.md",
+    "docs-match-analyser-edge-tt/chat_notes/Final/Final/player_skill_metrics.md",
+    "docs-match-analyser-edge-tt/chat_notes/Final/Final/PlayerProfile_UserGuide.md",
+    "docs-match-analyser-edge-tt/chat_notes/Final/Shots_Schema_Spec.md",
+    "docs-match-analyser-edge-tt/chat_notes/Final/gestures_Intents_Inference_Engine (2).md",
+    "docs-match-analyser-edge-tt/chat_notes/gestures_Intents_Inference_Engine (1).md",
+    "docs-match-analyser-edge-tt/chat_notes/Shots_Schema_Spec.md",
+    "docs-match-analyser-edge-tt/specs/DatabaseERD.md",
+    "docs-match-analyser-edge-tt/specs/logicanddiagrams.md",
+    "docs-match-analyser-edge-tt/chat_notes/gestures_Intents_Inference_Engine.md",
+    "docs-match-analyser-edge-tt/chat_notes/NextMVP_PlayerProfiles_Tournaments_TaggingV2.md",
+    "docs-match-analyser-edge-tt/chat_notes/PlayerProfileClaudePrompt.md",
+    "docs-match-analyser-edge-tt/chat_notes/PlayerProfile_Spec.md",
+    "docs-match-analyser-edge-tt/chat_notes/FOR_MVP_gestures_Intents_Inference_Engine.md",
+    "CLEAR_LOCALSTORAGE_INSTRUCTIONS.md",
+    "Brainstorming Shortcuts for shots.md",
+    "app/dist/vite.svg"
   ]
 }

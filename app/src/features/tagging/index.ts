@@ -2,7 +2,7 @@
  * Tagging Feature
  * 
  * Two-part tagging workflow:
- * - Part 1: Match Framework (contacts + rally boundaries)
+ * - Part 1: Match Framework (shots + rally boundaries)
  * - Part 2: Rally Detail (per-rally review + shot tagging)
  */
 
@@ -13,7 +13,7 @@ export { TaggingScreenComposer } from './composers'
 export { MatchPanelSection, TaggingControlsSection, ShotQuestionSection } from './sections'
 
 // Blocks (presentational)
-export { ScoreDisplayBlock, RallyPodBlock, ContactButtonBlock, ShotRowBlock } from './blocks'
+export { ScoreDisplayBlock, RallyPodBlock, ShotButtonBlock, ShotRowBlock } from './blocks'
 
 // Derive hooks
 export {

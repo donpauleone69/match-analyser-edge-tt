@@ -7,19 +7,19 @@
 import { cn } from '@/lib/utils'
 import { Button, Icon } from '@/ui-mine'
 
-export interface ContactButtonBlockProps {
+export interface ShotButtonBlockProps {
   onClick: () => void
   disabled?: boolean
   contactCount: number
   className?: string
 }
 
-export function ContactButtonBlock({
+export function ShotButtonBlock({
   onClick,
   disabled = false,
   contactCount,
   className,
-}: ContactButtonBlockProps) {
+}: ShotButtonBlockProps) {
   return (
     <div className={cn('flex flex-col items-center gap-2', className)}>
       <Button
@@ -36,10 +36,11 @@ export function ContactButtonBlock({
       
       {contactCount > 0 && (
         <span className="text-sm text-neutral-400">
-          {contactCount} contact{contactCount !== 1 ? 's' : ''} in rally
+          {contactCount} shot{contactCount !== 1 ? 's' : ''} in rally
         </span>
       )}
     </div>
   )
 }
+
 

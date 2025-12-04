@@ -169,24 +169,24 @@ Ball contact point perspective:
 
 #### Serve (Shot 1)
 
-| # | Question | Options | Keyboard |
-|---|----------|---------|----------|
-| 1 | Serve Type | Pendulum, Reverse Pendulum, Tomahawk, Backhand, Hook, Lollipop, Other | 1-7 |
-| 2 | Spin | 9-cell spin grid | Numpad 1-9 |
-| 3 | Landing Zone | 9-cell grid (opponent's table) | Numpad 1-9 |
-| 4 | Quality | Good, Average, Weak, In Net, Missed Long, Missed Wide | G, A, W, N, L, D |
+| #   | Question     | Options                                                               | Keyboard         |
+| --- | ------------ | --------------------------------------------------------------------- | ---------------- |
+| 1   | Serve Type   | Pendulum, Reverse Pendulum, Tomahawk, Backhand, Hook, Lollipop, Other | 1-7              |
+| 2   | Spin         | 9-cell spin grid                                                      | Numpad 1-9       |
+| 3   | Landing Zone | 9-cell grid (opponent's table)                                        | Numpad 1-9       |
+| 4   | Quality      | Good, Average, Weak, In Net, Missed Long, Missed Wide                 | G, A, W, N, L, D |
 
 **Inputs: 4** (3 if error quality — skip landing zone)  
 **Derived:** Wing (from serve type), landingType (from quality)
 
 #### Rally Shot (Shot 2+)
 
-| # | Question | Options | Keyboard |
-|---|----------|---------|----------|
-| 1 | Wing | Forehand, Backhand | F, B |
-| 2 | Shot Type | Push, Chop, Block, Lob, Drive, Flick, Loop, Smash, Other | 1-9 |
-| 3 | Landing Zone | 9-cell grid (opponent's table) | Numpad 1-9 |
-| 4 | Quality | Good, Average, Weak, In Net, Missed Long, Missed Wide | G, A, W, N, L, D |
+| #   | Question     | Options                                                  | Keyboard         |
+| --- | ------------ | -------------------------------------------------------- | ---------------- |
+| 1   | Wing         | Forehand, Backhand                                       | F, B             |
+| 2   | Shot Type    | Push, Chop, Block, Lob, Drive, Flick, Loop, Smash, Other | 1-9              |
+| 3   | Landing Zone | 9-cell grid (opponent's table)                           | Numpad 1-9       |
+| 4   | Quality      | Good, Average, Weak, In Net, Missed Long, Missed Wide    | G, A, W, N, L, D |
 
 **Inputs: 4** (3 if error quality — skip landing zone)  
 **Derived:** landingType (from quality), inferredSpin (from shot type)
@@ -266,32 +266,32 @@ Ball contact point perspective:
 
 ### 1.8 Mode Comparison
 
-| Aspect | Essential | Full |
-|--------|:---------:|:----:|
-| **Serve inputs** | 4 | 5-6 |
-| **Rally shot inputs** | 4 | 4-5 |
-| **End of point inputs** | 0-1 | 1-3 |
-| **Position Sector** | ❌ | ✅ |
-| **Landing Zone** | ✅ | ✅ |
-| **Spin (serves)** | ✅ | ✅ |
-| **Shot type list** | Simplified (9) | Full (14) |
-| **Issue diagnostics** | ❌ | ✅ |
-| **Luck tracking** | ❌ | ✅ |
+| Aspect                  |   Essential    |   Full    |
+| ----------------------- | :------------: | :-------: |
+| **Serve inputs**        |       4        |    5-6    |
+| **Rally shot inputs**   |       4        |    4-5    |
+| **End of point inputs** |      0-1       |    1-3    |
+| **Position Sector**     |       ❌        |     ✅     |
+| **Landing Zone**        |       ✅        |     ✅     |
+| **Spin (serves)**       |       ✅        |     ✅     |
+| **Shot type list**      | Simplified (9) | Full (14) |
+| **Issue diagnostics**   |       ❌        |     ✅     |
+| **Luck tracking**       |       ❌        |     ✅     |
 
 ---
 
 ### 1.9 Derived Fields (No Input Needed)
 
-| Field | Derived From |
-|-------|--------------|
-| `landingType` | `shotQuality` (error types map to net/offLong/wide) |
-| `winnerId` | Last shot quality + player (error = other player wins) |
-| `pointEndType` | Last shot quality + index (partial — forced/unforced still asked) |
-| `isFault` | `shotIndex === 1` + error quality |
-| `isServe` | `shotIndex === 1` |
-| `isReturnOfServe` | `shotIndex === 2` |
-| `inferredSpin` | `shotType` (existing mapping) |
-| Serve `wing` | `serveType` (see mapping below) |
+| Field             | Derived From                                                      |
+| ----------------- | ----------------------------------------------------------------- |
+| `landingType`     | `shotQuality` (error types map to net/offLong/wide)               |
+| `winnerId`        | Last shot quality + player (error = other player wins)            |
+| `pointEndType`    | Last shot quality + index (partial — forced/unforced still asked) |
+| `isFault`         | `shotIndex === 1` + error quality                                 |
+| `isServe`         | `shotIndex === 1`                                                 |
+| `isReturnOfServe` | `shotIndex === 2`                                                 |
+| `inferredSpin`    | `shotType` (existing mapping)                                     |
+| Serve `wing`      | `serveType` (see mapping below)                                   |
 
 #### Serve Type → Wing Mapping
 
@@ -309,12 +309,12 @@ Ball contact point perspective:
 
 ### 1.10 End-of-Point Derivation Logic
 
-| Last Shot Quality | Last Shot Index | Derived Winner | Derived pointEndType | Question Needed |
-|-------------------|-----------------|----------------|----------------------|-----------------|
-| Error (inNet/missedLong/missedWide) | 1 (Serve) | Receiver | `serviceFault` | None |
-| Error | 2 (Return) | Server | `receiveError` | None |
-| Error | 3+ | Other player | — | Forced or Unforced? |
-| In-play (good/average/weak) | Any | Player who hit it | `winnerShot` | None (or confirm) |
+| Last Shot Quality                   | Last Shot Index | Derived Winner    | Derived pointEndType | Question Needed     |
+| ----------------------------------- | --------------- | ----------------- | -------------------- | ------------------- |
+| Error (inNet/missedLong/missedWide) | 1 (Serve)       | Receiver          | `serviceFault`       | None                |
+| Error                               | 2 (Return)      | Server            | `receiveError`       | None                |
+| Error                               | 3+              | Other player      | —                    | Forced or Unforced? |
+| In-play (good/average/weak)         | Any             | Player who hit it | `winnerShot`         | None (or confirm)   |
 
 ---
 

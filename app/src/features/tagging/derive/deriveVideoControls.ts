@@ -43,12 +43,12 @@ export function useDeriveVideoControls(): VideoControlsVM {
  */
 export function useDeriveTimeline(): TimelineVM {
   const {
-    contacts,
+    shots,
     rallies,
-    currentRallyContacts,
+    currentRallyShots,
     duration,
     currentReviewRallyIndex,
-    games,
+    sets,
   } = useTaggingStore()
   
   return useMemo(() => {
@@ -59,20 +59,20 @@ export function useDeriveTimeline(): TimelineVM {
     const markers: TimelineMarkerVM[] = []
     const currentRallyId = rallies[currentReviewRallyIndex]?.id
     
-    // Add contact markers from completed rallies
+    // Add shot markers from completed rallies
     rallies.forEach(rally => {
-      rally.contacts.forEach(contact => {
+      rally.shots.forEach(shot => {
         markers.push({
-          id: contact.id,
-          time: contact.time,
-          position: (contact.time / duration) * 100,
-          type: 'contact',
+          id: shot.id,
+          time: shot.time,
+          position: (shot.time / duration) * 100,
+          type: 'shot',
           isInCurrentRally: rally.id === currentRallyId,
         })
       })
       
       // Add rally end marker
-      const lastContact = rally.contacts[rally.contacts.length - 1]
+      const lastContact = rally.shots[rally.shots.length - 1]
       if (lastContact) {
         markers.push({
           id: `rally-end-${rally.id}`,
@@ -84,22 +84,22 @@ export function useDeriveTimeline(): TimelineVM {
       }
     })
     
-    // Add current rally contacts (not yet committed)
-    currentRallyContacts.forEach(contact => {
+    // Add current rally shots (not yet committed)
+    currentRallyShots.forEach(shot => {
       markers.push({
-        id: contact.id,
-        time: contact.time,
-        position: (contact.time / duration) * 100,
-        type: 'contact',
+        id: shot.id,
+        time: shot.time,
+        position: (shot.time / duration) * 100,
+        type: 'shot',
         isInCurrentRally: true,
       })
     })
     
     // Add end-of-set markers
-    games.forEach(game => {
+    sets.forEach(game => {
       if (game.endOfSetTimestamp) {
         markers.push({
-          id: `end-of-set-${game.gameNumber}`,
+          id: `end-of-set-${game.setNumber}`,
           time: game.endOfSetTimestamp,
           position: (game.endOfSetTimestamp / duration) * 100,
           type: 'end-of-set',
@@ -111,6 +111,6 @@ export function useDeriveTimeline(): TimelineVM {
     return {
       markers: markers.sort((a, b) => a.time - b.time),
     }
-  }, [contacts, rallies, currentRallyContacts, duration, currentReviewRallyIndex, games])
+  }, [shots, rallies, currentRallyShots, duration, currentReviewRallyIndex, sets])
 }
 

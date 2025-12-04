@@ -9,6 +9,7 @@ desktop.ini
 # Editor files
 .vscode/
 .idea/
+.obsidian/
 *.swp
 *.swo
 *~
@@ -33,8 +34,40 @@ build/
 *.temp
 .cache/
 
-# Videos files
+# AI workspace folders (temporary, not for version control)
+_ai_claude/
+_ai_gpt/
+
+# Videos and media files
 videos/
+@videos/
 docs-match-analyser-edge-tt/videos/
 *.MOV
+*.mov
 *.mp4
+*.MP4
+*.avi
+*.mkv
+*.webm
+
+# Executable and binary files
+*.exe
+*.dmg
+*.pkg
+*.deb
+*.rpm
+
+# Exported data files (match exports, etc.)
+**/match-data-*.csv
+**/match-export-*.csv
+**/export-*.json
+
+# Large image files (screenshots and downloads in docs)
+docs-match-analyser-edge-tt/chat_notes/**/download.*
+docs-match-analyser-edge-tt/chat_notes/**/*.png
+docs-match-analyser-edge-tt/chat_notes/**/*.jpg
+docs-match-analyser-edge-tt/chat_notes/**/*.jpeg
+
+# Keep design mockups and intentional images
+!docs-match-analyser-edge-tt/designs/**/*.png
+!docs-match-analyser-edge-tt/designs/**/*.jpg

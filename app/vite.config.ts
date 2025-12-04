@@ -16,6 +16,7 @@ export default defineConfig({
   
   // Required headers for FFmpeg.wasm (SharedArrayBuffer support)
   server: {
+    host: true,
     headers: {
       'Cross-Origin-Opener-Policy': 'same-origin',
       'Cross-Origin-Embedder-Policy': 'require-corp',

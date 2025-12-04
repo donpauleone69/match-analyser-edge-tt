@@ -14,7 +14,7 @@ export function useDeriveMatchPanel(): MatchPanelVM {
     player1Name,
     player2Name,
     matchDate,
-    games,
+    sets,
     player1Score,
     player2Score,
     currentServerId,
@@ -22,9 +22,9 @@ export function useDeriveMatchPanel(): MatchPanelVM {
   } = useTaggingStore()
   
   return useMemo(() => {
-    // Calculate set score from games
-    const player1Sets = games.filter(g => g.winnerId === 'player1').length
-    const player2Sets = games.filter(g => g.winnerId === 'player2').length
+    // Calculate set score from sets
+    const player1Sets = sets.filter(g => g.winnerId === 'player1').length
+    const player2Sets = sets.filter(g => g.winnerId === 'player2').length
     
     return {
       player1Name,
@@ -35,7 +35,7 @@ export function useDeriveMatchPanel(): MatchPanelVM {
       currentServerId,
       taggingMode,
     }
-  }, [player1Name, player2Name, matchDate, games, player1Score, player2Score, currentServerId, taggingMode])
+  }, [player1Name, player2Name, matchDate, sets, player1Score, player2Score, currentServerId, taggingMode])
 }
 
 /**
@@ -44,7 +44,7 @@ export function useDeriveMatchPanel(): MatchPanelVM {
 export function useDerivePointDetailsTree(): PointDetailsTreeVM {
   const {
     rallies,
-    games,
+    sets,
     currentReviewRallyIndex,
     player1Name,
     player2Name,
@@ -68,13 +68,13 @@ export function useDerivePointDetailsTree(): PointDetailsTreeVM {
         winnerId: rally.winnerId,
         serverId: rally.serverId,
         scoreAfter: `${rally.player1ScoreAfter}-${rally.player2ScoreAfter}`,
-        shotCount: rally.contacts.length,
+        shotCount: rally.shots.length,
         isExpanded: false,
         isCurrentReview: index === currentReviewRallyIndex,
         isHighlight: rally.isHighlight || false,
         hasError,
         // Part 2 - expanded view data
-        contacts: rally.contacts,
+        shots: rally.shots,
         endOfPointTime: rally.endOfPointTime,
       }
       
@@ -87,9 +87,9 @@ export function useDerivePointDetailsTree(): PointDetailsTreeVM {
       const lead = Math.abs(p1 - p2)
       
       if (maxScore >= 11 && lead >= 2) {
-        // Game ended
+        // Set ended
         gameNodes.push({
-          gameNumber: currentGameNumber,
+          setNumber: currentGameNumber,
           player1Score: p1,
           player2Score: p2,
           winnerId: p1 > p2 ? 'player1' : 'player2',
@@ -104,7 +104,7 @@ export function useDerivePointDetailsTree(): PointDetailsTreeVM {
     // Add current in-progress game if there are rallies
     if (currentGameRallies.length > 0) {
       gameNodes.push({
-        gameNumber: currentGameNumber,
+        setNumber: currentGameNumber,
         player1Score: rallies.length > 0 ? rallies[rallies.length - 1].player1ScoreAfter : 0,
         player2Score: rallies.length > 0 ? rallies[rallies.length - 1].player2ScoreAfter : 0,
         winnerId: undefined,
@@ -114,10 +114,10 @@ export function useDerivePointDetailsTree(): PointDetailsTreeVM {
     }
     
     return {
-      games: gameNodes,
+      sets: gameNodes,
       totalRallies: rallies.length,
       ralliesWithErrors: errorsCount,
     }
-  }, [rallies, games, currentReviewRallyIndex, player1Name, player2Name])
+  }, [rallies, sets, currentReviewRallyIndex, player1Name, player2Name])
 }
 

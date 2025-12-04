@@ -24,6 +24,8 @@ export interface MatchPanelSectionProps {
   activeShotIndex?: number
   onRallyClick: (rallyId: string) => void
   onShotClick?: (rallyId: string, shotIndex: number) => void
+  onDeleteContact?: (rallyId: string, shotId: string) => void
+  onDeleteRally?: (rallyId: string) => void
   className?: string
 }
 
@@ -35,6 +37,8 @@ export function MatchPanelSection({
   activeShotIndex = 1,
   onRallyClick,
   onShotClick,
+  onDeleteContact,
+  onDeleteRally,
   className,
 }: MatchPanelSectionProps) {
   const isPart2 = taggingPhase === 'part2'
@@ -82,7 +86,7 @@ export function MatchPanelSection({
           </div>
         </CardHeader>
         <CardContent className="flex-1 overflow-y-auto">
-          {pointTree.games.length === 0 ? (
+          {pointTree.sets.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-neutral-400">
               <Icon name="circle" size="lg" className="mb-2 opacity-50" />
               <span className="text-sm">No rallies yet</span>
@@ -90,12 +94,12 @@ export function MatchPanelSection({
             </div>
           ) : (
             <div className="flex flex-col gap-3">
-              {pointTree.games.map(game => (
-                <div key={game.gameNumber} className="flex flex-col gap-1">
-                  {/* Game header */}
+              {pointTree.sets.map(game => (
+                <div key={game.setNumber} className="flex flex-col gap-1">
+                  {/* Set header */}
                   <div className="flex items-center gap-2 px-2 py-1 bg-neutral-800 rounded">
                     <span className="text-xs font-medium text-neutral-300">
-                      Game {game.gameNumber}
+                      Set {game.setNumber}
                     </span>
                     <span className="text-xs font-mono text-neutral-400">
                       {game.player1Score}-{game.player2Score}
@@ -111,8 +115,8 @@ export function MatchPanelSection({
                   <div className="flex flex-col gap-0.5 pl-2">
                     {game.rallies.map((rally, rallyIdx) => {
                       // In Part 2, determine rally status
-                      const globalRallyIndex = pointTree.games
-                        .slice(0, pointTree.games.indexOf(game))
+                      const globalRallyIndex = pointTree.sets
+                        .slice(0, pointTree.sets.indexOf(game))
                         .reduce((acc, g) => acc + g.rallies.length, 0) + rallyIdx
                       
                       const isActiveRally = isPart2 && globalRallyIndex === activeRallyIndex
@@ -125,6 +129,7 @@ export function MatchPanelSection({
                           <RallyPodBlock
                             {...rally}
                             onClick={() => !isLockedRally && onRallyClick(rally.id)}
+                            onDelete={onDeleteRally ? () => onDeleteRally(rally.id) : undefined}
                             className={cn(
                               isLockedRally && 'opacity-50 cursor-not-allowed',
                               isCompletedRally && 'border-l-2 border-success',
@@ -133,9 +138,9 @@ export function MatchPanelSection({
                           />
                           
                           {/* Expanded shot list for active rally in Part 2 */}
-                          {isActiveRally && rally.contacts && rally.contacts.length > 0 && (
+                          {isActiveRally && rally.shots && rally.shots.length > 0 && (
                             <div className="ml-4 mt-1 mb-2 space-y-0.5">
-                              {rally.contacts.map((contact, shotIdx) => {
+                              {rally.shots.map((shot, shotIdx) => {
                                 const shotNumber = shotIdx + 1
                                 const isServe = shotNumber === 1
                                 const isReturn = shotNumber === 2
@@ -144,10 +149,10 @@ export function MatchPanelSection({
                                 
                                 return (
                                   <ShotRowBlock
-                                    key={contact.id}
+                                    key={shot.id}
                                     shotIndex={shotNumber}
-                                    time={contact.time}
-                                    formattedTime={formatTime(contact.time)}
+                                    time={shot.time}
+                                    formattedTime={formatTime(shot.time)}
                                     isServe={isServe}
                                     isReturn={isReturn}
                                     playerId={rally.serverId === 'player1' 
@@ -162,6 +167,7 @@ export function MatchPanelSection({
                                     isSelected={isCurrentShot}
                                     onClick={() => onShotClick?.(rally.id, shotNumber)}
                                     onPlayClick={() => {}}
+                                    onDelete={onDeleteContact ? () => onDeleteContact(rally.id, shot.id) : undefined}
                                   />
                                 )
                               })}
@@ -169,7 +175,7 @@ export function MatchPanelSection({
                               {/* End of Point row */}
                               <div className={cn(
                                 'flex items-center gap-2 px-3 py-1.5 rounded text-xs',
-                                activeShotIndex > rally.contacts.length
+                                activeShotIndex > rally.shots.length
                                   ? 'bg-brand-primary/20 border border-brand-primary'
                                   : 'bg-neutral-800 opacity-60'
                               )}>
@@ -196,4 +202,5 @@ export function MatchPanelSection({
     </div>
   )
 }
+
 
