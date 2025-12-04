@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AppShell } from './components/layout'
-import { Dashboard, Matches, TaggingScreen, MatchAnalysis, DataViewer } from './pages'
+import { Dashboard, Matches, TaggingScreen, MatchAnalysis, DataViewer, TaggingUIPrototypeV1, TaggingUIPrototypeV2 } from './pages'
 
 function App() {
   return (
@@ -25,6 +25,10 @@ function App() {
         
         {/* Match Analysis - view statistics and validate data */}
         <Route path="/matches/analysis" element={<MatchAnalysis />} />
+        
+        {/* Tagging UI Prototypes - experimental gesture-based interface */}
+        <Route path="/tagging-ui-prototype/v1" element={<TaggingUIPrototypeV1 />} />
+        <Route path="/tagging-ui-prototype/v2" element={<TaggingUIPrototypeV2 />} />
       </Routes>
     </BrowserRouter>
   )

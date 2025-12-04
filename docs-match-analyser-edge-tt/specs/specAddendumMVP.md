@@ -6,6 +6,355 @@
 
 ## Change Log
 
+### 2025-12-03: UI Prototype V2 - Mobile-Optimized Layout with Integrated Video Player
+
+**Context:** Reorganized layout for optimal mobile (iPhone) viewing experience. Video player now integrated directly in the prototype interface.
+
+#### Mobile-First Layout Structure
+
+**Changes:**
+- Complete layout reorganization for mobile optimization:
+  1. **Shot Log** (top) - Scrollable area with all shot history
+  2. **Video Player** (middle) - Fixed aspect-video ratio, full width
+  3. **Status Strip** (below video) - Current rally/shot and progress info
+  4. **Controls** (bottom) - Button inputs (Phase 1 or Phase 2 questions)
+- Integrated VideoPlayer component from main tagging feature
+- Video player uses `aspect-video` for proper 16:9 display
+- Shot log now has `flex-1 min-h-0 overflow-y-auto` for proper scrolling
+- All other sections use `shrink-0` to maintain fixed heights
+
+**Rationale:**
+- **Shot log at top:** Easy to reference while tagging, scrolls independently
+- **Video in middle:** Prime viewing position, doesn't require scrolling
+- **Status below video:** Contextual information right where you're looking
+- **Controls at bottom:** Thumb-friendly zone for iPhone single-hand use
+- Fixed video height ensures consistent viewing experience
+
+**Implementation Details:**
+- Added `VideoPlayer` import and ref to both Phase1 and Phase2 composers
+- Connected to Zustand store for video URL and playback state
+- Video player shows time overlay for precise timestamp marking
+- Uses `compact={true}` mode for space efficiency
+
+#### Files Changed
+
+- `app/src/features/tagging-ui-prototype-v2/composers/Phase1TimestampComposer.tsx`
+  - Added VideoPlayer component import and ref
+  - Reorganized layout: Shot Log → Video → Status → Controls
+  - Shot log now scrolls independently
+- `app/src/features/tagging-ui-prototype-v2/composers/Phase2DetailComposer.tsx`
+  - Added VideoPlayer component import and ref
+  - Reorganized layout: Shot Log → Video → Status → Controls
+  - Shot log now scrolls independently
+
+#### Impact
+
+**Usability:**
+- **One-handed iPhone use:** Video and controls in optimal positions
+- **No scrolling required:** Video always visible while tagging
+- **Context preservation:** Shot log accessible without losing video view
+- **Thumb zone optimization:** Controls at bottom for easy reach
+
+**Visual Design:**
+- Clean vertical stack optimized for portrait mobile viewing
+- Video maintains proper aspect ratio
+- Clear visual hierarchy from top to bottom
+
+**Development:**
+- Video player fully integrated (not separate window/screen)
+- Consistent with main tagging interface patterns
+- Uses existing VideoPlayer component (no duplication)
+
+#### Testing Required
+
+- ⏳ Mobile: Shot log scrolls independently of video
+- ⏳ Mobile: Video player displays at full width with correct aspect ratio
+- ⏳ Mobile: Status strip shows current question/rally info
+- ⏳ Mobile: Controls remain accessible at bottom (no scrolling needed)
+- ⏳ Video playback: Play/pause/seek functions work correctly
+- ⏳ Video time overlay: Timestamps visible for shot marking
+
+---
+
+### 2025-12-03: UI Prototype V2 - Major Refinements to Phase 1 & Phase 2 Interfaces
+
+**Context:** Comprehensive refinement of Tagging UI Prototype V2 based on user testing feedback. Simplified button layout, improved error placement capture, enhanced text styling, and consistent capitalization throughout.
+
+#### Phase 1: Three-Button Layout with Inline Error Placement
+
+**Changes:**
+- Replaced 4-button layout (Out | In-Net | Win | Serve/Shot) with 3-button layout:
+  - **New layout:** Fault | Win | Serve/Shot
+- Implemented inline error placement flow:
+  - When user clicks "Fault", button row is replaced with: In-Net | Long
+  - After selecting In-Net or Long, rally ends with error placement recorded
+  - Returns to normal 3-button layout for next rally
+- Updated color scheme for Phase 1:
+  - Fault: `bg-red-600 hover:bg-red-700` (danger/error)
+  - In-Net: `bg-red-600 hover:bg-red-700` (same as Fault parent)
+  - Long: `bg-red-600 hover:bg-red-700` (same as Fault parent)
+  - Win: `bg-green-600 hover:bg-green-700` (success)
+  - Serve/Shot: `bg-blue-600 hover:bg-blue-700` (primary action)
+- Added `flex items-center justify-center` to all buttons for proper text centering
+- Button heights consistent at `h-20` (80px)
+
+**Rationale:**
+- Single "Fault" button simplifies initial decision (fault vs win vs continue)
+- Immediate error placement capture (In-Net vs Long) provides better context while watching video
+- In-line UI replacement keeps user focused on same screen area
+- Consistent red color for all fault types reinforces error concept
+- Three buttons allow larger touch targets
+
+**Data Model Changes:**
+- `Phase1Rally` interface now includes `errorPlacement?: 'innet' | 'long'` field
+- `EndCondition` type updated to `'innet' | 'long' | 'winner'`
+- Error rallies have `isError: true` with `errorPlacement` storing the specific fault type
+
+#### Phase 2: Reduced Spin Options and Improved Layout
+
+**Changes:**
+- Reduced spin options from 4 to 3:
+  - **Removed:** "Side Spin"
+  - **Kept:** Under Spin, No Spin, Top Spin
+- Updated spin button color scheme:
+  - Under Spin: `bg-indigo-600 hover:bg-indigo-700`
+  - No Spin: `bg-slate-600 hover:bg-slate-700`
+  - Top Spin: `bg-violet-600 hover:bg-violet-700`
+- Updated intent button colors:
+  - Defensive: `bg-blue-600 hover:bg-blue-700` (unchanged)
+  - Neutral: `bg-amber-600 hover:bg-amber-700` (changed from yellow)
+  - Aggressive: `bg-orange-600 hover:bg-orange-700` (unchanged)
+- Moved question headers from gray bar above buttons to status strip:
+  - **Before:** Gray header bar showed "Serve: Length?"
+  - **After:** Status strip shows "Serve: Length?" alongside progress
+  - Removes visual clutter and reduces vertical space
+- Fixed button text alignment:
+  - Added `flex items-center justify-center` to all buttons
+  - Added `whitespace-nowrap overflow-hidden text-ellipsis` for long labels
+  - Ensures consistent centering across all button types
+
+**Rationale:**
+- Three spin types cover most common serves (side spin rarely used in tagging context)
+- Improved color scheme provides better visual distinction between options
+- Amber (instead of yellow) for "Neutral" intent provides better contrast and accessibility
+- Moving question text to status bar:
+  - Reduces redundancy (question context already in status)
+  - Maximizes button area for easier tapping
+  - Cleaner visual hierarchy
+- Text alignment fixes prevent overlap issues with longer labels (e.g., "Defensive")
+
+**TypeScript Changes:**
+- Updated `DetailedShot` interface: `spin?: 'under' | 'nospin' | 'topspin'` (removed 'sidespin')
+
+#### Consistent Capitalization: Title Case Throughout
+
+**Changes:**
+- All button labels updated to Title Case:
+  - **Phase 1:** "Fault", "Win", "Serve", "Shot", "In-Net", "Long"
+  - **Phase 2 Serves:** "Left", "Right", "Line", "Diagonal", "Short", "Half-Long", "Long", "Under Spin", "No Spin", "Top Spin"
+  - **Phase 2 Shots:** "Backhand", "Forehand", "Defensive", "Neutral", "Aggressive", "Forced", "Unforced"
+- Previously inconsistent (mix of UPPERCASE, Title Case, and lowercase)
+
+**Rationale:**
+- Consistent capitalization improves professional appearance
+- Title Case is more readable than ALL CAPS for longer labels
+- Reduces cognitive load by eliminating inconsistent styling
+
+#### Files Changed
+
+**Phase 1:**
+- `app/src/features/tagging-ui-prototype-v2/blocks/Phase1ControlsBlock.tsx`
+  - Complete rewrite: 3-button layout with conditional error placement UI
+  - Updated props interface to support new flow
+  - Applied new color scheme and text alignment fixes
+- `app/src/features/tagging-ui-prototype-v2/composers/Phase1TimestampComposer.tsx`
+  - Added `showErrorPlacementUI` state
+  - Split rally end logic into separate handlers: `handleFault()`, `handleFaultErrorPlacement()`, `handleWin()`
+  - Updated rally display labels to show "In-Net" and "Long" instead of "In Net" and "Out"
+  - Updated `Phase1Rally` interface with `errorPlacement` field
+
+**Phase 2:**
+- `app/src/features/tagging-ui-prototype-v2/composers/Phase2DetailComposer.tsx`
+  - Reduced `spinOptions` to 3 buttons with new color scheme
+  - Updated intent button colors (Neutral: amber instead of yellow)
+  - Added `getCurrentQuestionLabel()` function to build question text for status bar
+  - Updated status strip to show: `{shotLabel}: {currentQuestionLabel}?`
+  - Removed `buildHeader()` function (no longer needed)
+  - Removed `header` prop from all `SequentialQuestionBlock` calls
+  - Updated rally end condition labels: "In-Net" and "Long" instead of "In Net" and "Out"
+- `app/src/features/tagging-ui-prototype-v2/blocks/SequentialQuestionBlock.tsx`
+  - Removed `header` prop from interface
+  - Removed gray header bar div
+  - Added `flex items-center justify-center` to button styling
+  - Added `whitespace-nowrap overflow-hidden text-ellipsis` for text overflow handling
+
+#### Impact
+
+**Usability:**
+- Phase 1 flow is now simpler: Fault → (pick In-Net or Long) → done
+- Error placement is captured immediately while context is fresh
+- Larger 3-button layout provides bigger touch targets
+- Cleaner Phase 2 interface with question text in status bar instead of redundant header
+- Consistent text styling reduces confusion
+
+**Visual Design:**
+- Cohesive color scheme across both phases
+- Professional Title Case capitalization throughout
+- Proper text alignment prevents overlap issues
+- Reduced visual clutter with header removal
+
+**Data Quality:**
+- Error placement (In-Net vs Long) now captured in Phase 1
+- More granular error data for analysis
+- Consistent with actual game rules (different consequences for In-Net vs Long)
+
+#### Testing Required
+
+- ⏳ Phase 1: Fault button triggers In-Net/Long choice (replaces button row)
+- ⏳ Phase 1: In-Net and Long buttons end rally correctly
+- ⏳ Phase 1: All buttons have centered text and consistent height
+- ⏳ Phase 1: Serve changes to Shot after first press
+- ⏳ Phase 2: Only 3 spin buttons appear (no Side Spin)
+- ⏳ Phase 2: Question text appears in status bar, not above buttons
+- ⏳ Phase 2: Intent buttons (Defensive/Neutral/Aggressive) have centered text without overlap
+- ⏳ All buttons use Title Case consistently
+- ⏳ Color scheme is visually cohesive and accessible
+
+---
+
+### 2025-12-03: UI Prototype - Error Shot Layout Alignment & Button Height Increase
+
+**Context:** Refinement of Phase 2 tagging UI prototype to improve layout consistency across all input screens and enhance thumb accessibility on mobile devices.
+
+#### Error Shot Screen Layout Alignment
+
+**Changes:**
+- Added column headers ("Stroke", "Type") above toggle buttons, matching Standard Shot and Serve screens
+- Added "Toggles:" row label (fixed width `w-20`) for consistency with other screens
+- Removed "Error Shot" label and "Skip" button from error shot screen
+- Updated error type buttons to use consistent red color scheme:
+  - Unforced: `bg-danger/60` (muted red when active)
+  - Forced: `bg-danger` (full red when active)
+  - Both use `focus:ring-danger`
+
+**Rationale:**
+- Consistent layout across all Phase 2 input screens improves cognitive load
+- Column headers make it clear what each toggle controls
+- Red color scheme for both error types maintains visual consistency (both are errors)
+- Removing redundant labels reduces clutter and maximizes input area
+
+**Final Layout:**
+```
+         Stroke         Type                   <- Column headers
+Toggles: [Backhand]    [Unforced]             <- Fixed label + 2 red buttons
+Intent:  [Defensive] [Neutral] [Aggressive]   <- Fixed label + 3 buttons
+```
+
+#### Button Height Increase
+
+**Changes:**
+- Increased all button vertical padding from `py-2.5` (0.625rem / 10px) to `py-3.5` (0.875rem / 14px)
+- Applied across all Phase 2 input screens:
+  - Standard Shot: Wing/Direction/Quality toggles, Intent buttons
+  - Error Shot: Wing/Error Type toggles, Intent buttons
+  - Serve: Contact/Direction toggles, Length buttons, Spin buttons
+
+**Rationale:**
+- Larger touch targets improve thumb accessibility on mobile devices
+- 14px padding provides comfortable tapping area for single-hand iPhone use
+- Consistent button height across all screens enhances visual harmony
+- Additional 4px (2px top + 2px bottom) increases button height from ~42px to ~50px
+
+#### Files Changed
+
+- `app/src/features/tagging-ui-prototype/composers/Phase2DetailComposer.tsx`
+  - Error shot screen: Added column headers, "Toggles:" label, updated error type button colors
+  - Removed error shot label and skip button
+  - Increased all button heights to `py-3.5`
+- `app/src/features/tagging-ui-prototype/blocks/ServeDetailBlock.tsx`
+  - Increased all button heights to `py-3.5`
+
+#### Impact
+
+**Usability:**
+- Consistent layout reduces learning curve for users switching between shot types
+- Larger buttons reduce mis-taps and improve input speed on mobile
+- Red error type buttons provide immediate visual feedback
+
+**Visual Design:**
+- All screens now follow the same layout pattern
+- Column headers and fixed-width labels create clean vertical alignment
+- Increased button height creates more balanced proportions
+
+#### Testing Required
+
+- ⏳ Manual test: Navigate through Phase 2 → verify error shot screen has column headers
+- ⏳ Manual test: Check button heights on mobile → verify comfortable thumb tapping
+- ⏳ Manual test: Toggle between Forced/Unforced → verify both buttons appear red when selected
+- ⏳ Manual test: Verify no "Error Shot" label or "Skip" button appears
+
+---
+
+### 2025-12-02: Bug Fixes - End of Rally Flow & Keyboard Shortcuts
+
+**Context:** Fixed two critical bugs in the End of Rally workflow and keyboard shortcut handling discovered during code review.
+
+#### Bug 1: Missing `endOfPointTime` Initialization
+
+**Issue:**
+- When transitioning to End of Rally step (both winner shot and error paths), `endOfPointTime` was not initialized on the rally
+- User could adjust time with arrow keys, but if they confirmed immediately, `endOfPointTime` remained `undefined`
+- This caused data completeness issues downstream
+
+**Fix:**
+- Added `updateEndOfPointTime(currentRally.id, currentShot.time)` in both code paths:
+  - Winner shot path (line ~454): When last shot has in-play quality
+  - Error shot path (line ~508): When any shot has error quality
+- Now `endOfPointTime` is automatically set to the shot's timestamp when entering End of Rally step
+- User can still adjust with arrow keys if needed
+
+**Files Changed:**
+- `app/src/features/tagging/composers/TaggingScreenComposer.tsx`
+
+#### Bug 2: `Shift+Delete` Not Working at Checkpoint
+
+**Issue:**
+- When `Shift+Delete` was pressed at checkpoint state, the code checked `frameworkState === 'checkpoint'` first
+- This caused redo logic to execute instead of delete rally logic
+- The `else if (e.shiftKey)` branch was never reached when at checkpoint
+
+**Fix:**
+- Reordered keyboard handler conditions to check `e.shiftKey` first
+- Now `Shift+Delete` works in any state (including checkpoint)
+- Logic order:
+  1. `if (e.shiftKey)` → Delete last rally (priority)
+  2. `else if (frameworkState === 'checkpoint')` → Redo rally
+  3. `else` → Delete last shot
+
+**Files Changed:**
+- `app/src/features/tagging/composers/TaggingScreenComposer.tsx` (lines ~701-722)
+
+#### Impact
+
+**Bug 1:**
+- Ensures data completeness for all rallies
+- Prevents `undefined` timestamps in exported data
+- Fixes potential crashes in data analysis features
+
+**Bug 2:**
+- Restores expected `Shift+Delete` functionality
+- Users can now delete rallies from checkpoint state
+- More intuitive keyboard shortcut behavior
+
+#### Testing Required
+
+- ✅ TypeScript compilation passes
+- ⏳ Manual test: Tag rally, confirm End of Rally immediately → verify `endOfPointTime` is set
+- ⏳ Manual test: Press `Shift+Delete` at checkpoint → verify last rally is deleted
+- ⏳ Manual test: Press `Delete` at checkpoint without Shift → verify redo behavior
+
+---
+
 ### 2025-12-02: Comprehensive Terminology Standardization & Player Profiles
 
 **Context:** Major refactoring to standardize terminology across the entire codebase, add Player Profile types for future database implementation, and fix critical data completeness bugs.
@@ -1530,7 +1879,8 @@ Part 2 video now uses constrained playback:
 | 2025-12-01 | 0.8.1 | Figma design prompts updated for new two-part workflow |
 | 2025-12-01 | 0.9.1 | Foundation implementation: rules layer, UI components, tagging feature scaffold |
 | 2025-12-01 | 0.9.4 | Unified tagging screen: Match Details Modal, Part 2 sequential flow, ShotQuestionSection |
-| 2025-12-01 | **0.9.5** | **Bug fixes: inline setup panel, responsive video, FF mode, delete buttons** |
+| 2025-12-01 | 0.9.5 | Bug fixes: inline setup panel, responsive video, FF mode, delete buttons |
+| 2025-12-03 | **0.9.6** | **UI Prototype: Error shot layout alignment, increased button heights for mobile** |
 
 ---
 
@@ -2040,5 +2390,115 @@ previewBufferSeconds: number  // Default 0.2
 
 ---
 
-*Last updated: 2025-12-01*
+### 2025-12-04: SVG Button Components for Tagging UI Prototype V2
+
+**Context:** Extracted complete set of table tennis button designs from HTML mockup into reusable React components for the V2 prototype interface.
+
+#### Button Component Architecture
+
+**Changes:**
+- Created `@/ui-mine/TableTennisButtons/` folder with 22 button components
+- Implemented shared `TableTennisButtonBase` wrapper for consistent behavior
+- All buttons use inline SVG from `tt-buttons-complete-v1.html` design
+- Buttons support square (100x100) and rect (55x100) size variants
+
+**Component Structure:**
+```
+TableTennisButtons/
+  TableTennisButtonBase.tsx       // Shared wrapper with hover/focus/disabled
+  
+  Phase 1 Buttons (5):
+  - ShotMissedButton (red both halves)
+  - InNetButton (blue top, red bottom)
+  - WinningShotButton (green both halves)
+  - ServeButton (blue with "TAG SERVE")
+  - ShotButton (blue with "TAG SHOT")
+  
+  Direction Buttons (9):
+  - LeftLeftButton, LeftMidButton, LeftRightButton
+  - MidLeftButton, MidMidButton, MidRightButton
+  - RightLeftButton, RightMidButton, RightRightButton
+  
+  Serve Depth Buttons (3):
+  - ShortButton, HalfLongButton, DeepButton
+  
+  Spin Type Buttons (3):
+  - UnderspinButton, NoSpinButton, TopspinButton
+  
+  Shot Type Buttons (2):
+  - BackhandButton, ForehandButton
+  
+  Intent Buttons (3):
+  - DefensiveButton, NeutralButton, AggressiveButton
+```
+
+#### Phase 1 Updates
+
+**Changes:**
+- Updated `Phase1ControlsBlock` to use 4 SVG buttons in single row
+- Removed split UI for error placement (In-Net | Long)
+- All 4 buttons now active after first serve: ShotMissed, InNet, WinningShot, Serve/Shot
+- Serve/Shot button changes label and SVG dynamically based on rally state
+
+**Rationale:**
+- Consolidates rally-ending actions into single view
+- Visual feedback via distinctive colors (red for errors, green for winners, blue for continuation)
+- Mobile-friendly: 4 buttons fit in one row on mobile screens
+- Eliminates modal/split UI state management
+
+#### Phase 2 Updates
+
+**Changes:**
+- Replaced all `SequentialQuestionBlock` uses with specific SVG button components
+- **Serve sequence:** Direction (6 buttons) → Depth (3 buttons) → Spin (3 buttons)
+  - Direction consolidates contact point + landing zone into single step
+  - 6 serve direction buttons: left_left through right_right (excludes mid start positions)
+- **Shot sequence:** Stroke (2 buttons) → Direction (3 buttons, dynamic) → Intent (3 buttons)
+  - Dynamic direction logic: Shows 3 buttons based on previous shot landing zone
+  - If previous ended left → show left_left, left_mid, left_right
+  - If previous ended mid → show mid_left, mid_mid, mid_right
+  - If previous ended right → show right_left, right_mid, right_right
+- **Error sequence:** Stroke → Intent → Error Type (Forced/Unforced as text buttons)
+- Updated question labels in status bar for clarity
+
+**Direction Data Model:**
+- Changed from `'line' | 'diagonal'` to specific trajectories
+- Type: `'left_left' | 'left_mid' | 'left_right' | 'mid_left' | 'mid_mid' | 'mid_right' | 'right_left' | 'right_mid' | 'right_right'`
+- Captures ball trajectory across the table (start position → end position)
+- Simplifies data model while capturing sufficient information for analysis
+
+**Rationale:**
+- **Serve direction consolidation:** Eliminates redundant contact question (server position = first bounce position)
+- **6 buttons for serves:** Fits on single mobile row, captures essential trajectory data
+- **Dynamic shot direction:** Reduces cognitive load by showing only relevant options based on ball position
+- **Visual buttons:** Arrows clearly indicate ball trajectory, faster recognition than text labels
+- **Data richness:** Direction type provides enough data for ML model to infer player positioning and shot patterns
+
+#### Files Changed
+
+**New Files:**
+- `app/src/ui-mine/TableTennisButtons/TableTennisButtonBase.tsx` (base wrapper)
+- 22 individual button component files in `TableTennisButtons/`
+- `app/src/ui-mine/TableTennisButtons/index.ts` (exports)
+
+**Modified Files:**
+- `app/src/ui-mine/index.ts` (added TableTennisButtons exports)
+- `app/src/features/tagging-ui-prototype-v2/blocks/Phase1ControlsBlock.tsx` (4-button SVG layout)
+- `app/src/features/tagging-ui-prototype-v2/composers/Phase1TimestampComposer.tsx` (updated handlers for 4-button interface)
+- `app/src/features/tagging-ui-prototype-v2/composers/Phase2DetailComposer.tsx` (replaced all question blocks with SVG buttons, added dynamic direction logic)
+
+**Archived:**
+- `app/src/features/tagging-ui-prototype-v2/blocks/DirectionButtonBlock.tsx` → archived/
+
+#### Impact
+
+- **UI Consistency:** All buttons now use consistent table tennis visual metaphor
+- **Mobile Optimization:** Button layouts designed to fit on iPhone screens in single rows
+- **Data Quality:** Direction tracking provides richer trajectory data for analysis
+- **Development Velocity:** Reusable button components can be used across all tagging UIs
+- **Future ML Training:** Direction data sufficient for model to infer player positions and patterns
+
+---
+
+*Last updated: 2025-12-04*
 

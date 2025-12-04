@@ -1,0 +1,31 @@
+Match Metadata
+Player 1,Player 1
+Player 2,Player 2
+Match Date,2025-12-02
+Match Result,incomplete
+Final Score,0-0 (0-0)
+
+Games/Sets
+Set #,Set ID,Final Score,Winner,Has Video,End of Set Time (s)
+1,uejg5brw2,Player 1 0-0 Player 2,N/A,Yes,N/A
+
+Rallies
+Rally #,Set ID,Server,Receiver,Winner,Scoring,Score After (P1-P2),Total Shots,End Time (s),Point End Type,Luck Type,Highlight
+1,uejg5brw2,Player 1,Player 2,Player 2,Yes,0-1,4,7.47,winnerShot,N/A,No
+2,uejg5brw2,Player 1,Player 2,Player 1,Yes,1-1,4,16.69,unforcedError,N/A,No
+3,uejg5brw2,Player 2,Player 1,Player 2,Yes,1-2,4,28.21,forcedError,N/A,No
+
+Contacts
+Shot ID,Rally #,Shot #,Time (s),Player,Serve Type,Serve Spin,Wing,Shot Type,Quality,Landing Zone,Landing Type,Inferred Spin,Tagged
+uejg5brw2,1,1,2.191,Player 1,pendulum,topLeft,FH,,good,BHShort,inPlay,,Yes
+qyjm1ifw0,1,2,3.494,Player 2,,,FH,drive,weak,FHMid,inPlay,topspin,Yes
+3ui7vnq08,1,3,4.306,Player 1,,,BH,flick,average,FHLong,inPlay,topspin,Yes
+83n6fdj9x,1,4,5.097,Player 2,,,BH,chop,average,FHShort,inPlay,heavyBackspin,Yes
+dtbzxcpqb,2,1,15.744,Player 1,reversePendulum,topspin,BH,,good,FHMid,inPlay,,Yes
+gzncknq5v,2,2,15.744,Player 2,,,BH,smash,weak,BHMid,inPlay,noSpin,Yes
+r9zzsdigl,2,3,15.744,Player 1,,,FH,drive,weak,FHMid,inPlay,topspin,Yes
+od1n0nend,2,4,15.744,Player 2,,,FH,drive,missedLong,,offLong,topspin,Yes
+wnt2cx0u6,3,1,21.995,Player 2,lollipop,noSpin,FH,,average,BHShort,inPlay,,Yes
+83r2q8cq6,3,2,23.791,Player 1,,,FH,flick,weak,FHShort,inPlay,topspin,Yes
+x70c86z75,3,3,24.460,Player 2,,,FH,lob,good,BHShort,inPlay,topspin,Yes
+u62ycxuo1,3,4,25.122,Player 1,,,BH,other,missedWide,,wide,noSpin,Yes

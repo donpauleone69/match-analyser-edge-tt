@@ -451,6 +451,8 @@ export function TaggingScreenComposer({ className }: TaggingScreenComposerProps)
       // Persist to rally immediately (winner shots are auto-derived, no user input needed)
       setRallyPointEndType(currentRally.id, 'winnerShot')
       updateRallyWinner(currentRally.id, derived.winnerId || playerId)
+      // Initialize endOfPointTime to the shot's timestamp (user can adjust with arrow keys)
+      updateEndOfPointTime(currentRally.id, currentShot.time)
     } else {
       advanceToNextShot()
     }
@@ -505,6 +507,8 @@ export function TaggingScreenComposer({ className }: TaggingScreenComposerProps)
       // Enter End of Rally step with derived/pending data
       setIsEndOfRallyStep(true)
       setEndOfRallyWinner(derived.winnerId || null)
+      // Initialize endOfPointTime to the shot's timestamp (user can adjust with arrow keys)
+      updateEndOfPointTime(currentRally.id, currentShot.time)
       
       if (derived.needsForcedUnforcedQuestion) {
         // Need to ask forced/unforced
@@ -701,18 +705,19 @@ export function TaggingScreenComposer({ className }: TaggingScreenComposerProps)
         case 'Backspace':
         case 'Delete':
           e.preventDefault()
-          // Rally Checkpoint Flow: Backspace at checkpoint = redo rally
-          if (frameworkState === 'checkpoint') {
-            const seekTime = redoCurrentRally()
-            videoRef.current?.seek(seekTime)
-            applySpeed(ffSpeed)
-            videoRef.current?.play()
-          } else if (e.shiftKey) {
-            // Shift+Delete: Delete last rally
+          // Check Shift modifier first (takes priority over checkpoint state)
+          if (e.shiftKey) {
+            // Shift+Delete: Delete last rally (works in any state)
             if (rallies.length > 0) {
               const lastRally = rallies[rallies.length - 1]
               handleDeleteRally(lastRally.id)
             }
+          } else if (frameworkState === 'checkpoint') {
+            // Rally Checkpoint Flow: Backspace at checkpoint = redo rally
+            const seekTime = redoCurrentRally()
+            videoRef.current?.seek(seekTime)
+            applySpeed(ffSpeed)
+            videoRef.current?.play()
           } else {
             // Delete/Backspace: Delete last shot (only when not at checkpoint)
             if (taggingControls.canUndo) {
