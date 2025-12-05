@@ -36,7 +36,7 @@ export interface TaggingUIPrototypeComposerProps {
   className?: string
 }
 
-type Phase = 'phase1' | 'phase2' | 'saving' | 'complete'
+type Phase = 'setup' | 'phase1' | 'phase2' | 'saving' | 'complete'
 
 export function TaggingUIPrototypeComposer({ className }: TaggingUIPrototypeComposerProps) {
   const { matchId } = useParams<{ matchId: string }>()
@@ -45,8 +45,9 @@ export function TaggingUIPrototypeComposer({ className }: TaggingUIPrototypeComp
   const { matches, loadMatches } = useMatchManagementStore()
   const { players, loadPlayers } = usePlayerStore()
   
-  const [phase, setPhase] = useState<Phase>('phase1')
+  const [phase, setPhase] = useState<Phase>('setup')
   const [phase1Rallies, setPhase1Rallies] = useState<Phase1Rally[]>([])
+  const [selectedSetNumber, setSelectedSetNumber] = useState(1)
   
   const currentMatch = matches.find(m => m.id === matchId)
   
@@ -72,7 +73,7 @@ export function TaggingUIPrototypeComposer({ className }: TaggingUIPrototypeComp
       // Create a set for this tagging session
       const setData = await createSet({
         match_id: matchId,
-        set_number: 1, // For now, assume first set (can be extended)
+        set_number: selectedSetNumber,
         player1_final_score: 0, // Will be calculated
         player2_final_score: 0, // Will be calculated
         first_server_id: phase1Rallies[0]?.serverId === 'player1' 
@@ -202,6 +203,41 @@ export function TaggingUIPrototypeComposer({ className }: TaggingUIPrototypeComp
           </p>
           <Button onClick={() => navigate('/matches')}>
             Go to Matches
+          </Button>
+        </Card>
+      </div>
+    )
+  }
+
+  // Set selection phase
+  if (phase === 'setup') {
+    const totalSets = currentMatch.player1_sets_won + currentMatch.player2_sets_won
+    
+    return (
+      <div className={cn('h-dvh flex items-center justify-center bg-bg-surface', className)}>
+        <Card className="p-8 max-w-lg">
+          <h2 className="text-2xl font-bold text-neutral-50 mb-6">Select Set to Tag</h2>
+          
+          <div className="space-y-3 mb-6">
+            {Array.from({ length: totalSets }, (_, i) => i + 1).map((setNum) => (
+              <button
+                key={setNum}
+                onClick={() => {
+                  setSelectedSetNumber(setNum)
+                  setPhase('phase1')
+                }}
+                className="w-full p-4 bg-neutral-800 hover:bg-neutral-700 rounded-lg border border-neutral-700 transition-colors text-left"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-lg font-semibold text-neutral-50">Set {setNum}</span>
+                  <span className="text-sm text-neutral-400">→</span>
+                </div>
+              </button>
+            ))}
+          </div>
+
+          <Button variant="secondary" onClick={() => navigate('/matches')} className="w-full">
+            Cancel
           </Button>
         </Card>
       </div>

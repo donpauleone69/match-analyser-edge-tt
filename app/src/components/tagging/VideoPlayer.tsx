@@ -193,7 +193,62 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
     getCurrentTime,
   }), [seek, stepFrame, getCurrentTime])
 
-  const speedOptions = [0.5, 0.75, 1]
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't intercept if typing in input fields
+      const target = e.target as HTMLElement
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return
+
+      const video = videoRef.current
+      if (!video) return
+
+      switch (e.key) {
+        case ' ':
+        case 'k':
+          e.preventDefault()
+          togglePlay()
+          break
+        case 'ArrowLeft':
+          e.preventDefault()
+          stepFrame('backward')
+          break
+        case 'ArrowRight':
+          e.preventDefault()
+          stepFrame('forward')
+          break
+        case 'j':
+          e.preventDefault()
+          seek(Math.max(0, currentTime - 10))
+          break
+        case 'l':
+          e.preventDefault()
+          seek(Math.min(duration, currentTime + 10))
+          break
+        case 'f':
+          e.preventDefault()
+          if (document.fullscreenElement) {
+            document.exitFullscreen()
+          } else {
+            video.requestFullscreen?.()
+          }
+          break
+        case ',':
+          e.preventDefault()
+          stepFrame('backward')
+          break
+        case '.':
+          e.preventDefault()
+          stepFrame('forward')
+          break
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [togglePlay, stepFrame, seek, currentTime, duration])
+
+  const speedOptions = [0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4, 5]
 
   // Calculate progress bar positions for constrained mode
   const getProgressBarStyle = () => {
@@ -330,21 +385,41 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
             </button>
 
             {/* Right: Speed selector */}
-            <div className="flex items-center gap-1 bg-white/10 rounded-lg p-1">
-              {speedOptions.map((speed) => (
-                <button
-                  key={speed}
-                  onClick={() => setPlaybackSpeed(speed)}
-                  className={cn(
-                    'px-3 py-1.5 rounded text-sm font-medium transition-colors',
-                    playbackSpeed === speed
-                      ? 'bg-brand-primary text-white'
-                      : 'text-white/70 hover:text-white hover:bg-white/10'
-                  )}
-                >
-                  {speed}x
-                </button>
-              ))}
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-1 bg-white/10 rounded-lg p-1">
+                {speedOptions.slice(0, 5).map((speed) => (
+                  <button
+                    key={speed}
+                    onClick={() => setPlaybackSpeed(speed)}
+                    className={cn(
+                      'px-2 py-1 rounded text-xs font-medium transition-colors min-w-[40px]',
+                      playbackSpeed === speed
+                        ? 'bg-brand-primary text-white'
+                        : 'text-white/70 hover:text-white hover:bg-white/10'
+                    )}
+                  >
+                    {speed}x
+                  </button>
+                ))}
+              </div>
+              {!compact && (
+                <div className="flex items-center gap-1 bg-white/10 rounded-lg p-1">
+                  {speedOptions.slice(5).map((speed) => (
+                    <button
+                      key={speed}
+                      onClick={() => setPlaybackSpeed(speed)}
+                      className={cn(
+                        'px-2 py-1 rounded text-xs font-medium transition-colors min-w-[40px]',
+                        playbackSpeed === speed
+                          ? 'bg-brand-primary text-white'
+                          : 'text-white/70 hover:text-white hover:bg-white/10'
+                      )}
+                    >
+                      {speed}x
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
