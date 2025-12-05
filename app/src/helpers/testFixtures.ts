@@ -4,7 +4,7 @@
  * Provides realistic match/set/rally data for testing validation logic.
  */
 
-import type { DBMatch, DBMatchVideo, DBSet, DBRally, DBShot } from '@/database/types'
+// import type { DBMatch, DBMatchVideo, DBSet, DBRally, DBShot } from '@/data'
 import type { 
   MatchValidationInput, 
   SetValidationInput,

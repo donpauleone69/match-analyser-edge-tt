@@ -10,7 +10,7 @@
  * - After serve: All buttons active
  */
 
-import { cn } from '@/lib/utils'
+import { cn } from '@/helpers/utils'
 
 export type RallyState = 'before-serve' | 'after-serve'
 export type EndCondition = 'let' | 'winner' | 'innet' | 'long'

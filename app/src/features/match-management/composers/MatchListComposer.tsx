@@ -4,16 +4,14 @@
 
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useMatchManagementStore } from '@/stores/matchManagementStore'
-import { usePlayerStore } from '@/stores/playerStore'
-import { useTournamentStore } from '@/stores/tournamentStore'
+import { useMatchStore, usePlayerStore, useTournamentStore } from '@/data'
 import { MatchListSection } from '../sections/MatchListSection'
 
 export function MatchListComposer() {
   const navigate = useNavigate()
-  const { matches, isLoading, loadMatches } = useMatchManagementStore()
-  const { players, loadPlayers } = usePlayerStore()
-  const { tournaments, loadTournaments } = useTournamentStore()
+  const { matches, isLoading, load: loadMatches } = useMatchStore()
+  const { players, load: loadPlayers } = usePlayerStore()
+  const { tournaments, load: loadTournaments } = useTournamentStore()
   
   useEffect(() => {
     loadMatches()
@@ -36,6 +34,10 @@ export function MatchListComposer() {
     navigate('/matches/create')
   }
   
+  const handleRefresh = () => {
+    loadMatches()
+  }
+  
   return (
     <div className="h-screen overflow-y-auto bg-bg-surface">
       <div className="max-w-7xl mx-auto p-6 space-y-6">
@@ -49,6 +51,7 @@ export function MatchListComposer() {
           onCreateNew={handleCreateNew}
           getPlayerName={getPlayerName}
           getTournamentName={getTournamentName}
+          onRefresh={handleRefresh}
         />
       </div>
     </div>

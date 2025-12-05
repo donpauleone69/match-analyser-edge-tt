@@ -33,6 +33,7 @@ import {
   Check,
   Trash2,
   Edit2,
+  Search,
   Save,
   Upload,
   Download,
@@ -72,7 +73,7 @@ import {
   
   type LucideIcon,
 } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn } from '@/helpers/utils'
 
 // Icon name registry
 const icons = {
@@ -97,6 +98,7 @@ const icons = {
   check: Check,
   trash: Trash2,
   edit: Edit2,
+  search: Search,
   save: Save,
   upload: Upload,
   download: Download,

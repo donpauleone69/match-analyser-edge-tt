@@ -13,7 +13,7 @@
  * - 6 buttons: Tall rectangles (width < height), fill grid cells with !aspect-auto
  */
 
-import { cn } from '@/lib/utils'
+import { cn } from '@/helpers/utils'
 import type { ReactNode } from 'react'
 
 interface ButtonGridProps {

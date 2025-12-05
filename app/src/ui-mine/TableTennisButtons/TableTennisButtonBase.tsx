@@ -14,7 +14,7 @@
  *   size === 'rect' && 'w-[55px] h-[100px]'
  */
 
-import { cn } from '@/lib/utils'
+import { cn } from '@/helpers/utils'
 
 export type ButtonSize = 'square' | 'rect'
 

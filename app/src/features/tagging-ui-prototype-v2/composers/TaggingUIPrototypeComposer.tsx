@@ -7,26 +7,21 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
-import { cn } from '@/lib/utils'
+import { cn } from '@/helpers/utils'
 import { Phase1TimestampComposer, type Phase1Rally } from './Phase1TimestampComposer'
 import { Phase2DetailComposer, type DetailedShot } from './Phase2DetailComposer'
 import { Button } from '@/ui-mine'
 import { Card } from '@/ui-mine/Card'
-import { useMatchManagementStore } from '@/stores/matchManagementStore'
-import { usePlayerStore } from '@/stores/playerStore'
-import { 
-  createRally,
-  createShot,
-  updateRally,
-  updateMatch,
-} from '@/database/services/matchService'
-import {
-  deleteSetTaggingData,
-  getSetsByMatchId,
-  markSetTaggingStarted,
-  markSetTaggingCompleted,
-  updateSet as updateSetService,
-} from '@/database/services/setService'
+import { useMatchStore, usePlayerStore, setDb, rallyDb, shotDb } from '@/data'
+const { 
+  getByMatchId: getSetsByMatchId,
+  deleteTaggingData: deleteSetTaggingData,
+  markTaggingStarted: markSetTaggingStarted,
+  markTaggingCompleted: markSetTaggingCompleted,
+  update: updateSetService,
+} = setDb
+const { create: createRally, update: updateRally } = rallyDb
+const { create: createShot } = shotDb
 import {
   mapPhase1RallyToDBRally,
   mapPhase1ShotToDBShot,
@@ -34,8 +29,8 @@ import {
   calculateScoresForRallies,
   markRallyEndShots,
   type DetailedShotData,
-} from '@/database/services/mappingService'
-import { runInferenceForSet } from '@/database/services/inferenceService'
+} from './dataMapping'
+import { runInferenceForSet } from './runInference'
 import { calculateShotPlayer } from '@/rules'
 import { PreTaggingSetupBlock } from '../blocks/PreTaggingSetupBlock'
 
@@ -50,8 +45,8 @@ export function TaggingUIPrototypeComposer({ className }: TaggingUIPrototypeComp
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   
-  const { matches, loadMatches } = useMatchManagementStore()
-  const { players, loadPlayers } = usePlayerStore()
+  const { matches, load: loadMatches, update: updateMatch } = useMatchStore()
+  const { players, load: loadPlayers } = usePlayerStore()
   
   const [phase, setPhase] = useState<Phase>('setup')
   const [phase1Rallies, setPhase1Rallies] = useState<Phase1Rally[]>([])
@@ -147,7 +142,7 @@ export function TaggingUIPrototypeComposer({ className }: TaggingUIPrototypeComp
         : currentMatch.player2_id
       
       await updateSetService(setData.id, {
-        first_server_id: firstServerId,
+          set_first_server_id: firstServerId,
         has_video: true,
         video_start_player1_score: setupData?.startingScore.player1 || 0,
         video_start_player2_score: setupData?.startingScore.player2 || 0,

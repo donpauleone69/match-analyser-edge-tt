@@ -7,7 +7,7 @@
 
 import { forwardRef } from 'react'
 import { Button as ShadcnButton, type ButtonProps as ShadcnButtonProps } from '@/components/ui/Button'
-import { cn } from '@/lib/utils'
+import { cn } from '@/helpers/utils'
 
 export interface ButtonProps extends ShadcnButtonProps {
   /** Full width button */

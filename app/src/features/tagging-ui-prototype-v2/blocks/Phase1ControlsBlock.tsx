@@ -11,7 +11,7 @@
  * - WinningShot = Winner
  */
 
-import { cn } from '@/lib/utils'
+import { cn } from '@/helpers/utils'
 import {
   ShotMissedButton,
   InNetButton,

@@ -8,7 +8,7 @@
  */
 
 import type { PlayerId } from './types'
-import type { BestOf } from '@/database/types'
+import type { BestOf } from '@/data'
 
 // =============================================================================
 // VALIDATION ERROR TYPE
@@ -370,5 +370,35 @@ export function validateCompleteMatch(input: CompleteMatchValidationInput): Comp
     isValid,
     allErrors
   }
+}
+
+// =============================================================================
+// POINT SCORE VALIDATION
+// =============================================================================
+
+/**
+ * Validate a point score string and parse it
+ * Table tennis rules: Must be at least 11 points and win by 2
+ */
+export function validatePointScore(score: string): { valid: boolean; p1: number; p2: number } {
+  const match = score.match(/^(\d+)-(\d+)$/)
+  if (!match) {
+    return { valid: false, p1: 0, p2: 0 }
+  }
+  
+  const p1 = parseInt(match[1], 10)
+  const p2 = parseInt(match[2], 10)
+  
+  // Basic table tennis scoring rules:
+  // - At least one player must reach 11
+  // - Winner must be ahead by 2 points
+  const maxScore = Math.max(p1, p2)
+  const diff = Math.abs(p1 - p2)
+  
+  if (maxScore >= 11 && diff >= 2) {
+    return { valid: true, p1, p2 }
+  }
+  
+  return { valid: false, p1: 0, p2: 0 }
 }
 

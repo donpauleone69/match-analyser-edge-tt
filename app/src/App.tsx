@@ -1,8 +1,9 @@
 import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AppShell } from './components/layout'
-import { initializeDatabase } from './database'
+import { db } from '@/data'
 import { Dashboard } from './pages/Dashboard'
+import { Clubs } from './pages/Clubs'
 import MatchesPage from './pages/Matches'
 import TournamentsPage from './pages/Tournaments'
 import PlayersPage from './pages/Players'
@@ -14,7 +15,8 @@ import { TaggingUIPrototypeV2 } from './pages/TaggingUIPrototypeV2'
 function App() {
   // Initialize IndexedDB database
   useEffect(() => {
-    initializeDatabase().catch(error => {
+    // Database initializes automatically when imported
+    db.open().catch(error => {
       console.error('Failed to initialize database:', error)
     })
   }, [])
@@ -25,6 +27,7 @@ function App() {
         {/* Main app with sidebar */}
         <Route element={<AppShell />}>
           <Route path="/" element={<Dashboard />} />
+          <Route path="/clubs" element={<Clubs />} />
           <Route path="/tournaments" element={<TournamentsPage />} />
           <Route path="/players" element={<PlayersPage />} />
           <Route path="/matches" element={<MatchesPage />} />

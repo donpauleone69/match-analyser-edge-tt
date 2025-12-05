@@ -3,13 +3,12 @@
  */
 
 import { useEffect, useState } from 'react'
-import { useTournamentStore } from '@/stores/tournamentStore'
+import { useTournamentStore, type DBTournament } from '@/data'
 import { TournamentListSection } from '../sections/TournamentListSection'
 import { TournamentFormSection } from '../sections/TournamentFormSection'
-import type { DBTournament } from '@/database/types'
 
 export function TournamentManagementComposer() {
-  const { tournaments, isLoading, loadTournaments } = useTournamentStore()
+  const { tournaments, isLoading, load: loadTournaments } = useTournamentStore()
   const [editingTournament, setEditingTournament] = useState<DBTournament | null>(null)
   const [showForm, setShowForm] = useState(false)
   
@@ -35,7 +34,7 @@ export function TournamentManagementComposer() {
   const handleFormSuccess = () => {
     setShowForm(false)
     setEditingTournament(null)
-    loadTournaments()
+    // No need to reload - store cache updates automatically
   }
   
   return (

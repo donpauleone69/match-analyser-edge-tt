@@ -8,7 +8,7 @@
 import { useTaggingStore } from '@/stores/taggingStore'
 import { Card, Button, Icon } from '@/ui-mine'
 // import { formatTime } from '@/lib/utils'  // Unused for now
-import { cn } from '@/lib/utils'
+import { cn } from '@/helpers/utils'
 import { useNavigate } from 'react-router-dom'
 import type { Rally } from '@/rules/types'
 

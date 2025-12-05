@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { useTaggingStore } from '@/stores/taggingStore'
+import { useTaggingStore } from '@/stores/taggingStore' // Legacy store - to be migrated
 import { Button } from '@/ui-mine/Button'
 import { Icon } from '@/ui-mine/Icon'
 

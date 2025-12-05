@@ -6,7 +6,7 @@
  * Layout: Single row with semantic labels above button groups
  */
 
-import { cn } from '@/lib/utils'
+import { cn } from '@/helpers/utils'
 
 export type Quality = 'good' | 'average' | 'innet' | 'offend'
 

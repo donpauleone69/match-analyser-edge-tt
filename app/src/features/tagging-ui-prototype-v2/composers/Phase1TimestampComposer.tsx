@@ -10,11 +10,10 @@
  */
 
 import { useState, useRef } from 'react'
-import { cn } from '@/lib/utils'
+import { cn } from '@/helpers/utils'
 import { Phase1ControlsBlock, type RallyState, type EndCondition } from '../blocks'
-import { useTaggingStore } from '@/stores/taggingStore'
-import { VideoPlayer } from '@/components/tagging/VideoPlayer'
-import type { VideoPlayerHandle } from '@/components/tagging/VideoPlayer'
+import { useTaggingStore } from '@/stores/taggingStore' // Legacy store - separate from new data layer
+import { VideoPlayer, type VideoPlayerHandle } from '@/ui-mine/VideoPlayer'
 
 export interface Phase1TimestampComposerProps {
   onCompletePhase1?: (rallies: Phase1Rally[]) => void

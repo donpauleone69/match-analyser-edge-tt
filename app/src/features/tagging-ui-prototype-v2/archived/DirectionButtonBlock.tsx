@@ -4,7 +4,7 @@
  * Options: Line, Diagonal
  */
 
-import { cn } from '@/lib/utils'
+import { cn } from '@/helpers/utils'
 
 export type Direction = 'line' | 'diagonal'
 

@@ -10,7 +10,7 @@
 import type { 
   DBShot,
   InferredConfidence,
-} from '@/database/types'
+} from '@/data'
 
 export function inferShotType(
   shot: DBShot,

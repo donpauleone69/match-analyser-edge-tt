@@ -1,12 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { useMatchManagementStore } from '@/stores/matchManagementStore'
-import { usePlayerStore } from '@/stores/playerStore'
-import { useTournamentStore } from '@/stores/tournamentStore'
-import { getCompleteMatchData } from '@/database/services/matchService'
-import type { CompleteMatchData } from '@/database/services/matchService'
-import { validateMatchData, type ValidationError } from '@/database/services/validationService'
-import type { DBSet } from '@/database/types'
+import { useMatchStore, usePlayerStore, useTournamentStore, type DBSet } from '@/data'
+import { getCompleteMatchData, type CompleteMatchData } from '@/data'
+import { validateMatchData, type ValidationError } from '@/data/services/validation'
 import { Card } from '@/ui-mine/Card'
 import { Button } from '@/ui-mine/Button'
 import { Icon } from '@/ui-mine/Icon'
@@ -15,9 +11,9 @@ export function DataViewerComposer() {
   const [searchParams] = useSearchParams()
   const matchIdFromUrl = searchParams.get('match')
   
-  const { matches, loadMatches } = useMatchManagementStore()
-  const { players, loadPlayers } = usePlayerStore()
-  const { tournaments, loadTournaments } = useTournamentStore()
+  const { matches, load: loadMatches } = useMatchStore()
+  const { players, load: loadPlayers } = usePlayerStore()
+  const { tournaments, load: loadTournaments } = useTournamentStore()
   
   const [selectedMatchId, setSelectedMatchId] = useState<string | null>(matchIdFromUrl)
   const [matchData, setMatchData] = useState<CompleteMatchData | null>(null)

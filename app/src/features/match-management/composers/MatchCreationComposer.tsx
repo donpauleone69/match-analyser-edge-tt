@@ -3,13 +3,12 @@
  */
 
 import { useEffect } from 'react'
-import { usePlayerStore } from '@/stores/playerStore'
-import { useTournamentStore } from '@/stores/tournamentStore'
+import { usePlayerStore, useTournamentStore } from '@/data'
 import { MatchFormSection } from '../sections/MatchFormSection'
 
 export function MatchCreationComposer() {
-  const { players, loadPlayers } = usePlayerStore()
-  const { tournaments, loadTournaments } = useTournamentStore()
+  const { players, load: loadPlayers } = usePlayerStore()
+  const { tournaments, load: loadTournaments } = useTournamentStore()
   
   useEffect(() => {
     loadPlayers()

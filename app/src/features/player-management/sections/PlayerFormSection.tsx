@@ -2,11 +2,11 @@
  * PlayerFormSection - Form for creating/editing players
  */
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/ui-mine/Button'
 import { Card } from '@/ui-mine/Card'
-import type { DBPlayer, Handedness } from '@/database/types'
-import { usePlayerStore } from '@/stores/playerStore'
+import type { DBPlayer, Handedness, Playstyle, DBClub } from '@/data'
+import { usePlayerStore, useClubStore } from '@/data'
 
 interface PlayerFormSectionProps {
   player: DBPlayer | null
@@ -19,15 +19,22 @@ export function PlayerFormSection({
   onClose,
   onSuccess,
 }: PlayerFormSectionProps) {
-  const { createPlayer, updatePlayer } = usePlayerStore()
+  const { create: createPlayer, update: updatePlayer } = usePlayerStore()
+  const { clubs, load: loadClubs } = useClubStore()
   const [isSubmitting, setIsSubmitting] = useState(false)
   
   const [formData, setFormData] = useState({
     first_name: player?.first_name || '',
     last_name: player?.last_name || '',
     handedness: (player?.handedness || 'right') as Handedness,
-    club_name: player?.club_name || '',
+    playstyle: (player?.playstyle || null) as Playstyle | null,
+    club_id: player?.club_id || null,
   })
+  
+  // Load clubs for dropdown
+  useEffect(() => {
+    loadClubs()
+  }, [loadClubs])
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -36,16 +43,10 @@ export function PlayerFormSection({
     try {
       if (player) {
         console.log('Updating player:', player.id, formData)
-        await updatePlayer(player.id, {
-          ...formData,
-          club_name: formData.club_name || null,
-          club_id: null, // Club ID management deferred for Phase 2
-        })
+        await updatePlayer(player.id, formData)
       } else {
         const playerData = {
           ...formData,
-          club_name: formData.club_name || null,
-          club_id: null,
           is_archived: 0 as any, // IndexedDB stores booleans as 0/1
         }
         console.log('Creating player with data:', playerData)
@@ -98,32 +99,61 @@ export function PlayerFormSection({
           </div>
         </div>
         
-        <div>
-          <label className="block text-sm font-medium text-neutral-300 mb-2">
-            Handedness *
-          </label>
-          <select
-            required
-            value={formData.handedness}
-            onChange={(e) => setFormData({ ...formData, handedness: e.target.value as Handedness })}
-            className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-md text-neutral-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="right">Right-handed</option>
-            <option value="left">Left-handed</option>
-          </select>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-neutral-300 mb-2">
+              Handedness *
+            </label>
+            <select
+              required
+              value={formData.handedness}
+              onChange={(e) => setFormData({ ...formData, handedness: e.target.value as Handedness })}
+              className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-md text-neutral-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="right">Right-handed</option>
+              <option value="left">Left-handed</option>
+            </select>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-neutral-300 mb-2">
+              Playstyle (optional)
+            </label>
+            <select
+              value={formData.playstyle || ''}
+              onChange={(e) => setFormData({ ...formData, playstyle: e.target.value as Playstyle || null })}
+              className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-md text-neutral-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">— Not specified —</option>
+              <option value="attacker">Attacker</option>
+              <option value="all_rounder">All-rounder</option>
+              <option value="defender">Defender</option>
+              <option value="disruptive">Disruptive</option>
+            </select>
+          </div>
         </div>
         
         <div>
           <label className="block text-sm font-medium text-neutral-300 mb-2">
-            Club Name (optional)
+            Club (optional)
           </label>
-          <input
-            type="text"
-            value={formData.club_name}
-            onChange={(e) => setFormData({ ...formData, club_name: e.target.value })}
+          <select
+            value={formData.club_id || ''}
+            onChange={(e) => setFormData({ ...formData, club_id: e.target.value || null })}
             className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-md text-neutral-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="ABC Table Tennis Club"
-          />
+          >
+            <option value="">— No club / Independent —</option>
+            {clubs.map(club => (
+              <option key={club.id} value={club.id}>
+                {club.name} {club.location && `(${club.location})`}
+              </option>
+            ))}
+          </select>
+          {clubs.length === 0 && (
+            <p className="text-xs text-neutral-500 mt-1">
+              No clubs yet. <a href="/clubs" className="text-blue-400 hover:underline">Create a club</a> first.
+            </p>
+          )}
         </div>
         
         <div className="flex gap-3 pt-4">

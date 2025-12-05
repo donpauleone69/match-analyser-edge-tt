@@ -5,7 +5,7 @@
  * Used when creating new matches, sets, rallies, and shots.
  */
 
-import type { DBMatch, DBSet, DBRally, DBShot } from '@/database/types'
+import type { DBMatch, DBSet, DBRally, DBShot } from '@/data'
 
 // =============================================================================
 // MATCH DEFAULTS

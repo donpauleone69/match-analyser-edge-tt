@@ -6,8 +6,10 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/ui-mine/Button'
 import { Card } from '@/ui-mine/Card'
-import type { DBPlayer, DBTournament, MatchRound } from '@/database/types'
-import { useMatchManagementStore } from '@/stores/matchManagementStore'
+import type { DBPlayer, DBTournament, MatchRound, BestOf } from '@/data'
+import { useMatchStore, setDb } from '@/data'
+const { create: createSet } = setDb
+// generateId no longer needed - handled by createMatch
 
 interface MatchFormSectionProps {
   players: DBPlayer[]
@@ -15,18 +17,25 @@ interface MatchFormSectionProps {
 }
 
 const MATCH_ROUNDS: { value: MatchRound; label: string }[] = [
-  { value: 'final', label: 'Final' },
-  { value: 'semi_final', label: 'Semi-Final' },
-  { value: 'quarter_final', label: 'Quarter-Final' },
-  { value: 'round_16', label: 'Round of 16' },
-  { value: 'round_32', label: 'Round of 32' },
   { value: 'groups', label: 'Groups' },
+  { value: 'last_32', label: 'Round of 32' },
+  { value: 'last_16', label: 'Round of 16' },
+  { value: 'quarter_final', label: 'Quarter-Final' },
+  { value: 'semi_final', label: 'Semi-Final' },
+  { value: 'final', label: 'Final' },
   { value: 'other', label: 'Other' },
+]
+
+const BEST_OF_OPTIONS: { value: BestOf; label: string }[] = [
+  { value: 1, label: 'Best of 1' },
+  { value: 3, label: 'Best of 3' },
+  { value: 5, label: 'Best of 5' },
+  { value: 7, label: 'Best of 7' },
 ]
 
 export function MatchFormSection({ players, tournaments }: MatchFormSectionProps) {
   const navigate = useNavigate()
-  const { createMatch } = useMatchManagementStore()
+  const { create: createMatch } = useMatchStore()
   const [isSubmitting, setIsSubmitting] = useState(false)
   
   const [formData, setFormData] = useState({
@@ -35,9 +44,7 @@ export function MatchFormSection({ players, tournaments }: MatchFormSectionProps
     tournament_id: '',
     round: '' as MatchRound | '',
     match_date: new Date().toISOString().split('T')[0],
-    player1_sets_won: 0,
-    player2_sets_won: 0,
-    match_format: 'Best of 5',
+    best_of: 5 as BestOf,
   })
   
   const player1 = players.find(p => p.id === formData.player1_id)
@@ -51,41 +58,59 @@ export function MatchFormSection({ players, tournaments }: MatchFormSectionProps
       return
     }
     
+    if (formData.player1_id === formData.player2_id) {
+      alert('Player 1 and Player 2 must be different')
+      return
+    }
+    
     setIsSubmitting(true)
     
     try {
-      // Determine winner
-      const winner_id = formData.player1_sets_won > formData.player2_sets_won 
-        ? formData.player1_id 
-        : formData.player2_sets_won > formData.player1_sets_won
-          ? formData.player2_id
-          : null
-      
-      await createMatch({
+      // Create match with new clean schema
+      const newMatch = await createMatch({
         player1_id: formData.player1_id,
         player2_id: formData.player2_id,
         tournament_id: formData.tournament_id || null,
         round: formData.round || null,
-        winner_id,
-        player1_sets_won: formData.player1_sets_won,
-        player2_sets_won: formData.player2_sets_won,
-        match_format: formData.match_format,
         match_date: formData.match_date,
-        // All matches are tagable - tagging_mode set when user starts tagging
+        best_of: formData.best_of,
+        
+        // Defaults - unknown at creation time
+        first_server_id: 'player1', // Temporary default (will be set per-set during tagging)
+        player1_sets_won: 0,
+        player2_sets_won: 0,
+        winner_id: null,
+        set_score_summary: null,
         tagging_mode: null,
-        video_coverage: null,
-        first_server_id: formData.player1_id, // Default to player1
-        player1_start_sets: 0,
-        player2_start_sets: 0,
-        player1_start_points: 0,
-        player2_start_points: 0,
-        first_serve_timestamp: null,
-        video_blob_url: null,
-        step1_complete: false, // Will be marked complete when tagging is done
+        has_video: false,
+        video_count: 0,
+        total_coverage: 'partial',
+        step1_complete: false,
         step2_complete: false,
       })
       
-      alert('Match created successfully!')
+      const matchId = newMatch.id
+      
+      // Auto-create all sets based on best_of value
+      for (let setNumber = 1; setNumber <= formData.best_of; setNumber++) {
+        // Service alternation: odd sets (1,3,5,7) = player1, even sets (2,4,6) = player2
+        const setFirstServerId = setNumber % 2 === 1 ? 'player1' : 'player2'
+        
+        await createSet({
+          match_id: matchId,
+          set_number: setNumber,
+          set_first_server_id: setFirstServerId,
+          player1_final_score: 0,
+          player2_final_score: 0,
+          winner_id: null,
+          has_video: false,
+          video_segments: [],
+          video_contexts: null,
+          end_of_set_timestamp: null,
+        })
+      }
+      
+      alert(`Match created successfully with ${formData.best_of} sets!`)
       navigate('/matches')
     } catch (error) {
       console.error('Failed to create match:', error)
@@ -145,15 +170,12 @@ export function MatchFormSection({ players, tournaments }: MatchFormSectionProps
         {/* Tournament Section */}
         <div>
           <h3 className="text-lg font-semibold text-neutral-50 mb-4">Tournament (Optional)</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-2">
-                Tournament
-              </label>
+          <div className="space-y-4">
+            <div className="flex gap-2">
               <select
                 value={formData.tournament_id}
                 onChange={(e) => setFormData({ ...formData, tournament_id: e.target.value })}
-                className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-md text-neutral-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="flex-1 px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-md text-neutral-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">None (Friendly Match)</option>
                 {tournaments.map(tournament => (
@@ -162,7 +184,20 @@ export function MatchFormSection({ players, tournaments }: MatchFormSectionProps
                   </option>
                 ))}
               </select>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => navigate('/tournaments')}
+              >
+                + Create Tournament
+              </Button>
             </div>
+            
+            {tournaments.length === 0 && (
+              <p className="text-xs text-neutral-500">
+                No tournaments yet. <a href="/tournaments" className="text-blue-400 hover:underline">Create a tournament</a> to organize matches.
+              </p>
+            )}
             
             {formData.tournament_id && (
               <div>
@@ -203,36 +238,35 @@ export function MatchFormSection({ players, tournaments }: MatchFormSectionProps
               />
             </div>
             
-            <div className="grid grid-cols-3 gap-4 items-end">
-              <div>
-                <label className="block text-sm font-medium text-neutral-300 mb-2">
-                  {player1 ? `${player1.first_name}'s Sets` : 'Player 1 Sets'}
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  max="7"
-                  value={formData.player1_sets_won}
-                  onChange={(e) => setFormData({ ...formData, player1_sets_won: parseInt(e.target.value) || 0 })}
-                  className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-md text-neutral-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+            <div>
+              <label className="block text-sm font-medium text-neutral-300 mb-3">
+                Best Of *
+              </label>
+              <div className="flex gap-4">
+                {BEST_OF_OPTIONS.map(option => (
+                  <label
+                    key={option.value}
+                    className={`flex-1 cursor-pointer rounded-lg border-2 p-4 text-center transition-all ${
+                      formData.best_of === option.value
+                        ? 'border-blue-500 bg-blue-500/10'
+                        : 'border-neutral-700 hover:border-neutral-600'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="best_of"
+                      value={option.value}
+                      checked={formData.best_of === option.value}
+                      onChange={(e) => setFormData({ ...formData, best_of: parseInt(e.target.value) as BestOf })}
+                      className="sr-only"
+                    />
+                    <span className="text-lg font-semibold text-neutral-50">{option.label}</span>
+                  </label>
+                ))}
               </div>
-              
-              <div className="text-center text-2xl text-neutral-400 pb-2">-</div>
-              
-              <div>
-                <label className="block text-sm font-medium text-neutral-300 mb-2">
-                  {player2 ? `${player2.first_name}'s Sets` : 'Player 2 Sets'}
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  max="7"
-                  value={formData.player2_sets_won}
-                  onChange={(e) => setFormData({ ...formData, player2_sets_won: parseInt(e.target.value) || 0 })}
-                  className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-md text-neutral-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
+              <p className="text-xs text-neutral-500 mt-2">
+                {formData.best_of} empty sets will be created. Enter scores or tag video later.
+              </p>
             </div>
           </div>
         </div>

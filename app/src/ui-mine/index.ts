@@ -28,9 +28,15 @@ export { PositionGrid, POSITION_LABELS, POSITION_SHORT_LABELS, type PositionGrid
 
 // Video components
 export { SpeedControls, TAGGING_SPEEDS, FF_SPEEDS, formatSpeed, type SpeedControlsProps } from './SpeedControls'
-// export { VideoPlayer } from './VideoPlayer' // TODO: migrate existing
-// export { Timeline } from './Timeline' // TODO: migrate existing
+export { VideoPlayer } from './VideoPlayer'
+export type { VideoPlayerHandle, ConstrainedPlayback } from './VideoPlayer'
 
 // Table Tennis Buttons (for tagging-ui-prototype-v2)
 export * from './TableTennisButtons'
+
+// Form components
+export * from './Dialog'
+export * from './Input'
+export * from './Label'
+export * from './Table'
 

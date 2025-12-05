@@ -6,7 +6,7 @@
  * - After serve: Winner (green), In Net (red), Long (red) - all active
  */
 
-import { cn } from '@/lib/utils'
+import { cn } from '@/helpers/utils'
 
 export type RallyState = 'before-serve' | 'after-serve'
 export type EndCondition = 'let' | 'winner' | 'innet' | 'long'

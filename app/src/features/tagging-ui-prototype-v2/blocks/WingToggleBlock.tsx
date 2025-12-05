@@ -5,7 +5,7 @@
  * Large, finger-friendly toggle button
  */
 
-import { cn } from '@/lib/utils'
+import { cn } from '@/helpers/utils'
 
 export type Wing = 'backhand' | 'forehand'
 

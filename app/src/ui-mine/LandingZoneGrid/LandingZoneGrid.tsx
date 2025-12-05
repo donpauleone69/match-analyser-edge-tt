@@ -13,7 +13,7 @@
 import { forwardRef, useCallback, useEffect } from 'react'
 import type { LandingZone } from '@/rules/types'
 import { LANDING_ZONE_GRID } from '@/rules/types'
-import { cn } from '@/lib/utils'
+import { cn } from '@/helpers/utils'
 
 export interface LandingZoneGridProps {
   /** Currently selected zone */

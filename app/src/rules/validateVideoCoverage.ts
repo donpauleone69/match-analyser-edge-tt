@@ -8,7 +8,7 @@
  */
 
 import type { ValidationError } from './validateMatchData'
-import type { MatchCoverageType } from '@/database/types'
+// MatchCoverageType removed - not part of new data schema
 
 // =============================================================================
 // VIDEO SEGMENT TYPES

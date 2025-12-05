@@ -6,6 +6,231 @@
 
 ## Change Log
 
+### 2025-12-05: Match Result Entry Workflow (Updated)
+
+**Context:** Added mandatory match result entry before video tagging to ensure match outcomes are recorded before detailed analysis begins. Users can now enter set scores and optionally point scores for each set.
+
+**Update:** Replaced text input with dropdown selectors for better UX and added display of set point scores in match list.
+
+#### What Changed
+
+**UI/UX Changes:**
+- **Match List Screen:**
+  - Added "Enter Match Result" button (shown when `match.winner_id === null`)
+  - "Tag Match" button now only appears after results are entered (`match.winner_id !== null`)
+  - Match cards display winner name and set score summary when available
+  - **Display individual set point scores** below winner info (e.g., "Set scores: 11-9, 8-11, 11-7")
+  - Automatically loads and displays set scores for all matches
+  - Shows "(Result not entered)" indicator for matches without results
+
+- **New Component:** `MatchResultEntryModal.tsx`
+  - Set score entry via dropdowns (e.g., Player 1: 3 sets, Player 2: 1 set)
+  - Optional point score entry via **separate dropdowns** for each player (0-30 range)
+    - Replaced text input with dual dropdown selectors
+    - Player names displayed above each dropdown
+    - Visual separator (-) between scores
+  - Real-time winner calculation based on set scores
+  - Real-time validation with visual feedback (✓/✗)
+  - Auto-enables/disables save button based on validation state
+
+**Data Model Changes:**
+- **Match Table:**
+  - `winner_id`: Now populated when match result is entered (stores actual player UUID)
+  - `player1_sets_won`: Updated from result entry
+  - `player2_sets_won`: Updated from result entry
+  - `set_score_summary`: Formatted string (e.g., "3-1") for display
+
+- **Set Table:**
+  - `player1_final_score`: Updated when point scores are entered (optional)
+  - `player2_final_score`: Updated when point scores are entered (optional)
+  - `winner_id`: Calculated from point scores
+
+**Business Logic:**
+- Added `validatePointScore()` function in `rules/validateMatchData.ts`
+  - Validates table tennis scoring: minimum 11 points, win by 2
+  - Parses point score strings (e.g., "11-9") into numeric values
+  - Returns validation status and parsed scores
+
+**Workflow:**
+1. User creates match → winner_id is null
+2. User clicks "Enter Match Result" → modal opens
+3. User selects set scores → winner auto-calculated
+4. (Optional) User enters point scores for sets
+5. Save → Match and Set records updated
+6. "Tag Match" button now appears
+
+#### Rationale
+
+- **Data Integrity:** Ensures match outcomes are recorded before detailed tagging
+- **User Experience:** Clear separation between result entry and video analysis
+- **Progressive Enhancement:** Set scores required, point scores optional
+- **Validation:** Prevents invalid scores from being saved
+- **Future-Proof:** Prepares for match result analysis independent of video tagging
+
+#### Technical Notes
+
+- No rally records created when point scores entered (score-only updates)
+- Uses existing `validateMatchWinner` function for set score validation
+- PlayerId type ('player1' | 'player2') mapped to actual player UUIDs on save
+- Modal includes real-time validation feedback
+- Parent component refresh triggered after save
+
+---
+
+### 2025-12-05: Major Architecture Refactor - Data Layer Unification
+
+**Context:** Refactored entire data layer from split `database/` + `stores/` structure to unified `data/` folder with entity-based organization. This addresses architectural inconsistencies, prepares for Supabase sync, and follows offline-first best practices.
+
+#### What Changed
+
+**Folder Structure:**
+- **Deleted** `app/src/database/` and `app/src/stores/` folders
+- **Created** `app/src/data/` with entity-based organization:
+  ```
+  data/
+    db.ts                  # Dexie instance
+    index.ts               # Central exports
+    entities/
+      clubs/               # One folder per entity
+        club.types.ts      # Types only
+        club.db.ts         # Dexie operations (pure DB)
+        club.store.ts      # Zustand cache + orchestration
+        index.ts           # Public API
+      (players, matches, tournaments, sets, rallies, shots...)
+  ```
+
+**Architecture Pattern:**
+- **3-Layer Model:**
+  1. **Types Layer** (`entity.types.ts`) - Data shapes
+  2. **DB Layer** (`entity.db.ts`) - Pure Dexie CRUD operations
+  3. **Store Layer** (`entity.store.ts`) - Zustand cache + future sync orchestration
+
+- **Entities with Stores:** Clubs, Tournaments, Players, Matches (user-facing CRUD)
+- **Entities without Stores:** Sets, Rallies, Shots (managed through tagging context)
+
+**Import Changes:**
+```typescript
+// OLD (multiple sources)
+import { DBPlayer } from '@/database/types'
+import { usePlayerStore } from '@/stores/playerStore'
+import { createPlayer } from '@/database/services/playerService'
+
+// NEW (single source)
+import { DBPlayer, usePlayerStore } from '@/data'
+```
+
+**Store API Standardization:**
+| Old | New |
+|-----|-----|
+| `loadPlayers()` | `load()` |
+| `createPlayer()` | `create()` |
+| `updatePlayer()` | `update()` |
+| `deletePlayer()` | `delete()` |
+
+**UI Architecture Fixes:**
+- **Created** `ui-mine/Dialog`, `ui-mine/Input`, `ui-mine/Label`, `ui-mine/Table`
+- **Fixed** Club management feature to use `ui-mine` instead of direct shadcn imports
+- **Removed** direct `lucide-react` imports, replaced with `Icon` from `ui-mine`
+
+#### Rationale
+
+**Why the refactor?**
+1. **Offline-First with Supabase Sync:** For local tagging that syncs to cloud, need both Dexie (offline persistence) AND Zustand (reactive cache + sync orchestration). Previous thin-wrapper pattern was correct but poorly organized.
+
+2. **Eliminate Duplication:** Had identical logic in `database/services/` and `stores/`. New pattern co-locates all entity code in one place.
+
+3. **Clear Responsibilities:**
+   - **DB Layer** = "How to talk to Dexie"
+   - **Store Layer** = "How to manage app state + trigger syncs"
+   - **Components** = "Use stores only, never DB directly"
+
+4. **Future-Proof:** When Supabase added, just create `entity.sync.ts` files. Store actions already orchestrate DB writes, adding cloud sync is straightforward.
+
+5. **Developer Experience:** 
+   - One import: `from '@/data'`
+   - Find everything about an entity in one folder
+   - Consistent API across all stores
+   - Architecture rules enforced by structure
+
+#### Files Created
+- `app/src/data/db.ts` (copied from database/db.ts)
+- `app/src/data/index.ts` (central exports)
+- `app/src/data/entities/*/` (8 entity modules)
+- `app/src/data/MIGRATION_GUIDE.md` (developer reference)
+- `app/src/ui-mine/Dialog/`, `Input/`, `Label/`, `Table/` (shadcn wrappers)
+
+#### Files Modified
+- `app/src/features/**/*.tsx` - Updated all imports to use `@/data`
+- `app/src/features/club-management/**` - Fixed architecture violations
+- `app/src/features/tagging-ui-prototype-v2/composers/TaggingUIPrototypeComposer.tsx` - Fixed the immediate error
+- `app/src/ui-mine/index.ts` - Added new component exports
+
+#### Files Deleted
+- `app/src/database/` (entire folder - moved to data/)
+- `app/src/stores/` (entire folder - moved to data/)
+
+#### Technical Debt Resolved
+✅ Inconsistent import patterns  
+✅ Unclear separation of concerns  
+✅ Multiple sources of truth  
+✅ Architecture violations in club-management  
+✅ Direct shadcn imports in features  
+✅ Direct lucide-react imports in features  
+
+#### Future Work
+- [ ] Add Supabase sync layer (`entity.sync.ts` files)
+- [ ] Add sync queue for offline operations
+- [ ] Migrate remaining features to use new data layer
+- [ ] Add AlertDialog to ui-mine (currently still using shadcn directly)
+
+---
+
+### 2025-12-05: Match Creation with Auto-Set Generation
+
+**Context:** Simplified match creation to remove score entry and auto-generate all sets based on `best_of` value. Scores are entered later either through manual entry or video tagging.
+
+#### What Changed
+
+**Match Creation Workflow:**
+- **Removed score entry** — Matches created without knowing final score
+- **Added `best_of` dropdown** — Required field (1/3/5/7), defaults to 5
+- **Removed first server selection** — Captured per-set during video tagging setup
+- **Auto-create all sets** — Based on `best_of` value, all with `winner_id = null`
+
+**Set Auto-Generation:**
+- When match created with `best_of = 5` → Creates 5 empty set records
+- Each set initialized with:
+  - `set_first_server_id` using service alternation (odd sets = player1, even sets = player2)
+  - `player1_final_score = 0`, `player2_final_score = 0`
+  - `winner_id = null` (unknown until scored/tagged)
+  - `is_tagged = false`
+- Sets remain in database even if match ends early (e.g., 3-0 sweep)
+- UI shows/hides sets intelligently, but all exist in DB
+
+**Service Alternation Default:**
+```typescript
+// Set 1, 3, 5, 7 → player1 serves first
+// Set 2, 4, 6 → player2 serves first
+set_first_server_id = setNumber % 2 === 1 ? 'player1' : 'player2'
+```
+
+**Score Entry Deferred:**
+- **Option 1:** Video tagging (bottom-up) — Tag rallies, system derives scores
+- **Option 2:** Manual entry (top-down) — Enter set scores in match detail page (future)
+
+**Rationale:**
+- Matches often created before played (scheduling, planning)
+- Live tagging during match (don't know final score yet)
+- Tag one set at a time without knowing match outcome
+- Simpler UX — only essential info at creation
+- First server determined during actual play, not scheduling
+
+#### Files Modified
+- `app/src/features/match-management/sections/MatchFormSection.tsx` — Added best_of dropdown, removed score inputs, auto-create sets logic
+- `app/src/database/services/setService.ts` — Already had createSet function
+
+---
+
 ### 2025-12-05: Multi-Video Support and Bidirectional Validation Architecture
 
 **Context:** Implemented comprehensive multi-video segment support for matches with fragmented video coverage, added bidirectional validation (top-down entry vs bottom-up derivation), and enhanced data model with explicit match parameters and set score tracking.
@@ -2478,6 +2703,7 @@ Part 2 video now uses constrained playback:
 | 2025-12-04 | 0.9.7 | UI Prototype V2: Fixed shot direction button logic to use receiver's perspective (left/right inversion) |
 | 2025-12-04 | **0.9.8** | **UI Prototype V2: Player background color indicator with calculateShotPlayer rule** |
 | 2025-12-05 | **1.0.0** | **Multi-Video Support & Bidirectional Validation: match_videos table, best_of enum, validation rules, score derivation (fresh start, no migration)** |
+| 2025-12-05 | **1.1.0** | **Match Creation with Auto-Set Generation: best_of dropdown, auto-create all sets, deferred score entry, service alternation defaults** |
 
 ---
 

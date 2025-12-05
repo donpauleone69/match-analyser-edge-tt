@@ -5,7 +5,7 @@
  * Captures timestamp on each press
  */
 
-import { cn } from '@/lib/utils'
+import { cn } from '@/helpers/utils'
 
 export interface Phase1ServeButtonBlockProps {
   label: 'SERVE' | 'SHOT'

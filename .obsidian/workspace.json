@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "docs-match-analyser-edge-tt/specs/DatabaseSchema_PrototypeV2.md",
+                "file": "docs-match-analyser-edge-tt/Architecture.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "DatabaseSchema_PrototypeV2"
+              "title": "Architecture"
             }
           }
         ]
@@ -185,24 +185,25 @@
   },
   "active": "153b47c532f3ef40",
   "lastOpenFiles": [
+    "app/src/data/entities/matchVideos/matchVideo.db.ts",
+    "app/src/features/tagging-ui-prototype-v2/composers/dataMapping.ts",
+    "app/src/features/tagging-ui-prototype-v2/composers/runInference.ts",
+    "app/src/features/tagging-ui-prototype-v2/legacy-components/ScoreDisplay.tsx",
+    "app/src/features/tagging-ui-prototype-v2/legacy-components/VideoPlayer.tsx",
+    "app/src/features/tagging-ui-prototype-v2/legacy-components/WinnerDialog.tsx",
+    "app/src/features/tagging-ui-prototype-v2/legacy-components/TaggingControls.tsx",
+    "app/src/features/tagging-ui-prototype-v2/legacy-components/index.ts",
+    "app/src/features/tagging-ui-prototype-v2/legacy-components/Timeline.tsx",
+    "app/src/features/tagging-ui-prototype-v2/legacy-components",
+    "app/src/ui-mine/VideoPlayer/index.ts",
+    "docs-match-analyser-edge-tt/specs/DatabaseSchema_PrototypeV2.md",
     "docs-match-analyser-edge-tt/specs/MVP_IMPLEMENTATION_COMPLETE.md",
-    "app/src/database/services/inferenceService.ts",
-    "app/src/rules/inferPressure.ts",
-    "app/src/rules/inferDistanceFromTable.ts",
-    "app/src/rules/inferPlayerPosition.ts",
-    "app/src/rules/inferSpin.ts",
-    "app/src/rules/inferShotType.ts",
-    "app/src/database/services/mappingService.ts",
     "docs-match-analyser-edge-tt/specs/MVP_Implementation_Status.md",
-    "app/src/pages/MatchCreate.tsx",
-    "app/src/pages/Players.tsx",
-    "app/src/pages/Tournaments.tsx",
     "app/node_modules/dexie/SECURITY.md",
     "app/node_modules/dexie/README.md",
     "app/node_modules/dexie/CONTRIBUTING.md",
     "app/node_modules/dexie/CODE_OF_CONDUCT.md",
     "docs-match-analyser-edge-tt/specs/TaggingPrototypeV2_FlowAndSchemaMapping.md",
-    "docs-match-analyser-edge-tt/specs/DatabaseSchema_PrototypeV2.md",
     "docs-match-analyser-edge-tt/Tagger2StepUserFlow.md",
     "docs-match-analyser-edge-tt/DataSchema.md",
     "docs-match-analyser-edge-tt/specs/specAddendumMVP.md",
@@ -220,7 +221,6 @@
     "docs-match-analyser-edge-tt/chat_notes/Final/gestures_Intents_Inference_Engine (2).md",
     "docs-match-analyser-edge-tt/chat_notes/Final/FastTrack_TaggingV2_Plan.md",
     "docs-match-analyser-edge-tt/chat_notes/Final/Final/gestures_Intents_Inference_Engine.md",
-    "docs-match-analyser-edge-tt/chat_notes/Final/Final/player_skill_metrics.md",
     "docs-match-analyser-edge-tt/chat_notes/Final/Final/download.png",
     "app/dist/vite.svg"
   ]

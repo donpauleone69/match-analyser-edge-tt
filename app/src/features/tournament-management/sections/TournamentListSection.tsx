@@ -4,8 +4,8 @@
 
 import { Button } from '@/ui-mine/Button'
 import { Card } from '@/ui-mine/Card'
-import type { DBTournament } from '@/database/types'
-import { useTournamentStore } from '@/stores/tournamentStore'
+import type { DBTournament } from '@/data'
+import { useTournamentStore } from '@/data'
 
 interface TournamentListSectionProps {
   tournaments: DBTournament[]
@@ -20,7 +20,7 @@ export function TournamentListSection({
   onCreateNew,
   onEdit,
 }: TournamentListSectionProps) {
-  const { deleteTournament } = useTournamentStore()
+  const { delete: deleteTournament } = useTournamentStore()
   
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this tournament?')) {

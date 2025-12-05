@@ -2,11 +2,11 @@
  * TournamentFormSection - Form for creating/editing tournaments
  */
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/ui-mine/Button'
 import { Card } from '@/ui-mine/Card'
-import type { DBTournament, TournamentType } from '@/database/types'
-import { useTournamentStore } from '@/stores/tournamentStore'
+import type { DBTournament, TournamentType, DBClub } from '@/data'
+import { useTournamentStore, useClubStore } from '@/data'
 
 interface TournamentFormSectionProps {
   tournament: DBTournament | null
@@ -28,7 +28,8 @@ export function TournamentFormSection({
   onClose,
   onSuccess,
 }: TournamentFormSectionProps) {
-  const { createTournament, updateTournament } = useTournamentStore()
+  const { create: createTournament, update: updateTournament } = useTournamentStore()
+  const { clubs, load: loadClubs } = useClubStore()
   const [isSubmitting, setIsSubmitting] = useState(false)
   
   const [formData, setFormData] = useState({
@@ -37,8 +38,14 @@ export function TournamentFormSection({
     start_date: tournament?.start_date ? tournament.start_date.split('T')[0] : '',
     end_date: tournament?.end_date ? tournament.end_date.split('T')[0] : '',
     tournament_type: (tournament?.tournament_type || 'friendly') as TournamentType,
+    tournament_host_club_id: tournament?.tournament_host_club_id || null,
     notes: tournament?.notes || '',
   })
+  
+  // Load clubs for dropdown
+  useEffect(() => {
+    loadClubs()
+  }, [loadClubs])
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -110,14 +117,38 @@ export function TournamentFormSection({
         
         <div>
           <label className="block text-sm font-medium text-neutral-300 mb-2">
-            Location
+            Host Club *
+          </label>
+          <select
+            required
+            value={formData.tournament_host_club_id || ''}
+            onChange={(e) => setFormData({ ...formData, tournament_host_club_id: e.target.value || null })}
+            className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-md text-neutral-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">— Select host club —</option>
+            {clubs.map(club => (
+              <option key={club.id} value={club.id}>
+                {club.name} {club.location && `(${club.location})`}
+              </option>
+            ))}
+          </select>
+          {clubs.length === 0 && (
+            <p className="text-xs text-neutral-500 mt-1">
+              No clubs yet. <a href="/clubs" className="text-blue-400 hover:underline">Create a club</a> first.
+            </p>
+          )}
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium text-neutral-300 mb-2">
+            Location (optional)
           </label>
           <input
             type="text"
             value={formData.location}
             onChange={(e) => setFormData({ ...formData, location: e.target.value })}
             className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-md text-neutral-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="City, State"
+            placeholder="City, State (if different from club)"
           />
         </div>
         

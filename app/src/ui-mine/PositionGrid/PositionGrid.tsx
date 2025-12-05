@@ -13,7 +13,7 @@
 import { forwardRef, useCallback, useEffect } from 'react'
 import type { PositionSector } from '@/rules/types'
 import { POSITION_SECTOR_GRID } from '@/rules/types'
-import { cn } from '@/lib/utils'
+import { cn } from '@/helpers/utils'
 
 export interface PositionGridProps {
   /** Currently selected position */

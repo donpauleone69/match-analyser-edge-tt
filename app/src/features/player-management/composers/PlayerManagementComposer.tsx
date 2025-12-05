@@ -3,13 +3,13 @@
  */
 
 import { useEffect, useState } from 'react'
-import { usePlayerStore } from '@/stores/playerStore'
+import { usePlayerStore } from '@/data'
 import { PlayerListSection } from '../sections/PlayerListSection'
 import { PlayerFormSection } from '../sections/PlayerFormSection'
-import type { DBPlayer } from '@/database/types'
+import type { DBPlayer } from '@/data'
 
 export function PlayerManagementComposer() {
-  const { players, isLoading, loadPlayers } = usePlayerStore()
+  const { players, isLoading, load: loadPlayers } = usePlayerStore()
   const [editingPlayer, setEditingPlayer] = useState<DBPlayer | null>(null)
   const [showForm, setShowForm] = useState(false)
   
@@ -35,7 +35,7 @@ export function PlayerManagementComposer() {
   const handleFormSuccess = () => {
     setShowForm(false)
     setEditingPlayer(null)
-    loadPlayers()
+    // No need to reload - store cache updates automatically
   }
   
   return (

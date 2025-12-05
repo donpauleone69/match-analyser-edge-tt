@@ -9,7 +9,7 @@
  */
 
 import { useState, useRef } from 'react'
-import { cn } from '@/lib/utils'
+import { cn } from '@/helpers/utils'
 import type { Phase1Shot, Phase1Rally } from './Phase1TimestampComposer'
 import { ButtonGrid, ShotQualityToggleBlock, type ShotQuality } from '../blocks'
 import { calculateShotPlayer, type PlayerId } from '@/rules'
@@ -45,9 +45,8 @@ import {
   NeutralButton,
   AggressiveButton,
 } from '@/ui-mine'
-import { VideoPlayer } from '@/components/tagging/VideoPlayer'
-import type { VideoPlayerHandle } from '@/components/tagging/VideoPlayer'
-import { useTaggingStore } from '@/stores/taggingStore'
+import { VideoPlayer, type VideoPlayerHandle } from '@/ui-mine/VideoPlayer'
+import { useTaggingStore } from '@/stores/taggingStore' // Legacy store - separate from new data layer
 // Removed unused import
 
 // Question step types

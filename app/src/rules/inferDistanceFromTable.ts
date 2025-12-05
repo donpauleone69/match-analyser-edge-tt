@@ -2,7 +2,7 @@
  * Infer distance from table based on intent and rally context
  */
 
-import type { DBShot } from '@/database/types'
+import type { DBShot } from '@/data'
 
 export function inferDistanceFromTable(
   shot: DBShot,

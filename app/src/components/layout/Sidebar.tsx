@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard,
+  Building2,
   Trophy,
   Users,
   Swords,
@@ -8,10 +9,11 @@ import {
   Database,
   Settings,
 } from 'lucide-react'
-import { cn } from '../../lib/utils'
+import { cn } from '@/helpers/utils'
 
 const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/clubs', icon: Building2, label: 'Clubs' },
   { to: '/tournaments', icon: Trophy, label: 'Tournaments' },
   { to: '/players', icon: Users, label: 'Players' },
   { to: '/matches', icon: Swords, label: 'Matches' },

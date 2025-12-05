@@ -8,7 +8,7 @@
 
 import { useState, useRef } from 'react'
 import { useDrag } from '@use-gesture/react'
-import { cn } from '@/lib/utils'
+import { cn } from '@/helpers/utils'
 
 export interface GesturePadBlockProps {
   onGestureDetected: (zone: number, gestureType: string, direction?: string) => void

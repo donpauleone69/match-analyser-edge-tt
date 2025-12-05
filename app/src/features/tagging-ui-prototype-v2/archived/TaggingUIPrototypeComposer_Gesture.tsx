@@ -7,9 +7,9 @@
  */
 
 import { useState } from 'react'
-import { cn } from '@/lib/utils'
+import { cn } from '@/helpers/utils'
 import { GesturePadBlock } from './GesturePadBlock'
-import { VideoPlayer } from '@/components/tagging/VideoPlayer'
+import { VideoPlayer } from '@/ui-mine/VideoPlayer'
 
 export interface TaggingUIPrototypeComposerProps {
   className?: string

@@ -2,10 +2,11 @@
  * PlayerListSection - Display list of players
  */
 
+import { useState, useEffect } from 'react'
 import { Button } from '@/ui-mine/Button'
 import { Card } from '@/ui-mine/Card'
-import type { DBPlayer } from '@/database/types'
-import { usePlayerStore } from '@/stores/playerStore'
+import type { DBPlayer, DBClub } from '@/data'
+import { usePlayerStore, useClubStore } from '@/data'
 
 interface PlayerListSectionProps {
   players: DBPlayer[]
@@ -20,7 +21,23 @@ export function PlayerListSection({
   onCreateNew,
   onEdit,
 }: PlayerListSectionProps) {
-  const { archivePlayer } = usePlayerStore()
+  const { archive: archivePlayer } = usePlayerStore()
+  const { clubs, load: loadClubs } = useClubStore()
+  
+  // Load clubs for lookup
+  useEffect(() => {
+    loadClubs()
+  }, [loadClubs])
+  
+  const getClubName = (clubId: string | null): string | null => {
+    if (!clubId) return null
+    return clubs.find(c => c.id === clubId)?.name || null
+  }
+  
+  const formatPlaystyle = (playstyle: string | null): string => {
+    if (!playstyle) return ''
+    return playstyle.replace('_', '-').replace(/\b\w/g, l => l.toUpperCase())
+  }
   
   const handleArchive = async (id: string) => {
     if (confirm('Are you sure you want to archive this player?')) {
@@ -63,10 +80,16 @@ export function PlayerListSection({
                       <span className="font-medium text-neutral-300">Handedness:</span>{' '}
                       <span className="capitalize">{player.handedness}</span>
                     </p>
-                    {player.club_name && (
+                    {player.playstyle && (
+                      <p>
+                        <span className="font-medium text-neutral-300">Playstyle:</span>{' '}
+                        {formatPlaystyle(player.playstyle)}
+                      </p>
+                    )}
+                    {getClubName(player.club_id) && (
                       <p>
                         <span className="font-medium text-neutral-300">Club:</span>{' '}
-                        {player.club_name}
+                        {getClubName(player.club_id)}
                       </p>
                     )}
                   </div>

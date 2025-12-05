@@ -5,7 +5,7 @@
  * All fields required before advancing to next shot
  */
 
-import { cn } from '@/lib/utils'
+import { cn } from '@/helpers/utils'
 
 export type ServeContact = 'left' | 'right'
 export type ServeDirection = 'line' | 'diagonal'

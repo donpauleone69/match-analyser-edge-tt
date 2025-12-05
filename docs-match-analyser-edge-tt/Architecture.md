@@ -38,25 +38,25 @@ This document describes the architecture for the **Edge TT Match Analyser** appl
 
 ## 2. Tech Stack
 
-| Layer | Technology |
-|-------|------------|
-| **Framework** | Vite + React 18 (SPA, client-only) |
-| **Language** | TypeScript end-to-end |
-| **Routing** | React Router v6 |
-| **State** | Zustand with `persist` middleware (localStorage) |
-| **UI** | Tailwind CSS, custom `ui-mine/` components |
-| **Icons** | lucide-react (used only inside `ui-mine/`) |
-| **Video** | HTML5 Video API, FFmpeg.wasm for export |
+| Layer              | Technology                                       |
+| ------------------ | ------------------------------------------------ |
+| **Framework**      | Vite + React 18 (SPA, client-only)               |
+| **Language**       | TypeScript end-to-end                            |
+| **Routing**        | React Router v6                                  |
+| **State**          | Zustand with `persist` middleware (localStorage) |
+| **UI**             | Tailwind CSS, custom `ui-mine/` components       |
+| **Icons**          | lucide-react (used only inside `ui-mine/`)       |
+| **Video**          | HTML5 Video API, FFmpeg.wasm for export          |
 | **Future Backend** | Supabase (Postgres + Auth) — not yet implemented |
 
 ### 2.1 What We're NOT Using (Yet)
 
-| Technology | Why Not |
-|------------|---------|
-| Next.js | No SSR needed; Vite SPA is simpler for local-first |
+| Technology     | Why Not                                                  |
+| -------------- | -------------------------------------------------------- |
+| Next.js        | No SSR needed; Vite SPA is simpler for local-first       |
 | TanStack Query | No remote data fetching yet; Zustand handles local state |
-| Supabase | Future addition; local-first for MVP |
-| Authentication | Single-user local app for MVP |
+| Supabase       | Future addition; local-first for MVP                     |
+| Authentication | Single-user local app for MVP                            |
 
 ---
 
@@ -83,22 +83,34 @@ app/src/
       blocks/
       models.ts
   rules/              # Pure domain logic (no React, no IO)
-    serveOrder/
-      calculateServer.ts
-    endOfPoint/
-      deriveEndOfPoint.ts
-      deriveWinner.ts
-    shotValidation/
-      validateShot.ts
+    calculateServer.ts
+    deriveEndOfPoint.ts
+    validateShot.ts
     types.ts          # Domain enums and types
-  stores/             # Zustand stores
-    taggingStore.ts
+  data/               # Data layer (Dexie + Zustand + future Supabase)
+    db.ts             # Dexie database instance
+    index.ts          # Central exports
+    entities/         # One folder per entity
+      clubs/
+        club.types.ts # Types only
+        club.db.ts    # Dexie operations (pure DB CRUD)
+        club.store.ts # Zustand cache + orchestration
+        index.ts      # Public API
+      players/        # Same pattern
+      matches/
+      tournaments/
+      sets/
+      rallies/
+      shots/
   ui-mine/            # Shared UI kit
     Button/
     Card/
     Badge/
     Icon/
-    Modal/
+    Dialog/
+    Input/
+    Label/
+    Table/
     Grid/
     VideoPlayer/
     MatchPanel/
@@ -111,8 +123,6 @@ app/src/
     cn.ts
   styles/             # Global CSS, theme tokens
     index.css
-  types/              # Shared TypeScript types (if not in rules/)
-    index.ts
 ```
 
 ---
@@ -277,41 +287,82 @@ export function calculateServer(
 
 ---
 
-### 4.4 `stores/` — State Management
+### 4.4 `data/` — Data Layer (Dexie + Zustand)
 
 ```
-src/stores/
-  taggingStore.ts     # Main tagging session state
+src/data/
+  db.ts               # Dexie database instance
+  index.ts            # Central exports
+  entities/
+    clubs/
+      club.types.ts   # DBClub, NewClub types
+      club.db.ts      # Pure Dexie CRUD
+      club.store.ts   # Zustand cache + orchestration
+      index.ts        # Public API
 ```
 
-- Uses **Zustand** with `persist` middleware
-- Stores are the **local source of truth**
-- Actions modify state and trigger re-renders
+**Three-Layer Architecture:**
 
-**Store structure:**
+1. **Types Layer** (`entity.types.ts`)
+   - Data shapes: `DBEntity`, `NewEntity`
+   - Enums and constants
+   - No dependencies
+
+2. **DB Layer** (`entity.db.ts`)
+   - Pure Dexie operations
+   - Functions: `getAll()`, `getById()`, `create()`, `update()`, `remove()`
+   - NO React, NO Zustand
+   - Deterministic CRUD only
+
+3. **Store Layer** (`entity.store.ts`)
+   - Zustand store with in-memory cache
+   - Actions: `load()`, `create()`, `update()`, `delete()`
+   - Orchestrates: DB writes + cache updates + future Supabase sync
+   - Components use THIS layer, never DB directly
+
+**Which entities have stores?**
+- ✅ **Clubs, Tournaments, Players, Matches** — User-facing CRUD, have stores
+- ❌ **Sets, Rallies, Shots** — Managed through tagging context, DB-only
+
+**Usage in components:**
 
 ```typescript
-interface TaggingState {
-  // Match setup
-  matchId: string | null
-  player1Name: string
-  player2Name: string
-  // ... more fields
+// Entities with stores (use the store)
+import { usePlayerStore } from '@/data'
+
+function MyComponent() {
+  const { players, load, create, update } = usePlayerStore()
   
-  // Actions
-  initMatch: (p1: string, p2: string, firstServer: 'player1' | 'player2') => void
-  addContact: () => void
-  endRally: () => void
-  // ... more actions
+  useEffect(() => {
+    load() // Loads from Dexie to cache
+  }, [load])
+  
+  const handleCreate = async (data) => {
+    await create(data) // Writes to Dexie + updates cache
+    // No reload needed - cache auto-updates
+  }
 }
+
+// Entities without stores (use DB directly)
+import { setDb, rallyDb } from '@/data'
+
+const sets = await setDb.getByMatchId(matchId)
+const rally = await rallyDb.create(rallyData)
 ```
 
-**Future Supabase migration:**
+**Future Supabase sync:**
 
-When we add Supabase, stores will become a local cache:
-1. Actions update local state immediately (optimistic)
-2. Actions also trigger `dataStorage/` writes
-3. On app load, sync from Supabase to store
+When Supabase is added:
+1. Create `entity.sync.ts` files in each entity folder
+2. Store actions call sync functions after DB writes:
+   ```typescript
+   create: async (data) => {
+     const entity = await entityDb.create(data) // Dexie
+     set(state => ({ entities: [...state.entities, entity] })) // Cache
+     entitySync.syncToCloud(entity).catch(console.warn) // Supabase (non-blocking)
+   }
+   ```
+3. Sync queue handles offline operations
 
 ---
 
@@ -358,18 +409,28 @@ src/ui-mine/
 
 - `ui-mine/` contains **only visual components** (no domain logic, no IO)
 - Features import from `@/ui-mine`, **never** from `@/components/ui` or `lucide-react`
-- Icons are re-exported from `ui-mine/Icon/`
+- Icons are re-exported from `ui-mine/Icon/` (use `<Icon name="Plus" />`)
 - Complex components can have `parts/` subfolder
+- Wraps shadcn primitives with project theming
+
+**Available components:**
+- Base: `Button`, `Card`, `Badge`
+- Form: `Input`, `Label`, `Dialog`, `Table`
+- Icons: `Icon` (wraps lucide-react)
+- Grids: `SpinGrid`, `LandingZoneGrid`, `PositionGrid`
+- Video: `SpeedControls`
+- Table Tennis: All button components from `TableTennisButtons/`
 
 **Usage:**
 
 ```tsx
 // In a feature block
-import { Button, Card, Badge, Icon } from '@/ui-mine'
+import { Button, Card, Badge, Icon, Input, Dialog, Table } from '@/ui-mine'
 
-// For complex components
-import { VideoPlayer } from '@/ui-mine/VideoPlayer'
-import { MatchPanel } from '@/ui-mine/MatchPanel'
+// Icons via Icon component (not direct lucide import)
+<Icon name="Plus" />
+<Icon name="Search" />
+<Icon name="Pencil" />
 ```
 
 ---

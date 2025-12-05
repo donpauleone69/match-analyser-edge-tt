@@ -7,7 +7,7 @@
  * - FH from right or BH from left = pivot/adjustment
  */
 
-import type { DBShot } from '@/database/types'
+import type { DBShot } from '@/data'
 
 export function inferPlayerPosition(
   shot: DBShot

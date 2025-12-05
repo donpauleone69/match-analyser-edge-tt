@@ -13,7 +13,7 @@
 import { forwardRef, useCallback, useEffect } from 'react'
 import type { ServeSpin } from '@/rules/types'
 import { SERVE_SPIN_GRID, SERVE_SPIN_NUMPAD } from '@/rules/types'
-import { cn } from '@/lib/utils'
+import { cn } from '@/helpers/utils'
 
 export interface SpinGridProps {
   /** Currently selected spin */

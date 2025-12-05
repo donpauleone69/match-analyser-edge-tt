@@ -5,7 +5,7 @@
  * Default: Neutral
  */
 
-import { cn } from '@/lib/utils'
+import { cn } from '@/helpers/utils'
 
 export type Intent = 'defensive' | 'neutral' | 'aggressive'
 

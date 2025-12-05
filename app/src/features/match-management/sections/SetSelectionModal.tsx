@@ -6,9 +6,10 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/ui-mine/Button'
 import { Card } from '@/ui-mine/Card'
-import type { DBSet } from '@/database/types'
+import type { DBSet } from '@/data'
 import { Icon } from '@/ui-mine/Icon'
-import { updateSet } from '@/database/services/setService'
+import { setDb } from '@/data'
+const { update: updateSet } = setDb
 
 interface SetSelectionModalProps {
   matchId: string

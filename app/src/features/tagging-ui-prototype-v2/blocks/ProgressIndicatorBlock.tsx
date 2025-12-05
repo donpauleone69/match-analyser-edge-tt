@@ -4,7 +4,7 @@
  * Displays: "Shot 3 of 27" with visual progress bar
  */
 
-import { cn } from '@/lib/utils'
+import { cn } from '@/helpers/utils'
 
 export interface ProgressIndicatorBlockProps {
   currentIndex: number

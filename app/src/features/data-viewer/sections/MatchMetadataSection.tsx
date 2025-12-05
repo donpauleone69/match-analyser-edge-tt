@@ -1,4 +1,4 @@
-import { useTaggingStore } from '@/stores/taggingStore'
+import { useTaggingStore } from '@/stores/taggingStore' // Legacy store - to be migrated
 import { Card } from '@/ui-mine/Card'
 
 export function MatchMetadataSection() {

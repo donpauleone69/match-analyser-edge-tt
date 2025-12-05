@@ -2,7 +2,8 @@
  * Infer spin from shot type and serve data
  */
 
-import type { DBShot, InferredConfidence } from '@/database/types'
+import type { DBShot } from '@/data'
+type InferredConfidence = 'high' | 'medium' | 'low'
 
 export function inferSpin(
   shot: DBShot,

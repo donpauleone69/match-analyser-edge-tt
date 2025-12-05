@@ -8,7 +8,7 @@
  * Consistent height and spacing across all question types.
  */
 
-import { cn } from '@/lib/utils'
+import { cn } from '@/helpers/utils'
 
 export interface QuestionOption<T = string> {
   value: T
