@@ -57,6 +57,54 @@ export async function createMatch(data: NewMatch): Promise<DBMatch> {
   }
   
   await db.matches.add(match)
+  
+  // Create placeholder set records based on match score
+  const totalSets = data.player1_sets_won + data.player2_sets_won
+  if (totalSets > 0) {
+    const sets: DBSet[] = []
+    
+    // Determine which player won each set (alternating pattern for placeholder)
+    let player1Wins = 0
+    let player2Wins = 0
+    
+    for (let i = 0; i < totalSets; i++) {
+      const setNumber = i + 1
+      let winnerId: string
+      
+      // Alternate winners until we reach the actual counts
+      // This is a placeholder - user can tag to get real scores
+      if (player1Wins < data.player1_sets_won && (player2Wins >= data.player2_sets_won || i % 2 === 0)) {
+        winnerId = data.player1_id
+        player1Wins++
+      } else {
+        winnerId = data.player2_id
+        player2Wins++
+      }
+      
+      const set: DBSet = {
+        id: generateId(),
+        match_id: match.id,
+        set_number: setNumber,
+        first_server_id: data.first_server_id,
+        player1_final_score: 0, // Placeholder - will be filled during tagging
+        player2_final_score: 0, // Placeholder - will be filled during tagging
+        winner_id: winnerId,
+        has_video: false, // Default to no video - user can tag specific sets
+        video_start_player1_score: null,
+        video_start_player2_score: null,
+        end_of_set_timestamp: null,
+        is_tagged: false,
+        tagging_started_at: null,
+        tagging_completed_at: null,
+      }
+      
+      sets.push(set)
+    }
+    
+    // Add all sets to database
+    await db.sets.bulkAdd(sets)
+  }
+  
   return match
 }
 
@@ -134,6 +182,9 @@ export async function createSet(data: NewSet): Promise<DBSet> {
   const set: DBSet = {
     id: generateId(),
     ...data,
+    is_tagged: false,
+    tagging_started_at: null,
+    tagging_completed_at: null,
   }
   
   await db.sets.add(set)

@@ -39,6 +39,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
   const videoRef = useRef<HTMLVideoElement>(null)
   const [localVideoUrl, setLocalVideoUrl] = useState<string | null>(null)
   const [loopEnabled, setLoopEnabled] = useState(false)
+  const [isProcessingFile, setIsProcessingFile] = useState(false)
   
   // Use either the provided src or local selection
   const effectiveVideoSrc = videoSrc || localVideoUrl
@@ -56,9 +57,12 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
 
   // Handle file selection
   const handleFileSelect = (file: File) => {
+    setIsProcessingFile(true)
+    // Create blob URL immediately - video element will trigger onLoadedMetadata when ready
     const url = URL.createObjectURL(file)
     setLocalVideoUrl(url)
     onVideoSelect?.(url)
+    // Processing state will be cleared by handleLoadedMetadata
   }
 
   // Cleanup local URL on unmount
@@ -110,6 +114,8 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
     const video = videoRef.current
     if (video) {
       setDuration(video.duration)
+      // Clear processing state when video is ready
+      setIsProcessingFile(false)
     }
   }, [setDuration])
 
@@ -295,24 +301,45 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
         />
       ) : (
         <div className="w-full h-full flex items-center justify-center">
-          <div className="text-center space-y-4">
-            <label className="cursor-pointer block">
-              <input
-                type="file"
-                accept="video/*"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0]
-                  if (file) handleFileSelect(file)
-                }}
-              />
-              <div className="w-20 h-20 mx-auto rounded-full bg-neutral-800 hover:bg-neutral-700 transition-colors flex items-center justify-center">
-                <Upload className="w-10 h-10 text-brand-primary" />
+          {isProcessingFile ? (
+            <div className="text-center space-y-4">
+              <div className="w-20 h-20 mx-auto rounded-full bg-neutral-800 flex items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-4 border-neutral-600 border-t-brand-primary"></div>
               </div>
-              <p className="text-brand-primary text-lg mt-4 font-medium">Click to load video</p>
-            </label>
-            <p className="text-neutral-500 text-sm">Supports MP4, MOV, WebM</p>
-          </div>
+              <p className="text-brand-primary text-lg mt-4 font-medium">Processing video...</p>
+              <p className="text-neutral-400 text-sm max-w-xs mx-auto">
+                📱 iOS transcoding video to MP4...
+                <br />
+                <span className="text-neutral-500">This happens locally - no upload!</span>
+                <br />
+                <span className="text-brand-primary text-xs mt-2 inline-block">
+                  💡 Tip: Use "Choose File" instead of "Photo Library" for instant loading
+                </span>
+              </p>
+            </div>
+          ) : (
+            <div className="text-center space-y-4">
+              <label className="cursor-pointer block">
+                <input
+                  type="file"
+                  accept="video/mp4,video/quicktime,video/webm,video/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (file) handleFileSelect(file)
+                  }}
+                />
+                <div className="w-20 h-20 mx-auto rounded-full bg-neutral-800 hover:bg-neutral-700 transition-colors flex items-center justify-center">
+                  <Upload className="w-10 h-10 text-brand-primary" />
+                </div>
+                <p className="text-brand-primary text-lg mt-4 font-medium">Click to load video</p>
+              </label>
+              <p className="text-neutral-500 text-sm">Supports MP4, MOV, WebM</p>
+              <p className="text-neutral-600 text-xs max-w-xs mx-auto mt-2">
+                🔒 Videos stay on your device
+              </p>
+            </div>
+          )}
         </div>
       )}
 

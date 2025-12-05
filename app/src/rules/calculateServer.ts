@@ -236,3 +236,135 @@ export function servesRemaining(input: CalculateServerInput): number {
   return 2 - (totalPoints % 2)
 }
 
+// =============================================================================
+// MULTI-VIDEO & SET-LEVEL SERVER CALCULATION
+// =============================================================================
+
+/**
+ * Calculate set-level first server based on match first server and set number.
+ * 
+ * Rules:
+ * - Odd sets (1, 3, 5, 7): match first server serves first
+ * - Even sets (2, 4, 6): other player serves first
+ */
+export interface SetFirstServerInput {
+  matchFirstServerId: PlayerId
+  setNumber: number
+}
+
+export function calculateSetFirstServer(input: SetFirstServerInput): PlayerId {
+  const { matchFirstServerId, setNumber } = input
+  
+  // Odd sets: match first server
+  // Even sets: other player
+  return setNumber % 2 === 1 ? matchFirstServerId : otherPlayer(matchFirstServerId)
+}
+
+/**
+ * Calculate server for a rally given starting context (for mid-match/mid-set video starts)
+ */
+export interface ServerFromContextInput {
+  setFirstServerId: PlayerId       // Who served first in THIS set
+  startingPlayer1Score: number      // Score when tagging/video started
+  startingPlayer2Score: number
+  currentPlayer1Score: number       // Score before THIS rally
+  currentPlayer2Score: number
+  serviceRule?: ServiceRule
+}
+
+export function calculateServerFromContext(input: ServerFromContextInput): ServerResult {
+  const {
+    setFirstServerId,
+    currentPlayer1Score,
+    currentPlayer2Score,
+    serviceRule = DEFAULT_SERVICE_RULE
+  } = input
+  
+  // Use the standard calculation with set-level first server
+  return calculateServer({
+    firstServerId: setFirstServerId,
+    player1Score: currentPlayer1Score,
+    player2Score: currentPlayer2Score,
+    serviceRule
+  })
+}
+
+/**
+ * Validate server across multiple video segments within a set
+ */
+export interface MultiVideoServerValidationInput {
+  setFirstServerId: PlayerId
+  videoSegments: Array<{
+    videoId: string
+    startPlayer1Score: number
+    startPlayer2Score: number
+    rallies: Array<{
+      serverId: PlayerId
+      winnerId?: PlayerId
+      isScoring: boolean
+      player1ScoreAfter: number
+      player2ScoreAfter: number
+    }>
+  }>
+  serviceRule?: ServiceRule
+}
+
+export interface MultiVideoValidationResult {
+  isValid: boolean
+  errors: Array<{
+    videoId: string
+    rallyIndex: number
+    expectedServerId: PlayerId
+    actualServerId: PlayerId
+    score: { player1: number, player2: number }
+  }>
+}
+
+/**
+ * Validate server assignments across multiple video segments.
+ * Ensures continuity when videos cover different parts of the same set.
+ */
+export function validateServerAcrossVideos(
+  input: MultiVideoServerValidationInput
+): MultiVideoValidationResult {
+  const { setFirstServerId, videoSegments, serviceRule } = input
+  const errors: MultiVideoValidationResult['errors'] = []
+  
+  for (const segment of videoSegments) {
+    // For each rally in this video segment
+    for (let i = 0; i < segment.rallies.length; i++) {
+      const rally = segment.rallies[i]
+      
+      // Calculate expected server based on score BEFORE this rally
+      const scoreBefore = i === 0 
+        ? { player1: segment.startPlayer1Score, player2: segment.startPlayer2Score }
+        : { 
+            player1: segment.rallies[i - 1].player1ScoreAfter, 
+            player2: segment.rallies[i - 1].player2ScoreAfter 
+          }
+      
+      const expected = calculateServer({
+        firstServerId: setFirstServerId,
+        player1Score: scoreBefore.player1,
+        player2Score: scoreBefore.player2,
+        serviceRule
+      })
+      
+      if (rally.serverId !== expected.serverId) {
+        errors.push({
+          videoId: segment.videoId,
+          rallyIndex: i,
+          expectedServerId: expected.serverId,
+          actualServerId: rally.serverId,
+          score: scoreBefore
+        })
+      }
+    }
+  }
+  
+  return {
+    isValid: errors.length === 0,
+    errors
+  }
+}
+

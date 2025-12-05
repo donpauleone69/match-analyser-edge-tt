@@ -6,6 +6,398 @@
 
 ## Change Log
 
+### 2025-12-05: Multi-Video Support and Bidirectional Validation Architecture
+
+**Context:** Implemented comprehensive multi-video segment support for matches with fragmented video coverage, added bidirectional validation (top-down entry vs bottom-up derivation), and enhanced data model with explicit match parameters and set score tracking.
+
+> **Fresh Start:** This implementation uses a clean database schema with no migration required. All deprecated fields have been removed, and the database starts at Version 1 with full multi-video support. No backward compatibility is needed as we're starting with new data.
+
+#### What Changed
+
+**Multi-Video Architecture:**
+- **New Table: `match_videos`** — Supports multiple video segments per match
+  - Each video has sequence_number (1, 2, 3...) for ordering
+  - Tracks coverage context: start_set_number, start_set_score, start_points_score
+  - Tracks end context: end_set_number, end_set_score, end_points_score
+  - Each video has first_serve_timestamp and first_server_id for that segment
+  - Coverage type: 'full' | 'partial_start' | 'partial_end' | 'partial_middle'
+- **Match Table Changes:**
+  - Added `best_of: 1 | 3 | 5 | 7` — Explicit enum replacing string match_format
+  - Added `set_score_summary: string` — Top-down entry (e.g., "3-2", "3-1")
+  - Added `video_count: number` — Number of video segments
+  - Added `total_coverage: 'full' | 'partial'` — Overall coverage status
+  - Deprecated fields kept for migration: match_format, video_blob_url, etc.
+- **Set Table Enhancements:**
+  - Added `set_first_server_id` — Who serves first point in this set (derived from match)
+  - Added `video_segments: string[]` — Array of video IDs covering this set
+  - Added `video_contexts: DBSetVideoContext[]` — Per-video starting context
+  - Added derived fields: `derived_player1_final_score`, `derived_player2_final_score`, `derived_winner_id`
+  - Added validation fields: `scores_validated: boolean`, `validation_errors: string`
+- **Rally Table Updates:**
+  - Added `video_id: string | null` — Which video segment contains this rally
+  - Added set context: `set_player1_final_score`, `set_player2_final_score`, `set_winner_id`
+  - Clarified `end_of_point_time` — Rally end timestamp (ball landing), NOT last shot contact
+- **Shot Table Updates:**
+  - Added `video_id: string | null` — Which video segment contains this shot
+  - Clarified `time` — Shot contact timestamp (ball-racket), distinct from rally end time
+
+**Bidirectional Validation:**
+- **Top-Down Entry:**
+  - Users enter match winner, best_of, and set_score_summary before/without tagging
+  - Users enter set scores (11-9, etc.) for each set
+  - System validates that entered data follows table tennis rules
+- **Bottom-Up Derivation:**
+  - System derives set scores from rally data (shot quality → rally winner → set score)
+  - System derives match score from set winners
+  - System validates derived scores match top-down entered scores
+- **Cross-Validation:**
+  - Match winner must match set score majority
+  - Set winner must match point scores with 2-point lead
+  - Rally scores must progress correctly (no jumps or gaps)
+  - Video segments must not overlap or have gaps
+
+**New Validation Rules:**
+- **Match-Level:** `validateMatchWinner()`, `validateCompleteMatch()`
+  - Winner has required sets to win best_of
+  - Total sets doesn't exceed best_of
+  - Set score summary matches individual counts
+- **Set-Level:** `validateSetWinner()`, `validateScoreProgression()`
+  - Winner has higher score
+  - Score reached target (11) with 2-point lead
+  - Rally score progression is consistent
+- **Rally-Level:** `validateRallyDerivedSetScore()`
+  - Rally-derived final score matches set final score
+  - Rally-derived winner matches set winner
+- **Video-Level:** `validateVideoSequence()`, `validateVideoContinuity()`, `validateSetCoverage()`
+  - Sequence numbers are continuous (1, 2, 3...)
+  - No overlaps between video segments
+  - Score continuity between adjacent videos
+  - All sets have video coverage (or marked as no video)
+
+**Server Calculation Enhancements:**
+- **Set-Level First Server:** `calculateSetFirstServer()`
+  - Odd sets (1, 3, 5, 7): match first server serves
+  - Even sets (2, 4, 6): other player serves
+- **Context-Aware Calculation:** `calculateServerFromContext()`
+  - Handles mid-match/mid-set video starts
+  - Uses set-level first server as anchor
+  - Calculates server from current score position
+- **Multi-Video Validation:** `validateServerAcrossVideos()`
+  - Validates server assignments across multiple video segments
+  - Ensures continuity when videos cover different parts of same set
+
+**Score Derivation (Bottom-Up):**
+- **deriveSetScoreFromRallies()** — Calculate final set score from rally winners
+- **deriveMatchScoreFromSets()** — Calculate match score from set winners
+- **deriveSetWinner()** — Determine set winner from point scores
+- **deriveRallyWinnerFromShots()** — Determine rally winner from last shot quality
+- **deriveCompleteMatchScores()** — Full cascade derivation for entire match
+
+**Fresh Start (No Migration):**
+- **Clean Schema:** Single database version with final multi-video structure
+  - No migration utilities needed — starting fresh with new data
+  - All deprecated fields removed for cleaner types
+  - Version 1 schema includes all multi-video support from the start
+- **Entity Defaults:** `createEntityDefaults.ts`
+  - Provides default values for creating new matches, sets, rallies, shots
+  - Ensures all required fields are populated correctly
+  - Handles service alternation, validation field initialization
+
+#### Implementation Details
+
+**Files Created:**
+- `app/src/database/services/matchVideoService.ts` — CRUD for match video segments
+- `app/src/rules/validateMatchData.ts` — Match/set/rally validation
+- `app/src/rules/validateVideoCoverage.ts` — Multi-video validation
+- `app/src/rules/deriveMatchScores.ts` — Bottom-up score derivation
+- `app/src/helpers/createEntityDefaults.ts` — Default values for new entities (replaces migration utilities)
+- `app/src/helpers/testFixtures.ts` — Test data for validation
+
+**Files Modified:**
+- `app/src/database/types.ts` — Added DBMatchVideo, cleaned DBMatch/DBSet/DBRally/DBShot (removed deprecated fields)
+- `app/src/database/db.ts` — Version 1 schema with multi-video support (clean, no migration)
+- `app/src/rules/calculateServer.ts` — Added multi-video context support
+- `app/src/rules/index.ts` — Exported new validation and derivation functions
+
+**Database Schema (Version 1 - Final):**
+- **New table:** `match_videos` — Multi-video segment support with sequence and coverage tracking
+- **Match table:** Added best_of (enum), set_score_summary, video_count, total_coverage
+- **Set table:** Added video_segments[], video_contexts[], derived_*, scores_validated, set_first_server_id
+- **Rally table:** Added video_id, set context fields (set_player1_final_score, etc.)
+- **Shot table:** Added video_id
+- **No deprecated fields** — Clean schema for fresh start
+
+**Data Entry Flow:**
+```
+TOP-DOWN (Before/Without Tagging):
+1. Match Setup
+   ├─ Enter player names
+   ├─ Choose best_of: 1, 3, 5, 7
+   ├─ Enter set_score_summary: "3-2"
+   └─ Enter match winner
+
+2. Video Segments Entry
+   ├─ For each video file:
+   │  ├─ Sequence number
+   │  ├─ Start context (set, set score, points score)
+   │  ├─ First serve timestamp and server
+   │  └─ End context (optional)
+   └─ System validates no gaps/overlaps
+
+3. Set Scores Entry
+   ├─ For each set:
+   │  └─ Enter final scores (11-9, etc.)
+   └─ System auto-derives winners
+
+BOTTOM-UP (During Tagging):
+1. Shot Tagging → Shot quality determines rally winner
+2. Rally Winners → Accumulated to derive set scores
+3. Set Winners → Counted to derive match score
+4. System validates derived vs entered scores
+```
+
+**Timestamp Architecture:**
+```typescript
+// Shots store CONTACT timestamps
+shot.time = 12.567  // Ball-racket contact
+
+// Rallies store RALLY END timestamps (independent)
+rally.end_of_point_time = 12.923  // Ball lands/bounces
+
+// Gap = 0.356s (ball flight time)
+```
+
+#### Rationale
+
+**Why Multi-Video Support:**
+- Real-world matches often have fragmented video coverage
+- Camera stops between sets or mid-set
+- Multiple short videos easier to manage than single large file
+- Enables "diving in and out" tagging workflow
+- Future: Different camera angles for same segment
+
+**Why Bidirectional Validation:**
+- Top-down entry provides ground truth for validation
+- Bottom-up derivation ensures tagging accuracy
+- Cross-validation catches data entry errors
+- Supports both "score-first" and "tag-first" workflows
+- Enables partial tagging validation
+
+**Why best_of Enum:**
+- String parsing unreliable ("Best of 5" vs "Bo5" vs "best-of-five")
+- Enum enables type safety and validation
+- Simplifies match completion logic (needs ceil(bestOf/2) to win)
+- Clear UI dropdown vs free text
+
+**Why Separate Shot/Rally Timestamps:**
+- Shot contact and rally end are distinct moments
+- Video highlights need full rally resolution (ball landing)
+- Shot tagging needs precise contact time
+- Analysis of rally duration needs both timestamps
+- Enables accurate video seeking for review
+
+**Why Set Context in Rallies:**
+- Validates rally scores against set final score
+- Enables quick lookup without joining sets table
+- Supports partial set tagging validation
+- Denormalized for query performance
+
+#### Technical Benefits
+
+- **Data Integrity:** Multiple validation layers catch errors early
+- **Flexibility:** Supports complete, partial, or no video coverage
+- **Backward Compatible:** Existing data migrates automatically
+- **Type Safe:** TypeScript enums prevent invalid states
+- **Testable:** Pure functions with comprehensive fixtures
+- **Future-Proof:** Architecture supports advanced features (multi-angle, highlights)
+
+#### Known Limitations
+
+- **UI Not Updated:** Store changes deferred to UI implementation phase
+- **No Resume Mid-Video:** Can't resume tagging from arbitrary point
+- **Manual Video Sequencing:** User must manually order video segments
+- **No Auto-Gap Detection:** System doesn't auto-detect missing footage
+
+#### Next Steps
+
+1. Update match management store with multi-video support
+2. Update tagging store with video context tracking
+3. Build UI for video segment management
+4. Build UI for top-down score entry
+5. Build UI for validation error display
+6. Implement video switching during tagging
+
+---
+
+### 2025-12-05: Tagging UX Consolidation and Data Model Improvements
+
+**Context:** Streamlined match creation workflow, implemented set-level tagging with redo capability, enforced match/set/rally/shot hierarchy validation, and consolidated tagging UI by making V2 the official interface.
+
+#### What Changed
+
+**Match Creation Workflow:**
+- **Removed "Tag Video" checkbox** from match creation form
+- All matches are now tagable by default — tagging_mode is set when user starts tagging
+- **Automatic set creation:** When creating a match with set scores (e.g., 3-2), the system automatically creates placeholder set records
+  - Each set has winner_id assigned (to match final score)
+  - Scores are set to 0-0 as placeholders
+  - Sets are marked as `is_tagged = false`
+  - User can tag each set individually to fill in actual game scores
+- Simplified user flow: create match → select from match list → choose set to tag
+
+**Set-Level Tagging Workflow:**
+- **Added Set Selection Modal** when clicking "Tag Match" or "Resume Tagging"
+  - Shows all sets with status indicators: Not Started (gray), In Progress (yellow), Complete (green checkmark)
+  - Each set can be individually tagged
+  - Provides "Start Tagging" for new sets and "Redo Tagging" for existing sets
+  - **Optional score entry:** "Enter Score" button allows manual input of final set score
+    - Validates against table tennis rules (win by 2, game to 11)
+    - Can be done before or after tagging
+    - Tagged scores take precedence if both exist
+- **Pre-Tagging Setup Questions:**
+  - Before tagging begins, users answer two questions:
+    1. "Who is about to serve the first point?" (Player 1 or Player 2)
+    2. "What is the current score?" (defaults to 0-0, supports partial recordings)
+  - This enables partial tagging of incomplete recordings
+  - Ensures proper server tracking throughout the set
+  - Starting score saved to set record for validation
+- **Redo Tagging Workflow:**
+  - Confirmation dialog warns user about data deletion
+  - Deletes all rallies and shots for the selected set
+  - Resets set tagging status to allow fresh start
+  - Prevents accidental overwrites of existing tagging data
+- **Resume Tagging:** Deferred to post-MVP (too complex for initial release)
+  - Current implementation only supports fresh start or complete redo
+  - Users can finish incomplete sets by redoing them
+
+**Data Model Changes:**
+- **DBSet Interface Extensions:**
+  - `is_tagged: boolean` — whether set has completed tagging
+  - `tagging_started_at: string | null` — timestamp when tagging began
+  - `tagging_completed_at: string | null` — timestamp when tagging finished
+- **New Database Service:** `setService.ts`
+  - `getSetsByMatchId()` — retrieve all sets for a match
+  - `deleteSetTaggingData()` — remove rallies and shots for redo workflow
+  - `markSetTaggingStarted()` — update timestamp when tagging begins
+  - `markSetTaggingCompleted()` — mark set as tagged
+- **Validation Service:** `validationService.ts`
+  - Enforces Match → Sets → Rallies → Shots hierarchy
+  - Validates sequential numbering (set_number, rally_index, shot_index)
+  - Checks score progression logic
+  - Validates winner assignments match parent entities
+  - Returns errors and warnings for data inconsistencies
+
+**Data Viewer Enhancements:**
+- **Validation Warnings Panel:**
+  - Shows errors (red) and warnings (yellow) at top of page
+  - Examples: "Match shows 3-2 but only 4 sets have data"
+  - Examples: "Set 2 final score doesn't match last rally score"
+- **Hierarchy Display:**
+  - **Sets Section:** Shows tagged status, rally count, shot count, tagging timestamps
+  - **Rallies Section:** Shows set number, server, score after rally, completion status
+  - **Shots Section:** Shows "Set X • Rally Y" hierarchy clearly for each shot
+- **Status Indicators:**
+  - Sets: Tagged (blue), In Progress (yellow), Not Started (gray)
+  - Rallies: Framework Confirmed, Detail Complete badges
+  - Visual consistency across all data views
+
+**Tagging UI Consolidation:**
+- **Official Interface:** tagging-ui-prototype-v2 is now the default tagging interface
+- **Routing Updated:**
+  - New route: `/matches/:matchId/tag` (with query params `?set=X&redo=true`)
+  - Removed old routes: `/tagging-ui-prototype/v1`, `/matches/:id/tagging`, `/matches/new`
+- **Deleted Old Prototypes:**
+  - Removed `features/tagging-ui-prototype` folder
+  - Removed `features/tagging-ui-prototype-v1` folder
+  - Removed `features/tagging` folder (old tagging system)
+  - Deleted `pages/TaggingScreen.tsx`
+  - Deleted `pages/TaggingUIPrototypeV1.tsx`
+- **Match List Navigation:**
+  - "Tag Match" button opens Set Selection Modal
+  - "Resume Tagging" button opens Set Selection Modal
+  - Users choose specific set to tag from modal
+
+#### Implementation Details
+
+**Files Created:**
+- `app/src/database/services/validationService.ts` — Hierarchy validation logic
+- `app/src/database/services/setService.ts` — Set CRUD operations
+- `app/src/features/match-management/sections/SetSelectionModal.tsx` — Set selection UI with optional score entry
+- `app/src/features/tagging-ui-prototype-v2/blocks/PreTaggingSetupBlock.tsx` — Pre-tagging setup questions (server, starting score)
+
+**Files Modified:**
+- `app/src/database/types.ts`:
+  - Added `is_tagged`, `tagging_started_at`, `tagging_completed_at` to `DBSet`
+  - Updated `NewSet` type to exclude auto-generated fields
+- `app/src/database/services/matchService.ts`:
+  - Enhanced `createMatch()` to automatically create placeholder set records
+  - Sets created based on `player1_sets_won` and `player2_sets_won`
+  - Each set assigned a winner_id but scores remain 0-0 until tagged
+- `app/src/features/tagging-ui-prototype-v2/composers/TaggingUIPrototypeComposer.tsx`:
+  - **CRITICAL BUG FIX**: Changed from `createSet()` to using existing sets
+  - Now retrieves existing set by `set_number` instead of creating duplicates
+  - Added pre-tagging setup phase with server and score questions
+  - Updates match overall score based on tagged sets
+  - Saves setup data (first server, starting score) to set record
+- `app/src/features/match-management/sections/MatchFormSection.tsx`:
+  - Removed `will_tag_video` checkbox and associated logic
+  - Set `tagging_mode: null` for new matches (set when tagging starts)
+- `app/src/features/match-management/sections/MatchListSection.tsx`:
+  - Added `handleTagMatch()` to load sets and show modal
+  - Integrated SetSelectionModal component
+  - Simplified "Tag Match" / "Resume Tagging" to single button
+- `app/src/App.tsx`:
+  - Updated route: `/matches/:matchId/tag` for official tagging
+  - Removed old prototype routes
+  - Removed unused imports
+- `app/src/pages/index.ts`:
+  - Removed exports for deleted pages
+- `app/src/features/data-viewer/composers/DataViewerComposer.tsx`:
+  - Added validation on data load
+  - Added validation warnings panel
+  - Enhanced sets section with status badges and counts
+  - Enhanced rallies section with set number and hierarchy
+  - Enhanced shots section with "Set X • Rally Y" display
+
+**Files Deleted:**
+- `app/src/pages/TaggingScreen.tsx`
+- `app/src/pages/TaggingUIPrototypeV1.tsx`
+- `app/src/features/tagging-ui-prototype/` (entire folder)
+- `app/src/features/tagging-ui-prototype-v1/` (entire folder)
+- `app/src/features/tagging/` (entire folder)
+
+#### Rationale
+
+**User Experience:**
+- **Simpler match creation:** No need to decide about tagging during match creation
+- **Clearer set-level workflow:** Users explicitly choose which set to tag
+- **Redo protection:** Confirmation dialog prevents accidental data loss
+- **Status visibility:** Clear indicators show which sets are tagged, in progress, or not started
+- **Data integrity:** Validation warnings help identify inconsistencies early
+
+**Technical:**
+- **Enforced hierarchy:** Validation service ensures data model consistency
+- **Set isolation:** Each set can be tagged independently with clear boundaries
+- **Clean codebase:** Removed obsolete prototypes and legacy code
+- **Single source of truth:** V2 prototype is now the official tagging interface
+- **Extensibility:** Database schema supports future resume workflow when needed
+
+#### Data Migration
+
+**Existing Data:**
+- Existing sets will have `is_tagged = false` by default
+- Users can redo any set to properly mark it as tagged
+- No automatic migration needed — sets without rallies remain untouched
+
+#### Future Enhancements (Post-MVP)
+
+- **Resume Tagging:** Continue from last tagged rally instead of redo
+- **Bulk Set Operations:** Tag multiple sets in sequence without returning to modal
+- **Set-level Validation:** Real-time validation during tagging
+- **Tagging Progress:** Show percentage complete per set
+
+---
+
 ### 2025-12-05: UI Prototype V2 - Shot Quality Toggle and Error Type Buttons
 
 **Context:** Added shot quality toggle button and proper error type button components to Phase 2 tagging UI, extracted from the tt-buttons-complete-v1.1 design file.
@@ -2085,6 +2477,7 @@ Part 2 video now uses constrained playback:
 | 2025-12-03 | 0.9.6 | UI Prototype: Error shot layout alignment, increased button heights for mobile |
 | 2025-12-04 | 0.9.7 | UI Prototype V2: Fixed shot direction button logic to use receiver's perspective (left/right inversion) |
 | 2025-12-04 | **0.9.8** | **UI Prototype V2: Player background color indicator with calculateShotPlayer rule** |
+| 2025-12-05 | **1.0.0** | **Multi-Video Support & Bidirectional Validation: match_videos table, best_of enum, validation rules, score derivation (fresh start, no migration)** |
 
 ---
 
@@ -2704,5 +3097,114 @@ TableTennisButtons/
 
 ---
 
-*Last updated: 2025-12-04*
+### 2025-12-05: Local Video File Handling - UX Improvements
+
+**Context:** Clarified and improved UX around local video file handling to address user confusion about iOS "preparing video" behavior.
+
+#### What Changed
+
+**User Experience Enhancements:**
+- **Added processing state indicator** in VideoPlayer component
+  - Shows spinner with "Processing video..." message while iOS prepares video
+  - Displays helpful text: "On mobile? Your device is preparing the video for playback. This happens locally - no upload!"
+  - Clears automatically when video metadata loads
+- **Added mobile-specific guidance** in MatchSetup screen
+  - Detects mobile devices using `isMobileDevice()` helper
+  - Shows info panel explaining iOS "preparing" behavior before file selection
+  - Emphasizes local-only processing with lock icon
+- **Added "Videos stay on your device" messaging**
+  - MatchSetup shows reassurance badge when video is selected
+  - VideoPlayer shows lock icon in file picker UI
+
+**New Helper Functions:**
+- Created `app/src/helpers/videoFileHelpers.ts` with utilities:
+  - `formatFileSize()` - human-readable file sizes
+  - `getVideoMetadata()` - extract File object metadata
+  - `validateVideoFile()` - file type and size validation
+  - `estimateVideoDuration()` - rough duration from file size
+  - `isMobileDevice()` - detect mobile browsers
+  - `getVideoPickerHint()` - device-specific picker messages
+
+#### Technical Implementation
+
+**Video Handling Architecture (Already Correct):**
+- ✅ Uses `URL.createObjectURL()` for blob URLs (no server upload)
+- ✅ Properly excludes `videoUrl` from localStorage persistence
+- ✅ Revokes blob URLs on unmount to prevent memory leaks
+- ✅ Client-side only video processing
+
+**iOS Photo Library Behavior:**
+- When selecting from Photo Library, iOS must convert video from proprietary HEVC/H.265 format
+- Conversion happens **entirely on device** - no network upload occurs
+- iOS shows "preparing" progress indicator during local transcoding
+- Once complete, browser receives File object → blob URL created instantly
+- Video plays from local device memory only
+
+**Future Supabase Integration:**
+- Will sync match metadata and tagging data (rallies, shots, timestamps)
+- Will sync video metadata (filename, duration, file size)
+- Will **NEVER** upload actual video files
+- Users must manually transfer videos between devices if needed (AirDrop, cloud storage, etc.)
+
+#### Files Changed
+
+**New Files:**
+- `app/src/helpers/videoFileHelpers.ts` - video file utility functions
+
+**Modified Files:**
+- `app/src/components/tagging/VideoPlayer.tsx`:
+  - Added `isProcessingFile` state
+  - Added processing indicator UI
+  - Updated file selection UX with reassuring messaging
+- `app/src/pages/MatchSetup.tsx`:
+  - Added `isMobileDevice()` detection
+  - Added mobile-specific iOS tip panel
+  - Added "Videos stay on your device" badge
+
+#### Rationale
+
+**Problem:** Users on iOS saw a "preparing" progress indicator and assumed video was being uploaded to the server, causing confusion about data privacy and network usage.
+
+**Solution:** Clear, proactive communication that:
+1. Explains what iOS is actually doing (local format conversion)
+2. Reassures users no upload is occurring
+3. Emphasizes local-first, privacy-preserving architecture
+
+**Design Principles:**
+- **Transparency:** Show what's happening and why
+- **Reassurance:** Explicitly state "no upload" multiple times
+- **Education:** Help users understand iOS behavior is normal
+- **Privacy:** Emphasize videos never leave the device
+
+#### Impact
+
+- **Reduced user confusion** about iOS video preparation
+- **Improved trust** in local-first architecture
+- **Better mobile UX** with device-specific guidance
+- **Foundation for session recovery** - metadata helpers ready for future persistence
+
+#### iOS Performance Optimization
+
+**Problem Identified:** Photo Library selection triggers 1-2 minute HEVC→MP4 transcoding on iOS.
+
+**Solution:** Updated UI guidance to recommend:
+1. **"Choose File" option** for instant loading (bypasses transcoding)
+2. Export videos from Photos to Files app once
+3. Use cloud storage (Google Drive/iCloud) for pre-converted MP4s
+
+**UI Changes:**
+- Added "iOS Speed Tip" panel recommending "Choose File" over "Photo Library"
+- Added expandable section explaining transcoding and workarounds
+- Updated processing indicator to clarify "iOS transcoding video to MP4"
+- Updated file input `accept` attribute to prioritize MP4/MOV formats
+
+**Documentation:**
+- Created `iOS_Video_Quick_Guide.md` with step-by-step workflows
+- Updated `LocalVideoHandling.md` with format compatibility details
+
+**Expected Improvement:** Users following "Choose File" workflow experience instant video loading vs 1-2 minute wait.
+
+---
+
+*Last updated: 2025-12-05*
 

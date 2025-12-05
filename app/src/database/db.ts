@@ -10,6 +10,7 @@ import type {
   DBTournament,
   DBPlayer,
   DBMatch,
+  DBMatchVideo,
   DBSet,
   DBRally,
   DBShot,
@@ -26,6 +27,7 @@ export class EdgeTTDatabase extends Dexie {
   tournaments!: EntityTable<DBTournament, 'id'>
   players!: EntityTable<DBPlayer, 'id'>
   matches!: EntityTable<DBMatch, 'id'>
+  match_videos!: EntityTable<DBMatchVideo, 'id'>
   sets!: EntityTable<DBSet, 'id'>
   rallies!: EntityTable<DBRally, 'id'>
   shots!: EntityTable<DBShot, 'id'>
@@ -35,6 +37,7 @@ export class EdgeTTDatabase extends Dexie {
   constructor() {
     super('EdgeTTMatchAnalyser')
     
+    // Version 1: Final schema with multi-video support (fresh start, no migration)
     this.version(1).stores({
       // Tournaments
       tournaments: 'id, name, tournament_type, start_date',
@@ -42,17 +45,20 @@ export class EdgeTTDatabase extends Dexie {
       // Players
       players: 'id, last_name, first_name, club_id, is_archived',
       
-      // Matches
-      matches: 'id, tournament_id, player1_id, player2_id, winner_id, match_date, step1_complete, step2_complete',
+      // Matches (multi-video support, best_of enum)
+      matches: 'id, tournament_id, player1_id, player2_id, winner_id, match_date, best_of, has_video, video_count, step1_complete, step2_complete',
       
-      // Sets
-      sets: 'id, match_id, set_number, winner_id',
+      // Match Videos (NEW - multi-video segments)
+      match_videos: 'id, match_id, sequence_number, start_set_number, end_set_number',
       
-      // Rallies
-      rallies: 'id, set_id, rally_index, server_id, winner_id, framework_confirmed, detail_complete',
+      // Sets (validation and derived fields)
+      sets: 'id, match_id, set_number, winner_id, has_video, set_first_server_id, scores_validated',
       
-      // Shots
-      shots: 'id, rally_id, shot_index, player_id, time, is_tagged',
+      // Rallies (video_id reference, set context)
+      rallies: 'id, set_id, rally_index, video_id, server_id, winner_id, framework_confirmed, detail_complete',
+      
+      // Shots (video_id reference)
+      shots: 'id, rally_id, video_id, shot_index, player_id, time, is_tagged',
       
       // Player Profiles (deferred, but schema ready)
       player_profiles: 'id, player_id',
@@ -95,6 +101,7 @@ export async function clearAllData(): Promise<void> {
     db.tournaments,
     db.players,
     db.matches,
+    db.match_videos,
     db.sets,
     db.rallies,
     db.shots,
@@ -104,6 +111,7 @@ export async function clearAllData(): Promise<void> {
     await db.tournaments.clear()
     await db.players.clear()
     await db.matches.clear()
+    await db.match_videos.clear()
     await db.sets.clear()
     await db.rallies.clear()
     await db.shots.clear()
@@ -121,6 +129,7 @@ export async function getDatabaseStats() {
     tournamentCount,
     playerCount,
     matchCount,
+    matchVideoCount,
     setCount,
     rallyCount,
     shotCount,
@@ -128,6 +137,7 @@ export async function getDatabaseStats() {
     db.tournaments.count(),
     db.players.count(),
     db.matches.count(),
+    db.match_videos.count(),
     db.sets.count(),
     db.rallies.count(),
     db.shots.count(),
@@ -137,6 +147,7 @@ export async function getDatabaseStats() {
     tournaments: tournamentCount,
     players: playerCount,
     matches: matchCount,
+    matchVideos: matchVideoCount,
     sets: setCount,
     rallies: rallyCount,
     shots: shotCount,

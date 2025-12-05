@@ -2,7 +2,7 @@
  * Infer pressure level based on rally context and shot quality
  */
 
-import type { DBShot, DBRally, PressureLevel } from '@/database/types'
+import type { DBShot, DBRally, PressureLevel, IntentQuality } from '@/database/types'
 
 export function inferPressureLevel(
   shot: DBShot,

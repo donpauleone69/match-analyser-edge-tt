@@ -7,10 +7,8 @@ import MatchesPage from './pages/Matches'
 import TournamentsPage from './pages/Tournaments'
 import PlayersPage from './pages/Players'
 import MatchCreatePage from './pages/MatchCreate'
-import { TaggingScreen } from './pages/TaggingScreen'
 import { MatchAnalysis } from './pages/MatchAnalysis'
 import { DataViewer } from './pages/DataViewer'
-import { TaggingUIPrototypeV1 } from './pages/TaggingUIPrototypeV1'
 import { TaggingUIPrototypeV2 } from './pages/TaggingUIPrototypeV2'
 
 function App() {
@@ -37,18 +35,11 @@ function App() {
           <Route path="/settings" element={<Dashboard />} /> {/* TODO: Settings */}
         </Route>
         
-        {/* Unified tagging screen - handles setup, Part 1, and Part 2 */}
-        {/* /matches/new -> new match with inline setup */}
-        {/* /matches/:id/tagging -> continue tagging existing match */}
-        <Route path="/matches/new" element={<TaggingScreen />} />
-        <Route path="/matches/:id/tagging" element={<TaggingScreen />} />
+        {/* Match tagging route - official tagging interface (formerly V2 prototype) */}
+        <Route path="/matches/:matchId/tag" element={<TaggingUIPrototypeV2 />} />
         
         {/* Match Analysis - view statistics and validate data */}
         <Route path="/matches/analysis" element={<MatchAnalysis />} />
-        
-        {/* Tagging UI Prototypes - experimental gesture-based interface */}
-        <Route path="/tagging-ui-prototype/v1" element={<TaggingUIPrototypeV1 />} />
-        <Route path="/tagging-ui-prototype/v2/:matchId" element={<TaggingUIPrototypeV2 />} />
       </Routes>
     </BrowserRouter>
   )

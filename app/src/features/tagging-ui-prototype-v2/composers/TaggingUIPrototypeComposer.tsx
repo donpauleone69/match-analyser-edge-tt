@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { Phase1TimestampComposer, type Phase1Rally } from './Phase1TimestampComposer'
 import { Phase2DetailComposer, type DetailedShot } from './Phase2DetailComposer'
@@ -15,12 +15,18 @@ import { Card } from '@/ui-mine/Card'
 import { useMatchManagementStore } from '@/stores/matchManagementStore'
 import { usePlayerStore } from '@/stores/playerStore'
 import { 
-  createSet,
   createRally,
   createShot,
   updateRally,
-  updateSet,
+  updateMatch,
 } from '@/database/services/matchService'
+import {
+  deleteSetTaggingData,
+  getSetsByMatchId,
+  markSetTaggingStarted,
+  markSetTaggingCompleted,
+  updateSet as updateSetService,
+} from '@/database/services/setService'
 import {
   mapPhase1RallyToDBRally,
   mapPhase1ShotToDBShot,
@@ -31,15 +37,17 @@ import {
 } from '@/database/services/mappingService'
 import { runInferenceForSet } from '@/database/services/inferenceService'
 import { calculateShotPlayer } from '@/rules'
+import { PreTaggingSetupBlock } from '../blocks/PreTaggingSetupBlock'
 
 export interface TaggingUIPrototypeComposerProps {
   className?: string
 }
 
-type Phase = 'setup' | 'phase1' | 'phase2' | 'saving' | 'complete'
+type Phase = 'setup' | 'pre_setup' | 'phase1' | 'phase2' | 'saving' | 'complete'
 
 export function TaggingUIPrototypeComposer({ className }: TaggingUIPrototypeComposerProps) {
   const { matchId } = useParams<{ matchId: string }>()
+  const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   
   const { matches, loadMatches } = useMatchManagementStore()
@@ -48,13 +56,66 @@ export function TaggingUIPrototypeComposer({ className }: TaggingUIPrototypeComp
   const [phase, setPhase] = useState<Phase>('setup')
   const [phase1Rallies, setPhase1Rallies] = useState<Phase1Rally[]>([])
   const [selectedSetNumber, setSelectedSetNumber] = useState(1)
+  const [isPreparingSet, setIsPreparingSet] = useState(false)
+  const [setupData, setSetupData] = useState<{
+    firstServerId: 'player1' | 'player2'
+    startingScore: { player1: number; player2: number }
+  } | null>(null)
   
   const currentMatch = matches.find(m => m.id === matchId)
+  
+  // Get set number and redo flag from URL params
+  const urlSetNumber = searchParams.get('set')
+  const isRedo = searchParams.get('redo') === 'true'
   
   useEffect(() => {
     loadMatches()
     loadPlayers()
   }, [loadMatches, loadPlayers])
+  
+  // Handle set preparation (redo workflow)
+  useEffect(() => {
+    const prepareSet = async () => {
+      if (!matchId || !urlSetNumber) return
+      
+      setIsPreparingSet(true)
+      try {
+        const sets = await getSetsByMatchId(matchId)
+        const targetSet = sets.find(s => s.set_number === parseInt(urlSetNumber))
+        
+        if (targetSet && isRedo) {
+          // Delete existing tagging data for redo
+          await deleteSetTaggingData(targetSet.id)
+          console.log(`Cleared tagging data for Set ${targetSet.set_number}`)
+        }
+        
+        if (targetSet) {
+          // Mark tagging as started
+          await markSetTaggingStarted(targetSet.id)
+        }
+        
+        setSelectedSetNumber(parseInt(urlSetNumber))
+        setPhase('pre_setup')  // Show setup questions before tagging
+      } catch (error) {
+        console.error('Failed to prepare set:', error)
+        alert('Failed to prepare set for tagging')
+      } finally {
+        setIsPreparingSet(false)
+      }
+    }
+    
+    if (urlSetNumber && phase === 'setup') {
+      prepareSet()
+    }
+  }, [matchId, urlSetNumber, isRedo, phase])
+  
+  const handleCompletePreSetup = (data: {
+    firstServerId: 'player1' | 'player2'
+    startingScore: { player1: number; player2: number }
+  }) => {
+    setSetupData(data)
+    setPhase('phase1')
+  }
   
   const handleCompletePhase1 = (rallies: Phase1Rally[]) => {
     setPhase1Rallies(rallies)
@@ -70,20 +131,26 @@ export function TaggingUIPrototypeComposer({ className }: TaggingUIPrototypeComp
     setPhase('saving')
     
     try {
-      // Create a set for this tagging session
-      const setData = await createSet({
-        match_id: matchId,
-        set_number: selectedSetNumber,
-        player1_final_score: 0, // Will be calculated
-        player2_final_score: 0, // Will be calculated
-        first_server_id: phase1Rallies[0]?.serverId === 'player1' 
-          ? currentMatch.player1_id 
-          : currentMatch.player2_id,
-        winner_id: null,
+      // Get the EXISTING set for this set number (don't create a new one!)
+      const existingSets = await getSetsByMatchId(matchId)
+      const setData = existingSets.find(s => s.set_number === selectedSetNumber)
+      
+      if (!setData) {
+        alert(`Set ${selectedSetNumber} not found! Please contact support.`)
+        setPhase('phase2')
+        return
+      }
+      
+      // Update the existing set with first server info if needed
+      const firstServerId = phase1Rallies[0]?.serverId === 'player1' 
+        ? currentMatch.player1_id 
+        : currentMatch.player2_id
+      
+      await updateSetService(setData.id, {
+        first_server_id: firstServerId,
         has_video: true,
-        video_start_player1_score: 0,
-        video_start_player2_score: 0,
-        end_of_set_timestamp: null,
+        video_start_player1_score: setupData?.startingScore.player1 || 0,
+        video_start_player2_score: setupData?.startingScore.player2 || 0,
       })
       
       // Map Phase 1 rallies to database rallies
@@ -166,17 +233,45 @@ export function TaggingUIPrototypeComposer({ className }: TaggingUIPrototypeComp
       // Update all rallies with winner and scores
       await Promise.all(ralliesWithScores.map(rally => updateRally(rally.id, rally)))
       
-      // Update set final scores
+      // Update set final scores and winner
       const finalRally = ralliesWithScores[ralliesWithScores.length - 1]
       if (finalRally) {
-        await updateSet(setData.id, {
+        // Determine winner based on final score
+        const winnerId = finalRally.player1_score_after > finalRally.player2_score_after
+          ? currentMatch.player1_id
+          : finalRally.player2_score_after > finalRally.player1_score_after
+          ? currentMatch.player2_id
+          : null
+        
+        await updateSetService(setData.id, {
           player1_final_score: finalRally.player1_score_after,
           player2_final_score: finalRally.player2_score_after,
+          winner_id: winnerId,
         })
       }
       
       // Run inference on all shots
       await runInferenceForSet(ralliesWithScores, shotsWithEndMarkers)
+      
+      // Mark set as tagging completed
+      await markSetTaggingCompleted(setData.id)
+      
+      // Update match set counts based on all tagged sets
+      const allSets = await getSetsByMatchId(matchId)
+      const player1SetsWon = allSets.filter(s => s.winner_id === currentMatch.player1_id && s.is_tagged).length
+      const player2SetsWon = allSets.filter(s => s.winner_id === currentMatch.player2_id && s.is_tagged).length
+      const matchWinnerId = player1SetsWon > player2SetsWon 
+        ? currentMatch.player1_id 
+        : player2SetsWon > player1SetsWon
+        ? currentMatch.player2_id
+        : null
+      
+      // Update match with tagged set counts
+      await updateMatch(matchId, {
+        player1_sets_won: player1SetsWon,
+        player2_sets_won: player2SetsWon,
+        winner_id: matchWinnerId,
+      })
       
       setPhase('complete')
     } catch (error) {
@@ -209,38 +304,36 @@ export function TaggingUIPrototypeComposer({ className }: TaggingUIPrototypeComp
     )
   }
 
-  // Set selection phase
-  if (phase === 'setup') {
-    const totalSets = currentMatch.player1_sets_won + currentMatch.player2_sets_won
-    
+  // Preparing set (redo workflow)
+  if (phase === 'setup' || isPreparingSet) {
     return (
       <div className={cn('h-dvh flex items-center justify-center bg-bg-surface', className)}>
-        <Card className="p-8 max-w-lg">
-          <h2 className="text-2xl font-bold text-neutral-50 mb-6">Select Set to Tag</h2>
-          
-          <div className="space-y-3 mb-6">
-            {Array.from({ length: totalSets }, (_, i) => i + 1).map((setNum) => (
-              <button
-                key={setNum}
-                onClick={() => {
-                  setSelectedSetNumber(setNum)
-                  setPhase('phase1')
-                }}
-                className="w-full p-4 bg-neutral-800 hover:bg-neutral-700 rounded-lg border border-neutral-700 transition-colors text-left"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-lg font-semibold text-neutral-50">Set {setNum}</span>
-                  <span className="text-sm text-neutral-400">→</span>
-                </div>
-              </button>
-            ))}
+        <Card className="p-8 max-w-lg text-center">
+          <h2 className="text-2xl font-bold text-neutral-50 mb-4">Preparing Set for Tagging</h2>
+          <p className="text-neutral-400 mb-6">
+            {isRedo ? 'Clearing existing data and preparing set...' : 'Loading set data...'}
+          </p>
+          <div className="flex justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-primary"></div>
           </div>
-
-          <Button variant="secondary" onClick={() => navigate('/matches')} className="w-full">
-            Cancel
-          </Button>
         </Card>
       </div>
+    )
+  }
+
+  // Pre-tagging setup questions
+  if (phase === 'pre_setup' && currentMatch) {
+    const player1Name = players.find(p => p.id === currentMatch.player1_id)?.first_name || 'Player 1'
+    const player2Name = players.find(p => p.id === currentMatch.player2_id)?.first_name || 'Player 2'
+    
+    return (
+      <PreTaggingSetupBlock
+        player1Name={player1Name}
+        player2Name={player2Name}
+        setNumber={selectedSetNumber}
+        onComplete={handleCompletePreSetup}
+        onCancel={() => navigate('/matches')}
+      />
     )
   }
   

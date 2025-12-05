@@ -2,10 +2,13 @@
  * MatchListSection - Display list of matches
  */
 
+import { useState } from 'react'
 import { Button } from '@/ui-mine/Button'
 import { Card } from '@/ui-mine/Card'
-import type { DBMatch } from '@/database/types'
+import type { DBMatch, DBSet } from '@/database/types'
 import { useNavigate } from 'react-router-dom'
+import { SetSelectionModal } from './SetSelectionModal'
+import { getSetsByMatchId } from '@/database/services/setService'
 
 interface MatchListSectionProps {
   matches: DBMatch[]
@@ -23,6 +26,28 @@ export function MatchListSection({
   getTournamentName,
 }: MatchListSectionProps) {
   const navigate = useNavigate()
+  const [selectedMatch, setSelectedMatch] = useState<DBMatch | null>(null)
+  const [sets, setSets] = useState<DBSet[]>([])
+  const [isLoadingSets, setIsLoadingSets] = useState(false)
+  
+  const handleTagMatch = async (match: DBMatch) => {
+    setIsLoadingSets(true)
+    try {
+      const matchSets = await getSetsByMatchId(match.id)
+      setSets(matchSets)
+      setSelectedMatch(match)
+    } catch (error) {
+      console.error('Failed to load sets:', error)
+      alert('Failed to load sets for this match')
+    } finally {
+      setIsLoadingSets(false)
+    }
+  }
+  
+  const handleCloseModal = () => {
+    setSelectedMatch(null)
+    setSets([])
+  }
   
   if (isLoading) {
     return (
@@ -99,20 +124,13 @@ export function MatchListSection({
                   </div>
                   
                   <div className="flex gap-2 ml-4">
-                    {!match.tagging_mode && !isComplete && (
+                    {!isComplete && (
                       <Button
-                        onClick={() => navigate(`/tagging-ui-prototype/v2/${match.id}`)}
+                        onClick={() => handleTagMatch(match)}
                         size="sm"
+                        disabled={isLoadingSets}
                       >
-                        Tag Match
-                      </Button>
-                    )}
-                    {match.tagging_mode && !isComplete && (
-                      <Button
-                        onClick={() => navigate(`/tagging-ui-prototype/v2/${match.id}`)}
-                        size="sm"
-                      >
-                        Resume Tagging
+                        {match.tagging_mode ? 'Resume Tagging' : 'Tag Match'}
                       </Button>
                     )}
                     {isComplete && (
@@ -130,6 +148,19 @@ export function MatchListSection({
             )
           })}
         </div>
+      )}
+      
+      {/* Set Selection Modal */}
+      {selectedMatch && (
+        <SetSelectionModal
+          matchId={selectedMatch.id}
+          sets={sets}
+          player1Name={getPlayerName(selectedMatch.player1_id)}
+          player2Name={getPlayerName(selectedMatch.player2_id)}
+          player1Id={selectedMatch.player1_id}
+          player2Id={selectedMatch.player2_id}
+          onClose={handleCloseModal}
+        />
       )}
     </div>
   )

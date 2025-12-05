@@ -8,7 +8,6 @@ import { Button } from '@/ui-mine/Button'
 import { Card } from '@/ui-mine/Card'
 import type { DBPlayer, DBTournament, MatchRound } from '@/database/types'
 import { useMatchManagementStore } from '@/stores/matchManagementStore'
-import { useTaggingStore } from '@/stores/taggingStore'
 
 interface MatchFormSectionProps {
   players: DBPlayer[]
@@ -28,7 +27,6 @@ const MATCH_ROUNDS: { value: MatchRound; label: string }[] = [
 export function MatchFormSection({ players, tournaments }: MatchFormSectionProps) {
   const navigate = useNavigate()
   const { createMatch } = useMatchManagementStore()
-  const { resetForNewMatch } = useTaggingStore()
   const [isSubmitting, setIsSubmitting] = useState(false)
   
   const [formData, setFormData] = useState({
@@ -40,7 +38,6 @@ export function MatchFormSection({ players, tournaments }: MatchFormSectionProps
     player1_sets_won: 0,
     player2_sets_won: 0,
     match_format: 'Best of 5',
-    will_tag_video: false,
   })
   
   const player1 = players.find(p => p.id === formData.player1_id)
@@ -74,8 +71,8 @@ export function MatchFormSection({ players, tournaments }: MatchFormSectionProps
         player2_sets_won: formData.player2_sets_won,
         match_format: formData.match_format,
         match_date: formData.match_date,
-        // For now, no video tagging - MVP focus
-        tagging_mode: formData.will_tag_video ? 'essential' : null,
+        // All matches are tagable - tagging_mode set when user starts tagging
+        tagging_mode: null,
         video_coverage: null,
         first_server_id: formData.player1_id, // Default to player1
         player1_start_sets: 0,
@@ -84,20 +81,12 @@ export function MatchFormSection({ players, tournaments }: MatchFormSectionProps
         player2_start_points: 0,
         first_serve_timestamp: null,
         video_blob_url: null,
-        step1_complete: !formData.will_tag_video, // If no video, mark as complete
-        step2_complete: !formData.will_tag_video,
+        step1_complete: false, // Will be marked complete when tagging is done
+        step2_complete: false,
       })
       
-      if (formData.will_tag_video) {
-        // Reset tagging store and navigate to prototype V2
-        resetForNewMatch()
-        // Store match ID in tagging store for later integration
-        alert('Video tagging feature will be integrated in the next step!')
-        navigate('/matches')
-      } else {
-        alert('Match created successfully!')
-        navigate('/matches')
-      }
+      alert('Match created successfully!')
+      navigate('/matches')
     } catch (error) {
       console.error('Failed to create match:', error)
       alert('Failed to create match. Please try again.')
@@ -244,27 +233,6 @@ export function MatchFormSection({ players, tournaments }: MatchFormSectionProps
                   className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-md text-neutral-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
-            </div>
-          </div>
-        </div>
-        
-        {/* Video Tagging Option */}
-        <div className="border-t border-neutral-700 pt-6">
-          <div className="flex items-start space-x-3">
-            <input
-              type="checkbox"
-              id="will_tag_video"
-              checked={formData.will_tag_video}
-              onChange={(e) => setFormData({ ...formData, will_tag_video: e.target.checked })}
-              className="mt-1 h-4 w-4 rounded border-neutral-600 bg-neutral-800 text-blue-600 focus:ring-2 focus:ring-blue-500"
-            />
-            <div>
-              <label htmlFor="will_tag_video" className="block text-sm font-medium text-neutral-300">
-                Tag match video
-              </label>
-              <p className="text-sm text-neutral-500 mt-1">
-                Check this if you want to tag video for this match (coming soon)
-              </p>
             </div>
           </div>
         </div>

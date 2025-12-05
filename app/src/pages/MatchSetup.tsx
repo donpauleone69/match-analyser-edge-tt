@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Upload, Video, Users } from 'lucide-react'
+import { Upload, Video, Users, Wifi } from 'lucide-react'
 import { Header } from '../components/layout'
 import { Button, Card, CardHeader, CardTitle, CardContent, Input, Badge } from '../components/ui'
 import { useTaggingStore } from '../stores/taggingStore'
+import { isMobileDevice } from '../helpers/videoFileHelpers'
 
 export function MatchSetup() {
   const navigate = useNavigate()
@@ -15,6 +16,7 @@ export function MatchSetup() {
   const [hasVideo, setHasVideo] = useState(true)
   const [videoFile, setVideoFile] = useState<File | null>(null)
   const [videoUrl, setVideoUrl] = useState<string | null>(null)
+  const isMobile = isMobileDevice()
 
   // Clean up video URL on unmount
   useEffect(() => {
@@ -158,7 +160,7 @@ export function MatchSetup() {
             </label>
 
             {hasVideo && (
-              <div className="mt-4">
+              <div className="mt-4 space-y-3">
                 <label className="block">
                   <div
                     className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${
@@ -169,7 +171,7 @@ export function MatchSetup() {
                   >
                     <input
                       type="file"
-                      accept="video/*"
+                      accept="video/mp4,video/quicktime,video/webm,video/*"
                       className="hidden"
                       onChange={(e) => setVideoFile(e.target.files?.[0] || null)}
                     />
@@ -200,13 +202,74 @@ export function MatchSetup() {
                         <div className="text-sm text-neutral-500">
                           MP4, MOV, or WebM
                         </div>
+                        <div className="text-xs text-neutral-600 mt-3">
+                          📱 On mobile: Choose from Photo Library or Files
+                        </div>
                       </div>
                     )}
                   </div>
                 </label>
+                
+                {!videoFile && isMobile && (
+                  <div className="space-y-2">
+                    <div className="px-4 py-3 rounded-lg bg-brand-primary-muted border border-brand-primary/30">
+                      <div className="flex items-start gap-2">
+                        <div className="text-lg mt-0.5 flex-shrink-0">⚡</div>
+                        <div className="flex-1">
+                          <p className="text-xs text-brand-primary font-medium">
+                            iOS Speed Tip
+                          </p>
+                          <p className="text-xs text-neutral-400 mt-1">
+                            Use <strong className="text-neutral-200">"Choose File"</strong> instead of "Photo Library" 
+                            for instant loading (no transcoding wait).
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="px-4 py-3 rounded-lg bg-neutral-800 border border-neutral-700">
+                      <div className="flex items-start gap-2">
+                        <Wifi className="w-4 h-4 text-neutral-400 mt-0.5 flex-shrink-0" />
+                        <div className="flex-1">
+                          <p className="text-xs text-neutral-300 font-medium">
+                            Why Photo Library is Slow
+                          </p>
+                          <p className="text-xs text-neutral-500 mt-1">
+                            iOS must convert HEVC videos to MP4 (1-2 min). This happens locally on your device - no upload occurs.
+                          </p>
+                          <details className="mt-2">
+                            <summary className="text-xs text-brand-primary cursor-pointer hover:underline">
+                              How to speed this up →
+                            </summary>
+                            <div className="mt-2 text-xs text-neutral-500 space-y-1.5">
+                              <p><strong className="text-neutral-400">1. Export to Files:</strong></p>
+                              <p className="pl-3">• Open Photos app → Select video</p>
+                              <p className="pl-3">• Tap Share → Save to Files</p>
+                              <p className="pl-3">• Then use "Choose File" option</p>
+                              <p className="mt-2"><strong className="text-neutral-400">2. Use Google Drive/iCloud:</strong></p>
+                              <p className="pl-3">• Upload once, access anytime</p>
+                              <p className="pl-3">• Already in MP4 format</p>
+                            </div>
+                          </details>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
+            {hasVideo && videoFile && (
+              <div className="p-4 rounded-lg bg-brand-primary-muted border border-brand-primary/30">
+                <p className="text-sm text-brand-primary font-medium">
+                  🔒 Your video stays on this device
+                </p>
+                <p className="text-xs text-neutral-400 mt-1">
+                  No upload to servers. All processing happens locally.
+                </p>
+              </div>
+            )}
+            
             {!hasVideo && (
               <div className="p-4 rounded-lg bg-warning-muted border border-warning/30">
                 <p className="text-sm text-warning">
