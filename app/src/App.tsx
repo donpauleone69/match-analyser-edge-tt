@@ -1,18 +1,38 @@
+import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AppShell } from './components/layout'
-import { Dashboard, Matches, TaggingScreen, MatchAnalysis, DataViewer, TaggingUIPrototypeV1, TaggingUIPrototypeV2 } from './pages'
+import { initializeDatabase } from './database'
+import { Dashboard } from './pages/Dashboard'
+import MatchesPage from './pages/Matches'
+import TournamentsPage from './pages/Tournaments'
+import PlayersPage from './pages/Players'
+import MatchCreatePage from './pages/MatchCreate'
+import { TaggingScreen } from './pages/TaggingScreen'
+import { MatchAnalysis } from './pages/MatchAnalysis'
+import { DataViewer } from './pages/DataViewer'
+import { TaggingUIPrototypeV1 } from './pages/TaggingUIPrototypeV1'
+import { TaggingUIPrototypeV2 } from './pages/TaggingUIPrototypeV2'
 
 function App() {
+  // Initialize IndexedDB database
+  useEffect(() => {
+    initializeDatabase().catch(error => {
+      console.error('Failed to initialize database:', error)
+    })
+  }, [])
+  
   return (
     <BrowserRouter>
       <Routes>
         {/* Main app with sidebar */}
         <Route element={<AppShell />}>
           <Route path="/" element={<Dashboard />} />
-          <Route path="/matches" element={<Matches />} />
+          <Route path="/tournaments" element={<TournamentsPage />} />
+          <Route path="/players" element={<PlayersPage />} />
+          <Route path="/matches" element={<MatchesPage />} />
+          <Route path="/matches/create" element={<MatchCreatePage />} />
           <Route path="/matches/:id" element={<Dashboard />} /> {/* TODO: Match detail */}
           <Route path="/data-viewer" element={<DataViewer />} />
-          <Route path="/players" element={<Dashboard />} /> {/* TODO: Players list */}
           <Route path="/stats" element={<Dashboard />} /> {/* TODO: Stats */}
           <Route path="/settings" element={<Dashboard />} /> {/* TODO: Settings */}
         </Route>
@@ -28,7 +48,7 @@ function App() {
         
         {/* Tagging UI Prototypes - experimental gesture-based interface */}
         <Route path="/tagging-ui-prototype/v1" element={<TaggingUIPrototypeV1 />} />
-        <Route path="/tagging-ui-prototype/v2" element={<TaggingUIPrototypeV2 />} />
+        <Route path="/tagging-ui-prototype/v2/:matchId" element={<TaggingUIPrototypeV2 />} />
       </Routes>
     </BrowserRouter>
   )

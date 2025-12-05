@@ -35,6 +35,7 @@ export interface Phase1Rally {
   endTimestamp: number
   isError: boolean  // true if ended with 'innet' or 'long'
   errorPlacement?: 'innet' | 'long'  // stores which type of fault
+  serverId: 'player1' | 'player2'  // who served this rally
 }
 
 export function Phase1TimestampComposer({ onCompletePhase1, className }: Phase1TimestampComposerProps) {
@@ -49,8 +50,8 @@ export function Phase1TimestampComposer({ onCompletePhase1, className }: Phase1T
   
   // Handle serve/shot button press
   const handleServeShot = () => {
-    const shotIndex = currentShots.length
-    const isServe = shotIndex === 0
+    const shotIndex = currentShots.length + 1  // 1-based: serve = 1, receive = 2, etc.
+    const isServe = shotIndex === 1
     
     const newShot: Phase1Shot = {
       id: `shot-${Date.now()}-${Math.random()}`,
@@ -76,6 +77,7 @@ export function Phase1TimestampComposer({ onCompletePhase1, className }: Phase1T
       endTimestamp: currentTime,
       isError: true,
       errorPlacement: 'long',
+      serverId: 'player1',  // TODO: Calculate from score/rally count when match context available
     }
     
     setCompletedRallies(prev => [...prev, rally])
@@ -94,6 +96,7 @@ export function Phase1TimestampComposer({ onCompletePhase1, className }: Phase1T
       endTimestamp: currentTime,
       isError: true,
       errorPlacement: 'innet',
+      serverId: 'player1',  // TODO: Calculate from score/rally count when match context available
     }
     
     setCompletedRallies(prev => [...prev, rally])
@@ -111,6 +114,7 @@ export function Phase1TimestampComposer({ onCompletePhase1, className }: Phase1T
       endCondition: 'winner',
       endTimestamp: currentTime,
       isError: false,
+      serverId: 'player1',  // TODO: Calculate from score/rally count when match context available
     }
     
     setCompletedRallies(prev => [...prev, rally])
@@ -203,7 +207,7 @@ export function Phase1TimestampComposer({ onCompletePhase1, className }: Phase1T
       <div className="shrink-0 w-full aspect-video bg-black">
         <VideoPlayer
           ref={videoPlayerRef}
-          videoSrc={videoUrl}
+          videoSrc={videoUrl || undefined}
           compact={true}
           showTimeOverlay={true}
         />

@@ -25,6 +25,11 @@ export {
   DEFAULT_SERVICE_RULE,
 } from './calculateServer'
 
+// Shot player calculation
+export {
+  calculateShotPlayer,
+} from './calculateShotPlayer'
+
 // End of point derivation
 export {
   deriveEndOfPoint,

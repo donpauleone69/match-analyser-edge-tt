@@ -11,7 +11,8 @@
 import { useState, useRef } from 'react'
 import { cn } from '@/lib/utils'
 import type { Phase1Shot, Phase1Rally } from './Phase1TimestampComposer'
-import { ButtonGrid } from '../blocks'
+import { ButtonGrid, ShotQualityToggleBlock, type ShotQuality } from '../blocks'
+import { calculateShotPlayer, type PlayerId } from '@/rules'
 import {
   Button,
   // Serve direction buttons
@@ -36,6 +37,9 @@ import {
   // Stroke buttons
   BackhandButton,
   ForehandButton,
+  // Error type buttons
+  ForcedErrorButton,
+  UnforcedErrorButton,
   // Intent buttons
   DefensiveButton,
   NeutralButton,
@@ -44,6 +48,7 @@ import {
 import { VideoPlayer } from '@/components/tagging/VideoPlayer'
 import type { VideoPlayerHandle } from '@/components/tagging/VideoPlayer'
 import { useTaggingStore } from '@/stores/taggingStore'
+// Removed unused import
 
 // Question step types
 type ServeStep = 'direction' | 'length' | 'spin'
@@ -54,7 +59,7 @@ type QuestionStep = ServeStep | ShotStep | ErrorStep | 'complete'
 
 export interface Phase2DetailComposerProps {
   phase1Rallies: Phase1Rally[]
-  onComplete?: () => void
+  onComplete?: (detailedShots: DetailedShot[]) => void
   className?: string
 }
 
@@ -63,11 +68,12 @@ type Direction =
   | 'mid_left' | 'mid_mid' | 'mid_right'
   | 'right_left' | 'right_mid' | 'right_right'
 
-interface DetailedShot extends Phase1Shot {
+export interface DetailedShot extends Phase1Shot {
   rallyId: string
   rallyEndCondition: string
   isLastShot: boolean
   isError: boolean
+  serverId: PlayerId  // who served this rally
   // Detailed data
   direction?: Direction
   length?: 'short' | 'halflong' | 'deep'
@@ -75,6 +81,7 @@ interface DetailedShot extends Phase1Shot {
   stroke?: 'backhand' | 'forehand'
   intent?: 'defensive' | 'neutral' | 'aggressive'
   errorType?: 'forced' | 'unforced'
+  shotQuality?: 'average' | 'high'
 }
 
 export function Phase2DetailComposer({ phase1Rallies, onComplete, className }: Phase2DetailComposerProps) {
@@ -94,6 +101,7 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className }: P
           rallyEndCondition: rally.endCondition,
           isLastShot,
           isError,
+          serverId: rally.serverId,
         })
       })
     })
@@ -102,8 +110,14 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className }: P
   
   const [currentShotIndex, setCurrentShotIndex] = useState(0)
   const [currentStep, setCurrentStep] = useState<QuestionStep>('direction')  // Start with serve direction
+  const [currentShotQuality, setCurrentShotQuality] = useState<ShotQuality>('average')  // Track shot quality for current shot
   
   const currentShot = allShots[currentShotIndex]
+  
+  // Calculate which player is hitting the current shot
+  const currentShotPlayer = currentShot 
+    ? calculateShotPlayer(currentShot.serverId, currentShot.shotIndex)
+    : null
   
   // Determine question flow based on shot type
   const getNextStep = (current: QuestionStep): QuestionStep => {
@@ -134,10 +148,14 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className }: P
   const advanceToNextShot = (): QuestionStep => {
     if (currentShotIndex < allShots.length - 1) {
       setCurrentShotIndex(prev => prev + 1)
+      // Reset shot quality for next shot
+      setCurrentShotQuality('average')
       // Determine starting question for next shot
       const nextShot = allShots[currentShotIndex + 1]
       return nextShot.isServe ? 'direction' : 'stroke'
     }
+    // All shots complete - pass detailed data back
+    if (onComplete) onComplete(allShots)
     return 'complete'
   }
   
@@ -166,7 +184,7 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className }: P
           </p>
           <div className="flex gap-3 justify-center pt-4">
             {onComplete && (
-              <Button variant="primary" onClick={onComplete}>
+              <Button variant="primary" onClick={() => onComplete && onComplete(allShots)}>
                 Continue
               </Button>
             )}
@@ -202,6 +220,18 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className }: P
     // Extract ending position from direction (e.g., 'left_mid' → 'mid')
     const parts = prevShot.direction.split('_')
     return parts[1] as 'left' | 'mid' | 'right'
+  }
+  
+  // Helper to get next shot's starting side from receiver's perspective
+  // If ball arrives on the right, the receiver is on the left (and vice versa)
+  const getNextShotStartingSide = (): 'left' | 'mid' | 'right' | null => {
+    const prevEnd = getPreviousDirection()
+    if (!prevEnd) return null
+    
+    // Invert left/right for receiver's perspective; mid stays mid
+    if (prevEnd === 'left') return 'right'
+    if (prevEnd === 'right') return 'left'
+    return 'mid'
   }
   
   return (
@@ -278,7 +308,12 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className }: P
       </div>
       
       {/* Question Controls - Bottom */}
-      <div className="shrink-0 bg-bg-card border-t border-neutral-700">
+      <div className={cn(
+        'shrink-0 border-t border-neutral-700 transition-colors duration-300',
+        currentShotPlayer === 'player1' && 'bg-[rgb(59_130_246_/_0.12)]',
+        currentShotPlayer === 'player2' && 'bg-[rgb(249_115_22_/_0.12)]',
+        !currentShotPlayer && 'bg-bg-card'
+      )}>
         {/* Serve questions */}
         {currentShot.isServe && currentStep === 'direction' && (
           <ButtonGrid columns={6}>
@@ -307,36 +342,46 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className }: P
         
         {/* Regular shot questions */}
         {!currentShot.isServe && !currentShot.isError && currentStep === 'stroke' && (
-          <ButtonGrid columns={2}>
-            <BackhandButton onClick={() => handleAnswer('stroke', 'backhand')} />
-            <ForehandButton onClick={() => handleAnswer('stroke', 'forehand')} />
+          <ButtonGrid columns={3}>
+            <ShotQualityToggleBlock 
+              value={currentShotQuality} 
+              onChange={setCurrentShotQuality}
+            />
+            <BackhandButton onClick={() => {
+              handleAnswer('shotQuality', currentShotQuality)
+              handleAnswer('stroke', 'backhand')
+            }} />
+            <ForehandButton onClick={() => {
+              handleAnswer('shotQuality', currentShotQuality)
+              handleAnswer('stroke', 'forehand')
+            }} />
           </ButtonGrid>
         )}
         {!currentShot.isServe && !currentShot.isError && currentStep === 'direction' && (
           <ButtonGrid columns={3}>
-              {getPreviousDirection() === 'left' && (
+              {getNextShotStartingSide() === 'left' && (
                 <>
                   <LeftLeftButton onClick={() => handleAnswer('direction', 'left_left')} />
                   <LeftMidButton onClick={() => handleAnswer('direction', 'left_mid')} />
                   <LeftRightButton onClick={() => handleAnswer('direction', 'left_right')} />
                 </>
               )}
-              {getPreviousDirection() === 'mid' && (
+              {getNextShotStartingSide() === 'mid' && (
                 <>
                   <MidLeftButton onClick={() => handleAnswer('direction', 'mid_left')} />
                   <MidMidButton onClick={() => handleAnswer('direction', 'mid_mid')} />
                   <MidRightButton onClick={() => handleAnswer('direction', 'mid_right')} />
                 </>
               )}
-              {getPreviousDirection() === 'right' && (
+              {getNextShotStartingSide() === 'right' && (
                 <>
                   <RightLeftButton onClick={() => handleAnswer('direction', 'right_left')} />
                   <RightMidButton onClick={() => handleAnswer('direction', 'right_mid')} />
                   <RightRightButton onClick={() => handleAnswer('direction', 'right_right')} />
                 </>
               )}
-              {/* Fallback if previous direction is null (shouldn't happen but safe) */}
-              {!getPreviousDirection() && (
+              {/* Fallback if next starting side is null (shouldn't happen but safe) */}
+              {!getNextShotStartingSide() && (
                 <>
                   <MidLeftButton onClick={() => handleAnswer('direction', 'mid_left')} />
                   <MidMidButton onClick={() => handleAnswer('direction', 'mid_mid')} />
@@ -369,22 +414,8 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className }: P
         )}
         {currentShot.isError && currentStep === 'errorType' && (
           <ButtonGrid columns={2}>
-            <button
-              type="button"
-              onClick={() => handleAnswer('errorType', 'forced')}
-              className="h-full aspect-square px-4 rounded-lg text-xl font-bold text-white bg-orange-600 hover:bg-orange-700 transition-all duration-150 shadow-md active:scale-95"
-              style={{ maxWidth: 'var(--button-grid-height, 100%)' }}
-            >
-              Forced
-            </button>
-            <button
-              type="button"
-              onClick={() => handleAnswer('errorType', 'unforced')}
-              className="h-full aspect-square px-4 rounded-lg text-xl font-bold text-white bg-red-600 hover:bg-red-700 transition-all duration-150 shadow-md active:scale-95"
-              style={{ maxWidth: 'var(--button-grid-height, 100%)' }}
-            >
-              Unforced
-            </button>
+            <ForcedErrorButton onClick={() => handleAnswer('errorType', 'forced')} />
+            <UnforcedErrorButton onClick={() => handleAnswer('errorType', 'unforced')} />
           </ButtonGrid>
         )}
       </div>

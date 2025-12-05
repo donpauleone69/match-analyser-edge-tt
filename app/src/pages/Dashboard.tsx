@@ -45,7 +45,7 @@ export function Dashboard() {
       <div className="p-6 space-y-6 max-w-6xl mx-auto">
         {/* Quick Actions */}
         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Link to="/matches/new">
+          <Link to="/matches/create">
             <Card variant="interactive" className="h-full">
               <CardContent className="flex flex-col items-center justify-center py-6 gap-3">
                 <div className="p-3 rounded-full bg-brand-primary-muted">

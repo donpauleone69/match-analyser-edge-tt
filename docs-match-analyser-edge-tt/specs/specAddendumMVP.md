@@ -6,6 +6,208 @@
 
 ## Change Log
 
+### 2025-12-05: UI Prototype V2 - Shot Quality Toggle and Error Type Buttons
+
+**Context:** Added shot quality toggle button and proper error type button components to Phase 2 tagging UI, extracted from the tt-buttons-complete-v1.1 design file.
+
+#### What Changed
+
+**New Button Components:**
+- **AverageQualityButton** — Silver table with meh face icon (default state)
+- **HighQualityButton** — Gold table with red flame icon (high quality state)
+- **ForcedErrorButton** — Grey table with meh face icon
+- **UnforcedErrorButton** — Red table with frown face icon
+
+**Shot Quality Toggle Block:**
+- Created `ShotQualityToggleBlock` component — single button that toggles between average/high quality states
+- Clicking the button switches visual appearance without advancing
+- User must select backhand or forehand to proceed
+- Initial state is always `'average'` for each new regular shot
+
+**Data Model:**
+- Added `shotQuality?: 'average' | 'high'` field to `DetailedShot` interface in Phase2DetailComposer
+- Shot quality is captured when user selects backhand or forehand stroke type
+
+**UI Integration:**
+- Regular shots now show shot quality toggle above stroke buttons
+- Shot quality toggle only appears for regular shots (not serves, not errors)
+- Error shots now use proper button components instead of inline styled buttons
+- Maintains existing ButtonGrid layout patterns
+
+#### Implementation Details
+
+**Files Created:**
+- `app/src/ui-mine/TableTennisButtons/AverageQualityButton.tsx` — SVG button component
+- `app/src/ui-mine/TableTennisButtons/HighQualityButton.tsx` — SVG button component
+- `app/src/ui-mine/TableTennisButtons/ForcedErrorButton.tsx` — SVG button component
+- `app/src/ui-mine/TableTennisButtons/UnforcedErrorButton.tsx` — SVG button component
+- `app/src/features/tagging-ui-prototype-v2/blocks/ShotQualityToggleBlock.tsx` — Toggle logic component
+
+**Files Modified:**
+- `app/src/ui-mine/TableTennisButtons/index.ts` — Exported new button components
+- `app/src/features/tagging-ui-prototype-v2/blocks/index.ts` — Exported ShotQualityToggleBlock
+- `app/src/features/tagging-ui-prototype-v2/composers/Phase2DetailComposer.tsx`:
+  - Added shot quality state management
+  - Integrated toggle UI in regular shot stroke step
+  - Replaced inline error buttons with proper components
+  - Reset shot quality to 'average' when advancing to next shot
+
+**Regular Shot Flow:**
+1. Shot quality toggle appears (starts at 'average')
+2. User can toggle quality by clicking button (optional)
+3. User selects backhand or forehand (captures current quality state + stroke)
+4. Advances to next question (direction)
+
+#### Rationale
+
+**User Experience:**
+- Shot quality toggle allows quick differentiation between average and exceptional shots
+- Single button toggle is more space-efficient than two separate buttons
+- Toggle doesn't auto-advance, giving users time to assess quality before committing
+- Error buttons now match design system consistency with all other buttons
+
+**Technical:**
+- Follows existing button component patterns (TableTennisButtonBase wrapper)
+- Reuses ButtonGrid layout system
+- Maintains separation of concerns (blocks vs composers)
+- Pure SVG components extracted directly from design mockups
+
+#### Design Source
+
+All SVG designs extracted from:
+- `docs-match-analyser-edge-tt/designs/tt-buttons-complete-v1.1-added-quality-error.html`
+- Lines 451-495: shot_quality button group
+- Lines 500-546: error_type button group
+
+---
+
+### 2025-12-04: UI Prototype V2 - Player Background Color Indicator
+
+**Context:** Added visual player distinction in Phase 2 tagging UI to help users track whose shot is currently being tagged. The controls area background color changes subtly based on the active player.
+
+#### What Changed
+
+**Visual Indicator:**
+- Phase 2 controls area now shows a subtle background tint indicating which player is hitting the current shot
+- **Player 1**: Blue tint (12% opacity of `#3b82f6`)
+- **Player 2**: Orange tint (12% opacity of `#f97316`)
+- Smooth 300ms transition between shots
+
+**New Rules Layer:**
+- Created `calculateShotPlayer(serverId, shotIndex)` in `rules/calculateShotPlayer.ts`
+- Pure function implementing shot alternation logic (server hits even shots, receiver hits odd shots)
+- Exported from `rules/index.ts` for reuse
+
+**Type Updates:**
+- Added `serverId: PlayerId` to `Phase1Rally` interface (tracks who served each rally)
+- Added `serverId: PlayerId` to `DetailedShot` interface in Phase2DetailComposer
+- Currently defaults to `'player1'` in prototype (TODO: calculate from score/rally count)
+
+#### Implementation Details
+
+**Files Changed:**
+- `app/src/index.css` — Added player color tokens:
+  - `--color-player-1: #3b82f6` (info blue)
+  - `--color-player-1-bg: rgb(59 130 246 / 0.12)`
+  - `--color-player-2: #f97316` (aggressive orange)
+  - `--color-player-2-bg: rgb(249 115 22 / 0.12)`
+- `app/src/rules/calculateShotPlayer.ts` — **NEW** pure function
+- `app/src/rules/index.ts` — Exported new rule
+- `app/src/features/tagging-ui-prototype-v2/composers/Phase1TimestampComposer.tsx` — Added `serverId` to rallies
+- `app/src/features/tagging-ui-prototype-v2/composers/Phase2DetailComposer.tsx` — Applied background colors dynamically
+
+**Table Tennis Rules Implemented:**
+```typescript
+// Server hits even-indexed shots (0, 2, 4...)
+// Receiver hits odd-indexed shots (1, 3, 5...)
+calculateShotPlayer(serverId, shotIndex) {
+  return shotIndex % 2 === 0 ? serverId : otherPlayer(serverId)
+}
+```
+
+#### Rationale
+
+**User Experience:**
+- Reduces cognitive load when tagging long rallies
+- Helps users mentally track shot alternation
+- Subtle enough to not distract from button choices
+- Consistent with existing color system (info = player1, aggressive = player2)
+
+**Technical:**
+- Reuses existing `calculateServer` logic from `rules/calculateServer.ts`
+- New `calculateShotPlayer` rule can be reused elsewhere (stats, replay, analysis)
+- Pure functions = easy to test, maintain, and reason about
+- Low opacity prevents visual fatigue
+
+#### Future Enhancements
+
+- Calculate actual server from score/rally count (currently hardcoded to player1)
+- Add player names/labels in status strip
+- Extend to Phase 1 (show server color during timestamp marking)
+- Add user preference to toggle colors on/off
+- Support custom colors per match
+
+---
+
+### 2025-12-04: UI Prototype V2 - Fixed Shot Direction Button Logic (Receiver's Perspective)
+
+**Context:** Dynamic shot direction button selection in Phase 2 was incorrectly mapping the previous shot's ending side directly to the next shot's button trio. This didn't account for the receiver's perspective — when a ball arrives on the right, the receiver is positioned on the left (and vice versa).
+
+#### What Changed
+
+**Before:**
+- If previous shot ended on the right (`right_*`), the UI showed Right* buttons (Right→Left, Right→Middle, Right→Right)
+- If previous shot ended on the left (`left_*`), the UI showed Left* buttons
+- Mid stayed as Mid
+
+**After:**
+- If previous shot ended on the right, the UI now shows **Left*** buttons (receiver's starting side)
+- If previous shot ended on the left, the UI now shows **Right*** buttons
+- Mid still maps to Mid (symmetric)
+
+#### Implementation Details
+
+**File Changed:**
+- `app/src/features/tagging-ui-prototype-v2/composers/Phase2DetailComposer.tsx`
+  - Added new helper `getNextShotStartingSide()` that inverts left/right from the previous shot's end position
+  - Updated the regular shot direction button JSX (lines 315-346) to use the inverted logic
+  - Serves (which use all 6 direction buttons) remain unchanged
+
+**Code:**
+```typescript
+// Helper to get next shot's starting side from receiver's perspective
+// If ball arrives on the right, the receiver is on the left (and vice versa)
+const getNextShotStartingSide = (): 'left' | 'mid' | 'right' | null => {
+  const prevEnd = getPreviousDirection()
+  if (!prevEnd) return null
+  
+  // Invert left/right for receiver's perspective; mid stays mid
+  if (prevEnd === 'left') return 'right'
+  if (prevEnd === 'right') return 'left'
+  return 'mid'
+}
+```
+
+#### Rationale
+
+The direction encoding represents **from→to** (e.g., `right_right` = "from right side to right side"). When a shot ends on the right (`*_right`), the ball is on the right side of the table from the hitter's perspective, which means the **receiver** is positioned on the **left** side. Therefore, the next shot's starting position should offer the Left* button trio.
+
+This change ensures the button options match the physical reality of table tennis rally flow and the receiver's actual court position.
+
+#### Impact
+
+**User Experience:**
+- Button choices now correctly reflect which side of the table the receiver is positioned on
+- Eliminates confusion when tagging shot sequences
+- Direction codes (`left_left`, `right_mid`, etc.) remain unchanged — only the UI button selection logic is corrected
+
+**Testing:**
+- Manual testing required: Tag a rally where a shot ends on the right and verify the next shot shows Left* buttons
+- Tag a rally where a shot ends on the left and verify the next shot shows Right* buttons
+- Verify mid-ending shots still show Mid* buttons
+
+---
+
 ### 2025-12-03: UI Prototype V2 - Mobile-Optimized Layout with Integrated Video Player
 
 **Context:** Reorganized layout for optimal mobile (iPhone) viewing experience. Video player now integrated directly in the prototype interface.
@@ -1602,17 +1804,17 @@ Replaces `serveSpinPrimary` + `serveSpinStrength` with single 9-cell grid based 
 
 ## Version History
 
-| Date | Version | Summary |
-|------|---------|---------|
-| 2025-12-01 | 0.1.0 | Initial implementation with Step 1 tagger and review |
-| 2025-12-01 | 0.2.0 | Added timing conventions, constrained playback, video export |
-| 2025-12-01 | 0.3.0 | FFmpeg.wasm fix, quality presets, frame rate options |
-| 2025-12-01 | 0.4.0 | Insert rally, highlight feature, looping behavior, layout fixes |
-| 2025-12-01 | 0.5.0 | Step 1 Tagger redesign: fast-forward workflow, settings sidebar, deferred winner |
-| 2025-12-01 | 0.6.0 | Step 1 Review: shot labels, end-of-point, first server selection, server overlay |
-| 2025-12-01 | 0.7.0 | Delete rally, server auto-alternate with manual override, video export optimization |
-| 2025-12-01 | 0.8.0 | MVP Flowchange: unified layout, match framework phase, rally detail phase, essential mode |
-| 2025-12-01 | 0.8.1 | Figma design prompts updated for new two-part workflow |
+| Date       | Version | Summary                                                                                   |
+| ---------- | ------- | ----------------------------------------------------------------------------------------- |
+| 2025-12-01 | 0.1.0   | Initial implementation with Step 1 tagger and review                                      |
+| 2025-12-01 | 0.2.0   | Added timing conventions, constrained playback, video export                              |
+| 2025-12-01 | 0.3.0   | FFmpeg.wasm fix, quality presets, frame rate options                                      |
+| 2025-12-01 | 0.4.0   | Insert rally, highlight feature, looping behavior, layout fixes                           |
+| 2025-12-01 | 0.5.0   | Step 1 Tagger redesign: fast-forward workflow, settings sidebar, deferred winner          |
+| 2025-12-01 | 0.6.0   | Step 1 Review: shot labels, end-of-point, first server selection, server overlay          |
+| 2025-12-01 | 0.7.0   | Delete rally, server auto-alternate with manual override, video export optimization       |
+| 2025-12-01 | 0.8.0   | MVP Flowchange: unified layout, match framework phase, rally detail phase, essential mode |
+| 2025-12-01 | 0.8.1   | Figma design prompts updated for new two-part workflow                                    |
 
 ---
 
@@ -1880,7 +2082,9 @@ Part 2 video now uses constrained playback:
 | 2025-12-01 | 0.9.1 | Foundation implementation: rules layer, UI components, tagging feature scaffold |
 | 2025-12-01 | 0.9.4 | Unified tagging screen: Match Details Modal, Part 2 sequential flow, ShotQuestionSection |
 | 2025-12-01 | 0.9.5 | Bug fixes: inline setup panel, responsive video, FF mode, delete buttons |
-| 2025-12-03 | **0.9.6** | **UI Prototype: Error shot layout alignment, increased button heights for mobile** |
+| 2025-12-03 | 0.9.6 | UI Prototype: Error shot layout alignment, increased button heights for mobile |
+| 2025-12-04 | 0.9.7 | UI Prototype V2: Fixed shot direction button logic to use receiver's perspective (left/right inversion) |
+| 2025-12-04 | **0.9.8** | **UI Prototype V2: Player background color indicator with calculateShotPlayer rule** |
 
 ---
 

@@ -48,6 +48,14 @@
   --color-shot-aggressive: #f97316;
 
   /* ----------------------------------------
+     PLAYER COLORS (for turn indication)
+     ---------------------------------------- */
+  --color-player-1: #3b82f6;           /* info blue */
+  --color-player-1-bg: rgb(59 130 246 / 0.12);
+  --color-player-2: #f97316;           /* aggressive orange */
+  --color-player-2-bg: rgb(249 115 22 / 0.12);
+
+  /* ----------------------------------------
      BACKGROUND LAYERS (Elevation)
      ---------------------------------------- */
   --color-bg-app: #0a0a0a;

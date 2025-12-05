@@ -1,8 +1,9 @@
 import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard,
-  Swords,
+  Trophy,
   Users,
+  Swords,
   BarChart3,
   Database,
   Settings,
@@ -11,14 +12,19 @@ import { cn } from '../../lib/utils'
 
 const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/matches', icon: Swords, label: 'Matches' },
+  { to: '/tournaments', icon: Trophy, label: 'Tournaments' },
   { to: '/players', icon: Users, label: 'Players' },
+  { to: '/matches', icon: Swords, label: 'Matches' },
   { to: '/stats', icon: BarChart3, label: 'Stats' },
   { to: '/data-viewer', icon: Database, label: 'Data Viewer' },
   { to: '/settings', icon: Settings, label: 'Settings' },
 ]
 
-export function Sidebar() {
+interface SidebarProps {
+  onNavigate?: () => void
+}
+
+export function Sidebar({ onNavigate }: SidebarProps = {}) {
   return (
     <aside className="fixed left-0 top-0 z-40 h-screen w-60 bg-bg-shell border-r border-neutral-700">
       {/* Logo */}
@@ -34,6 +40,7 @@ export function Sidebar() {
           <NavLink
             key={item.to}
             to={item.to}
+            onClick={onNavigate}
             className={({ isActive }) =>
               cn(
                 'flex items-center gap-3 px-4 py-3 rounded-lg text-base font-medium transition-all duration-[var(--animate-micro)]',

@@ -44,3 +44,11 @@ export { DefensiveButton, type DefensiveButtonProps } from './DefensiveButton'
 export { NeutralButton, type NeutralButtonProps } from './NeutralButton'
 export { AggressiveButton, type AggressiveButtonProps } from './AggressiveButton'
 
+// Shot quality buttons
+export { AverageQualityButton, type AverageQualityButtonProps } from './AverageQualityButton'
+export { HighQualityButton, type HighQualityButtonProps } from './HighQualityButton'
+
+// Error type buttons
+export { ForcedErrorButton, type ForcedErrorButtonProps } from './ForcedErrorButton'
+export { UnforcedErrorButton, type UnforcedErrorButtonProps } from './UnforcedErrorButton'
+
