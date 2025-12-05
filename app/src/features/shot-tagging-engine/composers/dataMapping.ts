@@ -11,7 +11,7 @@ import type {
   ShotIntent,
   ShotResult,
 } from '@/data'
-import type { Phase1Rally, Phase1Shot } from '@/features/tagging-ui-prototype-v2/composers/Phase1TimestampComposer'
+import type { Phase1Rally, Phase1Shot } from '@/features/shot-tagging-engine/composers/Phase1TimestampComposer'
 import { generateId } from '@/helpers/generateId'
 
 // =============================================================================

@@ -27,8 +27,8 @@ These files still import from `@/database/` or `@/stores/` and need updating:
 - `app/src/features/data-viewer/sections/MatchMetadataSection.tsx`
 
 ### Tagging UI Prototype V2
-- `app/src/features/tagging-ui-prototype-v2/composers/Phase1TimestampComposer.tsx`
-- `app/src/features/tagging-ui-prototype-v2/composers/Phase2DetailComposer.tsx`
+- `app/src/features/shot-tagging-engine/composers/Phase1TimestampComposer.tsx`
+- `app/src/features/shot-tagging-engine/composers/Phase2DetailComposer.tsx`
 
 ## Migration Pattern
 

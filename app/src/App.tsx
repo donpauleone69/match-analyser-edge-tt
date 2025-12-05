@@ -8,9 +8,7 @@ import MatchesPage from './pages/Matches'
 import TournamentsPage from './pages/Tournaments'
 import PlayersPage from './pages/Players'
 import MatchCreatePage from './pages/MatchCreate'
-import { MatchAnalysis } from './pages/MatchAnalysis'
-import { DataViewer } from './pages/DataViewer'
-import { TaggingUIPrototypeV2 } from './pages/TaggingUIPrototypeV2'
+import { ShotTaggingEngine } from './pages/ShotTaggingEngine'
 
 function App() {
   // Initialize IndexedDB database
@@ -33,16 +31,12 @@ function App() {
           <Route path="/matches" element={<MatchesPage />} />
           <Route path="/matches/create" element={<MatchCreatePage />} />
           <Route path="/matches/:id" element={<Dashboard />} /> {/* TODO: Match detail */}
-          <Route path="/data-viewer" element={<DataViewer />} />
           <Route path="/stats" element={<Dashboard />} /> {/* TODO: Stats */}
           <Route path="/settings" element={<Dashboard />} /> {/* TODO: Settings */}
         </Route>
         
-        {/* Match tagging route - official tagging interface (formerly V2 prototype) */}
-        <Route path="/matches/:matchId/tag" element={<TaggingUIPrototypeV2 />} />
-        
-        {/* Match Analysis - view statistics and validate data */}
-        <Route path="/matches/analysis" element={<MatchAnalysis />} />
+        {/* Shot tagging engine - full-screen tagging interface */}
+        <Route path="/matches/:matchId/tag" element={<ShotTaggingEngine />} />
       </Routes>
     </BrowserRouter>
   )

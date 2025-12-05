@@ -9,11 +9,10 @@
  * - Win does NOT mark as error
  */
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { cn } from '@/helpers/utils'
 import { Phase1ControlsBlock, type RallyState, type EndCondition } from '../blocks'
-import { useTaggingStore } from '@/stores/taggingStore' // Legacy store - separate from new data layer
-import { VideoPlayer, type VideoPlayerHandle } from '@/ui-mine/VideoPlayer'
+import { VideoPlayer, type VideoPlayerHandle, useVideoPlaybackStore } from '@/ui-mine/VideoPlayer'
 
 export interface Phase1TimestampComposerProps {
   onCompletePhase1?: (rallies: Phase1Rally[]) => void
@@ -38,9 +37,19 @@ export interface Phase1Rally {
 }
 
 export function Phase1TimestampComposer({ onCompletePhase1, className }: Phase1TimestampComposerProps) {
-  const currentTime = useTaggingStore(state => state.currentTime)
-  const videoUrl = useTaggingStore(state => state.videoUrl)
+  const currentTime = useVideoPlaybackStore(state => state.currentTime)
+  const videoUrl = useVideoPlaybackStore(state => state.videoUrl)
+  const setPlaybackSpeed = useVideoPlaybackStore(state => state.setPlaybackSpeed)
   const videoPlayerRef = useRef<VideoPlayerHandle>(null)
+  
+  // FF mode toggle (fast forward during quiet time vs normal tagging speed)
+  const [isFFMode, setIsFFMode] = useState(false)
+  
+  // Update playback speed based on FF mode
+  useEffect(() => {
+    const speed = isFFMode ? 2.0 : 0.5
+    setPlaybackSpeed(speed)
+  }, [isFFMode, setPlaybackSpeed])
   
   // Rally state
   const [rallyState, setRallyState] = useState<RallyState>('before-serve')
@@ -218,6 +227,17 @@ export function Phase1TimestampComposer({ onCompletePhase1, className }: Phase1T
           <div className="flex items-center gap-4">
             <span className="text-neutral-500">Rally {completedRallies.length + 1}</span>
             <span className="text-neutral-400">{currentShots.length} shot{currentShots.length !== 1 ? 's' : ''}</span>
+            <button
+              onClick={() => setIsFFMode(!isFFMode)}
+              className={cn(
+                'px-3 py-1 rounded text-xs font-medium transition-colors',
+                isFFMode 
+                  ? 'bg-warning text-neutral-900' 
+                  : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
+              )}
+            >
+              {isFFMode ? '⏩ FF 2x' : '🎯 Tag 0.5x'}
+            </button>
           </div>
           <div className="flex items-center gap-4">
             <span className="text-neutral-500">Total: {completedRallies.length} rallies</span>

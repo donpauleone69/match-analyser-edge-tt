@@ -1,2 +1,0 @@
-export { DataViewerComposer } from './DataViewerComposer'
-

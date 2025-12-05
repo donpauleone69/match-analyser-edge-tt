@@ -31,7 +31,7 @@ export { SpeedControls, TAGGING_SPEEDS, FF_SPEEDS, formatSpeed, type SpeedContro
 export { VideoPlayer } from './VideoPlayer'
 export type { VideoPlayerHandle, ConstrainedPlayback } from './VideoPlayer'
 
-// Table Tennis Buttons (for tagging-ui-prototype-v2)
+// Table Tennis Buttons (for shot-tagging-engine)
 export * from './TableTennisButtons'
 
 // Form components

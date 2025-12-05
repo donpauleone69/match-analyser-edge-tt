@@ -185,6 +185,7 @@
   },
   "active": "153b47c532f3ef40",
   "lastOpenFiles": [
+    "app/src/ui-mine/VideoPlayer/videoPlaybackStore.ts",
     "app/src/data/entities/matchVideos/matchVideo.db.ts",
     "app/src/features/tagging-ui-prototype-v2/composers/dataMapping.ts",
     "app/src/features/tagging-ui-prototype-v2/composers/runInference.ts",
@@ -195,7 +196,6 @@
     "app/src/features/tagging-ui-prototype-v2/legacy-components/index.ts",
     "app/src/features/tagging-ui-prototype-v2/legacy-components/Timeline.tsx",
     "app/src/features/tagging-ui-prototype-v2/legacy-components",
-    "app/src/ui-mine/VideoPlayer/index.ts",
     "docs-match-analyser-edge-tt/specs/DatabaseSchema_PrototypeV2.md",
     "docs-match-analyser-edge-tt/specs/MVP_IMPLEMENTATION_COMPLETE.md",
     "docs-match-analyser-edge-tt/specs/MVP_Implementation_Status.md",

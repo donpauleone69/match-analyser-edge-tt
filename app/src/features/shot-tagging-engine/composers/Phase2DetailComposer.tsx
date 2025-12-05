@@ -8,7 +8,7 @@
  * Error sequence: Stroke → Intent → Error Type
  */
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { cn } from '@/helpers/utils'
 import type { Phase1Shot, Phase1Rally } from './Phase1TimestampComposer'
 import { ButtonGrid, ShotQualityToggleBlock, type ShotQuality } from '../blocks'
@@ -45,9 +45,7 @@ import {
   NeutralButton,
   AggressiveButton,
 } from '@/ui-mine'
-import { VideoPlayer, type VideoPlayerHandle } from '@/ui-mine/VideoPlayer'
-import { useTaggingStore } from '@/stores/taggingStore' // Legacy store - separate from new data layer
-// Removed unused import
+import { VideoPlayer, type VideoPlayerHandle, useVideoPlaybackStore } from '@/ui-mine/VideoPlayer'
 
 // Question step types
 type ServeStep = 'direction' | 'length' | 'spin'
@@ -84,8 +82,17 @@ export interface DetailedShot extends Phase1Shot {
 }
 
 export function Phase2DetailComposer({ phase1Rallies, onComplete, className }: Phase2DetailComposerProps) {
-  const videoUrl = useTaggingStore(state => state.videoUrl)
+  const videoUrl = useVideoPlaybackStore(state => state.videoUrl)
+  const setPlaybackSpeed = useVideoPlaybackStore(state => state.setPlaybackSpeed)
   const videoPlayerRef = useRef<VideoPlayerHandle>(null)
+  
+  // Video preview settings
+  const [previewBuffer] = useState(0.3) // 300ms before/after shot
+  
+  // Set playback speed to 0.5x for shot review
+  useEffect(() => {
+    setPlaybackSpeed(0.5)
+  }, [setPlaybackSpeed])
   
   // Build flat list of all shots from all rallies
   const [allShots, setAllShots] = useState<DetailedShot[]>(() => {
@@ -112,6 +119,17 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className }: P
   const [currentShotQuality, setCurrentShotQuality] = useState<ShotQuality>('average')  // Track shot quality for current shot
   
   const currentShot = allShots[currentShotIndex]
+  if (!currentShot) {
+    return <div className="p-8 text-center text-neutral-500">No shots to tag</div>
+  }
+  
+  // Calculate constrained playback range for current shot (loop preview)
+  const constrainedPlayback = {
+    enabled: true,
+    startTime: Math.max(0, currentShot.timestamp - previewBuffer),
+    endTime: currentShot.timestamp + previewBuffer,
+    loopOnEnd: true,
+  }
   
   // Calculate which player is hitting the current shot
   const currentShotPlayer = currentShot 
@@ -173,7 +191,7 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className }: P
     setCurrentStep(nextStep)
   }
   
-  if (currentStep === 'complete' || !currentShot) {
+  if (currentStep === 'complete') {
     return (
       <div className={cn('h-dvh flex items-center justify-center bg-bg-surface', className)}>
         <div className="text-center space-y-4">
@@ -295,6 +313,7 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className }: P
           videoSrc={videoUrl || undefined}
           compact={true}
           showTimeOverlay={true}
+          constrainedPlayback={constrainedPlayback}
         />
       </div>
       

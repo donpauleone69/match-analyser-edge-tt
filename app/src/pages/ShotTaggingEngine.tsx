@@ -5,8 +5,8 @@
  * Route: /tagging-ui-prototype/v2
  */
 
-import { TaggingUIPrototypeComposer } from '@/features/tagging-ui-prototype-v2'
+import { TaggingUIPrototypeComposer } from '@/features/shot-tagging-engine'
 
-export function TaggingUIPrototypeV2() {
+export function ShotTaggingEngine() {
   return <TaggingUIPrototypeComposer />
 }

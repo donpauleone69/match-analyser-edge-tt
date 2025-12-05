@@ -1,6 +1,6 @@
 import { useRef, useEffect, useCallback, useState, forwardRef, useImperativeHandle } from 'react'
 import { Play, Pause, SkipBack, SkipForward, Upload, Repeat } from 'lucide-react'
-import { useTaggingStore } from '@/stores/taggingStore'
+import { useVideoPlaybackStore } from './videoPlaybackStore'
 import { cn, formatTime } from '@/helpers/utils'
 
 export interface ConstrainedPlayback {
@@ -52,7 +52,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
     setDuration,
     setIsPlaying,
     setPlaybackSpeed,
-  } = useTaggingStore()
+  } = useVideoPlaybackStore()
 
   // Handle file selection
   const handleFileSelect = (file: File) => {
