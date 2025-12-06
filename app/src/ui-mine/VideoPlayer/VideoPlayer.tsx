@@ -1,5 +1,5 @@
 import { useRef, useEffect, useCallback, useState, forwardRef, useImperativeHandle } from 'react'
-import { Play, Pause, SkipBack, SkipForward, Upload, Repeat } from 'lucide-react'
+import { Play, Pause, SkipBack, SkipForward, Upload, Repeat, X, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useVideoPlaybackStore } from './videoPlaybackStore'
 import { cn, formatTime } from '@/helpers/utils'
 
@@ -18,6 +18,20 @@ export interface VideoPlayerHandle {
   getCurrentTime: () => number
 }
 
+export interface TaggingModeControls {
+  enabled: boolean
+  currentSpeedMode: 'normal' | 'tag' | 'ff'
+  speedPresets: { tag: number; ff: number }
+  canNavigateBack: boolean
+  canNavigateForward: boolean
+  canDelete: boolean
+  onShotBack: () => void
+  onShotForward: () => void
+  onDelete: () => void
+  onFrameStepBack: () => void
+  onFrameStepForward: () => void
+}
+
 interface VideoPlayerProps {
   videoSrc?: string
   onVideoSelect?: (url: string) => void
@@ -25,6 +39,7 @@ interface VideoPlayerProps {
   onConstrainedEnd?: () => void
   showTimeOverlay?: boolean
   compact?: boolean
+  taggingMode?: TaggingModeControls
 }
 
 export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
@@ -34,6 +49,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
   onConstrainedEnd,
   showTimeOverlay = false,
   compact = false,
+  taggingMode,
 }, ref) => {
   const videoRef = useRef<HTMLVideoElement>(null)
   const [localVideoUrl, setLocalVideoUrl] = useState<string | null>(null)
@@ -55,8 +71,27 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
   } = useVideoPlaybackStore()
 
   // Handle file selection
-  const handleFileSelect = (file: File) => {
+  const handleFileSelect = async (file: File) => {
     setIsProcessingFile(true)
+    
+    // Save to IndexedDB for persistence (import saveVideoFile dynamically to avoid issues)
+    try {
+      const { saveVideoFile } = await import('@/helpers/videoStorage')
+      // Use a session ID from URL params if available
+      const urlParams = new URLSearchParams(window.location.search)
+      const matchId = window.location.pathname.split('/')[2] // Extract from /matches/:matchId/tag
+      const setNumber = urlParams.get('set')
+      
+      if (matchId && setNumber) {
+        const sessionId = `${matchId}-${setNumber}`
+        await saveVideoFile(sessionId, file)
+        console.log('Video saved to IndexedDB')
+      }
+    } catch (error) {
+      console.error('Failed to save video to IndexedDB:', error)
+      // Don't block - video will still work from blob URL
+    }
+    
     // Create blob URL immediately - video element will trigger onLoadedMetadata when ready
     const url = URL.createObjectURL(file)
     setLocalVideoUrl(url)
@@ -364,73 +399,153 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
       {/* Controls Overlay */}
       {effectiveVideoSrc && (
         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
-          <div className="flex items-center justify-between">
-            {/* Left: Frame step buttons */}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => stepFrame('backward')}
-                className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
-                title="Step backward"
-              >
-                <SkipBack className="w-5 h-5 text-white" />
-              </button>
-              <button
-                onClick={() => stepFrame('forward')}
-                className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
-                title="Step forward"
-              >
-                <SkipForward className="w-5 h-5 text-white" />
-              </button>
-              
-              {/* Loop toggle for constrained mode */}
-              {constrainedPlayback?.enabled && (
+          {taggingMode?.enabled ? (
+            /* Tagging Mode Controls */
+            <div className="flex items-center justify-between gap-2">
+              {/* Left: Frame/Shot Navigation */}
+              <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setLoopEnabled(!loopEnabled)}
-                  className={cn(
-                    "p-2 rounded-lg transition-colors",
-                    loopEnabled ? "bg-brand-primary text-white" : "bg-white/10 hover:bg-white/20 text-white"
-                  )}
-                  title="Loop shot"
+                  onClick={taggingMode.onFrameStepBack}
+                  className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors touch-manipulation"
+                  style={{ minWidth: '52px', minHeight: '52px' }}
+                  title="Frame back"
                 >
-                  <Repeat className="w-5 h-5" />
+                  <SkipBack className="w-5 h-5 text-white" />
                 </button>
-              )}
-            </div>
-
-            {/* Center: Play/Pause */}
-            <button
-              onClick={togglePlay}
-              className="p-4 rounded-full bg-white/20 hover:bg-white/30 transition-colors"
-              title="Play/Pause (Space)"
-            >
-              {isPlaying ? (
-                <Pause className="w-8 h-8 text-white" />
-              ) : (
-                <Play className="w-8 h-8 text-white" />
-              )}
-            </button>
-
-            {/* Right: Speed selector */}
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center gap-1 bg-white/10 rounded-lg p-1">
-                {speedOptions.slice(0, 5).map((speed) => (
-                  <button
-                    key={speed}
-                    onClick={() => setPlaybackSpeed(speed)}
-                    className={cn(
-                      'px-2 py-1 rounded text-xs font-medium transition-colors min-w-[40px]',
-                      playbackSpeed === speed
-                        ? 'bg-brand-primary text-white'
-                        : 'text-white/70 hover:text-white hover:bg-white/10'
-                    )}
-                  >
-                    {speed}x
-                  </button>
-                ))}
+                <button
+                  onClick={taggingMode.onShotBack}
+                  disabled={!taggingMode.canNavigateBack}
+                  className={cn(
+                    "p-2 rounded-lg transition-colors touch-manipulation flex items-center gap-1",
+                    taggingMode.canNavigateBack 
+                      ? "bg-white/10 hover:bg-white/20" 
+                      : "bg-white/5 opacity-50 cursor-not-allowed"
+                  )}
+                  style={{ minWidth: '52px', minHeight: '52px' }}
+                  title="Shot back"
+                >
+                  <ChevronLeft className="w-5 h-5 text-white" />
+                </button>
+                <button
+                  onClick={taggingMode.onShotForward}
+                  disabled={!taggingMode.canNavigateForward}
+                  className={cn(
+                    "p-2 rounded-lg transition-colors touch-manipulation flex items-center gap-1",
+                    taggingMode.canNavigateForward 
+                      ? "bg-white/10 hover:bg-white/20" 
+                      : "bg-white/5 opacity-50 cursor-not-allowed"
+                  )}
+                  style={{ minWidth: '52px', minHeight: '52px' }}
+                  title="Shot forward"
+                >
+                  <ChevronRight className="w-5 h-5 text-white" />
+                </button>
+                <button
+                  onClick={taggingMode.onFrameStepForward}
+                  className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors touch-manipulation"
+                  style={{ minWidth: '52px', minHeight: '52px' }}
+                  title="Frame forward"
+                >
+                  <SkipForward className="w-5 h-5 text-white" />
+                </button>
               </div>
-              {!compact && (
+
+              {/* Center: Delete */}
+              <button
+                onClick={taggingMode.onDelete}
+                disabled={!taggingMode.canDelete}
+                className={cn(
+                  "p-2 rounded-lg transition-colors touch-manipulation",
+                  taggingMode.canDelete
+                    ? "bg-danger/20 hover:bg-danger/30 text-danger"
+                    : "bg-white/5 opacity-50 cursor-not-allowed text-white"
+                )}
+                style={{ minWidth: '52px', minHeight: '52px' }}
+                title="Delete last tag"
+              >
+                <X className="w-6 h-6" />
+              </button>
+
+              {/* Right: Play/Pause */}
+              <button
+                onClick={togglePlay}
+                className="p-3 rounded-full bg-white/20 hover:bg-white/30 transition-colors touch-manipulation"
+                style={{ minWidth: '60px', minHeight: '60px' }}
+                title="Play/Pause (Space)"
+              >
+                {isPlaying ? (
+                  <Pause className="w-8 h-8 text-white" />
+                ) : (
+                  <Play className="w-8 h-8 text-white" />
+                )}
+              </button>
+
+              {/* Far Right: Speed Indicator */}
+              <div className="flex flex-col gap-1 min-w-[80px]">
+                <div className={cn(
+                  'px-3 py-1.5 rounded text-xs font-medium text-center',
+                  taggingMode.currentSpeedMode === 'tag' && 'bg-success/30 text-success',
+                  taggingMode.currentSpeedMode === 'ff' && 'bg-warning/30 text-warning',
+                  taggingMode.currentSpeedMode === 'normal' && 'bg-white/20 text-white'
+                )}>
+                  {taggingMode.currentSpeedMode === 'tag' && `Tag ${taggingMode.speedPresets.tag}x`}
+                  {taggingMode.currentSpeedMode === 'ff' && `FF ${taggingMode.speedPresets.ff}x`}
+                  {taggingMode.currentSpeedMode === 'normal' && 'Normal'}
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* Default Controls */
+            <div className="flex items-center justify-between">
+              {/* Left: Frame step buttons */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => stepFrame('backward')}
+                  className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
+                  title="Step backward"
+                >
+                  <SkipBack className="w-5 h-5 text-white" />
+                </button>
+                <button
+                  onClick={() => stepFrame('forward')}
+                  className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
+                  title="Step forward"
+                >
+                  <SkipForward className="w-5 h-5 text-white" />
+                </button>
+                
+                {/* Loop toggle for constrained mode */}
+                {constrainedPlayback?.enabled && (
+                  <button
+                    onClick={() => setLoopEnabled(!loopEnabled)}
+                    className={cn(
+                      "p-2 rounded-lg transition-colors",
+                      loopEnabled ? "bg-brand-primary text-white" : "bg-white/10 hover:bg-white/20 text-white"
+                    )}
+                    title="Loop shot"
+                  >
+                    <Repeat className="w-5 h-5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Center: Play/Pause */}
+              <button
+                onClick={togglePlay}
+                className="p-4 rounded-full bg-white/20 hover:bg-white/30 transition-colors"
+                title="Play/Pause (Space)"
+              >
+                {isPlaying ? (
+                  <Pause className="w-8 h-8 text-white" />
+                ) : (
+                  <Play className="w-8 h-8 text-white" />
+                )}
+              </button>
+
+              {/* Right: Speed selector */}
+              <div className="flex flex-col gap-1">
                 <div className="flex items-center gap-1 bg-white/10 rounded-lg p-1">
-                  {speedOptions.slice(5).map((speed) => (
+                  {speedOptions.slice(0, 5).map((speed) => (
                     <button
                       key={speed}
                       onClick={() => setPlaybackSpeed(speed)}
@@ -445,9 +560,27 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
                     </button>
                   ))}
                 </div>
-              )}
+                {!compact && (
+                  <div className="flex items-center gap-1 bg-white/10 rounded-lg p-1">
+                    {speedOptions.slice(5).map((speed) => (
+                      <button
+                        key={speed}
+                        onClick={() => setPlaybackSpeed(speed)}
+                        className={cn(
+                          'px-2 py-1 rounded text-xs font-medium transition-colors min-w-[40px]',
+                          playbackSpeed === speed
+                            ? 'bg-brand-primary text-white'
+                            : 'text-white/70 hover:text-white hover:bg-white/10'
+                        )}
+                      >
+                        {speed}x
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Progress bar with constrained bounds visualization */}
           <div className="mt-3">

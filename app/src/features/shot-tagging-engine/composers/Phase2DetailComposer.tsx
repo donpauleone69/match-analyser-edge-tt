@@ -13,6 +13,7 @@ import { cn } from '@/helpers/utils'
 import type { Phase1Shot, Phase1Rally } from './Phase1TimestampComposer'
 import { ButtonGrid, ShotQualityToggleBlock, type ShotQuality } from '../blocks'
 import { calculateShotPlayer, type PlayerId } from '@/rules'
+import { shotDb, setDb } from '@/data'
 import {
   Button,
   // Serve direction buttons
@@ -58,6 +59,10 @@ export interface Phase2DetailComposerProps {
   phase1Rallies: Phase1Rally[]
   onComplete?: (detailedShots: DetailedShot[]) => void
   className?: string
+  setId?: string | null  // For DB saving
+  player1Id?: string | null
+  player2Id?: string | null
+  resumeFromShotIndex?: number  // Resume from specific shot
 }
 
 type Direction = 
@@ -71,6 +76,7 @@ export interface DetailedShot extends Phase1Shot {
   isLastShot: boolean
   isError: boolean
   serverId: PlayerId  // who served this rally
+  winnerId: PlayerId  // who won this rally
   // Detailed data
   direction?: Direction
   length?: 'short' | 'halflong' | 'deep'
@@ -81,8 +87,9 @@ export interface DetailedShot extends Phase1Shot {
   shotQuality?: 'average' | 'high'
 }
 
-export function Phase2DetailComposer({ phase1Rallies, onComplete, className }: Phase2DetailComposerProps) {
+export function Phase2DetailComposer({ phase1Rallies, onComplete, className, setId, player1Id, player2Id, resumeFromShotIndex = 0 }: Phase2DetailComposerProps) {
   const videoUrl = useVideoPlaybackStore(state => state.videoUrl)
+  const setVideoUrl = useVideoPlaybackStore(state => state.setVideoUrl)
   const setPlaybackSpeed = useVideoPlaybackStore(state => state.setPlaybackSpeed)
   const videoPlayerRef = useRef<VideoPlayerHandle>(null)
   
@@ -108,13 +115,141 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className }: P
           isLastShot,
           isError,
           serverId: rally.serverId,
+          winnerId: rally.winnerId,
         })
       })
     })
     return shots
   })
   
-  const [currentShotIndex, setCurrentShotIndex] = useState(0)
+  const [currentShotIndex, setCurrentShotIndex] = useState(resumeFromShotIndex)
+  const [isSaving, setIsSaving] = useState(false)
+  const [lastSaveTime, setLastSaveTime] = useState<Date | null>(null)
+  
+  // Manual save all Phase 2 progress
+  const handleManualSave = async () => {
+    if (!setId || !player1Id || !player2Id) {
+      alert('Cannot save - missing database context')
+      return
+    }
+    
+    setIsSaving(true)
+    console.log(`[Manual Save] Saving Phase 2 progress for ${currentShotIndex} shots...`)
+    
+    try {
+      const dbShots = await shotDb.getBySetId(setId)
+      let savedCount = 0
+      
+      // Save all shots up to current index
+      for (let i = 0; i < currentShotIndex; i++) {
+        const shot = allShots[i]
+        const matchingShot = dbShots.find(s => s.shot_index === shot.shotIndex)
+        
+        if (matchingShot) {
+          const updates: any = {}
+          
+          if (shot.direction) {
+            const [start, end] = shot.direction.split('_')
+            updates.shot_origin = start
+            updates.shot_destination = end
+          }
+          if (shot.length) {
+            updates.serve_length = shot.length === 'short' ? 'short' : shot.length === 'halflong' ? 'half_long' : 'long'
+          }
+          if (shot.spin) {
+            updates.serve_spin_family = shot.spin === 'underspin' ? 'under' : shot.spin === 'topspin' ? 'top' : 'no_spin'
+          }
+          if (shot.stroke) updates.wing = shot.stroke === 'backhand' ? 'BH' : 'FH'
+          if (shot.intent) updates.intent = shot.intent
+          if (shot.shotQuality) updates.shot_result = shot.shotQuality === 'high' ? 'good' : 'average'
+          if (shot.errorType) {
+            updates.rally_end_role = shot.errorType === 'forced' ? 'forced_error' : 'unforced_error'
+          }
+          
+          if (Object.keys(updates).length > 0) {
+            await shotDb.update(matchingShot.id, updates)
+            savedCount++
+          }
+        }
+      }
+      
+      // Update set progress
+      await setDb.update(setId, {
+        tagging_phase: 'phase2_in_progress',
+        phase2_last_shot_index: currentShotIndex,
+        phase2_total_shots: allShots.length,
+      })
+      
+      setLastSaveTime(new Date())
+      console.log(`[Manual Save] ✓ Saved ${savedCount} shot details successfully`)
+      alert(`Successfully saved progress for ${savedCount} shots!`)
+    } catch (error) {
+      console.error('[Manual Save] ✗ Failed:', error)
+      alert('Failed to save progress. Check console for details.')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+  
+  // Load existing Phase 2 data from DB on mount (if resuming)
+  useEffect(() => {
+    const loadExistingPhase2Data = async () => {
+      if (!setId || !player1Id || !player2Id) {
+        console.log('[Phase2] No DB context - skipping Phase 2 data load')
+        return
+      }
+      
+      if (resumeFromShotIndex === 0) {
+        console.log('[Phase2] Starting fresh Phase 2 (no resume)')
+        return
+      }
+      
+      console.log(`[Phase2] Loading existing data, resuming from shot ${resumeFromShotIndex}/${allShots.length}`)
+      
+      try {
+        const dbShots = await shotDb.getBySetId(setId)
+        console.log(`[Phase2] Found ${dbShots.length} shots in database`)
+        
+        let updatedCount = 0
+        
+        // Update allShots with any existing Phase 2 data
+        setAllShots(prevShots => 
+          prevShots.map(shot => {
+            const dbShot = dbShots.find(s => s.shot_index === shot.shotIndex)
+            if (!dbShot) return shot
+            
+            updatedCount++
+            
+            // Merge DB data into shot
+            return {
+              ...shot,
+              direction: dbShot.shot_origin && dbShot.shot_destination
+                ? `${dbShot.shot_origin}_${dbShot.shot_destination}` as any
+                : shot.direction,
+              length: dbShot.serve_length === 'short' ? 'short' : 
+                      dbShot.serve_length === 'half_long' ? 'halflong' : 
+                      dbShot.serve_length === 'long' ? 'deep' : shot.length,
+              spin: dbShot.serve_spin_family === 'under' ? 'underspin' : 
+                    dbShot.serve_spin_family === 'top' ? 'topspin' : 
+                    dbShot.serve_spin_family === 'no_spin' ? 'nospin' : shot.spin,
+              stroke: dbShot.wing === 'BH' ? 'backhand' : 
+                      dbShot.wing === 'FH' ? 'forehand' : shot.stroke,
+              intent: dbShot.intent || shot.intent,
+              shotQuality: dbShot.shot_result === 'good' ? 'high' : 'average',
+              errorType: dbShot.rally_end_role === 'forced_error' ? 'forced' : 
+                        dbShot.rally_end_role === 'unforced_error' ? 'unforced' : shot.errorType,
+            }
+          })
+        )
+        
+        console.log(`[Phase2] ✓ Merged Phase 2 data for ${updatedCount} shots`)
+      } catch (error) {
+        console.error('[Phase2] ✗ Failed to load existing Phase 2 data:', error)
+      }
+    }
+    
+    loadExistingPhase2Data()
+  }, [setId, player1Id, player2Id, resumeFromShotIndex])
   const [currentStep, setCurrentStep] = useState<QuestionStep>('direction')  // Start with serve direction
   const [currentShotQuality, setCurrentShotQuality] = useState<ShotQuality>('average')  // Track shot quality for current shot
   
@@ -163,6 +298,12 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className }: P
   }
   
   const advanceToNextShot = (): QuestionStep => {
+    // Save current shot detail to DB before advancing
+    const currentShot = allShots[currentShotIndex]
+    if (setId && player1Id && player2Id) {
+      saveCurrentShotToDatabase(currentShot).catch(console.error)
+    }
+    
     if (currentShotIndex < allShots.length - 1) {
       setCurrentShotIndex(prev => prev + 1)
       // Reset shot quality for next shot
@@ -171,9 +312,76 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className }: P
       const nextShot = allShots[currentShotIndex + 1]
       return nextShot.isServe ? 'direction' : 'stroke'
     }
-    // All shots complete - pass detailed data back
+    // All shots complete - mark set as tagged and pass detailed data back
+    if (setId) {
+      setDb.update(setId, {
+        tagging_phase: 'phase2_complete',
+        is_tagged: true,
+        tagging_completed_at: new Date().toISOString(),
+        phase2_last_shot_index: currentShotIndex + 1,
+        phase2_total_shots: allShots.length,
+      }).catch(console.error)
+    }
     if (onComplete) onComplete(allShots)
     return 'complete'
+  }
+  
+  const saveCurrentShotToDatabase = async (shot: DetailedShot) => {
+    if (!setId || !player1Id || !player2Id) {
+      console.warn(`[Phase2] Cannot save shot ${currentShotIndex + 1} - missing DB context`)
+      return
+    }
+    
+    try {
+      console.log(`[Phase2] Saving shot ${currentShotIndex + 1}/${allShots.length} (index ${shot.shotIndex})`)
+      
+      // Find existing shot in DB by matching shot index - timestamp from Phase 1 may have slight differences
+      const rallyShots = await shotDb.getBySetId(setId)
+      const matchingShot = rallyShots.find(s => 
+        s.shot_index === shot.shotIndex
+      )
+      
+      if (!matchingShot) {
+        console.error(`[Phase2] ✗ No matching shot found in DB for shot index ${shot.shotIndex}`)
+        return
+      }
+      
+      // Update existing shot with Phase 2 details - simplified approach
+      // We'll just update the fields that Phase 2 adds
+      const updates: any = {}
+      
+      if (shot.direction) {
+        const [start, end] = shot.direction.split('_')
+        updates.shot_origin = start
+        updates.shot_destination = end
+      }
+      if (shot.length) {
+        updates.serve_length = shot.length === 'short' ? 'short' : shot.length === 'halflong' ? 'half_long' : 'long'
+      }
+      if (shot.spin) {
+        updates.serve_spin_family = shot.spin === 'underspin' ? 'under' : shot.spin === 'topspin' ? 'top' : 'no_spin'
+      }
+      if (shot.stroke) updates.wing = shot.stroke === 'backhand' ? 'BH' : 'FH'
+      if (shot.intent) updates.intent = shot.intent
+      if (shot.shotQuality) updates.shot_result = shot.shotQuality === 'high' ? 'good' : 'average'
+      if (shot.errorType) {
+        updates.rally_end_role = shot.errorType === 'forced' ? 'forced_error' : 'unforced_error'
+      }
+      
+      console.log(`[Phase2] Updating shot ${matchingShot.id} with:`, Object.keys(updates))
+      await shotDb.update(matchingShot.id, updates)
+      
+      // Update set progress
+      await setDb.update(setId, {
+        tagging_phase: 'phase2_in_progress',
+        phase2_last_shot_index: currentShotIndex + 1,
+        phase2_total_shots: allShots.length,
+      })
+      
+      console.log(`[Phase2] ✓ Saved shot ${currentShotIndex + 1}/${allShots.length} to database`)
+    } catch (error) {
+      console.error(`[Phase2] ✗ Failed to save shot ${currentShotIndex + 1}:`, error)
+    }
   }
   
   // Handle answer selection
@@ -213,6 +421,7 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className }: P
   
   // Progress info
   const progress = `${currentShotIndex + 1} of ${allShots.length}`
+  const progressPercent = Math.round((currentShotIndex / allShots.length) * 100)
   const shotLabel = currentShot.isServe ? 'Serve' : `Shot ${currentShot.shotIndex + 1}`
   
   // Build current question label for status bar
@@ -311,6 +520,7 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className }: P
         <VideoPlayer
           ref={videoPlayerRef}
           videoSrc={videoUrl || undefined}
+          onVideoSelect={setVideoUrl}
           compact={true}
           showTimeOverlay={true}
           constrainedPlayback={constrainedPlayback}

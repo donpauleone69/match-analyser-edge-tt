@@ -85,3 +85,21 @@ export async function deleteByRallyId(rallyId: string): Promise<void> {
   await db.shots.where('rally_id').equals(rallyId).delete()
 }
 
+/**
+ * Get all shots for a set (across all rallies), sorted by shot index
+ */
+export async function getBySetId(setId: string): Promise<DBShot[]> {
+  // First get all rallies for the set
+  const rallies = await db.rallies.where('set_id').equals(setId).toArray()
+  const rallyIds = rallies.map(r => r.id)
+  
+  // Then get all shots for those rallies
+  const allShots: DBShot[] = []
+  for (const rallyId of rallyIds) {
+    const shots = await db.shots.where('rally_id').equals(rallyId).toArray()
+    allShots.push(...shots)
+  }
+  
+  return allShots.sort((a, b) => a.shot_index - b.shot_index)
+}
+

@@ -5,4 +5,7 @@ export { default as TournamentsPage } from './Tournaments'
 export { default as PlayersPage } from './Players'
 export { default as MatchCreatePage } from './MatchCreate'
 export { ShotTaggingEngine } from './ShotTaggingEngine'
+export { Settings } from './Settings'
+export { DataViewer } from './DataViewer'
+export { StatsPage } from './Stats'
 

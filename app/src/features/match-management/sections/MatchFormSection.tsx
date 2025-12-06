@@ -5,7 +5,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/ui-mine/Button'
-import { Card } from '@/ui-mine/Card'
 import type { DBPlayer, DBTournament, MatchRound, BestOf } from '@/data'
 import { useMatchStore, setDb } from '@/data'
 const { create: createSet } = setDb
@@ -121,158 +120,138 @@ export function MatchFormSection({ players, tournaments }: MatchFormSectionProps
   }
   
   return (
-    <Card className="p-6">
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Players Section */}
-        <div>
-          <h3 className="text-lg font-semibold text-neutral-50 mb-4">Players</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-2">
-                Player 1 *
-              </label>
-              <select
-                required
-                value={formData.player1_id}
-                onChange={(e) => setFormData({ ...formData, player1_id: e.target.value })}
-                className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-md text-neutral-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Select Player 1</option>
-                {players.map(player => (
-                  <option key={player.id} value={player.id}>
-                    {player.first_name} {player.last_name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-2">
-                Player 2 *
-              </label>
-              <select
-                required
-                value={formData.player2_id}
-                onChange={(e) => setFormData({ ...formData, player2_id: e.target.value })}
-                className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-md text-neutral-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Select Player 2</option>
-                {players.map(player => (
-                  <option key={player.id} value={player.id} disabled={player.id === formData.player1_id}>
-                    {player.first_name} {player.last_name}
-                  </option>
-                ))}
-              </select>
-            </div>
+    <div className="bg-bg-card border border-neutral-700 rounded-lg p-4 md:p-6">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Players */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-neutral-300 mb-2">
+              Player 1 *
+            </label>
+            <select
+              required
+              value={formData.player1_id}
+              onChange={(e) => setFormData({ ...formData, player1_id: e.target.value })}
+              className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-md text-neutral-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
+            >
+              <option value="">Select player...</option>
+              {players.map(player => (
+                <option key={player.id} value={player.id}>
+                  {player.first_name} {player.last_name}
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-neutral-300 mb-2">
+              Player 2 *
+            </label>
+            <select
+              required
+              value={formData.player2_id}
+              onChange={(e) => setFormData({ ...formData, player2_id: e.target.value })}
+              className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-md text-neutral-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
+            >
+              <option value="">Select player...</option>
+              {players.map(player => (
+                <option key={player.id} value={player.id} disabled={player.id === formData.player1_id}>
+                  {player.first_name} {player.last_name}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
         
-        {/* Tournament Section */}
-        <div>
-          <h3 className="text-lg font-semibold text-neutral-50 mb-4">Tournament (Optional)</h3>
-          <div className="space-y-4">
+        {/* Tournament + Round */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-neutral-300 mb-2">
+              Tournament
+            </label>
             <div className="flex gap-2">
+            <select
+              value={formData.tournament_id}
+              onChange={(e) => setFormData({ ...formData, tournament_id: e.target.value })}
+              className="flex-1 px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-md text-neutral-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
+            >
+              <option value="">Friendly</option>
+              {tournaments.map(tournament => (
+                <option key={tournament.id} value={tournament.id}>
+                  {tournament.name}
+                </option>
+              ))}
+            </select>
+            </div>
+          </div>
+          
+          {formData.tournament_id && (
+            <div>
+              <label className="block text-sm font-medium text-neutral-300 mb-2">
+                Round
+              </label>
               <select
-                value={formData.tournament_id}
-                onChange={(e) => setFormData({ ...formData, tournament_id: e.target.value })}
-                className="flex-1 px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-md text-neutral-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={formData.round}
+                onChange={(e) => setFormData({ ...formData, round: e.target.value as MatchRound })}
+                className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-md text-neutral-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
               >
-                <option value="">None (Friendly Match)</option>
-                {tournaments.map(tournament => (
-                  <option key={tournament.id} value={tournament.id}>
-                    {tournament.name}
+                <option value="">Select...</option>
+                {MATCH_ROUNDS.map(round => (
+                  <option key={round.value} value={round.value}>
+                    {round.label}
                   </option>
                 ))}
               </select>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => navigate('/tournaments')}
-              >
-                + Create Tournament
-              </Button>
             </div>
-            
-            {tournaments.length === 0 && (
-              <p className="text-xs text-neutral-500">
-                No tournaments yet. <a href="/tournaments" className="text-blue-400 hover:underline">Create a tournament</a> to organize matches.
-              </p>
-            )}
-            
-            {formData.tournament_id && (
-              <div>
-                <label className="block text-sm font-medium text-neutral-300 mb-2">
-                  Round
-                </label>
-                <select
-                  value={formData.round}
-                  onChange={(e) => setFormData({ ...formData, round: e.target.value as MatchRound })}
-                  className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-md text-neutral-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Select Round</option>
-                  {MATCH_ROUNDS.map(round => (
-                    <option key={round.value} value={round.value}>
-                      {round.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-          </div>
+          )}
         </div>
         
-        {/* Match Details */}
-        <div>
-          <h3 className="text-lg font-semibold text-neutral-50 mb-4">Match Details</h3>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-2">
-                Match Date *
-              </label>
-              <input
-                type="date"
-                required
-                value={formData.match_date}
-                onChange={(e) => setFormData({ ...formData, match_date: e.target.value })}
-                className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-md text-neutral-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-3">
-                Best Of *
-              </label>
-              <div className="flex gap-4">
-                {BEST_OF_OPTIONS.map(option => (
-                  <label
-                    key={option.value}
-                    className={`flex-1 cursor-pointer rounded-lg border-2 p-4 text-center transition-all ${
-                      formData.best_of === option.value
-                        ? 'border-blue-500 bg-blue-500/10'
-                        : 'border-neutral-700 hover:border-neutral-600'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="best_of"
-                      value={option.value}
-                      checked={formData.best_of === option.value}
-                      onChange={(e) => setFormData({ ...formData, best_of: parseInt(e.target.value) as BestOf })}
-                      className="sr-only"
-                    />
-                    <span className="text-lg font-semibold text-neutral-50">{option.label}</span>
-                  </label>
-                ))}
-              </div>
-              <p className="text-xs text-neutral-500 mt-2">
-                {formData.best_of} empty sets will be created. Enter scores or tag video later.
-              </p>
+        {/* Date + Best Of */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-neutral-300 mb-2">
+              Date *
+            </label>
+            <input
+              type="date"
+              required
+              value={formData.match_date}
+              onChange={(e) => setFormData({ ...formData, match_date: e.target.value })}
+              className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-md text-neutral-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-neutral-300 mb-2">
+              Best Of *
+            </label>
+            <div className="flex gap-2">
+              {BEST_OF_OPTIONS.map(option => (
+                <label
+                  key={option.value}
+                  className={`flex-1 cursor-pointer rounded-lg border-2 p-2 md:p-3 text-center transition-all ${
+                    formData.best_of === option.value
+                      ? 'border-blue-500 bg-blue-500/10'
+                      : 'border-neutral-700 hover:border-neutral-600'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="best_of"
+                    value={option.value}
+                    checked={formData.best_of === option.value}
+                    onChange={(e) => setFormData({ ...formData, best_of: parseInt(e.target.value) as BestOf })}
+                    className="sr-only"
+                  />
+                  <span className="text-sm md:text-base font-semibold text-neutral-50">{option.value}</span>
+                </label>
+              ))}
             </div>
           </div>
         </div>
         
         {/* Submit Buttons */}
-        <div className="flex gap-3 pt-4">
+        <div className="flex gap-3 pt-2">
           <Button
             type="submit"
             disabled={isSubmitting}
@@ -290,7 +269,7 @@ export function MatchFormSection({ players, tournaments }: MatchFormSectionProps
           </Button>
         </div>
       </form>
-    </Card>
+    </div>
   )
 }
 

@@ -7,6 +7,7 @@ import { usePlayerStore } from '@/data'
 import { PlayerListSection } from '../sections/PlayerListSection'
 import { PlayerFormSection } from '../sections/PlayerFormSection'
 import type { DBPlayer } from '@/data'
+import { Users } from 'lucide-react'
 
 export function PlayerManagementComposer() {
   const { players, isLoading, load: loadPlayers } = usePlayerStore()
@@ -39,27 +40,34 @@ export function PlayerManagementComposer() {
   }
   
   return (
-    <div className="h-screen overflow-y-auto bg-bg-surface">
-      <div className="max-w-7xl mx-auto p-6 space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-neutral-50">Players</h1>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold text-neutral-50 flex items-center gap-3">
+            <Users className="h-6 w-6 md:h-8 md:w-8 text-brand-primary" />
+            {showForm ? (editingPlayer ? 'Edit Player' : 'Create Player') : 'Players'}
+          </h1>
+          <p className="text-neutral-400 mt-2 text-sm md:text-base">
+            {showForm ? 'Enter player details' : 'Manage table tennis players'}
+          </p>
         </div>
-        
-        {showForm ? (
-          <PlayerFormSection
-            player={editingPlayer}
-            onClose={handleFormClose}
-            onSuccess={handleFormSuccess}
-          />
-        ) : (
-          <PlayerListSection
-            players={players}
-            isLoading={isLoading}
-            onCreateNew={handleCreate}
-            onEdit={handleEdit}
-          />
-        )}
       </div>
+      
+      {showForm ? (
+        <PlayerFormSection
+          player={editingPlayer}
+          onClose={handleFormClose}
+          onSuccess={handleFormSuccess}
+        />
+      ) : (
+        <PlayerListSection
+          players={players}
+          isLoading={isLoading}
+          onCreateNew={handleCreate}
+          onEdit={handleEdit}
+        />
+      )}
     </div>
   )
 }

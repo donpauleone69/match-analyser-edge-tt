@@ -5,6 +5,7 @@
 import { useEffect } from 'react'
 import { usePlayerStore, useTournamentStore } from '@/data'
 import { MatchFormSection } from '../sections/MatchFormSection'
+import { Plus } from 'lucide-react'
 
 export function MatchCreationComposer() {
   const { players, load: loadPlayers } = usePlayerStore()
@@ -16,20 +17,22 @@ export function MatchCreationComposer() {
   }, [loadPlayers, loadTournaments])
   
   return (
-    <div className="h-screen overflow-y-auto bg-bg-surface">
-      <div className="max-w-4xl mx-auto p-6">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-neutral-50">Create Match</h1>
-          <p className="text-neutral-400 mt-2">
-            Enter match details and optionally tag video
-          </p>
-        </div>
-        
-        <MatchFormSection 
-          players={players}
-          tournaments={tournaments}
-        />
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl md:text-3xl font-bold text-neutral-50 flex items-center gap-3">
+          <Plus className="h-6 w-6 md:h-8 md:w-8 text-brand-primary" />
+          Create Match
+        </h1>
+        <p className="text-neutral-400 mt-2 text-sm md:text-base">
+          Set up a new match between two players
+        </p>
       </div>
+      
+      <MatchFormSection 
+        players={players}
+        tournaments={tournaments}
+      />
     </div>
   )
 }

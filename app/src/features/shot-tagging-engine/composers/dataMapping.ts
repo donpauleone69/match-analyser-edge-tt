@@ -12,6 +12,7 @@ import type {
   ShotResult,
 } from '@/data'
 import type { Phase1Rally, Phase1Shot } from '@/features/shot-tagging-engine/composers/Phase1TimestampComposer'
+import type { DetailedShot } from '@/features/shot-tagging-engine/composers/Phase2DetailComposer'
 import { generateId } from '@/helpers/generateId'
 
 // =============================================================================
@@ -259,4 +260,118 @@ export function markRallyEndShots(shots: DBShot[], rallies: DBRally[]): DBShot[]
     }
   })
 }
+
+// =============================================================================
+// REVERSE MAPPING (Database → UI)
+// =============================================================================
+
+/**
+ * Convert DBRally back to Phase1Rally for resume functionality
+ */
+export function convertDBRallyToPhase1Rally(
+  dbRally: DBRally,
+  dbShots: DBShot[],
+  player1Id: string,
+  player2Id: string
+): Phase1Rally {
+  // Get shots for this rally
+  const rallyShots = dbShots
+    .filter(s => s.rally_id === dbRally.id)
+    .sort((a, b) => a.shot_index - b.shot_index) // Sort by shot index
+  
+  // Convert shots
+  const shots: Phase1Shot[] = rallyShots.map(dbShot => ({
+    id: dbShot.id,
+    timestamp: dbShot.time,
+    shotIndex: dbShot.shot_index,
+    isServe: dbShot.shot_index === 1,
+  }))
+  
+  // Map end condition from point_end_type
+  const endCondition: EndCondition = 
+    dbRally.is_scoring ? 'winner' :
+    dbRally.point_end_type === 'forcedError' || dbRally.point_end_type === 'unforcedError' ? 'long' : 'innet'
+  
+  // Determine serverId
+  const serverId: 'player1' | 'player2' = 
+    dbRally.server_id === player1Id ? 'player1' : 'player2'
+  
+  // Determine winnerId
+  const winnerId: 'player1' | 'player2' = 
+    dbRally.winner_id === player1Id ? 'player1' : 
+    dbRally.winner_id === player2Id ? 'player2' : 'player1'
+  
+  // Find ending shot timestamp - use rally end time
+  const endTimestamp = dbRally.end_of_point_time || (rallyShots.length > 0 
+    ? rallyShots[rallyShots.length - 1].time + 0.5
+    : 0)
+  
+  return {
+    id: dbRally.id,
+    shots,
+    endCondition,
+    endTimestamp,
+    isError: !dbRally.is_scoring,
+    errorPlacement: endCondition === 'innet' ? 'innet' : endCondition === 'long' ? 'long' : undefined,
+    serverId,
+    winnerId,
+  }
+}
+
+/**
+ * Convert DBShot to DetailedShot for Phase 2 resume
+ */
+export function convertDBShotToDetailedShot(
+  dbShot: DBShot,
+  rally: DBRally,
+  player1Id: string,
+  player2Id: string
+): DetailedShot {
+  const serverId: 'player1' | 'player2' = 
+    rally.server_id === player1Id ? 'player1' : 'player2'
+  
+  const winnerId: 'player1' | 'player2' = 
+    rally.winner_id === player1Id ? 'player1' :
+    rally.winner_id === player2Id ? 'player2' : 'player1'
+  
+  const endCondition = rally.is_scoring ? 'winner' :
+    rally.point_end_type === 'forcedError' || rally.point_end_type === 'unforcedError' ? 'long' : 'innet'
+  
+  // Map direction from DB format to UI format
+  const direction = dbShot.shot_origin && dbShot.shot_destination
+    ? `${dbShot.shot_origin}_${dbShot.shot_destination}` as Direction
+    : undefined
+  
+  return {
+    id: dbShot.id,
+    timestamp: dbShot.time,
+    shotIndex: dbShot.shot_index,
+    isServe: dbShot.shot_index === 1,
+    rallyId: rally.id,
+    rallyEndCondition: endCondition,
+    isLastShot: dbShot.is_rally_end || false,
+    isError: !rally.is_scoring,
+    serverId,
+    winnerId,
+    direction,
+    length: dbShot.serve_length === 'short' ? 'short' : dbShot.serve_length === 'half_long' ? 'halflong' : dbShot.serve_length === 'long' ? 'deep' : undefined,
+    spin: dbShot.serve_spin_family === 'under' ? 'underspin' : dbShot.serve_spin_family === 'no_spin' ? 'nospin' : dbShot.serve_spin_family === 'top' ? 'topspin' : undefined,
+    stroke: dbShot.wing === 'BH' ? 'backhand' : dbShot.wing === 'FH' ? 'forehand' : undefined,
+    intent: dbShot.intent || undefined,
+    errorType: dbShot.rally_end_role === 'forced_error' ? 'forced' : 
+               dbShot.rally_end_role === 'unforced_error' ? 'unforced' : undefined,
+    shotQuality: dbShot.shot_result === 'good' ? 'high' : 'average',
+  }
+}
+
+type Direction = 
+  | 'left_left' | 'left_mid' | 'left_right' 
+  | 'mid_left' | 'mid_mid' | 'mid_right'
+  | 'right_left' | 'right_mid' | 'right_right'
+
+type EndCondition = 'innet' | 'long' | 'winner'
+
+// Re-export types for convenience
+export type { Direction, EndCondition }
+
 

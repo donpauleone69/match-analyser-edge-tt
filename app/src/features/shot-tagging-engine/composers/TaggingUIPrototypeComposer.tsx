@@ -13,6 +13,10 @@ import { Phase2DetailComposer, type DetailedShot } from './Phase2DetailComposer'
 import { Button } from '@/ui-mine'
 import { Card } from '@/ui-mine/Card'
 import { useMatchStore, usePlayerStore, setDb, rallyDb, shotDb } from '@/data'
+import { useTaggingSessionStore } from '@/stores/taggingSessionStore'
+import { useVideoPlaybackStore } from '@/ui-mine/VideoPlayer'
+import { getVideoFile } from '@/helpers/videoStorage'
+import { convertDBRallyToPhase1Rally } from './dataMapping'
 const { 
   getByMatchId: getSetsByMatchId,
   deleteTaggingData: deleteSetTaggingData,
@@ -51,7 +55,9 @@ export function TaggingUIPrototypeComposer({ className }: TaggingUIPrototypeComp
   const [phase, setPhase] = useState<Phase>('setup')
   const [phase1Rallies, setPhase1Rallies] = useState<Phase1Rally[]>([])
   const [selectedSetNumber, setSelectedSetNumber] = useState(1)
+  const [currentSetId, setCurrentSetId] = useState<string | null>(null)
   const [isPreparingSet, setIsPreparingSet] = useState(false)
+  const [phase2ResumeIndex, setPhase2ResumeIndex] = useState(0)
   const [setupData, setSetupData] = useState<{
     firstServerId: 'player1' | 'player2'
     startingScore: { player1: number; player2: number }
@@ -68,29 +74,156 @@ export function TaggingUIPrototypeComposer({ className }: TaggingUIPrototypeComp
     loadPlayers()
   }, [loadMatches, loadPlayers])
   
-  // Handle set preparation (redo workflow)
+  // Resume helper function
+  const resumeTaggingSession = async (targetSet: any, matchId: string) => {
+    try {
+      console.log(`[Resume] Starting resume for Set ${targetSet.set_number}, phase: ${targetSet.tagging_phase}`)
+      console.log(`[Resume] Progress: Phase1 ${targetSet.phase1_last_rally || 0}/${targetSet.phase1_total_rallies || 0}, Phase2 ${targetSet.phase2_last_shot_index || 0}/${targetSet.phase2_total_shots || 0}`)
+      
+      // Get player IDs early - if no match, can't resume
+      if (!currentMatch) {
+        console.error('[Resume] ✗ No current match found')
+        throw new Error('Match not found')
+      }
+      const player1Id = currentMatch.player1_id
+      const player2Id = currentMatch.player2_id
+      console.log(`[Resume] Players: ${player1Id} vs ${player2Id}`)
+      
+      // Load video from IndexedDB
+      const sessionId = `${matchId}-${targetSet.set_number}`
+      console.log(`[Resume] Loading video for session: ${sessionId}`)
+      const videoFile = await getVideoFile(sessionId)
+      
+      if (videoFile) {
+        const blobUrl = URL.createObjectURL(videoFile)
+        useVideoPlaybackStore.getState().setVideoUrl(blobUrl)
+        console.log(`[Resume] ✓ Video loaded from IndexedDB: ${videoFile.name} (${(videoFile.size / 1024 / 1024).toFixed(2)} MB)`)
+        console.log(`[Resume] Blob URL: ${blobUrl.substring(0, 50)}...`)
+      } else {
+        console.warn('[Resume] ⚠ No video file found in IndexedDB - user will need to re-select')
+      }
+      
+      // Load rallies and shots from DB based on phase
+      if (targetSet.tagging_phase === 'phase1_in_progress' || targetSet.tagging_phase === 'phase1_complete') {
+        console.log(`[Resume] Loading Phase 1 data from database...`)
+        const dbRallies = await rallyDb.getBySetId(targetSet.id)
+        const dbShots = await shotDb.getBySetId(targetSet.id)
+        console.log(`[Resume] Found ${dbRallies.length} rallies, ${dbShots.length} shots`)
+        
+        // Convert DB data to Phase1Rally format
+        const rallies: Phase1Rally[] = dbRallies.map(rally => 
+          convertDBRallyToPhase1Rally(rally, dbShots, player1Id, player2Id)
+        )
+        
+        setPhase1Rallies(rallies)
+        console.log(`[Resume] ✓ Loaded ${rallies.length} rallies into state`)
+        
+        // Set up player context from first rally
+        if (rallies.length > 0 && dbRallies.length > 0) {
+          const firstServerId = dbRallies[0].server_id === player1Id ? 'player1' : 'player2'
+          setSetupData({
+            firstServerId,
+            startingScore: { player1: 0, player2: 0 },
+          })
+          console.log(`[Resume] ✓ Player context initialized, first server: ${firstServerId}`)
+        }
+        
+        if (targetSet.tagging_phase === 'phase1_complete') {
+          console.log(`[Resume] → Resuming at Phase 2`)
+          setPhase('phase2')
+        } else {
+          console.log(`[Resume] → Resuming at Phase 1 (${rallies.length} rallies complete)`)
+          setPhase('phase1')
+        }
+      } else if (targetSet.tagging_phase === 'phase2_in_progress' || targetSet.tagging_phase === 'phase2_complete') {
+        console.log(`[Resume] Loading Phase 2 data from database...`)
+        const dbRallies = await rallyDb.getBySetId(targetSet.id)
+        const dbShots = await shotDb.getBySetId(targetSet.id)
+        console.log(`[Resume] Found ${dbRallies.length} rallies, ${dbShots.length} shots`)
+        
+        // Convert to Phase1Rally first
+        const rallies: Phase1Rally[] = dbRallies.map(rally => 
+          convertDBRallyToPhase1Rally(rally, dbShots, player1Id, player2Id)
+        )
+        setPhase1Rallies(rallies)
+        console.log(`[Resume] ✓ Loaded ${rallies.length} rallies into state`)
+        
+        // Set up player context from first rally (needed for Phase 2)
+        if (rallies.length > 0 && dbRallies.length > 0) {
+          const firstServerId = dbRallies[0].server_id === player1Id ? 'player1' : 'player2'
+          setSetupData({
+            firstServerId,
+            startingScore: { player1: 0, player2: 0 },
+          })
+          console.log(`[Resume] ✓ Player context initialized, first server: ${firstServerId}`)
+        }
+        
+        // Store resume shot index for Phase 2
+        const resumeIndex = targetSet.phase2_last_shot_index || 0
+        setPhase2ResumeIndex(resumeIndex)
+        console.log(`[Resume] → Resuming at Phase 2, shot ${resumeIndex}/${targetSet.phase2_total_shots || '?'}`)
+        
+        setPhase('phase2')
+      }
+      
+      console.log('[Resume] ✓✓✓ Session resumed successfully ✓✓✓')
+    } catch (error) {
+      console.error('Failed to resume session:', error)
+      alert('Failed to resume session. Starting fresh.')
+      setPhase('pre_setup')
+    }
+  }
+  
+  // Handle set preparation (redo workflow + resume)
   useEffect(() => {
     const prepareSet = async () => {
       if (!matchId || !urlSetNumber) return
       
+      // Wait for match to be loaded before proceeding
+      if (!currentMatch) {
+        console.log('[Setup] Waiting for match data to load...')
+        return
+      }
+      
+      // Prevent duplicate preparation if already in a valid phase
+      if (phase !== 'setup') {
+        console.log(`[Setup] Already in phase '${phase}', skipping preparation`)
+        return
+      }
+      
       setIsPreparingSet(true)
+      console.log(`[Setup] Preparing set ${urlSetNumber} for match ${matchId}${isRedo ? ' (REDO)' : ''}`)
       try {
         const sets = await getSetsByMatchId(matchId)
         const targetSet = sets.find(s => s.set_number === parseInt(urlSetNumber))
         
-        if (targetSet && isRedo) {
+        if (!targetSet) {
+          alert('Set not found')
+          setIsPreparingSet(false)
+          return
+        }
+        
+        // Check if this is a resume or redo
+        if (isRedo) {
           // Delete existing tagging data for redo
           await deleteSetTaggingData(targetSet.id)
           console.log(`Cleared tagging data for Set ${targetSet.set_number}`)
-        }
-        
-        if (targetSet) {
-          // Mark tagging as started
+          // Clear localStorage session
+          useTaggingSessionStore.getState().clearSession()
+          setPhase('pre_setup')
+          await markSetTaggingStarted(targetSet.id)
+        } else if (targetSet.tagging_phase && targetSet.tagging_phase !== 'not_started') {
+          // Resume existing session
+          await resumeTaggingSession(targetSet, matchId)
+        } else {
+          // Fresh start
+          setPhase('pre_setup')
           await markSetTaggingStarted(targetSet.id)
         }
         
         setSelectedSetNumber(parseInt(urlSetNumber))
-        setPhase('pre_setup')  // Show setup questions before tagging
+        setCurrentSetId(targetSet.id)
+        console.log(`[Setup] Set ID initialized: ${targetSet.id}, Set Number: ${targetSet.set_number}`)
       } catch (error) {
         console.error('Failed to prepare set:', error)
         alert('Failed to prepare set for tagging')
@@ -102,7 +235,7 @@ export function TaggingUIPrototypeComposer({ className }: TaggingUIPrototypeComp
     if (urlSetNumber && phase === 'setup') {
       prepareSet()
     }
-  }, [matchId, urlSetNumber, isRedo, phase])
+  }, [matchId, urlSetNumber, isRedo, phase, currentMatch])
   
   const handleCompletePreSetup = (data: {
     firstServerId: 'player1' | 'player2'
@@ -112,8 +245,34 @@ export function TaggingUIPrototypeComposer({ className }: TaggingUIPrototypeComp
     setPhase('phase1')
   }
   
-  const handleCompletePhase1 = (rallies: Phase1Rally[]) => {
+  const handleCompletePhase1 = async (rallies: Phase1Rally[]) => {
+    console.log(`[Phase1→Phase2] Completing Phase 1 with ${rallies.length} rallies`)
     setPhase1Rallies(rallies)
+    
+    // Mark Phase 1 as complete in database
+    if (currentSetId) {
+      try {
+        await setDb.update(currentSetId, {
+          tagging_phase: 'phase1_complete',
+          phase1_total_rallies: rallies.length,
+        })
+        console.log('[Phase1→Phase2] ✓ Phase 1 marked as complete in database')
+      } catch (error) {
+        console.error('[Phase1→Phase2] ✗ Failed to mark Phase 1 complete:', error)
+        // Don't block - user can still continue
+      }
+    } else {
+      console.warn('[Phase1→Phase2] No currentSetId - skipping DB update')
+    }
+    
+    // Ensure video URL is in global store for Phase 2
+    const currentVideoUrl = useVideoPlaybackStore.getState().videoUrl
+    if (currentVideoUrl) {
+      console.log('[Phase1→Phase2] ✓ Video URL preserved:', currentVideoUrl.substring(0, 50) + '...')
+    } else {
+      console.warn('[Phase1→Phase2] ⚠ No video URL in global store!')
+    }
+    
     setPhase('phase2')
   }
   
@@ -142,10 +301,8 @@ export function TaggingUIPrototypeComposer({ className }: TaggingUIPrototypeComp
         : currentMatch.player2_id
       
       await updateSetService(setData.id, {
-          set_first_server_id: firstServerId,
+        set_first_server_id: firstServerId,
         has_video: true,
-        video_start_player1_score: setupData?.startingScore.player1 || 0,
-        video_start_player2_score: setupData?.startingScore.player2 || 0,
       })
       
       // Map Phase 1 rallies to database rallies
@@ -378,14 +535,33 @@ export function TaggingUIPrototypeComposer({ className }: TaggingUIPrototypeComp
         phase1Rallies={phase1Rallies}
         onComplete={handleCompletePhase2}
         className={className}
+        setId={currentSetId}
+        player1Id={currentMatch.player1_id}
+        player2Id={currentMatch.player2_id}
+        resumeFromShotIndex={phase2ResumeIndex}
       />
     )
   }
   
+  // Build player context for Phase1
+  const player1Name = players.find(p => p.id === currentMatch.player1_id)?.first_name || 'Player 1'
+  const player2Name = players.find(p => p.id === currentMatch.player2_id)?.first_name || 'Player 2'
+
+  const playerContext = setupData ? {
+    firstServerId: setupData.firstServerId,
+    startingScore: setupData.startingScore,
+    player1Name,
+    player2Name,
+  } : null
+
   return (
     <Phase1TimestampComposer
       onCompletePhase1={handleCompletePhase1}
+      playerContext={playerContext}
       className={className}
+      setId={currentSetId}
+      player1Id={currentMatch.player1_id}
+      player2Id={currentMatch.player2_id}
     />
   )
 }

@@ -7,9 +7,9 @@ export function AppShell() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   return (
-    <div className="min-h-screen bg-bg-surface">
+    <div className="h-full bg-bg-surface flex flex-col lg:flex-row">
       {/* Mobile Header */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 h-14 bg-bg-shell border-b border-neutral-700 flex items-center px-4">
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 h-14 bg-bg-shell border-b border-neutral-700 flex items-center px-4 shrink-0">
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           className="p-2 -ml-2 text-neutral-50 hover:bg-bg-card rounded-lg"
@@ -22,7 +22,7 @@ export function AppShell() {
       </div>
 
       {/* Desktop Sidebar */}
-      <div className="hidden lg:block">
+      <div className="hidden lg:block shrink-0">
         <Sidebar />
       </div>
 
@@ -42,8 +42,8 @@ export function AppShell() {
         </>
       )}
 
-      {/* Main content area */}
-      <main className="lg:ml-60 pt-14 lg:pt-0">
+      {/* Main content area - SINGLE SCROLL CONTAINER */}
+      <main className="flex-1 overflow-y-auto overscroll-behavior-none mt-14 lg:mt-0">
         <Outlet />
       </main>
     </div>

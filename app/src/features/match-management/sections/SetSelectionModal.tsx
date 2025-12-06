@@ -1,14 +1,15 @@
 /**
  * SetSelectionModal - Choose which set to tag with status indicators
+ * Updated to match DataViewer/Settings template
  */
 
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/ui-mine/Button'
-import { Card } from '@/ui-mine/Card'
 import type { DBSet } from '@/data'
 import { Icon } from '@/ui-mine/Icon'
 import { setDb } from '@/data'
+import { Play, X } from 'lucide-react'
 const { update: updateSet } = setDb
 
 interface SetSelectionModalProps {
@@ -36,7 +37,6 @@ export function SetSelectionModal({
   const [setScoreForm, setSetScoreForm] = useState({ player1Score: 0, player2Score: 0 })
 
   const handleStartTagging = (setNumber: number) => {
-    // Navigate to tagging page with set number
     navigate(`/matches/${matchId}/tag?set=${setNumber}`)
   }
 
@@ -45,7 +45,6 @@ export function SetSelectionModal({
   }
 
   const confirmRedo = (setNumber: number) => {
-    // Navigate with redo flag
     navigate(`/matches/${matchId}/tag?set=${setNumber}&redo=true`)
   }
 
@@ -59,7 +58,6 @@ export function SetSelectionModal({
 
   const handleSaveSetScores = async (set: DBSet) => {
     try {
-      // Validate scores
       const p1Score = setScoreForm.player1Score
       const p2Score = setScoreForm.player2Score
       
@@ -68,22 +66,18 @@ export function SetSelectionModal({
         return
       }
       
-      // Determine winner based on table tennis rules
       let winnerId: string | null = null
       
-      // Standard game to 11 (must win by 2) or deuce (both >= 10)
       if ((p1Score >= 11 || p2Score >= 11) && Math.abs(p1Score - p2Score) >= 2) {
         winnerId = p1Score > p2Score ? player1Id : player2Id
       } else if (p1Score > 0 || p2Score > 0) {
-        // Scores entered but game not complete - don't set winner yet
         winnerId = null
       }
       
-      // Update set with scores and winner
       await updateSet(set.id, {
         player1_final_score: p1Score,
         player2_final_score: p2Score,
-        winner_id: winnerId, // Note: This needs player IDs, not match ID
+        winner_id: winnerId,
       })
       
       setEditingSetScores(null)
@@ -95,6 +89,14 @@ export function SetSelectionModal({
   }
 
   const getSetStatus = (set: DBSet): 'not_started' | 'in_progress' | 'complete' => {
+    // Use tagging_phase if available (new schema), fallback to old logic
+    if (set.tagging_phase) {
+      if (set.tagging_phase === 'not_started') return 'not_started'
+      if (set.tagging_phase === 'phase2_complete') return 'complete'
+      return 'in_progress'
+    }
+    
+    // Fallback for old schema
     if (!set.tagging_started_at) return 'not_started'
     if (set.is_tagged && set.tagging_completed_at) return 'complete'
     return 'in_progress'
@@ -103,11 +105,11 @@ export function SetSelectionModal({
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'complete':
-        return 'text-green-400 bg-green-900/30'
+        return 'text-green-400 bg-green-900/30 border-green-700'
       case 'in_progress':
-        return 'text-yellow-400 bg-yellow-900/30'
+        return 'text-yellow-400 bg-yellow-900/30 border-yellow-700'
       default:
-        return 'text-neutral-400 bg-neutral-800'
+        return 'text-neutral-400 bg-neutral-800 border-neutral-700'
     }
   }
 
@@ -135,23 +137,24 @@ export function SetSelectionModal({
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-      <Card className="max-w-2xl w-full max-h-[80vh] overflow-y-auto">
-        <div className="p-6 space-y-6">
+      <div className="bg-bg-card border border-neutral-700 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-4 md:p-6">
           {/* Header */}
-          <div className="flex items-start justify-between">
+          <div className="mb-6 flex items-start justify-between flex-wrap gap-4">
             <div>
-              <h2 className="text-2xl font-bold text-neutral-50 mb-2">
+              <h1 className="text-2xl md:text-3xl font-bold text-neutral-50 flex items-center gap-3">
+                <Play className="h-6 w-6 md:h-8 md:w-8 text-brand-primary" />
                 Select Set to Tag
-              </h2>
-              <p className="text-sm text-neutral-400">
+              </h1>
+              <p className="text-neutral-400 mt-2 text-sm md:text-base">
                 {player1Name} vs {player2Name}
               </p>
             </div>
             <button
               onClick={onClose}
-              className="text-neutral-400 hover:text-neutral-50 transition-colors"
+              className="text-neutral-400 hover:text-neutral-50 transition-colors p-2 hover:bg-neutral-700 rounded-lg"
             >
-              <Icon name="x" className="w-6 h-6" />
+              <X className="w-6 h-6" />
             </button>
           </div>
 
@@ -172,25 +175,24 @@ export function SetSelectionModal({
                 return (
                   <div
                     key={set.id}
-                    className="border border-neutral-700 rounded-lg p-4 hover:border-neutral-600 transition-colors"
+                    className="bg-bg-shell border border-neutral-700 rounded-lg p-3 md:p-4 hover:border-neutral-600 transition-colors"
                   >
                     {showRedoConfirm === set.set_number ? (
                       // Redo Confirmation
-                      <div className="space-y-4">
+                      <div className="space-y-3">
                         <div className="flex items-center gap-2 text-yellow-400">
                           <Icon name="alert" className="w-5 h-5" />
-                          <span className="font-semibold">Confirm Redo</span>
+                          <span className="font-semibold text-sm md:text-base">Confirm Redo</span>
                         </div>
                         <p className="text-sm text-neutral-300">
                           This will delete all existing tagging data for Set {set.set_number}. This action cannot be undone.
                         </p>
-                        <div className="flex gap-3">
+                        <div className="flex gap-2">
                           <Button
                             onClick={() => confirmRedo(set.set_number)}
-                            variant="primary"
                             size="sm"
                           >
-                            Yes, Delete and Redo
+                            Yes, Delete
                           </Button>
                           <Button
                             onClick={() => setShowRedoConfirm(null)}
@@ -203,39 +205,42 @@ export function SetSelectionModal({
                       </div>
                     ) : editingSetScores === set.set_number ? (
                       // Score Entry Form
-                      <div className="space-y-4">
-                        <h3 className="font-semibold text-neutral-50">Enter Set {set.set_number} Score</h3>
-                        <div className="grid grid-cols-3 gap-4 items-center">
+                      <div className="space-y-3">
+                        <h3 className="font-semibold text-neutral-50 text-sm md:text-base">
+                          Enter Set {set.set_number} Score
+                        </h3>
+                        <div className="grid grid-cols-3 gap-3 items-center">
                           <div>
-                            <label className="block text-sm text-neutral-400 mb-1">{player1Name}</label>
+                            <label className="block text-xs md:text-sm text-neutral-400 mb-1">
+                              {player1Name}
+                            </label>
                             <input
                               type="number"
                               min="0"
                               max="30"
                               value={setScoreForm.player1Score}
                               onChange={(e) => setSetScoreForm({ ...setScoreForm, player1Score: parseInt(e.target.value) || 0 })}
-                              className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded text-neutral-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded text-neutral-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base text-center"
                             />
                           </div>
-                          <div className="text-center text-neutral-600 text-2xl">-</div>
+                          <div className="text-center text-neutral-600 text-xl md:text-2xl">-</div>
                           <div>
-                            <label className="block text-sm text-neutral-400 mb-1">{player2Name}</label>
+                            <label className="block text-xs md:text-sm text-neutral-400 mb-1">
+                              {player2Name}
+                            </label>
                             <input
                               type="number"
                               min="0"
                               max="30"
                               value={setScoreForm.player2Score}
                               onChange={(e) => setSetScoreForm({ ...setScoreForm, player2Score: parseInt(e.target.value) || 0 })}
-                              className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded text-neutral-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded text-neutral-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base text-center"
                             />
                           </div>
                         </div>
-                        <p className="text-xs text-neutral-500">
-                          Optional: Enter final set score if known. This will be validated against tagging data.
-                        </p>
-                        <div className="flex gap-3">
+                        <div className="flex gap-2">
                           <Button onClick={() => handleSaveSetScores(set)} size="sm">
-                            Save Score
+                            Save
                           </Button>
                           <Button onClick={() => setEditingSetScores(null)} variant="secondary" size="sm">
                             Cancel
@@ -244,92 +249,91 @@ export function SetSelectionModal({
                       </div>
                     ) : (
                       // Normal Set Display
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <h3 className="text-lg font-semibold text-neutral-50">
+                      <div className="flex items-center justify-between gap-3 flex-wrap md:flex-nowrap">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            <h3 className="text-base md:text-lg font-semibold text-neutral-50">
                               Set {set.set_number}
                             </h3>
-                            <span className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${statusColor}`}>
-                              <Icon name={statusIcon} className="w-3.5 h-3.5" />
+                            <span className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium border ${statusColor}`}>
+                              <Icon name={statusIcon} className="w-3 h-3" />
                               {statusLabel}
                             </span>
                           </div>
-                          <div className="flex items-center gap-4 text-sm text-neutral-400">
+                          <div className="flex items-center gap-3 text-xs md:text-sm text-neutral-400">
                             <span className="font-mono">
                               {set.player1_final_score} - {set.player2_final_score}
                             </span>
                             {set.winner_id && (
-                              <span className="text-neutral-500">
+                              <span className="text-neutral-500 truncate">
                                 Winner: {set.winner_id === 'player1' ? player1Name : player2Name}
                               </span>
                             )}
                           </div>
-                          {set.tagging_started_at && (
-                            <div className="text-xs text-neutral-500 mt-1">
-                              Started: {new Date(set.tagging_started_at).toLocaleString()}
-                            </div>
-                          )}
                         </div>
 
                         {/* Action Buttons */}
-                        <div className="flex flex-col gap-2 ml-4">
-                          <div className="flex gap-2">
-                            {status === 'not_started' && (
-                              <>
-                                <Button
-                                  onClick={() => handleStartTagging(set.set_number)}
-                                  size="sm"
-                                >
-                                  Start Tagging
-                                </Button>
-                                <Button
-                                  onClick={() => handleEditSetScores(set.set_number, set)}
-                                  variant="secondary"
-                                  size="sm"
-                                >
-                                  Enter Score
-                                </Button>
-                              </>
-                            )}
-                            {status === 'in_progress' && (
-                              <>
-                                {/* MVP: Resume is complex, only support redo */}
-                                <Button
-                                  onClick={() => handleRedoTagging(set.set_number)}
-                                  variant="secondary"
-                                  size="sm"
-                                >
-                                  Redo Tagging
-                                </Button>
-                                <Button
-                                  onClick={() => handleEditSetScores(set.set_number, set)}
-                                  variant="secondary"
-                                  size="sm"
-                                >
-                                  Edit Score
-                                </Button>
-                              </>
-                            )}
-                            {status === 'complete' && (
-                              <>
-                                <Button
-                                  onClick={() => handleRedoTagging(set.set_number)}
-                                  variant="secondary"
-                                  size="sm"
-                                >
-                                  Redo Tagging
-                                </Button>
-                                <Button
-                                  onClick={() => handleEditSetScores(set.set_number, set)}
-                                  variant="secondary"
-                                  size="sm"
-                                >
-                                  Edit Score
-                                </Button>
-                              </>
-                            )}
-                          </div>
+                        <div className="flex gap-2 shrink-0">
+                          {status === 'not_started' && (
+                            <>
+                              <Button
+                                onClick={() => handleStartTagging(set.set_number)}
+                                size="sm"
+                              >
+                                Start
+                              </Button>
+                              <Button
+                                onClick={() => handleEditSetScores(set.set_number, set)}
+                                variant="secondary"
+                                size="sm"
+                              >
+                                Score
+                              </Button>
+                            </>
+                          )}
+                          {status === 'in_progress' && (
+                            <>
+                              <Button
+                                onClick={() => handleStartTagging(set.set_number)}
+                                size="sm"
+                                variant="primary"
+                              >
+                                Continue
+                              </Button>
+                              <Button
+                                onClick={() => handleRedoTagging(set.set_number)}
+                                variant="secondary"
+                                size="sm"
+                              >
+                                Redo
+                              </Button>
+                              <Button
+                                onClick={() => handleEditSetScores(set.set_number, set)}
+                                variant="secondary"
+                                size="sm"
+                              >
+                                Edit
+                              </Button>
+                            </>
+                          )}
+                          {status === 'complete' && (
+                            <>
+                              <Button
+                                onClick={() => handleRedoTagging(set.set_number)}
+                                variant="secondary"
+                                size="sm"
+                              >
+                                Redo
+                              </Button>
+                              <Button
+                                onClick={() => handleEditSetScores(set.set_number, set)}
+                                variant="secondary"
+                                size="sm"
+                              >
+                                Edit
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </div>
                     )}
@@ -340,14 +344,13 @@ export function SetSelectionModal({
           </div>
 
           {/* Footer */}
-          <div className="border-t border-neutral-700 pt-4">
+          <div className="border-t border-neutral-700 pt-4 mt-6">
             <p className="text-xs text-neutral-500">
-              <strong>Note:</strong> Each set must be tagged separately. "Redo Tagging" will delete all existing data for that set.
+              <strong>Note:</strong> Each set must be tagged separately. "Redo" will delete all existing data for that set.
             </p>
           </div>
         </div>
-      </Card>
+      </div>
     </div>
   )
 }
-

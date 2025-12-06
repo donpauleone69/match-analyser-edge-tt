@@ -21,10 +21,25 @@ export default defineConfig({
       'Cross-Origin-Opener-Policy': 'same-origin',
       'Cross-Origin-Embedder-Policy': 'require-corp',
     },
+    hmr: {
+      overlay: false, // Disable overlay to prevent refresh loops on mobile
+    },
   },
   
   // Exclude FFmpeg from pre-bundling
   optimizeDeps: {
     exclude: ['@ffmpeg/ffmpeg', '@ffmpeg/util'],
+  },
+  
+  // Build optimizations for mobile
+  build: {
+    target: 'es2015',
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: false,
+        drop_debugger: true,
+      },
+    },
   },
 })

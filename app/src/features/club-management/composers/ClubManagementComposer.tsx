@@ -9,10 +9,6 @@ import { ClubListSection } from '../sections/ClubListSection'
 import { ClubFormSection } from '../sections/ClubFormSection'
 import { 
   Button, 
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
   Icon,
 } from '@/ui-mine'
 import type { DBClub, NewClub } from '@/data'
@@ -32,7 +28,7 @@ import {
 
 export function ClubManagementComposer() {
   const { clubs, isLoading, load, create, update, delete: deleteClub } = useClubStore()
-  const [isFormOpen, setIsFormOpen] = useState(false)
+  const [showForm, setShowForm] = useState(false)
   const [editingClub, setEditingClub] = useState<DBClub | null>(null)
   const [deletingClubId, setDeletingClubId] = useState<string | null>(null)
   
@@ -43,12 +39,12 @@ export function ClubManagementComposer() {
   
   const handleCreate = () => {
     setEditingClub(null)
-    setIsFormOpen(true)
+    setShowForm(true)
   }
   
   const handleEdit = (club: DBClub) => {
     setEditingClub(club)
-    setIsFormOpen(true)
+    setShowForm(true)
   }
   
   const handleSave = async (data: NewClub) => {
@@ -58,12 +54,12 @@ export function ClubManagementComposer() {
       await create(data)
     }
     
-    setIsFormOpen(false)
+    setShowForm(false)
     setEditingClub(null)
   }
   
   const handleCancelForm = () => {
-    setIsFormOpen(false)
+    setShowForm(false)
     setEditingClub(null)
   }
   
@@ -90,39 +86,43 @@ export function ClubManagementComposer() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Clubs</h1>
-          <p className="text-muted-foreground">Manage table tennis clubs</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-neutral-50 flex items-center gap-3">
+            <Icon name="building" className="h-6 w-6 md:h-8 md:w-8 text-brand-primary" />
+            Clubs
+          </h1>
+          <p className="text-neutral-400 mt-2 text-sm md:text-base">
+            Manage table tennis clubs
+          </p>
         </div>
-        <Button onClick={handleCreate}>
-          <Icon name="plus" className="h-4 w-4 mr-2" />
-          New Club
-        </Button>
+        {!showForm && (
+          <Button onClick={handleCreate}>
+            <Icon name="plus" className="h-4 w-4 mr-2" />
+            New Club
+          </Button>
+        )}
       </div>
       
-      {/* Club List */}
-      <ClubListSection
-        clubs={clubs}
-        onEdit={handleEdit}
-        onDelete={(id) => setDeletingClubId(id)}
-      />
-      
-      {/* Form Dialog */}
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {editingClub ? 'Edit Club' : 'New Club'}
-            </DialogTitle>
-          </DialogHeader>
+      {/* Show Form or List */}
+      {showForm ? (
+        <div className="bg-bg-card border border-neutral-700 rounded-lg p-6">
+          <h2 className="text-xl font-semibold text-neutral-50 mb-6">
+            {editingClub ? 'Edit Club' : 'Create New Club'}
+          </h2>
           <ClubFormSection
             club={editingClub}
             onSave={handleSave}
             onCancel={handleCancelForm}
           />
-        </DialogContent>
-      </Dialog>
+        </div>
+      ) : (
+        <ClubListSection
+          clubs={clubs}
+          onEdit={handleEdit}
+          onDelete={(id) => setDeletingClubId(id)}
+        />
+      )}
       
       {/* Delete Confirmation */}
       <AlertDialog 

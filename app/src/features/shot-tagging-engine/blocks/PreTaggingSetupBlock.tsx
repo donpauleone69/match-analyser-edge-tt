@@ -1,16 +1,15 @@
 /**
  * PreTaggingSetupBlock - Ask setup questions before tagging begins
+ * Updated to match DataViewer/Settings template
  * 
  * Questions:
  * 1. Who is about to serve?
  * 2. What is the current score?
- * 
- * This enables partial tagging of incomplete recordings and proper score tracking.
  */
 
 import { useState } from 'react'
 import { Button } from '@/ui-mine/Button'
-import { Card } from '@/ui-mine/Card'
+import { Settings } from 'lucide-react'
 
 interface PreTaggingSetupBlockProps {
   player1Name: string
@@ -53,105 +52,110 @@ export function PreTaggingSetupBlock({
   }
 
   return (
-    <div className="h-screen flex items-center justify-center bg-bg-surface p-4">
-      <Card className="p-8 max-w-2xl w-full">
-        <h2 className="text-2xl font-semibold text-neutral-50 mb-2">
-          Set {setNumber} Setup
-        </h2>
-        <p className="text-neutral-400 mb-8">
-          Before we start tagging, please answer these questions:
-        </p>
-
-        <div className="space-y-8">
-          {/* Question 1: Who is serving? */}
-          <div>
-            <label className="block text-lg font-medium text-neutral-200 mb-4">
-              1. Who is about to serve the first point?
-            </label>
-            <div className="grid grid-cols-2 gap-4">
-              <button
-                onClick={() => setFirstServerId('player1')}
-                className={`p-6 rounded-lg border-2 transition-all ${
-                  firstServerId === 'player1'
-                    ? 'border-blue-500 bg-blue-900/30 text-neutral-50'
-                    : 'border-neutral-700 bg-neutral-800 text-neutral-300 hover:border-neutral-600'
-                }`}
-              >
-                <div className="text-xl font-semibold">{player1Name}</div>
-                {firstServerId === 'player1' && (
-                  <div className="text-sm text-blue-400 mt-2">✓ Selected</div>
-                )}
-              </button>
-              <button
-                onClick={() => setFirstServerId('player2')}
-                className={`p-6 rounded-lg border-2 transition-all ${
-                  firstServerId === 'player2'
-                    ? 'border-blue-500 bg-blue-900/30 text-neutral-50'
-                    : 'border-neutral-700 bg-neutral-800 text-neutral-300 hover:border-neutral-600'
-                }`}
-              >
-                <div className="text-xl font-semibold">{player2Name}</div>
-                {firstServerId === 'player2' && (
-                  <div className="text-sm text-blue-400 mt-2">✓ Selected</div>
-                )}
-              </button>
-            </div>
-          </div>
-
-          {/* Question 2: What is the current score? */}
-          <div>
-            <label className="block text-lg font-medium text-neutral-200 mb-4">
-              2. What is the current score?
-            </label>
-            <p className="text-sm text-neutral-500 mb-4">
-              Leave as 0-0 if starting from the beginning. If this is a partial recording, enter the score when the video starts.
+    <div className="w-full min-h-screen flex items-center justify-center bg-bg-surface p-4">
+      <div className="max-w-2xl w-full">
+        <div className="bg-bg-card border border-neutral-700 rounded-lg p-4 md:p-6">
+          {/* Header */}
+          <div className="mb-6">
+            <h1 className="text-2xl md:text-3xl font-bold text-neutral-50 flex items-center gap-3">
+              <Settings className="h-6 w-6 md:h-8 md:w-8 text-brand-primary" />
+              Set {setNumber} Setup
+            </h1>
+            <p className="text-neutral-400 mt-2 text-sm md:text-base">
+              Answer these questions before starting to tag
             </p>
-            <div className="grid grid-cols-3 gap-4 items-center">
-              <div>
-                <label className="block text-sm text-neutral-400 mb-2">{player1Name}</label>
-                <input
-                  type="number"
-                  min="0"
-                  max="30"
-                  value={player1Score}
-                  onChange={(e) => setPlayer1Score(parseInt(e.target.value) || 0)}
-                  className="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-50 text-2xl text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+          </div>
+
+          <div className="space-y-6">
+            {/* Question 1: Who is serving? */}
+            <div>
+              <label className="block text-base md:text-lg font-medium text-neutral-200 mb-3">
+                1. Who is about to serve the first point?
+              </label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <button
+                  onClick={() => setFirstServerId('player1')}
+                  className={`p-4 md:p-6 rounded-lg border-2 transition-all text-left ${
+                    firstServerId === 'player1'
+                      ? 'border-blue-500 bg-blue-900/30 text-neutral-50'
+                      : 'border-neutral-700 bg-neutral-800 text-neutral-300 hover:border-neutral-600'
+                  }`}
+                >
+                  <div className="text-lg md:text-xl font-semibold">{player1Name}</div>
+                  {firstServerId === 'player1' && (
+                    <div className="text-xs md:text-sm text-blue-400 mt-2">✓ Selected</div>
+                  )}
+                </button>
+                <button
+                  onClick={() => setFirstServerId('player2')}
+                  className={`p-4 md:p-6 rounded-lg border-2 transition-all text-left ${
+                    firstServerId === 'player2'
+                      ? 'border-blue-500 bg-blue-900/30 text-neutral-50'
+                      : 'border-neutral-700 bg-neutral-800 text-neutral-300 hover:border-neutral-600'
+                  }`}
+                >
+                  <div className="text-lg md:text-xl font-semibold">{player2Name}</div>
+                  {firstServerId === 'player2' && (
+                    <div className="text-xs md:text-sm text-blue-400 mt-2">✓ Selected</div>
+                  )}
+                </button>
               </div>
-              <div className="text-center text-3xl text-neutral-600">-</div>
-              <div>
-                <label className="block text-sm text-neutral-400 mb-2">{player2Name}</label>
-                <input
-                  type="number"
-                  min="0"
-                  max="30"
-                  value={player2Score}
-                  onChange={(e) => setPlayer2Score(parseInt(e.target.value) || 0)}
-                  className="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-50 text-2xl text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+            </div>
+
+            {/* Question 2: What is the current score? */}
+            <div>
+              <label className="block text-base md:text-lg font-medium text-neutral-200 mb-3">
+                2. What is the current score?
+              </label>
+              <p className="text-xs md:text-sm text-neutral-500 mb-3">
+                Leave as 0-0 if starting from the beginning. If partial recording, enter score when video starts.
+              </p>
+              <div className="grid grid-cols-3 gap-3 items-center">
+                <div>
+                  <label className="block text-xs md:text-sm text-neutral-400 mb-2">{player1Name}</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="30"
+                    value={player1Score}
+                    onChange={(e) => setPlayer1Score(parseInt(e.target.value) || 0)}
+                    className="w-full px-3 py-2 md:py-3 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-50 text-xl md:text-2xl text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div className="text-center text-2xl md:text-3xl text-neutral-600">-</div>
+                <div>
+                  <label className="block text-xs md:text-sm text-neutral-400 mb-2">{player2Name}</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="30"
+                    value={player2Score}
+                    onChange={(e) => setPlayer2Score(parseInt(e.target.value) || 0)}
+                    className="w-full px-3 py-2 md:py-3 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-50 text-xl md:text-2xl text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Action Buttons */}
-        <div className="flex gap-4 mt-10">
-          <Button
-            onClick={handleComplete}
-            disabled={!firstServerId}
-            className="flex-1"
-          >
-            Start Tagging
-          </Button>
-          <Button
-            onClick={onCancel}
-            variant="secondary"
-          >
-            Cancel
-          </Button>
+          {/* Action Buttons */}
+          <div className="flex gap-3 mt-6 pt-6 border-t border-neutral-700">
+            <Button
+              onClick={handleComplete}
+              disabled={!firstServerId}
+              className="flex-1"
+            >
+              Start Tagging
+            </Button>
+            <Button
+              onClick={onCancel}
+              variant="secondary"
+            >
+              Cancel
+            </Button>
+          </div>
         </div>
-      </Card>
+      </div>
     </div>
   )
 }
-

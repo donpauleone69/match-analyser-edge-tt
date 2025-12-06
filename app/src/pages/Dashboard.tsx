@@ -1,6 +1,5 @@
-import { Plus, Play, Clock, TrendingUp, FlaskConical } from 'lucide-react'
+import { Plus, Play, Clock, TrendingUp, FlaskConical, LayoutDashboard } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { Header } from '../components/layout'
 import { Button, Card, CardHeader, CardTitle, CardContent, Badge } from '../components/ui'
 
 // Mock data for recent matches
@@ -39,10 +38,20 @@ const statusConfig = {
 
 export function Dashboard() {
   return (
-    <div className="min-h-screen">
-      <Header title="Dashboard" />
-      
-      <div className="p-6 space-y-6 max-w-6xl mx-auto">
+    <div className="w-full">
+      <div className="max-w-6xl mx-auto p-4 md:p-6">
+        {/* Page Header */}
+        <div className="mb-6">
+          <h1 className="text-2xl md:text-3xl font-bold text-neutral-50 flex items-center gap-3">
+            <LayoutDashboard className="h-6 w-6 md:h-8 md:w-8 text-brand-primary" />
+            Dashboard
+          </h1>
+          <p className="text-neutral-400 mt-2 text-sm md:text-base">
+            Overview of your table tennis matches and statistics
+          </p>
+        </div>
+        
+        <div className="space-y-6">
         {/* Quick Actions */}
         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <Link to="/matches/create">
@@ -191,6 +200,7 @@ export function Dashboard() {
             </CardContent>
           </Card>
         </section>
+        </div>
       </div>
     </div>
   )

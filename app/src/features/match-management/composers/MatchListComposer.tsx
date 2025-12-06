@@ -6,6 +6,7 @@ import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMatchStore, usePlayerStore, useTournamentStore } from '@/data'
 import { MatchListSection } from '../sections/MatchListSection'
+import { Swords } from 'lucide-react'
 
 export function MatchListComposer() {
   const navigate = useNavigate()
@@ -39,21 +40,28 @@ export function MatchListComposer() {
   }
   
   return (
-    <div className="h-screen overflow-y-auto bg-bg-surface">
-      <div className="max-w-7xl mx-auto p-6 space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-neutral-50">Matches</h1>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold text-neutral-50 flex items-center gap-3">
+            <Swords className="h-6 w-6 md:h-8 md:w-8 text-brand-primary" />
+            Matches
+          </h1>
+          <p className="text-neutral-400 mt-2 text-sm md:text-base">
+            View and manage all table tennis matches
+          </p>
         </div>
-        
-        <MatchListSection
-          matches={matches}
-          isLoading={isLoading}
-          onCreateNew={handleCreateNew}
-          getPlayerName={getPlayerName}
-          getTournamentName={getTournamentName}
-          onRefresh={handleRefresh}
-        />
       </div>
+      
+      <MatchListSection
+        matches={matches}
+        isLoading={isLoading}
+        onCreateNew={handleCreateNew}
+        getPlayerName={getPlayerName}
+        getTournamentName={getTournamentName}
+        onRefresh={handleRefresh}
+      />
     </div>
   )
 }

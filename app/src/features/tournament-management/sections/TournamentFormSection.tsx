@@ -4,7 +4,6 @@
 
 import { useState, useEffect } from 'react'
 import { Button } from '@/ui-mine/Button'
-import { Card } from '@/ui-mine/Card'
 import type { DBTournament, TournamentType, DBClub } from '@/data'
 import { useTournamentStore, useClubStore } from '@/data'
 
@@ -77,82 +76,78 @@ export function TournamentFormSection({
   }
   
   return (
-    <Card className="p-6">
-      <h2 className="text-2xl font-semibold text-neutral-50 mb-6">
-        {tournament ? 'Edit Tournament' : 'Create Tournament'}
-      </h2>
-      
+    <div className="bg-bg-card border border-neutral-700 rounded-lg p-4 md:p-6">
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Tournament Name */}
         <div>
           <label className="block text-sm font-medium text-neutral-300 mb-2">
-            Tournament Name *
+            Name *
           </label>
           <input
             type="text"
             required
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-md text-neutral-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-md text-neutral-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
             placeholder="State Championships 2025"
           />
         </div>
         
-        <div>
-          <label className="block text-sm font-medium text-neutral-300 mb-2">
-            Tournament Type *
-          </label>
-          <select
-            required
-            value={formData.tournament_type}
-            onChange={(e) => setFormData({ ...formData, tournament_type: e.target.value as TournamentType })}
-            className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-md text-neutral-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            {TOURNAMENT_TYPES.map(type => (
-              <option key={type.value} value={type.value}>
-                {type.label}
-              </option>
-            ))}
-          </select>
+        {/* Tournament Type + Host Club side-by-side */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-neutral-300 mb-2">
+              Type *
+            </label>
+            <select
+              required
+              value={formData.tournament_type}
+              onChange={(e) => setFormData({ ...formData, tournament_type: e.target.value as TournamentType })}
+              className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-md text-neutral-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
+            >
+              {TOURNAMENT_TYPES.map(type => (
+                <option key={type.value} value={type.value}>
+                  {type.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-neutral-300 mb-2">
+              Host Club *
+            </label>
+            <select
+              required
+              value={formData.tournament_host_club_id || ''}
+              onChange={(e) => setFormData({ ...formData, tournament_host_club_id: e.target.value || null })}
+              className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-md text-neutral-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
+            >
+              <option value="">Select club...</option>
+              {clubs.map(club => (
+                <option key={club.id} value={club.id}>
+                  {club.name}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
         
-        <div>
-          <label className="block text-sm font-medium text-neutral-300 mb-2">
-            Host Club *
-          </label>
-          <select
-            required
-            value={formData.tournament_host_club_id || ''}
-            onChange={(e) => setFormData({ ...formData, tournament_host_club_id: e.target.value || null })}
-            className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-md text-neutral-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">— Select host club —</option>
-            {clubs.map(club => (
-              <option key={club.id} value={club.id}>
-                {club.name} {club.location && `(${club.location})`}
-              </option>
-            ))}
-          </select>
-          {clubs.length === 0 && (
-            <p className="text-xs text-neutral-500 mt-1">
-              No clubs yet. <a href="/clubs" className="text-blue-400 hover:underline">Create a club</a> first.
-            </p>
-          )}
-        </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-neutral-300 mb-2">
-            Location (optional)
-          </label>
-          <input
-            type="text"
-            value={formData.location}
-            onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-            className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-md text-neutral-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="City, State (if different from club)"
-          />
-        </div>
-        
-        <div className="grid grid-cols-2 gap-4">
+        {/* Location + Dates */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-neutral-300 mb-2">
+              Location
+            </label>
+            <input
+              type="text"
+              value={formData.location}
+              onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+              className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-md text-neutral-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
+              placeholder="City, State"
+            />
+          </div>
+          
           <div>
             <label className="block text-sm font-medium text-neutral-300 mb-2">
               Start Date *
@@ -162,23 +157,24 @@ export function TournamentFormSection({
               required
               value={formData.start_date}
               onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-              className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-md text-neutral-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-md text-neutral-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
             />
           </div>
           
           <div>
             <label className="block text-sm font-medium text-neutral-300 mb-2">
-              End Date (optional)
+              End Date
             </label>
             <input
               type="date"
               value={formData.end_date}
               onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-              className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-md text-neutral-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-md text-neutral-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
             />
           </div>
         </div>
         
+        {/* Notes */}
         <div>
           <label className="block text-sm font-medium text-neutral-300 mb-2">
             Notes
@@ -186,19 +182,20 @@ export function TournamentFormSection({
           <textarea
             value={formData.notes}
             onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-            rows={3}
-            className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-md text-neutral-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Additional information about the tournament..."
+            rows={2}
+            className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-md text-neutral-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
+            placeholder="Additional details..."
           />
         </div>
         
-        <div className="flex gap-3 pt-4">
+        {/* Actions */}
+        <div className="flex gap-3 pt-2">
           <Button
             type="submit"
             disabled={isSubmitting}
             className="flex-1"
           >
-            {isSubmitting ? 'Saving...' : (tournament ? 'Update Tournament' : 'Create Tournament')}
+            {isSubmitting ? 'Saving...' : (tournament ? 'Update' : 'Create')}
           </Button>
           <Button
             type="button"
@@ -210,7 +207,7 @@ export function TournamentFormSection({
           </Button>
         </div>
       </form>
-    </Card>
+    </div>
   )
 }
 

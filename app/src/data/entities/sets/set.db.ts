@@ -37,6 +37,11 @@ export async function create(set: NewSet): Promise<DBSet> {
     derived_winner_id: null,
     scores_validated: false,
     validation_errors: null,
+    tagging_phase: 'not_started',
+    phase1_last_rally: null,
+    phase1_total_rallies: null,
+    phase2_last_shot_index: null,
+    phase2_total_shots: null,
   }
   
   await db.sets.add(newSet)
