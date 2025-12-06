@@ -36,6 +36,7 @@ import {
 } from './dataMapping'
 import { runInferenceForSet } from './runInference'
 import { calculateShotPlayer } from '@/rules'
+import { deriveRally_winner_id, getOpponentId } from '@/rules/derive/rally/deriveRally_winner_id'
 import { PreTaggingSetupBlock } from '../blocks/PreTaggingSetupBlock'
 
 export interface TaggingUIPrototypeComposerProps {

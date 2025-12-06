@@ -4,7 +4,7 @@
  */
 
 import type { DBRally, DBShot } from '@/data'
-import { inferShotType } from '../inferShotType'
+import { inferShotType } from '../infer/shot-level/inferShotType'
 
 export interface ErrorStats {
   // Total errors

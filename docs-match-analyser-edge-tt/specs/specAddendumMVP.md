@@ -355,6 +355,140 @@ Stats display confidence levels to indicate accuracy:
 5. **Opponent Scouting:** Build head-to-head comparison views
 6. **Export Stats:** PDF/CSV export for coaching
 
+---
+
+### 2025-12-06d: Rules Layer Reorganization & Derivation Extraction (v2.3.0)
+
+**Context:** Major refactoring of `/rules/` folder to create clear separation between deterministic derivations, probabilistic inferences, calculations, and statistics. Extracted duplicate logic from composers into centralized pure functions.
+
+#### Changes Made
+
+**1. New Folder Structure**
+
+Created hierarchical organization in `/rules/`:
+```
+/rules/
+  ├── derive/          # Level 0: Deterministic derivations (100% fact)
+  │   ├── shot/        # Shot-level derivations
+  │   ├── rally/       # Rally-level derivations
+  │   ├── set/         # Set-level derivations
+  │   └── match/       # Match-level derivations
+  ├── calculate/       # Arithmetic calculations
+  ├── infer/           # Level 1+: Probabilistic inferences
+  │   ├── shot-level/  # Persisted to DB
+  │   └── rally-patterns/  # Computed on-demand
+  ├── stats/           # Aggregated statistics
+  └── validate/        # Data integrity checks
+```
+
+**2. New Derivation Functions**
+
+Created pure functions following naming convention `derive{Level}_{db_field}`:
+
+**Shot-Level:**
+- `deriveShot_locations.ts` - Derive shot_origin/shot_destination from direction
+
+**Rally-Level:**
+- `deriveRally_winner_id.ts` - Determine rally winner from last shot
+- `deriveRally_point_end_type.ts` - Classify point ending type
+- `deriveRally_is_scoring.ts` - Determine if rally awards a point (vs let)
+- `deriveRally_scores.ts` - Calculate score_after values
+
+**Set-Level:**
+- `deriveSet_winner_id.ts` - Determine set winner from final scores
+- `deriveSet_final_scores.ts` - Extract final scores from rallies
+
+**Match-Level:**
+- `deriveMatch_winner_id.ts` - Determine match winner from set wins
+- `deriveMatch_sets_won.ts` - Count sets won by each player
+
+**3. Moved Existing Files**
+
+Reorganized existing rules into appropriate folders:
+- Moved `calculateServer.ts`, `calculateShotPlayer.ts` → `/calculate/`
+- Moved `inferShotType.ts`, `inferSpin.ts`, `inferPressure.ts`, `inferDistanceFromTable.ts`, `inferPlayerPosition.ts` → `/infer/shot-level/`
+- Moved `stats/inferInitiative.ts`, `stats/inferMovement.ts`, `stats/inferTacticalPatterns.ts` → `/infer/rally-patterns/`
+- Moved `validateMatchData.ts`, `validateVideoCoverage.ts` → `/validate/`
+
+**4. Updated Imports**
+
+- Updated `runInference.ts` to use new import paths
+- Updated `Phase1TimestampComposer.tsx` to use `deriveRally_winner_id()`
+- Updated `stats/tacticalStats.ts` to import from new locations
+- Updated main `/rules/index.ts` with new structure and backward compatibility exports
+
+**5. Duplicate Logic Audit**
+
+Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
+- Found 6 instances of duplicate derivation logic across composers
+- Identified 4 high/medium priority extractions needed
+- Marked 2 low-priority cases as acceptable (simple UI logic)
+
+#### Technical Decisions
+
+**Naming Convention:**
+- `derive*()` = 100% deterministic transformations → persisted to DB
+- `infer*()` = Probabilistic guesses with confidence → some persisted, some ephemeral
+- `calculate*()` = Arithmetic/aggregation → ephemeral (computed on-demand)
+
+**Function Naming:**
+- Functions named after DB fields they populate: `deriveRally_winner_id()` → `rallies.winner_id`
+- Makes grep-friendly and self-documenting
+
+**Rationale:**
+- **Single Source of Truth:** One function per derivation eliminates duplicate logic
+- **Testability:** Pure functions in `/rules/` are trivial to unit test
+- **Maintainability:** Business logic changes only require updating `/rules/`
+- **Bug Prevention:** Duplicate logic = duplicate bugs
+- **Clear Hierarchy:** Facts → Inferences → Aggregations
+
+#### Files Created
+
+**New Derivation Functions:**
+- `app/src/rules/derive/shot/deriveShot_locations.ts`
+- `app/src/rules/derive/rally/deriveRally_winner_id.ts`
+- `app/src/rules/derive/rally/deriveRally_point_end_type.ts`
+- `app/src/rules/derive/rally/deriveRally_is_scoring.ts`
+- `app/src/rules/derive/rally/deriveRally_scores.ts`
+- `app/src/rules/derive/set/deriveSet_winner_id.ts`
+- `app/src/rules/derive/set/deriveSet_final_scores.ts`
+- `app/src/rules/derive/match/deriveMatch_winner_id.ts`
+- `app/src/rules/derive/match/deriveMatch_sets_won.ts`
+
+**Index Files:**
+- `app/src/rules/derive/index.ts`
+- `app/src/rules/derive/shot/index.ts`
+- `app/src/rules/derive/rally/index.ts`
+- `app/src/rules/derive/set/index.ts`
+- `app/src/rules/derive/match/index.ts`
+- `app/src/rules/calculate/index.ts`
+- `app/src/rules/infer/index.ts`
+- `app/src/rules/infer/shot-level/index.ts`
+- `app/src/rules/infer/rally-patterns/index.ts`
+- `app/src/rules/validate/index.ts`
+
+**Documentation:**
+- `docs-match-analyser-edge-tt/DUPLICATE_LOGIC_AUDIT.md`
+
+#### Files Modified
+
+**Rules Layer:**
+- `app/src/rules/index.ts` - Updated with new structure and backward compatibility
+- `app/src/rules/stats/index.ts` - Removed infer* exports (moved to /infer/)
+- `app/src/rules/stats/tacticalStats.ts` - Updated imports
+
+**Features:**
+- `app/src/features/shot-tagging-engine/composers/runInference.ts` - Updated imports, added comments
+- `app/src/features/shot-tagging-engine/composers/Phase1TimestampComposer.tsx` - Using deriveRally_winner_id()
+
+#### Next Steps
+
+1. **Extract Remaining Duplicates:** Phase2DetailComposer direction parsing
+2. **Rally Derivation Orchestrator:** Create service to run all rally derivations after tagging complete
+3. **Score Derivation Integration:** Use deriveRally_scores() in composers
+4. **Test Coverage:** Add unit tests for derive functions (future when stable)
+5. **Remove Legacy Exports:** Clean up backward compatibility after migration complete
+
 #### Version History
 
 | Version | Date | Changes |
@@ -363,6 +497,7 @@ Stats display confidence levels to indicate accuracy:
 | v2.1.1 | 2025-12-06 | Critical bug fixes for resume functionality |
 | v2.1.2 | 2025-12-06 | Comprehensive persistence refinement with full logging |
 | v2.2.0 | 2025-12-06 | Statistics dashboard and multi-level inference engine |
+| v2.3.0 | 2025-12-06 | Rules layer reorganization & derivation extraction |
 
 ---
 

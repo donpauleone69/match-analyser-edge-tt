@@ -2,13 +2,39 @@
  * Edge TT Match Analyser — Rules Layer
  * 
  * Pure domain logic exports.
- * No React, no IO — just calculations and derivations.
+ * No React, no IO — just calculations, derivations, and inferences.
+ * 
+ * Organized by purpose:
+ * - derive/    - Level 0: Deterministic derivations (100% fact)
+ * - calculate/ - Deterministic calculations (arithmetic/logic)
+ * - infer/     - Level 1+: Probabilistic inferences (with confidence)
+ * - stats/     - Aggregated statistics and performance metrics
+ * - validate/  - Data integrity and consistency checks
  */
 
 // Types
 export * from './types'
 
-// Server calculation
+// Level 0: Derivations (100% deterministic)
+export * from './derive'
+
+// Calculations
+export * from './calculate'
+
+// Level 1+: Inferences (probabilistic)
+export * from './infer'
+
+// Statistics
+export * from './stats'
+
+// Validation
+export * from './validate'
+
+// ============================================================================
+// LEGACY EXPORTS (backward compatibility - will be removed in future)
+// ============================================================================
+
+// Re-export from old locations for backward compatibility
 export {
   calculateServer,
   calculateNextServer,
@@ -30,14 +56,41 @@ export {
   type MultiVideoServerValidationInput,
   type MultiVideoValidationResult,
   DEFAULT_SERVICE_RULE,
-} from './calculateServer'
+} from './calculate/calculateServer'
 
-// Shot player calculation
 export {
   calculateShotPlayer,
-} from './calculateShotPlayer'
+} from './calculate/calculateShotPlayer'
 
-// End of point derivation
+export {
+  validateMatchWinner,
+  validateSetWinner,
+  validateRallyDerivedSetScore,
+  validateScoreProgression,
+  validateCompleteMatch,
+  type ValidationError,
+  type MatchValidationInput,
+  type SetValidationInput,
+  type RallySetValidationInput,
+  type ScoreProgressionInput,
+  type CompleteMatchValidationInput,
+  type CompleteMatchValidation,
+} from './validate/validateMatchData'
+
+export {
+  validateVideoSequence,
+  validateVideoOverlap,
+  validateVideoContinuity,
+  validateSetCoverage,
+  validateCompleteVideoCoverage,
+  getVideoCoverageSummary,
+  type VideoSegment,
+  type SetCoverageInput,
+  type CompleteVideoCoverageValidation,
+  type VideoCoverageSummary,
+} from './validate/validateVideoCoverage'
+
+// deriveEndOfPoint and deriveMatchScores still at root (will be refactored separately)
 export {
   deriveEndOfPoint,
   isLet,
@@ -61,37 +114,6 @@ export {
   type AutoPruneResult,
 } from './deriveEndOfPoint'
 
-// Match/Set/Rally validation
-export {
-  validateMatchWinner,
-  validateSetWinner,
-  validateRallyDerivedSetScore,
-  validateScoreProgression,
-  validateCompleteMatch,
-  type ValidationError,
-  type MatchValidationInput,
-  type SetValidationInput,
-  type RallySetValidationInput,
-  type ScoreProgressionInput,
-  type CompleteMatchValidationInput,
-  type CompleteMatchValidation,
-} from './validateMatchData'
-
-// Video coverage validation
-export {
-  validateVideoSequence,
-  validateVideoOverlap,
-  validateVideoContinuity,
-  validateSetCoverage,
-  validateCompleteVideoCoverage,
-  getVideoCoverageSummary,
-  type VideoSegment,
-  type SetCoverageInput,
-  type CompleteVideoCoverageValidation,
-  type VideoCoverageSummary,
-} from './validateVideoCoverage'
-
-// Score derivation (bottom-up)
 export {
   deriveSetScoreFromRallies,
   deriveMatchScoreFromSets,
@@ -108,4 +130,3 @@ export {
   type DerivedRallyWinner,
   type CompleteMatchDerivation,
 } from './deriveMatchScores'
-

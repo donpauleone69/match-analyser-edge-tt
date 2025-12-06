@@ -1,6 +1,16 @@
 /**
  * Edge TT Match Analyser — End of Point Derivation Engine
  * 
+ * @deprecated This file is being phased out in favor of more granular derivation functions.
+ * 
+ * New code should use:
+ * - `/rules/derive/rally/deriveRally_winner_id.ts` for rally winner derivation
+ * - `/rules/derive/rally/deriveRally_point_end_type.ts` for point end type
+ * - `/rules/derive/rally/deriveRally_is_scoring.ts` for let detection
+ * - `/rules/derive/shot/deriveShot_rally_end_role.ts` for error role mapping
+ * 
+ * This file remains for backward compatibility with existing code.
+ * 
  * Pure functions to derive end-of-point outcomes from shot data.
  * 
  * Key derivations:
@@ -24,7 +34,7 @@ import {
   deriveLandingType,
 } from './types'
 
-import { otherPlayer } from './calculateServer'
+import { otherPlayer } from './calculate/calculateServer'
 
 // =============================================================================
 // LAST SHOT ANALYSIS

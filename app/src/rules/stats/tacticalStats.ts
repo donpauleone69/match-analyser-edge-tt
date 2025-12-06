@@ -4,8 +4,8 @@
  */
 
 import type { DBRally, DBShot } from '@/data'
-import { inferInitiative } from './inferInitiative'
-import { inferOpeningQuality } from './inferTacticalPatterns'
+import { inferInitiative } from '../infer/rally-patterns/inferInitiative'
+import { inferOpeningQuality } from '../infer/rally-patterns/inferTacticalPatterns'
 
 export interface TacticalStats {
   // 3rd ball (server's opening attack)

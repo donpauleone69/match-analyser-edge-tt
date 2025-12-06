@@ -13,7 +13,8 @@ import { useState, useRef, useEffect } from 'react'
 import { cn } from '@/helpers/utils'
 import { Phase1ControlsBlock, type RallyState, type EndCondition } from '../blocks'
 import { VideoPlayer, type VideoPlayerHandle, type TaggingModeControls, useVideoPlaybackStore } from '@/ui-mine/VideoPlayer'
-import { calculateServer, calculateShotPlayer, otherPlayer } from '@/rules'
+import { calculateServer, calculateShotPlayer } from '@/rules'
+import { deriveRally_winner_id, getOpponentId } from '@/rules/derive/rally/deriveRally_winner_id'
 import { mapPhase1RallyToDBRally, mapPhase1ShotToDBShot } from './dataMapping'
 import { rallyDb, shotDb, setDb } from '@/data'
 
@@ -230,12 +231,19 @@ export function Phase1TimestampComposer({ onCompletePhase1, playerContext, setId
     const lastShotIndex = currentShots.length
     const lastShotPlayer = calculateShotPlayer(serverResult.serverId, lastShotIndex)
     
-    // Winner logic:
-    // - If error (innet/long): other player wins
-    // - If winner: last shot player wins
-    const winnerId = (endCondition === 'innet' || endCondition === 'long')
-      ? otherPlayer(lastShotPlayer)
+    // Derive rally winner using rules
+    const isError = endCondition === 'innet' || endCondition === 'long'
+    const opponentId = player1Id && player2Id 
+      ? getOpponentId(lastShotPlayer, 'player1', 'player2')
       : lastShotPlayer
+    
+    const winnerId = deriveRally_winner_id(
+      {
+        player_id: lastShotPlayer,
+        shot_destination: isError ? (endCondition === 'innet' ? 'in_net' : 'missed_long') : null,
+      },
+      opponentId
+    ) || lastShotPlayer
     
     const rally: Phase1Rally = {
       id: `rally-${Date.now()}-${Math.random()}`,
@@ -335,10 +343,12 @@ export function Phase1TimestampComposer({ onCompletePhase1, playerContext, setId
       setCurrentShots(lastRally.shots)
       setRallyState('after-serve')
       
-      // Revert score
+      // Revert score (decrement winner's score)
+      const winnerWasPlayer1 = lastRally.winnerId === 'player1'
+      const winnerWasPlayer2 = lastRally.winnerId === 'player2'
       setCurrentScore(prev => ({
-        player1: lastRally.winnerId === 'player1' ? prev.player1 - 1 : prev.player1,
-        player2: lastRally.winnerId === 'player2' ? prev.player2 - 1 : prev.player2,
+        player1: winnerWasPlayer1 ? prev.player1 - 1 : prev.player1,
+        player2: winnerWasPlayer2 ? prev.player2 - 1 : prev.player2,
       }))
     } else {
       // Delete last shot

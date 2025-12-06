@@ -313,3 +313,4 @@ phase2_total_shots: number | null  // Total shots (for progress %)
 5. Close browser, reopen, click "Continue" → verify resumes at shot 3
 6. ✅ If all pass, persistence is working!
 
+

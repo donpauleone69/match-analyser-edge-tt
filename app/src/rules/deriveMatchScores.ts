@@ -1,6 +1,16 @@
 /**
  * Edge TT Match Analyser — Score Derivation
  * 
+ * @deprecated This file is being phased out in favor of more granular derivation functions.
+ * 
+ * New code should use:
+ * - `/rules/derive/set/deriveSet_winner_id.ts` for set winner
+ * - `/rules/derive/set/deriveSet_final_scores.ts` for set scores
+ * - `/rules/derive/match/deriveMatch_winner_id.ts` for match winner
+ * - `/rules/derive/match/deriveMatch_sets_won.ts` for sets won counts
+ * 
+ * This file remains for backward compatibility with existing code.
+ * 
  * Pure functions to derive match/set scores from rally data (bottom-up).
  * Used to validate against top-down entered scores.
  * 

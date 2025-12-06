@@ -9,8 +9,8 @@ import type {
   MatchValidationInput, 
   SetValidationInput,
   RallySetValidationInput 
-} from '@/rules/validateMatchData'
-import type { VideoSegment } from '@/rules/validateVideoCoverage'
+} from '@/rules/validate/validateMatchData'
+import type { VideoSegment } from '@/rules/validate/validateVideoCoverage'
 
 // =============================================================================
 // VALID MATCH DATA

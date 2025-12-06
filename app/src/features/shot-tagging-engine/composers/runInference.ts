@@ -1,19 +1,25 @@
 ﻿/**
- * Inference Service - Apply inference rules to shots after tagging
+ * Inference Service
+ * 
+ * Applies probabilistic inferences (Level 1+) to shots after tagging is complete.
+ * Note: Deterministic derivations (shot_origin, shot_destination, etc.) are handled 
+ * during tagging in the composers.
  */
 
 import type { DBShot, DBRally } from '@/data'
-import { inferShotType } from '@/rules/inferShotType'
-import { inferSpin } from '@/rules/inferSpin'
-import { inferPlayerPosition } from '@/rules/inferPlayerPosition'
-import { inferDistanceFromTable } from '@/rules/inferDistanceFromTable'
-import { inferPressureLevel, inferIntentQuality } from '@/rules/inferPressure'
 import { shotDb } from '@/data'
+
+// Level 1: Inferences (probabilistic)
+import { inferShotType } from '@/rules/infer/shot-level/inferShotType'
+import { inferSpin } from '@/rules/infer/shot-level/inferSpin'
+import { inferPlayerPosition } from '@/rules/infer/shot-level/inferPlayerPosition'
+import { inferDistanceFromTable } from '@/rules/infer/shot-level/inferDistanceFromTable'
+import { inferPressureLevel, inferIntentQuality } from '@/rules/infer/shot-level/inferPressure'
 
 const { update: updateShot } = shotDb
 
 /**
- * Run inference on all shots in a rally
+ * Run inferences on all shots in a rally
  */
 export async function runInferenceForRally(
   rally: DBRally,
@@ -26,6 +32,10 @@ export async function runInferenceForRally(
   for (let i = 0; i < sortedShots.length; i++) {
     const shot = sortedShots[i]
     const previousShots = sortedShots.slice(0, i)
+    
+    // =========================================================================
+    // LEVEL 1: INFERENCES (probabilistic)
+    // =========================================================================
     
     // Infer shot type
     const { shotType, confidence: shotConfidence } = inferShotType(shot, previousShots)
@@ -45,13 +55,20 @@ export async function runInferenceForRally(
     // Infer intent quality
     const intentQuality = inferIntentQuality(shot)
     
+    // =========================================================================
+    // SPECIAL FLAGS (simple checks)
+    // =========================================================================
+    
     // Check for third ball attack (shot 3, aggressive)
     const isThirdBallAttack = shot.shot_index === 3 && shot.intent === 'aggressive'
     
     // Check for receive attack (shot 2, aggressive)
     const isReceiveAttack = shot.shot_index === 2 && shot.intent === 'aggressive'
     
-    // Update shot with inferred data
+    // =========================================================================
+    // UPDATE SHOT WITH INFERRED DATA
+    // =========================================================================
+    
     await updateShot(shot.id, {
       inferred_shot_type: shotType,
       inferred_shot_confidence: shotConfidence,
@@ -68,7 +85,7 @@ export async function runInferenceForRally(
 }
 
 /**
- * Run inference for all rallies in a set
+ * Run derivations and inferences for all rallies in a set
  */
 export async function runInferenceForSet(
   rallies: DBRally[],
@@ -79,5 +96,3 @@ export async function runInferenceForSet(
     await runInferenceForRally(rally, rallyShots)
   }
 }
-
-

@@ -9,7 +9,7 @@ import { Label } from '@/ui-mine/Label'
 import type { DBMatch, DBSet } from '@/data'
 import { useMatchStore } from '@/data'
 import { setDb } from '@/data'
-import { validateMatchWinner, validatePointScore } from '@/rules/validateMatchData'
+import { validateMatchWinner, validatePointScore } from '@/rules/validate/validateMatchData'
 import type { PlayerId } from '@/rules/types'
 
 interface MatchResultEntryModalProps {

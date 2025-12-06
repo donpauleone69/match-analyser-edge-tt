@@ -13,6 +13,8 @@ import { cn } from '@/helpers/utils'
 import type { Phase1Shot, Phase1Rally } from './Phase1TimestampComposer'
 import { ButtonGrid, ShotQualityToggleBlock, type ShotQuality } from '../blocks'
 import { calculateShotPlayer, type PlayerId } from '@/rules'
+import { extractDestinationFromDirection } from '@/rules/derive/shot/deriveShot_locations'
+import { deriveShot_rally_end_role } from '@/rules/derive/shot/deriveShot_rally_end_role'
 import { shotDb, setDb } from '@/data'
 import {
   Button,
@@ -163,7 +165,14 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
           if (shot.intent) updates.intent = shot.intent
           if (shot.shotQuality) updates.shot_result = shot.shotQuality === 'high' ? 'good' : 'average'
           if (shot.errorType) {
-            updates.rally_end_role = shot.errorType === 'forced' ? 'forced_error' : 'unforced_error'
+            updates.rally_end_role = deriveShot_rally_end_role(
+              {
+                shot_index: shot.shotIndex,
+                shot_result: updates.shot_result || matchingShot.shot_result,
+                is_rally_end: true
+              },
+              shot.errorType
+            )
           }
           
           if (Object.keys(updates).length > 0) {
@@ -365,7 +374,15 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
       if (shot.intent) updates.intent = shot.intent
       if (shot.shotQuality) updates.shot_result = shot.shotQuality === 'high' ? 'good' : 'average'
       if (shot.errorType) {
-        updates.rally_end_role = shot.errorType === 'forced' ? 'forced_error' : 'unforced_error'
+        // Derive rally_end_role using centralized logic
+        updates.rally_end_role = deriveShot_rally_end_role(
+          {
+            shot_index: currentShotIndex + 1,
+            shot_result: updates.shot_result,
+            is_rally_end: true
+          },
+          shot.errorType
+        )
       }
       
       console.log(`[Phase2] Updating shot ${matchingShot.id} with:`, Object.keys(updates))
@@ -444,8 +461,7 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
     if (!prevShot?.direction) return null
     
     // Extract ending position from direction (e.g., 'left_mid' → 'mid')
-    const parts = prevShot.direction.split('_')
-    return parts[1] as 'left' | 'mid' | 'right'
+    return extractDestinationFromDirection(prevShot.direction) || 'mid'
   }
   
   // Helper to get next shot's starting side from receiver's perspective
