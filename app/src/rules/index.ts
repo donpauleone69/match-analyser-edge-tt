@@ -90,43 +90,7 @@ export {
   type VideoCoverageSummary,
 } from './validate/validateVideoCoverage'
 
-// deriveEndOfPoint and deriveMatchScores still at root (will be refactored separately)
-export {
-  deriveEndOfPoint,
-  isLet,
-  createLetResult,
-  completeEndOfPoint,
-  calculateScoreAfterRally,
-  checkSetEnd,
-  checkGameEnd,  // Legacy alias
-  calculateContactsToPrune,
-  type LastShotInput,
-  type DerivedEndOfPoint,
-  type LetInput,
-  type CompleteEndOfPointInput,
-  type ScoreUpdateInput,
-  type ScoreUpdateResult,
-  type SetEndInput,
-  type SetEndResult,
-  type GameEndInput,  // Legacy alias
-  type GameEndResult,  // Legacy alias
-  type AutoPruneInput,
-  type AutoPruneResult,
-} from './deriveEndOfPoint'
-
-export {
-  deriveSetScoreFromRallies,
-  deriveMatchScoreFromSets,
-  deriveSetWinner,
-  deriveRallyWinnerFromShots,
-  deriveCompleteMatchScores,
-  type RallyData,
-  type DerivedSetScore,
-  type SetData,
-  type DerivedMatchScore,
-  type PointScores,
-  type DerivedSetWinner,
-  type ShotData,
-  type DerivedRallyWinner,
-  type CompleteMatchDerivation,
-} from './deriveMatchScores'
+// Legacy files removed - use new granular functions from /derive/ instead
+// If you need these functions, they've been replaced by:
+//   - deriveEndOfPoint → use deriveRally_winner_id, deriveRally_point_end_type, etc.
+//   - deriveMatchScores → use deriveSet_winner_id, deriveMatch_winner_id, etc.

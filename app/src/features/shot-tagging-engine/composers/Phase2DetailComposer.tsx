@@ -13,7 +13,19 @@ import { cn } from '@/helpers/utils'
 import type { Phase1Shot, Phase1Rally } from './Phase1TimestampComposer'
 import { ButtonGrid, ShotQualityToggleBlock, type ShotQuality } from '../blocks'
 import { calculateShotPlayer, type PlayerId } from '@/rules'
-import { extractDestinationFromDirection } from '@/rules/derive/shot/deriveShot_locations'
+import { 
+  extractDestinationFromDirection,
+  mapDirectionToOriginDestination,
+  mapServeLengthUIToDB,
+  mapServeSpinUIToDB,
+  mapStrokeUIToDB,
+  mapShotQualityUIToDB,
+  mapServeLengthDBToUI,
+  mapServeSpinDBToUI,
+  mapWingDBToUI,
+  mapShotResultDBToUI,
+  mapRallyEndRoleDBToUI,
+} from '@/rules/derive/shot/mappers_UI_to_DB'
 import { deriveShot_rally_end_role } from '@/rules/derive/shot/deriveShot_rally_end_role'
 import { shotDb, setDb } from '@/data'
 import {
@@ -150,20 +162,27 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
         if (matchingShot) {
           const updates: any = {}
           
+          // Use centralized mappers for UI → DB transformation
           if (shot.direction) {
-            const [start, end] = shot.direction.split('_')
-            updates.shot_origin = start
-            updates.shot_destination = end
+            const { shot_origin, shot_destination } = mapDirectionToOriginDestination(shot.direction)
+            updates.shot_origin = shot_origin
+            updates.shot_destination = shot_destination
           }
           if (shot.length) {
-            updates.serve_length = shot.length === 'short' ? 'short' : shot.length === 'halflong' ? 'half_long' : 'long'
+            updates.serve_length = mapServeLengthUIToDB(shot.length)
           }
           if (shot.spin) {
-            updates.serve_spin_family = shot.spin === 'underspin' ? 'under' : shot.spin === 'topspin' ? 'top' : 'no_spin'
+            updates.serve_spin_family = mapServeSpinUIToDB(shot.spin)
           }
-          if (shot.stroke) updates.wing = shot.stroke === 'backhand' ? 'BH' : 'FH'
-          if (shot.intent) updates.intent = shot.intent
-          if (shot.shotQuality) updates.shot_result = shot.shotQuality === 'high' ? 'good' : 'average'
+          if (shot.stroke) {
+            updates.wing = mapStrokeUIToDB(shot.stroke)
+          }
+          if (shot.intent) {
+            updates.intent = shot.intent
+          }
+          if (shot.shotQuality) {
+            updates.shot_result = mapShotQualityUIToDB(shot.shotQuality)
+          }
           if (shot.errorType) {
             updates.rally_end_role = deriveShot_rally_end_role(
               {
@@ -229,24 +248,18 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
             
             updatedCount++
             
-            // Merge DB data into shot
+            // Merge DB data into shot using centralized mappers
             return {
               ...shot,
               direction: dbShot.shot_origin && dbShot.shot_destination
                 ? `${dbShot.shot_origin}_${dbShot.shot_destination}` as any
                 : shot.direction,
-              length: dbShot.serve_length === 'short' ? 'short' : 
-                      dbShot.serve_length === 'half_long' ? 'halflong' : 
-                      dbShot.serve_length === 'long' ? 'deep' : shot.length,
-              spin: dbShot.serve_spin_family === 'under' ? 'underspin' : 
-                    dbShot.serve_spin_family === 'top' ? 'topspin' : 
-                    dbShot.serve_spin_family === 'no_spin' ? 'nospin' : shot.spin,
-              stroke: dbShot.wing === 'BH' ? 'backhand' : 
-                      dbShot.wing === 'FH' ? 'forehand' : shot.stroke,
+              length: mapServeLengthDBToUI(dbShot.serve_length) || shot.length,
+              spin: mapServeSpinDBToUI(dbShot.serve_spin_family) || shot.spin,
+              stroke: mapWingDBToUI(dbShot.wing) || shot.stroke,
               intent: dbShot.intent || shot.intent,
-              shotQuality: dbShot.shot_result === 'good' ? 'high' : 'average',
-              errorType: dbShot.rally_end_role === 'forced_error' ? 'forced' : 
-                        dbShot.rally_end_role === 'unforced_error' ? 'unforced' : shot.errorType,
+              shotQuality: mapShotResultDBToUI(dbShot.shot_result) || shot.shotQuality,
+              errorType: mapRallyEndRoleDBToUI(dbShot.rally_end_role) || shot.errorType,
             }
           })
         )
@@ -359,20 +372,27 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
       // We'll just update the fields that Phase 2 adds
       const updates: any = {}
       
+      // Use centralized mappers for UI → DB transformation
       if (shot.direction) {
-        const [start, end] = shot.direction.split('_')
-        updates.shot_origin = start
-        updates.shot_destination = end
+        const { shot_origin, shot_destination } = mapDirectionToOriginDestination(shot.direction)
+        updates.shot_origin = shot_origin
+        updates.shot_destination = shot_destination
       }
       if (shot.length) {
-        updates.serve_length = shot.length === 'short' ? 'short' : shot.length === 'halflong' ? 'half_long' : 'long'
+        updates.serve_length = mapServeLengthUIToDB(shot.length)
       }
       if (shot.spin) {
-        updates.serve_spin_family = shot.spin === 'underspin' ? 'under' : shot.spin === 'topspin' ? 'top' : 'no_spin'
+        updates.serve_spin_family = mapServeSpinUIToDB(shot.spin)
       }
-      if (shot.stroke) updates.wing = shot.stroke === 'backhand' ? 'BH' : 'FH'
-      if (shot.intent) updates.intent = shot.intent
-      if (shot.shotQuality) updates.shot_result = shot.shotQuality === 'high' ? 'good' : 'average'
+      if (shot.stroke) {
+        updates.wing = mapStrokeUIToDB(shot.stroke)
+      }
+      if (shot.intent) {
+        updates.intent = shot.intent
+      }
+      if (shot.shotQuality) {
+        updates.shot_result = mapShotQualityUIToDB(shot.shotQuality)
+      }
       if (shot.errorType) {
         // Derive rally_end_role using centralized logic
         updates.rally_end_role = deriveShot_rally_end_role(

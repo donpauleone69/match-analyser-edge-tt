@@ -14,6 +14,17 @@ import type {
 import type { Phase1Rally, Phase1Shot } from '@/features/shot-tagging-engine/composers/Phase1TimestampComposer'
 import type { DetailedShot } from '@/features/shot-tagging-engine/composers/Phase2DetailComposer'
 import { generateId } from '@/helpers/generateId'
+import {
+  mapDirectionToOriginDestination,
+  mapServeLengthUIToDB,
+  mapServeSpinUIToDB,
+  mapStrokeUIToDB,
+  mapServeLengthDBToUI,
+  mapServeSpinDBToUI,
+  mapWingDBToUI,
+  mapShotResultDBToUI,
+  mapRallyEndRoleDBToUI,
+} from '@/rules/derive/shot/mappers_UI_to_DB'
 
 // =============================================================================
 // PHASE 1 MAPPING (Timestamp Capture ÔåÆ Database)
@@ -125,26 +136,17 @@ export interface DetailedShotData {
 
 /**
  * Extract origin and destination from direction
+ * @deprecated Use mapDirectionToOriginDestination from mappers_UI_to_DB instead
  */
 function parseDirection(direction: DetailedShotData['direction']): {
   origin: TablePosition | null
   destination: TablePosition | null
 } {
-  if (!direction) return { origin: null, destination: null }
-  
-  // Format: "{origin}_{destination}"
-  // e.g. "left_mid" ÔåÆ origin: left, destination: mid
-  const parts = direction.split('_') as [string, string]
-  
-  const toPosition = (str: string): TablePosition => {
-    if (str === 'left') return 'left'
-    if (str === 'right') return 'right'
-    return 'mid'
-  }
-  
+  // Use centralized mapper
+  const { shot_origin, shot_destination } = mapDirectionToOriginDestination(direction)
   return {
-    origin: toPosition(parts[0]),
-    destination: toPosition(parts[1]),
+    origin: shot_origin,
+    destination: shot_destination,
   }
 }
 
@@ -176,18 +178,11 @@ export function mapPhase2DetailToDBShot(
   
   // Serve-specific fields
   if (isServe) {
-    updates.serve_length = data.length === 'short' ? 'short' : 
-                          data.length === 'halflong' ? 'half_long' :
-                          data.length === 'deep' ? 'long' : null
-    
-    updates.serve_spin_family = data.spin === 'underspin' ? 'under' :
-                                data.spin === 'topspin' ? 'top' :
-                                data.spin === 'nospin' ? 'no_spin' : null
+    updates.serve_length = mapServeLengthUIToDB(data.length)
+    updates.serve_spin_family = mapServeSpinUIToDB(data.spin)
   } else {
     // Rally shot fields
-    updates.wing = data.stroke === 'forehand' ? 'FH' : 
-                   data.stroke === 'backhand' ? 'BH' : null
-    
+    updates.wing = mapStrokeUIToDB(data.stroke)
     updates.intent = data.intent as ShotIntent | null
   }
   
@@ -354,13 +349,12 @@ export function convertDBShotToDetailedShot(
     serverId,
     winnerId,
     direction,
-    length: dbShot.serve_length === 'short' ? 'short' : dbShot.serve_length === 'half_long' ? 'halflong' : dbShot.serve_length === 'long' ? 'deep' : undefined,
-    spin: dbShot.serve_spin_family === 'under' ? 'underspin' : dbShot.serve_spin_family === 'no_spin' ? 'nospin' : dbShot.serve_spin_family === 'top' ? 'topspin' : undefined,
-    stroke: dbShot.wing === 'BH' ? 'backhand' : dbShot.wing === 'FH' ? 'forehand' : undefined,
+    length: mapServeLengthDBToUI(dbShot.serve_length) || undefined,
+    spin: mapServeSpinDBToUI(dbShot.serve_spin_family) || undefined,
+    stroke: mapWingDBToUI(dbShot.wing) || undefined,
     intent: dbShot.intent || undefined,
-    errorType: dbShot.rally_end_role === 'forced_error' ? 'forced' : 
-               dbShot.rally_end_role === 'unforced_error' ? 'unforced' : undefined,
-    shotQuality: dbShot.shot_result === 'good' ? 'high' : 'average',
+    errorType: mapRallyEndRoleDBToUI(dbShot.rally_end_role) || undefined,
+    shotQuality: mapShotResultDBToUI(dbShot.shot_result) || 'average',
   }
 }
 
