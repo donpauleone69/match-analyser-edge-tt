@@ -1,4 +1,4 @@
-import { Plus, Play, Clock, TrendingUp, FlaskConical, LayoutDashboard } from 'lucide-react'
+import { Plus, Play, Clock, TrendingUp, LayoutDashboard } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Button, Card, CardHeader, CardTitle, CardContent, Badge } from '../components/ui'
 
@@ -161,45 +161,6 @@ export function Dashboard() {
           </Card>
         </section>
 
-        {/* Experimental Features */}
-        <section>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <FlaskConical className="h-5 w-5 text-warning" />
-                Experimental Features
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <Link to="/tagging-ui-prototype/v1">
-                <div className="flex items-center justify-between p-3 rounded-lg bg-bg-elevated hover:bg-neutral-600 transition-colors">
-                  <div className="flex flex-col gap-1">
-                    <span className="text-neutral-100 font-medium">
-                      Two-Phase Tagging UI Prototype V1
-                    </span>
-                    <span className="text-sm text-neutral-400">
-                      Current stable version • Phase 1: Timestamp capture • Phase 2: Detailed shot tagging
-                    </span>
-                  </div>
-                  <Badge variant="success">Stable</Badge>
-                </div>
-              </Link>
-              <Link to="/tagging-ui-prototype/v2">
-                <div className="flex items-center justify-between p-3 rounded-lg bg-bg-elevated hover:bg-neutral-600 transition-colors">
-                  <div className="flex flex-col gap-1">
-                    <span className="text-neutral-100 font-medium">
-                      Two-Phase Tagging UI Prototype V2
-                    </span>
-                    <span className="text-sm text-neutral-400">
-                      Experimental version for testing new approaches
-                    </span>
-                  </div>
-                  <Badge variant="warning">Beta</Badge>
-                </div>
-              </Link>
-            </CardContent>
-          </Card>
-        </section>
         </div>
       </div>
     </div>

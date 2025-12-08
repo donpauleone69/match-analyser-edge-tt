@@ -1,5 +1,5 @@
 /**
- * Blocks — Presentational components for V2 prototype
+ * Blocks — Presentational components for shot tagging
  */
 
 export { ButtonGrid } from './ButtonGrid'

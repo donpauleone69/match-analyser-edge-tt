@@ -1,5 +1,5 @@
 /**
- * TaggingUIPrototypeComposer — V2 main orchestrator
+ * TaggingUIComposer — Main orchestrator for two-phase tagging
  * 
  * Phase 1: Timestamp capture with 1x4 button layout
  * Phase 2: Sequential question-based shot tagging
@@ -40,13 +40,13 @@ import { calculateShotPlayer } from '@/rules'
 // import { deriveRally_winner_id, getOpponentId } from '@/rules/derive/rally/deriveRally_winner_id'
 import { PreTaggingSetupBlock } from '../blocks/PreTaggingSetupBlock'
 
-export interface TaggingUIPrototypeComposerProps {
+export interface TaggingUIComposerProps {
   className?: string
 }
 
 type Phase = 'setup' | 'pre_setup' | 'phase1' | 'phase2' | 'saving' | 'complete'
 
-export function TaggingUIPrototypeComposer({ className }: TaggingUIPrototypeComposerProps) {
+export function TaggingUIComposer({ className }: TaggingUIComposerProps) {
   const { matchId } = useParams<{ matchId: string }>()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
@@ -638,3 +638,4 @@ export function TaggingUIPrototypeComposer({ className }: TaggingUIPrototypeComp
     />
   )
 }
+

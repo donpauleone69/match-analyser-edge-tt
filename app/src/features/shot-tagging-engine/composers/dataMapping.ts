@@ -1,5 +1,5 @@
 ﻿/**
- * Mapping Service - Convert Prototype V2 data structures to database schema
+ * Mapping Service - Convert tagging UI data structures to database schema
  * 
  * This bridges the gap between the tagging UI and the database
  */

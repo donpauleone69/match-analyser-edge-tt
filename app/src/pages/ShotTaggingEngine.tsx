@@ -1,12 +1,12 @@
 /**
- * TaggingUIPrototypeV2 — Version 2 of tagging UI prototype
+ * ShotTaggingEngine — Two-phase tagging interface
  * 
  * Sequential question-based interface with auto-advance.
- * Route: /tagging-ui-prototype/v2
+ * Route: /matches/:matchId/tag
  */
 
-import { TaggingUIPrototypeComposer } from '@/features/shot-tagging-engine'
+import { TaggingUIComposer } from '@/features/shot-tagging-engine'
 
 export function ShotTaggingEngine() {
-  return <TaggingUIPrototypeComposer />
+  return <TaggingUIComposer />
 }

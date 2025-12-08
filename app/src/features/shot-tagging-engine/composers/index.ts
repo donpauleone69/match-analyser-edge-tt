@@ -1,8 +1,8 @@
 /**
- * Composers — Orchestration components for V2 prototype
+ * Composers — Orchestration components for two-phase tagging
  */
 
-export { TaggingUIPrototypeComposer } from './TaggingUIPrototypeComposer'
+export { TaggingUIComposer } from './TaggingUIComposer'
 export { Phase1TimestampComposer, type Phase1Rally, type Phase1Shot } from './Phase1TimestampComposer'
 export { Phase2DetailComposer } from './Phase2DetailComposer'
 
