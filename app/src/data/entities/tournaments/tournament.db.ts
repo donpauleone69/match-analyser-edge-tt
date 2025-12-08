@@ -5,7 +5,7 @@
 
 import { db } from '@/data/db'
 import type { DBTournament, NewTournament, TournamentType } from './tournament.types'
-import { generateId } from '@/helpers/generateId'
+import { generateTournamentId } from '@/helpers/generateSlugId'
 
 /**
  * Get all tournaments, sorted by start date (newest first)
@@ -45,11 +45,15 @@ export async function searchByName(searchTerm: string): Promise<DBTournament[]> 
 
 /**
  * Create a new tournament
+ * Generates slug ID based on name and start date
  */
 export async function create(data: NewTournament): Promise<DBTournament> {
   const now = new Date().toISOString()
+  const startDate = new Date(data.start_date)
+  const id = generateTournamentId(data.name, startDate)
+  
   const tournament: DBTournament = {
-    id: generateId(),
+    id,
     ...data,
     created_at: now,
     updated_at: now,

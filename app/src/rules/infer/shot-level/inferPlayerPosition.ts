@@ -12,10 +12,10 @@ import type { DBShot } from '@/data'
 export function inferPlayerPosition(
   shot: DBShot
 ): 'wide_fh' | 'normal' | 'wide_bh' | 'very_wide_fh' | 'very_wide_bh' | null {
-  if (!shot.shot_origin || !shot.wing) return null
+  if (!shot.shot_origin || !shot.shot_wing) return null
   
   const origin = shot.shot_origin
-  const wing = shot.wing
+  const wing = shot.shot_wing
   
   // Forehand positions (assuming right-handed player)
   if (wing === 'FH') {

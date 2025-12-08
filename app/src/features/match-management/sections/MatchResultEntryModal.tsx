@@ -63,7 +63,6 @@ export function MatchResultEntryModal({
       bestOf: match.best_of,
       player1SetsWon: player1Sets,
       player2SetsWon: player2Sets,
-      setScoreSummary: `${player1Sets}-${player2Sets}`
     })
     
     setValidationErrors(errors.map(e => e.message))
@@ -98,9 +97,8 @@ export function MatchResultEntryModal({
       
       await updateMatch(match.id, {
         winner_id: actualWinnerId,
-        player1_sets_won: player1Sets,
-        player2_sets_won: player2Sets,
-        set_score_summary: `${player1Sets}-${player2Sets}`
+        player1_sets_final: player1Sets,
+        player2_sets_final: player2Sets,
       })
       
       // 2. Update Set records (if point scores entered)
@@ -118,8 +116,8 @@ export function MatchResultEntryModal({
               : match.player2_id
             
             await setDb.update(sets[i].id, {
-              player1_final_score: validation.p1,
-              player2_final_score: validation.p2,
+              player1_score_final: validation.p1,
+              player2_score_final: validation.p2,
               winner_id: setWinner
             })
           }

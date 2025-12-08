@@ -38,10 +38,10 @@ export async function runInferenceForRally(
     // =========================================================================
     
     // Infer shot type
-    const { shotType, confidence: shotConfidence } = inferShotType(shot, previousShots)
+    const { shotType } = inferShotType(shot, previousShots)
     
     // Infer spin
-    const { spin, confidence: spinConfidence } = inferSpin(shot, previousShots)
+    const { spin } = inferSpin(shot, previousShots)
     
     // Infer player position
     const playerPosition = inferPlayerPosition(shot)
@@ -70,16 +70,14 @@ export async function runInferenceForRally(
     // =========================================================================
     
     await updateShot(shot.id, {
-      inferred_shot_type: shotType,
-      inferred_shot_confidence: shotConfidence,
-      inferred_spin: spin,
-      inferred_spin_confidence: spinConfidence,
-      inferred_player_position: playerPosition,
-      inferred_distance_from_table: distanceFromTable,
-      inferred_pressure_level: pressureLevel,
-      inferred_intent_quality: intentQuality,
-      inferred_is_third_ball_attack: isThirdBallAttack,
-      inferred_is_receive_attack: isReceiveAttack,
+      shot_type: shotType,
+      shot_spin: spin,
+      player_position: playerPosition,
+      player_distance: distanceFromTable,
+      pressure_level: pressureLevel,
+      intent_quality: intentQuality,
+      is_third_ball_attack: isThirdBallAttack,
+      is_receive_attack: isReceiveAttack,
     })
   }
 }

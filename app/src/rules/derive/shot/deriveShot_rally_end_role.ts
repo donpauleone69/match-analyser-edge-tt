@@ -12,7 +12,7 @@
  * - shots.rally_end_role
  */
 
-import type { RallyEndRole } from '../../types'
+import type { RallyEndRole } from '@/data'
 
 export interface ShotForRallyEndRole {
   shot_index: number

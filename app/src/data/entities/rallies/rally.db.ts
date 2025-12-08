@@ -5,7 +5,7 @@
 
 import { db } from '@/data/db'
 import type { DBRally, NewRally } from './rally.types'
-import { generateId } from '@/helpers/generateId'
+import { generateRallyId } from '@/helpers/generateSlugId'
 
 /**
  * Get rallies for a set, sorted by rally index
@@ -26,10 +26,11 @@ export async function getById(id: string): Promise<DBRally | undefined> {
 
 /**
  * Create a new rally
+ * Generates slug ID: {set_id}-r{rally_index}
  */
 export async function create(data: NewRally): Promise<DBRally> {
   const rally: DBRally = {
-    id: generateId(),
+    id: generateRallyId(data.set_id, data.rally_index),
     ...data,
   }
   
@@ -39,10 +40,11 @@ export async function create(data: NewRally): Promise<DBRally> {
 
 /**
  * Bulk create rallies
+ * Generates slug IDs: {set_id}-r{rally_index}
  */
 export async function bulkCreate(rallies: NewRally[]): Promise<DBRally[]> {
   const dbRallies = rallies.map(r => ({
-    id: generateId(),
+    id: generateRallyId(r.set_id, r.rally_index),
     ...r,
   }))
   

@@ -254,12 +254,12 @@ function MatchTable({ match, isExpanded, onToggle, expandedSets, expandedRallies
               <TableRow label="player2_id" value={match.player2_id} />
               <TableRow label="first_server_id" value={match.first_server_id} />
               <TableRow label="winner_id" value={match.winner_id} />
-              <TableRow label="player1_sets_won" value={match.player1_sets_won} />
-              <TableRow label="player2_sets_won" value={match.player2_sets_won} />
+              <TableRow label="player1_sets_final" value={match.player1_sets_final} />
+              <TableRow label="player2_sets_final" value={match.player2_sets_final} />
               <TableRow label="best_of" value={match.best_of} />
-              <TableRow label="set_score_summary" value={match.set_score_summary} />
               <TableRow label="match_date" value={match.match_date} />
               <TableRow label="tagging_mode" value={match.tagging_mode} />
+              <TableRow label="match_detail_level" value={match.match_detail_level} />
               <TableRow label="has_video" value={match.has_video} />
               <TableRow label="video_count" value={match.video_count} />
               <TableRow label="total_coverage" value={match.total_coverage} />
@@ -310,7 +310,7 @@ function SetTable({ set, isExpanded, onToggle, expandedRallies, onToggleRally }:
         )}
         <div className="flex-1">
           <div className="text-sm font-medium text-brand-primary">
-            SET {set.set_number}: {set.player1_final_score}-{set.player2_final_score}
+            SET {set.set_number}: {set.player1_score_final}-{set.player2_score_final}
           </div>
           <div className="text-xs text-neutral-500 mt-1">
             {set.rallies.length} rallies • {set.rallies.reduce((acc, r) => acc + r.shots.length, 0)} shots
@@ -331,19 +331,18 @@ function SetTable({ set, isExpanded, onToggle, expandedRallies, onToggleRally }:
               <TableRow label="id" value={set.id} />
               <TableRow label="match_id" value={set.match_id} />
               <TableRow label="set_number" value={set.set_number} />
-              <TableRow label="player1_final_score" value={set.player1_final_score} />
-              <TableRow label="player2_final_score" value={set.player2_final_score} />
+              <TableRow label="player1_score_final" value={set.player1_score_final} />
+              <TableRow label="player2_score_final" value={set.player2_score_final} />
               <TableRow label="winner_id" value={set.winner_id} />
+              <TableRow label="player1_sets_before" value={set.player1_sets_before} />
+              <TableRow label="player1_sets_after" value={set.player1_sets_after} />
+              <TableRow label="player2_sets_before" value={set.player2_sets_before} />
+              <TableRow label="player2_sets_after" value={set.player2_sets_after} />
               <TableRow label="set_first_server_id" value={set.set_first_server_id} />
               <TableRow label="has_video" value={set.has_video} />
               <TableRow label="video_segments" value={set.video_segments} />
               <TableRow label="video_contexts" value={set.video_contexts} />
               <TableRow label="end_of_set_timestamp" value={set.end_of_set_timestamp} />
-              <TableRow label="derived_player1_final_score" value={set.derived_player1_final_score} />
-              <TableRow label="derived_player2_final_score" value={set.derived_player2_final_score} />
-              <TableRow label="derived_winner_id" value={set.derived_winner_id} />
-              <TableRow label="scores_validated" value={set.scores_validated} />
-              <TableRow label="validation_errors" value={set.validation_errors} />
               <TableRow label="is_tagged" value={set.is_tagged} />
               <TableRow label="tagging_started_at" value={set.tagging_started_at} />
               <TableRow label="tagging_completed_at" value={set.tagging_completed_at} />
@@ -418,8 +417,11 @@ function RallyTable({ rally, rallyNumber, isExpanded, onToggle }: RallyTableProp
               <TableRow label="receiver_id" value={rally.receiver_id} />
               <TableRow label="winner_id" value={rally.winner_id} highlight={!rally.winner_id} />
               <TableRow label="is_scoring" value={rally.is_scoring} />
+              <TableRow label="player1_score_before" value={rally.player1_score_before} />
+              <TableRow label="player2_score_before" value={rally.player2_score_before} />
+              <TableRow label="player1_score_after" value={rally.player1_score_after} />
+              <TableRow label="player2_score_after" value={rally.player2_score_after} />
               <TableRow label="point_end_type" value={rally.point_end_type} highlight={!rally.point_end_type && rally.is_scoring} />
-              <TableRow label="luck_type" value={rally.luck_type} />
               <TableRow label="is_highlight" value={rally.is_highlight} />
               <TableRow label="framework_confirmed" value={rally.framework_confirmed} />
               <TableRow label="detail_complete" value={rally.detail_complete} />
@@ -455,31 +457,36 @@ function ShotTable({ shot }: { shot: DBShot }) {
           <TableRow label="id" value={shot.id} />
           <TableRow label="rally_id" value={shot.rally_id} />
           <TableRow label="video_id" value={shot.video_id} />
-          <TableRow label="time" value={shot.time} />
+          <TableRow label="timestamp_start" value={shot.timestamp_start} />
+          <TableRow label="timestamp_end" value={shot.timestamp_end} />
           <TableRow label="shot_index" value={shot.shot_index} />
           <TableRow label="player_id" value={shot.player_id} />
           {/* Recorded Data */}
           <TableRow label="serve_spin_family" value={shot.serve_spin_family} highlight={shot.shot_index === 1 && !shot.serve_spin_family} />
+          <TableRow label="serve_type" value={shot.serve_type} />
           <TableRow label="shot_length" value={shot.shot_length} highlight={(shot.shot_index === 1 || shot.shot_index === 2) && !shot.shot_length} />
-          <TableRow label="wing" value={shot.wing} highlight={shot.shot_index > 1 && !shot.wing} />
+          <TableRow label="shot_wing" value={shot.shot_wing} highlight={shot.shot_index > 1 && !shot.shot_wing} />
           <TableRow label="intent" value={shot.intent} highlight={shot.shot_index > 1 && !shot.intent} />
           <TableRow label="shot_result" value={shot.shot_result} />
           {/* Derived Data */}
           <TableRow label="shot_origin" value={shot.shot_origin} highlight={!shot.shot_origin} />
           <TableRow label="shot_target" value={shot.shot_target} highlight={!shot.shot_target} />
+          <TableRow label="shot_label" value={shot.shot_label} />
           <TableRow label="is_rally_end" value={shot.is_rally_end} />
           <TableRow label="rally_end_role" value={shot.rally_end_role} />
+          {/* Subjective Data */}
+          <TableRow label="intent_quality" value={shot.intent_quality} />
+          <TableRow label="pressure_level" value={shot.pressure_level} />
           {/* Inferred Data */}
-          <TableRow label="inferred_pressure_level" value={shot.inferred_pressure_level} />
-          <TableRow label="inferred_intent_quality" value={shot.inferred_intent_quality} />
-          <TableRow label="inferred_player_position" value={shot.inferred_player_position} />
-          <TableRow label="inferred_distance_from_table" value={shot.inferred_distance_from_table} />
-          <TableRow label="inferred_shot_type" value={shot.inferred_shot_type} />
-          <TableRow label="inferred_shot_confidence" value={shot.inferred_shot_confidence} />
-          <TableRow label="inferred_spin" value={shot.inferred_spin} />
-          <TableRow label="inferred_spin_confidence" value={shot.inferred_spin_confidence} />
-          <TableRow label="inferred_is_third_ball_attack" value={shot.inferred_is_third_ball_attack} />
-          <TableRow label="inferred_is_receive_attack" value={shot.inferred_is_receive_attack} />
+          <TableRow label="shot_type" value={shot.shot_type} />
+          <TableRow label="shot_contact_timing" value={shot.shot_contact_timing} />
+          <TableRow label="player_position" value={shot.player_position} />
+          <TableRow label="player_distance" value={shot.player_distance} />
+          <TableRow label="shot_spin" value={shot.shot_spin} />
+          <TableRow label="shot_speed" value={shot.shot_speed} />
+          <TableRow label="shot_arc" value={shot.shot_arc} />
+          <TableRow label="is_third_ball_attack" value={shot.is_third_ball_attack} />
+          <TableRow label="is_receive_attack" value={shot.is_receive_attack} />
           <TableRow label="is_tagged" value={shot.is_tagged} />
         </tbody>
       </table>

@@ -5,7 +5,7 @@
 
 import { db } from '@/data/db'
 import type { DBClub, NewClub } from './club.types'
-import { generateId } from '@/helpers/generateId'
+import { generateClubId } from '@/helpers/generateSlugId'
 
 /**
  * Get all clubs, ordered by name
@@ -30,12 +30,14 @@ export async function getByName(name: string): Promise<DBClub | undefined> {
 
 /**
  * Create new club
+ * Generates slug ID based on name and city
  */
 export async function create(data: NewClub): Promise<DBClub> {
   const now = new Date().toISOString()
+  const id = generateClubId(data.name, data.city || 'unknown')
   
   const club: DBClub = {
-    id: generateId(),
+    id,
     ...data,
     created_at: now,
     updated_at: now,

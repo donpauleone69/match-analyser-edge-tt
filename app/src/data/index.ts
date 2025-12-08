@@ -61,9 +61,15 @@ export type {
   RallyEndRole,
   PressureLevel,
   IntentQuality,
-  InferredConfidence,
   ServeSpinFamily,
-  ServeLength,
+  ShotLength,
+  ShotLabel,
+  ShotContactTiming,
+  PlayerPosition,
+  PlayerDistance,
+  ShotSpeed,
+  ShotArc,
+  ServeType,
 } from './entities/shots'
 
 export type {
@@ -72,11 +78,18 @@ export type {
   MatchCoverageType,
 } from './entities/matchVideos'
 
+export type {
+  DBShotInference,
+  NewShotInference,
+  InferenceFieldName,
+} from './entities/shotInferences'
+
 // Export DB operations for entities without stores
 export { matchDb } from './entities/matches'
 export { setDb } from './entities/sets'
 export { rallyDb } from './entities/rallies'
 export { shotDb } from './entities/shots'
+export { shotInferenceDb } from './entities/shotInferences'
 
 // Export match helper functions
 export { getCompleteMatchData, saveCompleteMatch } from './entities/matches'
@@ -87,4 +100,18 @@ export * from './services'
 
 // Export database instance (for advanced use)
 export { db } from './db'
+
+// Export ID generation helpers
+export {
+  generateRallyId,
+  generateShotId,
+  generateMatchId,
+  generateSetId,
+  generatePlayerId,
+  generateClubId,
+  generateTournamentId,
+  generateMatchVideoId,
+  generateShotInferenceId,
+  slugify,
+} from '@/helpers/generateSlugId'
 

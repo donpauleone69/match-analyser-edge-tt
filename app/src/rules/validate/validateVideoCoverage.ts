@@ -23,7 +23,7 @@ export interface VideoSegment {
   endSetNumber: number | null
   endSetScore: string | null
   endPointsScore: string | null
-  coverageType: MatchCoverageType
+  coverageType: 'full_match' | 'single_set' | 'multi_set'
 }
 
 // =============================================================================

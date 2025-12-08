@@ -9,7 +9,7 @@
  * - matches.winner_id
  */
 
-import type { PlayerId } from '../../types'
+type PlayerId = string
 
 export interface SetWithWinner {
   winner_id: PlayerId | null

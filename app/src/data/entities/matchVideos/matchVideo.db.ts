@@ -6,7 +6,7 @@
 
 import { db } from '@/data/db'
 import type { DBMatchVideo, NewMatchVideo } from '@/data'
-import { generateId } from '@/helpers/generateId'
+import { generateMatchVideoId } from '@/helpers/generateSlugId'
 
 // =============================================================================
 // MATCH VIDEO CRUD
@@ -36,9 +36,14 @@ export async function getMatchVideosByMatch(matchId: string): Promise<DBMatchVid
 
 /**
  * Create a new match video segment
+ * Generates slug ID based on match ID and sequence number
  */
 export async function createMatchVideo(data: NewMatchVideo): Promise<DBMatchVideo> {
-  const id = generateId()
+  // Get existing videos to determine next sequence number
+  const existingVideos = await getMatchVideos(data.match_id)
+  const nextSequenceNumber = existingVideos.length + 1
+  const id = generateMatchVideoId(data.match_id, nextSequenceNumber)
+  
   const now = new Date()
   const matchVideo: DBMatchVideo = {
     ...data,

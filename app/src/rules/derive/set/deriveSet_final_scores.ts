@@ -6,8 +6,8 @@
  * - If no rallies, scores are 0-0
  * 
  * Database Fields Populated:
- * - sets.player1_final_score
- * - sets.player2_final_score
+ * - sets.player1_score_final
+ * - sets.player2_score_final
  */
 
 export interface RallyWithScores {
@@ -16,8 +16,8 @@ export interface RallyWithScores {
 }
 
 export interface DerivedSetFinalScores {
-  player1_final_score: number
-  player2_final_score: number
+  player1_score_final: number
+  player2_score_final: number
 }
 
 /**
@@ -31,8 +31,8 @@ export function deriveSet_final_scores(
 ): DerivedSetFinalScores {
   if (rallies.length === 0) {
     return {
-      player1_final_score: 0,
-      player2_final_score: 0
+      player1_score_final: 0,
+      player2_score_final: 0
     }
   }
   
@@ -40,8 +40,8 @@ export function deriveSet_final_scores(
   const lastRally = rallies[rallies.length - 1]
   
   return {
-    player1_final_score: lastRally.player1_score_after,
-    player2_final_score: lastRally.player2_score_after
+    player1_score_final: lastRally.player1_score_after,
+    player2_score_final: lastRally.player2_score_after
   }
 }
 

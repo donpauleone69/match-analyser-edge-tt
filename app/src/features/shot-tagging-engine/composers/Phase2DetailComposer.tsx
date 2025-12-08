@@ -3,7 +3,7 @@
  * 
  * One question at a time with auto-advance.
  * 
- * Serve sequence: Contact → Direction → Length → Spin
+ * Serve sequence: Contact → Direction → Length → Spin → Serve Type
  * Shot sequence: Stroke → Direction → Intent
  * Error sequence: Stroke → Intent → Error Type
  */
@@ -63,7 +63,7 @@ import {
 import { VideoPlayer, type VideoPlayerHandle, useVideoPlaybackStore } from '@/ui-mine/VideoPlayer'
 
 // Question step types
-type ServeStep = 'direction' | 'length' | 'spin'
+type ServeStep = 'direction' | 'length' | 'spin' | 'serveType'
 type ReceiveStep = 'stroke' | 'direction' | 'length' | 'intent'
 type ShotStep = 'stroke' | 'direction' | 'intent'
 type ErrorStep = 'stroke' | 'direction' | 'intent' | 'errorType'
@@ -142,11 +142,11 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
   })
   
   const [currentShotIndex, setCurrentShotIndex] = useState(resumeFromShotIndex)
-  const [isSaving, setIsSaving] = useState(false)
-  const [lastSaveTime, setLastSaveTime] = useState<Date | null>(null)
+  const [, setIsSaving] = useState(false)
+  const [, setLastSaveTime] = useState<Date | null>(null)
   
   // Manual save all Phase 2 progress
-  const handleManualSave = async () => {
+  const _handleManualSave = async () => {
     if (!setId || !player1Id || !player2Id) {
       alert('Cannot save - missing database context')
       return
@@ -180,7 +180,7 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
             updates.serve_spin_family = mapServeSpinUIToDB(shot.spin)
           }
           if (shot.stroke) {
-            updates.wing = mapStrokeUIToDB(shot.stroke)
+            updates.shot_wing = mapStrokeUIToDB(shot.stroke)
           }
           if (shot.intent) {
             updates.intent = shot.intent
@@ -261,7 +261,7 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
                 : shot.direction,
               length: mapShotLengthDBToUI(dbShot.shot_length) || shot.length,
               spin: mapServeSpinDBToUI(dbShot.serve_spin_family) || shot.spin,
-              stroke: mapWingDBToUI(dbShot.wing) || shot.stroke,
+              stroke: mapWingDBToUI(dbShot.shot_wing) || shot.stroke,
               intent: dbShot.intent || shot.intent,
               shotQuality: mapShotResultDBToUI(dbShot.shot_result) || shot.shotQuality,
               errorType: mapRallyEndRoleDBToUI(dbShot.rally_end_role) || shot.errorType,
@@ -315,7 +315,7 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
   
   // Check if current step is the last question for this shot
   const isLastQuestion = (step: QuestionStep, shot: DetailedShot): boolean => {
-    if (shot.isServe) return step === 'spin'
+    if (shot.isServe) return step === 'serveType'
     if (shot.isError) return step === 'errorType'
     if (shot.isReceive) return step === 'intent'
     return step === 'intent' // Regular shots
@@ -325,11 +325,12 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
   const getNextStep = (current: QuestionStep): QuestionStep => {
     if (!currentShot) return 'complete'
     
-    // Serve flow: direction → length → spin → next shot
+    // Serve flow: direction → length → spin → serveType → next shot
     if (currentShot.isServe) {
       if (current === 'direction') return 'length'
       if (current === 'length') return 'spin'
-      if (current === 'spin') return advanceToNextShot()
+      if (current === 'spin') return 'serveType'
+      if (current === 'serveType') return advanceToNextShot()
     }
     
     // Error shot flow: stroke → direction → intent → errorType → next shot
@@ -426,7 +427,7 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
         updates.serve_spin_family = mapServeSpinUIToDB(shot.spin)
       }
       if (shot.stroke) {
-        updates.wing = mapStrokeUIToDB(shot.stroke)
+        updates.shot_wing = mapStrokeUIToDB(shot.stroke)
       }
       if (shot.intent) {
         updates.intent = shot.intent
@@ -465,7 +466,7 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
       console.log(`[Phase2] ✓ Verified saved shot in DB:`, {
         id: verifyShot?.id,
         shot_index: verifyShot?.shot_index,
-        wing: verifyShot?.wing,
+        wing: verifyShot?.shot_wing,
         serve_spin_family: verifyShot?.serve_spin_family,
         shot_origin: verifyShot?.shot_origin,
         shot_target: verifyShot?.shot_target,
@@ -571,7 +572,7 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
   
   // Progress info
   const progress = `${currentShotIndex + 1} of ${allShots.length}`
-  const progressPercent = Math.round((currentShotIndex / allShots.length) * 100)
+  // const progressPercent = Math.round((currentShotIndex / allShots.length) * 100)
   const shotLabel = currentShot.isServe ? 'Serve' : `Shot ${currentShot.shotIndex}`
   
   // Build current question label for status bar
@@ -752,6 +753,24 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
             <NoSpinButton onClick={() => handleAnswer('spin', 'nospin')} />
             <TopspinButton onClick={() => handleAnswer('spin', 'topspin')} />
           </ButtonGrid>
+        )}
+        
+        {currentShot.isServe && currentStep === 'serveType' && (
+          <div className="space-y-2">
+            <ButtonGrid columns={2}>
+              <Button onClick={() => handleAnswer('serveType', 'serve')}>Serve (Unknown)</Button>
+              <Button onClick={() => handleAnswer('serveType', 'pendulum')}>Pendulum</Button>
+            </ButtonGrid>
+            <ButtonGrid columns={3}>
+              <Button onClick={() => handleAnswer('serveType', 'backhand')}>Backhand</Button>
+              <Button onClick={() => handleAnswer('serveType', 'reverse_tomahawk')}>Reverse Tomahawk</Button>
+              <Button onClick={() => handleAnswer('serveType', 'tomahawk')}>Tomahawk</Button>
+            </ButtonGrid>
+            <ButtonGrid columns={2}>
+              <Button onClick={() => handleAnswer('serveType', 'hook')}>Hook</Button>
+              <Button onClick={() => handleAnswer('serveType', 'lolipop')}>Lolipop</Button>
+            </ButtonGrid>
+          </div>
         )}
         
         {/* Receive (shot #2) questions - only if NOT an error */}

@@ -104,7 +104,9 @@ export function StatsComposer({ initialPlayerId }: StatsComposerProps) {
   
   // Get player names for display
   const selectedPlayer = players.find(p => p.id === selectedPlayerId)
-  const player1Name = selectedPlayer?.name || 'Player 1'
+  const player1Name = selectedPlayer 
+    ? `${selectedPlayer.first_name} ${selectedPlayer.last_name}`
+    : 'Player 1'
   const player2Name = 'Opponent' // TODO: Get actual opponent name from match data
   
   // Derive stats
@@ -173,7 +175,7 @@ export function StatsComposer({ initialPlayerId }: StatsComposerProps) {
             >
               {players.map(player => (
                 <option key={player.id} value={player.id}>
-                  {player.name}
+                  {`${player.first_name} ${player.last_name}`}
                 </option>
               ))}
             </select>

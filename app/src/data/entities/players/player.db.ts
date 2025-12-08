@@ -5,7 +5,7 @@
 
 import { db } from '@/data/db'
 import type { DBPlayer, NewPlayer } from './player.types'
-import { generateId } from '@/helpers/generateId'
+import { generatePlayerId } from '@/helpers/generateSlugId'
 
 /**
  * Get all players (non-archived), sorted by last name
@@ -57,11 +57,14 @@ export async function getByClub(clubId: string): Promise<DBPlayer[]> {
 
 /**
  * Create a new player
+ * Generates slug ID based on first and last name
  */
 export async function create(data: NewPlayer): Promise<DBPlayer> {
   const now = new Date().toISOString()
+  const id = generatePlayerId(data.first_name, data.last_name)
+  
   const player: DBPlayer = {
-    id: generateId(),
+    id,
     ...data,
     created_at: now,
     updated_at: now,

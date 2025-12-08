@@ -21,7 +21,7 @@ export const validMatch3To2: MatchValidationInput = {
   bestOf: 5,
   player1SetsWon: 3,
   player2SetsWon: 2,
-  setScoreSummary: '3-2'
+  //setScoreSummary: '3-2'
 }
 
 export const validMatch3To1: MatchValidationInput = {
@@ -29,7 +29,7 @@ export const validMatch3To1: MatchValidationInput = {
   bestOf: 5,
   player1SetsWon: 3,
   player2SetsWon: 1,
-  setScoreSummary: '3-1'
+  //setScoreSummary: '3-1'
 }
 
 export const validMatchBestOf3: MatchValidationInput = {
@@ -37,7 +37,7 @@ export const validMatchBestOf3: MatchValidationInput = {
   bestOf: 3,
   player1SetsWon: 1,
   player2SetsWon: 2,
-  setScoreSummary: '1-2'
+  //setScoreSummary: '1-2'
 }
 
 // =============================================================================
@@ -49,7 +49,7 @@ export const invalidMatchWrongWinner: MatchValidationInput = {
   bestOf: 5,
   player1SetsWon: 2,
   player2SetsWon: 3,
-  setScoreSummary: '2-3'
+  //setScoreSummary: '2-3'
 }
 
 export const invalidMatchTooManySets: MatchValidationInput = {
@@ -57,7 +57,7 @@ export const invalidMatchTooManySets: MatchValidationInput = {
   bestOf: 5,
   player1SetsWon: 4,  // Total = 6, exceeds best of 5
   player2SetsWon: 2,
-  setScoreSummary: '4-2'
+  //setScoreSummary: '4-2'
 }
 
 export const invalidMatchScoreMismatch: MatchValidationInput = {
@@ -65,7 +65,7 @@ export const invalidMatchScoreMismatch: MatchValidationInput = {
   bestOf: 5,
   player1SetsWon: 3,
   player2SetsWon: 2,
-  setScoreSummary: '3-1'  // Doesn't match 3-2
+  //setScoreSummary: '3-1'  // Doesn't match 3-2
 }
 
 // =============================================================================

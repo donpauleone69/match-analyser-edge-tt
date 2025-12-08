@@ -36,7 +36,7 @@ export function infer3BallPattern(
   // Build pattern string
   const serveSpinPart = serve.serve_spin_family || 'unknown'
   const serveLengthPart = serve.shot_length || 'unknown'
-  const receiveWingPart = receive.wing || 'unknown'
+  const receiveWingPart = receive.shot_wing || 'unknown'
   const receiveIntentPart = receive.intent || 'neutral'
   const thirdBallIntentPart = thirdBall.intent || 'neutral'
   const thirdBallDestPart = thirdBall.shot_target || 'unknown'
@@ -150,7 +150,7 @@ export function detectWeaknessExploitation(
   isExploiting: boolean
 } {
   // Get opponent's shots
-  const opponentShots = allShots.filter(s => s.player_id === opponentId && s.shot_target)
+  // const opponentShots = allShots.filter(s => s.player_id === opponentId && s.shot_target)
   
   // Get player's response shots (shot after opponent's shot)
   const playerResponses: Array<{ zone: string; isError: boolean }> = []

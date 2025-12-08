@@ -76,11 +76,11 @@ export function MatchFormSection({ players, tournaments }: MatchFormSectionProps
         
         // Defaults - unknown at creation time
         first_server_id: 'player1', // Temporary default (will be set per-set during tagging)
-        player1_sets_won: 0,
-        player2_sets_won: 0,
+        player1_sets_final: 0,
+        player2_sets_final: 0,
         winner_id: null,
-        set_score_summary: null,
         tagging_mode: null,
+        match_detail_level: 'result_only', // Will be updated as tagging progresses
         has_video: false,
         video_count: 0,
         total_coverage: 'partial',
@@ -99,9 +99,13 @@ export function MatchFormSection({ players, tournaments }: MatchFormSectionProps
           match_id: matchId,
           set_number: setNumber,
           set_first_server_id: setFirstServerId,
-          player1_final_score: 0,
-          player2_final_score: 0,
+          player1_score_final: 0,
+          player2_score_final: 0,
           winner_id: null,
+          player1_sets_before: 0,
+          player1_sets_after: 0,
+          player2_sets_before: 0,
+          player2_sets_after: 0,
           has_video: false,
           video_segments: [],
           video_contexts: null,

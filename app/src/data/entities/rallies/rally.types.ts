@@ -3,36 +3,31 @@
  */
 
 export interface DBRally {
-  id: string
-  set_id: string
+  id: string // Slug format: {set_id}-r{num}
+  set_id: string // FK (slug)
   rally_index: number
   
   // Video reference (MULTI-VIDEO)
-  video_id: string | null            // Which video segment is this rally in?
+  video_id: string | null            // Which video segment is this rally in? (FK slug)
   has_video_data: boolean            // False if score-only (no video coverage)
   end_of_point_time: number | null   // Timestamp WITHIN the video_id video (rally end, NOT last shot)
   
   // Participants
-  server_id: string
-  receiver_id: string
+  server_id: string // FK (slug)
+  receiver_id: string // FK (slug)
   
   // Outcome
   is_scoring: boolean
-  winner_id: string | null
+  winner_id: string | null // FK (slug)
   
   // Score progression (WITHIN SET)
+  player1_score_before: number
+  player2_score_before: number
   player1_score_after: number
   player2_score_after: number
   
-  // Set context (for validation - from Set table)
-  set_player1_final_score: number
-  set_player2_final_score: number
-  set_winner_id: string | null
-  
   // Rally end details
   point_end_type: 'serviceFault' | 'receiveError' | 'forcedError' | 'unforcedError' | 'winnerShot' | null
-  luck_type: 'none' | 'luckyNet' | 'luckyEdgeTable' | 'luckyEdgeBat' | null
-  opponent_luck_overcome: boolean | null
   
   // Workflow
   is_highlight: boolean

@@ -7,7 +7,7 @@
  * No React, no IO — deterministic validation only.
  */
 
-import type { PlayerId } from './types'
+type PlayerId = string
 import type { BestOf } from '@/data'
 
 // =============================================================================
@@ -29,14 +29,13 @@ export interface MatchValidationInput {
   bestOf: BestOf
   player1SetsWon: number
   player2SetsWon: number
-  setScoreSummary?: string | null  // e.g., "3-2"
 }
 
 /**
  * Validate match winner matches set scores
  */
 export function validateMatchWinner(input: MatchValidationInput): ValidationError[] {
-  const { winnerId, bestOf, player1SetsWon, player2SetsWon, setScoreSummary } = input
+  const { winnerId, bestOf, player1SetsWon, player2SetsWon } = input
   const errors: ValidationError[] = []
   
   const totalSets = player1SetsWon + player2SetsWon
@@ -62,7 +61,7 @@ export function validateMatchWinner(input: MatchValidationInput): ValidationErro
   // Check: loser doesn't have enough to win
   if (winnerId === 'player1' && player2SetsWon >= setsToWin) {
     errors.push({
-      field: 'player2_sets_won',
+      field: 'player2_sets_final',
       message: `Player 2 has ${player2SetsWon} sets (enough to win) but Player 1 is marked as winner`,
       severity: 'error'
     })
@@ -70,7 +69,7 @@ export function validateMatchWinner(input: MatchValidationInput): ValidationErro
   
   if (winnerId === 'player2' && player1SetsWon >= setsToWin) {
     errors.push({
-      field: 'player1_sets_won',
+      field: 'player1_sets_final',
       message: `Player 1 has ${player1SetsWon} sets (enough to win) but Player 2 is marked as winner`,
       severity: 'error'
     })
@@ -83,21 +82,6 @@ export function validateMatchWinner(input: MatchValidationInput): ValidationErro
       message: `Total sets (${totalSets}) exceeds best of ${bestOf}`,
       severity: 'error'
     })
-  }
-  
-  // Check: set score summary matches individual counts
-  if (setScoreSummary) {
-    const parts = setScoreSummary.split('-').map(s => parseInt(s.trim(), 10))
-    if (parts.length === 2) {
-      const [summaryP1, summaryP2] = parts
-      if (summaryP1 !== player1SetsWon || summaryP2 !== player2SetsWon) {
-        errors.push({
-          field: 'set_score_summary',
-          message: `Set score summary "${setScoreSummary}" doesn't match counts (${player1SetsWon}-${player2SetsWon})`,
-          severity: 'warning'
-        })
-      }
-    }
   }
   
   return errors

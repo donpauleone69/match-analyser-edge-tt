@@ -2,10 +2,10 @@
  * PlayerListSection - Display list of players
  */
 
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import { Button } from '@/ui-mine/Button'
 import { Card } from '@/ui-mine/Card'
-import type { DBPlayer, DBClub } from '@/data'
+import type { DBPlayer } from '@/data'
 import { usePlayerStore, useClubStore } from '@/data'
 
 interface PlayerListSectionProps {

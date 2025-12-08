@@ -51,8 +51,8 @@ export function SetSelectionModal({
   const handleEditSetScores = (setNumber: number, currentSet: DBSet) => {
     setEditingSetScores(setNumber)
     setSetScoreForm({
-      player1Score: currentSet.player1_final_score,
-      player2Score: currentSet.player2_final_score,
+      player1Score: currentSet.player1_score_final,
+      player2Score: currentSet.player2_score_final,
     })
   }
 
@@ -75,8 +75,8 @@ export function SetSelectionModal({
       }
       
       await updateSet(set.id, {
-        player1_final_score: p1Score,
-        player2_final_score: p2Score,
+        player1_score_final: p1Score,
+        player2_score_final: p2Score,
         winner_id: winnerId,
       })
       
@@ -262,7 +262,7 @@ export function SetSelectionModal({
                           </div>
                           <div className="flex items-center gap-3 text-xs md:text-sm text-neutral-400">
                             <span className="font-mono">
-                              {set.player1_final_score} - {set.player2_final_score}
+                              {set.player1_score_final} - {set.player2_score_final}
                             </span>
                             {set.winner_id && (
                               <span className="text-neutral-500 truncate">

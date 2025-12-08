@@ -5,19 +5,17 @@
  * - Count how many sets each player won
  * 
  * Database Fields Populated:
- * - matches.player1_sets_won
- * - matches.player2_sets_won
+ * - matches.player1_sets_final
+ * - matches.player2_sets_final
  */
 
-import type { PlayerId } from '../../types'
+import type { SetWithWinner } from './deriveMatch_winner_id'
 
-export interface SetWithWinner {
-  winner_id: PlayerId | null
-}
+type PlayerId = string
 
 export interface DerivedMatchSetsWon {
-  player1_sets_won: number
-  player2_sets_won: number
+  player1_sets_final: number
+  player2_sets_final: number
 }
 
 /**
@@ -33,12 +31,12 @@ export function deriveMatch_sets_won(
   player1Id: PlayerId,
   player2Id: PlayerId
 ): DerivedMatchSetsWon {
-  const player1_sets_won = sets.filter(s => s.winner_id === player1Id).length
-  const player2_sets_won = sets.filter(s => s.winner_id === player2Id).length
+  const player1_sets_final = sets.filter(s => s.winner_id === player1Id).length
+  const player2_sets_final = sets.filter(s => s.winner_id === player2Id).length
   
   return {
-    player1_sets_won,
-    player2_sets_won
+    player1_sets_final,
+    player2_sets_final
   }
 }
 

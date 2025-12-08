@@ -3,9 +3,9 @@
  */
 
 export interface DBClub {
-  id: string
+  id: string // Slug format: {name}-{city}-{id4}
   name: string
-  location: string | null
+  city: string | null
   created_at: string
   updated_at: string
 }

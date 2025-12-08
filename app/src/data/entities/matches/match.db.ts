@@ -8,7 +8,7 @@ import type { DBMatch, NewMatch } from './match.types'
 import type { DBSet } from '../sets/set.types'
 import type { DBRally } from '../rallies/rally.types'
 import type { DBShot } from '../shots/shot.types'
-import { generateId } from '@/helpers/generateId'
+import { generateMatchId } from '@/helpers/generateSlugId'
 
 // Named export for consistency with other entities
 export const matchDb = {
@@ -51,10 +51,29 @@ export async function getIncomplete(): Promise<DBMatch[]> {
 
 /**
  * Create a new match
+ * Generates slug ID based on player names and match date
  */
 export async function create(data: NewMatch): Promise<DBMatch> {
+  // Look up player names to generate slug
+  const player1 = await db.players.get(data.player1_id)
+  const player2 = await db.players.get(data.player2_id)
+  
+  if (!player1 || !player2) {
+    throw new Error('Cannot create match: player not found')
+  }
+  
+  // Generate slug ID: {p1short}-vs-{p2short}-{yyyymmdd}-{id4}
+  const matchDate = new Date(data.match_date)
+  const id = generateMatchId(
+    player1.first_name,
+    player1.last_name,
+    player2.first_name,
+    player2.last_name,
+    matchDate
+  )
+  
   const match: DBMatch = {
-    id: generateId(),
+    id,
     ...data,
     created_at: new Date().toISOString(),
   }

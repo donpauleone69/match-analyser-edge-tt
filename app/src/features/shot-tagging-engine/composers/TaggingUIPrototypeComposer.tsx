@@ -32,11 +32,12 @@ import {
   mapPhase2DetailToDBShot,
   calculateScoresForRallies,
   markRallyEndShots,
+  applyTimestampEnd,
   type DetailedShotData,
 } from './dataMapping'
 import { runInferenceForSet } from './runInference'
 import { calculateShotPlayer } from '@/rules'
-import { deriveRally_winner_id, getOpponentId } from '@/rules/derive/rally/deriveRally_winner_id'
+// import { deriveRally_winner_id, getOpponentId } from '@/rules/derive/rally/deriveRally_winner_id'
 import { PreTaggingSetupBlock } from '../blocks/PreTaggingSetupBlock'
 
 export interface TaggingUIPrototypeComposerProps {
@@ -304,6 +305,11 @@ export function TaggingUIPrototypeComposer({ className }: TaggingUIPrototypeComp
         return
       }
       
+      // CRITICAL: Delete any existing rallies/shots for this set to prevent duplicates
+      console.log('[Save] Step 0: Cleaning up existing data...')
+      await deleteSetTaggingData(setData.id)
+      console.log('[Save] ✓ Step 0 complete: Existing data cleared')
+      
       // Update the existing set with first server info if needed
       const firstServerId = phase1Rallies[0]?.serverId === 'player1' 
         ? currentMatch.player1_id 
@@ -314,15 +320,17 @@ export function TaggingUIPrototypeComposer({ className }: TaggingUIPrototypeComp
         has_video: true,
       })
       
-      // Map Phase 1 rallies to database rallies
       const dbRallies = phase1Rallies.map((rally, index) => 
         mapPhase1RallyToDBRally(rally, setData.id, index + 1, currentMatch.player1_id, currentMatch.player2_id)
       )
+      console.log(`[Save] ✓ Step 1 complete: Mapped ${dbRallies.length} rallies`)
       
-      // Save all rallies
+      // Save all rallies (IDs will be generated automatically)
+      console.log('[Save] Step 1b: Saving rallies to database...')
       const savedRallies = await Promise.all(
         dbRallies.map(rally => createRally(rally))
       )
+      console.log(`[Save] ✓ Step 1b complete: Saved ${savedRallies.length} rallies with slug IDs`)
       
       // Build a map from Phase1Rally.id to saved DBRally
       const rallyIdMap = new Map<string, string>()
@@ -330,8 +338,9 @@ export function TaggingUIPrototypeComposer({ className }: TaggingUIPrototypeComp
         rallyIdMap.set(p1Rally.id, savedRallies[index].id)
       })
       
-      // Map and save all shots (Phase 1 structure + Phase 2 details)
-      const dbShots = detailedShots.map(detailedShot => {
+      // Map all shots (Phase 1 structure + Phase 2 details)
+      console.log('[Save] Step 2: Mapping shots...')
+      const newShots = detailedShots.map(detailedShot => {
         const dbRallyId = rallyIdMap.get(detailedShot.rallyId)
         if (!dbRallyId) throw new Error('Rally mapping failed')
         
@@ -361,22 +370,28 @@ export function TaggingUIPrototypeComposer({ className }: TaggingUIPrototypeComp
         
         return { ...baseShot, ...phase2Updates }
       })
+      console.log(`[Save] ✓ Step 2 complete: Mapped ${newShots.length} shots`)
+      
+      // Apply timestamp_end to all shots
+      console.log('[Save] Step 3: Calculating timestamp_end...')
+      const shotsWithTimestamps = applyTimestampEnd(newShots, savedRallies)
+      console.log(`[Save] ✓ Step 3 complete: Applied timestamps`)
       
       // Mark rally-ending shots
-      console.log('[Save] Step 2: Marking rally end shots...')
-      const shotsWithEndMarkers = markRallyEndShots(dbShots, savedRallies)
-      console.log(`[Save] ✓ Step 2 complete: Marked ${shotsWithEndMarkers.length} shots`)
+      console.log('[Save] Step 4: Marking rally end shots...')
+      const shotsWithEndMarkers = markRallyEndShots(shotsWithTimestamps, savedRallies)
+      console.log(`[Save] ✓ Step 4 complete: Marked ${shotsWithEndMarkers.length} shots`)
       
-      // Save all shots
-      console.log('[Save] Step 3: Saving shots to database...')
-      await Promise.all(shotsWithEndMarkers.map(shot => createShot(shot)))
-      console.log(`[Save] ✓ Step 3 complete: Saved ${shotsWithEndMarkers.length} shots`)
+      // Save all shots (IDs will be generated automatically)
+      console.log('[Save] Step 5: Saving shots to database...')
+      const savedShots = await Promise.all(shotsWithEndMarkers.map(shot => createShot(shot)))
+      console.log(`[Save] ✓ Step 5 complete: Saved ${savedShots.length} shots`)
       
       // Determine rally winners and update rally scores
-      console.log('[Save] Step 4: Determining rally winners...')
+      console.log('[Save] Step 6: Determining rally winners...')
       // For now, winner is determined by who made the error
       const ralliesWithWinners = savedRallies.map((rally) => {
-        const rallyShots = shotsWithEndMarkers.filter(s => s.rally_id === rally.id)
+        const rallyShots = savedShots.filter(s => s.rally_id === rally.id)
         const lastShot = rallyShots[rallyShots.length - 1]
         
         // Winner is the other player if last shot was an error
@@ -389,24 +404,24 @@ export function TaggingUIPrototypeComposer({ className }: TaggingUIPrototypeComp
         
         return rally
       })
-      console.log(`[Save] ✓ Step 4 complete: Determined winners for ${ralliesWithWinners.length} rallies`)
+      console.log(`[Save] ✓ Step 6 complete: Determined winners for ${ralliesWithWinners.length} rallies`)
       
       // Calculate scores
-      console.log('[Save] Step 5: Calculating rally scores...')
+      console.log('[Save] Step 7: Calculating rally scores...')
       const ralliesWithScores = calculateScoresForRallies(
         ralliesWithWinners,
         currentMatch.player1_id,
         currentMatch.player2_id
       )
-      console.log(`[Save] ✓ Step 5 complete: Calculated scores for ${ralliesWithScores.length} rallies`)
+      console.log(`[Save] ✓ Step 7 complete: Calculated scores for ${ralliesWithScores.length} rallies`)
       
       // Update all rallies with winner and scores
-      console.log('[Save] Step 6: Updating rallies in database...')
+      console.log('[Save] Step 8: Updating rallies in database...')
       await Promise.all(ralliesWithScores.map(rally => updateRally(rally.id, rally)))
-      console.log(`[Save] ✓ Step 6 complete: Updated ${ralliesWithScores.length} rallies`)
+      console.log(`[Save] ✓ Step 8 complete: Updated ${ralliesWithScores.length} rallies`)
       
       // Update set final scores and winner
-      console.log('[Save] Step 7: Updating set final scores...')
+      console.log('[Save] Step 9: Updating set final scores...')
       const finalRally = ralliesWithScores[ralliesWithScores.length - 1]
       if (finalRally) {
         // Determine winner based on final score
@@ -417,26 +432,49 @@ export function TaggingUIPrototypeComposer({ className }: TaggingUIPrototypeComp
           : null
         
         await updateSetService(setData.id, {
-          player1_final_score: finalRally.player1_score_after,
-          player2_final_score: finalRally.player2_score_after,
+          player1_score_final: finalRally.player1_score_after,
+          player2_score_final: finalRally.player2_score_after,
           winner_id: winnerId,
         })
       }
-      console.log('[Save] ✓ Step 7 complete: Updated set scores')
+      console.log('[Save] ✓ Step 9 complete: Updated set scores')
       
       // Run inference on all shots
-      console.log('[Save] Step 8: Running inference...')
-      await runInferenceForSet(ralliesWithScores, shotsWithEndMarkers)
-      console.log('[Save] ✓ Step 8 complete: Inference done')
+      console.log('[Save] Step 10: Running inference...')
+      await runInferenceForSet(ralliesWithScores, savedShots)
+      console.log('[Save] ✓ Step 10 complete: Inference done')
       
       // Mark set as tagging completed
-      console.log('[Save] Step 9: Marking set as complete...')
+      console.log('[Save] Step 11: Marking set as complete...')
       await markSetTaggingCompleted(setData.id)
-      console.log('[Save] ✓ Step 9 complete: Set marked as complete')
+      console.log('[Save] ✓ Step 11 complete: Set marked as complete')
       
       // Update match set counts based on all tagged sets
-      console.log('[Save] Step 10: Updating match...')
+      console.log('[Save] Step 12: Updating match and calculating sets_before/after...')
       const allSets = await getSetsByMatchId(matchId)
+      
+      // Calculate sets_before/after for each set
+      const { calculateSetsBeforeAfter } = await import('./dataMapping')
+      const setsMap = calculateSetsBeforeAfter(
+        allSets.map(s => ({ set_number: s.set_number, winner_id: s.winner_id })),
+        currentMatch.player1_id,
+        currentMatch.player2_id
+      )
+      
+      // Update each set with its sets_before/after values
+      for (const set of allSets) {
+        const setsCounts = setsMap.get(set.set_number)
+        if (setsCounts) {
+          await updateSetService(set.id, {
+            player1_sets_before: setsCounts.player1_sets_before,
+            player1_sets_after: setsCounts.player1_sets_after,
+            player2_sets_before: setsCounts.player2_sets_before,
+            player2_sets_after: setsCounts.player2_sets_after,
+          })
+        }
+      }
+      console.log(`[Save] ✓ Updated sets_before/after for ${allSets.length} sets`)
+      
       const player1SetsWon = allSets.filter(s => s.winner_id === currentMatch.player1_id && s.is_tagged).length
       const player2SetsWon = allSets.filter(s => s.winner_id === currentMatch.player2_id && s.is_tagged).length
       const matchWinnerId = player1SetsWon > player2SetsWon 
@@ -445,11 +483,12 @@ export function TaggingUIPrototypeComposer({ className }: TaggingUIPrototypeComp
         ? currentMatch.player2_id
         : null
       
-      // Update match with tagged set counts
+      // Update match with tagged set counts and detail level
       await updateMatch(matchId, {
-        player1_sets_won: player1SetsWon,
-        player2_sets_won: player2SetsWon,
+        player1_sets_final: player1SetsWon,
+        player2_sets_final: player2SetsWon,
         winner_id: matchWinnerId,
+        match_detail_level: 'shots', // Completed Phase 2 means shot-level detail
       })
       console.log('[Save] ✓ Step 10 complete: Match updated')
       console.log('[Save] ✅ ALL STEPS COMPLETE - Tagging successful!')

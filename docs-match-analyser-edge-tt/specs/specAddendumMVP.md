@@ -6,6 +6,377 @@
 
 ## Change Log
 
+### 2025-12-08: Fixed Slug ID Generation for All Entities (v3.0.2)
+
+**Complete implementation of slug-based ID generation across all entity types.**
+
+#### Issue
+
+Despite earlier fixes to rally and shot ID generation, the core entity creation (Players, Clubs, Tournaments, Matches, Sets, MatchVideos, ShotInferences) were still using the old `generateId()` helper that produced random IDs instead of proper human-readable slugs. The `generateSlugId.ts` helper existed but was incomplete and not properly integrated with entity creation.
+
+#### Root Cause
+
+- Multiple ID generation files existed (`generateId.ts`, `generateSlugId.ts`, `slugGenerator.ts`) causing confusion
+- Entity `.db.ts` files were importing old `generateId()` instead of slug generators
+- `generateMatchId()` had incorrect signature - tried to extract player names from player IDs instead of receiving names as parameters
+- Player, club, and tournament slug generators were truncating names (taking only first word) instead of using full slugified names
+- No proper `shortenPlayerName()` implementation for match slugs (should be `jsmith` not `john-smith`)
+
+#### Fix
+
+**1. Unified Slug Generation (`generateSlugId.ts`)**
+- Fixed `generateId4()` to use proper random character selection (not `.toString(36)` which can be too short)
+- Fixed `slugify()` to preserve full text and collapse multiple hyphens
+- Added `shortenPlayerName()` helper: `"John" "Smith" → "jsmith"` (first initial + last name)
+- Fixed `generateMatchId()` signature to accept 4 name parameters + date (not player IDs)
+- Fixed `generatePlayerId()`, `generateClubId()`, `generateTournamentId()` to use full names (not truncated)
+- All generators now include proper examples in JSDoc comments
+
+**2. Updated All Entity Creation Functions**
+
+Updated `create()` functions in:
+- `matches/match.db.ts`: Look up player names from IDs, generate proper match slug
+- `players/player.db.ts`: Use `generatePlayerId()` with full names
+- `clubs/club.db.ts`: Use `generateClubId()` with full names
+- `tournaments/tournament.db.ts`: Use `generateTournamentId()` with full names
+- `sets/set.db.ts`: Use `generateSetId()` with match ID + set number
+- `matchVideos/matchVideo.db.ts`: Use `generateMatchVideoId()` with match ID + sequence number
+- `shotInferences/shotInference.db.ts`: Use `generateShotInferenceId()` with shot ID + field name
+
+**3. Cleanup**
+- Deleted old `slugGenerator.ts` (no longer used, replaced by `generateSlugId.ts`)
+- All entity creation now goes through single source of truth for slug patterns
+
+#### Slug Patterns (Final)
+
+| Entity | Slug Pattern | Max Length | Example |
+|--------|-------------|-----------|---------|
+| Player | `{first}-{last}-{id4}` | ~25 | `john-smith-a3f2` |
+| Club | `{name}-{city}-{id4}` | ~35 | `riverside-tt-london-a3f2` |
+| Tournament | `{name}-{yyyy}-{mm}-{id4}` | ~40 | `spring-champs-2025-03-a3f2` |
+| Match | `{p1short}-vs-{p2short}-{yyyymmdd}-{id4}` | ~45 | `jsmith-vs-mgarcia-20251208-a3f2` |
+| MatchVideo | `{match_id}-v{num}` | ~48 | `jsmith-vs-mgarcia-20251208-a3f2-v1` |
+| Set | `{match_id}-s{num}` | ~48 | `jsmith-vs-mgarcia-20251208-a3f2-s1` |
+| Rally | `{set_id}-r{num}` | ~55 | `jsmith-vs-mgarcia-20251208-a3f2-s1-r123` |
+| Shot | `{rally_id}-sh{num}` | ~62 | `jsmith-vs-mgarcia-20251208-a3f2-s1-r123-sh45` |
+
+**Key Details:**
+- `{id4}`: 4 random lowercase alphanumeric characters for uniqueness
+- `{p1short}`, `{p2short}`: Shortened player names (first initial + last name, e.g., "jsmith")
+- `{yyyymmdd}`: 8-digit date format (e.g., "20251208")
+- `{num}`: Sequential number without leading zeros
+
+#### Files Changed
+
+**Modified:**
+- `app/src/helpers/generateSlugId.ts` (fixed all generator functions)
+- `app/src/data/entities/matches/match.db.ts`
+- `app/src/data/entities/players/player.db.ts`
+- `app/src/data/entities/clubs/club.db.ts`
+- `app/src/data/entities/tournaments/tournament.db.ts`
+- `app/src/data/entities/sets/set.db.ts`
+- `app/src/data/entities/matchVideos/matchVideo.db.ts`
+- `app/src/data/entities/shotInferences/shotInference.db.ts`
+
+**Deleted:**
+- `app/src/helpers/slugGenerator.ts` (obsolete)
+
+#### Testing Notes
+
+After this fix:
+- ✅ All entity IDs now use proper slug format
+- ✅ Player names are fully preserved (not truncated)
+- ✅ Match slugs use shortened player names correctly
+- ✅ Random suffixes ensure uniqueness even with duplicate names
+- ✅ IDs are human-readable and self-documenting
+
+**Migration Required:** All existing data must be cleared as IDs have changed format. Rallies and shots from v3.0.1 will continue to work, but new entities (players, matches, etc.) will have new ID format.
+
+---
+
+### 2025-12-08: Critical Bug Fixes - ID Generation & Data Duplication (v3.0.1)
+
+**Critical fixes for database integrity issues discovered during testing.**
+
+#### 1. Fixed Slug-Based ID Generation (Critical)
+
+**Issue:** Despite schema documentation specifying slug format IDs, the actual implementation was still using timestamp-random format (`1733734534-abc123`) instead of hierarchical slugs (`match123-s1-r5`).
+
+**Root Cause:**
+- `generateId()` helper was never updated to use slug format
+- Mapping functions (`mapPhase1RallyToDBRally`, `mapPhase1ShotToDBShot`) were generating IDs instead of database create functions
+- Create functions were overwriting mapping function IDs with their own random IDs
+
+**Fix:**
+- Created new `generateSlugId.ts` with proper slug generators for all entity types
+- Updated `rally.db.ts` and `shot.db.ts` to use `generateRallyId()` and `generateShotId()`
+- Changed mapping functions to return `NewRally` and `NewShot` (without IDs) instead of `DBRally` and `DBShot`
+- Database create functions now properly generate slug IDs based on parent relationships
+
+**Files Changed:**
+- `app/src/helpers/generateSlugId.ts` (new)
+- `app/src/data/entities/rallies/rally.db.ts`
+- `app/src/data/entities/shots/shot.db.ts`
+- `app/src/features/shot-tagging-engine/composers/dataMapping.ts`
+
+---
+
+#### 2. Fixed Double Rally Creation (Critical)
+
+**Issue:** Rallies and shots were being duplicated in the database when tagging the same set multiple times.
+
+**Root Cause:**
+- `deleteSetTaggingData()` was only called when `isRedo = true`
+- Normal save flow didn't clean up existing rallies/shots before creating new ones
+- Re-tagging a set would add new rallies on top of existing ones
+
+**Fix:**
+- Added cleanup step at beginning of save flow (Step 0)
+- ALWAYS call `deleteSetTaggingData()` before saving new rallies/shots
+- Ensures idempotent save operation (can retag without duplication)
+
+**Files Changed:**
+- `app/src/features/shot-tagging-engine/composers/TaggingUIPrototypeComposer.tsx`
+
+---
+
+#### 3. Fixed Missing timestamp_end Calculation (Data Integrity)
+
+**Issue:** All shots had `timestamp_end = null` in the database.
+
+**Root Cause:**
+- `calculateTimestampEnd()` function existed but was never called
+- Mapping function set `timestamp_end: null` with comment "Will be calculated in batch"
+- Batch calculation was missing from save flow
+
+**Fix:**
+- Created `applyTimestampEnd()` function to apply timestamp calculations to shot arrays
+- Added Step 3 in save flow to calculate timestamp_end before saving shots
+- Each shot's timestamp_end = next shot's timestamp_start (or rally end time for last shot)
+
+**Files Changed:**
+- `app/src/features/shot-tagging-engine/composers/dataMapping.ts`
+- `app/src/features/shot-tagging-engine/composers/TaggingUIPrototypeComposer.tsx`
+
+---
+
+#### 4. Added Database Debugging Utility
+
+**New Tool:** Created `debugDatabase.ts` helper for inspecting database state.
+
+**Features:**
+- Count all entities (matches, sets, rallies, shots)
+- Detect duplicate rally indices
+- Verify ID formats (slug vs timestamp-random)
+- Check for missing timestamp_end values
+- Analyze score progressions
+- Export sample data for inspection
+
+**Usage:**
+```typescript
+// In browser console after importing
+inspectDB()    // Full inspection report
+exportDB()     // Export sample data
+```
+
+**Files Added:**
+- `app/src/helpers/debugDatabase.ts`
+
+---
+
+#### 5. Code Quality Improvements
+
+**Changes:**
+- Made `markRallyEndShots()` generic to work with both `NewShot[]` and `DBShot[]`
+- Exported slug ID generators from `@/data` index for easy access
+- Improved save flow logging (steps 0-12 with clear descriptions)
+- Fixed TypeScript types for mapping functions
+
+**Impact:**
+- Better type safety
+- Clearer debugging output
+- More maintainable codebase
+
+---
+
+#### Testing Notes
+
+After these fixes:
+- ✅ Rally IDs now use slug format: `{set_id}-r{rally_index}`
+- ✅ Shot IDs now use slug format: `{rally_id}-sh{shot_index}`
+- ✅ No duplicate rallies when re-tagging
+- ✅ All shots have proper timestamp_end values
+- ✅ Database state is consistent and human-readable
+
+**Migration:** Database must be cleared (existing data uses old ID format). Use `CLEAR_LOCALSTORAGE_INSTRUCTIONS.md`.
+
+---
+
+### 2025-12-08: Database Refactor - Slug-Based IDs & Shot Inference Tracking (v3.0.0)
+
+**Major database schema refactor with breaking changes.**
+
+#### 1. Slug-Based Primary Keys
+
+**Change:** Replaced UUID primary keys with human-readable hierarchical slugs across all entities.
+
+**Rationale:** 
+- Maximum readability in database and exports (CSV/JSON)
+- Self-documenting relationships (parent IDs embedded in child IDs)
+- Better debugging experience (can understand context from ID alone)
+- No existing data to migrate, clean slate opportunity
+
+**Slug Patterns:**
+| Entity | Pattern | Example |
+|--------|---------|---------|
+| Player | `{first}-{last}-{id4}` | `john-smith-a3f2` |
+| Club | `{name}-{city}-{id4}` | `riverside-tt-london-a3f2` |
+| Tournament | `{name}-{yyyy}-{mm}-{id4}` | `spring-champs-2025-03-a3f2` |
+| Match | `{p1}-vs-{p2}-{yyyymmdd}-{id4}` | `jsmith-vs-mgarcia-20251208-a3f2` |
+| Set | `{match_id}-s{num}` | `jsmith-vs-mgarcia-20251208-a3f2-s1` |
+| Rally | `{set_id}-r{num}` | `jsmith-vs-mgarcia-20251208-a3f2-s1-r23` |
+| Shot | `{rally_id}-sh{num}` | `jsmith-vs-mgarcia-20251208-a3f2-s1-r23-sh5` |
+
+**Implementation:**
+- Created `slugGenerator.ts` with generation utilities for all entity types
+- Updated all entity type definitions to use slugs
+- Updated all database creation functions to generate slugs instead of UUIDs
+- Database version bumped to v3
+
+---
+
+#### 2. Shot Schema Refactor - Remove "inferred_" Prefix
+
+**Change:** Renamed shot fields to remove `inferred_` prefix and deleted confidence fields.
+
+**Old → New Field Names:**
+- `inferred_pressure_level` → `pressure_level`
+- `inferred_intent_quality` → `intent_quality`
+- `shot_type_inferred` → `shot_type`
+- `shot_contact_timing_inferred` → `shot_contact_timing`
+- `player_position_inferred` → `player_position`
+- `player_distance_inferred` → `player_distance`
+- `shot_spin_inferred` → `shot_spin`
+- `shot_speed_inferred` → `shot_speed`
+- `shot_arc_inferred` → `shot_arc`
+- `inferred_is_third_ball_attack` → `is_third_ball_attack`
+- `inferred_is_receive_attack` → `is_receive_attack`
+
+**Removed Fields:**
+- `inferred_spin_confidence`
+- `inferred_shot_confidence`
+
+**Rationale:** 
+- Data capture method may change in future (manual → AI → hybrid)
+- Field names should be neutral about data source
+- Separate tracking table (`shot_inferences`) handles inference metadata
+- Cleaner, more flexible schema
+
+---
+
+#### 3. New shot_inferences Table
+
+**Change:** Added new table to track which shot fields were inferred vs manually entered.
+
+**Schema:**
+```typescript
+{
+  id: string                // Slug: {shot_id}-{field_name}-{id4}
+  shot_id: string           // FK to shots
+  field_name: string        // e.g., 'player_position', 'shot_speed'
+  inferred: boolean         // true = AI inferred, false = manual
+  confidence: number | null // 0.0-1.0 (NULL for now, populate later)
+}
+```
+
+**Strategy:** Sparse tracking
+- Only create rows for fields that were AI-inferred
+- Absence of row = manually entered = 100% confidence
+- Supports future ML confidence scoring
+
+**Trackable Fields:**
+- `shot_type`, `shot_contact_timing`, `player_position`, `player_distance`
+- `shot_spin`, `shot_speed`, `shot_arc`
+- `is_third_ball_attack`, `is_receive_attack`
+
+---
+
+#### 4. Shot Field Organization - Objective vs Subjective
+
+**Change:** Reorganized shot fields into clear sections with comment headers.
+
+**Subjective Data** (human judgment/interpretation):
+- `intent`, `intent_quality`, `pressure_level`
+
+**Objective Data** (observable facts/deterministic):
+- All other fields (serve type, wing, result, position, etc.)
+
+**Rationale:** 
+- Clear conceptual separation for data analysis
+- Subjective fields have inherent variability (different taggers may disagree)
+- Objective fields should be consistent across taggers
+- Documented in code for future reference
+
+---
+
+#### 5. Club Schema Update
+
+**Change:** Renamed `club.location` → `club.city`
+
+**Rationale:** 
+- More specific and concise
+- Used in slug generation: `{name}-{city}-{id4}`
+- Better matches typical table tennis club naming
+
+---
+
+#### 6. Bug Fix - rally_index Double-Counting
+
+**Bug:** Bulk rally save was using array index `i + 1` instead of continuing from max existing `rally_index`, causing duplicates (1,1,2,2 instead of 1,2,3,4).
+
+**Fix:** Calculate max existing rally_index before loop, then use `maxRallyIndex + i + 1` for new rallies.
+
+**Location:** `Phase1TimestampComposer.tsx` line 110-144
+
+---
+
+#### Files Modified
+
+**Core Schema:**
+- `app/src/data/db.ts` - Added v3 schema with shot_inferences table
+- `app/src/data/entities/shots/shot.types.ts` - Field renames & reorganization
+- `app/src/data/entities/clubs/club.types.ts` - location → city
+- All entity type files - Added slug format comments
+
+**New Files:**
+- `app/src/helpers/slugGenerator.ts` - Slug generation utilities
+- `app/src/data/entities/shotInferences/shotInference.types.ts`
+- `app/src/data/entities/shotInferences/shotInference.db.ts`
+- `app/src/data/entities/shotInferences/index.ts`
+
+**Updated References:**
+- `app/src/helpers/createEntityDefaults.ts` - Shot defaults updated
+- `app/src/features/shot-tagging-engine/composers/runInference.ts`
+- `app/src/features/shot-tagging-engine/composers/dataMapping.ts`
+- `app/src/features/shot-tagging-engine/composers/Phase1TimestampComposer.tsx` - Rally bug fix
+- `app/src/pages/DataViewer.tsx` - Display updated field names
+- `app/src/features/club-management/sections/*` - location → city
+- `app/src/features/player-management/sections/PlayerFormSection.tsx` - city display
+
+---
+
+#### Migration Notes
+
+**No migration required** - confirmed no existing data in database.
+
+**Breaking Changes:**
+- All entity IDs are now slugs instead of UUIDs
+- Shot field names changed (remove inferred_ prefix)
+- Club `location` field renamed to `city`
+- Database version bumped to v3 (triggers fresh IndexedDB)
+
+---
+
 ### 2025-12-07: Complete Database Table Viewer (v2.2.10)
 
 Enhanced Data Viewer to show ALL database fields in table format (Match → Set → Rally → Shot) with null highlighting for debugging.
@@ -1121,6 +1492,9 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 | v2.2.9 | 2025-12-07 | Error question flow & shotQuality explicit setting |
 | v2.2.10 | 2025-12-07 | Complete database table viewer with all fields |
 | v2.3.0 | 2025-12-06 | Rules layer reorganization & derivation extraction |
+| v3.0.0 | 2025-12-08 | Database refactor - Slug-based IDs & shot inference tracking |
+| v3.0.1 | 2025-12-08 | Critical bug fixes - ID generation & data duplication |
+| v3.0.2 | 2025-12-08 | Fixed slug ID generation for all entities |
 
 ---
 

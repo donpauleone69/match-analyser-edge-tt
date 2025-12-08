@@ -16,5 +16,5 @@ export {
   DialogDescription,
 } from '@/components/ui/dialog'
 
-export type { DialogProps } from '@/components/ui/dialog'
+// export type { DialogProps } from '@/components/ui/dialog'
 

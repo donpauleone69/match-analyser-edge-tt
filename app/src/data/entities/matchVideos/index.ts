@@ -2,7 +2,7 @@
  * MatchVideos Entity - Public API
  */
 
-export type { DBMatchVideo, NewMatchVideo } from './matchVideo.types'
+export type { DBMatchVideo, NewMatchVideo, MatchCoverageType } from './matchVideo.types'
 export {
   getMatchVideos,
   getMatchVideoById,

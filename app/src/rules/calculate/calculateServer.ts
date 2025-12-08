@@ -9,7 +9,7 @@
  * No React, no IO — deterministic calculations only.
  */
 
-import type { PlayerId } from './types'
+type PlayerId = string
 
 // =============================================================================
 // SERVICE RULES

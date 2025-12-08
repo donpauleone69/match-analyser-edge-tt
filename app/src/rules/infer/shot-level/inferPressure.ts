@@ -36,17 +36,25 @@ export function inferPressureLevel(
 export function inferIntentQuality(
   shot: DBShot
 ): IntentQuality | null {
-  // For MVP, intent quality maps from shot result
-  if (!shot.shot_result) return null
+  // For MVP, intent quality infers from shot result and intent mismatch
+  if (!shot.shot_result || !shot.intent) return null
   
-  if (shot.shot_result === 'good') return 'high'
-  if (shot.shot_result === 'average') return 'medium'
+  // Good shot with correct intent = correct
+  if (shot.shot_result === 'good') return 'correct'
   
-  // Errors indicate low quality
-  if (shot.shot_result === 'in_net' || shot.shot_result === 'missed_long') {
-    return 'low'
+  // Error with aggressive intent = over_aggressive
+  if ((shot.shot_result === 'in_net' || shot.shot_result === 'missed_long' || shot.shot_result === 'missed_wide') 
+      && shot.intent === 'aggressive') {
+    return 'over_aggressive'
   }
   
-  return 'medium'
+  // Error with defensive intent = over_passive or misread
+  if ((shot.shot_result === 'in_net' || shot.shot_result === 'missed_long' || shot.shot_result === 'missed_wide') 
+      && shot.intent === 'defensive') {
+    return 'over_passive'
+  }
+  
+  // Default: correct intent
+  return 'correct'
 }
 

@@ -39,12 +39,12 @@ export function inferPivotMovement(
     successful: false,
   }
   
-  if (!currentShot.wing || !previousShot) return noPivot
+  if (!currentShot.shot_wing || !previousShot) return noPivot
   
   // Pivot to forehand: BH → FH with position change
   if (
-    previousShot.wing === 'BH' && 
-    currentShot.wing === 'FH' &&
+    previousShot.shot_wing === 'BH' && 
+    currentShot.shot_wing === 'FH' &&
     currentShot.shot_origin === 'left' // Wide FH position
   ) {
     const successful = currentShot.shot_result === 'good' || 
@@ -61,8 +61,8 @@ export function inferPivotMovement(
   
   // Pivot to backhand (less common): FH → BH with position change
   if (
-    previousShot.wing === 'FH' &&
-    currentShot.wing === 'BH' &&
+    previousShot.shot_wing === 'FH' &&
+    currentShot.shot_wing === 'BH' &&
     currentShot.shot_origin === 'right' // Wide BH position
   ) {
     const successful = currentShot.shot_result === 'good' ||
@@ -211,10 +211,10 @@ export function inferRecoveryQuality(
   if (
     prevPreviousShot &&
     prevPreviousShot.player_id === currentShot.player_id &&
-    prevPreviousShot.time &&
-    currentShot.time
+    prevPreviousShot.timestamp_start &&
+    currentShot.timestamp_start
   ) {
-    timeBetweenShots = currentShot.time - prevPreviousShot.time
+    timeBetweenShots = currentShot.timestamp_start - prevPreviousShot.timestamp_start
   }
   
   // Check if position recovered

@@ -206,7 +206,7 @@ export function calculateMomentumShifts(
   
   for (const set of sets) {
     const won = set.winner_id === playerId
-    const scoreDifference = Math.abs(set.player1_final_score - set.player2_final_score)
+    const scoreDifference = Math.abs(set.player1_score_final - set.player2_score_final)
     
     let momentumShift: 'gained' | 'lost' | 'maintained' | 'neutral' = 'neutral'
     

@@ -5,7 +5,7 @@
 
 import { db } from '@/data/db'
 import type { DBShot, NewShot } from './shot.types'
-import { generateId } from '@/helpers/generateId'
+import { generateShotId } from '@/helpers/generateSlugId'
 
 /**
  * Get shots for a rally, sorted by shot index
@@ -26,10 +26,11 @@ export async function getById(id: string): Promise<DBShot | undefined> {
 
 /**
  * Create a new shot
+ * Generates slug ID: {rally_id}-sh{shot_index}
  */
 export async function create(data: NewShot): Promise<DBShot> {
   const shot: DBShot = {
-    id: generateId(),
+    id: generateShotId(data.rally_id, data.shot_index),
     ...data,
   }
   
@@ -39,10 +40,11 @@ export async function create(data: NewShot): Promise<DBShot> {
 
 /**
  * Bulk create shots
+ * Generates slug IDs: {rally_id}-sh{shot_index}
  */
 export async function bulkCreate(shots: NewShot[]): Promise<DBShot[]> {
   const dbShots = shots.map(s => ({
-    id: generateId(),
+    id: generateShotId(s.rally_id, s.shot_index),
     ...s,
   }))
   

@@ -9,7 +9,7 @@
  * - Players alternate every shot thereafter
  */
 
-import type { PlayerId } from './types'
+type PlayerId = string
 import { otherPlayer } from './calculateServer'
 
 /**

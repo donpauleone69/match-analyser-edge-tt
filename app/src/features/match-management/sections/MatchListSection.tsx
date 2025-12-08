@@ -157,21 +157,19 @@ export function MatchListSection({
                             <span className="text-green-400 font-semibold">
                               {getPlayerName(match.winner_id)}
                             </span>
-                            {match.set_score_summary && (
-                              <span className="ml-2">({match.set_score_summary})</span>
-                            )}
+                            <span className="ml-2">({match.player1_sets_final}-{match.player2_sets_final})</span>
                           </p>
                           
                           {/* Show individual set point scores if available */}
                           {(() => {
                             const sets = matchSets[match.id] || []
-                            const setsWithScores = sets.filter(s => s.player1_final_score > 0 || s.player2_final_score > 0)
+                            const setsWithScores = sets.filter(s => s.player1_score_final > 0 || s.player2_score_final > 0)
                             if (setsWithScores.length > 0) {
                               return (
                                 <p className="text-xs text-neutral-500">
                                   <span className="font-medium text-neutral-400">Set scores:</span>{' '}
                                   {setsWithScores
-                                    .map(s => `${s.player1_final_score}-${s.player2_final_score}`)
+                                    .map(s => `${s.player1_score_final}-${s.player2_score_final}`)
                                     .join(', ')}
                                 </p>
                               )
@@ -182,7 +180,7 @@ export function MatchListSection({
                       ) : (
                         <p>
                           <span className="font-medium text-neutral-300">Score:</span>{' '}
-                          {match.player1_sets_won} - {match.player2_sets_won}
+                          {match.player1_sets_final} - {match.player2_sets_final}
                           <span className="ml-2 text-yellow-400 text-xs">
                             (Result not entered)
                           </span>

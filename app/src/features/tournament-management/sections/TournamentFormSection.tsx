@@ -4,7 +4,7 @@
 
 import { useState, useEffect } from 'react'
 import { Button } from '@/ui-mine/Button'
-import type { DBTournament, TournamentType, DBClub } from '@/data'
+import type { DBTournament, TournamentType } from '@/data'
 import { useTournamentStore, useClubStore } from '@/data'
 
 interface TournamentFormSectionProps {

@@ -89,7 +89,7 @@ export function ClubManagementComposer() {
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-neutral-50 flex items-center gap-3">
-            <Icon name="building" className="h-6 w-6 md:h-8 md:w-8 text-brand-primary" />
+            <Icon name="home" className="h-6 w-6 md:h-8 md:w-8 text-brand-primary" />
             Clubs
           </h1>
           <p className="text-neutral-400 mt-2 text-sm md:text-base">

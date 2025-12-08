@@ -9,7 +9,7 @@ import { AlertTriangle, Trash2 } from 'lucide-react'
 export function Settings() {
   const [isClearing, setIsClearing] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
-  const [stats, setStats] = useState<{ [key: string]: number } | null>(null)
+  const [, setStats] = useState<{ [key: string]: number } | null>(null)
 
   const clubStore = useClubStore()
   const tournamentStore = useTournamentStore()

@@ -111,7 +111,7 @@ export const useClubStore = create<ClubStore>((set, get) => ({
     const lower = term.toLowerCase()
     return get().clubs.filter(c => 
       c.name.toLowerCase().includes(lower) ||
-      (c.location?.toLowerCase() || '').includes(lower)
+      (c.city?.toLowerCase() || '').includes(lower)
     )
   }
 }))

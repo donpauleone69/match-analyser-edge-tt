@@ -5,31 +5,32 @@
 export type MatchRound = 'groups' | 'last_32' | 'last_16' | 'quarter_final' | 'semi_final' | 'final' | 'other'
 export type TaggingMode = 'essential' | 'full'
 export type BestOf = 1 | 3 | 5 | 7
+export type MatchDetailLevel = 'result_only' | 'sets' | 'rallies' | 'shots'
 
 export interface DBMatch {
-  id: string
+  id: string // Slug format: {p1}-vs-{p2}-{yyyymmdd}-{id4}
   
   // Tournament context (nullable)
-  tournament_id: string | null
+  tournament_id: string | null // FK (slug)
   round: MatchRound | null
   
   // Players
-  player1_id: string
-  player2_id: string
-  first_server_id: string
+  player1_id: string // FK (slug)
+  player2_id: string // FK (slug)
+  first_server_id: string // FK (slug)
   
   // Match result (TOP-DOWN ENTRY)
-  winner_id: string | null
-  player1_sets_won: number
-  player2_sets_won: number
+  winner_id: string | null // FK (slug)
+  player1_sets_final: number
+  player2_sets_final: number
   
   // Match parameters
   best_of: BestOf                    // 1, 3, 5, or 7 sets
-  set_score_summary: string | null   // "3-2", "3-1", etc. (entered, not derived)
   match_date: string                 // ISO date
   
   // Tagging configuration
   tagging_mode: TaggingMode | null
+  match_detail_level: MatchDetailLevel // Auto-detected based on data
   
   // Video tracking (MULTI-VIDEO SUPPORT)
   has_video: boolean                 // True if ANY video exists

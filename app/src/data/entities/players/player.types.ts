@@ -6,12 +6,12 @@ export type Handedness = 'right' | 'left'
 export type Playstyle = 'attacker' | 'all_rounder' | 'defender' | 'disruptive'
 
 export interface DBPlayer {
-  id: string
+  id: string // Slug format: {first}-{last}-{id4}
   first_name: string
   last_name: string
   handedness: Handedness
   playstyle: Playstyle | null
-  club_id: string | null // FK to clubs
+  club_id: string | null // FK to clubs (slug)
   is_archived: boolean
   created_at: string
   updated_at: string

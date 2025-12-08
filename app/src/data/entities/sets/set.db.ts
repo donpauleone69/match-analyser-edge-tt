@@ -5,7 +5,7 @@
 
 import { db } from '@/data/db'
 import type { DBSet, NewSet } from './set.types'
-import { generateId } from '@/helpers/generateId'
+import { generateSetId } from '@/helpers/generateSlugId'
 
 /**
  * Get all sets for a match, sorted by set number
@@ -24,19 +24,17 @@ export async function getById(setId: string): Promise<DBSet | undefined> {
 
 /**
  * Create a new set
+ * Generates slug ID based on match ID and set number
  */
 export async function create(set: NewSet): Promise<DBSet> {
+  const id = generateSetId(set.match_id, set.set_number)
+  
   const newSet: DBSet = {
     ...set,
-    id: generateId(),
+    id,
     is_tagged: false,
     tagging_started_at: null,
     tagging_completed_at: null,
-    derived_player1_final_score: null,
-    derived_player2_final_score: null,
-    derived_winner_id: null,
-    scores_validated: false,
-    validation_errors: null,
     tagging_phase: 'not_started',
     phase1_last_rally: null,
     phase1_total_rallies: null,
@@ -133,11 +131,11 @@ export async function deleteTaggingData(setId: string): Promise<void> {
     is_tagged: false,
     tagging_started_at: null,
     tagging_completed_at: null,
-    derived_player1_final_score: null,
-    derived_player2_final_score: null,
-    derived_winner_id: null,
-    scores_validated: false,
-    validation_errors: null,
+    tagging_phase: 'not_started',
+    phase1_last_rally: null,
+    phase1_total_rallies: null,
+    phase2_last_shot_index: null,
+    phase2_total_shots: null,
   })
 }
 

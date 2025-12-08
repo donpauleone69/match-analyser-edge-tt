@@ -30,7 +30,7 @@ export function ClubListSection({ clubs, onEdit, onDelete }: ClubListSectionProp
   
   const filteredClubs = clubs.filter(club =>
     club.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (club.location?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+    (club.city?.toLowerCase() || '').includes(searchTerm.toLowerCase())
   )
   
   return (
@@ -72,7 +72,7 @@ export function ClubListSection({ clubs, onEdit, onDelete }: ClubListSectionProp
                 <TableRow key={club.id}>
                   <TableCell className="font-medium">{club.name}</TableCell>
                   <TableCell className="text-muted-foreground">
-                    {club.location || '—'}
+                    {club.city || '—'}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">

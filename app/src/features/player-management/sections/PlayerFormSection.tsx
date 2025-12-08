@@ -5,7 +5,7 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/ui-mine/Button'
 import { Card } from '@/ui-mine/Card'
-import type { DBPlayer, Handedness, Playstyle, DBClub } from '@/data'
+import type { DBPlayer, Handedness, Playstyle } from '@/data'
 import { usePlayerStore, useClubStore } from '@/data'
 
 interface PlayerFormSectionProps {
@@ -145,7 +145,7 @@ export function PlayerFormSection({
             <option value="">— No club / Independent —</option>
             {clubs.map(club => (
               <option key={club.id} value={club.id}>
-                {club.name} {club.location && `(${club.location})`}
+                {club.name} {club.city && `(${club.city})`}
               </option>
             ))}
           </select>

@@ -30,7 +30,7 @@ export interface TableTennisButtonBaseProps {
 export function TableTennisButtonBase({
   onClick,
   disabled = false,
-  size = 'square',  // eslint-disable-line @typescript-eslint/no-unused-vars
+  size: _size = 'square',
   children,
   className,
   title,

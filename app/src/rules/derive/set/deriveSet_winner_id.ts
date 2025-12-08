@@ -12,8 +12,8 @@
 import type { PlayerId } from '../../types'
 
 export interface SetScoresInput {
-  player1_final_score: number
-  player2_final_score: number
+  player1_score_final: number
+  player2_score_final: number
 }
 
 /**
@@ -29,9 +29,9 @@ export function deriveSet_winner_id(
   player1Id: PlayerId,
   player2Id: PlayerId
 ): PlayerId | null {
-  if (scores.player1_final_score > scores.player2_final_score) {
+  if (scores.player1_score_final > scores.player2_score_final) {
     return player1Id
-  } else if (scores.player2_final_score > scores.player1_final_score) {
+  } else if (scores.player2_score_final > scores.player1_score_final) {
     return player2Id
   }
   

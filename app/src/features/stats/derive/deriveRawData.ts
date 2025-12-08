@@ -27,11 +27,11 @@ export function useDeriveRawData(
       const shotsData = rallyShots.map(shot => ({
         shotIndex: shot.shot_index,
         playerId: shot.player_id,
-        wing: shot.wing,
+        wing: shot.shot_wing,
         intent: shot.intent,
         shotResult: shot.shot_result,
         shotOrigin: shot.shot_origin,
-        shotTarget: shot.shot_target,
+        shotDestination: shot.shot_target,
         rallyEndRole: shot.rally_end_role,
       }))
       
@@ -51,8 +51,8 @@ export function useDeriveRawData(
     
     return {
       setNumber: set.set_number,
-      player1Score: set.player1_final_score,
-      player2Score: set.player2_final_score,
+      player1Score: set.player1_score_final,
+      player2Score: set.player2_score_final,
       winnerId: set.winner_id || '',
       rallies: ralliesData,
     }

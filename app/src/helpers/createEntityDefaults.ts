@@ -17,7 +17,7 @@ import type { DBMatch, DBSet, DBRally, DBShot } from '@/data'
 export function getMatchDefaults(): Partial<DBMatch> {
   return {
     best_of: 5,
-    set_score_summary: '0-0',
+    match_detail_level: 'result_only',
     has_video: false,
     video_count: 0,
     total_coverage: 'partial',
@@ -44,16 +44,15 @@ export function getSetDefaults(matchFirstServerId: string, setNumber: number): P
     : (matchFirstServerId === 'player1' ? 'player2' : 'player1')
   
   return {
+    player1_sets_before: 0,
+    player1_sets_after: 0,
+    player2_sets_before: 0,
+    player2_sets_after: 0,
     set_first_server_id: setFirstServerId,
     has_video: false,
     video_segments: [],
     video_contexts: null,
     end_of_set_timestamp: null,
-    derived_player1_final_score: null,
-    derived_player2_final_score: null,
-    derived_winner_id: null,
-    scores_validated: false,
-    validation_errors: null,
     is_tagged: false,
     tagging_started_at: null,
     tagging_completed_at: null,
@@ -70,7 +69,7 @@ export function getSetDefaults(matchFirstServerId: string, setNumber: number): P
  * @param setFinalScores - The final scores for the set (for validation context)
  * @returns Default values for creating a new rally
  */
-export function getRallyDefaults(setFinalScores: {
+export function getRallyDefaults(_setFinalScores: {
   player1: number
   player2: number
   winnerId: string | null
@@ -79,13 +78,12 @@ export function getRallyDefaults(setFinalScores: {
     video_id: null,
     has_video_data: false,
     end_of_point_time: null,
-    set_player1_final_score: setFinalScores.player1,
-    set_player2_final_score: setFinalScores.player2,
-    set_winner_id: setFinalScores.winnerId,
+    player1_score_before: 0,
+    player2_score_before: 0,
+    player1_score_after: 0,
+    player2_score_after: 0,
     is_scoring: true,
     point_end_type: null,
-    luck_type: 'none',
-    opponent_luck_overcome: null,
     is_highlight: false,
     framework_confirmed: false,
     detail_complete: false,
@@ -107,31 +105,36 @@ export function getRallyDefaults(setFinalScores: {
 export function getShotDefaults(): Partial<DBShot> {
   return {
     video_id: null,
+    timestamp_end: null,
     // Serve-only fields
     serve_spin_family: null,
+    serve_type: null,
     // Serve/Receive fields
     shot_length: null,
     // Rally shot fields
-    wing: null,
+    shot_wing: null,
     intent: null,
     // All shots
     shot_result: null,
+    // Subjective data
+    intent_quality: null,
+    pressure_level: null,
     // Derived data
     shot_origin: null,
     shot_target: null,
+    shot_label: 'rally_shot', // Default, should be overridden
     is_rally_end: false,
     rally_end_role: 'none',
-    // Inferred data
-    inferred_pressure_level: null,
-    inferred_intent_quality: null,
-    inferred_player_position: null,
-    inferred_distance_from_table: null,
-    inferred_shot_type: null,
-    inferred_shot_confidence: null,
-    inferred_spin: null,
-    inferred_spin_confidence: null,
-    inferred_is_third_ball_attack: false,
-    inferred_is_receive_attack: false,
+    // Inferred data (may be auto-calculated or manual)
+    shot_type: null,
+    shot_contact_timing: null,
+    player_position: null,
+    player_distance: null,
+    shot_spin: null,
+    shot_speed: null,
+    shot_arc: null,
+    is_third_ball_attack: false,
+    is_receive_attack: false,
     // Workflow
     is_tagged: false,
   }

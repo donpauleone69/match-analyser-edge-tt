@@ -17,7 +17,7 @@ export interface ClubFormSectionProps {
 export function ClubFormSection({ club, onSave, onCancel }: ClubFormSectionProps) {
   const [formData, setFormData] = useState<NewClub>({
     name: '',
-    location: null,
+    city: null,
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -27,7 +27,7 @@ export function ClubFormSection({ club, onSave, onCancel }: ClubFormSectionProps
     if (club) {
       setFormData({
         name: club.name,
-        location: club.location,
+        city: club.city,
       })
     }
   }, [club])
@@ -85,9 +85,9 @@ export function ClubFormSection({ club, onSave, onCancel }: ClubFormSectionProps
         <Input
           id="location"
           type="text"
-          value={formData.location || ''}
-          onChange={(e) => setFormData({ ...formData, location: e.target.value || null })}
-          placeholder="e.g., Manchester, UK"
+          value={formData.city || ''}
+          onChange={(e) => setFormData({ ...formData, city: e.target.value || null })}
+          placeholder="e.g., Manchester"
         />
       </div>
       

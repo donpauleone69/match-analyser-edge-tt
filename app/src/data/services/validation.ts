@@ -77,12 +77,12 @@ function validateMatchSetsConsistency(
   const player2Wins = setsWithWinners.filter(s => s.winner_id === match.player2_id).length
 
   // Warning: Match set count doesn't match actual sets with winners
-  if (match.player1_sets_won !== player1Wins || match.player2_sets_won !== player2Wins) {
+  if (match.player1_sets_final !== player1Wins || match.player2_sets_final !== player2Wins) {
     warnings.push({
       level: 'warning',
       entity: 'match',
       entityId: match.id,
-      message: `Match shows ${match.player1_sets_won}-${match.player2_sets_won} but actual set winners show ${player1Wins}-${player2Wins}`,
+      message: `Match shows ${match.player1_sets_final}-${match.player2_sets_final} but actual set winners show ${player1Wins}-${player2Wins}`,
     })
   }
 
@@ -138,13 +138,13 @@ function validateSetRalliesConsistency(
   // Validate final scores match rally outcomes
   const lastRally = setRallies[setRallies.length - 1]
   if (lastRally && set.is_tagged) {
-    if (lastRally.player1_score_after !== set.player1_final_score ||
-        lastRally.player2_score_after !== set.player2_final_score) {
+    if (lastRally.player1_score_after !== set.player1_score_final ||
+        lastRally.player2_score_after !== set.player2_score_final) {
       warnings.push({
         level: 'warning',
         entity: 'set',
         entityId: set.id,
-        message: `Set ${set.set_number} final score (${set.player1_final_score}-${set.player2_final_score}) doesn't match last rally score (${lastRally.player1_score_after}-${lastRally.player2_score_after})`,
+        message: `Set ${set.set_number} final score (${set.player1_score_final}-${set.player2_score_final}) doesn't match last rally score (${lastRally.player1_score_after}-${lastRally.player2_score_after})`,
       })
     }
   }
@@ -282,7 +282,7 @@ export function validateSet(set: DBSet): ValidationError[] {
     })
   }
 
-  if (set.player1_final_score < 0 || set.player2_final_score < 0) {
+  if (set.player1_score_final < 0 || set.player2_score_final < 0) {
     errors.push({
       level: 'error',
       entity: 'set',

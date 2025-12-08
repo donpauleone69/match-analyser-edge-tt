@@ -110,22 +110,17 @@ export function Phase1TimestampComposer({ onCompletePhase1, playerContext, setId
     console.log(`[Manual Save] Saving ${completedRallies.length} rallies...`)
     
     try {
-      // Get existing rallies once to check for duplicates
+      // Get existing rallies to determine correct starting rally_index
       const existingRallies = await rallyDb.getBySetId(setId)
+      const maxRallyIndex = existingRallies.reduce((max, r) => Math.max(max, r.rally_index || 0), 0)
       let savedCount = 0
       
-      // Save all rallies that aren't already saved
+      console.log(`[Manual Save] Max existing rally_index: ${maxRallyIndex}, saving ${completedRallies.length} new rallies`)
+      
+      // Save all rallies starting from maxRallyIndex + 1
       for (let i = 0; i < completedRallies.length; i++) {
         const rally = completedRallies[i]
-        const rallyIndex = i + 1
-        
-        // Check if already exists (avoid duplicates)
-        const exists = existingRallies.find(r => r.rally_index === rallyIndex)
-        
-        if (exists) {
-          console.log(`[Manual Save] Rally ${rallyIndex} already saved, skipping`)
-          continue
-        }
+        const rallyIndex = maxRallyIndex + i + 1 // Continue from max existing index
         
         // Save new rally
         {
@@ -237,7 +232,7 @@ export function Phase1TimestampComposer({ onCompletePhase1, playerContext, setId
     const lastShotPlayer = calculateShotPlayer(serverResult.serverId, lastShotIndex)
     
     // Derive rally winner using rules
-    const isError = endCondition === 'innet' || endCondition === 'long'
+    // const isError = endCondition === 'innet' || endCondition === 'long'
     const opponentId = player1Id && player2Id 
       ? getOpponentId(lastShotPlayer, 'player1', 'player2')
       : lastShotPlayer
@@ -293,9 +288,12 @@ export function Phase1TimestampComposer({ onCompletePhase1, playerContext, setId
     if (setId && player1Id && player2Id) {
       setIsSaving(true)
       try {
-        const rallyIndex = completedRallies.length + 1
+        // Get existing rallies for this set to determine correct rally_index
+        const existingRallies = await rallyDb.getBySetId(setId)
+        const maxRallyIndex = existingRallies.reduce((max, r) => Math.max(max, r.rally_index || 0), 0)
+        const rallyIndex = maxRallyIndex + 1
         
-        console.log(`[Phase1] === SAVING RALLY ${rallyIndex} ===`)
+        console.log(`[Phase1] === SAVING RALLY ${rallyIndex} (max existing: ${maxRallyIndex}) ===`)
         console.log(`[Phase1] Rally data:`, {
           serverId: rally.serverId,
           winnerId: rally.winnerId,
@@ -324,7 +322,7 @@ export function Phase1TimestampComposer({ onCompletePhase1, playerContext, setId
           const dbShot = mapPhase1ShotToDBShot(shot, savedRally.id, playerId)
           console.log(`[Phase1] Shot ${shot.shotIndex}:`, {
             player_id: dbShot.player_id,
-            time: dbShot.time,
+            time: dbShot.timestamp_start,
             shot_index: dbShot.shot_index,
           })
           await shotDb.create(dbShot)
