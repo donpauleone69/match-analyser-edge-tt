@@ -35,11 +35,11 @@ export function infer3BallPattern(
   
   // Build pattern string
   const serveSpinPart = serve.serve_spin_family || 'unknown'
-  const serveLengthPart = serve.serve_length || 'unknown'
+  const serveLengthPart = serve.shot_length || 'unknown'
   const receiveWingPart = receive.wing || 'unknown'
   const receiveIntentPart = receive.intent || 'neutral'
   const thirdBallIntentPart = thirdBall.intent || 'neutral'
-  const thirdBallDestPart = thirdBall.shot_destination || 'unknown'
+  const thirdBallDestPart = thirdBall.shot_target || 'unknown'
   
   const pattern = `${serveSpinPart}_${serveLengthPart} → ${receiveWingPart}_${receiveIntentPart} → ${thirdBallIntentPart}_to_${thirdBallDestPart}`
   
@@ -106,16 +106,16 @@ export function findPreferredAttackZones(
   mostPreferred: 'left' | 'mid' | 'right' | 'none'
 } {
   const aggressiveShots = shots.filter(
-    s => s.player_id === playerId && s.intent === 'aggressive' && s.shot_destination
+    s => s.player_id === playerId && s.intent === 'aggressive' && s.shot_target
   )
   
   if (aggressiveShots.length === 0) {
     return { left: 0, mid: 0, right: 0, mostPreferred: 'none' }
   }
   
-  const left = aggressiveShots.filter(s => s.shot_destination === 'left').length
-  const mid = aggressiveShots.filter(s => s.shot_destination === 'mid').length
-  const right = aggressiveShots.filter(s => s.shot_destination === 'right').length
+  const left = aggressiveShots.filter(s => s.shot_target === 'left').length
+  const mid = aggressiveShots.filter(s => s.shot_target === 'mid').length
+  const right = aggressiveShots.filter(s => s.shot_target === 'right').length
   
   const total = aggressiveShots.length
   const leftPct = (left / total) * 100
@@ -150,7 +150,7 @@ export function detectWeaknessExploitation(
   isExploiting: boolean
 } {
   // Get opponent's shots
-  const opponentShots = allShots.filter(s => s.player_id === opponentId && s.shot_destination)
+  const opponentShots = allShots.filter(s => s.player_id === opponentId && s.shot_target)
   
   // Get player's response shots (shot after opponent's shot)
   const playerResponses: Array<{ zone: string; isError: boolean }> = []
@@ -160,11 +160,12 @@ export function detectWeaknessExploitation(
     const nextShot = allShots[i + 1]
     
     if (shot.player_id === opponentId && nextShot.player_id === playerId) {
-      const zone = shot.shot_destination
+      const zone = shot.shot_target
       const isError = nextShot.rally_end_role === 'unforced_error' || 
                       nextShot.rally_end_role === 'forced_error' ||
                       nextShot.shot_result === 'in_net' ||
-                      nextShot.shot_result === 'missed_long'
+                      nextShot.shot_result === 'missed_long' ||
+                      nextShot.shot_result === 'missed_wide'
       
       if (zone) {
         playerResponses.push({ zone, isError })

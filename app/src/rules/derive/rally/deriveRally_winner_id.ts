@@ -4,17 +4,18 @@
  * Logic:
  * - If last shot resulted in error (in_net, missed_long, missed_wide): other player wins
  * - If last shot was winner or opponent couldn't return: last shot player wins
- * - Determined from last shot's player_id and rally_end_role or shot_destination
+ * - Determined from last shot's player_id and rally_end_role or shot_result
  * 
  * Database Field Populated:
  * - rallies.winner_id
  */
 
 import type { PlayerId } from '../../types'
+import type { ShotResult } from '@/data/entities/shots/shot.types'
 
 export interface LastShotInput {
   player_id: PlayerId
-  shot_destination?: string | null
+  shot_result?: ShotResult | null
   rally_end_role?: 'winner' | 'unforced_error' | 'forced_error' | 'service_fault' | 'receive_error' | null
 }
 
@@ -31,11 +32,11 @@ export function deriveRally_winner_id(
 ): PlayerId | null {
   if (!lastShot) return null
   
-  // Check if last shot was an error
+  // Check if last shot was an error (using shot_result instead of shot_destination)
   const isError = 
-    lastShot.shot_destination === 'in_net' ||
-    lastShot.shot_destination === 'missed_long' ||
-    lastShot.shot_destination === 'missed_wide' ||
+    lastShot.shot_result === 'in_net' ||
+    lastShot.shot_result === 'missed_long' ||
+    lastShot.shot_result === 'missed_wide' ||
     lastShot.rally_end_role === 'unforced_error' ||
     lastShot.rally_end_role === 'forced_error' ||
     lastShot.rally_end_role === 'service_fault' ||

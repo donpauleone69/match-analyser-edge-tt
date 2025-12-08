@@ -58,6 +58,11 @@ export interface Phase1Rally {
   errorPlacement?: 'innet' | 'long'  // stores which type of fault
   serverId: 'player1' | 'player2'  // who served this rally
   winnerId: 'player1' | 'player2'  // who won this rally
+  // Player names for UI display
+  player1Name: string
+  player2Name: string
+  serverName: string
+  winnerName: string
 }
 
 export function Phase1TimestampComposer({ onCompletePhase1, playerContext, setId, player1Id, player2Id, className }: Phase1TimestampComposerProps) {
@@ -237,10 +242,16 @@ export function Phase1TimestampComposer({ onCompletePhase1, playerContext, setId
       ? getOpponentId(lastShotPlayer, 'player1', 'player2')
       : lastShotPlayer
     
+    // Determine shot_result based on end condition for winner derivation
+    const shotResult = 
+      endCondition === 'innet' ? 'in_net' :
+      endCondition === 'long' ? 'missed_long' :
+      'good' // 'winner' end condition
+    
     const winnerId = deriveRally_winner_id(
       {
         player_id: lastShotPlayer,
-        shot_destination: isError ? (endCondition === 'innet' ? 'in_net' : 'missed_long') : null,
+        shot_result: shotResult as any, // Pass correct shot_result for error detection
       },
       opponentId
     ) || lastShotPlayer
@@ -254,6 +265,11 @@ export function Phase1TimestampComposer({ onCompletePhase1, playerContext, setId
       errorPlacement: endCondition === 'innet' ? 'innet' : endCondition === 'long' ? 'long' : undefined,
       serverId: serverResult.serverId,
       winnerId,
+      // Player names for UI
+      player1Name: playerContext?.player1Name || 'Player 1',
+      player2Name: playerContext?.player2Name || 'Player 2',
+      serverName: getPlayerName(serverResult.serverId),
+      winnerName: getPlayerName(winnerId),
     }
     
     setCompletedRallies(prev => [...prev, rally])
@@ -273,23 +289,47 @@ export function Phase1TimestampComposer({ onCompletePhase1, playerContext, setId
       rallyEndCondition: endCondition,
     }])
     
-    // Save to database immediately (if context available)
+      // Save to database immediately (if context available)
     if (setId && player1Id && player2Id) {
       setIsSaving(true)
       try {
         const rallyIndex = completedRallies.length + 1
         
+        console.log(`[Phase1] === SAVING RALLY ${rallyIndex} ===`)
+        console.log(`[Phase1] Rally data:`, {
+          serverId: rally.serverId,
+          winnerId: rally.winnerId,
+          endCondition: rally.endCondition,
+          isError: rally.isError,
+          shotCount: rally.shots.length,
+        })
+        
         // Map and save rally
         const dbRally = mapPhase1RallyToDBRally(rally, setId, rallyIndex, player1Id, player2Id)
+        console.log(`[Phase1] DB Rally to save:`, {
+          server_id: dbRally.server_id,
+          receiver_id: dbRally.receiver_id,
+          winner_id: dbRally.winner_id,
+          is_scoring: dbRally.is_scoring,
+          point_end_type: dbRally.point_end_type,
+        })
         const savedRally = await rallyDb.create(dbRally)
+        console.log(`[Phase1] ✓ Rally saved with ID: ${savedRally.id}`)
         
         // Map and save all shots for this rally
+        console.log(`[Phase1] Saving ${rally.shots.length} shots...`)
         for (const shot of rally.shots) {
           const shotPlayer = calculateShotPlayer(rally.serverId, shot.shotIndex)
           const playerId = shotPlayer === 'player1' ? player1Id : player2Id
           const dbShot = mapPhase1ShotToDBShot(shot, savedRally.id, playerId)
+          console.log(`[Phase1] Shot ${shot.shotIndex}:`, {
+            player_id: dbShot.player_id,
+            time: dbShot.time,
+            shot_index: dbShot.shot_index,
+          })
           await shotDb.create(dbShot)
         }
+        console.log(`[Phase1] ✓ All ${rally.shots.length} shots saved`)
         
         // Update set progress
         await setDb.update(setId, {
@@ -298,7 +338,7 @@ export function Phase1TimestampComposer({ onCompletePhase1, playerContext, setId
           has_video: true,
         })
         
-        console.log(`Saved rally ${rallyIndex} to database`)
+        console.log(`[Phase1] ✓ Rally ${rallyIndex} complete!`)
       } catch (error) {
         console.error('Failed to save rally to database:', error)
         // Don't block UI - data is still in localStorage

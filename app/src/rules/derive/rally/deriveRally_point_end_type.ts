@@ -13,10 +13,11 @@
  */
 
 import type { PointEndType } from '../../types'
+import type { ShotResult } from '@/data/entities/shots/shot.types'
 
 export interface LastShotForPointEndType {
   shot_index: number
-  shot_destination?: string | null
+  shot_result?: ShotResult | null
   rally_end_role?: 'winner' | 'unforced_error' | 'forced_error' | 'service_fault' | 'receive_error' | null
 }
 
@@ -43,11 +44,11 @@ export function deriveRally_point_end_type(
     }
   }
   
-  // Check if error
+  // Check if error (using shot_result instead of shot_destination)
   const isError = 
-    lastShot.shot_destination === 'in_net' ||
-    lastShot.shot_destination === 'missed_long' ||
-    lastShot.shot_destination === 'missed_wide'
+    lastShot.shot_result === 'in_net' ||
+    lastShot.shot_result === 'missed_long' ||
+    lastShot.shot_result === 'missed_wide'
   
   if (isError) {
     // Shot 1: Service fault
@@ -55,7 +56,7 @@ export function deriveRally_point_end_type(
       return {
         point_end_type: 'serviceFault',
         needs_user_input: false,
-        note: `Service fault - ball went ${lastShot.shot_destination}`
+        note: `Service fault - ball went ${lastShot.shot_result?.replace('_', ' ')}`
       }
     }
     
@@ -64,7 +65,7 @@ export function deriveRally_point_end_type(
       return {
         point_end_type: 'receiveError',
         needs_user_input: false,
-        note: `Receive error - ball went ${lastShot.shot_destination}`
+        note: `Receive error - ball went ${lastShot.shot_result?.replace('_', ' ')}`
       }
     }
     
@@ -89,7 +90,7 @@ export function deriveRally_point_end_type(
     return {
       point_end_type: null,
       needs_user_input: true,
-      note: `Rally error - ball went ${lastShot.shot_destination}. Was it forced or unforced?`
+      note: `Rally error - ball went ${lastShot.shot_result?.replace('_', ' ')}. Was it forced or unforced?`
     }
   }
   

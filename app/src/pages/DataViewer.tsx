@@ -4,6 +4,7 @@ import type { DBMatch } from '@/data/entities/matches/match.types'
 import type { DBSet } from '@/data/entities/sets/set.types'
 import type { DBRally } from '@/data/entities/rallies/rally.types'
 import type { DBShot } from '@/data/entities/shots/shot.types'
+import type { DBPlayer } from '@/data/entities/players/player.types'
 import { Database, RefreshCw, ChevronDown, ChevronRight } from 'lucide-react'
 
 interface DatabaseStats {
@@ -19,6 +20,8 @@ interface DatabaseStats {
 
 interface MatchWithData extends DBMatch {
   sets: SetWithData[]
+  player1?: DBPlayer
+  player2?: DBPlayer
 }
 
 interface SetWithData extends DBSet {
@@ -40,12 +43,13 @@ export function DataViewer() {
   const loadData = async () => {
     setIsLoading(true)
     try {
-      const [statsData, matches, sets, rallies, shots] = await Promise.all([
+      const [statsData, matches, sets, rallies, shots, players] = await Promise.all([
         getDatabaseStats(),
         db.matches.toArray(),
         db.sets.toArray(),
         db.rallies.toArray(),
         db.shots.toArray(),
+        db.players.toArray(),
       ])
 
       setStats(statsData)
@@ -58,11 +62,11 @@ export function DataViewer() {
           .map(set => {
             const setRallies = rallies
               .filter(r => r.set_id === set.id)
-              .sort((a, b) => (a.rally_in_set_index || 0) - (b.rally_in_set_index || 0))
+              .sort((a, b) => (a.rally_index || 0) - (b.rally_index || 0))
               .map(rally => {
                 const rallyShots = shots
                   .filter(s => s.rally_id === rally.id)
-                  .sort((a, b) => a.shot_number - b.shot_number)
+                  .sort((a, b) => a.shot_index - b.shot_index)
                 
                 return { ...rally, shots: rallyShots }
               })
@@ -70,7 +74,10 @@ export function DataViewer() {
             return { ...set, rallies: setRallies }
           })
         
-        return { ...match, sets: matchSets }
+        const player1 = players.find(p => p.id === match.player1_id)
+        const player2 = players.find(p => p.id === match.player2_id)
+        
+        return { ...match, sets: matchSets, player1, player2 }
       })
 
       setMatchesWithData(matchesWithHierarchy)
@@ -118,7 +125,7 @@ export function DataViewer() {
   if (isLoading) {
     return (
       <div className="w-full">
-        <div className="max-w-7xl mx-auto p-4 md:p-6 flex items-center justify-center min-h-[400px]">
+        <div className="max-w-full mx-auto p-4 md:p-6 flex items-center justify-center min-h-[400px]">
           <div className="text-neutral-400">Loading data...</div>
         </div>
       </div>
@@ -127,16 +134,16 @@ export function DataViewer() {
 
   return (
     <div className="w-full">
-      <div className="max-w-7xl mx-auto p-4 md:p-6">
+      <div className="max-w-full mx-auto p-4 md:p-6">
         {/* Header */}
         <div className="mb-6 flex items-center justify-between flex-wrap gap-4">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-neutral-50 flex items-center gap-3">
               <Database className="h-6 w-6 md:h-8 md:w-8 text-brand-primary" />
-              Data Viewer
+              Database Table Viewer
             </h1>
             <p className="text-neutral-400 mt-2 text-sm md:text-base">
-              Hierarchical view of all data in your local database
+              Complete view of all database fields (Match → Set → Rally → Shot)
             </p>
           </div>
           <button
@@ -158,7 +165,7 @@ export function DataViewer() {
           </div>
         )}
 
-        {/* Hierarchical Data Tree */}
+        {/* Hierarchical Data Tables */}
         <div className="space-y-4">
           {matchesWithData.length === 0 ? (
             <div className="bg-bg-card rounded-lg border border-neutral-700 p-8 text-center">
@@ -166,7 +173,7 @@ export function DataViewer() {
             </div>
           ) : (
             matchesWithData.map(match => (
-              <MatchNode
+              <MatchTable
                 key={match.id}
                 match={match}
                 isExpanded={expandedMatches.has(match.id!)}
@@ -193,7 +200,7 @@ function StatCard({ label, count }: { label: string; count: number }) {
   )
 }
 
-interface MatchNodeProps {
+interface MatchTableProps {
   match: MatchWithData
   isExpanded: boolean
   onToggle: () => void
@@ -203,7 +210,10 @@ interface MatchNodeProps {
   onToggleRally: (id: string) => void
 }
 
-function MatchNode({ match, isExpanded, onToggle, expandedSets, expandedRallies, onToggleSet, onToggleRally }: MatchNodeProps) {
+function MatchTable({ match, isExpanded, onToggle, expandedSets, expandedRallies, onToggleSet, onToggleRally }: MatchTableProps) {
+  const p1Name = match.player1 ? `${match.player1.first_name} ${match.player1.last_name}` : match.player1_id
+  const p2Name = match.player2 ? `${match.player2.first_name} ${match.player2.last_name}` : match.player2_id
+  
   return (
     <div className="bg-bg-card rounded-lg border border-neutral-700 overflow-hidden">
       {/* Match Header */}
@@ -212,28 +222,57 @@ function MatchNode({ match, isExpanded, onToggle, expandedSets, expandedRallies,
         className="w-full p-3 md:p-4 bg-bg-shell hover:bg-neutral-800/50 transition-colors flex items-center gap-3 text-left"
       >
         {isExpanded ? (
-          <ChevronDown className="h-4 w-4 md:h-5 md:w-5 text-neutral-400 shrink-0" />
+          <ChevronDown className="h-5 w-5 text-neutral-400 shrink-0" />
         ) : (
-          <ChevronRight className="h-4 w-4 md:h-5 md:w-5 text-neutral-400 shrink-0" />
+          <ChevronRight className="h-5 w-5 text-neutral-400 shrink-0" />
         )}
         <div className="flex-1 min-w-0">
-          <div className="text-sm md:text-base font-semibold text-neutral-50 truncate">
-            Match: {match.player1_id} vs {match.player2_id}
+          <div className="text-base font-semibold text-neutral-50">
+            MATCH: {p1Name} vs {p2Name}
           </div>
-          <div className="text-xs md:text-sm text-neutral-400 mt-1">
-            {match.sets.length} sets • {match.sets.reduce((acc, s) => acc + s.rallies.length, 0)} rallies
+          <div className="text-sm text-neutral-400 mt-1">
+            {match.sets.length} sets • {match.sets.reduce((acc, s) => acc + s.rallies.length, 0)} rallies • {match.sets.reduce((acc, s) => s.rallies.reduce((a, r) => a + r.shots.length, acc), 0)} shots
           </div>
         </div>
       </button>
 
-      {/* Sets */}
+      {/* Match Table */}
       {isExpanded && (
-        <div className="border-t border-neutral-700">
-          {match.sets.length === 0 ? (
-            <div className="p-4 text-sm text-neutral-500">No sets in this match</div>
-          ) : (
-            match.sets.map(set => (
-              <SetNode
+        <div className="border-t border-neutral-700 overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead className="bg-neutral-900">
+              <tr>
+                <th className="px-3 py-2 text-left text-neutral-400 font-medium">Field</th>
+                <th className="px-3 py-2 text-left text-neutral-400 font-medium">Value</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-neutral-800">
+              <TableRow label="id" value={match.id} />
+              <TableRow label="tournament_id" value={match.tournament_id} />
+              <TableRow label="round" value={match.round} />
+              <TableRow label="player1_id" value={match.player1_id} />
+              <TableRow label="player2_id" value={match.player2_id} />
+              <TableRow label="first_server_id" value={match.first_server_id} />
+              <TableRow label="winner_id" value={match.winner_id} />
+              <TableRow label="player1_sets_won" value={match.player1_sets_won} />
+              <TableRow label="player2_sets_won" value={match.player2_sets_won} />
+              <TableRow label="best_of" value={match.best_of} />
+              <TableRow label="set_score_summary" value={match.set_score_summary} />
+              <TableRow label="match_date" value={match.match_date} />
+              <TableRow label="tagging_mode" value={match.tagging_mode} />
+              <TableRow label="has_video" value={match.has_video} />
+              <TableRow label="video_count" value={match.video_count} />
+              <TableRow label="total_coverage" value={match.total_coverage} />
+              <TableRow label="step1_complete" value={match.step1_complete} />
+              <TableRow label="step2_complete" value={match.step2_complete} />
+              <TableRow label="created_at" value={match.created_at} />
+            </tbody>
+          </table>
+
+          {/* Sets */}
+          <div className="border-t-4 border-neutral-600 mt-2">
+            {match.sets.map(set => (
+              <SetTable
                 key={set.id}
                 set={set}
                 isExpanded={expandedSets.has(set.id!)}
@@ -241,15 +280,15 @@ function MatchNode({ match, isExpanded, onToggle, expandedSets, expandedRallies,
                 expandedRallies={expandedRallies}
                 onToggleRally={onToggleRally}
               />
-            ))
-          )}
+            ))}
+          </div>
         </div>
       )}
     </div>
   )
 }
 
-interface SetNodeProps {
+interface SetTableProps {
   set: SetWithData
   isExpanded: boolean
   onToggle: () => void
@@ -257,22 +296,21 @@ interface SetNodeProps {
   onToggleRally: (id: string) => void
 }
 
-function SetNode({ set, isExpanded, onToggle, expandedRallies, onToggleRally }: SetNodeProps) {
+function SetTable({ set, isExpanded, onToggle, expandedRallies, onToggleRally }: SetTableProps) {
   return (
     <div className="border-b border-neutral-700 last:border-b-0">
-      {/* Set Header */}
       <button
         onClick={onToggle}
-        className="w-full p-3 md:p-4 pl-8 md:pl-12 hover:bg-neutral-800/30 transition-colors flex items-center gap-3 text-left"
+        className="w-full p-3 pl-8 hover:bg-neutral-800/30 transition-colors flex items-center gap-3 text-left bg-neutral-900/50"
       >
         {isExpanded ? (
           <ChevronDown className="h-4 w-4 text-neutral-400 shrink-0" />
         ) : (
           <ChevronRight className="h-4 w-4 text-neutral-400 shrink-0" />
         )}
-        <div className="flex-1 min-w-0">
-          <div className="text-sm font-medium text-neutral-100 truncate">
-            Set {set.set_number} • Score: {set.player1_final_score}-{set.player2_final_score}
+        <div className="flex-1">
+          <div className="text-sm font-medium text-brand-primary">
+            SET {set.set_number}: {set.player1_final_score}-{set.player2_final_score}
           </div>
           <div className="text-xs text-neutral-500 mt-1">
             {set.rallies.length} rallies • {set.rallies.reduce((acc, r) => acc + r.shots.length, 0)} shots
@@ -280,149 +318,189 @@ function SetNode({ set, isExpanded, onToggle, expandedRallies, onToggleRally }: 
         </div>
       </button>
 
-      {/* Rallies */}
       {isExpanded && (
-        <div className="bg-neutral-900/30">
-          {set.rallies.length === 0 ? (
-            <div className="p-4 pl-16 text-sm text-neutral-500">No rallies in this set</div>
-          ) : (
-            set.rallies.map((rally, idx) => (
-              <RallyNode
+        <div className="bg-neutral-950/50">
+          <table className="w-full text-xs">
+            <thead className="bg-neutral-900">
+              <tr>
+                <th className="px-3 py-2 text-left text-neutral-400 font-medium">Field</th>
+                <th className="px-3 py-2 text-left text-neutral-400 font-medium">Value</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-neutral-800">
+              <TableRow label="id" value={set.id} />
+              <TableRow label="match_id" value={set.match_id} />
+              <TableRow label="set_number" value={set.set_number} />
+              <TableRow label="player1_final_score" value={set.player1_final_score} />
+              <TableRow label="player2_final_score" value={set.player2_final_score} />
+              <TableRow label="winner_id" value={set.winner_id} />
+              <TableRow label="set_first_server_id" value={set.set_first_server_id} />
+              <TableRow label="has_video" value={set.has_video} />
+              <TableRow label="video_segments" value={set.video_segments} />
+              <TableRow label="video_contexts" value={set.video_contexts} />
+              <TableRow label="end_of_set_timestamp" value={set.end_of_set_timestamp} />
+              <TableRow label="derived_player1_final_score" value={set.derived_player1_final_score} />
+              <TableRow label="derived_player2_final_score" value={set.derived_player2_final_score} />
+              <TableRow label="derived_winner_id" value={set.derived_winner_id} />
+              <TableRow label="scores_validated" value={set.scores_validated} />
+              <TableRow label="validation_errors" value={set.validation_errors} />
+              <TableRow label="is_tagged" value={set.is_tagged} />
+              <TableRow label="tagging_started_at" value={set.tagging_started_at} />
+              <TableRow label="tagging_completed_at" value={set.tagging_completed_at} />
+              <TableRow label="tagging_phase" value={set.tagging_phase} />
+              <TableRow label="phase1_last_rally" value={set.phase1_last_rally} />
+              <TableRow label="phase1_total_rallies" value={set.phase1_total_rallies} />
+              <TableRow label="phase2_last_shot_index" value={set.phase2_last_shot_index} />
+              <TableRow label="phase2_total_shots" value={set.phase2_total_shots} />
+            </tbody>
+          </table>
+
+          {/* Rallies */}
+          <div className="border-t-4 border-neutral-500 mt-2">
+            {set.rallies.map((rally, idx) => (
+              <RallyTable
                 key={rally.id}
                 rally={rally}
-                rallyIndex={idx + 1}
+                rallyNumber={idx + 1}
                 isExpanded={expandedRallies.has(rally.id!)}
                 onToggle={() => onToggleRally(rally.id!)}
               />
-            ))
-          )}
+            ))}
+          </div>
         </div>
       )}
     </div>
   )
 }
 
-interface RallyNodeProps {
+interface RallyTableProps {
   rally: RallyWithData
-  rallyIndex: number
+  rallyNumber: number
   isExpanded: boolean
   onToggle: () => void
 }
 
-function RallyNode({ rally, rallyIndex, isExpanded, onToggle }: RallyNodeProps) {
-  const [expandedShots, setExpandedShots] = useState<Set<string>>(new Set())
-
-  const toggleShot = (shotId: string) => {
-    const newExpanded = new Set(expandedShots)
-    if (newExpanded.has(shotId)) {
-      newExpanded.delete(shotId)
-    } else {
-      newExpanded.add(shotId)
-    }
-    setExpandedShots(newExpanded)
-  }
-
+function RallyTable({ rally, rallyNumber, isExpanded, onToggle }: RallyTableProps) {
   return (
     <div className="border-b border-neutral-800 last:border-b-0">
-      {/* Rally Header */}
       <button
         onClick={onToggle}
-        className="w-full p-2 md:p-3 pl-12 md:pl-20 hover:bg-neutral-800/30 transition-colors flex items-center gap-2 text-left"
+        className="w-full p-2 pl-16 hover:bg-neutral-800/30 transition-colors flex items-center gap-2 text-left"
       >
         {isExpanded ? (
           <ChevronDown className="h-3 w-3 text-neutral-500 shrink-0" />
         ) : (
           <ChevronRight className="h-3 w-3 text-neutral-500 shrink-0" />
         )}
-        <div className="flex-1 min-w-0">
-          <div className="text-xs md:text-sm text-neutral-200 truncate">
-            Rally {rallyIndex} • {rally.shots.length} shots
+        <div className="flex-1">
+          <div className="text-xs text-yellow-400 font-medium">
+            RALLY {rallyNumber}: {rally.shots.length} shots • scoring={String(rally.is_scoring)} • winner={rally.winner_id || 'null'}
           </div>
         </div>
       </button>
 
-      {/* Shots */}
       {isExpanded && (
-        <div className="bg-neutral-950/50">
-          {rally.shots.length === 0 ? (
-            <div className="p-3 pl-24 text-xs text-neutral-500">No shots in this rally</div>
-          ) : (
-            <div className="p-2 md:p-3 pl-16 md:pl-24 space-y-2">
-              {rally.shots.map(shot => {
-                const isShotExpanded = expandedShots.has(shot.id!)
-                return (
-                  <div
-                    key={shot.id}
-                    className="bg-neutral-900/50 border border-neutral-800 rounded overflow-hidden"
-                  >
-                    {/* Shot Summary */}
-                    <button
-                      onClick={() => toggleShot(shot.id!)}
-                      className="w-full p-2 hover:bg-neutral-800/30 transition-colors text-left"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 text-xs font-mono">
-                          {isShotExpanded ? (
-                            <ChevronDown className="h-3 w-3 text-neutral-500 shrink-0" />
-                          ) : (
-                            <ChevronRight className="h-3 w-3 text-neutral-500 shrink-0" />
-                          )}
-                          <span className="text-neutral-500">Shot {shot.shot_number}:</span>
-                          <span className="text-neutral-300">{shot.player_id}</span>
-                          {shot.shot_type && (
-                            <span className="text-neutral-400">• {shot.shot_type}</span>
-                          )}
-                          {shot.intent && (
-                            <span className="text-blue-400">• {shot.intent}</span>
-                          )}
-                        </div>
-                        <span className="text-xs text-neutral-600">
-                          {isShotExpanded ? 'Less' : 'More'}
-                        </span>
-                      </div>
-                    </button>
+        <div className="bg-black/30">
+          <table className="w-full text-xs">
+            <thead className="bg-neutral-900">
+              <tr>
+                <th className="px-3 py-2 text-left text-neutral-400 font-medium">Field</th>
+                <th className="px-3 py-2 text-left text-neutral-400 font-medium">Value</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-neutral-800">
+              <TableRow label="id" value={rally.id} />
+              <TableRow label="set_id" value={rally.set_id} />
+              <TableRow label="rally_index" value={rally.rally_index} />
+              <TableRow label="video_id" value={rally.video_id} />
+              <TableRow label="has_video_data" value={rally.has_video_data} />
+              <TableRow label="server_id" value={rally.server_id} />
+              <TableRow label="receiver_id" value={rally.receiver_id} />
+              <TableRow label="winner_id" value={rally.winner_id} highlight={!rally.winner_id} />
+              <TableRow label="is_scoring" value={rally.is_scoring} />
+              <TableRow label="point_end_type" value={rally.point_end_type} highlight={!rally.point_end_type && rally.is_scoring} />
+              <TableRow label="luck_type" value={rally.luck_type} />
+              <TableRow label="is_highlight" value={rally.is_highlight} />
+              <TableRow label="framework_confirmed" value={rally.framework_confirmed} />
+              <TableRow label="detail_complete" value={rally.detail_complete} />
+              <TableRow label="server_corrected" value={rally.server_corrected} />
+              <TableRow label="score_corrected" value={rally.score_corrected} />
+              <TableRow label="correction_notes" value={rally.correction_notes} />
+            </tbody>
+          </table>
 
-                    {/* Expanded Shot Details */}
-                    {isShotExpanded && (
-                      <div className="px-4 pb-3 pt-1 border-t border-neutral-800">
-                        <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs font-mono">
-                          <DetailRow label="Shot #" value={shot.shot_number} />
-                          <DetailRow label="Player" value={shot.player_id} />
-                          <DetailRow label="Shot Type" value={shot.shot_type} />
-                          <DetailRow label="Intent" value={shot.intent} />
-                          <DetailRow label="Wing" value={shot.wing} />
-                          <DetailRow label="Quality" value={shot.shot_quality} />
-                          <DetailRow label="Contact Height" value={shot.contact_height} />
-                          <DetailRow label="Position" value={shot.position_sector} />
-                          <DetailRow label="Inferred Spin" value={shot.inferred_spin} />
-                          <DetailRow label="Landing Type" value={shot.landing_type} />
-                          <DetailRow label="Landing Zone" value={shot.landing_zone} />
-                          <DetailRow label="Point End" value={shot.is_point_end ? 'Yes' : 'No'} />
-                          <DetailRow label="Error Type" value={shot.unforced_error_type} />
-                          <DetailRow label="Error Source" value={shot.unforced_error_source} />
-                          <DetailRow label="Serve Detail" value={shot.serve_detail} />
-                          <DetailRow label="RoS Type" value={shot.return_of_serve_type} />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          )}
+          {/* Shots */}
+          <div className="border-t-4 border-neutral-400 mt-2 p-3 pl-6">
+            <div className="text-xs font-semibold text-cyan-400 mb-2">SHOTS ({rally.shots.length}):</div>
+            {rally.shots.map(shot => (
+              <ShotTable key={shot.id} shot={shot} />
+            ))}
+          </div>
         </div>
       )}
     </div>
   )
 }
 
-function DetailRow({ label, value }: { label: string; value: any }) {
-  if (value === null || value === undefined || value === '') return null
+function ShotTable({ shot }: { shot: DBShot }) {
+  return (
+    <div className="mb-4 bg-neutral-900/70 border border-cyan-900/50 rounded overflow-hidden">
+      <div className="bg-cyan-950/30 px-3 py-1.5 border-b border-cyan-900/50">
+        <span className="text-xs font-mono font-semibold text-cyan-300">
+          Shot {shot.shot_index} - Player: {shot.player_id}
+        </span>
+      </div>
+      <table className="w-full text-xs">
+        <tbody className="divide-y divide-neutral-800">
+          <TableRow label="id" value={shot.id} />
+          <TableRow label="rally_id" value={shot.rally_id} />
+          <TableRow label="video_id" value={shot.video_id} />
+          <TableRow label="time" value={shot.time} />
+          <TableRow label="shot_index" value={shot.shot_index} />
+          <TableRow label="player_id" value={shot.player_id} />
+          {/* Recorded Data */}
+          <TableRow label="serve_spin_family" value={shot.serve_spin_family} highlight={shot.shot_index === 1 && !shot.serve_spin_family} />
+          <TableRow label="shot_length" value={shot.shot_length} highlight={(shot.shot_index === 1 || shot.shot_index === 2) && !shot.shot_length} />
+          <TableRow label="wing" value={shot.wing} highlight={shot.shot_index > 1 && !shot.wing} />
+          <TableRow label="intent" value={shot.intent} highlight={shot.shot_index > 1 && !shot.intent} />
+          <TableRow label="shot_result" value={shot.shot_result} />
+          {/* Derived Data */}
+          <TableRow label="shot_origin" value={shot.shot_origin} highlight={!shot.shot_origin} />
+          <TableRow label="shot_target" value={shot.shot_target} highlight={!shot.shot_target} />
+          <TableRow label="is_rally_end" value={shot.is_rally_end} />
+          <TableRow label="rally_end_role" value={shot.rally_end_role} />
+          {/* Inferred Data */}
+          <TableRow label="inferred_pressure_level" value={shot.inferred_pressure_level} />
+          <TableRow label="inferred_intent_quality" value={shot.inferred_intent_quality} />
+          <TableRow label="inferred_player_position" value={shot.inferred_player_position} />
+          <TableRow label="inferred_distance_from_table" value={shot.inferred_distance_from_table} />
+          <TableRow label="inferred_shot_type" value={shot.inferred_shot_type} />
+          <TableRow label="inferred_shot_confidence" value={shot.inferred_shot_confidence} />
+          <TableRow label="inferred_spin" value={shot.inferred_spin} />
+          <TableRow label="inferred_spin_confidence" value={shot.inferred_spin_confidence} />
+          <TableRow label="inferred_is_third_ball_attack" value={shot.inferred_is_third_ball_attack} />
+          <TableRow label="inferred_is_receive_attack" value={shot.inferred_is_receive_attack} />
+          <TableRow label="is_tagged" value={shot.is_tagged} />
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function TableRow({ label, value, highlight }: { label: string; value: any; highlight?: boolean }) {
+  const displayValue = value === null || value === undefined ? 'null' : 
+                       typeof value === 'boolean' ? String(value) :
+                       typeof value === 'object' ? JSON.stringify(value) :
+                       String(value)
+  
+  const valueColor = value === null || value === undefined ? 'text-red-400' :
+                     typeof value === 'boolean' ? (value ? 'text-green-400' : 'text-orange-400') :
+                     'text-neutral-300'
   
   return (
-    <div>
-      <span className="text-neutral-500">{label}:</span>{' '}
-      <span className="text-neutral-300">{String(value)}</span>
-    </div>
+    <tr className={highlight ? 'bg-red-950/20' : ''}>
+      <td className="px-3 py-1.5 text-neutral-500 font-mono whitespace-nowrap">{label}</td>
+      <td className={`px-3 py-1.5 font-mono ${valueColor} break-all`}>{displayValue}</td>
+    </tr>
   )
 }

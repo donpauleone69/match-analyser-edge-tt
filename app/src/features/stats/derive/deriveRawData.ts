@@ -31,7 +31,7 @@ export function useDeriveRawData(
         intent: shot.intent,
         shotResult: shot.shot_result,
         shotOrigin: shot.shot_origin,
-        shotDestination: shot.shot_destination,
+        shotTarget: shot.shot_target,
         rallyEndRole: shot.rally_end_role,
       }))
       

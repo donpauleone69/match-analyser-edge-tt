@@ -13,30 +13,30 @@ import type {
   ShotIntent,
   ShotResult,
   ServeSpinFamily,
-  ServeLength,
+  ShotLength,
   RallyEndRole,
-} from '../../types'
+} from '@/data/entities/shots/shot.types'
 
 // =============================================================================
 // DIRECTION TRANSFORMATIONS
 // =============================================================================
 
 /**
- * Parse UI direction string into origin and destination.
+ * Parse UI direction string into origin and target.
  * 
  * UI Format: "left_mid", "mid_right", etc.
- * DB Format: separate shot_origin and shot_destination fields
+ * DB Format: separate shot_origin and shot_target fields
  * 
  * @param direction - Combined direction string from UI
- * @returns Object with separate origin and destination
+ * @returns Object with separate origin and target
  */
-export function mapDirectionToOriginDestination(
+export function mapDirectionToOriginTarget(
   direction: string | null | undefined
 ): {
   shot_origin: TablePosition | null
-  shot_destination: TablePosition | null
+  shot_target: TablePosition | null
 } {
-  if (!direction) return { shot_origin: null, shot_destination: null }
+  if (!direction) return { shot_origin: null, shot_target: null }
   
   const parts = direction.split('_') as [string, string]
   
@@ -49,60 +49,96 @@ export function mapDirectionToOriginDestination(
   
   return {
     shot_origin: toPosition(parts[0]),
-    shot_destination: toPosition(parts[1]),
+    shot_target: toPosition(parts[1]),
   }
 }
 
 /**
- * Extract destination from direction string.
+ * @deprecated Use mapDirectionToOriginTarget instead
+ */
+export function mapDirectionToOriginDestination(
+  direction: string | null | undefined
+): {
+  shot_origin: TablePosition | null
+  shot_destination: TablePosition | null
+} {
+  const result = mapDirectionToOriginTarget(direction)
+  return {
+    shot_origin: result.shot_origin,
+    shot_destination: result.shot_target,
+  }
+}
+
+/**
+ * Extract target from direction string.
  * Helper for getting ending position only.
  * 
  * @param direction - Direction string like "left_mid"
- * @returns The destination part (e.g., "mid")
+ * @returns The target part (e.g., "mid")
  */
-export function extractDestinationFromDirection(
+export function extractTargetFromDirection(
   direction: string | null | undefined
 ): TablePosition | null {
   if (!direction) return null
   
   const parts = direction.split('_')
-  const dest = parts[1]
+  const target = parts[1]
   
-  if (dest === 'left') return 'left'
-  if (dest === 'right') return 'right'
-  if (dest === 'mid') return 'mid'
+  if (target === 'left') return 'left'
+  if (target === 'right') return 'right'
+  if (target === 'mid') return 'mid'
   return null
 }
 
 /**
- * Combine origin and destination into UI direction string.
- * Reverse of mapDirectionToOriginDestination.
+ * @deprecated Use extractTargetFromDirection instead
+ */
+export function extractDestinationFromDirection(
+  direction: string | null | undefined
+): TablePosition | null {
+  return extractTargetFromDirection(direction)
+}
+
+/**
+ * Combine origin and target into UI direction string.
+ * Reverse of mapDirectionToOriginTarget.
  * 
  * @param origin - Shot origin position
- * @param destination - Shot destination position
+ * @param target - Shot target position
  * @returns Combined direction string for UI
+ */
+export function mapOriginTargetToDirection(
+  origin: TablePosition | null,
+  target: TablePosition | null
+): string | null {
+  if (!origin || !target) return null
+  return `${origin}_${target}`
+}
+
+/**
+ * @deprecated Use mapOriginTargetToDirection instead
  */
 export function mapOriginDestinationToDirection(
   origin: TablePosition | null,
   destination: TablePosition | null
 ): string | null {
-  if (!origin || !destination) return null
-  return `${origin}_${destination}`
+  return mapOriginTargetToDirection(origin, destination)
 }
 
 // =============================================================================
-// SERVE TRANSFORMATIONS
+// SHOT LENGTH TRANSFORMATIONS (SERVE & RECEIVE)
 // =============================================================================
 
 /**
- * Map UI serve length to DB serve_length.
+ * Map UI shot length to DB shot_length.
+ * Used for both serve (shot #1) and receive (shot #2).
  * 
  * UI: 'short' | 'halflong' | 'deep'
  * DB: 'short' | 'half_long' | 'long'
  */
-export function mapServeLengthUIToDB(
+export function mapShotLengthUIToDB(
   uiLength: 'short' | 'halflong' | 'deep' | null | undefined
-): ServeLength | null {
+): ShotLength | null {
   if (!uiLength) return null
   
   if (uiLength === 'short') return 'short'
@@ -113,11 +149,11 @@ export function mapServeLengthUIToDB(
 }
 
 /**
- * Map DB serve_length to UI length.
- * Reverse of mapServeLengthUIToDB.
+ * Map DB shot_length to UI length.
+ * Reverse of mapShotLengthUIToDB.
  */
-export function mapServeLengthDBToUI(
-  dbLength: ServeLength | null | undefined
+export function mapShotLengthDBToUI(
+  dbLength: ShotLength | null | undefined
 ): 'short' | 'halflong' | 'deep' | null {
   if (!dbLength) return null
   
@@ -126,6 +162,24 @@ export function mapServeLengthDBToUI(
   if (dbLength === 'long') return 'deep'
   
   return null
+}
+
+/**
+ * @deprecated Use mapShotLengthUIToDB instead (field renamed from serve_length to shot_length)
+ */
+export function mapServeLengthUIToDB(
+  uiLength: 'short' | 'halflong' | 'deep' | null | undefined
+): ShotLength | null {
+  return mapShotLengthUIToDB(uiLength)
+}
+
+/**
+ * @deprecated Use mapShotLengthDBToUI instead (field renamed from serve_length to shot_length)
+ */
+export function mapServeLengthDBToUI(
+  dbLength: ShotLength | null | undefined
+): 'short' | 'halflong' | 'deep' | null {
+  return mapShotLengthDBToUI(dbLength)
 }
 
 /**

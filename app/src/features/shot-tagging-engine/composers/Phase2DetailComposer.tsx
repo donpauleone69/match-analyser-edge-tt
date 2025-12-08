@@ -14,13 +14,13 @@ import type { Phase1Shot, Phase1Rally } from './Phase1TimestampComposer'
 import { ButtonGrid, ShotQualityToggleBlock, type ShotQuality } from '../blocks'
 import { calculateShotPlayer, type PlayerId } from '@/rules'
 import { 
-  extractDestinationFromDirection,
-  mapDirectionToOriginDestination,
-  mapServeLengthUIToDB,
+  extractTargetFromDirection,
+  mapDirectionToOriginTarget,
+  mapShotLengthUIToDB,
   mapServeSpinUIToDB,
   mapStrokeUIToDB,
   mapShotQualityUIToDB,
-  mapServeLengthDBToUI,
+  mapShotLengthDBToUI,
   mapServeSpinDBToUI,
   mapWingDBToUI,
   mapShotResultDBToUI,
@@ -64,10 +64,11 @@ import { VideoPlayer, type VideoPlayerHandle, useVideoPlaybackStore } from '@/ui
 
 // Question step types
 type ServeStep = 'direction' | 'length' | 'spin'
+type ReceiveStep = 'stroke' | 'direction' | 'length' | 'intent'
 type ShotStep = 'stroke' | 'direction' | 'intent'
-type ErrorStep = 'stroke' | 'intent' | 'errorType'
+type ErrorStep = 'stroke' | 'direction' | 'intent' | 'errorType'
 
-type QuestionStep = ServeStep | ShotStep | ErrorStep | 'complete'
+type QuestionStep = ServeStep | ReceiveStep | ShotStep | ErrorStep | 'complete'
 
 export interface Phase2DetailComposerProps {
   phase1Rallies: Phase1Rally[]
@@ -89,11 +90,12 @@ export interface DetailedShot extends Phase1Shot {
   rallyEndCondition: string
   isLastShot: boolean
   isError: boolean
+  isReceive: boolean  // NEW: flag for shot #2
   serverId: PlayerId  // who served this rally
   winnerId: PlayerId  // who won this rally
   // Detailed data
   direction?: Direction
-  length?: 'short' | 'halflong' | 'deep'
+  length?: 'short' | 'halflong' | 'deep'  // Used for both serve AND receive
   spin?: 'underspin' | 'nospin' | 'topspin'
   stroke?: 'backhand' | 'forehand'
   intent?: 'defensive' | 'neutral' | 'aggressive'
@@ -122,12 +124,15 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
       rally.shots.forEach((shot, index) => {
         const isLastShot = index === rally.shots.length - 1
         const isError = rally.isError && isLastShot  // Only last shot can be error
+        const isReceive = shot.shotIndex === 2  // NEW: flag for shot #2
         shots.push({
           ...shot,
+          isServe: shot.isServe ?? (shot.shotIndex === 1),  // Ensure isServe is always defined
           rallyId: rally.id,
           rallyEndCondition: rally.endCondition,
           isLastShot,
           isError,
+          isReceive,  // NEW
           serverId: rally.serverId,
           winnerId: rally.winnerId,
         })
@@ -164,12 +169,12 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
           
           // Use centralized mappers for UI → DB transformation
           if (shot.direction) {
-            const { shot_origin, shot_destination } = mapDirectionToOriginDestination(shot.direction)
+            const { shot_origin, shot_target } = mapDirectionToOriginTarget(shot.direction)
             updates.shot_origin = shot_origin
-            updates.shot_destination = shot_destination
+            updates.shot_target = shot_target
           }
           if (shot.length) {
-            updates.serve_length = mapServeLengthUIToDB(shot.length)
+            updates.shot_length = mapShotLengthUIToDB(shot.length)
           }
           if (shot.spin) {
             updates.serve_spin_family = mapServeSpinUIToDB(shot.spin)
@@ -251,10 +256,10 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
             // Merge DB data into shot using centralized mappers
             return {
               ...shot,
-              direction: dbShot.shot_origin && dbShot.shot_destination
-                ? `${dbShot.shot_origin}_${dbShot.shot_destination}` as any
+              direction: dbShot.shot_origin && dbShot.shot_target
+                ? `${dbShot.shot_origin}_${dbShot.shot_target}` as any
                 : shot.direction,
-              length: mapServeLengthDBToUI(dbShot.serve_length) || shot.length,
+              length: mapShotLengthDBToUI(dbShot.shot_length) || shot.length,
               spin: mapServeSpinDBToUI(dbShot.serve_spin_family) || shot.spin,
               stroke: mapWingDBToUI(dbShot.wing) || shot.stroke,
               intent: dbShot.intent || shot.intent,
@@ -280,6 +285,21 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
     return <div className="p-8 text-center text-neutral-500">No shots to tag</div>
   }
   
+  // Ensure isServe is defined (in case of data migration issues)
+  if (currentShot.isServe === undefined) {
+    currentShot.isServe = currentShot.shotIndex === 1
+  }
+  
+  // Debug logging
+  console.log('[Phase2] Current shot:', {
+    shotIndex: currentShot.shotIndex,
+    isServe: currentShot.isServe,
+    isReceive: currentShot.isReceive,
+    isError: currentShot.isError,
+    step: currentStep,
+    allProperties: Object.keys(currentShot)
+  })
+  
   // Calculate constrained playback range for current shot (loop preview)
   const constrainedPlayback = {
     enabled: true,
@@ -293,6 +313,14 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
     ? calculateShotPlayer(currentShot.serverId, currentShot.shotIndex)
     : null
   
+  // Check if current step is the last question for this shot
+  const isLastQuestion = (step: QuestionStep, shot: DetailedShot): boolean => {
+    if (shot.isServe) return step === 'spin'
+    if (shot.isError) return step === 'errorType'
+    if (shot.isReceive) return step === 'intent'
+    return step === 'intent' // Regular shots
+  }
+  
   // Determine question flow based on shot type
   const getNextStep = (current: QuestionStep): QuestionStep => {
     if (!currentShot) return 'complete'
@@ -304,11 +332,21 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
       if (current === 'spin') return advanceToNextShot()
     }
     
-    // Error shot flow: stroke → intent → errorType → next shot
+    // Error shot flow: stroke → direction → intent → errorType → next shot
+    // (Error takes precedence over receive)
     if (currentShot.isError) {
-      if (current === 'stroke') return 'intent'
+      if (current === 'stroke') return 'direction'
+      if (current === 'direction') return 'intent'
       if (current === 'intent') return 'errorType'
       if (current === 'errorType') return advanceToNextShot()
+    }
+    
+    // Receive flow (shot #2, but not error): stroke → direction → length → intent → next shot
+    if (currentShot.isReceive) {
+      if (current === 'stroke') return 'direction'
+      if (current === 'direction') return 'length'
+      if (current === 'length') return 'intent'
+      if (current === 'intent') return advanceToNextShot()
     }
     
     // Regular shot flow: stroke → direction → intent → next shot
@@ -320,31 +358,17 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
   }
   
   const advanceToNextShot = (): QuestionStep => {
-    // Save current shot detail to DB before advancing
-    const currentShot = allShots[currentShotIndex]
-    if (setId && player1Id && player2Id) {
-      saveCurrentShotToDatabase(currentShot).catch(console.error)
-    }
+    // NOTE: Save logic moved to handleAnswer to avoid stale state issues
+    // This function now just determines the next step
+    console.log('[Phase2] advanceToNextShot called (save already handled in handleAnswer)')
     
     if (currentShotIndex < allShots.length - 1) {
-      setCurrentShotIndex(prev => prev + 1)
-      // Reset shot quality for next shot
-      setCurrentShotQuality('average')
-      // Determine starting question for next shot
+      // Next step will be determined by the new shot type
       const nextShot = allShots[currentShotIndex + 1]
-      return nextShot.isServe ? 'direction' : 'stroke'
+      return nextShot?.isServe ? 'direction' : 'stroke'
     }
-    // All shots complete - mark set as tagged and pass detailed data back
-    if (setId) {
-      setDb.update(setId, {
-        tagging_phase: 'phase2_complete',
-        is_tagged: true,
-        tagging_completed_at: new Date().toISOString(),
-        phase2_last_shot_index: currentShotIndex + 1,
-        phase2_total_shots: allShots.length,
-      }).catch(console.error)
-    }
-    if (onComplete) onComplete(allShots)
+    
+    // All shots complete
     return 'complete'
   }
   
@@ -353,6 +377,8 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
       console.warn(`[Phase2] Cannot save shot ${currentShotIndex + 1} - missing DB context`)
       return
     }
+    
+    let updates: any = {} // Declare outside try block for error handler access
     
     try {
       console.log(`[Phase2] Saving shot ${currentShotIndex + 1}/${allShots.length} (index ${shot.shotIndex})`)
@@ -370,16 +396,31 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
       
       // Update existing shot with Phase 2 details - simplified approach
       // We'll just update the fields that Phase 2 adds
-      const updates: any = {}
+      updates = {}
+      
+      // DEBUG: Log what data we have for this shot
+      console.log(`[Phase2] Shot data before save:`, {
+        shotIndex: shot.shotIndex,
+        direction: shot.direction,
+        length: shot.length,
+        spin: shot.spin,
+        stroke: shot.stroke,
+        intent: shot.intent,
+        shotQuality: shot.shotQuality,
+        errorType: shot.errorType,
+        isServe: shot.isServe,
+        isReceive: shot.isReceive,
+        isError: shot.isError,
+      })
       
       // Use centralized mappers for UI → DB transformation
       if (shot.direction) {
-        const { shot_origin, shot_destination } = mapDirectionToOriginDestination(shot.direction)
+        const { shot_origin, shot_target } = mapDirectionToOriginTarget(shot.direction)
         updates.shot_origin = shot_origin
-        updates.shot_destination = shot_destination
+        updates.shot_target = shot_target
       }
       if (shot.length) {
-        updates.serve_length = mapServeLengthUIToDB(shot.length)
+        updates.shot_length = mapShotLengthUIToDB(shot.length)
       }
       if (shot.spin) {
         updates.serve_spin_family = mapServeSpinUIToDB(shot.spin)
@@ -390,9 +431,9 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
       if (shot.intent) {
         updates.intent = shot.intent
       }
-      if (shot.shotQuality) {
-        updates.shot_result = mapShotQualityUIToDB(shot.shotQuality)
-      }
+      // ALWAYS save shot quality (defaults to 'average' if not set)
+      updates.shot_result = mapShotQualityUIToDB(shot.shotQuality || 'average')
+      
       if (shot.errorType) {
         // Derive rally_end_role using centralized logic
         updates.rally_end_role = deriveShot_rally_end_role(
@@ -405,8 +446,34 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
         )
       }
       
-      console.log(`[Phase2] Updating shot ${matchingShot.id} with:`, Object.keys(updates))
+      console.log(`[Phase2] Updating shot ${matchingShot.id} with:`, updates)
+      console.log(`[Phase2] Missing fields:`, {
+        noDirection: !shot.direction,
+        noLength: !shot.length && (shot.isServe || shot.isReceive),
+        noSpin: !shot.spin && shot.isServe,
+        noStroke: !shot.stroke && !shot.isServe,
+        noIntent: !shot.intent && !shot.isServe,
+      })
+      
+      // Mark as tagged
+      updates.is_tagged = true
+      
       await shotDb.update(matchingShot.id, updates)
+      
+      // Verify what was saved by reading it back
+      const verifyShot = await shotDb.getById(matchingShot.id)
+      console.log(`[Phase2] ✓ Verified saved shot in DB:`, {
+        id: verifyShot?.id,
+        shot_index: verifyShot?.shot_index,
+        wing: verifyShot?.wing,
+        serve_spin_family: verifyShot?.serve_spin_family,
+        shot_origin: verifyShot?.shot_origin,
+        shot_target: verifyShot?.shot_target,
+        shot_length: verifyShot?.shot_length,
+        shot_result: verifyShot?.shot_result,
+        intent: verifyShot?.intent,
+        is_tagged: verifyShot?.is_tagged,
+      })
       
       // Update set progress
       await setDb.update(setId, {
@@ -418,21 +485,67 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
       console.log(`[Phase2] ✓ Saved shot ${currentShotIndex + 1}/${allShots.length} to database`)
     } catch (error) {
       console.error(`[Phase2] ✗ Failed to save shot ${currentShotIndex + 1}:`, error)
+      console.error(`[Phase2] Shot data:`, shot)
+      console.error(`[Phase2] Updates attempted:`, updates)
+      // Don't throw - continue to next shot even if save fails
     }
   }
   
   // Handle answer selection
   const handleAnswer = <T,>(field: keyof DetailedShot, value: T) => {
+    console.log(`[Phase2] handleAnswer called:`, { field, value, currentShotIndex, currentStep })
+    
     // Save answer to current shot
     const updatedShots = [...allShots]
+    const before = { ...updatedShots[currentShotIndex] }
     updatedShots[currentShotIndex] = {
       ...updatedShots[currentShotIndex],
       [field]: value,
     }
+    const after = updatedShots[currentShotIndex]
+    
+    console.log(`[Phase2] Updated shot:`, {
+      before_keys: Object.keys(before),
+      after_keys: Object.keys(after),
+      field_added: field,
+      field_value: value,
+      has_field_after: field in after,
+    })
+    
     setAllShots(updatedShots)
     
     // Auto-advance to next question
     const nextStep = getNextStep(currentStep)
+    console.log(`[Phase2] Auto-advancing: ${currentStep} → ${nextStep}`)
+    
+    // If this was the last question for current shot, save it now with fresh data
+    if (isLastQuestion(currentStep, currentShot)) {
+      console.log(`[Phase2] Last question answered - saving shot NOW with fresh data`)
+      const shotToSave = updatedShots[currentShotIndex]
+      console.log(`[Phase2] Shot to save has ${Object.keys(shotToSave).length} fields:`, Object.keys(shotToSave))
+      
+      if (setId && player1Id && player2Id) {
+        saveCurrentShotToDatabase(shotToSave).catch(console.error)
+      }
+      
+      if (nextStep !== 'complete') {
+        setCurrentShotIndex(prev => prev + 1)
+        setCurrentShotQuality('average')
+      } else {
+        // All shots complete
+        if (setId) {
+          setDb.update(setId, {
+            tagging_phase: 'phase2_complete',
+            is_tagged: true,
+            tagging_completed_at: new Date().toISOString(),
+            phase2_last_shot_index: currentShotIndex + 1,
+            phase2_total_shots: allShots.length,
+          }).catch(console.error)
+        }
+        if (onComplete) onComplete(updatedShots)
+      }
+    }
+    
     setCurrentStep(nextStep)
   }
   
@@ -459,12 +572,20 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
   // Progress info
   const progress = `${currentShotIndex + 1} of ${allShots.length}`
   const progressPercent = Math.round((currentShotIndex / allShots.length) * 100)
-  const shotLabel = currentShot.isServe ? 'Serve' : `Shot ${currentShot.shotIndex + 1}`
+  const shotLabel = currentShot.isServe ? 'Serve' : `Shot ${currentShot.shotIndex}`
   
   // Build current question label for status bar
   const getCurrentQuestionLabel = (): string => {
-    if (currentStep === 'direction') return currentShot?.isServe ? 'Serve Direction' : 'Shot Direction'
-    if (currentStep === 'length') return 'Serve Depth'
+    if (currentStep === 'direction') {
+      if (currentShot?.isServe) return 'Serve Direction'
+      if (currentShot?.isError) return 'Shot Direction (Target)'
+      return 'Shot Direction'
+    }
+    if (currentStep === 'length') {
+      if (currentShot?.isServe) return 'Serve Depth'
+      if (currentShot?.isReceive) return 'Receive Depth'
+      return 'Shot Depth'
+    }
     if (currentStep === 'spin') return 'Spin Type'
     if (currentStep === 'stroke') return 'Stroke Type'
     if (currentStep === 'intent') return 'Shot Intent'
@@ -481,7 +602,7 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
     if (!prevShot?.direction) return null
     
     // Extract ending position from direction (e.g., 'left_mid' → 'mid')
-    return extractDestinationFromDirection(prevShot.direction) || 'mid'
+    return extractTargetFromDirection(prevShot.direction) || 'mid'
   }
   
   // Helper to get next shot's starting side from receiver's perspective
@@ -500,7 +621,7 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
     <div className={cn('fixed inset-0 flex flex-col bg-bg-surface overflow-hidden', className)}>
       {/* Shot Log - Top (scrollable) */}
       <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-2 bg-bg-surface">
-        <div className="text-sm text-neutral-500 mb-3">Shot Log</div>
+        <div className="text-sm text-neutral-500 mb-3">Shot Log - Phase 2 Tagging</div>
         
         {phase1Rallies.map((rally, rallyIdx) => {
           const rallyShots = allShots.filter(shot => shot.rallyId === rally.id)
@@ -520,13 +641,19 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
               )}
             >
               <div className="flex items-center justify-between mb-2">
-                <span className={cn('text-xs font-medium', hasCurrentShot ? 'text-brand-primary' : 'text-neutral-400')}>
-                  Rally {rallyIdx + 1} {hasCurrentShot && '(Tagging)'}
-                </span>
-                <span className={cn('text-xs font-medium', endConditionColor)}>
-                  {endConditionLabel}
-                  {rally.isError && ' (Error)'}
-                </span>
+                <div className="text-xs">
+                  <span className={cn('font-medium', hasCurrentShot ? 'text-brand-primary' : 'text-neutral-400')}>
+                    Rally {rallyIdx + 1} {hasCurrentShot && '(Tagging)'}
+                  </span>
+                  <span className="ml-2 text-neutral-500">Server: {rally.serverName}</span>
+                </div>
+                <div className="text-xs">
+                  <span className="font-medium text-success mr-2">{rally.winnerName} won</span>
+                  <span className={cn('font-medium', endConditionColor)}>
+                    {endConditionLabel}
+                    {rally.isError && ' (Error)'}
+                  </span>
+                </div>
               </div>
               <div className="space-y-1">
                 {rallyShots.map((shot, idx) => {
@@ -534,14 +661,37 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
                   const isCurrent = globalIdx === currentShotIndex
                   const isCompleted = globalIdx < currentShotIndex
                   
+                  // Calculate player for this shot
+                  const shotPlayer = calculateShotPlayer(rally.serverId, shot.shotIndex)
+                  const playerName = shotPlayer === 'player1' ? rally.player1Name : rally.player2Name
+                  
+                  // Build detail string from collected data
+                  const details: string[] = []
+                  if (shot.stroke) details.push(shot.stroke === 'backhand' ? 'BH' : 'FH')
+                  if (shot.direction) details.push(shot.direction.replace('_', '→'))
+                  if (shot.length) details.push(`Depth:${shot.length}`)
+                  if (shot.spin) details.push(`Spin:${shot.spin}`)
+                  if (shot.intent) details.push(shot.intent)
+                  if (shot.errorType) details.push(`ERR:${shot.errorType}`)
+                  if (shot.shotQuality) details.push(`Q:${shot.shotQuality}`)
+                  
                   return (
-                    <div key={shot.id} className="flex items-center gap-2 text-sm">
-                      <span className="font-mono text-xs text-neutral-600">#{idx + 1}</span>
-                      <span className={cn('text-xs', isCompleted ? 'text-neutral-400' : 'text-neutral-600')}>
-                        {shot.isServe ? 'Serve' : 'Shot'}
-                      </span>
-                      <span className="ml-auto font-mono text-xs text-neutral-600">{shot.timestamp.toFixed(2)}s</span>
-                      {isCurrent && <span className="text-xs text-brand-primary font-medium ml-2">←</span>}
+                    <div key={shot.id} className="space-y-0.5">
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="font-mono text-xs text-neutral-600">#{idx + 1}</span>
+                        <span className={cn('text-xs', isCompleted ? 'text-neutral-400' : 'text-neutral-600')}>
+                          {shot.isServe ? 'Serve' : shot.shotIndex === 2 ? 'Receive' : 'Shot'}
+                        </span>
+                        <span className="text-xs text-neutral-300 font-medium">{playerName}</span>
+                        {shot.isError && <span className="text-xs text-danger">(error)</span>}
+                        <span className="ml-auto font-mono text-xs text-neutral-600">{shot.timestamp.toFixed(2)}s</span>
+                        {isCurrent && <span className="text-xs text-brand-primary font-medium ml-2">←</span>}
+                      </div>
+                      {details.length > 0 && (
+                        <div className="pl-8 text-xs text-neutral-500">
+                          {details.join(' • ')}
+                        </div>
+                      )}
                     </div>
                   )
                 })}
@@ -604,24 +754,120 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
           </ButtonGrid>
         )}
         
-        {/* Regular shot questions */}
-        {!currentShot.isServe && !currentShot.isError && currentStep === 'stroke' && (
+        {/* Receive (shot #2) questions - only if NOT an error */}
+        {currentShot.isReceive && !currentShot.isError && currentStep === 'stroke' && (
           <ButtonGrid columns={3}>
             <ShotQualityToggleBlock 
               value={currentShotQuality} 
               onChange={setCurrentShotQuality}
             />
             <BackhandButton onClick={() => {
-              handleAnswer('shotQuality', currentShotQuality)
-              handleAnswer('stroke', 'backhand')
+              // Update both fields in single operation to avoid race condition
+              const updatedShots = [...allShots]
+              updatedShots[currentShotIndex] = {
+                ...updatedShots[currentShotIndex],
+                shotQuality: currentShotQuality,
+                stroke: 'backhand' as const,
+              }
+              setAllShots(updatedShots)
+              const nextStep = getNextStep(currentStep)
+              setCurrentStep(nextStep)
             }} />
             <ForehandButton onClick={() => {
-              handleAnswer('shotQuality', currentShotQuality)
-              handleAnswer('stroke', 'forehand')
+              // Update both fields in single operation to avoid race condition
+              const updatedShots = [...allShots]
+              updatedShots[currentShotIndex] = {
+                ...updatedShots[currentShotIndex],
+                shotQuality: currentShotQuality,
+                stroke: 'forehand' as const,
+              }
+              setAllShots(updatedShots)
+              const nextStep = getNextStep(currentStep)
+              setCurrentStep(nextStep)
             }} />
           </ButtonGrid>
         )}
-        {!currentShot.isServe && !currentShot.isError && currentStep === 'direction' && (
+        {currentShot.isReceive && !currentShot.isError && currentStep === 'direction' && (
+          <ButtonGrid columns={3}>
+              {getNextShotStartingSide() === 'left' && (
+                <>
+                  <LeftLeftButton onClick={() => handleAnswer('direction', 'left_left')} />
+                  <LeftMidButton onClick={() => handleAnswer('direction', 'left_mid')} />
+                  <LeftRightButton onClick={() => handleAnswer('direction', 'left_right')} />
+                </>
+              )}
+              {getNextShotStartingSide() === 'mid' && (
+                <>
+                  <MidLeftButton onClick={() => handleAnswer('direction', 'mid_left')} />
+                  <MidMidButton onClick={() => handleAnswer('direction', 'mid_mid')} />
+                  <MidRightButton onClick={() => handleAnswer('direction', 'mid_right')} />
+                </>
+              )}
+              {getNextShotStartingSide() === 'right' && (
+                <>
+                  <RightLeftButton onClick={() => handleAnswer('direction', 'right_left')} />
+                  <RightMidButton onClick={() => handleAnswer('direction', 'right_mid')} />
+                  <RightRightButton onClick={() => handleAnswer('direction', 'right_right')} />
+                </>
+              )}
+              {!getNextShotStartingSide() && (
+                <>
+                  <MidLeftButton onClick={() => handleAnswer('direction', 'mid_left')} />
+                  <MidMidButton onClick={() => handleAnswer('direction', 'mid_mid')} />
+                  <MidRightButton onClick={() => handleAnswer('direction', 'mid_right')} />
+                </>
+              )}
+          </ButtonGrid>
+        )}
+        {currentShot.isReceive && !currentShot.isError && currentStep === 'length' && (
+          <ButtonGrid columns={3}>
+            <ShortButton onClick={() => handleAnswer('length', 'short')} />
+            <HalfLongButton onClick={() => handleAnswer('length', 'halflong')} />
+            <DeepButton onClick={() => handleAnswer('length', 'deep')} />
+          </ButtonGrid>
+        )}
+        {currentShot.isReceive && !currentShot.isError && currentStep === 'intent' && (
+          <ButtonGrid columns={3}>
+            <DefensiveButton onClick={() => handleAnswer('intent', 'defensive')} />
+            <NeutralButton onClick={() => handleAnswer('intent', 'neutral')} />
+            <AggressiveButton onClick={() => handleAnswer('intent', 'aggressive')} />
+          </ButtonGrid>
+        )}
+        
+        {/* Regular shot questions */}
+        {!currentShot.isServe && !currentShot.isError && !currentShot.isReceive && currentStep === 'stroke' && (
+          <ButtonGrid columns={3}>
+            <ShotQualityToggleBlock 
+              value={currentShotQuality} 
+              onChange={setCurrentShotQuality}
+            />
+            <BackhandButton onClick={() => {
+              // Update both fields in single operation to avoid race condition
+              const updatedShots = [...allShots]
+              updatedShots[currentShotIndex] = {
+                ...updatedShots[currentShotIndex],
+                shotQuality: currentShotQuality,
+                stroke: 'backhand' as const,
+              }
+              setAllShots(updatedShots)
+              const nextStep = getNextStep(currentStep)
+              setCurrentStep(nextStep)
+            }} />
+            <ForehandButton onClick={() => {
+              // Update both fields in single operation to avoid race condition
+              const updatedShots = [...allShots]
+              updatedShots[currentShotIndex] = {
+                ...updatedShots[currentShotIndex],
+                shotQuality: currentShotQuality,
+                stroke: 'forehand' as const,
+              }
+              setAllShots(updatedShots)
+              const nextStep = getNextStep(currentStep)
+              setCurrentStep(nextStep)
+            }} />
+          </ButtonGrid>
+        )}
+        {!currentShot.isServe && !currentShot.isError && !currentShot.isReceive && currentStep === 'direction' && (
           <ButtonGrid columns={3}>
               {getNextShotStartingSide() === 'left' && (
                 <>
@@ -654,7 +900,7 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
               )}
           </ButtonGrid>
         )}
-        {!currentShot.isServe && !currentShot.isError && currentStep === 'intent' && (
+        {!currentShot.isServe && !currentShot.isError && !currentShot.isReceive && currentStep === 'intent' && (
           <ButtonGrid columns={3}>
             <DefensiveButton onClick={() => handleAnswer('intent', 'defensive')} />
             <NeutralButton onClick={() => handleAnswer('intent', 'neutral')} />
@@ -665,8 +911,60 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
         {/* Error shot questions */}
         {currentShot.isError && currentStep === 'stroke' && (
           <ButtonGrid columns={2}>
-            <BackhandButton onClick={() => handleAnswer('stroke', 'backhand')} />
-            <ForehandButton onClick={() => handleAnswer('stroke', 'forehand')} />
+            <BackhandButton onClick={() => {
+              const updatedShots = [...allShots]
+              updatedShots[currentShotIndex] = {
+                ...updatedShots[currentShotIndex],
+                shotQuality: currentShotQuality,
+                stroke: 'backhand' as const,
+              }
+              setAllShots(updatedShots)
+              const nextStep = getNextStep(currentStep)
+              setCurrentStep(nextStep)
+            }} />
+            <ForehandButton onClick={() => {
+              const updatedShots = [...allShots]
+              updatedShots[currentShotIndex] = {
+                ...updatedShots[currentShotIndex],
+                shotQuality: currentShotQuality,
+                stroke: 'forehand' as const,
+              }
+              setAllShots(updatedShots)
+              const nextStep = getNextStep(currentStep)
+              setCurrentStep(nextStep)
+            }} />
+          </ButtonGrid>
+        )}
+        {currentShot.isError && !currentShot.isServe && currentStep === 'direction' && (
+          <ButtonGrid columns={3}>
+              {getNextShotStartingSide() === 'left' && (
+                <>
+                  <LeftLeftButton onClick={() => handleAnswer('direction', 'left_left')} />
+                  <LeftMidButton onClick={() => handleAnswer('direction', 'left_mid')} />
+                  <LeftRightButton onClick={() => handleAnswer('direction', 'left_right')} />
+                </>
+              )}
+              {getNextShotStartingSide() === 'mid' && (
+                <>
+                  <MidLeftButton onClick={() => handleAnswer('direction', 'mid_left')} />
+                  <MidMidButton onClick={() => handleAnswer('direction', 'mid_mid')} />
+                  <MidRightButton onClick={() => handleAnswer('direction', 'mid_right')} />
+                </>
+              )}
+              {getNextShotStartingSide() === 'right' && (
+                <>
+                  <RightLeftButton onClick={() => handleAnswer('direction', 'right_left')} />
+                  <RightMidButton onClick={() => handleAnswer('direction', 'right_mid')} />
+                  <RightRightButton onClick={() => handleAnswer('direction', 'right_right')} />
+                </>
+              )}
+              {!getNextShotStartingSide() && (
+                <>
+                  <MidLeftButton onClick={() => handleAnswer('direction', 'mid_left')} />
+                  <MidMidButton onClick={() => handleAnswer('direction', 'mid_mid')} />
+                  <MidRightButton onClick={() => handleAnswer('direction', 'mid_right')} />
+                </>
+              )}
           </ButtonGrid>
         )}
         {currentShot.isError && currentStep === 'intent' && (

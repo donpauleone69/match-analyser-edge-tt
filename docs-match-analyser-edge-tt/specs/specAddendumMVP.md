@@ -6,6 +6,619 @@
 
 ## Change Log
 
+### 2025-12-07: Complete Database Table Viewer (v2.2.10)
+
+Enhanced Data Viewer to show ALL database fields in table format (Match → Set → Rally → Shot) with null highlighting for debugging.
+
+---
+
+### 2025-12-07: Phase 2 Error Question Flow & Quality Fix (v2.2.9)
+
+- Error non-serve shots now correctly ask direction → intent → errorType (was skipping to next shot after stroke)
+- Stroke buttons for errors now explicitly set shotQuality alongside stroke
+- Fixed `isLastQuestion()` logic to properly detect when to save and advance
+
+---
+
+### 2025-12-07: CRITICAL - Stale State Causing Data Loss (v2.2.8)
+
+**Context:** Serve spin, intent, and other fields were being added to shot object but lost before save due to React state timing issue.
+
+#### Root Cause Analysis
+
+**The Smoking Gun:** User logs revealed the exact sequence:
+
+1. **Spin question answered:**
+   ```javascript
+   [Phase2] Updated shot: {
+     after_keys: [..., 'spin'],  ✅ Spin added!
+     has_field_after: true
+   }
+   ```
+
+2. **Auto-advance executes:**
+   ```javascript
+   [Phase2] Auto-advancing: spin → direction  ← Moving to NEXT shot
+   setCurrentShotIndex(prev => prev + 1)    ← Index changes
+   ```
+
+3. **Save attempts later:**
+   ```javascript
+   [Phase2] Advancing from shot, will save: {
+     spin: undefined  ❌ Lost!
+   }
+   ```
+
+**Why:** `advanceToNextShot()` was calling:
+```typescript
+const shotToSave = allShots[currentShotIndex]  // ❌ Reads stale state!
+```
+
+But `handleAnswer` had just called `setAllShots(updatedShots)`, which is **asynchronous**. By the time `advanceToNextShot` reads `allShots`, the state update hadn't completed yet, so it read the OLD shot data without the new field.
+
+#### The Fix
+
+**Moved save logic from `advanceToNextShot` into `handleAnswer`:**
+
+```typescript
+const handleAnswer = (field, value) => {
+  // Update shot
+  const updatedShots = [...allShots]
+  updatedShots[currentShotIndex] = {
+    ...updatedShots[currentShotIndex],
+    [field]: value,  // Add new field
+  }
+  setAllShots(updatedShots)
+  
+  // Get next step
+  const nextStep = getNextStep(currentStep)
+  
+  // If advancing to next shot, save NOW using updatedShots (not stale allShots!)
+  if (nextStep === 'direction' || nextStep === 'stroke' || nextStep === 'complete') {
+    const shotToSave = updatedShots[currentShotIndex]  // ✅ Use fresh data!
+    saveCurrentShotToDatabase(shotToSave)
+    
+    if (nextStep !== 'complete') {
+      setCurrentShotIndex(prev => prev + 1)
+    }
+  }
+  
+  setCurrentStep(nextStep)
+}
+```
+
+**Key change:** Use `updatedShots[currentShotIndex]` (fresh data) instead of `allShots[currentShotIndex]` (stale state).
+
+#### Impact
+
+**Before fix:**
+- ❌ Serve spin: captured but lost before save
+- ❌ Intent: captured but lost before save  
+- ❌ Any field on last question: lost
+- ❌ Inconsistent saves depending on React render timing
+
+**After fix:**
+- ✅ All fields saved immediately with latest data
+- ✅ No stale state reads
+- ✅ Consistent, reliable saves
+
+#### Files Changed
+
+- `app/src/features/shot-tagging-engine/composers/Phase2DetailComposer.tsx`
+  - Moved save logic from `advanceToNextShot` into `handleAnswer` (lines 502-543)
+  - Use fresh `updatedShots` instead of stale `allShots` for saving
+  - `advanceToNextShot` now only determines next step, doesn't save
+
+---
+
+### 2025-12-07: CRITICAL - Winner Always Null in Database (v2.2.7)
+
+**Context:** Phase 1 correctly calculates rally winner but mapping function discards it, saving NULL to database instead.
+
+#### Critical Bug Fix
+
+**Phase 1: Winner Always Saved as NULL**
+- **Issue:** Despite correct winner calculation in Phase 1, database rallies had `winner_id: null`
+- **Impact:** EVERY rally in database had no winner recorded!
+- **Root Cause:** `mapPhase1RallyToDBRally` function (lines 48-51) had placeholder logic:
+  ```typescript
+  let winnerId: string | null = null
+  if (isScoring) {
+    winnerId = null // Placeholder ❌ ALWAYS NULL!
+  }
+  ```
+- **Fix:** Now correctly maps winner from Phase1Rally:
+  ```typescript
+  const winnerId = rally.winnerId === 'player1' ? player1Id : player2Id
+  ```
+- **File:** `dataMapping.ts` lines 46-48
+- **Impact:** Rally winners now correctly saved to database!
+
+**Phase 1: Point End Type Always NULL**
+- **Issue:** `point_end_type` always saved as null even when it could be determined
+- **Fix:** Now sets based on rally outcome:
+  - Error rallies with 1 shot → `'serviceFault'`
+  - Non-error rallies → `'winnerShot'`
+  - Other error rallies → `null` (determined in Phase 2 via errorType question)
+- **File:** `dataMapping.ts` lines 68-70
+- **Impact:** Service faults and winner shots now properly classified in Phase 1
+
+#### User-Visible Impact
+
+Before this fix:
+- ❌ Rally winners not recorded in database
+- ❌ Stats would show 0 points for all players
+- ❌ Match results invalid
+
+After this fix:
+- ✅ Rally winners correctly saved
+- ✅ Scores properly tracked
+- ✅ Stats and analysis work correctly
+
+---
+
+### 2025-12-07: Comprehensive Save Debugging - Phase 1 & Phase 2 (v2.2.6)
+
+**Context:** Added extensive logging throughout save pipeline to identify where data is lost. Includes handleAnswer tracking, database verification, and Phase 1 logging.
+
+#### Enhanced Debugging Features
+
+**1. Phase 2 handleAnswer Logging:**
+```
+[Phase2] handleAnswer called: {field: 'spin', value: 'topspin', currentShotIndex: 0, currentStep: 'spin'}
+[Phase2] Updated shot: {
+  before_keys: [...],
+  after_keys: [...],
+  field_added: 'spin',
+  field_value: 'topspin',
+  has_field_after: true
+}
+[Phase2] Auto-advancing: spin → stroke
+```
+
+**2. Database Verification After Save:**
+- Reads shot back from database immediately after save
+- Logs actual DB values to confirm save succeeded
+- Shows: `wing`, `serve_spin_family`, `shot_length`, `shot_result`, `intent`, `is_tagged`
+
+**3. Phase 1 Rally Save Logging:**
+```
+[Phase1] === SAVING RALLY 1 ===
+[Phase1] Rally data: {serverId, winnerId, endCondition, shotCount}
+[Phase1] DB Rally to save: {server_id, winner_id, is_scoring, point_end_type}
+[Phase1] ✓ Rally saved with ID: <id>
+[Phase1] Saving N shots...
+[Phase1] Shot 1: {player_id, time, shot_index}
+[Phase1] ✓ All N shots saved
+[Phase1] ✓ Rally N complete!
+```
+
+**4. React Strict Mode Double Logging:**
+- **Note:** In development, you'll see double console logs
+- This is React 18 Strict Mode - it's normal!
+- In production build, logs appear only once
+- Doesn't affect actual saves (only renders twice)
+
+#### What the Logs Tell You
+
+**If field is being captured:**
+- `handleAnswer` shows field being added
+- `has_field_after: true`
+- Field appears in `Shot data before save`
+
+**If field is NOT saved to DB:**
+- Check `updates` object - is field included?
+- Check `Verified saved shot in DB` - does DB have the value?
+
+**Rally vs Shot Tables:**
+- **Rallies table:** Server, winner, scoring, end type, scores
+- **Shots table:** All shot details (direction, spin, wing, intent, quality)
+- Phase 1 saves basic rally structure
+- Phase 2 updates shots with detailed annotations
+
+#### Files Changed
+
+- `app/src/features/shot-tagging-engine/composers/Phase2DetailComposer.tsx`
+  - Added handleAnswer logging (lines 467-490)
+  - Added DB verification after save (lines 470-480)
+- `app/src/features/shot-tagging-engine/composers/Phase1TimestampComposer.tsx`
+  - Added comprehensive rally save logging (lines 298-336)
+
+---
+
+### 2025-12-07: Enhanced Debugging for Inconsistent Data Saves (v2.2.5)
+
+**Context:** Added comprehensive logging to diagnose why some fields (wing, serve spin, shot quality) are inconsistently saved to database.
+
+#### Diagnostic Enhancements
+
+**Added Detailed Logging to `saveCurrentShotToDatabase`:**
+
+Before each save, console now logs:
+1. **Complete shot data** - all fields available
+2. **Updates being applied** - what will be written to DB
+3. **Missing fields** - which expected fields are absent
+
+**Example Console Output:**
+```
+[Phase2] Shot data before save: {
+  shotIndex: 2,
+  direction: 'mid_right',
+  length: 'deep',
+  spin: undefined,        // ← Missing!
+  stroke: 'forehand',
+  intent: 'neutral',
+  shotQuality: 'high',
+  errorType: undefined,
+  isServe: false,
+  isReceive: true,
+  isError: false
+}
+[Phase2] Updating shot <id> with: {
+  shot_origin: 'mid',
+  shot_target: 'right',
+  shot_length: 'long',
+  wing: 'FH',
+  intent: 'neutral',
+  shot_result: 'good'
+}
+[Phase2] Missing fields: {
+  noDirection: false,
+  noLength: false,
+  noSpin: false,
+  noStroke: false,
+  noIntent: false
+}
+```
+
+**Changed Shot Quality Save Logic:**
+- **Before:** Only saved if `shotQuality` field exists
+- **After:** ALWAYS saved (defaults to 'average' if not set)
+- **Rationale:** Shot quality should never be null
+
+#### How to Use Debug Logging
+
+1. Open browser DevTools console (F12)
+2. Tag shots in Phase 2
+3. When shot advances, check console for:
+   - `[Phase2] Shot data before save:` - see what data exists
+   - `[Phase2] Missing fields:` - identify what's missing
+4. Report back which fields are consistently missing
+
+#### Files Changed
+
+- `app/src/features/shot-tagging-engine/composers/Phase2DetailComposer.tsx`
+  - Added comprehensive pre-save logging (lines 411-449)
+  - Changed shot quality to always save (line 440)
+
+---
+
+### 2025-12-07: Critical Save Error & Shot Quality Fixes (v2.2.4)
+
+**Context:** Fixed critical save error preventing Phase 2 completion, and resolved shot quality not displaying in logs.
+
+#### Bug Fixes
+
+**1. CRITICAL: Save Failing with "undefined is not an object (evaluating 'data-direction')"**
+- **Issue:** Phase 2 completion failed with cryptic error about direction
+- **Root Cause #1:** Function `mapPhase2DetailToDBShot` called with wrong parameters  
+  - Expected 4 params: `(isServe, isReceive, isError, data)`
+  - Received 3 params: `(isServe, isError, data)` - missing `isReceive`!
+  - This caused parameters to misalign, making `data` undefined
+- **Root Cause #2:** `parseDirection` called on potentially undefined direction without null check
+- **Fix #1:** Added missing `isReceive` parameter to function call (line 347-351)
+- **Fix #2:** Added null check before calling `parseDirection` (line 162)
+- **Files:** 
+  - `TaggingUIPrototypeComposer.tsx` line 347-351
+  - `dataMapping.ts` line 162
+- **Impact:** Phase 2 can now save successfully!
+
+**2. Shot Quality Not Showing in Log**
+- **Issue:** Shot quality toggle (average/high) not appearing in shot log
+- **Root Cause:** Race condition in double `handleAnswer` calls
+  - Clicking BH/FH called `handleAnswer('shotQuality', ...)` then `handleAnswer('stroke', ...)`
+  - Second call executed before first call's state update completed
+  - React state updates are asynchronous and batched
+- **Fix:** Combined both updates into single atomic operation
+- **File:** `Phase2DetailComposer.tsx` lines 692-721 and 754-783
+- **Impact:** Shot quality now correctly saved and displayed immediately
+
+**3. Missing Player Names in Resume Flow**
+- **Issue:** TypeScript error - Phase1Rally missing player name fields
+- **Root Cause:** Added player name fields to Phase1Rally but didn't update `convertDBRallyToPhase1Rally`
+- **Fix:** 
+  - Added `player1Name` and `player2Name` parameters to conversion function
+  - Updated all calls to pass player names from players array
+- **Files:**
+  - `dataMapping.ts` lines 274-327
+  - `TaggingUIPrototypeComposer.tsx` lines 110-123, 143-156
+- **Impact:** Resume functionality works correctly with player names displayed
+
+#### Files Changed
+
+- `app/src/features/shot-tagging-engine/composers/TaggingUIPrototypeComposer.tsx`
+  - Fixed mapPhase2DetailToDBShot parameter count
+  - Added player names to convertDBRallyToPhase1Rally calls
+- `app/src/features/shot-tagging-engine/composers/dataMapping.ts`
+  - Added null check for direction parsing
+  - Added player name parameters to conversion function
+- `app/src/features/shot-tagging-engine/composers/Phase2DetailComposer.tsx`
+  - Fixed shot quality race condition with atomic updates
+
+---
+
+### 2025-12-07: Additional Bug Fixes & Diagnostic Logging (v2.2.3)
+
+**Context:** Fixed shot counter display issue, ensured shot quality saves correctly, and added comprehensive diagnostic logging for save errors.
+
+#### Bug Fixes
+
+**1. Shot Counter Off By One**
+- **Issue:** Status bar showed "Shot 3" when it was actually Shot 2
+- **Root Cause:** Line 501 used `shotIndex + 1` when shotIndex is already 1-based (1=serve, 2=receive, etc.)
+- **Fix:** Changed to just `shotIndex` without adding 1
+- **File:** `Phase2DetailComposer.tsx` line 501
+- **Impact:** Shot counter now displays correctly in status bar
+
+**2. Shot Quality Not Being Logged**  
+- **Issue:** Shot quality (average/high) not appearing in shot log or database
+- **Root Cause:** Reference to stale shot object when saving
+- **Fix:** Ensured fresh copy from `allShots` array is used when saving to database
+- **File:** `Phase2DetailComposer.tsx` line 352-357
+- **Impact:** Shot quality now properly saved and displayed
+
+**3. Enhanced Save Error Diagnostics**
+- **Issue:** Generic "Failed to save match data" error with no details
+- **Fix:** Added 10-step granular logging throughout save process:
+  1. Mark rally end shots
+  2. Save shots to database  
+  3. Determine rally winners
+  4. Calculate rally scores
+  5. Update rallies in database
+  6. Update set final scores
+  7. Run inference
+  8. Mark set as complete
+  9. Update match
+  10. Complete
+- **File:** `TaggingUIPrototypeComposer.tsx` lines 358-453
+- **Impact:** Console now shows exactly which step fails, with full error details
+
+#### Files Changed
+
+- `app/src/features/shot-tagging-engine/composers/Phase2DetailComposer.tsx`
+  - Fixed shot counter display
+  - Ensured fresh shot data used when saving
+- `app/src/features/shot-tagging-engine/composers/TaggingUIPrototypeComposer.tsx`
+  - Added comprehensive step-by-step logging
+  - Enhanced error messages with full details
+
+---
+
+### 2025-12-07: Bug Fixes & Phase 2 Shot Log Enhancement (v2.2.2)
+
+**Context:** Fixed critical bugs in Phase 1 winner derivation and Phase 2 save functionality, plus enhanced Phase 2 shot log with player details.
+
+#### Bug Fixes
+
+**1. Phase 1: Wrong Winner for Error Rallies**
+- **Issue:** When rally ended with "In Net" or "Long", wrong player was being awarded the point
+- **Root Cause:** `deriveRally_winner_id()` was being passed `shot_target: null` instead of `shot_result`
+- **Fix:** Now correctly maps endCondition to shot_result:
+  - `'innet'` → `shot_result: 'in_net'`
+  - `'long'` → `shot_result: 'missed_long'`
+  - `'winner'` → `shot_result: 'good'`
+- **File:** `Phase1TimestampComposer.tsx` lines 237-249
+- **Impact:** Error rallies now correctly award point to opponent of player who made error
+
+**2. Phase 2: Save Error - Updates Out of Scope**
+- **Issue:** Error message on save: "Cannot find name 'updates'"
+- **Root Cause:** `updates` variable declared inside try block but referenced in catch block
+- **Fix:** Moved `updates` declaration outside try block with `let` keyword
+- **File:** `Phase2DetailComposer.tsx` line 387
+- **Impact:** Saves now complete without errors; error logging works correctly
+
+#### UI/UX Enhancements
+
+**Phase 2 Shot Log - Enhanced Details:**
+
+Added comprehensive shot information to Phase 2 shot log (matching Phase 1 quality):
+- **Server name** displayed per rally
+- **Winner name** displayed per rally
+- **Player name** shown for each shot
+- **Shot details** shown below each shot:
+  - Stroke (BH/FH)
+  - Direction (e.g., "left→mid")
+  - Depth (for serves/receives)
+  - Spin (for serves)
+  - Intent (defensive/neutral/aggressive)
+  - Error type (forced/unforced)
+  - Quality (average/high)
+- **Shot type labels** clarified: "Serve", "Receive", "Shot"
+- **Error indicators** shown inline
+
+**Data Model Changes:**
+
+Extended `Phase1Rally` interface to include player display names:
+```typescript
+interface Phase1Rally {
+  // ... existing fields
+  player1Name: string
+  player2Name: string
+  serverName: string
+  winnerName: string
+}
+```
+
+**Example Shot Log Display:**
+```
+Rally 1 (Tagging)
+Server: Alice  |  Bob won - Winner
+
+#1 Serve • Alice                    0.52s
+   FH • left→mid • Depth:short • Spin:topspin
+
+#2 Receive • Bob                    1.24s
+   BH • mid→right • Depth:deep • neutral
+```
+
+#### Files Changed
+
+- `app/src/features/shot-tagging-engine/composers/Phase1TimestampComposer.tsx`
+  - Fixed winner derivation logic
+  - Added player names to Phase1Rally
+- `app/src/features/shot-tagging-engine/composers/Phase2DetailComposer.tsx`
+  - Fixed updates scope issue
+  - Enhanced shot log UI with player details and shot data
+
+---
+
+### 2025-12-07: Bug Fix - Double Direction Buttons on Service Fault (v2.2.1)
+
+**Context:** Fixed rendering bug where service faults displayed both serve direction buttons (6) and error direction buttons (3) simultaneously.
+
+#### Bug Description
+
+When a serve was also an error (service fault - in net or long), the Phase 2 direction question would render two button grids:
+- Serve direction grid: 6 buttons (correct)
+- Error direction grid: 3 buttons (incorrect duplicate)
+
+#### Root Cause
+
+**File:** `app/src/features/shot-tagging-engine/composers/Phase2DetailComposer.tsx`
+
+The error direction conditional (line 781) checked only:
+```typescript
+{currentShot.isError && currentStep === 'direction' && (
+```
+
+This condition did not exclude serves, so when `isServe=true` AND `isError=true`, both the serve direction grid and error direction grid would render.
+
+#### Fix Applied
+
+**Changed line 781** from:
+```typescript
+{currentShot.isError && currentStep === 'direction' && (
+```
+
+To:
+```typescript
+{currentShot.isError && !currentShot.isServe && currentStep === 'direction' && (
+```
+
+This ensures error direction buttons only appear for non-serve error shots (shot index 2+), matching the pattern used for other shot type conditionals.
+
+#### Impact
+
+- **Service faults:** Now show only 6 serve direction buttons (correct)
+- **Receive errors:** Still show 3 error direction buttons (unchanged)
+- **Rally shot errors:** Still show 3 error direction buttons (unchanged)
+
+---
+
+### 2025-12-07: Enhanced Phase 2 Tagging - Receive Depth & Error Direction (v2.2.0)
+
+**Context:** Added two new conditional tagging steps in Phase 2 to capture more detailed shot information for receives and errors.
+
+#### Data Model Changes
+
+**Field Renames (Breaking Changes):**
+
+1. **`serve_length` → `shot_length`** (Type: `ShotLength | null`)
+   - **Rationale:** Field now used for BOTH serve (shot #1) AND receive (shot #2), not just serves
+   - **Values:** `'short' | 'half_long' | 'long'`
+   - **Population:** Shot #1 (serve) and Shot #2 (receive) only; NULL for other rally shots
+
+2. **`shot_destination` → `shot_target`** (Type: `TablePosition | null`)
+   - **Rationale:** Semantic clarification - represents intended target, not necessarily where ball landed
+   - **Now stored even for error shots** - captures where player was aiming
+   - **Error detection moved** from `shot_destination` to `shot_result` field
+   - **Values:** `'left' | 'mid' | 'right' | null`
+
+3. **`ShotResult` Type Extended**
+   - **Added:** `'missed_wide'` to existing `'good' | 'average' | 'in_net' | 'missed_long'`
+   - **Usage:** Error type detection now uses `shot_result` instead of checking `shot_destination`
+
+#### Phase 2 Tagging Workflow Changes
+
+**Receive (Shot #2) - Enhanced Flow:**
+- **Previous:** Stroke → Direction → Intent (3 steps)
+- **New:** Stroke → Direction → **Depth** → Intent (4 steps)
+- **Rationale:** 
+  - Receive quality/placement is crucial for match analysis
+  - Creates symmetry with serve depth tagging
+  - Enables analysis of receive patterns (deep vs short returns)
+- **UI:** Uses same depth buttons as serve (Short/Half-Long/Deep)
+
+**Error Shots - Enhanced Flow:**
+- **Previous:** Stroke → Intent → Error Type (3 steps)
+- **New:** Stroke → **Direction** → Intent → Error Type (4 steps)
+- **Rationale:**
+  - Captures where player was aiming when they made the error
+  - Distinguishes between execution errors vs decision errors
+  - Provides richer data for pattern analysis (e.g., player always errors when targeting wide forehand)
+- **UI:** Direction represents intended target, uses same dynamic buttons as regular shots
+- **Data:** `shot_target` populated with intended direction, `shot_result` shows error type
+
+**Unchanged Flows:**
+- **Serve:** Direction → Length → Spin (3 steps)
+- **Regular Shot:** Stroke → Direction → Intent (3 steps)
+
+#### Technical Implementation
+
+**Derivation Logic Updates:**
+- `deriveRally_point_end_type`: Now checks `shot_result` instead of `shot_destination` for error detection
+- `deriveRally_winner_id`: Now checks `shot_result` instead of `shot_destination` for error detection  
+- `deriveShot_locations`: Updated to use `shot_target` field
+
+**Mapper Functions:**
+- **Renamed:** `mapServeLengthUIToDB` → `mapShotLengthUIToDB`
+- **Renamed:** `mapServeLengthDBToUI` → `mapShotLengthDBToUI`
+- **Renamed:** `mapDirectionToOriginDestination` → `mapDirectionToOriginTarget`
+- **Renamed:** `extractDestinationFromDirection` → `extractTargetFromDirection`
+- **Deprecated aliases** added for backward compatibility
+
+**Component Changes:**
+- `Phase2DetailComposer.tsx`:
+  - Added `isReceive` flag to `DetailedShot` interface
+  - Added `ReceiveStep` type for receive question flow
+  - Updated `ErrorStep` to include 'direction'
+  - Added UI sections for receive depth, receive direction, receive intent
+  - Added UI section for error direction
+  - Updated question label function to show context-specific labels
+- `dataMapping.ts`:
+  - Updated `mapPhase2DetailToDBShot` to accept `isReceive` parameter
+  - `shot_target` now populated for all shots including errors
+  - `shot_length` populated for both serves and receives
+
+**Inference & Stats Updates:**
+- `inferTacticalPatterns.ts`: Updated all `shot_destination` → `shot_target`
+- `inferMovement.ts`: Updated all `shot_destination` → `shot_target`
+- `serveReceiveStats.ts`: Updated `serve_length` → `shot_length`
+
+**Helper Files:**
+- `createEntityDefaults.ts`: Updated default values
+- `deriveRawData.ts`: Renamed field in stats output
+
+#### Migration Notes
+
+**For Development:**
+- Option 1: Clear localStorage and start fresh
+- Option 2: Existing data will have `serve_length` and `shot_destination` fields - these will need manual migration
+
+**Data Implications:**
+- Existing tagged sets will need field renaming if migrating data
+- New tagging sessions will use new field names from start
+
+#### Benefits
+
+1. **Richer Receive Analysis:** Can now analyze receive depth patterns (do they keep it short? go deep?)
+2. **Better Error Analysis:** Understanding target vs result helps identify if errors are execution or decision-based
+3. **Semantic Clarity:** `shot_target` makes it clear we're recording intent, not outcome
+4. **Consistent Data Model:** Depth captured for both serve and receive creates symmetry
+5. **Pattern Recognition:** Can identify if player consistently errors when aiming for certain zones
+
+---
+
 ### 2025-12-06c: Comprehensive Persistence Bug Fixes (v2.1.2)
 
 **Context:** Major refinement of persistence layer after identifying critical bugs that prevented seamless data flow between phases and proper session resume.
@@ -497,6 +1110,16 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 | v2.1.1 | 2025-12-06 | Critical bug fixes for resume functionality |
 | v2.1.2 | 2025-12-06 | Comprehensive persistence refinement with full logging |
 | v2.2.0 | 2025-12-06 | Statistics dashboard and multi-level inference engine |
+| v2.2.1 | 2025-12-07 | Bug fix: Double direction buttons on service fault |
+| v2.2.2 | 2025-12-07 | Bug fixes: Phase 1 winner derivation, Phase 2 save error; Enhanced Phase 2 shot log |
+| v2.2.3 | 2025-12-07 | Bug fixes: Shot counter, shot quality logging; Enhanced save error diagnostics |
+| v2.2.4 | 2025-12-07 | CRITICAL: Fixed Phase 2 save error, shot quality race condition, player names |
+| v2.2.5 | 2025-12-07 | Enhanced debugging for inconsistent data saves |
+| v2.2.6 | 2025-12-07 | Comprehensive save debugging - Phase 1 & Phase 2, DB verification |
+| v2.2.7 | 2025-12-07 | CRITICAL: Fixed winner_id and point_end_type always null in Phase 1 |
+| v2.2.8 | 2025-12-07 | CRITICAL: Fixed stale state causing data loss (spin, intent, quality) |
+| v2.2.9 | 2025-12-07 | Error question flow & shotQuality explicit setting |
+| v2.2.10 | 2025-12-07 | Complete database table viewer with all fields |
 | v2.3.0 | 2025-12-06 | Rules layer reorganization & derivation extraction |
 
 ---

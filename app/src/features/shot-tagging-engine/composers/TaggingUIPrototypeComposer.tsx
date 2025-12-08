@@ -111,9 +111,13 @@ export function TaggingUIPrototypeComposer({ className }: TaggingUIPrototypeComp
         const dbShots = await shotDb.getBySetId(targetSet.id)
         console.log(`[Resume] Found ${dbRallies.length} rallies, ${dbShots.length} shots`)
         
+        // Get player names
+        const player1Name = players.find(p => p.id === player1Id)?.first_name || 'Player 1'
+        const player2Name = players.find(p => p.id === player2Id)?.first_name || 'Player 2'
+        
         // Convert DB data to Phase1Rally format
         const rallies: Phase1Rally[] = dbRallies.map(rally => 
-          convertDBRallyToPhase1Rally(rally, dbShots, player1Id, player2Id)
+          convertDBRallyToPhase1Rally(rally, dbShots, player1Id, player2Id, player1Name, player2Name)
         )
         
         setPhase1Rallies(rallies)
@@ -142,9 +146,13 @@ export function TaggingUIPrototypeComposer({ className }: TaggingUIPrototypeComp
         const dbShots = await shotDb.getBySetId(targetSet.id)
         console.log(`[Resume] Found ${dbRallies.length} rallies, ${dbShots.length} shots`)
         
+        // Get player names
+        const player1Name = players.find(p => p.id === player1Id)?.first_name || 'Player 1'
+        const player2Name = players.find(p => p.id === player2Id)?.first_name || 'Player 2'
+        
         // Convert to Phase1Rally first
         const rallies: Phase1Rally[] = dbRallies.map(rally => 
-          convertDBRallyToPhase1Rally(rally, dbShots, player1Id, player2Id)
+          convertDBRallyToPhase1Rally(rally, dbShots, player1Id, player2Id, player1Name, player2Name)
         )
         setPhase1Rallies(rallies)
         console.log(`[Resume] ✓ Loaded ${rallies.length} rallies into state`)
@@ -346,6 +354,7 @@ export function TaggingUIPrototypeComposer({ className }: TaggingUIPrototypeComp
         
         const phase2Updates = mapPhase2DetailToDBShot(
           detailedShot.isServe,
+          detailedShot.isReceive,
           detailedShot.isError,
           detailData
         )
@@ -354,12 +363,17 @@ export function TaggingUIPrototypeComposer({ className }: TaggingUIPrototypeComp
       })
       
       // Mark rally-ending shots
+      console.log('[Save] Step 2: Marking rally end shots...')
       const shotsWithEndMarkers = markRallyEndShots(dbShots, savedRallies)
+      console.log(`[Save] ✓ Step 2 complete: Marked ${shotsWithEndMarkers.length} shots`)
       
       // Save all shots
+      console.log('[Save] Step 3: Saving shots to database...')
       await Promise.all(shotsWithEndMarkers.map(shot => createShot(shot)))
+      console.log(`[Save] ✓ Step 3 complete: Saved ${shotsWithEndMarkers.length} shots`)
       
       // Determine rally winners and update rally scores
+      console.log('[Save] Step 4: Determining rally winners...')
       // For now, winner is determined by who made the error
       const ralliesWithWinners = savedRallies.map((rally) => {
         const rallyShots = shotsWithEndMarkers.filter(s => s.rally_id === rally.id)
@@ -375,18 +389,24 @@ export function TaggingUIPrototypeComposer({ className }: TaggingUIPrototypeComp
         
         return rally
       })
+      console.log(`[Save] ✓ Step 4 complete: Determined winners for ${ralliesWithWinners.length} rallies`)
       
       // Calculate scores
+      console.log('[Save] Step 5: Calculating rally scores...')
       const ralliesWithScores = calculateScoresForRallies(
         ralliesWithWinners,
         currentMatch.player1_id,
         currentMatch.player2_id
       )
+      console.log(`[Save] ✓ Step 5 complete: Calculated scores for ${ralliesWithScores.length} rallies`)
       
       // Update all rallies with winner and scores
+      console.log('[Save] Step 6: Updating rallies in database...')
       await Promise.all(ralliesWithScores.map(rally => updateRally(rally.id, rally)))
+      console.log(`[Save] ✓ Step 6 complete: Updated ${ralliesWithScores.length} rallies`)
       
       // Update set final scores and winner
+      console.log('[Save] Step 7: Updating set final scores...')
       const finalRally = ralliesWithScores[ralliesWithScores.length - 1]
       if (finalRally) {
         // Determine winner based on final score
@@ -402,14 +422,20 @@ export function TaggingUIPrototypeComposer({ className }: TaggingUIPrototypeComp
           winner_id: winnerId,
         })
       }
+      console.log('[Save] ✓ Step 7 complete: Updated set scores')
       
       // Run inference on all shots
+      console.log('[Save] Step 8: Running inference...')
       await runInferenceForSet(ralliesWithScores, shotsWithEndMarkers)
+      console.log('[Save] ✓ Step 8 complete: Inference done')
       
       // Mark set as tagging completed
+      console.log('[Save] Step 9: Marking set as complete...')
       await markSetTaggingCompleted(setData.id)
+      console.log('[Save] ✓ Step 9 complete: Set marked as complete')
       
       // Update match set counts based on all tagged sets
+      console.log('[Save] Step 10: Updating match...')
       const allSets = await getSetsByMatchId(matchId)
       const player1SetsWon = allSets.filter(s => s.winner_id === currentMatch.player1_id && s.is_tagged).length
       const player2SetsWon = allSets.filter(s => s.winner_id === currentMatch.player2_id && s.is_tagged).length
@@ -425,11 +451,18 @@ export function TaggingUIPrototypeComposer({ className }: TaggingUIPrototypeComp
         player2_sets_won: player2SetsWon,
         winner_id: matchWinnerId,
       })
+      console.log('[Save] ✓ Step 10 complete: Match updated')
+      console.log('[Save] ✅ ALL STEPS COMPLETE - Tagging successful!')
       
       setPhase('complete')
     } catch (error) {
-      console.error('Failed to save match data:', error)
-      alert('Failed to save match data. Please try again.')
+      console.error('❌ Failed to save match data:', error)
+      console.error('Error details:', {
+        name: error instanceof Error ? error.name : 'Unknown',
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
+      })
+      alert(`Failed to save match data: ${error instanceof Error ? error.message : String(error)}\n\nCheck console for details.`)
       setPhase('phase2') // Allow retry
     }
   }

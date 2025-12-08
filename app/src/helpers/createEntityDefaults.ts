@@ -109,7 +109,8 @@ export function getShotDefaults(): Partial<DBShot> {
     video_id: null,
     // Serve-only fields
     serve_spin_family: null,
-    serve_length: null,
+    // Serve/Receive fields
+    shot_length: null,
     // Rally shot fields
     wing: null,
     intent: null,
@@ -117,7 +118,7 @@ export function getShotDefaults(): Partial<DBShot> {
     shot_result: null,
     // Derived data
     shot_origin: null,
-    shot_destination: null,
+    shot_target: null,
     is_rally_end: false,
     rally_end_role: 'none',
     // Inferred data

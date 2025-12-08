@@ -131,8 +131,8 @@ export function inferOutOfPosition(
   if (opponentPreviousShot) {
     // Check if opponent placed ball wide (crosscourt or wide angle)
     if (
-      (opponentPreviousShot.shot_destination === 'left' && currentShot.shot_origin === 'left') ||
-      (opponentPreviousShot.shot_destination === 'right' && currentShot.shot_origin === 'right')
+      (opponentPreviousShot.shot_target === 'left' && currentShot.shot_origin === 'left') ||
+      (opponentPreviousShot.shot_target === 'right' && currentShot.shot_origin === 'right')
     ) {
       causedBy = 'opponent_placement'
     }
@@ -140,7 +140,7 @@ export function inferOutOfPosition(
   
   if (previousShot && previousShot.player_id === currentShot.player_id) {
     // Check if player's own shot left them out of position
-    if (previousShot.shot_destination !== currentShot.shot_origin) {
+    if (previousShot.shot_target !== currentShot.shot_origin) {
       causedBy = 'own_error'
     }
   }
@@ -163,7 +163,7 @@ export function inferForcedWide(
   currentShot: DBShot,
   opponentPreviousShot: DBShot | null
 ): boolean {
-  if (!currentShot.shot_origin || !opponentPreviousShot?.shot_destination) {
+  if (!currentShot.shot_origin || !opponentPreviousShot?.shot_target) {
     return false
   }
   
@@ -174,8 +174,8 @@ export function inferForcedWide(
   
   // Forced wide if opponent's shot landed in same zone
   return (
-    (opponentPreviousShot.shot_destination === 'left' && currentShot.shot_origin === 'left') ||
-    (opponentPreviousShot.shot_destination === 'right' && currentShot.shot_origin === 'right')
+    (opponentPreviousShot.shot_target === 'left' && currentShot.shot_origin === 'left') ||
+    (opponentPreviousShot.shot_target === 'right' && currentShot.shot_origin === 'right')
   )
 }
 

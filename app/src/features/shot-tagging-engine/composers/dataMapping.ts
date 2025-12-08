@@ -15,11 +15,11 @@ import type { Phase1Rally, Phase1Shot } from '@/features/shot-tagging-engine/com
 import type { DetailedShot } from '@/features/shot-tagging-engine/composers/Phase2DetailComposer'
 import { generateId } from '@/helpers/generateId'
 import {
-  mapDirectionToOriginDestination,
-  mapServeLengthUIToDB,
+  mapDirectionToOriginTarget,
+  mapShotLengthUIToDB,
   mapServeSpinUIToDB,
   mapStrokeUIToDB,
-  mapServeLengthDBToUI,
+  mapShotLengthDBToUI,
   mapServeSpinDBToUI,
   mapWingDBToUI,
   mapShotResultDBToUI,
@@ -43,13 +43,8 @@ export function mapPhase1RallyToDBRally(
   // Determine winner based on end condition
   const isScoring = rally.endCondition === 'winner'
   
-  // For now, winner determination will be done in Phase 2 or can be inferred
-  // from the error - the player who didn't make the error wins
-  let winnerId: string | null = null
-  if (isScoring) {
-    // Will be determined in Phase 2 or can be inferred from shot player
-    winnerId = null // Placeholder
-  }
+  // Map winnerId from Phase1Rally to actual player ID
+  const winnerId = rally.winnerId === 'player1' ? player1Id : player2Id
   
   return {
     id: generateId(),
@@ -66,7 +61,9 @@ export function mapPhase1RallyToDBRally(
     set_player2_final_score: 0, // Will be calculated
     set_winner_id: null, // Will be calculated
     end_of_point_time: rally.endTimestamp,
-    point_end_type: null, // Tagged in Phase 2
+    point_end_type: rally.isError 
+      ? (rally.shots.length === 1 ? 'serviceFault' : null) // Service fault if only 1 shot, otherwise determine in Phase 2
+      : 'winnerShot', // Non-error rallies are winner shots
     luck_type: null,
     opponent_luck_overcome: null,
     has_video_data: true,
@@ -96,13 +93,13 @@ export function mapPhase1ShotToDBShot(
     player_id: playerId,
     // RECORDED DATA - all null initially, filled in Phase 2
     serve_spin_family: null,
-    serve_length: null,
+    shot_length: null,
     wing: null,
     intent: null,
     shot_result: null,
     // DERIVED DATA - calculated later
     shot_origin: null,
-    shot_destination: null,
+    shot_target: null,
     is_rally_end: false, // Will be set for last shot
     rally_end_role: 'none',
     // INFERRED DATA - computed after Phase 2
@@ -135,18 +132,18 @@ export interface DetailedShotData {
 }
 
 /**
- * Extract origin and destination from direction
- * @deprecated Use mapDirectionToOriginDestination from mappers_UI_to_DB instead
+ * Extract origin and target from direction
+ * @deprecated Use mapDirectionToOriginTarget from mappers_UI_to_DB instead
  */
 function parseDirection(direction: DetailedShotData['direction']): {
   origin: TablePosition | null
-  destination: TablePosition | null
+  target: TablePosition | null
 } {
   // Use centralized mapper
-  const { shot_origin, shot_destination } = mapDirectionToOriginDestination(direction)
+  const { shot_origin, shot_target } = mapDirectionToOriginTarget(direction)
   return {
     origin: shot_origin,
-    destination: shot_destination,
+    target: shot_target,
   }
 }
 
@@ -155,33 +152,41 @@ function parseDirection(direction: DetailedShotData['direction']): {
  */
 export function mapPhase2DetailToDBShot(
   isServe: boolean,
+  isReceive: boolean,
   isError: boolean,
   data: DetailedShotData
 ): Partial<DBShot> {
-  const { origin, destination } = parseDirection(data.direction)
+  // Safely parse direction (may be undefined)
+  const { origin, target } = data.direction ? parseDirection(data.direction) : { origin: null, target: null }
   
   // Map shot quality to shot result
   let shotResult: ShotResult | null = null
   if (data.shotQuality === 'average') shotResult = 'average'
   if (data.shotQuality === 'high') shotResult = 'good'
   if (isError && data.errorType) {
-    // Error shots don't have destination (ball didn't land in play)
+    // Error shots now store target (where player was aiming), result shows what happened
     shotResult = data.intent === 'defensive' ? 'in_net' : 'missed_long'
   }
   
   const updates: Partial<DBShot> = {
     shot_origin: origin,
-    shot_destination: isError ? null : destination, // No destination for errors
+    shot_target: target, // Now stored even for errors!
     shot_result: shotResult,
     is_tagged: true,
   }
   
-  // Serve-specific fields
+  // Serve or receive: populate shot_length
+  if (isServe || isReceive) {
+    updates.shot_length = mapShotLengthUIToDB(data.length)
+  }
+  
+  // Serve-specific: spin
   if (isServe) {
-    updates.serve_length = mapServeLengthUIToDB(data.length)
     updates.serve_spin_family = mapServeSpinUIToDB(data.spin)
-  } else {
-    // Rally shot fields
+  }
+  
+  // Rally shots (non-serves): wing and intent
+  if (!isServe) {
     updates.wing = mapStrokeUIToDB(data.stroke)
     updates.intent = data.intent as ShotIntent | null
   }
@@ -267,7 +272,9 @@ export function convertDBRallyToPhase1Rally(
   dbRally: DBRally,
   dbShots: DBShot[],
   player1Id: string,
-  player2Id: string
+  player2Id: string,
+  player1Name: string = 'Player 1',
+  player2Name: string = 'Player 2'
 ): Phase1Rally {
   // Get shots for this rally
   const rallyShots = dbShots
@@ -310,6 +317,11 @@ export function convertDBRallyToPhase1Rally(
     errorPlacement: endCondition === 'innet' ? 'innet' : endCondition === 'long' ? 'long' : undefined,
     serverId,
     winnerId,
+    // Player names for UI
+    player1Name,
+    player2Name,
+    serverName: serverId === 'player1' ? player1Name : player2Name,
+    winnerName: winnerId === 'player1' ? player1Name : player2Name,
   }
 }
 
@@ -333,8 +345,8 @@ export function convertDBShotToDetailedShot(
     rally.point_end_type === 'forcedError' || rally.point_end_type === 'unforcedError' ? 'long' : 'innet'
   
   // Map direction from DB format to UI format
-  const direction = dbShot.shot_origin && dbShot.shot_destination
-    ? `${dbShot.shot_origin}_${dbShot.shot_destination}` as Direction
+  const direction = dbShot.shot_origin && dbShot.shot_target
+    ? `${dbShot.shot_origin}_${dbShot.shot_target}` as Direction
     : undefined
   
   return {
@@ -342,6 +354,7 @@ export function convertDBShotToDetailedShot(
     timestamp: dbShot.time,
     shotIndex: dbShot.shot_index,
     isServe: dbShot.shot_index === 1,
+    isReceive: dbShot.shot_index === 2,
     rallyId: rally.id,
     rallyEndCondition: endCondition,
     isLastShot: dbShot.is_rally_end || false,
@@ -349,7 +362,7 @@ export function convertDBShotToDetailedShot(
     serverId,
     winnerId,
     direction,
-    length: mapServeLengthDBToUI(dbShot.serve_length) || undefined,
+    length: mapShotLengthDBToUI(dbShot.shot_length) || undefined,
     spin: mapServeSpinDBToUI(dbShot.serve_spin_family) || undefined,
     stroke: mapWingDBToUI(dbShot.wing) || undefined,
     intent: dbShot.intent || undefined,

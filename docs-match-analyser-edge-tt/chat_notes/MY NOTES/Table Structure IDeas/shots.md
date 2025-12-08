@@ -1,0 +1,38 @@
+
+- id: string
+- rally_id: string  // FK to rallies
+- video_id: string | null  // Which video segment
+- time: number  // Timestamp in video
+- shot_index: number  // 1-based
+- player_id: string  // FK to players
+
+// RECORDED DATA (user input)
+- serve_spin_family: 'under' | 'top' | 'no_spin' | 'side' | null
+- serve_length: 'short' | 'half_long' | 'long' | null
+- wing: 'FH' | 'BH' | null
+- intent: 'defensive' | 'neutral' | 'aggressive' | null
+- shot_result: 'good' | 'average' | 'in_net' | 'missed_long' | null
+
+// DERIVED DATA
+- shot_origin: 'left' | 'mid' | 'right' | null
+- shot_destination: 'left' | 'mid' | 'right' | null
+- is_rally_end: boolean
+- rally_end_role: 'winner' | 'forced_error' | 'unforced_error' | 'none'
+
+// INFERRED DATA (AI/ML)
+- inferred_pressure_level: 'low' | 'medium' | 'high' | null
+- inferred_intent_quality: 'correct' | 'over_aggressive' | 'over_passive' | 'misread' | null
+- inferred_player_position: 'wide_fh' | 'normal' | 'wide_bh' | 'very_wide_fh' | 'very_wide_bh' | null
+- inferred_distance_from_table: 'close' | 'mid' | 'far' | null
+- inferred_shot_type: string | null  // e.g., 'serve', 'fh_loop_vs_under'
+- inferred_shot_confidence: 'low' | 'medium' | 'high' | null
+- inferred_spin: string | null  // e.g., 'heavy_topspin'
+- inferred_spin_confidence: 'low' | 'medium' | 'high' | null
+- inferred_is_third_ball_attack: boolean
+- inferred_is_receive_attack: boolean
+
+// WORKFLOW
+- is_tagged: boolean
+
+RALLIES
+

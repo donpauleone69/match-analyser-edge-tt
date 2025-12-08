@@ -1,18 +1,18 @@
 /**
- * Derive shot origin and destination (100% deterministic)
+ * Derive shot origin and target (100% deterministic)
  * 
  * Logic:
- * - Shot 1 (serve): Parse serve_direction (e.g., 'left_right' → origin: left, destination: right)
- * - Shot 2+ (rally): Previous shot_destination becomes current shot_origin
- *                    Current shot_direction parsed for destination
+ * - Shot 1 (serve): Parse serve_direction (e.g., 'left_right' → origin: left, target: right)
+ * - Shot 2+ (rally): Previous shot_target becomes current shot_origin
+ *                    Current shot_direction parsed for target
  * 
  * Database Fields Populated:
  * - shots.shot_origin
- * - shots.shot_destination
+ * - shots.shot_target
  */
 
 export type TablePosition = 'left' | 'mid' | 'right'
-export type ShotDestination = TablePosition | 'in_net' | 'missed_long' | 'missed_wide' | null
+export type ShotTarget = TablePosition | null
 
 export interface ShotLocationInput {
   shot_index: number
@@ -21,20 +21,20 @@ export interface ShotLocationInput {
 }
 
 export interface PreviousShotInput {
-  shot_destination?: ShotDestination
+  shot_target?: ShotTarget
 }
 
 export interface DerivedShotLocations {
   shot_origin: TablePosition | null
-  shot_destination: ShotDestination
+  shot_target: ShotTarget
 }
 
 /**
- * Derive shot_origin and shot_destination from direction data.
+ * Derive shot_origin and shot_target from direction data.
  * 
  * @param shot - Current shot with direction information
  * @param previousShot - Previous shot (for shots 2+), null for shot 1
- * @returns Object with shot_origin and shot_destination
+ * @returns Object with shot_origin and shot_target
  */
 export function deriveShot_locations(
   shot: ShotLocationInput,
@@ -43,47 +43,56 @@ export function deriveShot_locations(
   // Shot 1 (serve): Use serve_direction
   if (shot.shot_index === 1) {
     if (!shot.serve_direction) {
-      return { shot_origin: null, shot_destination: null }
+      return { shot_origin: null, shot_target: null }
     }
     
-    const [origin, destination] = shot.serve_direction.split('_') as [string, string]
+    const [origin, target] = shot.serve_direction.split('_') as [string, string]
     return {
       shot_origin: origin as TablePosition,
-      shot_destination: destination as ShotDestination
+      shot_target: target as ShotTarget
     }
   }
   
-  // Shots 2+: Origin from previous destination, destination from current direction
+  // Shots 2+: Origin from previous target, target from current direction
   if (!previousShot || !shot.shot_direction) {
-    return { shot_origin: null, shot_destination: null }
+    return { shot_origin: null, shot_target: null }
   }
   
-  // Previous shot's destination is where the ball landed
+  // Previous shot's target is where the ball landed
   // = Where current player is hitting from
-  const shot_origin = previousShot.shot_destination as TablePosition | null
+  const shot_origin = previousShot.shot_target as TablePosition | null
   
-  // Parse current shot direction (format: "origin_destination")
-  const [_ignoredOrigin, destination] = shot.shot_direction.split('_') as [string, string]
+  // Parse current shot direction (format: "origin_target")
+  const [_ignoredOrigin, target] = shot.shot_direction.split('_') as [string, string]
   
   return {
     shot_origin,
-    shot_destination: destination as ShotDestination
+    shot_target: target as ShotTarget
   }
 }
 
 /**
- * Helper: Extract destination from direction string.
+ * Helper: Extract target from direction string.
  * Used for getting the ending position from a direction.
  * 
  * @param direction - Direction string like "left_mid"
- * @returns The destination part (e.g., "mid")
+ * @returns The target part (e.g., "mid")
  */
-export function extractDestinationFromDirection(
+export function extractTargetFromDirection(
   direction: string | null | undefined
 ): TablePosition | null {
   if (!direction) return null
   
   const parts = direction.split('_')
   return parts[1] as TablePosition || null
+}
+
+/**
+ * @deprecated Use extractTargetFromDirection instead
+ */
+export function extractDestinationFromDirection(
+  direction: string | null | undefined
+): TablePosition | null {
+  return extractTargetFromDirection(direction)
 }
 

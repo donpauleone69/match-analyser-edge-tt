@@ -101,7 +101,7 @@ export function calculateServeStats(
   const byLength: Record<string, { count: number; wins: number; winRate: number }> = {}
   
   for (const serve of serves) {
-    const length = serve.serve_length || 'unknown'
+    const length = serve.shot_length || 'unknown'
     if (!byLength[length]) {
       byLength[length] = { count: 0, wins: 0, winRate: 0 }
     }

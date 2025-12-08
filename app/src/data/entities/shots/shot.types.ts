@@ -3,14 +3,14 @@
  */
 
 export type ShotIntent = 'defensive' | 'neutral' | 'aggressive'
-export type ShotResult = 'good' | 'average' | 'in_net' | 'missed_long'
+export type ShotResult = 'good' | 'average' | 'in_net' | 'missed_long' | 'missed_wide'
 export type TablePosition = 'left' | 'mid' | 'right'
 export type RallyEndRole = 'winner' | 'forced_error' | 'unforced_error' | 'none'
 export type PressureLevel = 'low' | 'medium' | 'high'
 export type IntentQuality = 'correct' | 'over_aggressive' | 'over_passive' | 'misread'
 export type InferredConfidence = 'low' | 'medium' | 'high'
 export type ServeSpinFamily = 'under' | 'top' | 'no_spin' | 'side'
-export type ServeLength = 'short' | 'half_long' | 'long'
+export type ShotLength = 'short' | 'half_long' | 'long'
 
 export interface DBShot {
   id: string
@@ -29,7 +29,9 @@ export interface DBShot {
   
   // Serve-only fields (NULL for rally shots)
   serve_spin_family: ServeSpinFamily | null
-  serve_length: ServeLength | null
+  
+  // Serve/Receive fields (shot #1 and #2 only, NULL for other rally shots)
+  shot_length: ShotLength | null
   
   // Rally shot fields (NULL for serves)
   wing: 'FH' | 'BH' | null
@@ -43,7 +45,7 @@ export interface DBShot {
   // ============================================================================
   
   shot_origin: TablePosition | null // where player hits from
-  shot_destination: TablePosition | null // where ball lands (NULL for errors)
+  shot_target: TablePosition | null // intended target (even for errors)
   is_rally_end: boolean
   rally_end_role: RallyEndRole
   
