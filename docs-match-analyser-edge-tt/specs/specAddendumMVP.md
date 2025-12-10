@@ -6,6 +6,955 @@
 
 ## Change Log
 
+### 2025-12-09: Fix Critical Server ID Bug in Phase1 Setup (v3.4.2)
+
+**Change Type:** Bug Fix - Critical Data Integrity Issue
+
+**Problem Identified:**
+The server selection from `SetupControlsBlock` was being completely ignored. The system always used `playerContext.firstServerId` (hardcoded to 'player1') regardless of which player the user selected as the next server. This caused:
+- Incorrect server assignments for the first rally after setup
+- Wrong stub rally server assignments
+- Incorrect server alternation throughout the set
+- Database saving wrong server_id values
+
+**Root Cause:**
+1. `TaggingUIComposer.tsx` created `playerContext` with hardcoded `firstServerId: 'player1'`
+2. `setup.nextServerId` from `SetupControlsBlock` was saved to database but never stored in React state
+3. All `calculateServer` calls used `playerContext.firstServerId` instead of the actual setup data
+4. The bug was intermittent because changing scores after selecting server triggered re-renders that coincidentally got correct results in some cases
+
+**Solution:**
+- Added `setupNextServer` state variable to Phase1TimestampComposer
+- Store `setup.nextServerId` in state during `handleSetupComplete`
+- Load `setup_next_server_id` from database when resuming existing sessions (convert DB ID back to 'player1'/'player2')
+- Replace all `playerContext.firstServerId` references with `setupNextServer` in `calculateServer` calls
+
+**Files Modified:**
+- `app/src/features/shot-tagging-engine/composers/Phase1TimestampComposer.tsx`
+  - Added `setupNextServer` state (line ~100): `useState<'player1' | 'player2'>('player1')`
+  - Store setup server in `handleSetupComplete` (line ~232): `setSetupNextServer(setup.nextServerId)`
+  - Load setup server when resuming (lines ~127-130): Convert database ID to 'player1'/'player2'
+  - Updated `completeRally` function (line ~312): Use `setupNextServer` instead of `playerContext.firstServerId`
+  - Updated rally display (line ~742): Use `setupNextServer` for server name display
+  - Updated shot display (line ~755): Use `setupNextServer` for shot player calculation
+
+**Impact:**
+- ✅ Setup selection is now correctly respected regardless of button press order
+- ✅ First rally after setup uses the correct server from user's selection
+- ✅ Stub rallies created during setup have correct server alternation
+- ✅ Server alternation throughout the set follows correct table tennis rules
+- ✅ Resuming sessions maintains correct server data from database
+- ✅ All server_id values saved to database are now correct
+
+**Testing:**
+Verified with multiple scenarios:
+1. Player 2 serves first at 0-0 → Correct server used
+2. Player 1 serves first at 2-3 → Correct stub rallies and next server
+3. Server selection as last action before Start → Bug fixed (was failing before)
+4. Resume existing session → Correct server loaded from database
+
+**Rationale:**
+This was a critical data integrity bug affecting every set tagged. The setup data is the source of truth for server alternation, and ignoring it corrupted all downstream calculations and database records. The fix ensures setup data flows correctly through the entire Phase 1 workflow.
+
+---
+
+### 2025-12-09: Standardize SetupControlsBlock to ButtonGrid Pattern (v3.4.1)
+
+**Change Type:** UI/UX - Layout Standardization
+
+**What Changed:**
+- Redesigned SetupControlsBlock to use a SINGLE ButtonGrid with 3 columns for maximum compactness
+- Removed custom padding (`p-6`), spacing (`space-y-6`), and fixed button heights (`h-14`, `h-10`, `h-12`)
+- Column 1: Player 1 server button + score controls (-, score, +) vertically stacked
+- Column 2: Player 2 server button + score controls (-, score, +) vertically stacked
+- Column 3: Start button (fills entire column height)
+- Total UI height reduced from ~500px to ~120px (single ButtonGrid row)
+
+**Files Modified:**
+- `app/src/features/shot-tagging-engine/blocks/SetupControlsBlock.tsx`
+  - Added ButtonGrid import
+  - Converted container from `p-6 space-y-6` to minimal padding structure
+  - Row 1: ButtonGrid columns={2} for server selection (player1/player2)
+  - Row 2: ButtonGrid columns={4} for score controls (P1-, P1+, P2-, P2+)
+  - Row 3: ButtonGrid columns={1} for Start Tagging button
+  - All buttons now use `w-full h-full` to fill ButtonGrid cells
+  - Removed all fixed height classes
+
+**Layout Structure:**
+```
+Single ButtonGrid (3 columns, ~120px height):
+┌──────────────┬──────────────┬──────────────┐
+│  [Player 1]  │  [Player 2]  │              │
+│              │              │              │
+│  [−] 0 [+]   │  [−] 0 [+]   │   [Start]    │
+│              │              │              │
+└──────────────┴──────────────┴──────────────┘
+```
+
+**Rationale:**
+- **Maximum compactness:** Single ButtonGrid row = same height as Phase1ControlsBlock (~120px)
+- **Smooth transitions:** No jarring UI size changes when switching from setup to tagging
+- **Predictable height:** Uses ButtonGrid's calculated height formula for consistency
+- **Better UX:** Ultra-compact layout fits naturally in the bottom control area alongside other button grids
+- **All-in-one:** Server selection, score controls, and start button in one unified row
+
+**Before vs After:**
+- Before: Custom layout with `p-6`, `space-y-6`, mixed button heights → ~500px total (4x the height)
+- After: Single ButtonGrid with 3 columns, nested elements → ~120px total (matches Phase1ControlsBlock)
+
+**User Impact:**
+- **Positive:** More consistent UI experience across all tagging phases
+- **Visual:** Slightly more compact setup screen, but all functionality preserved
+- **No breaking changes:** Same inputs and outputs, just different visual layout
+
+**Testing:**
+- ✅ TypeScript compilation successful
+- ✅ No linter errors
+- ✅ All ButtonGrid imports resolve correctly
+- Manual browser testing recommended to verify visual layout and button interactions
+
+---
+
+### 2025-12-09: Extract Inference to Phase 3 (v3.4.0)
+
+**Change Type:** Architecture - Flow Enhancement
+
+**What Changed:**
+- Extracted inference engine from Phase 2 to new Phase 3 composer
+- Phase 2 now completes immediately after shot tagging
+- Phase 3 offers "Run Analysis" or "Skip" options
+- Inference is now optional and can be run later (future enhancement)
+
+**Files Created:**
+- `app/src/features/shot-tagging-engine/composers/Phase3InferenceComposer.tsx` - New standalone composer for inference execution with user choice UI
+
+**Files Modified:**
+- `app/src/features/shot-tagging-engine/composers/Phase2DetailComposer.tsx`
+  - Removed `runInferenceForSet` import
+  - Removed inference execution (lines 580-586)
+  - Removed `rallyDb` import (no longer needed)
+  - Kept `finalizeMatchAfterPhase2` call (match-level calculation, not inference)
+- `app/src/features/shot-tagging-engine/composers/TaggingUIComposer.tsx`
+  - Added Phase3InferenceComposer import
+  - Updated Phase type: `'setup' | 'phase1' | 'phase2' | 'phase3' | 'complete'`
+  - Removed obsolete 'saving' phase
+  - Updated `handleCompletePhase2` to transition to phase3
+  - Added `handleCompletePhase3` and `handleSkipPhase3` handlers
+  - Added Phase3 render block with player context
+- `app/src/features/shot-tagging-engine/composers/index.ts`
+  - Added Phase3InferenceComposer export
+- `app/src/data/entities/sets/set.types.ts`
+  - Added `inference_complete?: boolean | null` - tracks if inference has been run
+  - Added `inference_completed_at?: string | null` - ISO timestamp of inference completion
+
+**Rationale:**
+- **Faster Phase 2 completion:** Users who want raw data don't wait for inference
+- **Better separation of concerns:** Tagging (Phase 2) vs analysis (Phase 3) are now distinct
+- **User control:** Choice to run or skip inference, with option to run later
+- **Allows re-running inference:** If rules are updated in the future, inference can be re-executed without re-tagging
+
+**Flow Changes:**
+
+**Before:**
+```
+Phase 1 (Timestamps) → Phase 2 (Shot Details) → [Auto-runs inference] → Complete
+```
+
+**After:**
+```
+Phase 1 (Timestamps) → Phase 2 (Shot Details) → Phase 3 (Inference Choice) → Complete
+                                                      ↓ Skip or Run
+```
+
+**Phase 3 User Experience:**
+- Screen appears after Phase 2 completion
+- Shows "🧠 Run Shot Analysis?" with explanation
+- Lists what inference predicts: Shot types, spin, player position, pressure levels, special patterns
+- Two buttons:
+  - "Skip for Now" - goes to completion, sets `inference_complete: false`
+  - "Run Analysis" - executes inference, sets `inference_complete: true`
+- Progress indicator during execution
+- Error handling with retry option
+- Auto-advances to completion after 1 second
+
+**Migration Notes:**
+- Existing sessions in Phase 1 or Phase 2: unaffected
+- Next new session: will show Phase 3 screen after Phase 2
+- No data migration required
+- Old data without inference still valid (inference_complete will be null)
+
+**User Impact:**
+- **Positive:** Faster tagging completion, more control over workflow
+- **New screen:** Phase 3 choice modal after Phase 2 completion
+- **No breaking changes:** Existing functionality preserved
+
+**Future Enhancement Opportunities:**
+1. Add "Run Inference" button in data viewer for sets where `inference_complete === false`
+2. Add inference status badges in set list (Analyzed ✅ / Skipped ⏭️ / Pending ⏸️)
+3. Allow re-running inference if rules are updated
+
+**Testing:**
+- ✅ TypeScript compilation successful (no new errors)
+- ✅ All imports resolve correctly
+- ✅ Phase flow logic verified
+- Manual browser testing recommended for full workflow
+
+---
+
+### 2025-12-09: Database Operations Refactor - Remove Redundant Saves (v3.3.0)
+
+**Eliminated redundant database operations by moving all data persistence into Phase1 and Phase2 composers, making TaggingUIComposer a pure orchestrator.**
+
+#### Problem Statement
+
+The previous architecture had a critical flaw:
+- **Phase1TimestampComposer**: Auto-saved rallies and shots after each rally ✅
+- **Phase2DetailComposer**: Auto-saved shot details after each shot ✅
+- **TaggingUIComposer**: DELETED all saved data, then re-saved everything from scratch ❌
+
+This caused:
+- Redundant database operations (data saved 2-3 times)
+- Data loss risk (browser crash during re-save loses all auto-saves)
+- Violation of separation of concerns (orchestrator handling persistence)
+- Complex code (~240 lines of save logic in TaggingUIComposer)
+
+#### Database Schema Changes
+
+**Rally Table Updates** (`app/src/data/entities/rallies/rally.types.ts`)
+
+Added timestamp tracking fields:
+- `timestamp_start: number | null` - First shot's timestamp_start
+- `timestamp_end: number | null` - Last shot's timestamp_end
+- `end_of_point_time: number | null` - Kept for backwards compatibility (marked as LEGACY)
+
+**Rationale:** Rally timing is now explicitly tracked separately from point timing, enabling better video segment management.
+
+#### Phase1TimestampComposer Updates
+
+**1. Shot `timestamp_end` Calculation** (lines 415-430)
+
+**Before:**
+```typescript
+for (const shot of rally.shots) {
+  const dbShot = mapPhase1ShotToDBShot(...)
+  dbShot.timestamp_end = null  // ❌ Set to null
+  await shotDb.create(dbShot)
+}
+```
+
+**After:**
+```typescript
+for (let i = 0; i < rally.shots.length; i++) {
+  const shot = rally.shots[i]
+  const nextShot = rally.shots[i + 1]
+  
+  const timestamp_end = nextShot 
+    ? nextShot.timestamp          // Next shot's start time
+    : rally.endTimestamp          // Rally end time for last shot
+  
+  const dbShot = mapPhase1ShotToDBShot(...)
+  dbShot.timestamp_end = timestamp_end  // ✅ Calculated immediately
+  await shotDb.create(dbShot)
+}
+```
+
+**2. Rally Timestamp Calculation** (lines 398-413)
+
+Added rally timing before save:
+```typescript
+// Calculate rally timestamps
+const rallyTimestampStart = rally.shots[0].timestamp
+const rallyTimestampEnd = rally.endTimestamp
+
+dbRally.timestamp_start = rallyTimestampStart
+dbRally.timestamp_end = rallyTimestampEnd
+dbRally.end_of_point_time = rallyTimestampEnd  // Keep existing field populated
+```
+
+**3. Stub Rally Updates**
+
+Added new timestamp fields to stub rally creation (lines 188-211):
+```typescript
+await rallyDb.create({
+  // ... existing fields ...
+  timestamp_start: null,  // No video for stub rallies
+  timestamp_end: null,
+  // ... rest of fields ...
+})
+```
+
+#### Phase2DetailComposer Updates
+
+**New Auto-Finalization on Completion** (lines 565-603)
+
+**Before:**
+```typescript
+// All shots complete
+if (setId) {
+  setDb.update(setId, {
+    tagging_phase: 'phase2_complete',
+    is_tagged: true,
+  }).catch(console.error)
+}
+if (onComplete) onComplete(updatedShots)
+```
+
+**After:**
+```typescript
+// All shots complete
+if (setId && player1Id && player2Id) {
+  try {
+    // 1. Update set status
+    await setDb.update(setId, {
+      tagging_phase: 'phase2_complete',
+      is_tagged: true,
+      tagging_completed_at: new Date().toISOString(),
+    })
+    
+    // 2. Run inference on all shots
+    const dbRallies = await rallyDb.getBySetId(setId)
+    const dbShots = await shotDb.getBySetId(setId)
+    await runInferenceForSet(dbRallies, dbShots)
+    
+    // 3. Finalize match-level data
+    const currentSet = await setDb.getById(setId)
+    if (currentSet) {
+      const { finalizeMatchAfterPhase2 } = await import('./finalizeMatch')
+      await finalizeMatchAfterPhase2(currentSet.match_id, setId, player1Id, player2Id)
+    }
+    
+  } catch (error) {
+    console.error('[Phase2] Error during finalization:', error)
+    alert('Tagging complete, but some finalization steps failed.')
+  }
+}
+if (onComplete) onComplete(updatedShots)
+```
+
+**Changed `handleAnswer` to async** to support await operations.
+
+**Added imports:**
+```typescript
+import { rallyDb } from '@/data'
+import { runInferenceForSet } from './runInference'
+```
+
+#### New File: finalizeMatch.ts
+
+**Created:** `app/src/features/shot-tagging-engine/composers/finalizeMatch.ts`
+
+Encapsulates match-level finalization logic (previously in TaggingUIComposer):
+
+```typescript
+export async function finalizeMatchAfterPhase2(
+  matchId: string,
+  setId: string,
+  player1Id: string,
+  player2Id: string
+): Promise<void>
+```
+
+**Responsibilities:**
+1. Calculate `sets_before/after` for all sets using `calculateSetsBeforeAfter()`
+2. Update each set with its sets progression
+3. Calculate match winner based on completed sets
+4. Update match record with final set counts and `match_detail_level: 'shots'`
+
+**Why separate file?**
+- Reusable (can be called from multiple places)
+- Testable (pure async function)
+- Single Responsibility Principle
+
+#### TaggingUIComposer Cleanup
+
+**Removed ~240 lines of database save logic** (lines 276-514)
+
+**Before:**
+```typescript
+const handleCompletePhase2 = async (detailedShots: DetailedShot[]) => {
+  setPhase('saving')
+  
+  try {
+    // Step 0: Delete existing data
+    await deleteSetTaggingData(setData.id)
+    
+    // Step 1-2: Map and save rallies
+    const savedRallies = await Promise.all(...)
+    
+    // Step 3: Calculate timestamp_end
+    const shotsWithTimestamps = applyTimestampEnd(...)
+    
+    // Step 4-8: Save shots, update rallies, calculate scores...
+    // Step 9-12: Update set, run inference, finalize match...
+    
+    setPhase('complete')
+  } catch (error) {
+    // ...
+  }
+}
+```
+
+**After:**
+```typescript
+const handleCompletePhase2 = async (detailedShots: DetailedShot[]) => {
+  console.log('[TaggingUI] Phase 2 complete!')
+  console.log('[TaggingUI] All data already saved by Phase1 and Phase2 composers')
+  console.log('[TaggingUI] Inference and match finalization already complete')
+  
+  // Transition to completion screen
+  setPhase('complete')
+}
+```
+
+**Removed imports:**
+```typescript
+// DELETED (no longer needed):
+import { calculateShotPlayer } from '@/rules'
+import { runInferenceForSet } from './runInference'
+import {
+  mapPhase1RallyToDBRally,
+  mapPhase1ShotToDBShot,
+  mapPhase2DetailToDBShot,
+  calculateScoresForRallies,
+  markRallyEndShots,
+  applyTimestampEnd,
+  type DetailedShotData,
+} from './dataMapping'
+
+const { update: updateMatch } = useMatchStore()  // DELETED
+const { create: createRally, update: updateRally } = rallyDb  // DELETED
+const { create: createShot } = shotDb  // DELETED
+const { 
+  deleteTaggingData: deleteSetTaggingData,  // DELETED
+  markTaggingCompleted: markSetTaggingCompleted,  // DELETED
+  update: updateSetService,  // DELETED
+} = setDb
+```
+
+**Kept only essential imports:**
+```typescript
+import { rallyDb, shotDb } from '@/data'  // Still needed for resume logic
+import { convertDBRallyToPhase1Rally } from './dataMapping'  // For resume
+const { 
+  getByMatchId: getSetsByMatchId,
+  markTaggingStarted: markSetTaggingStarted,
+  deleteTaggingData: deleteSetTaggingData,  // For redo workflow
+} = setDb
+```
+
+#### Benefits
+
+✅ **No redundant saves** - Data written once, immediately after capture  
+✅ **Crash-safe** - Auto-saves persist immediately; browser crash loses only current shot  
+✅ **Cleaner code** - TaggingUIComposer reduced by ~240 lines  
+✅ **Better separation** - Each composer handles its own persistence  
+✅ **More testable** - Finalization logic extracted to pure function  
+✅ **Better logging** - Clear console messages show where saves happen  
+
+#### Data Flow
+
+**Previous (Redundant):**
+```
+Phase 1 → Auto-save rallies/shots to DB
+Phase 2 → Auto-save shot details to DB
+TaggingUI → DELETE all data, re-save everything
+```
+
+**New (Efficient):**
+```
+Phase 1 → Save rallies/shots with timestamp_end ✓
+Phase 2 → Save shot details, run inference, finalize match ✓
+TaggingUI → Just transition to 'complete' ✓
+```
+
+#### Migration Notes
+
+- **No database migration needed** - New timestamp fields default to `null`
+- **Backwards compatible** - Old data still works, new data has better timestamps
+- **Resume workflow unchanged** - TaggingUIComposer still handles resume via `rallyDb` and `shotDb`
+- **Redo workflow unchanged** - Still uses `deleteSetTaggingData()` when user redoes a set
+
+#### Testing Verification
+
+✅ TypeScript compilation passes (`npx tsc --noEmit`)  
+✅ All imports resolved correctly  
+✅ No runtime errors in linter  
+
+**Manual testing recommended:**
+1. Tag fresh set (Phase 1 → Phase 2 → Complete)
+2. Verify shot `timestamp_end` populated (check database)
+3. Verify rally `timestamp_start/end` populated
+4. Verify inference runs automatically after Phase 2
+5. Verify match data finalizes correctly
+6. Test resume workflow (close browser mid-tagging, reopen)
+7. Test redo workflow (redo tagged set)
+
+#### Files Changed
+
+**Schema:**
+- `app/src/data/entities/rallies/rally.types.ts` - Added timestamp fields
+
+**Composers:**
+- `app/src/features/shot-tagging-engine/composers/Phase1TimestampComposer.tsx` - Calculate shot/rally timestamps
+- `app/src/features/shot-tagging-engine/composers/Phase2DetailComposer.tsx` - Run inference and finalize match
+- `app/src/features/shot-tagging-engine/composers/TaggingUIComposer.tsx` - Remove save logic
+
+**New Files:**
+- `app/src/features/shot-tagging-engine/composers/finalizeMatch.ts` - Match finalization module
+
+**Documentation:**
+- `docs-match-analyser-edge-tt/specs/specAddendumMVP.md` - This entry
+
+---
+
+### 2025-12-09: Phase 1 Setup Flow with Score Tracking (v3.2.0)
+
+**Added set setup flow to Phase1TimestampComposer to capture starting conditions and enable accurate score tracking throughout tagging.**
+
+#### Overview
+
+This update adds a mandatory setup step at the beginning of Phase 1 tagging that:
+- Captures which player serves next
+- Records current score
+- Creates stub rally entries for previous points
+- Enables accurate score tracking throughout tagging
+- Provides proper set completion flow with modal navigation
+
+#### Database Schema Changes
+
+**1. Set Table Updates** (`app/src/data/entities/sets/set.types.ts`, `set.db.ts`)
+
+Added setup tracking fields:
+- `setup_starting_score_p1: number | null` - Player 1 score at start of tagging
+- `setup_starting_score_p2: number | null` - Player 2 score at start of tagging  
+- `setup_next_server_id: string | null` - Database ID of next server
+- `setup_completed_at: string | null` - ISO timestamp of setup completion
+
+**2. Rally Table Updates** (`app/src/data/entities/rallies/rally.types.ts`, `rally.db.ts`)
+
+Added stub rally indicator:
+- `is_stub_rally: boolean` - Default `false`, marks rallies created during setup for prior points
+
+#### New UI Components
+
+**1. SetupControlsBlock** (`app/src/features/shot-tagging-engine/blocks/SetupControlsBlock.tsx`)
+
+Captures setup data before tagging begins:
+- Player name display
+- "Who serves next?" toggle buttons
+- Score input with increment/decrement buttons (+/- interface)
+- Range validation (0-20 per player)
+- "Start Tagging" button with score validation
+
+**2. SetEndWarningBlock** (`app/src/features/shot-tagging-engine/blocks/SetEndWarningBlock.tsx`)
+
+Alert banner shown when set end conditions are met:
+- Displays detected set end score
+- Shows current score if user continues past set end
+- "Save Set" and "Continue Tagging" action buttons
+- Yellow warning styling with ⚠️ icon
+
+**3. CompletionModal** (`app/src/features/shot-tagging-engine/blocks/CompletionModal.tsx`)
+
+Modal shown after saving a set:
+- Displays final score and set number
+- Three navigation options:
+  - "Tag Next Set" - Navigate to next set (creates if needed)
+  - "View Data" - Navigate to DataViewer filtered to current set
+  - "Back to Matches" - Return to matches list
+- Blocks UI until user chooses an action
+
+#### Phase1TimestampComposer Updates
+
+**1. New State Variables**
+- `setupComplete: boolean` - Tracks if setup flow completed
+- `setupStartingScore: { player1: number; player2: number }` - Stores setup scores
+- `setEndDetected: boolean` - Flags when set end conditions met
+- `setEndScore: { player1: number; player2: number } | null` - Stores detected set end score
+- `showCompletionModal: boolean` - Controls completion modal visibility
+
+**2. Initialization Logic**
+
+On component mount, checks for existing rallies:
+- If tagged rallies exist: Skip setup, resume existing session
+- Load setup data from set record
+- Calculate current score from last rally
+- If no tagged rallies: Show setup screen
+
+**3. Setup Completion Flow** (`handleSetupComplete`)
+
+When user completes setup:
+1. Validates scores using `validateSetScore()`
+2. Calculates previous servers using `calculatePreviousServers()`
+3. Creates stub rally entries for each prior point
+4. Saves setup data to set record
+5. Initializes tagging with correct score
+6. Hides setup UI, shows tagging controls
+
+**4. Rally Completion with Score Tracking**
+
+Updated `completeRally()` to:
+- Calculate score before/after for each rally
+- Save scores to database with rally
+- Check for set end conditions using `deriveSetEndConditions()`
+- Display set end warning if conditions met
+- Update local score state for next rally
+
+**5. Set Completion Flow** (`handleSaveSet`)
+
+When user saves set:
+1. Calculates final winner from scores
+2. Updates set record with:
+   - `tagging_phase: 'phase1_complete'`
+   - `winner_id` (calculated from scores)
+   - `player1_score_final`, `player2_score_final`
+3. Shows completion modal
+
+**6. Tag Next Set Flow** (`handleTagNextSet`)
+
+When user clicks "Tag Next Set":
+1. Gets current set info
+2. Checks if next set exists
+3. Navigates to Phase1 with next set ID
+4. New set will show setup screen
+
+**7. UI Changes**
+- Setup screen replaces tagging controls until setup complete
+- Set end warning banner appears in status strip when triggered
+- "Save Set" button replaces "Save Progress" and "Complete Phase 1" buttons
+  - Green styling when set end detected
+  - Standard primary styling otherwise
+- Completion modal appears after save
+- Removed manual save functionality (auto-save on rally completion)
+
+#### New Rules Functions
+
+**1. calculatePreviousServers** (`app/src/rules/calculate/calculatePreviousServers.ts`)
+
+Works backwards from next server to determine who served each previous rally:
+- Uses table tennis serve alternation rules
+- Every 2 points in normal play (0-0 to 10-9)
+- Every 1 point in deuce (after 10-10)
+- Returns array of server IDs for rallies 1..totalPoints
+
+**2. validateSetScore** (`app/src/rules/validate/validateSetScore.ts`)
+
+Validates scores are logically reachable:
+- Range check (0-30 per player)
+- Applies set end rules (first to 11, 2 clear points, deuce)
+- Allows completed set scores
+- Allows in-progress scores
+
+**3. deriveSetEndConditions** (`app/src/rules/derive/set/deriveSetEndConditions.ts`)
+
+Checks if current score meets set end:
+- Returns `{ isSetEnd: boolean, winner?: 'player1' | 'player2' }`
+- Set ends when: score >= 11 AND lead >= 2 points
+
+#### SetSelectionModal Enhancements
+
+Updated match detail set selection to show Phase 1/2 status:
+
+**Status Labels:**
+- "Not Started" → Not tagged
+- "Phase 1 In Progress" → `tagging_phase: 'phase1_in_progress'`
+- "Phase 1 Complete" → `tagging_phase: 'phase1_complete'`
+- "Phase 2 In Progress" → `tagging_phase: 'phase2_in_progress'`
+- "Phase 2 Complete" → `tagging_phase: 'phase2_complete'`
+
+**Action Buttons by Status:**
+- Not Started: "Tag Phase 1" button
+- Phase 1 In Progress: "Continue Phase 1" button
+- Phase 1 Complete: "Tag Phase 2" button
+- Phase 2 In Progress: "Continue Phase 2" button
+- Complete: "View Data" button (primary) + "Redo" button
+
+**Status Colors:**
+- Not Started: neutral gray
+- Phase 1 In Progress: yellow
+- Phase 1 Complete: cyan
+- Phase 2 In Progress: blue
+- Complete: green
+
+#### Stub Rally Data
+
+Pre-populated rallies created during setup contain:
+- `server_id` (alternating based on TT rules)
+- `receiver_id` (opponent)
+- `is_scoring: true`
+- `rally_index: 1, 2, 3...`
+- `winner_id: null` (unknown)
+- `framework_confirmed: false`
+- `is_stub_rally: true`
+- All timestamps, shots, scores: `0` or `null`
+- Not included in score tracking (only tagged rallies have `score_before`/`score_after`)
+
+#### Score Tracking Behavior
+
+**First Tagged Rally:**
+- `score_before` = setup starting score (e.g., 2-3)
+- `score_after` = calculated from winner (e.g., 3-3 or 2-4)
+
+**Subsequent Rallies:**
+- `score_before` = previous rally's `score_after`
+- `score_after` = `score_before` + 1 for winner
+- Let rallies: `score_after` = `score_before` (no change)
+
+**All saves happen at existing rally completion point** (auto-save on rally end)
+
+#### Data Source of Truth
+
+**Overwrite Behavior:**
+- Tagged data is source of truth
+- Always overwrite pre-entered results with tagged scores
+- Set winner and final scores calculated from tagged rallies
+
+**Resume Behavior:**
+- If `existingRallies.length > 0`, skip setup entirely
+- Go straight to Phase 1 tagging (resume mode)
+- Load scores from last rally
+
+#### Rationale
+
+**Why Add Setup Flow:**
+1. **Partial Set Tagging** - Users can start tagging mid-set (e.g., only tag final 5 rallies)
+2. **Accurate Score Tracking** - Enables proper server calculation and statistics
+3. **Complete Rally History** - Stub rallies maintain proper rally indexing
+4. **Better UX** - Clear completion flow with modal navigation
+5. **Prevents Duplicates** - Removes manual save button that created duplicate rallies
+
+**Why Stub Rallies:**
+- Maintains correct rally numbering for entire set
+- Enables server calculation for first tagged rally
+- Provides context for match statistics
+- Allows future enhancement to fill in stub rally data if known
+
+**Why Remove Manual Save:**
+- Each rally already auto-saves on completion
+- Manual save created duplicates
+- Redundant with new "Save Set" button
+
+#### Migration Notes
+
+- Existing sets without setup data will show setup screen on first load
+- Stub rallies are marked with `is_stub_rally: true` and `framework_confirmed: false`
+- Pre-entered set results are overwritten by tagged results (tagged = source of truth)
+- No migration script needed - existing sets continue to work
+
+#### Testing Scenarios
+
+1. **Fresh Set** - Go through setup, tag rallies, save set ✓
+2. **Resume Set** - Verify setup skipped, scores loaded ✓
+3. **Set End** - Verify warning shows, continue works ✓
+4. **Completion** - Verify modal, navigation works ✓
+5. **Partial Tagging** - Start from score 8-7, tag to 11-9 ✓
+
+---
+
+### 2025-12-09: Removed serve type from Phase 2 tagging flow (v3.1.1)
+
+**Simplified serve tagging by removing the serve type question from the UI flow.**
+
+#### Rationale
+
+The serve type field (`serve_type` in database) was not being used in any:
+- Statistics calculations
+- Inference logic
+- Analysis functions
+- Business rules
+
+The field was purely metadata stored in the database and displayed only in the DataViewer. Given the MVP focus on essential tagging, this question added unnecessary friction to the serve tagging flow without providing value for the current feature set.
+
+#### Changes
+
+**1. Phase 2 Tagging Flow**
+
+Serve question sequence simplified from 4 steps to 3:
+- **Before**: direction → length → spin → serve type → next shot
+- **After**: direction → length → spin → next shot
+
+**2. Type Definitions**
+
+Removed `serveType` field from:
+- `DetailedShot` interface in `Phase2DetailComposer.tsx`
+- `DetailedShotData` interface in `dataMapping.ts`
+- `ServeStep` type (removed `'serveType'` as valid step)
+
+**3. UI Components**
+
+Removed entire serve type button grid (lines 794-810 in Phase2DetailComposer.tsx):
+- "Serve (Unknown)" button
+- "Pendulum", "Backhand", "Reverse Tomahawk", "Tomahawk", "Hook", "Lolipop" buttons
+
+**4. Save Logic**
+
+Removed save logic for `serve_type` in:
+- `_handleManualSave()` function
+- `saveCurrentShotToDatabase()` function
+- `buildPhase2Updates()` in dataMapping.ts
+- `convertDBShotToDetailedShot()` reverse mapping
+
+**5. Question Flow Logic**
+
+Updated flow control functions:
+- `isLastQuestion()`: Changed serve last question from `'serveType'` to `'spin'`
+- `getNextStep()`: Removed `'serveType'` step from serve flow
+
+#### Database Impact
+
+**No migration required:**
+- The `serve_type` field remains in `DBShot` type (for backwards compatibility)
+- Defaults to `null` in `createEntityDefaults.ts`
+- Existing data is preserved
+- Future cleanup: field can be removed in a future schema refactor
+
+#### Files Modified
+
+- `app/src/features/shot-tagging-engine/composers/Phase2DetailComposer.tsx`
+- `app/src/features/shot-tagging-engine/composers/dataMapping.ts`
+
+#### Future Considerations
+
+- The `deriveServeWing()` function in `rules/types.ts` is unused and can be removed in future cleanup
+- The `ServeType` type definition can remain for now (future cleanup)
+- If serve type analysis becomes needed in the future, the field can be re-added or derived from video analysis
+
+#### Benefits
+
+- Faster serve tagging (3 questions instead of 4)
+- Reduced cognitive load for user
+- Cleaner codebase with removed unused code paths
+- Backwards compatible (no breaking changes)
+
+---
+
+### 2025-12-08: Split shot_result into shot_result and shot_quality (v3.1.0)
+
+**Separated objective error states from subjective quality assessment in shot data model.**
+
+#### Issue
+
+The `shot_result` field was mixing two conceptually different types of data:
+- **Objective error states**: 'in_net', 'missed_long', 'missed_wide' (what physically happened)
+- **Subjective quality assessment**: 'good', 'average' (how well the shot was executed)
+
+This conflation made the data model unclear and made it difficult to distinguish between:
+- Shots that went in play but were low quality
+- Shots that resulted in errors
+- High quality shots vs winning shots
+
+#### Root Cause
+
+Original schema design combined both concepts into a single field for simplicity, but this created logical inconsistencies:
+- An error shot ('in_net') couldn't also have a quality rating
+- A 'good' shot could still lose the point if opponent returned it well
+- Quality and result are independent dimensions of shot assessment
+
+#### Fix
+
+**1. Type System Split**
+
+Split `ShotResult` type into two separate fields:
+- `shot_result: 'in_net' | 'missed_long' | 'missed_wide' | 'in_play'` (NOT NULL, defaults to 'in_play')
+- `shot_quality: 'high' | 'average' | null` (only applicable when shot_result === 'in_play')
+
+**2. Phase 1 Logic (Timestamp Capture)**
+
+Only the LAST shot in a rally gets error shot_result based on rally end condition:
+- Rally ends with "In-Net" → last shot gets `shot_result = 'in_net'`
+- Rally ends with "Long" → last shot gets `shot_result = 'missed_long'`
+- Rally ends with "Winner" → last shot gets `shot_result = 'in_play'`
+- All other shots default to `shot_result = 'in_play'`
+- All shots start with `shot_quality = null` (filled in Phase 2)
+
+**3. Phase 2 Logic (Detail Capture)**
+
+- `shot_result` is READ-ONLY from Phase 1 (never modified in Phase 2)
+- `shot_quality` is set only when:
+  - Shot is in play (`shot_result === 'in_play'`), AND
+  - User answers the quality question
+- Error shots always have `shot_quality = null`
+- If user hasn't answered quality yet, stays `null` (does NOT default to 'average')
+
+**4. Inference/Derivation Updates**
+
+Updated all inference and derivation functions:
+- **Error detection**: Changed from checking specific error strings to `shot_result !== 'in_play'`
+- **Quality assessment**: Changed from `shot_result === 'good'` to `shot_quality === 'high'`
+
+Files updated:
+- `deriveRally_winner_id.ts`, `deriveRally_point_end_type.ts`, `deriveShot_rally_end_role.ts`
+- `inferShotType.ts`, `inferPressure.ts`, `inferTacticalPatterns.ts`, `inferMovement.ts`
+- `errorStats.ts`, `tacticalStats.ts`, `serveReceiveStats.ts`
+
+**5. Bug Fix: serveType Not Saved**
+
+Fixed bug where `serveType` was used in UI but not saved to database:
+- Added `serveType` to `DetailedShot` interface
+- Added save logic in `saveCurrentShotToDatabase()`
+- Added mapping in `convertDBShotToDetailedShot()`
+
+#### Schema Changes
+
+```typescript
+// BEFORE
+export type ShotResult = 'good' | 'average' | 'in_net' | 'missed_long' | 'missed_wide'
+
+interface DBShot {
+  shot_result: ShotResult | null
+}
+
+// AFTER
+export type ShotResult = 'in_net' | 'missed_long' | 'missed_wide' | 'in_play'
+export type ShotQuality = 'high' | 'average'
+
+interface DBShot {
+  shot_result: ShotResult // NOT NULL, defaults to 'in_play'
+  shot_quality: ShotQuality | null // SUBJECTIVE DATA section
+}
+```
+
+#### Data Flow
+
+```
+Phase 1 (Timestamp Capture):
+  User presses "Win" → last shot: shot_result = 'in_play', shot_quality = null
+  User presses "In-Net" → last shot: shot_result = 'in_net', shot_quality = null
+  User presses "Long" → last shot: shot_result = 'missed_long', shot_quality = null
+  
+Phase 2 (Detail Capture):
+  If shot_result === 'in_play':
+    User answers quality → shot_quality = 'high' or 'average'
+  If shot_result !== 'in_play':
+    shot_quality stays null (errors don't have quality)
+```
+
+#### Benefits
+
+1. **Clearer Data Model**: Objective facts (result) separate from subjective assessment (quality)
+2. **Better Analytics**: Can analyze error patterns independently from quality patterns
+3. **Logical Consistency**: Error shots can't have quality ratings (they failed to stay in play)
+4. **Future Flexibility**: Can add more quality levels without affecting error detection logic
+
+#### Files Modified (18 files)
+
+- Types & Exports: `shot.types.ts`, `data/index.ts`
+- Defaults: `createEntityDefaults.ts`
+- Phase 1: `dataMapping.ts`, `Phase1TimestampComposer.tsx`
+- Phase 2: `Phase2DetailComposer.tsx`
+- UI: `DataViewer.tsx`
+- Derivation Rules: `deriveRally_winner_id.ts`, `deriveRally_point_end_type.ts`, `deriveShot_rally_end_role.ts`
+- Inference Rules: `inferShotType.ts`, `inferPressure.ts`, `inferTacticalPatterns.ts`, `inferMovement.ts`
+- Stats: `errorStats.ts`, `tacticalStats.ts`, `serveReceiveStats.ts`
+
+#### Migration Notes
+
+**Clean Start Recommended**: Old data will have 'good'/'average' in `shot_result` which are no longer valid values. Recommend clearing localStorage and starting fresh tagging.
+
+**If Preserving Data**: Manual update needed to move 'good'/'average' from `shot_result` to `shot_quality` field.
+
+---
+
 ### 2025-12-08: Fixed Slug ID Generation for All Entities (v3.0.2)
 
 **Complete implementation of slug-based ID generation across all entity types.**
@@ -1495,6 +2444,8 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 | v3.0.0 | 2025-12-08 | Database refactor - Slug-based IDs & shot inference tracking |
 | v3.0.1 | 2025-12-08 | Critical bug fixes - ID generation & data duplication |
 | v3.0.2 | 2025-12-08 | Fixed slug ID generation for all entities |
+| v3.1.0 | 2025-12-08 | Split shot_result into shot_result and shot_quality; Fixed serveType bug |
+| v3.1.1 | 2025-12-09 | Removed serve type from Phase 2 tagging flow |
 
 ---
 

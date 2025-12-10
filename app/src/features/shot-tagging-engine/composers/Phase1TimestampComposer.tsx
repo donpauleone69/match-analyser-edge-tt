@@ -11,10 +11,12 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { cn } from '@/helpers/utils'
-import { Phase1ControlsBlock, type RallyState, type EndCondition } from '../blocks'
+import { Phase1ControlsBlock, SetupControlsBlock, SetEndWarningBlock, CompletionModal, type RallyState, type EndCondition, type SetupData } from '../blocks'
 import { VideoPlayer, type VideoPlayerHandle, type TaggingModeControls, useVideoPlaybackStore } from '@/ui-mine/VideoPlayer'
-import { calculateServer, calculateShotPlayer } from '@/rules'
+import { calculateServer, calculateShotPlayer, calculatePreviousServers } from '@/rules'
 import { deriveRally_winner_id, getOpponentId } from '@/rules/derive/rally/deriveRally_winner_id'
+import { deriveSetEndConditions } from '@/rules/derive/set/deriveSetEndConditions'
+import { validateSetScore } from '@/rules/validate/validateSetScore'
 import { mapPhase1RallyToDBRally, mapPhase1ShotToDBShot } from './dataMapping'
 import { rallyDb, shotDb, setDb } from '@/data'
 
@@ -34,7 +36,6 @@ export interface PlayerContext {
 }
 
 export interface Phase1TimestampComposerProps {
-  onCompletePhase1?: (rallies: Phase1Rally[]) => void
   playerContext?: PlayerContext | null
   setId?: string | null  // For DB saving
   player1Id?: string | null  // For DB saving
@@ -65,7 +66,7 @@ export interface Phase1Rally {
   winnerName: string
 }
 
-export function Phase1TimestampComposer({ onCompletePhase1, playerContext, setId, player1Id, player2Id, className }: Phase1TimestampComposerProps) {
+export function Phase1TimestampComposer({ playerContext, setId, player1Id, player2Id, className }: Phase1TimestampComposerProps) {
   const currentTime = useVideoPlaybackStore(state => state.currentTime)
   const videoUrl = useVideoPlaybackStore(state => state.videoUrl)
   const setVideoUrl = useVideoPlaybackStore(state => state.setVideoUrl)
@@ -92,68 +93,155 @@ export function Phase1TimestampComposer({ onCompletePhase1, playerContext, setId
   
   // Saving indicator
   const [isSaving, setIsSaving] = useState(false)
-  const [lastSaveTime, setLastSaveTime] = useState<Date | null>(null)
   
-  // Manual save all progress to DB
-  const handleManualSave = async () => {
+  // NEW: Setup flow state
+  const [setupComplete, setSetupComplete] = useState(false)
+  const [setupStartingScore, setSetupStartingScore] = useState({ player1: 0, player2: 0 })
+  const [setupNextServer, setSetupNextServer] = useState<'player1' | 'player2'>('player1')
+  const [setEndDetected, setSetEndDetected] = useState(false)
+  const [setEndScore, setSetEndScore] = useState<{ player1: number; player2: number } | null>(null)
+  const [showCompletionModal, setShowCompletionModal] = useState(false)
+  
+  // NEW: Initialize - Check for existing rallies
+  useEffect(() => {
+    const checkExistingRallies = async () => {
+      if (!setId || !player1Id || !player2Id) return
+      
+      try {
+        const existingRallies = await rallyDb.getBySetId(setId)
+        const taggedRallies = existingRallies.filter(r => !r.is_stub_rally)
+        
+        if (taggedRallies.length > 0) {
+          // Skip setup - resume existing session
+          console.log('[Phase1] Resuming existing session with', taggedRallies.length, 'rallies')
+          setSetupComplete(true)
+          
+          // Load setup data from set record if exists
+          const setRecord = await setDb.getById(setId)
+          if (setRecord && setRecord.setup_starting_score_p1 !== null && setRecord.setup_starting_score_p2 !== null) {
+            setSetupStartingScore({
+              player1: setRecord.setup_starting_score_p1,
+              player2: setRecord.setup_starting_score_p2
+            })
+            
+            // Load next server from setup (convert DB ID to player1/player2)
+            if (setRecord.setup_next_server_id) {
+              const nextServer = setRecord.setup_next_server_id === player1Id ? 'player1' : 'player2'
+              setSetupNextServer(nextServer)
+            }
+            
+            // Calculate current score from last rally
+            const lastRally = taggedRallies.sort((a, b) => b.rally_index - a.rally_index)[0]
+            if (lastRally && lastRally.player1_score_after !== null && lastRally.player2_score_after !== null) {
+              setCurrentScore({
+                player1: lastRally.player1_score_after,
+                player2: lastRally.player2_score_after
+              })
+            }
+          }
+          
+          // Load existing rallies into completedRallies state (would need mapping - skip for now)
+          // User can continue from current state
+        } else {
+          // Show setup screen
+          console.log('[Phase1] No existing rallies - showing setup screen')
+          setSetupComplete(false)
+        }
+      } catch (error) {
+        console.error('[Phase1] Error checking existing rallies:', error)
+        // Default to showing setup
+        setSetupComplete(false)
+      }
+    }
+    
+    checkExistingRallies()
+  }, [setId, player1Id, player2Id])
+  
+  // NEW: Handle setup completion
+  const handleSetupComplete = async (setup: SetupData) => {
     if (!setId || !player1Id || !player2Id) {
-      alert('Cannot save - missing database context')
+      alert('Cannot complete setup - missing database context')
       return
     }
     
-    if (completedRallies.length === 0) {
-      alert('No rallies to save yet')
-      return
-    }
-    
-    setIsSaving(true)
-    console.log(`[Manual Save] Saving ${completedRallies.length} rallies...`)
+    console.log('[Phase1] Setup completed:', setup)
     
     try {
-      // Get existing rallies to determine correct starting rally_index
-      const existingRallies = await rallyDb.getBySetId(setId)
-      const maxRallyIndex = existingRallies.reduce((max, r) => Math.max(max, r.rally_index || 0), 0)
-      let savedCount = 0
-      
-      console.log(`[Manual Save] Max existing rally_index: ${maxRallyIndex}, saving ${completedRallies.length} new rallies`)
-      
-      // Save all rallies starting from maxRallyIndex + 1
-      for (let i = 0; i < completedRallies.length; i++) {
-        const rally = completedRallies[i]
-        const rallyIndex = maxRallyIndex + i + 1 // Continue from max existing index
-        
-        // Save new rally
-        {
-          savedCount++
-          const dbRally = mapPhase1RallyToDBRally(rally, setId, rallyIndex, player1Id, player2Id)
-          const savedRally = await rallyDb.create(dbRally)
-          
-          // Save shots for this rally
-          for (const shot of rally.shots) {
-            const shotPlayer = calculateShotPlayer(rally.serverId, shot.shotIndex)
-            const shotPlayerId = shotPlayer === 'player1' ? player1Id : player2Id
-            const dbShot = mapPhase1ShotToDBShot(shot, savedRally.id, shotPlayerId)
-            await shotDb.create(dbShot)
-          }
-        }
+      // 1. Validate score (already done in SetupControlsBlock, but double-check)
+      const validation = validateSetScore(setup.p1Score, setup.p2Score)
+      if (!validation.valid) {
+        alert(validation.error)
+        return
       }
       
-      // Update set progress
+      // 2. Calculate previous servers
+      const totalPoints = setup.p1Score + setup.p2Score
+      if (totalPoints > 0) {
+        const previousServers = calculatePreviousServers(
+          totalPoints,
+          setup.nextServerId,
+          player1Id,
+          player2Id
+        )
+        
+        console.log('[Phase1] Creating', totalPoints, 'stub rallies')
+        
+        // 3. Create stub rallies
+        for (let i = 0; i < previousServers.length; i++) {
+          const rallyIndex = i + 1
+          const serverId = previousServers[i]
+          const receiverId = serverId === player1Id ? player2Id : player1Id
+          
+          await rallyDb.create({
+            set_id: setId,
+            rally_index: rallyIndex,
+            video_id: null,
+            server_id: serverId,
+            receiver_id: receiverId,
+            is_scoring: true,
+            winner_id: null,  // Unknown
+            player1_score_before: 0,  // Don't track for stub rallies
+            player2_score_before: 0,
+            player1_score_after: 0,
+            player2_score_after: 0,
+            timestamp_start: null,  // No video for stub rallies
+            timestamp_end: null,
+            end_of_point_time: null,
+            point_end_type: null,
+            has_video_data: false,
+            is_highlight: false,
+            framework_confirmed: false,  // Not confirmed
+            detail_complete: false,
+            server_corrected: false,
+            score_corrected: false,
+            correction_notes: null,
+            is_stub_rally: true,  // Mark as stub
+          })
+        }
+        
+        console.log('[Phase1] Created', previousServers.length, 'stub rallies')
+      }
+      
+      // 4. Save setup to set record
       await setDb.update(setId, {
-        tagging_phase: 'phase1_in_progress',
-        phase1_last_rally: completedRallies.length,
-        phase1_total_rallies: completedRallies.length,
-        has_video: true,
+        setup_starting_score_p1: setup.p1Score,
+        setup_starting_score_p2: setup.p2Score,
+        setup_next_server_id: setup.nextServerId === 'player1' ? player1Id : player2Id,
+        setup_completed_at: new Date().toISOString(),
       })
       
-      setLastSaveTime(new Date())
-      console.log(`[Manual Save] ✓ Saved ${savedCount} new rallies (${completedRallies.length} total)`)
-      alert(`Successfully saved ${savedCount} new rallies! (${completedRallies.length} total rallies)`)
+      console.log('[Phase1] Setup saved to database')
+      
+      // 5. Initialize score for tagging
+      setCurrentScore({ player1: setup.p1Score, player2: setup.p2Score })
+      setSetupStartingScore({ player1: setup.p1Score, player2: setup.p2Score })
+      setSetupNextServer(setup.nextServerId)
+      setSetupComplete(true)
+      
+      console.log('[Phase1] Ready to start tagging from score', setup.p1Score, '-', setup.p2Score)
     } catch (error) {
-      console.error('[Manual Save] ✗ Failed:', error)
-      alert('Failed to save progress. Check console for details.')
-    } finally {
-      setIsSaving(false)
+      console.error('[Phase1] Error completing setup:', error)
+      alert('Failed to complete setup. Check console for details.')
     }
   }
   
@@ -221,7 +309,7 @@ export function Phase1TimestampComposer({ onCompletePhase1, playerContext, setId
     // Calculate current server using inference
     const serverResult = playerContext 
       ? calculateServer({
-          firstServerId: playerContext.firstServerId,
+          firstServerId: setupNextServer,
           player1Score: currentScore.player1,
           player2Score: currentScore.player2,
         })
@@ -229,26 +317,27 @@ export function Phase1TimestampComposer({ onCompletePhase1, playerContext, setId
     
     // Determine winner based on end condition and who hit last shot
     const lastShotIndex = currentShots.length
-    const lastShotPlayer = calculateShotPlayer(serverResult.serverId, lastShotIndex)
+    const lastShotPlayer = calculateShotPlayer(serverResult.serverId, lastShotIndex) as 'player1' | 'player2'
     
     // Derive rally winner using rules
     // const isError = endCondition === 'innet' || endCondition === 'long'
     const opponentId = player1Id && player2Id 
-      ? getOpponentId(lastShotPlayer, 'player1', 'player2')
+      ? getOpponentId(lastShotPlayer, 'player1' as 'player1' | 'player2', 'player2' as 'player1' | 'player2')
       : lastShotPlayer
     
     // Determine shot_result based on end condition for winner derivation
     const shotResult = 
       endCondition === 'innet' ? 'in_net' :
       endCondition === 'long' ? 'missed_long' :
-      'good' // 'winner' end condition
+      endCondition === 'let' ? 'in_play' :  // let rallies have in_play result
+      'in_play' // 'winner' end condition - shot stayed in play
     
     const winnerId = deriveRally_winner_id(
       {
-        player_id: lastShotPlayer,
+        player_id: lastShotPlayer as 'player1' | 'player2',
         shot_result: shotResult as any, // Pass correct shot_result for error detection
       },
-      opponentId
+      opponentId as 'player1' | 'player2'
     ) || lastShotPlayer
     
     const rally: Phase1Rally = {
@@ -258,23 +347,16 @@ export function Phase1TimestampComposer({ onCompletePhase1, playerContext, setId
       endTimestamp: currentTime,
       isError: endCondition === 'innet' || endCondition === 'long',
       errorPlacement: endCondition === 'innet' ? 'innet' : endCondition === 'long' ? 'long' : undefined,
-      serverId: serverResult.serverId,
-      winnerId,
+      serverId: serverResult.serverId as 'player1' | 'player2',
+      winnerId: winnerId as 'player1' | 'player2',
       // Player names for UI
       player1Name: playerContext?.player1Name || 'Player 1',
       player2Name: playerContext?.player2Name || 'Player 2',
-      serverName: getPlayerName(serverResult.serverId),
-      winnerName: getPlayerName(winnerId),
+      serverName: getPlayerName(serverResult.serverId as 'player1' | 'player2'),
+      winnerName: getPlayerName(winnerId as 'player1' | 'player2'),
     }
     
     setCompletedRallies(prev => [...prev, rally])
-    
-    // Update score
-    const newScore = {
-      player1: winnerId === 'player1' ? currentScore.player1 + 1 : currentScore.player1,
-      player2: winnerId === 'player2' ? currentScore.player2 + 1 : currentScore.player2,
-    }
-    setCurrentScore(newScore)
     
     // Add to history
     setShotHistory(prev => [...prev, {
@@ -283,6 +365,14 @@ export function Phase1TimestampComposer({ onCompletePhase1, playerContext, setId
       rallyId: rally.id,
       rallyEndCondition: endCondition,
     }])
+    
+    // NEW: Calculate scores for database
+    const newScore = endCondition === 'let' 
+      ? currentScore
+      : {
+          player1: winnerId === 'player1' ? currentScore.player1 + 1 : currentScore.player1,
+          player2: winnerId === 'player2' ? currentScore.player2 + 1 : currentScore.player2,
+        }
     
       // Save to database immediately (if context available)
     if (setId && player1Id && player2Id) {
@@ -293,7 +383,20 @@ export function Phase1TimestampComposer({ onCompletePhase1, playerContext, setId
         const maxRallyIndex = existingRallies.reduce((max, r) => Math.max(max, r.rally_index || 0), 0)
         const rallyIndex = maxRallyIndex + 1
         
+        // NEW: Get score BEFORE this rally (from previous rally or setup)
+        const taggedRallies = existingRallies.filter(r => !r.is_stub_rally)
+        const previousRally = taggedRallies.sort((a, b) => b.rally_index - a.rally_index)[0]
+        
+        const scoreBefore = previousRally 
+          ? { 
+              player1: previousRally.player1_score_after ?? 0, 
+              player2: previousRally.player2_score_after ?? 0 
+            }
+          : setupStartingScore  // First tagged rally uses setup scores
+        
         console.log(`[Phase1] === SAVING RALLY ${rallyIndex} (max existing: ${maxRallyIndex}) ===`)
+        console.log(`[Phase1] Score before:`, scoreBefore)
+        console.log(`[Phase1] Score after:`, newScore)
         console.log(`[Phase1] Rally data:`, {
           serverId: rally.serverId,
           winnerId: rally.winnerId,
@@ -302,32 +405,60 @@ export function Phase1TimestampComposer({ onCompletePhase1, playerContext, setId
           shotCount: rally.shots.length,
         })
         
-        // Map and save rally
+        // Calculate rally timestamps
+        const rallyTimestampStart = rally.shots[0].timestamp
+        const rallyTimestampEnd = rally.endTimestamp
+        
+        // Map and save rally WITH SCORES AND TIMESTAMPS
         const dbRally = mapPhase1RallyToDBRally(rally, setId, rallyIndex, player1Id, player2Id)
+        dbRally.player1_score_before = scoreBefore.player1
+        dbRally.player2_score_before = scoreBefore.player2
+        dbRally.player1_score_after = newScore.player1
+        dbRally.player2_score_after = newScore.player2
+        dbRally.timestamp_start = rallyTimestampStart
+        dbRally.timestamp_end = rallyTimestampEnd
+        dbRally.end_of_point_time = rallyTimestampEnd  // Keep existing field populated
+        
         console.log(`[Phase1] DB Rally to save:`, {
           server_id: dbRally.server_id,
           receiver_id: dbRally.receiver_id,
           winner_id: dbRally.winner_id,
           is_scoring: dbRally.is_scoring,
           point_end_type: dbRally.point_end_type,
+          timestamp_start: rallyTimestampStart,
+          timestamp_end: rallyTimestampEnd,
         })
         const savedRally = await rallyDb.create(dbRally)
         console.log(`[Phase1] ✓ Rally saved with ID: ${savedRally.id}`)
         
         // Map and save all shots for this rally
         console.log(`[Phase1] Saving ${rally.shots.length} shots...`)
-        for (const shot of rally.shots) {
+        for (let i = 0; i < rally.shots.length; i++) {
+          const shot = rally.shots[i]
+          const nextShot = rally.shots[i + 1] // undefined for last shot
+          
           const shotPlayer = calculateShotPlayer(rally.serverId, shot.shotIndex)
           const playerId = shotPlayer === 'player1' ? player1Id : player2Id
-          const dbShot = mapPhase1ShotToDBShot(shot, savedRally.id, playerId)
+          const isLastShot = i === rally.shots.length - 1
+          
+          // Calculate timestamp_end
+          const timestamp_end = nextShot 
+            ? nextShot.timestamp          // Next shot's start time
+            : rally.endTimestamp          // Rally end time for last shot
+          
+          const dbShot = mapPhase1ShotToDBShot(shot, savedRally.id, playerId, isLastShot, rally.endCondition)
+          dbShot.timestamp_end = timestamp_end  // ✓ Set timestamp_end!
+          
           console.log(`[Phase1] Shot ${shot.shotIndex}:`, {
             player_id: dbShot.player_id,
-            time: dbShot.timestamp_start,
+            time_start: dbShot.timestamp_start,
+            time_end: dbShot.timestamp_end,
             shot_index: dbShot.shot_index,
+            shot_result: dbShot.shot_result,
           })
           await shotDb.create(dbShot)
         }
-        console.log(`[Phase1] ✓ All ${rally.shots.length} shots saved`)
+        console.log(`[Phase1] ✓ All ${rally.shots.length} shots saved with timestamp_end`)
         
         // Update set progress
         await setDb.update(setId, {
@@ -335,6 +466,14 @@ export function Phase1TimestampComposer({ onCompletePhase1, playerContext, setId
           phase1_last_rally: rallyIndex,
           has_video: true,
         })
+        
+        // NEW: Check for set end
+        const setEndCheck = deriveSetEndConditions(newScore.player1, newScore.player2)
+        if (setEndCheck.isSetEnd && !setEndDetected) {
+          console.log('[Phase1] Set end detected!', newScore)
+          setSetEndDetected(true)
+          setSetEndScore(newScore)
+        }
         
         console.log(`[Phase1] ✓ Rally ${rallyIndex} complete!`)
       } catch (error) {
@@ -344,6 +483,9 @@ export function Phase1TimestampComposer({ onCompletePhase1, playerContext, setId
         setIsSaving(false)
       }
     }
+    
+    // Update local score state
+    setCurrentScore(newScore)
     
     // Set speed to FF mode
     setSpeedMode('ff')
@@ -366,6 +508,73 @@ export function Phase1TimestampComposer({ onCompletePhase1, playerContext, setId
   // Handle winning shot
   const handleWin = () => {
     completeRally('winner').catch(console.error)
+  }
+  
+  // NEW: Handle Save Set
+  const handleSaveSet = async () => {
+    if (!setId || !player1Id || !player2Id) {
+      alert('Cannot save set - missing database context')
+      return
+    }
+    
+    console.log('[Phase1] Saving set...', currentScore)
+    
+    try {
+      // 1. Calculate final winner and score
+      const finalScore = currentScore
+      const winner = finalScore.player1 > finalScore.player2 ? player1Id : player2Id
+      
+      // 2. Update set record (overwrites pre-entered data)
+      await setDb.update(setId, {
+        tagging_phase: 'phase1_complete',
+        winner_id: winner,
+        player1_score_final: finalScore.player1,
+        player2_score_final: finalScore.player2,
+      })
+      
+      console.log('[Phase1] ✓ Set saved successfully')
+      
+      // 3. Show completion modal
+      setShowCompletionModal(true)
+    } catch (error) {
+      console.error('[Phase1] Error saving set:', error)
+      alert('Failed to save set. Check console for details.')
+    }
+  }
+  
+  // NEW: Handle Tag Next Set
+  const handleTagNextSet = async () => {
+    if (!setId) return
+    
+    try {
+      // 1. Get current set info
+      const currentSet = await setDb.getById(setId)
+      if (!currentSet) {
+        alert('Cannot find current set')
+        return
+      }
+      const nextSetNumber = currentSet.set_number + 1
+      
+      // 2. Check if next set exists
+      const matchSets = await setDb.getByMatchId(currentSet.match_id)
+      let nextSet = matchSets.find(s => s.set_number === nextSetNumber)
+      
+      // 3. Create if doesn't exist
+      if (!nextSet) {
+        console.log('[Phase1] Creating next set:', nextSetNumber)
+        // For now, just navigate - set creation should happen in match setup
+        alert('Next set not found. Please create it in match setup first.')
+        return
+      }
+      
+      console.log('[Phase1] Navigating to next set:', nextSet.id)
+      
+      // 4. Navigate to Phase1 with next set (will show setup or resume)
+      window.location.href = `/matches/${currentSet.match_id}/tag?set=${nextSetNumber}`
+    } catch (error) {
+      console.error('[Phase1] Error navigating to next set:', error)
+      alert('Failed to load next set. Check console for details.')
+    }
   }
   
   // Handle delete - remove last tag and navigate back
@@ -530,7 +739,7 @@ export function Phase1TimestampComposer({ onCompletePhase1, playerContext, setId
                 <span className="ml-2 text-neutral-400">
                   Server: {
                     calculateServer({
-                      firstServerId: playerContext.firstServerId,
+                      firstServerId: setupNextServer,
                       player1Score: currentScore.player1,
                       player2Score: currentScore.player2,
                     }).serverId === 'player1' 
@@ -543,11 +752,11 @@ export function Phase1TimestampComposer({ onCompletePhase1, playerContext, setId
             <div className="space-y-1">
               {currentShots.map((shot, idx) => {
                 const serverId = playerContext ? calculateServer({
-                  firstServerId: playerContext.firstServerId,
+                  firstServerId: setupNextServer,
                   player1Score: currentScore.player1,
                   player2Score: currentScore.player2,
                 }).serverId : 'player1' as const
-                const shotPlayer = calculateShotPlayer(serverId, shot.shotIndex)
+                const shotPlayer = calculateShotPlayer(serverId, shot.shotIndex) as 'player1' | 'player2'
                 const playerName = getPlayerName(shotPlayer)
                 
                 return (
@@ -568,9 +777,13 @@ export function Phase1TimestampComposer({ onCompletePhase1, playerContext, setId
           const rallyNumber = completedRallies.length - reverseIdx
           const endConditionLabel = 
             rally.endCondition === 'winner' ? 'Winner' :
-            rally.endCondition === 'innet' ? 'In-Net' : 'Long'
+            rally.endCondition === 'innet' ? 'In-Net' :
+            rally.endCondition === 'long' ? 'Long' :
+            'Let'
           const endConditionColor = 
-            rally.endCondition === 'winner' ? 'text-success' : 'text-danger'
+            rally.endCondition === 'winner' ? 'text-success' :
+            rally.endCondition === 'let' ? 'text-warning' :
+            'text-danger'
           const serverName = getPlayerName(rally.serverId)
           const winnerName = getPlayerName(rally.winnerId)
           
@@ -594,7 +807,7 @@ export function Phase1TimestampComposer({ onCompletePhase1, playerContext, setId
               </div>
               <div className="space-y-1">
                 {rally.shots.map((shot, idx) => {
-                  const shotPlayer = calculateShotPlayer(rally.serverId, shot.shotIndex)
+                  const shotPlayer = calculateShotPlayer(rally.serverId, shot.shotIndex) as 'player1' | 'player2'
                   const playerName = getPlayerName(shotPlayer)
                   const isLastShot = idx === rally.shots.length - 1
                   
@@ -633,8 +846,21 @@ export function Phase1TimestampComposer({ onCompletePhase1, playerContext, setId
       </div>
       
       {/* Status Strip - Below Video */}
-      <div className="shrink-0 border-t border-neutral-700 bg-neutral-900 px-4 py-2">
-        <div className="flex items-center justify-between text-sm">
+      <div className="shrink-0 border-t border-neutral-700 bg-neutral-900">
+        {/* NEW: Show set end warning if detected */}
+        {setEndDetected && setEndScore && (
+          <SetEndWarningBlock
+            currentScore={currentScore}
+            setEndScore={setEndScore}
+            onSaveSet={handleSaveSet}
+            onContinueTagging={() => {
+              console.log('[Phase1] User chose to continue tagging past set end')
+              setSetEndDetected(false)
+            }}
+          />
+        )}
+        
+        <div className="px-4 py-2 flex items-center justify-between text-sm">
           <div className="flex items-center gap-4">
             <span className="text-neutral-500">Rally {completedRallies.length + 1}</span>
             {playerContext && (
@@ -670,48 +896,61 @@ export function Phase1TimestampComposer({ onCompletePhase1, playerContext, setId
           </div>
           <div className="flex items-center gap-3">
             <span className="text-neutral-500">Total: {completedRallies.length} rallies</span>
-            {lastSaveTime && (
-              <span className="text-xs text-green-400">
-                Saved {new Date(lastSaveTime).toLocaleTimeString()}
-              </span>
-            )}
-            {completedRallies.length > 0 && (
+            {/* NEW: Save Set button (only show if setup complete and rallies exist) */}
+            {setupComplete && completedRallies.length > 0 && (
               <button
-                onClick={handleManualSave}
-                disabled={isSaving}
-                className="px-3 py-1 rounded bg-neutral-700 text-white text-xs font-medium hover:bg-neutral-600 disabled:opacity-50"
+                onClick={handleSaveSet}
+                className={cn(
+                  'px-3 py-1 rounded text-white text-xs font-medium',
+                  setEndDetected 
+                    ? 'bg-green-600 hover:bg-green-700'
+                    : 'bg-brand-primary hover:bg-brand-primary/90'
+                )}
               >
-                {isSaving ? 'Saving...' : 'Save Progress'}
-              </button>
-            )}
-            {onCompletePhase1 && completedRallies.length > 0 && (
-              <button
-                onClick={() => {
-                  // Save video URL to ensure it persists to Phase 2
-                  if (videoUrl) {
-                    console.log('Saving video URL for Phase 2:', videoUrl)
-                  }
-                  onCompletePhase1(completedRallies)
-                }}
-                className="px-3 py-1 rounded bg-brand-primary text-white text-xs font-medium hover:bg-brand-primary/90"
-              >
-                Complete Phase 1 →
+                Save Set
               </button>
             )}
           </div>
         </div>
       </div>
       
-      {/* Controls - Bottom - 1x4 button layout */}
+      {/* Controls - Bottom */}
       <div className="shrink-0 bg-bg-card border-t border-neutral-700">
-        <Phase1ControlsBlock
-          rallyState={rallyState}
-          onServeShot={handleServeShot}
-          onShotMissed={handleShotMissed}
-          onInNet={handleInNet}
-          onWin={handleWin}
-        />
+        {!setupComplete ? (
+          <SetupControlsBlock
+            player1Name={playerContext?.player1Name || 'Player 1'}
+            player2Name={playerContext?.player2Name || 'Player 2'}
+            onComplete={handleSetupComplete}
+          />
+        ) : (
+          <Phase1ControlsBlock
+            rallyState={rallyState}
+            onServeShot={handleServeShot}
+            onShotMissed={handleShotMissed}
+            onInNet={handleInNet}
+            onWin={handleWin}
+          />
+        )}
       </div>
+      
+      {/* NEW: Completion Modal */}
+      {showCompletionModal && playerContext && (
+        <CompletionModal
+          setNumber={1}  // TODO: Get from set record
+          finalScore={currentScore}
+          player1Name={playerContext.player1Name}
+          player2Name={playerContext.player2Name}
+          onTagNextSet={handleTagNextSet}
+          onBackToMatches={() => {
+            // Navigate back to matches
+            window.location.href = '/matches'
+          }}
+          onViewData={() => {
+            // Navigate to data viewer
+            window.location.href = `/data-viewer?setId=${setId}`
+          }}
+        />
+      )}
     </div>
   )
 }
