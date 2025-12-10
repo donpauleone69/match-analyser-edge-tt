@@ -32,11 +32,10 @@ export function deriveRally_winner_id(
 ): PlayerId | null {
   if (!lastShot) return null
   
-  // Check if last shot was an error (using shot_result instead of shot_destination)
+  // Check if last shot was an error
+  // shot_result !== 'in_play' means error occurred
   const isError = 
-    lastShot.shot_result === 'in_net' ||
-    lastShot.shot_result === 'missed_long' ||
-    lastShot.shot_result === 'missed_wide' ||
+    (lastShot.shot_result && lastShot.shot_result !== 'in_play') ||
     lastShot.rally_end_role === 'unforced_error' ||
     lastShot.rally_end_role === 'forced_error' ||
     lastShot.rally_end_role === 'service_fault' ||

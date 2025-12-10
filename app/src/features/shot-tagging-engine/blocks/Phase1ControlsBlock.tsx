@@ -22,7 +22,7 @@ import {
 import { ButtonGrid } from './ButtonGrid'
 
 export type RallyState = 'before-serve' | 'after-serve'
-export type EndCondition = 'innet' | 'long' | 'winner'
+export type EndCondition = 'innet' | 'long' | 'winner' | 'let'
 
 export interface Phase1ControlsBlockProps {
   rallyState: RallyState

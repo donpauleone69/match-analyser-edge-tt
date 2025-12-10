@@ -2,16 +2,17 @@
  * Infer player position based on shot origin and wing
  * 
  * Position inference:
- * - FH from left = wide FH position
- * - BH from right = wide BH position
- * - FH from right or BH from left = pivot/adjustment
+ * - FH from left = left position (wide FH)
+ * - BH from right = right position (wide BH)
+ * - Middle positions = middle
+ * - FH from right or BH from left = middle (pivot/adjustment)
  */
 
-import type { DBShot } from '@/data'
+import type { DBShot, PlayerPosition } from '@/data'
 
 export function inferPlayerPosition(
   shot: DBShot
-): 'wide_fh' | 'normal' | 'wide_bh' | 'very_wide_fh' | 'very_wide_bh' | null {
+): PlayerPosition | null {
   if (!shot.shot_origin || !shot.shot_wing) return null
   
   const origin = shot.shot_origin
@@ -19,18 +20,18 @@ export function inferPlayerPosition(
   
   // Forehand positions (assuming right-handed player)
   if (wing === 'FH') {
-    if (origin === 'left') return 'wide_fh'
-    if (origin === 'mid') return 'normal'
-    if (origin === 'right') return 'normal' // FH from BH side
+    if (origin === 'left') return 'left' // Wide FH position
+    if (origin === 'mid') return 'middle'
+    if (origin === 'right') return 'middle' // FH from BH side (pivot)
   }
   
   // Backhand positions
   if (wing === 'BH') {
-    if (origin === 'right') return 'wide_bh'
-    if (origin === 'mid') return 'normal'
-    if (origin === 'left') return 'normal' // BH from FH side
+    if (origin === 'right') return 'right' // Wide BH position
+    if (origin === 'mid') return 'middle'
+    if (origin === 'left') return 'middle' // BH from FH side (pivot)
   }
   
-  return 'normal'
+  return 'middle'
 }
 

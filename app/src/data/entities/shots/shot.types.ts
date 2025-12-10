@@ -3,7 +3,8 @@
  */
 
 export type ShotIntent = 'defensive' | 'neutral' | 'aggressive'
-export type ShotResult = 'good' | 'average' | 'in_net' | 'missed_long' | 'missed_wide'
+export type ShotResult = 'in_net' | 'missed_long' | 'missed_wide' | 'in_play'
+export type ShotQuality = 'high' | 'average'
 export type TablePosition = 'left' | 'mid' | 'right'
 export type RallyEndRole = 'winner' | 'forced_error' | 'unforced_error' | 'none'
 export type PressureLevel = 'low' | 'medium' | 'high'
@@ -43,38 +44,22 @@ export interface DBShot {
   intent: ShotIntent | null
   intent_quality: IntentQuality | null
   pressure_level: PressureLevel | null
+  shot_quality: ShotQuality | null
+  
+  // Derived (computed from context)
+  rally_end_role: RallyEndRole
   
   // ============================================================================
   // OBJECTIVE DATA (observable facts / deterministic derivation)
   // ============================================================================
   
-  // Serve-only fields (NULL for rally shots)
-  serve_spin_family: ServeSpinFamily | null
-  serve_type: ServeType | null // Type of serve technique
-  
-  // Serve/Receive fields (shot #1 and #2 only, NULL for other rally shots)
-  shot_length: ShotLength | null
-  
-  // Rally shot fields (NULL for serves)
-  shot_wing: 'FH' | 'BH' | null
-  
-  // All shots
-  shot_result: ShotResult | null
-  
-  // Derived placement (extracted from user input)
+  serve_spin_family: ServeSpinFamily | null // NULL for non-serves
+  serve_type: ServeType | null // NULL for non-serves
+  shot_length: ShotLength | null // NULL for rally shots beyond receive
+  shot_wing: 'FH' | 'BH' | null // NULL for serves
+  shot_result: ShotResult // NOT NULL - defaults to 'in_play'
   shot_origin: TablePosition | null // Where player hits from
   shot_target: TablePosition | null // Intended target (even for errors)
-  
-  // Derived labels (computed from context)
-  shot_label: ShotLabel // serve, receive, third_ball, rally_shot
-  is_rally_end: boolean
-  rally_end_role: RallyEndRole
-  
-  // ============================================================================
-  // INFERRED DATA (AI/ML/heuristics - may be auto-calculated or manually entered)
-  // Note: Use shot_inferences table to track which fields were inferred vs manual
-  // ============================================================================
-  
   shot_type: string | null // 'serve', 'fh_loop_vs_under', 'bh_flick', etc.
   shot_contact_timing: ShotContactTiming | null
   player_position: PlayerPosition | null
@@ -82,6 +67,10 @@ export interface DBShot {
   shot_spin: string | null // 'heavy_topspin', 'topspin', 'no_spin', 'backspin', 'heavy_backspin'
   shot_speed: ShotSpeed | null
   shot_arc: ShotArc | null
+  
+  // Derived (computed from context)
+  shot_label: ShotLabel // serve, receive, third_ball, rally_shot
+  is_rally_end: boolean
   is_third_ball_attack: boolean
   is_receive_attack: boolean
   

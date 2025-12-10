@@ -32,6 +32,7 @@ export async function create(data: NewRally): Promise<DBRally> {
   const rally: DBRally = {
     id: generateRallyId(data.set_id, data.rally_index),
     ...data,
+    is_stub_rally: data.is_stub_rally ?? false,  // Default to false if not provided
   }
   
   await db.rallies.add(rally)
@@ -46,6 +47,7 @@ export async function bulkCreate(rallies: NewRally[]): Promise<DBRally[]> {
   const dbRallies = rallies.map(r => ({
     id: generateRallyId(r.set_id, r.rally_index),
     ...r,
+    is_stub_rally: r.is_stub_rally ?? false,  // Default to false if not provided
   }))
   
   await db.rallies.bulkAdd(dbRallies)

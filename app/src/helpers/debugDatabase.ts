@@ -123,8 +123,8 @@ export async function exportSampleData() {
  * Quick check in console
  */
 if (typeof window !== 'undefined') {
-  (window as any).inspectDB = inspectDatabase
-  (window as any).exportDB = exportSampleData
+  (window as any).inspectDB = inspectDatabase;
+  (window as any).exportDB = () => exportSampleData();
   console.log('💡 Debug tools loaded! Run inspectDB() or exportDB() in console')
 }
 

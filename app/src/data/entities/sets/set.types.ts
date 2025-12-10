@@ -45,6 +45,16 @@ export interface DBSet {
   phase1_total_rallies: number | null    // Expected total (for progress %)
   phase2_last_shot_index: number | null  // Last shot detailed in Phase 2  
   phase2_total_shots: number | null      // Total shots (for progress %)
+  
+  // Setup tracking (for Phase 1 set setup flow)
+  setup_starting_score_p1: number | null
+  setup_starting_score_p2: number | null
+  setup_next_server_id: string | null
+  setup_completed_at: string | null
+  
+  // Phase 3 (Inference) tracking
+  inference_complete?: boolean | null
+  inference_completed_at?: string | null  // ISO timestamp
 }
 
 export type NewSet = Omit<DBSet, 'id' | 'is_tagged' | 'tagging_started_at' | 'tagging_completed_at' | 'tagging_phase' | 'phase1_last_rally' | 'phase1_total_rallies' | 'phase2_last_shot_index' | 'phase2_total_shots'>

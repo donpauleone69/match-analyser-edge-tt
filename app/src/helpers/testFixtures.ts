@@ -196,7 +196,7 @@ export const validVideoSingleComplete: VideoSegment[] = [{
   endSetNumber: 5,
   endSetScore: '3-2',
   endPointsScore: '11-9',
-  coverageType: 'full'
+  coverageType: 'full_match'
 }]
 
 export const validVideoTwoSegments: VideoSegment[] = [
@@ -209,7 +209,7 @@ export const validVideoTwoSegments: VideoSegment[] = [
     endSetNumber: 3,
     endSetScore: '1-2',
     endPointsScore: '11-8',
-    coverageType: 'partial_end'
+    coverageType: 'multi_set'
   },
   {
     videoId: 'video2',
@@ -220,7 +220,7 @@ export const validVideoTwoSegments: VideoSegment[] = [
     endSetNumber: 5,
     endSetScore: '3-2',
     endPointsScore: '11-9',
-    coverageType: 'full'
+    coverageType: 'full_match'
   }
 ]
 
@@ -234,7 +234,7 @@ export const validVideoContinuousSameSet: VideoSegment[] = [
     endSetNumber: 1,
     endSetScore: '0-0',
     endPointsScore: '5-5',
-    coverageType: 'partial_end'
+    coverageType: 'multi_set'
   },
   {
     videoId: 'video2',
@@ -245,7 +245,7 @@ export const validVideoContinuousSameSet: VideoSegment[] = [
     endSetNumber: 1,
     endSetScore: '1-0',
     endPointsScore: '11-9',
-    coverageType: 'partial_start'
+    coverageType: 'multi_set'
   }
 ]
 
@@ -263,7 +263,7 @@ export const invalidVideoSequenceGap: VideoSegment[] = [
     endSetNumber: 2,
     endSetScore: '1-1',
     endPointsScore: '11-9',
-    coverageType: 'partial_end'
+    coverageType: 'multi_set'
   },
   {
     videoId: 'video2',
@@ -274,7 +274,7 @@ export const invalidVideoSequenceGap: VideoSegment[] = [
     endSetNumber: 5,
     endSetScore: '3-2',
     endPointsScore: '11-9',
-    coverageType: 'full'
+    coverageType: 'full_match'
   }
 ]
 
@@ -288,7 +288,7 @@ export const invalidVideoOverlap: VideoSegment[] = [
     endSetNumber: 3,  // Ends at set 3
     endSetScore: '2-1',
     endPointsScore: '11-8',
-    coverageType: 'partial_end'
+    coverageType: 'multi_set'
   },
   {
     videoId: 'video2',
@@ -299,7 +299,7 @@ export const invalidVideoOverlap: VideoSegment[] = [
     endSetNumber: 5,
     endSetScore: '3-2',
     endPointsScore: '11-9',
-    coverageType: 'full'
+    coverageType: 'full_match'
   }
 ]
 
@@ -313,7 +313,7 @@ export const invalidVideoDiscontinuity: VideoSegment[] = [
     endSetNumber: 1,
     endSetScore: '0-0',
     endPointsScore: '5-5',
-    coverageType: 'partial_end'
+    coverageType: 'multi_set'
   },
   {
     videoId: 'video2',
@@ -324,7 +324,7 @@ export const invalidVideoDiscontinuity: VideoSegment[] = [
     endSetNumber: 1,
     endSetScore: '1-0',
     endPointsScore: '11-9',
-    coverageType: 'partial_start'
+    coverageType: 'multi_set'
   }
 ]
 

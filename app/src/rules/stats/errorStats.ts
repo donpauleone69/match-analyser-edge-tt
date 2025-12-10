@@ -67,8 +67,7 @@ export function calculateErrorStats(
   const errorShots = playerShots.filter(s =>
     s.rally_end_role === 'unforced_error' ||
     s.rally_end_role === 'forced_error' ||
-    s.shot_result === 'in_net' ||
-    s.shot_result === 'missed_long'
+    s.shot_result !== 'in_play'
   )
   
   const netErrors = errorShots.filter(s => s.shot_result === 'in_net').length
@@ -118,8 +117,7 @@ export function calculateErrorStats(
     if (
       shot.rally_end_role === 'unforced_error' ||
       shot.rally_end_role === 'forced_error' ||
-      shot.shot_result === 'in_net' ||
-      shot.shot_result === 'missed_long'
+      shot.shot_result !== 'in_play'
     ) {
       stats.errors++
     }

@@ -201,7 +201,7 @@ export function calculateReceiveStats(
   const aggressiveReceives = receives.filter(r => r.intent === 'aggressive')
   const aggressiveSuccesses = aggressiveReceives.filter(r => {
     const rally = rallies.find(ra => ra.id === r.rally_id)
-    return rally && (rally.winner_id === playerId || r.shot_result === 'good')
+    return rally && (rally.winner_id === playerId || r.shot_quality === 'high')
   })
   const aggressiveReceiveSuccessRate = aggressiveReceives.length > 0
     ? (aggressiveSuccesses.length / aggressiveReceives.length) * 100

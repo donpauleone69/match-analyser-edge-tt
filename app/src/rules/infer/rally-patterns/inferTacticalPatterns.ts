@@ -43,8 +43,8 @@ export function infer3BallPattern(
   
   const pattern = `${serveSpinPart}_${serveLengthPart} → ${receiveWingPart}_${receiveIntentPart} → ${thirdBallIntentPart}_to_${thirdBallDestPart}`
   
-  // Pattern successful if 3rd ball was good quality or won point
-  const successful = thirdBall.shot_result === 'good' || thirdBall.rally_end_role === 'winner'
+  // Pattern successful if 3rd ball was high quality or won point
+  const successful = thirdBall.shot_quality === 'high' || thirdBall.rally_end_role === 'winner'
   
   return { pattern, successful }
 }
@@ -68,13 +68,13 @@ export function inferOpeningQuality(
   
   // If no 4th ball data, judge by 3rd ball quality alone
   if (!fourthBall) {
-    if (thirdBall.shot_result === 'good') return 'good'
-    if (thirdBall.shot_result === 'average') return 'neutral'
+    if (thirdBall.shot_quality === 'high') return 'good'
+    if (thirdBall.shot_quality === 'average') return 'neutral'
     return 'poor'
   }
   
   // Judge by opponent's response
-  if (fourthBall.shot_result === 'in_net' || fourthBall.shot_result === 'missed_long') {
+  if (fourthBall.shot_result !== 'in_play') {
     // Opponent error = excellent opening
     return 'excellent'
   }
@@ -84,7 +84,7 @@ export function inferOpeningQuality(
     return 'good'
   }
   
-  if (fourthBall.intent === 'aggressive' && fourthBall.shot_result === 'good') {
+  if (fourthBall.intent === 'aggressive' && fourthBall.shot_quality === 'high') {
     // Opponent counter-attacked successfully = poor opening
     return 'poor'
   }

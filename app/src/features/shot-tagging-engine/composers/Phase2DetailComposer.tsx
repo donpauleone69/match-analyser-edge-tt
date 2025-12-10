@@ -11,7 +11,9 @@
 import { useState, useRef, useEffect } from 'react'
 import { cn } from '@/helpers/utils'
 import type { Phase1Shot, Phase1Rally } from './Phase1TimestampComposer'
-import { ButtonGrid, ShotQualityToggleBlock, type ShotQuality } from '../blocks'
+import { ButtonGrid, ShotQualityToggleBlock, RallyCard, ShotListItem, type ShotQuality } from '../blocks'
+import { PhaseLayoutTemplate } from '../layouts'
+import { UserInputSection, VideoPlayerSection, StatusBarSection, RallyListSection } from '../sections'
 import { calculateShotPlayer, type PlayerId } from '@/rules'
 import { 
   extractTargetFromDirection,
@@ -19,15 +21,14 @@ import {
   mapShotLengthUIToDB,
   mapServeSpinUIToDB,
   mapStrokeUIToDB,
-  mapShotQualityUIToDB,
   mapShotLengthDBToUI,
   mapServeSpinDBToUI,
   mapWingDBToUI,
   mapShotResultDBToUI,
   mapRallyEndRoleDBToUI,
 } from '@/rules/derive/shot/mappers_UI_to_DB'
-import { deriveShot_rally_end_role } from '@/rules/derive/shot/deriveShot_rally_end_role'
 import { shotDb, setDb } from '@/data'
+import { type VideoPlayerHandle, useVideoPlaybackStore } from '@/ui-mine/VideoPlayer'
 import {
   Button,
   // Serve direction buttons
@@ -60,10 +61,9 @@ import {
   NeutralButton,
   AggressiveButton,
 } from '@/ui-mine'
-import { VideoPlayer, type VideoPlayerHandle, useVideoPlaybackStore } from '@/ui-mine/VideoPlayer'
 
 // Question step types
-type ServeStep = 'direction' | 'length' | 'spin' | 'serveType'
+type ServeStep = 'direction' | 'length' | 'spin'
 type ReceiveStep = 'stroke' | 'direction' | 'length' | 'intent'
 type ShotStep = 'stroke' | 'direction' | 'intent'
 type ErrorStep = 'stroke' | 'direction' | 'intent' | 'errorType'
@@ -142,87 +142,6 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
   })
   
   const [currentShotIndex, setCurrentShotIndex] = useState(resumeFromShotIndex)
-  const [, setIsSaving] = useState(false)
-  const [, setLastSaveTime] = useState<Date | null>(null)
-  
-  // Manual save all Phase 2 progress
-  const _handleManualSave = async () => {
-    if (!setId || !player1Id || !player2Id) {
-      alert('Cannot save - missing database context')
-      return
-    }
-    
-    setIsSaving(true)
-    console.log(`[Manual Save] Saving Phase 2 progress for ${currentShotIndex} shots...`)
-    
-    try {
-      const dbShots = await shotDb.getBySetId(setId)
-      let savedCount = 0
-      
-      // Save all shots up to current index
-      for (let i = 0; i < currentShotIndex; i++) {
-        const shot = allShots[i]
-        const matchingShot = dbShots.find(s => s.shot_index === shot.shotIndex)
-        
-        if (matchingShot) {
-          const updates: any = {}
-          
-          // Use centralized mappers for UI → DB transformation
-          if (shot.direction) {
-            const { shot_origin, shot_target } = mapDirectionToOriginTarget(shot.direction)
-            updates.shot_origin = shot_origin
-            updates.shot_target = shot_target
-          }
-          if (shot.length) {
-            updates.shot_length = mapShotLengthUIToDB(shot.length)
-          }
-          if (shot.spin) {
-            updates.serve_spin_family = mapServeSpinUIToDB(shot.spin)
-          }
-          if (shot.stroke) {
-            updates.shot_wing = mapStrokeUIToDB(shot.stroke)
-          }
-          if (shot.intent) {
-            updates.intent = shot.intent
-          }
-          if (shot.shotQuality) {
-            updates.shot_result = mapShotQualityUIToDB(shot.shotQuality)
-          }
-          if (shot.errorType) {
-            updates.rally_end_role = deriveShot_rally_end_role(
-              {
-                shot_index: shot.shotIndex,
-                shot_result: updates.shot_result || matchingShot.shot_result,
-                is_rally_end: true
-              },
-              shot.errorType
-            )
-          }
-          
-          if (Object.keys(updates).length > 0) {
-            await shotDb.update(matchingShot.id, updates)
-            savedCount++
-          }
-        }
-      }
-      
-      // Update set progress
-      await setDb.update(setId, {
-        tagging_phase: 'phase2_in_progress',
-        phase2_last_shot_index: currentShotIndex,
-        phase2_total_shots: allShots.length,
-      })
-      
-      setLastSaveTime(new Date())
-      console.log(`[Manual Save] ✓ Saved ${savedCount} shot details successfully`)
-      alert(`Successfully saved progress for ${savedCount} shots!`)
-    } catch (error) {
-      console.error('[Manual Save] ✗ Failed:', error)
-      alert('Failed to save progress. Check console for details.')
-    } finally {
-      setIsSaving(false)
-    }
-  }
   
   // Load existing Phase 2 data from DB on mount (if resuming)
   useEffect(() => {
@@ -263,7 +182,7 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
               spin: mapServeSpinDBToUI(dbShot.serve_spin_family) || shot.spin,
               stroke: mapWingDBToUI(dbShot.shot_wing) || shot.stroke,
               intent: dbShot.intent || shot.intent,
-              shotQuality: mapShotResultDBToUI(dbShot.shot_result) || shot.shotQuality,
+              shotQuality: mapShotResultDBToUI(dbShot.shot_quality) || shot.shotQuality,
               errorType: mapRallyEndRoleDBToUI(dbShot.rally_end_role) || shot.errorType,
             }
           })
@@ -315,7 +234,7 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
   
   // Check if current step is the last question for this shot
   const isLastQuestion = (step: QuestionStep, shot: DetailedShot): boolean => {
-    if (shot.isServe) return step === 'serveType'
+    if (shot.isServe) return step === 'spin'
     if (shot.isError) return step === 'errorType'
     if (shot.isReceive) return step === 'intent'
     return step === 'intent' // Regular shots
@@ -325,12 +244,11 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
   const getNextStep = (current: QuestionStep): QuestionStep => {
     if (!currentShot) return 'complete'
     
-    // Serve flow: direction → length → spin → serveType → next shot
+    // Serve flow: direction → length → spin → next shot
     if (currentShot.isServe) {
       if (current === 'direction') return 'length'
       if (current === 'length') return 'spin'
-      if (current === 'spin') return 'serveType'
-      if (current === 'serveType') return advanceToNextShot()
+      if (current === 'spin') return advanceToNextShot()
     }
     
     // Error shot flow: stroke → direction → intent → errorType → next shot
@@ -382,13 +300,15 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
     let updates: any = {} // Declare outside try block for error handler access
     
     try {
-      console.log(`[Phase2] Saving shot ${currentShotIndex + 1}/${allShots.length} (index ${shot.shotIndex})`)
+      console.log(`[Phase2] Saving shot ${currentShotIndex + 1}/${allShots.length} (rallyId: ${shot.rallyId}, shotIndex: ${shot.shotIndex})`)
       
-      // Find existing shot in DB by matching shot index - timestamp from Phase 1 may have slight differences
+      // Find existing shot in DB by matching BOTH rally_id AND shot_index
       const rallyShots = await shotDb.getBySetId(setId)
       const matchingShot = rallyShots.find(s => 
-        s.shot_index === shot.shotIndex
+        s.rally_id === shot.rallyId && s.shot_index === shot.shotIndex
       )
+      
+      console.log(`[Phase2] Found matching shot:`, matchingShot ? `ID ${matchingShot.id}` : 'NOT FOUND')
       
       if (!matchingShot) {
         console.error(`[Phase2] ✗ No matching shot found in DB for shot index ${shot.shotIndex}`)
@@ -432,19 +352,42 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
       if (shot.intent) {
         updates.intent = shot.intent
       }
-      // ALWAYS save shot quality (defaults to 'average' if not set)
-      updates.shot_result = mapShotQualityUIToDB(shot.shotQuality || 'average')
       
-      if (shot.errorType) {
-        // Derive rally_end_role using centralized logic
-        updates.rally_end_role = deriveShot_rally_end_role(
-          {
-            shot_index: currentShotIndex + 1,
-            shot_result: updates.shot_result,
-            is_rally_end: true
-          },
-          shot.errorType
-        )
+      // DEBUG: Log shot state before updates
+      console.log(`[Phase2] Shot state:`, {
+        shotIndex: shot.shotIndex,
+        isError: shot.isError,
+        isLastShot: shot.isLastShot,
+        errorType: shot.errorType,
+        shotQuality: shot.shotQuality,
+        rallyEndCondition: shot.rallyEndCondition,
+      })
+      console.log(`[Phase2] Current DB shot:`, {
+        shot_result: matchingShot.shot_result,
+        rally_end_role: matchingShot.rally_end_role,
+        is_rally_end: matchingShot.is_rally_end,
+      })
+      
+      // shot_result is READ-ONLY from Phase 1 - do NOT modify
+      // shot_quality is set based on whether shot is in play
+      if (!shot.isError && shot.shotQuality) {
+        // Only save quality if shot is in play AND user answered
+        updates.shot_quality = shot.shotQuality // 'high' or 'average'
+        console.log(`[Phase2] Setting shot_quality:`, shot.shotQuality)
+      } else if (shot.isError) {
+        // Errors don't have quality
+        updates.shot_quality = null
+        console.log(`[Phase2] Error shot - shot_quality = null`)
+      }
+      // Note: if shot is in play but quality not answered yet, leave as null
+      
+      console.log(`[Phase2] Checking rally_end_role update: isError=${shot.isError}, errorType=${shot.errorType}`)
+      if (shot.isError && shot.errorType) {
+        // Derive rally_end_role from errorType
+        updates.rally_end_role = shot.errorType === 'forced' ? 'forced_error' : 'unforced_error'
+        console.log(`[Phase2] Setting rally_end_role:`, updates.rally_end_role)
+      } else {
+        console.log(`[Phase2] NOT setting rally_end_role (condition not met)`)
       }
       
       console.log(`[Phase2] Updating shot ${matchingShot.id} with:`, updates)
@@ -493,7 +436,7 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
   }
   
   // Handle answer selection
-  const handleAnswer = <T,>(field: keyof DetailedShot, value: T) => {
+  const handleAnswer = async <T,>(field: keyof DetailedShot, value: T) => {
     console.log(`[Phase2] handleAnswer called:`, { field, value, currentShotIndex, currentStep })
     
     // Save answer to current shot
@@ -534,15 +477,35 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
         setCurrentShotQuality('average')
       } else {
         // All shots complete
-        if (setId) {
-          setDb.update(setId, {
-            tagging_phase: 'phase2_complete',
-            is_tagged: true,
-            tagging_completed_at: new Date().toISOString(),
-            phase2_last_shot_index: currentShotIndex + 1,
-            phase2_total_shots: allShots.length,
-          }).catch(console.error)
+        if (setId && player1Id && player2Id) {
+          try {
+            console.log('[Phase2] All shots tagged - finalizing...')
+            
+            // 1. Update set status
+            await setDb.update(setId, {
+              tagging_phase: 'phase2_complete',
+              is_tagged: true,
+              tagging_completed_at: new Date().toISOString(),
+              phase2_last_shot_index: currentShotIndex + 1,
+              phase2_total_shots: allShots.length,
+            })
+          console.log('[Phase2] ✓ Set marked as complete')
+          
+          // 2. Finalize match-level data (inference moved to Phase 3)
+            console.log('[Phase2] Finalizing match...')
+            const currentSet = await setDb.getById(setId)
+            if (currentSet) {
+              const { finalizeMatchAfterPhase2 } = await import('./finalizeMatch')
+              await finalizeMatchAfterPhase2(currentSet.match_id, setId, player1Id, player2Id)
+            }
+            console.log('[Phase2] ✓ Match finalized')
+            
+          } catch (error) {
+            console.error('[Phase2] ✗ Error during finalization:', error)
+            alert('Tagging complete, but some finalization steps failed. Check console.')
+          }
         }
+        
         if (onComplete) onComplete(updatedShots)
       }
     }
@@ -573,7 +536,6 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
   // Progress info
   const progress = `${currentShotIndex + 1} of ${allShots.length}`
   // const progressPercent = Math.round((currentShotIndex / allShots.length) * 100)
-  const shotLabel = currentShot.isServe ? 'Serve' : `Shot ${currentShot.shotIndex}`
   
   // Build current question label for status bar
   const getCurrentQuestionLabel = (): string => {
@@ -619,44 +581,25 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
   }
   
   return (
-    <div className={cn('fixed inset-0 flex flex-col bg-bg-surface overflow-hidden', className)}>
-      {/* Shot Log - Top (scrollable) */}
-      <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-2 bg-bg-surface">
-        <div className="text-sm text-neutral-500 mb-3">Shot Log - Phase 2 Tagging</div>
-        
-        {phase1Rallies.map((rally, rallyIdx) => {
-          const rallyShots = allShots.filter(shot => shot.rallyId === rally.id)
-          const hasCurrentShot = rallyShots.some(shot => allShots.indexOf(shot) === currentShotIndex)
-          const endConditionLabel = 
-            rally.endCondition === 'winner' ? 'Winner' :
-            rally.endCondition === 'innet' ? 'In-Net' : 'Long'
-          const endConditionColor = 
-            rally.endCondition === 'winner' ? 'text-success' : 'text-danger'
-          
-          return (
-            <div 
-              key={rally.id} 
-              className={cn(
-                'p-3 rounded-lg',
-                hasCurrentShot ? 'bg-brand-primary/10 border border-brand-primary/30' : 'bg-neutral-800'
-              )}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <div className="text-xs">
-                  <span className={cn('font-medium', hasCurrentShot ? 'text-brand-primary' : 'text-neutral-400')}>
-                    Rally {rallyIdx + 1} {hasCurrentShot && '(Tagging)'}
-                  </span>
-                  <span className="ml-2 text-neutral-500">Server: {rally.serverName}</span>
-                </div>
-                <div className="text-xs">
-                  <span className="font-medium text-success mr-2">{rally.winnerName} won</span>
-                  <span className={cn('font-medium', endConditionColor)}>
-                    {endConditionLabel}
-                    {rally.isError && ' (Error)'}
-                  </span>
-                </div>
-              </div>
-              <div className="space-y-1">
+    <PhaseLayoutTemplate
+      className={className}
+      
+      shotLog={
+        <RallyListSection title="Shot Log - Phase 2 Tagging">
+          {phase1Rallies.map((rally, rallyIdx) => {
+            const rallyShots = allShots.filter(shot => shot.rallyId === rally.id)
+            const hasCurrentShot = rallyShots.some(shot => allShots.indexOf(shot) === currentShotIndex)
+            
+            return (
+              <RallyCard
+                key={rally.id}
+                rallyNumber={rallyIdx + 1}
+                serverName={rally.serverName}
+                winnerName={rally.winnerName}
+                endCondition={rally.endCondition}
+                isError={rally.isError}
+                isTagging={hasCurrentShot}
+              >
                 {rallyShots.map((shot, idx) => {
                   const globalIdx = allShots.indexOf(shot)
                   const isCurrent = globalIdx === currentShotIndex
@@ -677,59 +620,88 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
                   if (shot.shotQuality) details.push(`Q:${shot.shotQuality}`)
                   
                   return (
-                    <div key={shot.id} className="space-y-0.5">
-                      <div className="flex items-center gap-2 text-sm">
-                        <span className="font-mono text-xs text-neutral-600">#{idx + 1}</span>
-                        <span className={cn('text-xs', isCompleted ? 'text-neutral-400' : 'text-neutral-600')}>
-                          {shot.isServe ? 'Serve' : shot.shotIndex === 2 ? 'Receive' : 'Shot'}
-                        </span>
-                        <span className="text-xs text-neutral-300 font-medium">{playerName}</span>
-                        {shot.isError && <span className="text-xs text-danger">(error)</span>}
-                        <span className="ml-auto font-mono text-xs text-neutral-600">{shot.timestamp.toFixed(2)}s</span>
-                        {isCurrent && <span className="text-xs text-brand-primary font-medium ml-2">←</span>}
-                      </div>
-                      {details.length > 0 && (
-                        <div className="pl-8 text-xs text-neutral-500">
-                          {details.join(' • ')}
-                        </div>
-                      )}
-                    </div>
+                    <ShotListItem
+                      key={shot.id}
+                      shotNumber={idx + 1}
+                      shotType={shot.isServe ? 'serve' : shot.shotIndex === 2 ? 'receive' : 'shot'}
+                      playerName={playerName}
+                      timestamp={shot.timestamp}
+                      isError={shot.isError}
+                      isCurrent={isCurrent}
+                      isCompleted={isCompleted}
+                      details={details}
+                    />
                   )
                 })}
-              </div>
-            </div>
-          )
-        })}
-      </div>
+              </RallyCard>
+            )
+          })}
+        </RallyListSection>
+      }
       
-      {/* Video Player - Fixed height, full width */}
-      <div className="shrink-0 w-full aspect-video bg-black">
-        <VideoPlayer
+      videoPlayer={
+        <VideoPlayerSection
           ref={videoPlayerRef}
-          videoSrc={videoUrl || undefined}
+          videoUrl={videoUrl}
           onVideoSelect={setVideoUrl}
-          compact={true}
-          showTimeOverlay={true}
           constrainedPlayback={constrainedPlayback}
         />
-      </div>
+      }
       
-      {/* Progress Strip - Below Video */}
-      <div className="shrink-0 border-t border-neutral-700 bg-neutral-900 px-4 py-2">
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-neutral-500">{shotLabel}: {currentQuestionLabel}?</span>
-          <span className="text-neutral-400">{progress}</span>
-        </div>
-      </div>
+      statusBar={
+        <StatusBarSection
+          items={[
+            // Column 1: Rally/Shot counters (left/right justified)
+            <div key="rally-shot" className="flex flex-col text-xs leading-tight min-w-[80px]">
+              <div className="flex justify-between">
+                <span className="text-neutral-400">Rally</span>
+                <span className="text-neutral-200 font-semibold">
+                  {phase1Rallies.findIndex(r => r.shots.some(s => allShots.indexOf(s as any) === currentShotIndex)) + 1 || 1}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-neutral-400">Shot</span>
+                <span className="text-neutral-200 font-semibold">{currentShotIndex + 1}</span>
+              </div>
+            </div>,
+            
+            // Column 2: Current question (centered, spans more width)
+            <div key="question" className="flex items-center justify-center px-6 min-w-[200px]">
+              <span className="text-xs text-neutral-300 font-medium">{currentQuestionLabel}?</span>
+            </div>,
+            
+            // Column 3: Progress (centered)
+            <div key="progress" className="flex flex-col items-center text-xs leading-tight">
+              <span className="text-neutral-400">Progress</span>
+              <span className="text-neutral-200 font-semibold">{progress}</span>
+            </div>,
+            
+            // Column 4: Player indicator (centered, colored badge)
+            <div 
+              key="player" 
+              className={cn(
+                'h-full px-4 rounded flex flex-col items-center justify-center text-xs font-bold leading-tight',
+                currentShotPlayer === 'player1' && 'bg-blue-500/20 text-blue-400',
+                currentShotPlayer === 'player2' && 'bg-orange-500/20 text-orange-400',
+                !currentShotPlayer && 'bg-neutral-700 text-neutral-300'
+              )}
+            >
+              <div className="truncate max-w-[80px]">
+                {currentShotPlayer === 'player1' && phase1Rallies[0]?.player1Name}
+                {currentShotPlayer === 'player2' && phase1Rallies[0]?.player2Name}
+                {!currentShotPlayer && '—'}
+              </div>
+            </div>,
+            
+            // Column 5: Placeholder for future action button
+            <div key="spacer" className="w-[80px]" />,
+          ]}
+        />
+      }
       
-      {/* Question Controls - Bottom */}
-      <div className={cn(
-        'shrink-0 border-t border-neutral-700 transition-colors duration-300',
-        currentShotPlayer === 'player1' && 'bg-[rgb(59_130_246_/_0.12)]',
-        currentShotPlayer === 'player2' && 'bg-[rgb(249_115_22_/_0.12)]',
-        !currentShotPlayer && 'bg-bg-card'
-      )}>
-        {/* Serve questions */}
+      userInput={
+        <UserInputSection playerTint={currentShotPlayer as 'player1' | 'player2' | null}>
+          {/* Serve questions */}
         {currentShot.isServe && currentStep === 'direction' && (
           <ButtonGrid columns={6}>
             <LeftLeftButton onClick={() => handleAnswer('direction', 'left_left')} className="!w-full !aspect-auto" />
@@ -753,24 +725,6 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
             <NoSpinButton onClick={() => handleAnswer('spin', 'nospin')} />
             <TopspinButton onClick={() => handleAnswer('spin', 'topspin')} />
           </ButtonGrid>
-        )}
-        
-        {currentShot.isServe && currentStep === 'serveType' && (
-          <div className="space-y-2">
-            <ButtonGrid columns={2}>
-              <Button onClick={() => handleAnswer('serveType', 'serve')}>Serve (Unknown)</Button>
-              <Button onClick={() => handleAnswer('serveType', 'pendulum')}>Pendulum</Button>
-            </ButtonGrid>
-            <ButtonGrid columns={3}>
-              <Button onClick={() => handleAnswer('serveType', 'backhand')}>Backhand</Button>
-              <Button onClick={() => handleAnswer('serveType', 'reverse_tomahawk')}>Reverse Tomahawk</Button>
-              <Button onClick={() => handleAnswer('serveType', 'tomahawk')}>Tomahawk</Button>
-            </ButtonGrid>
-            <ButtonGrid columns={2}>
-              <Button onClick={() => handleAnswer('serveType', 'hook')}>Hook</Button>
-              <Button onClick={() => handleAnswer('serveType', 'lolipop')}>Lolipop</Button>
-            </ButtonGrid>
-          </div>
         )}
         
         {/* Receive (shot #2) questions - only if NOT an error */}
@@ -999,7 +953,8 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
             <UnforcedErrorButton onClick={() => handleAnswer('errorType', 'unforced')} />
           </ButtonGrid>
         )}
-      </div>
-    </div>
+        </UserInputSection>
+      }
+    />
   )
 }

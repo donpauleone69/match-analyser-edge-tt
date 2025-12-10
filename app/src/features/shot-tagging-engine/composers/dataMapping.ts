@@ -11,7 +11,6 @@ import type {
   NewShot,
   TablePosition,
   ShotIntent,
-  ShotResult,
 } from '@/data'
 import type { Phase1Rally, Phase1Shot } from '@/features/shot-tagging-engine/composers/Phase1TimestampComposer'
 import type { DetailedShot } from '@/features/shot-tagging-engine/composers/Phase2DetailComposer'
@@ -23,7 +22,6 @@ import {
   mapShotLengthDBToUI,
   mapServeSpinDBToUI,
   mapWingDBToUI,
-  mapShotResultDBToUI,
   mapRallyEndRoleDBToUI,
 } from '@/rules/derive/shot/mappers_UI_to_DB'
 import type { ShotLabel } from '@/data'
@@ -206,7 +204,7 @@ export function mapPhase1RallyToDBRally(
   player2Id: string
 ): NewRally {
   // Determine winner based on end condition
-  const isScoring = rally.endCondition === 'winner'
+  const isScoring = rally.endCondition !== 'let'
   
   // Map winnerId from Phase1Rally to actual player ID
   const winnerId = rally.winnerId === 'player1' ? player1Id : player2Id
@@ -215,6 +213,8 @@ export function mapPhase1RallyToDBRally(
     set_id: setId,
     rally_index: rallyIndex,
     video_id: null, // Will be set when video is added
+    timestamp_start: rally.shots[0]?.timestamp || null, // First shot's timestamp
+    timestamp_end: rally.endTimestamp, // Last shot's timestamp (rally end)
     server_id: rally.serverId === 'player1' ? player1Id : player2Id,
     receiver_id: rally.serverId === 'player1' ? player2Id : player1Id,
     is_scoring: isScoring,
@@ -234,6 +234,7 @@ export function mapPhase1RallyToDBRally(
     server_corrected: false,
     score_corrected: false,
     correction_notes: null,
+    is_stub_rally: false, // Tagged rallies are not stubs
   }
 }
 
@@ -243,8 +244,64 @@ export function mapPhase1RallyToDBRally(
 export function mapPhase1ShotToDBShot(
   shot: Phase1Shot,
   rallyId: string,
-  playerId: string
+  playerId: string,
+  isLastShot: boolean,
+  rallyEndCondition: EndCondition
 ): NewShot {
+  // DEBUG LOGGING
+  console.log('[mapPhase1ShotToDBShot] Shot:', {
+    shotIndex: shot.shotIndex,
+    isLastShot,
+    rallyEndCondition,
+  })
+  
+  // Determine shot_result based on rally end condition (only for last shot)
+  let shotResult: 'in_net' | 'missed_long' | 'in_play' = 'in_play'
+  let rallyEndRole: 'winner' | 'forced_error' | 'unforced_error' | 'none' = 'none'
+  
+  if (isLastShot) {
+    console.log('[mapPhase1ShotToDBShot] IS LAST SHOT - processing end condition:', rallyEndCondition)
+    
+    if (rallyEndCondition === 'innet') {
+      shotResult = 'in_net'
+      // Rally end role will be determined in Phase 2 based on shot index and errorType
+      // Shot 1 = service fault (unforced), Shot 2 = receive error (unforced), Shot 3+ = forced/unforced
+      if (shot.shotIndex === 1) {
+        rallyEndRole = 'unforced_error' // Service fault
+      } else if (shot.shotIndex === 2) {
+        rallyEndRole = 'unforced_error' // Receive error
+      }
+      console.log('[mapPhase1ShotToDBShot] In-Net:', { shotResult, rallyEndRole })
+      // For shot 3+, leave as 'none' - will be updated in Phase 2 when errorType is captured
+    } else if (rallyEndCondition === 'long') {
+      shotResult = 'missed_long'
+      // Same logic as innet
+      if (shot.shotIndex === 1) {
+        rallyEndRole = 'unforced_error' // Service fault
+      } else if (shot.shotIndex === 2) {
+        rallyEndRole = 'unforced_error' // Receive error
+      }
+      console.log('[mapPhase1ShotToDBShot] Long:', { shotResult, rallyEndRole })
+      // For shot 3+, leave as 'none' - will be updated in Phase 2
+    } else if (rallyEndCondition === 'winner') {
+      shotResult = 'in_play'
+      rallyEndRole = 'winner' // Winner shot - opponent couldn't return
+      console.log('[mapPhase1ShotToDBShot] Winner:', { shotResult, rallyEndRole })
+    } else if (rallyEndCondition === 'let') {
+      shotResult = 'in_play'
+      rallyEndRole = 'none' // Let rally - no winner
+      console.log('[mapPhase1ShotToDBShot] Let:', { shotResult, rallyEndRole })
+    }
+  } else {
+    console.log('[mapPhase1ShotToDBShot] NOT last shot - using defaults')
+  }
+  
+  console.log('[mapPhase1ShotToDBShot] Final values:', {
+    shot_result: shotResult,
+    rally_end_role: rallyEndRole,
+    is_rally_end: isLastShot,
+  })
+  
   return {
     rally_id: rallyId,
     video_id: null, // Will be set when video is added
@@ -258,16 +315,17 @@ export function mapPhase1ShotToDBShot(
     shot_length: null,
     shot_wing: null,
     intent: null,
-    shot_result: null,
+    shot_result: shotResult, // Set from Phase 1 rally end condition
     // DERIVED DATA - calculated later
     shot_origin: null,
     shot_target: null,
     shot_label: deriveShotLabel(shot.shotIndex),
-    is_rally_end: false, // Will be set for last shot
-    rally_end_role: 'none',
+    is_rally_end: isLastShot, // Set TRUE for last shot
+    rally_end_role: rallyEndRole,
     // SUBJECTIVE DATA - entered in Phase 2
     intent_quality: null,
     pressure_level: null,
+    shot_quality: null, // Will be set in Phase 2 if shot is in_play
     // INFERRED DATA - computed after Phase 2
     shot_type: shot.isServe ? 'serve' : null, // Serves identified immediately
     shot_contact_timing: null,
@@ -294,7 +352,6 @@ export interface DetailedShotData {
   intent?: 'defensive' | 'neutral' | 'aggressive'
   errorType?: 'forced' | 'unforced'
   shotQuality?: 'average' | 'high'
-  serveType?: 'serve' | 'pendulum' | 'backhand' | 'reverse_tomahawk' | 'tomahawk' | 'hook' | 'lolipop'
 }
 
 /**
@@ -325,20 +382,31 @@ export function mapPhase2DetailToDBShot(
   // Safely parse direction (may be undefined)
   const { origin, target } = data.direction ? parseDirection(data.direction) : { origin: null, target: null }
   
-  // Map shot quality to shot result
-  let shotResult: ShotResult | null = null
-  if (data.shotQuality === 'average') shotResult = 'average'
-  if (data.shotQuality === 'high') shotResult = 'good'
+  // shot_result is READ-ONLY from Phase 1 - do NOT modify it
+  // shot_quality is set based on whether shot is in play
+  let shotQuality: 'high' | 'average' | null = null
+  if (!isError && data.shotQuality) {
+    // Only set quality if shot is in play (not an error)
+    shotQuality = data.shotQuality // 'high' or 'average'
+  }
+  // If error, shot_quality stays null
+  
+  // rally_end_role is set based on errorType for error shots
+  let rallyEndRole: 'forced_error' | 'unforced_error' | undefined = undefined
   if (isError && data.errorType) {
-    // Error shots now store target (where player was aiming), result shows what happened
-    shotResult = data.intent === 'defensive' ? 'in_net' : 'missed_long'
+    rallyEndRole = data.errorType === 'forced' ? 'forced_error' : 'unforced_error'
   }
   
   const updates: Partial<DBShot> = {
     shot_origin: origin,
     shot_target: target, // Now stored even for errors!
-    shot_result: shotResult,
+    shot_quality: shotQuality,
     is_tagged: true,
+  }
+  
+  // Only set rally_end_role if we have errorType (for shot 3+ errors)
+  if (rallyEndRole) {
+    updates.rally_end_role = rallyEndRole
   }
   
   // Serve or receive: populate shot_length
@@ -346,16 +414,20 @@ export function mapPhase2DetailToDBShot(
     updates.shot_length = mapShotLengthUIToDB(data.length)
   }
   
-  // Serve-specific: spin and serve type
+  // Serve-specific: spin
   if (isServe) {
     updates.serve_spin_family = mapServeSpinUIToDB(data.spin)
-    updates.serve_type = data.serveType || 'serve' // Default to 'serve' if not specified
   }
   
   // Rally shots (non-serves): wing and intent
   if (!isServe) {
     updates.shot_wing = mapStrokeUIToDB(data.stroke)
     updates.intent = data.intent as ShotIntent | null
+  }
+  
+  // Error shots (shot 3+): set rally_end_role from errorType
+  if (isError && data.errorType) {
+    updates.rally_end_role = data.errorType === 'forced' ? 'forced_error' : 'unforced_error'
   }
   
   return updates
@@ -414,20 +486,25 @@ export function markRallyEndShots<T extends NewShot | DBShot>(
     const rally = rallies.find(r => r.id === shot.rally_id)
     if (!rally) return shot
     
-    // Determine rally end role
-    let rallyEndRole: DBShot['rally_end_role'] = 'none'
-    if (rally.winner_id === shot.player_id) {
-      rallyEndRole = 'winner'
-    } else if (rally.winner_id && rally.is_scoring) {
-      // Shot player is not the winner, so they made an error
-      // TODO: Differentiate forced vs unforced in Phase 2
-      rallyEndRole = 'unforced_error'
+    // Preserve existing rally_end_role if already set (from Phase 1/2)
+    // Only compute if it's still 'none'
+    let rallyEndRole: DBShot['rally_end_role'] = shot.rally_end_role || 'none'
+    
+    if (rallyEndRole === 'none') {
+      // Fallback logic if rally_end_role wasn't set in Phase 1/2
+      if (rally.winner_id === shot.player_id) {
+        rallyEndRole = 'winner'
+      } else if (rally.winner_id && rally.is_scoring) {
+        // Shot player is not the winner, so they made an error
+        // Default to unforced if not specified in Phase 2
+        rallyEndRole = 'unforced_error'
+      }
     }
     
     return {
       ...shot,
       is_rally_end: true,
-      rally_end_role: rallyEndRole,
+      rally_end_role: rallyEndRole, // Preserve existing or compute fallback
     } as T
   })
 }
@@ -462,8 +539,10 @@ export function convertDBRallyToPhase1Rally(
   
   // Map end condition from point_end_type
   const endCondition: EndCondition = 
-    dbRally.is_scoring ? 'winner' :
-    dbRally.point_end_type === 'forcedError' || dbRally.point_end_type === 'unforcedError' ? 'long' : 'innet'
+    !dbRally.is_scoring ? 'let' :
+    dbRally.point_end_type === 'winnerShot' ? 'winner' :
+    dbRally.point_end_type === 'forcedError' || dbRally.point_end_type === 'unforcedError' ? 'long' : 
+    'innet'
   
   // Determine serverId
   const serverId: 'player1' | 'player2' = 
@@ -512,8 +591,11 @@ export function convertDBShotToDetailedShot(
     rally.winner_id === player1Id ? 'player1' :
     rally.winner_id === player2Id ? 'player2' : 'player1'
   
-  const endCondition = rally.is_scoring ? 'winner' :
-    rally.point_end_type === 'forcedError' || rally.point_end_type === 'unforcedError' ? 'long' : 'innet'
+  const endCondition = 
+    !rally.is_scoring ? 'let' :
+    rally.point_end_type === 'winnerShot' ? 'winner' :
+    rally.point_end_type === 'forcedError' || rally.point_end_type === 'unforcedError' ? 'long' : 
+    'innet'
   
   // Map direction from DB format to UI format
   const direction = dbShot.shot_origin && dbShot.shot_target
@@ -529,7 +611,7 @@ export function convertDBShotToDetailedShot(
     rallyId: rally.id,
     rallyEndCondition: endCondition,
     isLastShot: dbShot.is_rally_end || false,
-    isError: !rally.is_scoring,
+    isError: !rally.is_scoring && dbShot.is_rally_end, // Only rally-ending shot is error shot
     serverId,
     winnerId,
     direction,
@@ -538,7 +620,7 @@ export function convertDBShotToDetailedShot(
     stroke: mapWingDBToUI(dbShot.shot_wing) || undefined,
     intent: dbShot.intent || undefined,
     errorType: mapRallyEndRoleDBToUI(dbShot.rally_end_role) || undefined,
-    shotQuality: mapShotResultDBToUI(dbShot.shot_result) || 'average',
+    shotQuality: dbShot.shot_quality || undefined,
   }
 }
 
@@ -547,7 +629,7 @@ type Direction =
   | 'mid_left' | 'mid_mid' | 'mid_right'
   | 'right_left' | 'right_mid' | 'right_right'
 
-type EndCondition = 'innet' | 'long' | 'winner'
+type EndCondition = 'innet' | 'long' | 'winner' | 'let'
 
 // Re-export types for convenience
 export type { Direction, EndCondition }

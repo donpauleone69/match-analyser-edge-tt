@@ -40,6 +40,10 @@ export async function create(set: NewSet): Promise<DBSet> {
     phase1_total_rallies: null,
     phase2_last_shot_index: null,
     phase2_total_shots: null,
+    setup_starting_score_p1: null,
+    setup_starting_score_p2: null,
+    setup_next_server_id: null,
+    setup_completed_at: null,
   }
   
   await db.sets.add(newSet)
@@ -136,6 +140,10 @@ export async function deleteTaggingData(setId: string): Promise<void> {
     phase1_total_rallies: null,
     phase2_last_shot_index: null,
     phase2_total_shots: null,
+    setup_starting_score_p1: null,
+    setup_starting_score_p2: null,
+    setup_next_server_id: null,
+    setup_completed_at: null,
   })
 }
 

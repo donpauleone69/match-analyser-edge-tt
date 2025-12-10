@@ -34,12 +34,6 @@ export default defineConfig({
   // Build optimizations for mobile
   build: {
     target: 'es2015',
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: false,
-        drop_debugger: true,
-      },
-    },
+    minify: 'esbuild',
   },
 })

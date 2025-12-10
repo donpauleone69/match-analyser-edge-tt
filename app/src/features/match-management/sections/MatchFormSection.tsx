@@ -110,6 +110,10 @@ export function MatchFormSection({ players, tournaments }: MatchFormSectionProps
           video_segments: [],
           video_contexts: null,
           end_of_set_timestamp: null,
+          setup_starting_score_p1: null,
+          setup_starting_score_p2: null,
+          setup_next_server_id: null,
+          setup_completed_at: null,
         })
       }
       

@@ -477,6 +477,7 @@ function ShotTable({ shot }: { shot: DBShot }) {
           {/* Subjective Data */}
           <TableRow label="intent_quality" value={shot.intent_quality} />
           <TableRow label="pressure_level" value={shot.pressure_level} />
+          <TableRow label="shot_quality" value={shot.shot_quality} />
           {/* Inferred Data */}
           <TableRow label="shot_type" value={shot.shot_type} />
           <TableRow label="shot_contact_timing" value={shot.shot_contact_timing} />

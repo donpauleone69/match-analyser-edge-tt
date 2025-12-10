@@ -11,8 +11,10 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { cn } from '@/helpers/utils'
-import { Phase1ControlsBlock, SetupControlsBlock, SetEndWarningBlock, CompletionModal, type RallyState, type EndCondition, type SetupData } from '../blocks'
-import { VideoPlayer, type VideoPlayerHandle, type TaggingModeControls, useVideoPlaybackStore } from '@/ui-mine/VideoPlayer'
+import { Phase1ControlsBlock, SetupControlsBlock, SetEndWarningBlock, CompletionModal, RallyCard, ShotListItem, type RallyState, type EndCondition, type SetupData } from '../blocks'
+import { PhaseLayoutTemplate } from '../layouts'
+import { UserInputSection, VideoPlayerSection, StatusBarSection, RallyListSection } from '../sections'
+import { type VideoPlayerHandle, type TaggingModeControls, useVideoPlaybackStore } from '@/ui-mine/VideoPlayer'
 import { calculateServer, calculateShotPlayer, calculatePreviousServers } from '@/rules'
 import { deriveRally_winner_id, getOpponentId } from '@/rules/derive/rally/deriveRally_winner_id'
 import { deriveSetEndConditions } from '@/rules/derive/set/deriveSetEndConditions'
@@ -91,8 +93,8 @@ export function Phase1TimestampComposer({ playerContext, setId, player1Id, playe
     player2: playerContext?.startingScore.player2 || 0,
   })
   
-  // Saving indicator
-  const [isSaving, setIsSaving] = useState(false)
+  // Saving indicator (state tracked but not displayed in compact status bar)
+  const [_isSaving, setIsSaving] = useState(false)
   
   // NEW: Setup flow state
   const [setupComplete, setSetupComplete] = useState(false)
@@ -716,224 +718,208 @@ export function Phase1TimestampComposer({ playerContext, setId, player1Id, playe
     onFrameStepForward: () => videoPlayerRef.current?.stepFrame('forward'),
   }
   
+  // Calculate server for current rally
+  const serverResult = playerContext 
+    ? calculateServer({
+        firstServerId: setupNextServer,
+        player1Score: currentScore.player1,
+        player2Score: currentScore.player2,
+      })
+    : { serverId: 'player1' as const, receiverId: 'player2' as const }
+  
   return (
-    <div className={cn('fixed inset-0 flex flex-col bg-bg-surface overflow-hidden', className)}>
-      {/* Shot Log - Top (scrollable) */}
-      <div 
-        ref={shotLogRef}
-        className="flex-1 min-h-0 overflow-y-auto p-4 space-y-2 bg-bg-surface"
-      >
-        <div className="text-sm text-neutral-500 mb-3">Shot Log</div>
-        {completedRallies.length === 0 && currentShots.length === 0 && (
-          <div className="text-center text-neutral-600 py-8">
-            No shots recorded yet. Press Serve/Shot to begin.
-          </div>
-        )}
+    <>
+      <PhaseLayoutTemplate
+        shotLogRef={shotLogRef}
+        className={className}
         
-        {/* Current rally (in progress) */}
-        {currentShots.length > 0 && (
-          <div className="mb-4 p-3 rounded-lg bg-brand-primary/10 border border-brand-primary/30">
-            <div className="text-xs font-medium text-brand-primary mb-2">
-              Rally {completedRallies.length + 1} (In Progress)
-              {playerContext && (
-                <span className="ml-2 text-neutral-400">
-                  Server: {
-                    calculateServer({
-                      firstServerId: setupNextServer,
-                      player1Score: currentScore.player1,
-                      player2Score: currentScore.player2,
-                    }).serverId === 'player1' 
-                      ? playerContext.player1Name 
-                      : playerContext.player2Name
-                  }
-                </span>
-              )}
-            </div>
-            <div className="space-y-1">
+        shotLog={
+        <RallyListSection 
+          title="Shot Log"
+          emptyMessage={completedRallies.length === 0 && currentShots.length === 0 ? "No shots recorded yet. Press Serve/Shot to begin." : undefined}
+        >
+          {/* Current rally (in progress) */}
+          {currentShots.length > 0 && (
+            <RallyCard
+              rallyNumber={completedRallies.length + 1}
+              serverName={getPlayerName(serverResult.serverId as 'player1' | 'player2')}
+              winnerName="In Progress"
+              endCondition="winner"
+              isCurrent
+              className="mb-4"
+            >
               {currentShots.map((shot, idx) => {
-                const serverId = playerContext ? calculateServer({
-                  firstServerId: setupNextServer,
-                  player1Score: currentScore.player1,
-                  player2Score: currentScore.player2,
-                }).serverId : 'player1' as const
-                const shotPlayer = calculateShotPlayer(serverId, shot.shotIndex) as 'player1' | 'player2'
+                const shotPlayer = calculateShotPlayer(serverResult.serverId, shot.shotIndex) as 'player1' | 'player2'
                 const playerName = getPlayerName(shotPlayer)
                 
                 return (
-                  <div key={shot.id} className="flex items-center gap-2 text-sm text-neutral-300">
-                    <span className="font-mono text-xs text-neutral-500">#{idx + 1}</span>
-                    <span>{shot.isServe ? 'Serve' : 'Shot'}</span>
-                    <span className="text-brand-primary font-medium">• {playerName}</span>
-                    <span className="ml-auto font-mono text-xs text-neutral-500">{shot.timestamp.toFixed(2)}s</span>
-                  </div>
+                  <ShotListItem
+                    key={shot.id}
+                    shotNumber={idx + 1}
+                    shotType={shot.isServe ? 'serve' : 'shot'}
+                    playerName={playerName}
+                    timestamp={shot.timestamp}
+                  />
                 )
               })}
-            </div>
-          </div>
-        )}
-        
-        {/* Completed rallies */}
-        {completedRallies.slice().reverse().map((rally, reverseIdx) => {
-          const rallyNumber = completedRallies.length - reverseIdx
-          const endConditionLabel = 
-            rally.endCondition === 'winner' ? 'Winner' :
-            rally.endCondition === 'innet' ? 'In-Net' :
-            rally.endCondition === 'long' ? 'Long' :
-            'Let'
-          const endConditionColor = 
-            rally.endCondition === 'winner' ? 'text-success' :
-            rally.endCondition === 'let' ? 'text-warning' :
-            'text-danger'
-          const serverName = getPlayerName(rally.serverId)
-          const winnerName = getPlayerName(rally.winnerId)
+            </RallyCard>
+          )}
           
-          return (
-            <div 
-              key={rally.id} 
-              ref={(el) => setRallyRef(rally.id, el)}
-              className="p-3 rounded-lg bg-neutral-800"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <div className="text-xs">
-                  <span className="font-medium text-neutral-400">Rally {rallyNumber}</span>
-                  <span className="ml-2 text-neutral-500">Server: {serverName}</span>
-                </div>
-                <div className="text-xs">
-                  <span className="font-medium text-success mr-2">{winnerName} won</span>
-                  <span className={cn('font-medium', endConditionColor)}>
-                    {endConditionLabel}
-                  </span>
-                </div>
+          {/* Completed rallies */}
+          {completedRallies.slice().reverse().map((rally, reverseIdx) => {
+            const rallyNumber = completedRallies.length - reverseIdx
+            const serverName = getPlayerName(rally.serverId)
+            const winnerName = getPlayerName(rally.winnerId)
+            
+            return (
+              <div key={rally.id} ref={(el) => setRallyRef(rally.id, el)}>
+                <RallyCard
+                  rallyNumber={rallyNumber}
+                  serverName={serverName}
+                  winnerName={winnerName}
+                  endCondition={rally.endCondition}
+                  isError={rally.isError}
+                >
+                  {rally.shots.map((shot, idx) => {
+                    const shotPlayer = calculateShotPlayer(rally.serverId, shot.shotIndex) as 'player1' | 'player2'
+                    const playerName = getPlayerName(shotPlayer)
+                    const isLastShot = idx === rally.shots.length - 1
+                    
+                    return (
+                      <ShotListItem
+                        key={shot.id}
+                        shotNumber={idx + 1}
+                        shotType={shot.isServe ? 'serve' : 'shot'}
+                        playerName={playerName}
+                        timestamp={shot.timestamp}
+                        isEnding={isLastShot}
+                      />
+                    )
+                  })}
+                  {/* Rally End timestamp */}
+                  <div className="flex items-center gap-2 text-sm pt-1 border-t border-neutral-700/50">
+                    <span className="font-mono text-xs text-neutral-600"></span>
+                    <span className="text-xs text-neutral-500">Rally End</span>
+                    <span className="ml-auto font-mono text-xs text-neutral-600">{rally.endTimestamp.toFixed(2)}s</span>
+                  </div>
+                </RallyCard>
               </div>
-              <div className="space-y-1">
-                {rally.shots.map((shot, idx) => {
-                  const shotPlayer = calculateShotPlayer(rally.serverId, shot.shotIndex) as 'player1' | 'player2'
-                  const playerName = getPlayerName(shotPlayer)
-                  const isLastShot = idx === rally.shots.length - 1
-                  
-                  return (
-                    <div key={shot.id} className="flex items-center gap-2 text-sm">
-                      <span className="font-mono text-xs text-neutral-600">#{idx + 1}</span>
-                      <span className="text-xs text-neutral-400">{shot.isServe ? 'Serve' : 'Shot'}</span>
-                      <span className="text-xs text-neutral-300 font-medium">{playerName}</span>
-                      {isLastShot && <span className="text-xs text-neutral-500">(ending shot)</span>}
-                      <span className="ml-auto font-mono text-xs text-neutral-600">{shot.timestamp.toFixed(2)}s</span>
-                    </div>
-                  )
-                })}
-                {/* Rally End timestamp */}
-                <div className="flex items-center gap-2 text-sm pt-1 border-t border-neutral-700/50">
-                  <span className="font-mono text-xs text-neutral-600"></span>
-                  <span className="text-xs text-neutral-500">Rally End</span>
-                  <span className="ml-auto font-mono text-xs text-neutral-600">{rally.endTimestamp.toFixed(2)}s</span>
-                </div>
-              </div>
-            </div>
-          )
-        })}
-      </div>
+            )
+          })}
+        </RallyListSection>
+      }
       
-      {/* Video Player - Fixed height, full width */}
-      <div className="shrink-0 w-full aspect-video bg-black">
-        <VideoPlayer
+      videoPlayer={
+        <VideoPlayerSection
           ref={videoPlayerRef}
-          videoSrc={videoUrl || undefined}
+          videoUrl={videoUrl}
           onVideoSelect={setVideoUrl}
-          compact={true}
-          showTimeOverlay={true}
           taggingMode={taggingModeControls}
         />
-      </div>
+      }
       
-      {/* Status Strip - Below Video */}
-      <div className="shrink-0 border-t border-neutral-700 bg-neutral-900">
-        {/* NEW: Show set end warning if detected */}
-        {setEndDetected && setEndScore && (
-          <SetEndWarningBlock
-            currentScore={currentScore}
-            setEndScore={setEndScore}
-            onSaveSet={handleSaveSet}
-            onContinueTagging={() => {
-              console.log('[Phase1] User chose to continue tagging past set end')
-              setSetEndDetected(false)
-            }}
-          />
-        )}
-        
-        <div className="px-4 py-2 flex items-center justify-between text-sm">
-          <div className="flex items-center gap-4">
-            <span className="text-neutral-500">Rally {completedRallies.length + 1}</span>
-            {playerContext && (
-              <span className="text-neutral-400">
-                Score: {playerContext.player1Name} {currentScore.player1} - {currentScore.player2} {playerContext.player2Name}
-              </span>
-            )}
-            <span className="text-neutral-400">{currentShots.length} shot{currentShots.length !== 1 ? 's' : ''}</span>
-            <div className={cn(
-              'px-3 py-1 rounded text-xs font-medium',
-              currentSpeedMode === 'tag' && 'bg-success/20 text-success',
-              currentSpeedMode === 'ff' && 'bg-warning/20 text-warning',
-              currentSpeedMode === 'normal' && 'bg-neutral-700 text-neutral-300'
-            )}>
-              {currentSpeedMode === 'tag' && `Tag ${speedPresets.tag}x`}
-              {currentSpeedMode === 'ff' && `FF ${speedPresets.ff}x`}
-              {currentSpeedMode === 'normal' && 'Normal 1x'}
-            </div>
-            {isSaving && (
-              <span className="text-xs text-brand-primary flex items-center gap-1">
-                <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Saving...
-              </span>
-            )}
-            {isNavigating && (
-              <span className="text-xs text-brand-primary">
-                Navigating ({currentHistoryIndex + 1}/{shotHistory.length})
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-neutral-500">Total: {completedRallies.length} rallies</span>
-            {/* NEW: Save Set button (only show if setup complete and rallies exist) */}
-            {setupComplete && completedRallies.length > 0 && (
-              <button
-                onClick={handleSaveSet}
-                className={cn(
-                  'px-3 py-1 rounded text-white text-xs font-medium',
-                  setEndDetected 
+      statusBar={
+        <StatusBarSection
+          warningBanner={
+            setEndDetected && setEndScore ? (
+              <SetEndWarningBlock
+                currentScore={currentScore}
+                setEndScore={setEndScore}
+                onSaveSet={handleSaveSet}
+                onContinueTagging={() => {
+                  console.log('[Phase1] User chose to continue tagging past set end')
+                  setSetEndDetected(false)
+                }}
+              />
+            ) : undefined
+          }
+          items={[
+            // Column 1: Rally/Shots with numbers (left justify labels, right justify numbers)
+            <div key="rally-shots" className="flex flex-col text-xs leading-tight min-w-[80px]">
+              <div className="flex justify-between">
+                <span className="text-neutral-400">Rally</span>
+                <span className="text-neutral-200 font-semibold">{completedRallies.length + 1}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-neutral-400">Shots</span>
+                <span className="text-neutral-200 font-semibold">{currentShots.length}</span>
+              </div>
+            </div>,
+            
+            // Column 2: Player names with scores (left justify names, right justify scores)
+            <div key="players-scores" className="flex flex-col text-xs leading-tight min-w-[100px]">
+              <div className="flex justify-between">
+                <span className="text-neutral-300">{playerContext?.player1Name || 'P1'}</span>
+                <span className="text-success font-bold">{currentScore.player1}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-neutral-300">{playerContext?.player2Name || 'P2'}</span>
+                <span className="text-success font-bold">{currentScore.player2}</span>
+              </div>
+            </div>,
+            
+            // Column 3: Saved (centered)
+            <div key="saved" className="flex flex-col items-center text-xs leading-tight">
+              <span className="text-neutral-400">Saved</span>
+              <span className="text-neutral-200 font-semibold">{completedRallies.length}</span>
+            </div>,
+            
+            // Column 4: Speed indicator (centered, same size as Save Set)
+            <div 
+              key="speed" 
+              className={cn(
+                'h-full px-4 rounded flex flex-col items-center justify-center text-xs font-bold leading-tight',
+                currentSpeedMode === 'tag' && 'bg-success/20 text-success',
+                currentSpeedMode === 'ff' && 'bg-warning/20 text-warning',
+                currentSpeedMode === 'normal' && 'bg-neutral-700 text-neutral-300'
+              )}
+            >
+              <div>{currentSpeedMode === 'tag' ? 'Tag' : currentSpeedMode === 'ff' ? 'FF' : 'Normal'}</div>
+              <div>{currentSpeedMode === 'tag' ? `${speedPresets.tag}x` : currentSpeedMode === 'ff' ? `${speedPresets.ff}x` : '1x'}</div>
+            </div>,
+            
+            // Column 5: Save Set button (always present)
+            <button
+              key="save-set"
+              onClick={handleSaveSet}
+              disabled={!setupComplete || completedRallies.length === 0}
+              className={cn(
+                'h-full px-4 rounded text-white text-xs font-bold',
+                !setupComplete || completedRallies.length === 0
+                  ? 'bg-neutral-700 opacity-50 cursor-not-allowed'
+                  : setEndDetected 
                     ? 'bg-green-600 hover:bg-green-700'
                     : 'bg-brand-primary hover:bg-brand-primary/90'
-                )}
-              >
-                Save Set
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
+              )}
+            >
+              Save Set
+            </button>,
+          ]}
+        />
+      }
       
-      {/* Controls - Bottom */}
-      <div className="shrink-0 bg-bg-card border-t border-neutral-700">
-        {!setupComplete ? (
-          <SetupControlsBlock
-            player1Name={playerContext?.player1Name || 'Player 1'}
-            player2Name={playerContext?.player2Name || 'Player 2'}
-            onComplete={handleSetupComplete}
-          />
-        ) : (
-          <Phase1ControlsBlock
-            rallyState={rallyState}
-            onServeShot={handleServeShot}
-            onShotMissed={handleShotMissed}
-            onInNet={handleInNet}
-            onWin={handleWin}
-          />
-        )}
-      </div>
+      userInput={
+        <UserInputSection>
+          {!setupComplete ? (
+            <SetupControlsBlock
+              player1Name={playerContext?.player1Name || 'Player 1'}
+              player2Name={playerContext?.player2Name || 'Player 2'}
+              onComplete={handleSetupComplete}
+            />
+          ) : (
+            <Phase1ControlsBlock
+              rallyState={rallyState}
+              onServeShot={handleServeShot}
+              onShotMissed={handleShotMissed}
+              onInNet={handleInNet}
+              onWin={handleWin}
+            />
+          )}
+        </UserInputSection>
+      }
+      />
       
-      {/* NEW: Completion Modal */}
+      {/* Completion Modal (rendered outside template as modal overlay) */}
       {showCompletionModal && playerContext && (
         <CompletionModal
           setNumber={1}  // TODO: Get from set record
@@ -951,6 +937,6 @@ export function Phase1TimestampComposer({ playerContext, setId, player1Id, playe
           }}
         />
       )}
-    </div>
+    </>
   )
 }

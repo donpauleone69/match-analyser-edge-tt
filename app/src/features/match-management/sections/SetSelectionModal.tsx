@@ -88,25 +88,31 @@ export function SetSelectionModal({
     }
   }
 
-  const getSetStatus = (set: DBSet): 'not_started' | 'in_progress' | 'complete' => {
+  const getSetStatus = (set: DBSet): 'not_started' | 'phase1_in_progress' | 'phase1_complete' | 'phase2_in_progress' | 'complete' => {
     // Use tagging_phase if available (new schema), fallback to old logic
     if (set.tagging_phase) {
       if (set.tagging_phase === 'not_started') return 'not_started'
+      if (set.tagging_phase === 'phase1_in_progress') return 'phase1_in_progress'
+      if (set.tagging_phase === 'phase1_complete') return 'phase1_complete'
+      if (set.tagging_phase === 'phase2_in_progress') return 'phase2_in_progress'
       if (set.tagging_phase === 'phase2_complete') return 'complete'
-      return 'in_progress'
     }
     
     // Fallback for old schema
     if (!set.tagging_started_at) return 'not_started'
     if (set.is_tagged && set.tagging_completed_at) return 'complete'
-    return 'in_progress'
+    return 'phase1_in_progress'
   }
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'complete':
         return 'text-green-400 bg-green-900/30 border-green-700'
-      case 'in_progress':
+      case 'phase2_in_progress':
+        return 'text-blue-400 bg-blue-900/30 border-blue-700'
+      case 'phase1_complete':
+        return 'text-cyan-400 bg-cyan-900/30 border-cyan-700'
+      case 'phase1_in_progress':
         return 'text-yellow-400 bg-yellow-900/30 border-yellow-700'
       default:
         return 'text-neutral-400 bg-neutral-800 border-neutral-700'
@@ -117,8 +123,11 @@ export function SetSelectionModal({
     switch (status) {
       case 'complete':
         return 'check'
-      case 'in_progress':
+      case 'phase2_in_progress':
+      case 'phase1_in_progress':
         return 'clock'
+      case 'phase1_complete':
+        return 'check'
       default:
         return 'circle'
     }
@@ -127,9 +136,13 @@ export function SetSelectionModal({
   const getStatusLabel = (status: string) => {
     switch (status) {
       case 'complete':
-        return 'Complete'
-      case 'in_progress':
-        return 'In Progress'
+        return 'Phase 2 Complete'
+      case 'phase2_in_progress':
+        return 'Phase 2 In Progress'
+      case 'phase1_complete':
+        return 'Phase 1 Complete'
+      case 'phase1_in_progress':
+        return 'Phase 1 In Progress'
       default:
         return 'Not Started'
     }
@@ -273,14 +286,14 @@ export function SetSelectionModal({
                         </div>
 
                         {/* Action Buttons */}
-                        <div className="flex gap-2 shrink-0">
+                        <div className="flex gap-2 shrink-0 flex-wrap">
                           {status === 'not_started' && (
                             <>
                               <Button
                                 onClick={() => handleStartTagging(set.set_number)}
                                 size="sm"
                               >
-                                Start
+                                Tag Phase 1
                               </Button>
                               <Button
                                 onClick={() => handleEditSetScores(set.set_number, set)}
@@ -291,14 +304,14 @@ export function SetSelectionModal({
                               </Button>
                             </>
                           )}
-                          {status === 'in_progress' && (
+                          {status === 'phase1_in_progress' && (
                             <>
                               <Button
                                 onClick={() => handleStartTagging(set.set_number)}
                                 size="sm"
                                 variant="primary"
                               >
-                                Continue
+                                Continue Phase 1
                               </Button>
                               <Button
                                 onClick={() => handleRedoTagging(set.set_number)}
@@ -307,30 +320,59 @@ export function SetSelectionModal({
                               >
                                 Redo
                               </Button>
+                            </>
+                          )}
+                          {status === 'phase1_complete' && (
+                            <>
                               <Button
-                                onClick={() => handleEditSetScores(set.set_number, set)}
+                                onClick={() => handleStartTagging(set.set_number)}
+                                size="sm"
+                                variant="primary"
+                              >
+                                Tag Phase 2
+                              </Button>
+                              <Button
+                                onClick={() => handleRedoTagging(set.set_number)}
                                 variant="secondary"
                                 size="sm"
                               >
-                                Edit
+                                Redo Phase 1
+                              </Button>
+                            </>
+                          )}
+                          {status === 'phase2_in_progress' && (
+                            <>
+                              <Button
+                                onClick={() => handleStartTagging(set.set_number)}
+                                size="sm"
+                                variant="primary"
+                              >
+                                Continue Phase 2
+                              </Button>
+                              <Button
+                                onClick={() => handleRedoTagging(set.set_number)}
+                                variant="secondary"
+                                size="sm"
+                              >
+                                Redo
                               </Button>
                             </>
                           )}
                           {status === 'complete' && (
                             <>
                               <Button
+                                onClick={() => navigate(`/data-viewer?setId=${set.id}`)}
+                                variant="primary"
+                                size="sm"
+                              >
+                                View Data
+                              </Button>
+                              <Button
                                 onClick={() => handleRedoTagging(set.set_number)}
                                 variant="secondary"
                                 size="sm"
                               >
                                 Redo
-                              </Button>
-                              <Button
-                                onClick={() => handleEditSetScores(set.set_number, set)}
-                                variant="secondary"
-                                size="sm"
-                              >
-                                Edit
                               </Button>
                             </>
                           )}

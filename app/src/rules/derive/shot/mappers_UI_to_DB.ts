@@ -11,7 +11,6 @@
 import type { 
   TablePosition,
   ShotIntent,
-  ShotResult,
   ServeSpinFamily,
   ShotLength,
   RallyEndRole,
@@ -266,21 +265,16 @@ export function mapShotQualityUIToDB(
 }
 
 /**
- * Map DB shot_result to UI shot quality.
- * Reverse of mapShotQualityUIToDB.
- * Only handles quality results, not errors.
+ * Map DB shot_quality to UI shot quality (for resume/edit).
+ * NOTE: This function was incorrectly named - it maps shot_quality, not shot_result.
+ * shot_result = in_net | missed_long | missed_wide | in_play (outcome of shot)
+ * shot_quality = high | average (quality rating for in_play shots only)
  */
 export function mapShotResultDBToUI(
-  dbResult: ShotResult | null | undefined
+  dbQuality: 'high' | 'average' | null | undefined
 ): 'average' | 'high' | null {
-  if (!dbResult) return null
-  
-  // Only map quality results
-  if (dbResult === 'good') return 'high'
-  if (dbResult === 'average') return 'average'
-  
-  // Error results (in_net, missed_long) don't have UI quality equivalent
-  return null
+  if (!dbQuality) return null
+  return dbQuality // Direct pass-through since types match
 }
 
 // =============================================================================

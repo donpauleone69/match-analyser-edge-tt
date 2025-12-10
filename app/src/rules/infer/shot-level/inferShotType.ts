@@ -48,7 +48,7 @@ export function inferShotType(
   if (shot.intent === 'aggressive') {
     if (shot.shot_wing === 'FH') {
       // Could be loop or smash
-      if (shot.shot_result === 'good') {
+      if (shot.shot_quality === 'high') {
         return { shotType: 'FH_loop', confidence: 0.85 }
       }
       return { shotType: 'FH_loop', confidence: 0.6 }

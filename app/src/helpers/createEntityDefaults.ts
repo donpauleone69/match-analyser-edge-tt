@@ -115,10 +115,11 @@ export function getShotDefaults(): Partial<DBShot> {
     shot_wing: null,
     intent: null,
     // All shots
-    shot_result: null,
+    shot_result: 'in_play', // NOT NULL - defaults to in_play
     // Subjective data
     intent_quality: null,
     pressure_level: null,
+    shot_quality: null,
     // Derived data
     shot_origin: null,
     shot_target: null,

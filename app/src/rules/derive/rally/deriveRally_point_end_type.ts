@@ -44,11 +44,8 @@ export function deriveRally_point_end_type(
     }
   }
   
-  // Check if error (using shot_result instead of shot_destination)
-  const isError = 
-    lastShot.shot_result === 'in_net' ||
-    lastShot.shot_result === 'missed_long' ||
-    lastShot.shot_result === 'missed_wide'
+  // Check if error: shot_result !== 'in_play' means error occurred
+  const isError = lastShot.shot_result && lastShot.shot_result !== 'in_play'
   
   if (isError) {
     // Shot 1: Service fault

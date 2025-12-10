@@ -61,9 +61,9 @@ export function calculateTacticalStats(
     ? (thirdBallWinners.length / thirdBallAttacks.length) * 100
     : 0
   
-  // Forced errors: 3rd ball was good, opponent's 4th ball is error
+  // Forced errors: 3rd ball was high quality, opponent's 4th ball is error
   const thirdBallForcedErrors = thirdBallShots.filter(s => {
-    if (s.shot_result !== 'good') return false
+    if (s.shot_quality !== 'high') return false
     
     const fourthBall = allShots.find(shot =>
       shot.rally_id === s.rally_id &&
@@ -108,7 +108,7 @@ export function calculateTacticalStats(
     const rally = rallies.find(r => r.id === s.rally_id)
     return (
       s.rally_end_role === 'winner' ||
-      s.shot_result === 'good' ||
+      s.shot_quality === 'high' ||
       (rally && rally.winner_id === playerId)
     )
   })
@@ -124,8 +124,8 @@ export function calculateTacticalStats(
   const fourthBallBlockSuccess = fourthBallBlocks.filter(s => {
     const rally = rallies.find(r => r.id === s.rally_id)
     return (
-      s.shot_result === 'good' ||
-      s.shot_result === 'average' ||
+      s.shot_quality === 'high' ||
+      s.shot_quality === 'average' ||
       (rally && rally.winner_id === playerId)
     )
   })

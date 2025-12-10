@@ -57,6 +57,7 @@ export type {
   NewShot,
   ShotIntent,
   ShotResult,
+  ShotQuality,
   TablePosition,
   RallyEndRole,
   PressureLevel,

@@ -109,8 +109,8 @@ export async function getVideoCoverageSummary(matchId: string): Promise<{
   // Collect all covered sets
   const coveredSets = new Set<number>()
   videos.forEach(v => {
-    for (let set = v.start_set_number; set <= (v.end_set_number || v.start_set_number); set++) {
-      coveredSets.add(set)
+    if (v.set_number !== null) {
+      coveredSets.add(v.set_number)
     }
   })
   
@@ -134,6 +134,7 @@ export async function getVideoCoverageSummary(matchId: string): Promise<{
 
 /**
  * Validate video sequence (no gaps, no overlaps)
+ * Note: Current schema only supports single set_number per video
  */
 export async function validateVideoSequence(matchId: string): Promise<{
   isValid: boolean
@@ -146,26 +147,14 @@ export async function validateVideoSequence(matchId: string): Promise<{
     return { isValid: true, errors: [] }
   }
   
-  // Check sequence numbers are continuous
-  for (let i = 0; i < videos.length; i++) {
-    if (videos[i].sequence_number !== i + 1) {
-      errors.push(`Video sequence gap: expected ${i + 1}, found ${videos[i].sequence_number}`)
-    }
-  }
+  // Check for duplicate set_number assignments
+  const setNumbers = videos
+    .filter(v => v.set_number !== null)
+    .map(v => v.set_number as number)
   
-  // Check for overlaps
-  for (let i = 0; i < videos.length - 1; i++) {
-    const current = videos[i]
-    const next = videos[i + 1]
-    
-    if (current.end_set_number && next.start_set_number) {
-      if (current.end_set_number > next.start_set_number) {
-        errors.push(
-          `Video ${current.sequence_number} ends at set ${current.end_set_number}, ` +
-          `but video ${next.sequence_number} starts at set ${next.start_set_number}`
-        )
-      }
-    }
+  const duplicates = setNumbers.filter((num, index) => setNumbers.indexOf(num) !== index)
+  if (duplicates.length > 0) {
+    errors.push(`Duplicate set assignments found: ${duplicates.join(', ')}`)
   }
   
   return {

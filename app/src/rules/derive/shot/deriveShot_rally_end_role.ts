@@ -36,21 +36,18 @@ export function deriveShot_rally_end_role(
     return 'none'
   }
   
-  // Check if shot is an error
-  const isError = 
-    shot.shot_result === 'in_net' ||
-    shot.shot_result === 'missed_long' ||
-    shot.shot_result === 'missed_wide'
+  // Check if shot is an error: shot_result !== 'in_play' means error occurred
+  const isError = shot.shot_result && shot.shot_result !== 'in_play'
   
   if (isError) {
-    // Shot 1: Service fault
+    // Shot 1: Service fault (unforced error)
     if (shot.shot_index === 1) {
-      return 'service_fault'
+      return 'unforced_error'
     }
     
     // Shot 2: Receive error (always unforced)
     if (shot.shot_index === 2) {
-      return 'receive_error'
+      return 'unforced_error'
     }
     
     // Shot 3+: Use provided errorType

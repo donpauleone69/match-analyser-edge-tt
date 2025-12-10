@@ -29,7 +29,7 @@ export interface PivotAnalysis {
 export function inferPivotMovement(
   currentShot: DBShot,
   previousShot: DBShot | null,
-  prevPreviousShot: DBShot | null
+  _prevPreviousShot: DBShot | null
 ): PivotAnalysis {
   const noPivot: PivotAnalysis = {
     pivoted: false,
@@ -47,7 +47,7 @@ export function inferPivotMovement(
     currentShot.shot_wing === 'FH' &&
     currentShot.shot_origin === 'left' // Wide FH position
   ) {
-    const successful = currentShot.shot_result === 'good' || 
+    const successful = currentShot.shot_quality === 'high' || 
                        currentShot.rally_end_role === 'winner'
     
     return {
@@ -65,7 +65,7 @@ export function inferPivotMovement(
     currentShot.shot_wing === 'BH' &&
     currentShot.shot_origin === 'right' // Wide BH position
   ) {
-    const successful = currentShot.shot_result === 'good' ||
+    const successful = currentShot.shot_quality === 'high' ||
                        currentShot.rally_end_role === 'winner'
     
     return {
@@ -145,7 +145,7 @@ export function inferOutOfPosition(
     }
   }
   
-  const recoveredSuccessfully = currentShot.shot_result === 'good' || 
+  const recoveredSuccessfully = currentShot.shot_quality === 'high' || 
                                  currentShot.rally_end_role === 'winner'
   
   return {
@@ -231,7 +231,7 @@ export function inferRecoveryQuality(
     quality = 'excellent'
   } else if (timeBetweenShots && timeBetweenShots > 1.2 && !positionRecovered) {
     quality = 'late'
-  } else if (positionRecovered && currentShot.shot_result === 'good') {
+  } else if (positionRecovered && currentShot.shot_quality === 'high') {
     quality = 'excellent'
   } else if (!positionRecovered || currentShot.intent === 'defensive') {
     quality = 'late'

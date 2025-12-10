@@ -6,6 +6,99 @@
 
 ## Change Log
 
+### 2025-12-10: Standardize Status Bar with 5-Column Template (v3.5.0)
+
+**Change Type:** UI/UX - Layout Standardization & Modularization
+
+**What Changed:**
+- Established a standard 5-column status bar template for all tagging phases
+- Refactored Phase1 and Phase2 composers to use modular layout system
+- Created reusable layout components and sections for consistent page structure
+- Fixed inconsistent font sizes and restored colored badges for speed indicators
+
+**New 5-Column Template Structure:**
+```
+┌─────────────┬──────────────┬─────────┬─────────┬──────────┐
+│  Column 1   │  Column 2    │ Column 3│ Column 4│ Column 5 │
+│ Label   Val │ Label    Val │ Centered│ Centered│  Button  │
+│ Label   Val │ Label    Val │  Value  │  Badge  │          │
+└─────────────┴──────────────┴─────────┴─────────┴──────────┘
+```
+
+**Column Guidelines:**
+- **Columns 1-2:** Two lines of text with left/right justification (using `justify-between`)
+  - Phase 1 Col 1: "Rally 6" / "Shots 12"
+  - Phase 1 Col 2: "Name1 10" / "Name2 8"
+- **Column 3:** Centered value with optional label
+  - Phase 1: "Saved" / "5"
+- **Column 4:** Centered badge/indicator (full height, colored background)
+  - Phase 1: "FF" / "2x" with color-coded background (green for Tag, orange for FF, gray for Normal)
+- **Column 5:** Action button (full height, always present but can be disabled)
+  - Phase 1: "Save Set" button (disabled when no rallies)
+
+**New Layout Components Created:**
+- `app/src/features/shot-tagging-engine/layouts/PhaseLayoutTemplate.tsx` - Core 4-section layout for all phases
+- `app/src/features/shot-tagging-engine/sections/UserInputSection.tsx` - Input controls container with player tinting
+- `app/src/features/shot-tagging-engine/sections/VideoPlayerSection.tsx` - Video player wrapper
+- `app/src/features/shot-tagging-engine/sections/StatusBarSection.tsx` - Status bar container (fixed h-12 height)
+- `app/src/features/shot-tagging-engine/sections/RallyListSection.tsx` - Shot log container
+- `app/src/features/shot-tagging-engine/blocks/StatusGrid.tsx` - 5-column grid layout
+- `app/src/features/shot-tagging-engine/blocks/RallyCard.tsx` - Reusable rally display
+- `app/src/features/shot-tagging-engine/blocks/ShotListItem.tsx` - Reusable shot display
+
+**Files Modified:**
+- `app/src/features/shot-tagging-engine/composers/Phase1TimestampComposer.tsx`
+  - Wrapped entire render in `PhaseLayoutTemplate`
+  - Status bar now uses 5-column template with proper text alignment
+  - Speed indicator restored with colored badges
+  - Save Set button always present (disabled when unavailable)
+  
+- `app/src/features/shot-tagging-engine/composers/Phase2DetailComposer.tsx`
+  - Wrapped entire render in `PhaseLayoutTemplate`
+  - Status bar adapted to 5-column template
+  - Added player name badge in column 4
+
+- `app/src/features/shot-tagging-engine/sections/StatusBarSection.tsx`
+  - Fixed height at h-12 (48px) to prevent layout shifts
+  - Uses StatusGrid for consistent 5-column layout
+
+- `app/src/features/shot-tagging-engine/blocks/StatusGrid.tsx`
+  - Single-row grid with `grid-flow-col auto-cols-auto`
+  - 4-unit horizontal gaps between columns
+  - All items vertically centered
+
+**Phase 1 Status Bar Layout:**
+```
+Rally     6 │ Name1    10 │ Saved │  FF  │ Save Set
+Shots    12 │ Name2     8 │   5   │  2x  │
+```
+
+**Phase 2 Status Bar Layout:**
+```
+Rally     3 │ [Current Question?] │ Progress │ [Player] │ [Future]
+Shot     12 │                     │  12/45   │  Name1   │
+```
+
+**Benefits:**
+- ✅ Complete page consistency across all phases
+- ✅ Fixed-height status bar prevents layout shifts during saves/updates
+- ✅ Modular components make future phases easy to create
+- ✅ Consistent font sizes across all status items
+- ✅ Colored speed badges improve visual feedback
+- ✅ Reusable layout template standardizes page structure
+- ✅ Easy to maintain and extend for additional phases
+
+**Impact:**
+- All phases now share the same visual structure and layout logic
+- Status bar always maintains consistent height regardless of content changes
+- Adding new phases requires only filling in the 5-column template
+- Future optional tagging phases can reuse all layout components
+
+**Rationale:**
+With multiple optional phases planned (allowing players to choose which shot data to tag), establishing a consistent layout template is critical. The 5-column status bar provides a flexible yet standardized structure that adapts to different phase requirements while maintaining visual consistency. The modular component architecture makes it trivial to create new phases while ensuring they integrate seamlessly with the existing UI.
+
+---
+
 ### 2025-12-09: Fix Critical Server ID Bug in Phase1 Setup (v3.4.2)
 
 **Change Type:** Bug Fix - Critical Data Integrity Issue

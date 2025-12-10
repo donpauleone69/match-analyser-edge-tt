@@ -10,7 +10,11 @@ export interface DBRally {
   // Video reference (MULTI-VIDEO)
   video_id: string | null            // Which video segment is this rally in? (FK slug)
   has_video_data: boolean            // False if score-only (no video coverage)
-  end_of_point_time: number | null   // Timestamp WITHIN the video_id video (rally end, NOT last shot)
+  
+  // Rally timing
+  timestamp_start: number | null     // First shot's timestamp_start
+  timestamp_end: number | null       // Last shot's timestamp_end  
+  end_of_point_time: number | null   // Timestamp WITHIN the video_id video (rally end, NOT last shot) - LEGACY
   
   // Participants
   server_id: string // FK (slug)
@@ -38,6 +42,9 @@ export interface DBRally {
   server_corrected: boolean
   score_corrected: boolean
   correction_notes: string | null
+  
+  // Stub rally flag (for pre-populated rallies from setup)
+  is_stub_rally: boolean
 }
 
 export type NewRally = Omit<DBRally, 'id'>

@@ -6,4 +6,5 @@
 
 export * from './validateMatchData'
 export * from './validateVideoCoverage'
+export * from './validateSetScore'
 

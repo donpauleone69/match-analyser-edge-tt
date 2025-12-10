@@ -31,9 +31,9 @@ const recentMatches = [
 ]
 
 const statusConfig = {
-  complete: { label: 'Complete', variant: 'success' as const },
-  step2: { label: 'Step 2', variant: 'warning' as const },
-  step1: { label: 'Step 1', variant: 'info' as const },
+  complete: { label: 'Complete', variant: 'default' as const },
+  step2: { label: 'Step 2', variant: 'secondary' as const },
+  step1: { label: 'Step 1', variant: 'outline' as const },
 }
 
 export function Dashboard() {

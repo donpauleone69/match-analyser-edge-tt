@@ -6,4 +6,5 @@
 
 export * from './calculateServer'
 export * from './calculateShotPlayer'
+export * from './calculatePreviousServers'
 
