@@ -6,6 +6,1372 @@
 
 ## Change Log
 
+### 2025-12-11: Rally Stats & Error Profile Analytics Cards (v3.19.0)
+
+**Change Type:** Feature Addition - New Analytics Cards
+
+**What Changed:**
+- Implemented **Rally Stats** card for rally-phase performance (4+ shots)
+- Implemented **Error Profile** card for error analysis across all phases
+- Added comprehensive rally and error tracking logic
+
+**Rally Stats Card:**
+
+**Purpose**: Analyze what happens once rallies develop beyond serve/receive/3rd ball exchanges.
+
+**Rally Phase Definition**: 
+- Rally phase = shots 4+ (after serve/receive/3rd ball)
+- This isolates pure rally exchanges from opening tactics
+
+**Metrics:**
+1. **Primary - Rally Win Rate** (Title Case)
+   - Win % in rally-phase points (4+ shots)
+   - Status: Good ≥55%, Average 48-55%, Poor <48%
+
+2. **Secondary Metrics** (5 total):
+   - "of rallies with 6+ shots are won by you" (long rally win %)
+   - "of rally points are lost to your unforced errors" (rally UE rate)
+   - "of rally points are won by forcing opponent errors" (rally FE created rate)
+   - "shots per point on average" (avg rally length, all rallies)
+   - "shots per rally-phase point (4+ shots)" (avg rally-phase length)
+
+**Subtitle**: "What happens once the rally starts (4+ shots)"
+
+**Detection Logic:**
+- Build map of rally_id → max shot_index from shots
+- Filter rallies where max_shot_index ≥ 4 for rally phase
+- Filter rallies where max_shot_index ≥ 6 for long rallies
+- Rally UEs: shot_index ≥ 4, player_id = playerId, rally_end_role = 'unforced_error'
+- Rally FEs created: shot_index ≥ 4, player_id = playerId (decisive shot), rally_end_role = 'forced_error' (opponent forced)
+
+**Error Profile Card:**
+
+**Purpose**: Show where errors happen (serve/receive/rally) and their impact on points.
+
+**Metrics:**
+1. **Primary - Unforced Error Rate** (Title Case)
+   - % of points lost to player's unforced errors (all phases)
+   - Status: Good <10%, Average 10-15%, Poor >15%
+
+2. **Secondary Metrics** (5 total):
+   - "of points are lost to opponent forcing you into errors" (forced errors conceded rate)
+   - "of your unforced errors happen on the serve" (serve UE share)
+   - "of your unforced errors happen on the receive" (receive UE share)
+   - "of your unforced errors happen in rallies (4+ shots)" (rally UE share)
+   - "of points are won from opponent unforced errors" (opponent UE rate)
+
+**Subtitle**: "Where your points are lost (and gained)"
+
+**Detection Logic:**
+- **Serve UEs**: point_end_type = 'serviceFault', server_id = playerId
+- **Receive UEs**: point_end_type = 'receiveError', receiver_id = playerId
+- **Rally UEs**: shot_index ≥ 4, player_id = playerId, rally_end_role = 'unforced_error'
+  - Also includes 3rd ball UEs (shot_index = 3) in rally count
+- **UE Shares**: Each phase as % of total UEs (sums to 100%)
+- **Forced Errors Conceded**: opponent's shot forces player error
+- **Opponent UEs**: serviceFault/receiveError by opponent + rally UEs by opponent
+
+**Insight Generation:**
+- Rally Stats: Highlights strengths in rally exchanges, identifies if UE rate or low FE creation is issue
+- Error Profile: Identifies dominant error phase and compares player vs opponent error rates
+
+**Coaching Recommendations:**
+- Rally Stats: Targets consistency (if high UE), stamina (if low long rally win %), or aggression (if low FE creation)
+- Error Profile: Phase-specific recommendations based on dominant error type
+
+**Files Created:**
+
+1. **Rules Layer** (Pure Functions):
+   - `app/src/rules/analytics/calculateRallyStats.ts` (218 lines)
+   - `app/src/rules/analytics/calculateErrorProfile.ts` (246 lines)
+
+2. **Derive Hooks** (Data Fetching):
+   - `app/src/features/analytics/derive/useDeriveRallyStats.ts` (203 lines)
+   - `app/src/features/analytics/derive/useDeriveErrorProfile.ts` (207 lines)
+
+3. **Card Components** (UI):
+   - `app/src/features/analytics/blocks/RallyStatsCard.tsx` (160 lines)
+   - `app/src/features/analytics/blocks/ErrorProfileCard.tsx` (156 lines)
+
+4. **Exports Updated**:
+   - `app/src/rules/analytics/index.ts` - added calculation exports
+   - `app/src/features/analytics/derive/index.ts` - added derive hook exports
+   - `app/src/features/analytics/blocks/index.ts` - already included card exports
+
+**Technical Details:**
+- Both cards follow the established pattern: Composer → Section → Block → Derive Hook → Rules
+- Rally phase consistently defined as 4+ shots across both cards
+- Error shares expressed as % of all UEs for clear distribution visualization
+- Graceful handling of low sample sizes (no data states)
+- Footer shows match count and relevant point count
+
+**Key Design Decisions:**
+1. Rally phase = 4+ shots (not 3+) to isolate true rally exchanges from 3rd ball tactics
+2. Error shares as % of UEs (not % of rallies) for clearer error distribution
+3. 5 secondary metrics for comprehensive analysis (more than typical 3-4)
+4. Rally UEs include 3rd ball UEs in error profile for complete picture
+
+**Version:** v3.19.0
+
+---
+
+### 2025-12-11: Primary Metric Label Update & Footer Styling (v3.18.0)
+
+**Change Type:** UX Refinement - Analytics Cards
+
+**What Changed:**
+- Primary metric layout flipped: text on LEFT, percentage on RIGHT (more traditional)
+- Updated primary metric labels to be clearer and title-case
+- Removed "exchange" from neutralization description
+- Fixed footer alignment and padding
+
+**Primary Metric Layout Change:**
+
+**Before (v3.17.0):**
+```
+52%    service points won
+```
+(Percentage left, description right)
+
+**After (v3.18.0):**
+```
+Service Points Won                52%
+```
+(Description left, percentage right - more traditional dashboard style)
+
+**Primary Metric Label Updates:**
+
+1. **Serve Performance**
+   - Old: "service points won"
+   - New: "Service Points Won"
+
+2. **Receive Performance**
+   - Old: "points won when receiving"
+   - New: "Receive Points Won"
+
+3. **3rd Ball Effectiveness**
+   - Old: "3rd ball attacks win immediately"
+   - New: "3rd Ball Won"
+
+**Secondary Metric Updates:**
+
+**Receive Performance - Neutralization:**
+- Old: "of your rallies as the receiver survive past the opening exchange (5+ shots)"
+- New: "of your rallies as the receiver survive past the opening (5+ shots)"
+- Rationale: "Opening" is clearer and more concise than "opening exchange"
+
+**Footer Styling:**
+
+**Before:**
+- Footer had minimal padding and left-aligned text
+- Text could misalign with card content
+
+**After:**
+- Added proper padding: `pt-4 px-6 pb-6`
+- Centered text: `text-center w-full`
+- Consistent spacing with card content
+
+**UX Improvements:**
+- ✅ Primary metric uses traditional left-to-right reading (label → value)
+- ✅ Clearer, title-case labels for primary metrics
+- ✅ More professional and scannable
+- ✅ Footer properly aligned and padded
+- ✅ More concise neutralization description
+
+**Files Modified:**
+1. `app/src/ui-mine/BasicInsightCardTemplate/BasicInsightCardTemplate.tsx`:
+   - Flipped primary metric: description left, percentage right
+   - Changed to `justify-between` layout
+   - Updated footer padding and centering
+
+2. `app/src/features/analytics/blocks/ServePerformanceCard.tsx`:
+   - Updated all states with new primary label: "Service Points Won"
+
+3. `app/src/features/analytics/blocks/ReceivePerformanceCard.tsx`:
+   - Updated all states with new primary label: "Receive Points Won"
+   - Updated neutralization text (removed "exchange")
+
+4. `app/src/features/analytics/blocks/ThirdBallCard.tsx`:
+   - Updated all states with new primary label: "3rd Ball Won"
+
+**Version:** v3.18.0
+
+---
+
+### 2025-12-10: Dashboard-Style Layout with Question Subtitles (v3.17.0)
+
+**Change Type:** UX Enhancement - Analytics Cards
+
+**What Changed:**
+- Added vertical alignment for all percentage and text elements in containers
+- Updated all card subtitles to question format
+- Improved visual consistency and readability
+
+**Alignment Updates:**
+
+**Before:**
+- Text and percentages had inconsistent vertical alignment
+- Items-start caused misalignment with multi-line text
+
+**After:**
+- All metrics use `items-center` for vertical centering
+- Primary metric: Fixed width (w-24, centered text) for percentage alignment
+- Secondary metrics: Fixed width (w-16, centered text) with min-height (60px)
+- All descriptions use `flex items-center` for perfect vertical centering
+
+**Subtitle Changes (Question Format):**
+
+1. **Serve Performance**
+   - Old: "Your success rate when serving"
+   - New: "How effective is your serve?"
+
+2. **Receive Performance**
+   - Old: "How you handle the opponent's serve"
+   - New: "How well do you handle their serve?"
+
+3. **3rd Ball Effectiveness**
+   - Old: "How dangerous your first attack is"
+   - New: "How dangerous is your 3rd ball attack?"
+
+**UX Improvements:**
+- ✅ Perfect vertical alignment in all metric containers
+- ✅ Question-based subtitles are more engaging and action-oriented
+- ✅ Consistent alignment across all secondary metrics
+- ✅ Better readability with multi-line descriptions
+- ✅ Professional dashboard appearance maintained
+
+**Files Modified:**
+1. `app/src/ui-mine/BasicInsightCardTemplate/BasicInsightCardTemplate.tsx`:
+   - Added `w-24 text-center` to primary metric percentage
+   - Changed `items-start` to `items-center` for secondary metrics
+   - Added `min-h-[60px]` to secondary metric containers
+   - Added `w-16 text-center` to secondary metric percentages
+   - Added `flex items-center` to all descriptions
+
+2. `app/src/features/analytics/blocks/ServePerformanceCard.tsx`:
+   - Updated subtitle to question format in all states (loading, error, no-data, success)
+
+3. `app/src/features/analytics/blocks/ReceivePerformanceCard.tsx`:
+   - Updated subtitle to question format in all states
+
+4. `app/src/features/analytics/blocks/ThirdBallCard.tsx`:
+   - Updated subtitle to question format in all states
+
+**Version:** v3.17.0
+
+---
+
+### 2025-12-10: Dashboard-Style Metric Layout & Fixed Neutralization Logic (v3.16.0)
+
+**Change Type:** Bug Fix + UX Redesign - Analytics Cards
+
+**What Changed:**
+- **Fixed neutralization logic**: Changed from 4+ shots to 5+ shots (shot 4 must go in play)
+- Redesigned metric layout: percentage on LEFT, description on RIGHT (dashboard style)
+- Simplified descriptions to short phrases (removed "You win X%" prefix)
+- Added fixed width for percentages to align all text descriptions
+- Removed divider between collapsed and expanded sections
+
+**Bug Fix - Neutralization Logic:**
+
+**Before (Incorrect):**
+- Counted rally as "neutralized" if it reached shot 4 (even if shot 4 was an error)
+- Problem: Shot 4 could go in net/out and still count as neutralized
+
+**After (Correct):**
+- Rally must reach shot 5+ (guarantees shot 4 went in play)
+- Definition: "Survive past opening exchange" = rally continues after shot 4
+- Formula: `maxShotIndex >= 5` (was `>= 4`)
+
+**Layout Changes:**
+
+**Before:**
+```
+You win 52% of your serve points          52%
+```
+(Percentage shown twice, description on left)
+
+**After:**
+```
+52%  service points won
+```
+(Percentage once on left, short description on right, aligned)
+
+**All Metrics - Final Text:**
+
+**Serve Performance Card:**
+- Primary: `52%  service points won`
+- Secondary 1: `8%   of your serves are faults`
+- Secondary 2: `45%  of your 3rd ball attacks win the point immediately`
+- Secondary 3: `12%  of your 3rd ball attacks are unforced errors`
+
+**Receive Performance Card:**
+- Primary: `48%  points won when receiving`
+- Secondary 1: `15%  of your returns are errors`
+- Secondary 2: `25%  of receive points end with you being forced into an error`
+- Secondary 3: `60%  of your rallies as the receiver survive past the opening exchange (5+ shots)`
+
+**3rd Ball Effectiveness Card:**
+- Primary: `35%  3rd ball attacks win immediately`
+- Secondary 1: `20%  of your 3rd ball attacks are unreturnable winners`
+- Secondary 2: `15%  of your 3rd ball attacks force opponent errors`
+- Secondary 3: `30%  of your 3rd ball attacks are unforced errors`
+
+**UX Improvements:**
+- ✅ Dashboard-style layout with left-aligned percentages
+- ✅ All text descriptions aligned vertically (easy to scan)
+- ✅ Fixed-width percentage column (w-16) ensures consistent alignment
+- ✅ Shorter, clearer descriptions (no redundant "You win X%" prefix)
+- ✅ Percentage appears once (not duplicated)
+- ✅ No divider breaking visual flow
+- ✅ More professional, data-dashboard appearance
+
+**Files Modified:**
+1. `app/src/ui-mine/BasicInsightCardTemplate/BasicInsightCardTemplate.tsx`:
+   - Swapped order: percentage first, description second
+   - Changed from `justify-between` to `gap-4` with fixed-width percentage
+   - Added `w-16` to percentage div for alignment
+   - Removed `border-t` divider from expanded section
+   - Changed to `items-start` for multi-line text support
+
+2. `app/src/rules/analytics/calculateReceivePerformance.ts`:
+   - Changed neutralization threshold from `>= 4` to `>= 5`
+
+3. `app/src/features/analytics/blocks/ServePerformanceCard.tsx`:
+   - Simplified primary description: "service points won"
+   - Removed percentage prefix from all descriptions
+
+4. `app/src/features/analytics/blocks/ReceivePerformanceCard.tsx`:
+   - Simplified primary description: "points won when receiving"
+   - Updated forced error text: "of receive points end with you being forced into an error"
+   - Updated neutralization text: "of your rallies as the receiver survive past the opening exchange (5+ shots)"
+
+5. `app/src/features/analytics/blocks/ThirdBallCard.tsx`:
+   - Simplified primary description: "3rd ball attacks win immediately"
+   - Removed percentage prefix from all descriptions
+
+**Version:** v3.16.0
+
+---
+
+### 2025-12-10: Collapsible Cards with Horizontal Metric Layout (v3.14.0)
+
+**Change Type:** UI/UX Enhancement - Analytics Cards
+
+**What Changed:**
+- Made analytics cards expandable/collapsible (click to toggle)
+- Changed metric layout to horizontal: large stat on LEFT, description on RIGHT
+- Moved insight text to always-visible collapsed state
+- Hidden secondary metrics, chart, and coaching in expandable section
+- Added visual feedback (chevron icons, hover states, border highlighting)
+
+**New Card Behavior:**
+
+**Collapsed State (Default):**
+- Primary metric with horizontal layout (stat LEFT, description RIGHT)
+- Insight text below primary metric
+- Compact view showing key information
+- Click anywhere to expand
+
+**Expanded State:**
+- All collapsed content remains visible
+- Secondary metrics revealed (2x2 grid, same horizontal layout)
+- Chart area revealed
+- Coaching recommendation revealed
+- Border color changes to brand primary
+- Click anywhere to collapse
+
+**Layout Changes:**
+
+**Primary Metric Container:**
+```
+┌─────────────────────────────────────────┐
+│ Label (small text)                      │
+│ ┌──────┬──────────────────────────────┐ │
+│ │ 73%  │ Description text explaining  │ │
+│ │(5xl) │ what this metric means       │ │
+│ └──────┴──────────────────────────────┘ │
+└─────────────────────────────────────────┘
+```
+
+**Secondary Metric Container (2 per row):**
+```
+┌──────────────────────┐ ┌──────────────────────┐
+│ Label                │ │ Label                │
+│ ┌────┬────────────┐  │ │ ┌────┬────────────┐  │
+│ │45% │Description │  │ │ │12% │Description │  │
+│ └────┴────────────┘  │ │ └────┴────────────┘  │
+└──────────────────────┘ └──────────────────────┘
+```
+
+**Visual Enhancements:**
+- Hover state: Border color transitions to lighter shade
+- Expanded state: Border becomes brand-primary tinted
+- Chevron icon (up/down) indicates expand/collapse state
+- Cursor changes to pointer indicating clickability
+- Smooth transitions for better UX
+
+**Benefits:**
+- ✅ Compact default view reduces page height
+- ✅ Quick scanning of primary metrics and insights
+- ✅ Details available on-demand without navigation
+- ✅ Better use of horizontal space (stat + description side-by-side)
+- ✅ More professional, dashboard-like appearance
+- ✅ Improved information hierarchy
+
+**Files Modified:**
+1. `app/src/ui-mine/BasicInsightCardTemplate/BasicInsightCardTemplate.tsx`:
+   - Added `isExpanded` state with `useState`
+   - Made entire card clickable (`onClick` on Card component)
+   - Added chevron icons to header (up when expanded, down when collapsed)
+   - Restructured primary metric: horizontal flex layout (stat LEFT, description RIGHT)
+   - Moved insight text outside expandable section (always visible)
+   - Wrapped secondary metrics, chart, and coaching in conditional render (`isExpanded`)
+   - Added visual feedback: hover states, border color changes
+   - Updated secondary metrics to same horizontal layout as primary
+
+2. `docs-match-analyser-edge-tt/Global_Analysis_Card_Prompts/analytics_card_implementation_guide.md`:
+   - Updated pattern documentation with collapse/expand behavior
+   - Documented horizontal layout pattern for metrics
+   - Added notes on interaction and visual feedback
+
+**No Changes Needed to Card Components:**
+- All three cards (Serve, Receive, 3rd Ball) work automatically with new template
+- Existing prop structure unchanged
+- Descriptions already in place from v3.13.0
+
+**User Experience:**
+- Users see key metrics immediately without scrolling
+- Can expand cards individually for deep dives
+- Dashboard remains scannable with multiple cards
+- Progressive disclosure pattern reduces cognitive load
+
+**Version:** v3.14.0
+
+---
+
+### 2025-12-10: Redesigned Analytics Card Layout with Inline Definitions (v3.13.0)
+
+**Change Type:** UI/UX Redesign - Analytics Cards
+
+**What Changed:**
+- Redesigned `BasicInsightCardTemplate` with inline metric definitions
+- Removed expandable methodology section in favor of always-visible descriptions
+- Standardized metric container layout (primary full-width, secondary 2-per-row)
+- Updated all three analytics cards with concise inline descriptions
+- Added 4th placeholder metric to each card (2x2 grid layout)
+
+**New Layout Pattern:**
+
+**Primary Metric Container (Full Width):**
+- Title/label at top
+- Large value display (colored by status)
+- Short description below (1-2 lines)
+- Contained in styled border box
+
+**Secondary Metrics (2 per row, 4 total):**
+- Title/label at top
+- Medium value display
+- Short description below (1-2 lines)
+- Equal height containers for visual consistency
+- Grid layout automatically responsive
+
+**Design Rationale:**
+- Definitions always visible → better user education
+- Consistent container heights → cleaner visual appearance
+- 2x2 secondary metric grid → balanced layout
+- Inline descriptions → eliminates need for expandable sections
+- Concise descriptions → keeps cards from becoming too tall
+
+**Files Modified:**
+
+1. `app/src/ui-mine/BasicInsightCardTemplate/BasicInsightCardTemplate.tsx`:
+   - Removed `methodology` prop and expandable section
+   - Added `description` field to primary and secondary metrics
+   - Restructured primary metric as full-width styled container
+   - Changed secondary metrics to 2-column grid with equal heights
+   - Updated spacing and typography for new layout
+
+2. `app/src/features/analytics/blocks/ServePerformanceCard.tsx`:
+   - Added description to primary metric: "Percentage of rallies won when serving"
+   - Added descriptions to all secondary metrics
+   - Added 4th placeholder metric: "Coming soon"
+   - Removed conditional 3rd ball error display (always show 4 metrics)
+
+3. `app/src/features/analytics/blocks/ReceivePerformanceCard.tsx`:
+   - Added description to primary metric: "Percentage of rallies won when receiving serve"
+   - Added descriptions: "Points lost immediately on return of serve", "Errors forced by opponent's serve or 3rd ball", "Rallies surviving past serve exchange (4+ shots)"
+   - Added 4th placeholder metric
+   - Removed `METHODOLOGY` constant (no longer needed)
+
+4. `app/src/features/analytics/blocks/ThirdBallCard.tsx`:
+   - Added description to primary metric: "3rd ball wins the point (winner or forced error)"
+   - Added descriptions: "Clean winners on shot 3", "Opponent errors immediately after 3rd ball", "Errors made on 3rd ball attack"
+   - Added 4th placeholder metric
+   - Removed `METHODOLOGY` constant
+
+5. `docs-match-analyser-edge-tt/Global_Analysis_Card_Prompts/analytics_card_implementation_guide.md`:
+   - Updated template example with new metric structure
+   - Documented 4-metric pattern (3 real + 1 placeholder)
+   - Added note on keeping descriptions concise (1-2 lines)
+   - Removed methodology section guidance
+
+**Visual Changes:**
+- Cards are slightly taller due to inline descriptions
+- More consistent visual rhythm with equal-height containers
+- Better information hierarchy (title → value → description)
+- Cleaner, more professional appearance
+
+**Benefits:**
+- ✅ Definitions always visible (educational)
+- ✅ No interaction needed to understand metrics
+- ✅ Consistent layout across all cards
+- ✅ Room to grow (4th metric placeholder)
+- ✅ Better mobile experience (no expandable sections)
+
+**Version:** v3.13.0
+
+---
+
+### 2025-12-10: Implemented Receive Performance and 3rd Ball Effectiveness Cards (v3.12.0)
+
+**Change Type:** Feature Implementation - Analytics
+
+**What Changed:**
+- Enhanced `BasicInsightCardTemplate` with expandable methodology section
+- Updated analytics implementation guide with methodology pattern
+- Implemented **Receive Performance** analytics card with real data
+- Implemented **3rd Ball Effectiveness** analytics card with real data
+- Created pure calculation functions in `rules/analytics`
+- Created derive hooks for data fetching and filtering
+
+---
+
+#### BasicInsightCardTemplate Enhancement
+
+**Added `methodology` Prop:**
+- Expandable "How are these metrics calculated?" section at card bottom
+- Click to show/hide full methodology with definitions and formulas
+- Keeps cards compact by default while providing transparency
+- Uses `useState` for toggle, `ChevronDown`/`ChevronUp` icons
+
+**Files Modified:**
+1. `app/src/ui-mine/BasicInsightCardTemplate/BasicInsightCardTemplate.tsx`:
+   - Added `methodology?: string` prop
+   - Added expandable section with toggle button
+   - Supports multi-line text with `whitespace-pre-line`
+
+2. `docs-match-analyser-edge-tt/Global_Analysis_Card_Prompts/analytics_card_implementation_guide.md`:
+   - Updated template example to include methodology
+   - Added note on formatting and usage
+
+---
+
+#### Receive Performance Card
+
+**Metrics Implemented:**
+
+1. **Primary Metric - Receive Win %:**
+   - Definition: Percentage of scoring rallies won when receiving
+   - Formula: `(rallies where receiver_id = playerId AND winner_id = playerId) / (rallies where receiver_id = playerId)`
+   - Status thresholds: Good ≥50%, Average 45-50%, Poor <45%
+
+2. **Secondary Metric - Receive Unforced Error %:**
+   - Definition: Percentage of receive points lost immediately on shot 2
+   - Detection: `rally.point_end_type = 'receiveError'` (primary indicator, least derived)
+   - Formula: `receiveErrors / totalReceiveRallies`
+
+3. **Secondary Metric - Forced Errors Conceded %:**
+   - Definition: Opponent's serve or 3rd ball forces player into error
+   - Detection: Shot by playerId with `is_rally_end = true` AND `rally_end_role = 'forced_error'`
+   - Includes both receive errors (shot 2) and 4th ball forced errors (after opponent's 3rd ball)
+   - Formula: `forcedErrorsConceded / totalReceiveRallies`
+
+4. **Secondary Metric - Neutralisation %:**
+   - Definition: Rally survives past serve/receive exchange (reaches shot 4+)
+   - Detection: `max(shot_index) >= 4` for receive rallies
+   - Formula: `neutralisedRallies / totalReceiveRallies`
+
+**Filter Implementation:**
+- Base filter: `receiver_id = playerId` AND `is_scoring = true`
+- Opponent filter: Filters to `server_id = opponentId` when specified
+- Context filter: Returns N/A when `contextFilter = 'serve_only'`
+
+**Insight & Coaching Logic:**
+- Good: Emphasizes neutralisation strength
+- Average: Identifies dominant issue (errors vs forced errors)
+- Poor: Highlights both receive errors and forced errors as issues
+- Coaching prioritizes: 1) High receive errors, 2) High forced errors, 3) Low neutralisation
+
+**Files Created:**
+1. `app/src/rules/analytics/calculateReceivePerformance.ts`
+2. `app/src/features/analytics/derive/useDeriveReceivePerformance.ts`
+
+**Files Modified:**
+1. `app/src/features/analytics/blocks/ReceivePerformanceCard.tsx`
+2. `app/src/features/analytics/derive/index.ts`
+3. `app/src/rules/analytics/index.ts`
+
+---
+
+#### 3rd Ball Effectiveness Card
+
+**Metrics Implemented:**
+
+1. **Primary Metric - 3rd Ball Success %:**
+   - Definition: 3rd ball leads to immediate point won (winner or forced error)
+   - Detection:
+     - Shot 3 by playerId is rally end with `rally_end_role = 'winner'`, OR
+     - Shot 4 by opponent is rally end with `rally_end_role = 'forced_error'`
+   - Formula: `thirdBallSuccesses / thirdBallOpportunities`
+   - Status thresholds: Good ≥40%, Average 30-40%, Poor <30%
+
+2. **Secondary Metric - 3rd Ball Winner %:**
+   - Definition: Clean winner on shot 3
+   - Detection: Shot 3 by playerId, `is_rally_end = true`, `rally_end_role = 'winner'`
+   - Formula: `thirdBallWinners / thirdBallOpportunities`
+
+3. **Secondary Metric - 3rd Ball Forced Error %:**
+   - Definition: 3rd ball forces opponent into error on shot 4
+   - Detection: Shot 4 by opponent, `is_rally_end = true`, `rally_end_role = 'forced_error'`
+   - Formula: `thirdBallForcedErrors / thirdBallOpportunities`
+
+4. **Secondary Metric - 3rd Ball Unforced Error %:**
+   - Definition: Unforced error on shot 3
+   - Detection: Shot 3 by playerId, `is_rally_end = true`, `rally_end_role = 'unforced_error'`
+   - Formula: `thirdBallUnforcedErrors / thirdBallOpportunities`
+
+**3rd Ball Opportunity Definition:**
+- Rally where `server_id = playerId`
+- Shot 3 exists with `player_id = playerId`
+- Rally reaches at least shot 3
+
+**Filter Implementation:**
+- Base filter: `server_id = playerId` AND `is_scoring = true`
+- Opponent filter: Filters to `receiver_id = opponentId` when specified
+- Context filter: Returns N/A when `contextFilter = 'receive_only'`
+
+**Insight & Coaching Logic:**
+- Good: Emphasizes dangerous 3rd ball as weapon
+- Average: Suggests reducing unforced errors
+- Poor: Highlights too many attacks ending in errors
+- Coaching prioritizes: 1) High UE rate, 2) Low success but low UE, 3) Reinforce strength
+
+**Files Created:**
+1. `app/src/rules/analytics/calculateThirdBallEffectiveness.ts`
+2. `app/src/features/analytics/derive/useDeriveThirdBallEffectiveness.ts`
+
+**Files Modified:**
+1. `app/src/features/analytics/blocks/ThirdBallCard.tsx`
+2. `app/src/features/analytics/derive/index.ts`
+3. `app/src/rules/analytics/index.ts`
+
+---
+
+#### Architecture & Design Patterns
+
+**Methodology Display Pattern:**
+- All cards now include comprehensive methodology in expandable section
+- Format: Multi-line string with clear definitions and formulas
+- Example structure:
+  ```
+  **Metric Name**: Definition
+  
+  **Secondary Metric**: Definition
+  
+  Clarifications and scope notes.
+  ```
+
+**Calculation Logic Philosophy:**
+- Use least derived indicators when possible (e.g., `point_end_type` over shot-level inference)
+- Break down complex metrics into clear, testable components
+- Handle edge cases gracefully (empty data, low sample sizes)
+
+**Filter Consistency:**
+- Serve Performance: N/A when `contextFilter = 'receive_only'`
+- Receive Performance: N/A when `contextFilter = 'serve_only'`
+- 3rd Ball: N/A when `contextFilter = 'receive_only'`
+
+**Architecture Compliance:**
+- ✅ Pure functions in `rules/` (no React, no IO)
+- ✅ Derive hooks query DB directly (hybrid pattern)
+- ✅ Card blocks use `BasicInsightCardTemplate`
+- ✅ Proper separation: calculation → derive → display
+- ✅ All imports from `@/ui-mine/*`
+- ✅ Methodology included for transparency
+
+**Version:** v3.12.0
+
+---
+
+### 2025-12-10: Implemented Serve Performance Analytics Card (v3.11.0)
+
+**Change Type:** Feature Implementation - Analytics
+
+**What Changed:**
+- Implemented complete serve performance analytics card with real data
+- Created pure calculation function `calculateServePerformance` in `rules/analytics`
+- Created derive hook `useDeriveServePerformance` for data fetching and filtering
+- Updated `ServePerformanceCard` component to display real metrics instead of placeholder data
+
+**Metrics Implemented:**
+
+1. **Primary Metric - Serve Win %:**
+   - Definition: Percentage of scoring rallies won when serving
+   - Formula: `(rallies where server_id = playerId AND winner_id = playerId) / (rallies where server_id = playerId)`
+   - Status thresholds: Good ≥55%, Average 48-55%, Poor <48%
+
+2. **Secondary Metric - Service Fault %:**
+   - Definition: Percentage of service points lost to immediate serve error
+   - Detection: Rallies where `point_end_type = 'serviceFault'`
+   - Formula: `serviceFaults / totalServeRallies`
+
+3. **Secondary Metric - 3rd Ball Win %:**
+   - Definition: Percentage of service points won with 3rd ball (shot_index = 3) or immediate forced error
+   - Detection: 
+     - Shot 3 by playerId is rally end with `rally_end_role = 'winner'`, OR
+     - Shot 4 by opponent is rally end with `rally_end_role = 'forced_error'`
+   - Formula: `thirdBallWins / thirdBallOpportunities`
+
+4. **Secondary Metric - 3rd Ball Error %:**
+   - Definition: Percentage of 3rd ball opportunities resulting in unforced error
+   - Detection: Shot 3 where `is_rally_end = true` AND `rally_end_role = 'unforced_error'`
+   - Formula: `thirdBallErrors / thirdBallOpportunities`
+
+**Filter Implementation:**
+- **Player Filter:** Required - analyzes rallies where `server_id = playerId`
+- **Opponent Filter:** When specified, filters to `receiver_id = opponentId` (serve performance vs specific opponent)
+- **Scope Filter:** Supports single_match, recent_n_matches, date_range
+- **Set Filter:** Filters to specific set number or 'all' sets
+- **Context Filter:** 
+  - 'serve_only' or 'all_points': Shows serve data (normal operation)
+  - 'receive_only': Returns empty/N/A (logical consistency check)
+
+**Insight & Coaching Logic:**
+- Rule-based insight generation based on performance status
+- Prioritized coaching recommendations:
+  1. High fault rate (>10%): Focus on consistency
+  2. Low 3rd ball win + high errors: Work on safer attack
+  3. Good performance: Reinforce patterns
+  4. Default: Improve serve placement for easier 3rd balls
+
+**Files Created:**
+1. `app/src/rules/analytics/calculateServePerformance.ts`:
+   - Pure calculation function with no dependencies on React/IO
+   - Metrics calculation, status determination, insight/recommendation generation
+   - Fully typed with exported interfaces
+
+2. `app/src/features/analytics/derive/useDeriveServePerformance.ts`:
+   - React hook for data fetching and filtering
+   - Implements match scope resolution (single/recent/date range)
+   - Applies all filters (player, opponent, set, context)
+   - Returns formatted data ready for card display
+
+**Files Modified:**
+1. `app/src/features/analytics/blocks/ServePerformanceCard.tsx`:
+   - Replaced placeholder mock data with real hook integration
+   - Added loading, error, and empty states
+   - Conditional display of 3rd ball errors (only if opportunities exist)
+   - Dynamic footer text based on scope
+
+2. `app/src/features/analytics/derive/index.ts`:
+   - Exported `useDeriveServePerformance` hook
+
+3. `app/src/rules/analytics/index.ts`:
+   - Exported all serve performance calculation functions
+
+**Architecture Compliance:**
+- ✅ Pure functions in `rules/` (no React, no IO)
+- ✅ Derive hooks query DB directly (hybrid pattern)
+- ✅ Card blocks use `BasicInsightCardTemplate`
+- ✅ Proper separation: calculation → derive → display
+- ✅ All imports from `@/ui-mine/*` (not `@/components/ui/*`)
+
+**Version:** v3.11.0
+
+---
+
+### 2025-12-10: Fixed Analytics Page Styling to Match Other Pages (v3.10.1)
+
+**Change Type:** Bug Fix - UI/UX
+
+**What Changed:**
+- Updated `Analytics.tsx` page to use consistent wrapper pattern with responsive padding
+- Updated `AnalyticsComposer.tsx` to follow project conventions for composer layout
+- Added icon (BarChart3) to analytics header to match other page headers
+- Added placeholder content card with proper styling
+
+**Problem Solved:**
+Analytics page was not using the same layout/styling pattern as other pages (Matches, DataViewer). The composer was applying its own padding instead of following the established pattern where the page provides wrapper styling.
+
+**Pattern Applied:**
+- **Page Level**: Provides `w-full` → `max-w-7xl mx-auto p-4 md:p-6` wrapper
+- **Composer Level**: Uses `space-y-6` for vertical spacing, no padding
+- **Header**: Consistent with responsive text sizes, icon, and description
+
+**Files Modified:**
+1. `app/src/pages/Analytics.tsx`:
+   - Added wrapper div structure matching Matches page pattern
+2. `app/src/features/analytics/composers/AnalyticsComposer.tsx`:
+   - Removed `p-8` padding
+   - Changed to `space-y-6` root container
+   - Added responsive header with BarChart3 icon
+   - Added placeholder card with proper bg-bg-card styling
+
+**Version:** v3.10.1
+
+---
+
+### 2025-12-10: Removed Stats Feature and Created Analytics Scaffolding (v3.10.0)
+
+**Change Type:** Major Refactor - Architecture
+
+**What Changed:**
+- Deleted entire `stats` feature folder and all its contents
+- Deleted `stats` rules folder and all statistics calculation functions
+- Deleted `Stats.tsx` page
+- Created new `analytics` feature folder with proper scaffolding structure
+- Created new `analytics` rules folder for future calculation functions
+- Created new `Analytics.tsx` page
+- Updated routing from `/stats` to `/analytics`
+- Updated sidebar navigation label from "Stats" to "Analytics"
+
+**Rationale:**
+The existing stats feature was built as a prototype with specific assumptions about data display and analysis. We need to rebuild the analytics capability from scratch with:
+1. Proper card-based template system for statistical analysis
+2. Clean architecture following project conventions
+3. Flexibility to add new analysis types without technical debt
+4. Better alignment with planned analytics requirements
+
+**Files Deleted:**
+1. `app/src/pages/Stats.tsx`
+2. `app/src/features/stats/` (entire folder with all subfolders and files):
+   - `blocks/` - RallyListBlock, StatCardBlock, StatRowBlock
+   - `composers/` - StatsComposer
+   - `derive/` - derivePlayerStats, deriveRawData
+   - `sections/` - ErrorAnalysisSection, MatchSummarySection, RawDataSection, ServeReceiveSection, TacticalSection
+   - `models.ts`, `index.ts`
+3. `app/src/rules/stats/` (entire folder):
+   - errorStats.ts
+   - matchPerformanceStats.ts
+   - serveReceiveStats.ts
+   - tacticalStats.ts
+
+**Files Modified:**
+1. `app/src/App.tsx`:
+   - Changed import from `StatsPage` to `AnalyticsPage`
+   - Changed route from `/stats` to `/analytics`
+2. `app/src/components/layout/Sidebar.tsx`:
+   - Changed nav item label from "Stats" to "Analytics"
+   - Changed route from `/stats` to `/analytics`
+3. `app/src/pages/index.ts`:
+   - Changed export from `StatsPage` to `AnalyticsPage`
+4. `app/src/rules/index.ts`:
+   - Updated documentation comments to replace `stats/` with `analytics/`
+   - Changed export from `stats` to `analytics`
+
+**Files Created:**
+
+**Analytics Feature Structure:**
+1. `app/src/pages/Analytics.tsx` - Route page component
+2. `app/src/features/analytics/`:
+   - `index.ts` - Feature exports
+   - `models.ts` - View model types (stubbed for future)
+   - `composers/`:
+     - `index.ts` - Composer exports
+     - `AnalyticsComposer.tsx` - Main orchestration component (minimal scaffold)
+   - `sections/index.ts` - Section exports (empty placeholder)
+   - `blocks/index.ts` - Block exports (empty placeholder)
+   - `derive/index.ts` - Derive hook exports (empty placeholder)
+3. `app/src/rules/analytics/`:
+   - `index.ts` - Pure calculation function exports (empty placeholder)
+
+**Current State:**
+The analytics page displays a minimal placeholder:
+- Title: "Analytics"
+- Message: "Statistical analysis cards will be built here."
+
+**Next Steps:**
+1. Define analytics card templates based on requirements
+2. Build card components in `features/analytics/blocks/`
+3. Create section components for card layouts
+4. Implement pure calculation functions in `rules/analytics/`
+5. Add derive hooks for view model transformations
+
+**Version:** v3.10.0
+
+---
+
+### 2025-12-10: Fixed Sidebar Navigation - Collapsible at All Screen Sizes (v3.9.2)
+
+**Change Type:** Bug Fix - UI/UX
+
+**What Changed:**
+- Removed automatic sidebar expansion at desktop widths (lg breakpoint and above)
+- Sidebar is now collapsible at all screen sizes using the hamburger menu
+- Eliminated issue where sidebar covered page content on desktop with no way to close it
+
+**Problem Solved:**
+Previously, the sidebar had two behaviors:
+- **Mobile (< 1024px):** Collapsible via hamburger menu with backdrop overlay
+- **Desktop (≥ 1024px):** Permanently visible, fixed position, covering content underneath
+
+This caused critical UX issues on desktop where:
+1. Sidebar covered key page elements
+2. No close button or mechanism available
+3. Content was inaccessible behind the sidebar
+
+**Technical Details:**
+
+**Files Modified:**
+1. `app/src/components/layout/AppShell.tsx`:
+   - Removed `lg:hidden` class from header (line 12) - now visible at all widths
+   - Removed separate "Desktop Sidebar" section that forced permanent visibility
+   - Removed `lg:hidden` classes from backdrop and sidebar overlay - now work at all widths
+   - Removed `lg:flex-row` from main container - simplified to single column layout
+   - Updated main content to use `mt-14` at all widths (consistent header height)
+
+**UI Changes:**
+
+**Before Fix:**
+- Desktop: Sidebar always visible, fixed, covering content, no close option
+- Mobile: Sidebar collapsible with hamburger menu
+
+**After Fix:**
+- All widths: Hamburger menu in top header
+- All widths: Sidebar opens as overlay with backdrop
+- All widths: Click backdrop or X button to close
+- Content never covered - sidebar slides over with dismissible backdrop
+
+**User Benefits:**
+- Consistent navigation behavior across all screen sizes
+- Full access to page content on desktop
+- Users control when sidebar is visible
+- No hidden or inaccessible UI elements
+
+**Version:** v3.9.2
+
+---
+
+### 2025-12-10: Fix In-Progress Rally Display - Hide Winner Info (v3.9.1)
+
+**Change Type:** Bug Fix - UI/UX
+
+**What Changed:**
+- Fixed `RallyCard` component to hide winner/end condition information for in-progress rallies
+- Modified Phase 1 to pass empty `winnerName` for current rally (cleaner, value not displayed anyway)
+- In-progress rallies now show only rally number, "(In Progress)" status, and server name on the left side
+- Right side of rally card header remains empty until rally is completed
+
+**Problem Solved:**
+During Phase 1 tagging, when the "Tag Serve" button was pressed and shots were added to the current rally, the shot log displayed confusing text on the right side: **"In Progress won Winner"**. This was incorrect because:
+1. We don't know the winner until the rally is complete
+2. We don't know the end condition until the rally is complete
+3. "In Progress" was already shown in the rally header as "Rally X (In Progress)"
+
+**Technical Details:**
+
+**Files Modified:**
+1. `app/src/features/shot-tagging-engine/blocks/RallyCard.tsx` (lines 70-76):
+   - Added conditional rendering: `{!isCurrent && ...}` around winner/end condition div
+   - Winner information now only displays for completed rallies (when `isCurrent={false}`)
+   - In-progress rallies (`isCurrent={true}`) show empty right side
+
+2. `app/src/features/shot-tagging-engine/composers/Phase1TimestampComposer.tsx` (line 752):
+   - Changed `winnerName="In Progress"` to `winnerName=""` for clarity
+   - Value is not displayed anyway due to conditional rendering in RallyCard
+
+**UI Changes:**
+
+**Before Fix:**
+- In-progress rally header: `Rally 1 (In Progress) | Server: Alice` → `In Progress won Winner`
+- Confusing and inaccurate display
+
+**After Fix:**
+- In-progress rally header: `Rally 1 (In Progress) | Server: Alice` → *(empty right side)*
+- Completed rally header: `Rally 1 | Server: Alice` → `Bob won Winner` *(unchanged)*
+
+**User Benefits:**
+- Cleaner, more accurate display during Phase 1 tagging
+- No confusing "In Progress won Winner" text
+- Clear visual distinction between in-progress and completed rallies
+
+**Rationale:**
+The `RallyCard` component is used across all three phases with different detail levels. Using the existing `isCurrent` prop to conditionally hide winner information is the cleanest solution that preserves component flexibility while fixing the display bug.
+
+---
+
+### 2025-12-10: Add 'fault' Shot Result for Phase 1 Forced Errors (v3.9.0)
+
+**Change Type:** Data Model Enhancement + Bug Fix
+
+**What Changed:**
+- Added new `shot_result` value: `'fault'` to represent errors where specific type (in-net vs missed-long) is unknown
+- Phase 1 forced errors now save `shot_result = 'fault'` instead of incorrectly defaulting to `'missed_long'`
+- Phase 2 now asks "Error Placement" question (Net/Long) for all error shots before asking "Error Type" (Forced/Unforced)
+- Phase 2 resolves `'fault'` to actual error type (`'in_net'` or `'missed_long'`) based on user input
+- Updated all rules layer logic to correctly treat `'fault'` as an error condition
+
+**Problem Solved:**
+In Phase 1, when the "Forced Error" button is pressed, we know the opponent made an error but don't know if it went in-net or long. The previous implementation incorrectly assumed all forced errors were `'missed_long'`, which was inaccurate for errors that hit the net.
+
+**Technical Details:**
+
+**Type Definition Changes:**
+- `app/src/data/entities/shots/shot.types.ts`:
+  - Updated `ShotResult` type: `'in_net' | 'missed_long' | 'missed_wide' | 'in_play' | 'fault'`
+  - `'fault'` represents "error occurred, specific type unknown"
+
+**Phase 1 Data Mapping:**
+- `app/src/features/shot-tagging-engine/composers/dataMapping.ts`:
+  - Line 308: Changed forced error mapping from `shotResult = 'missed_long'` to `shotResult = 'fault'`
+  - Unforced errors (In-Net/Long buttons) continue to save specific error types immediately
+
+**Phase 2 Workflow Enhancement:**
+- `app/src/features/shot-tagging-engine/composers/Phase2DetailComposer.tsx`:
+  - Added `errorPlacement?: 'net' | 'long'` to `DetailedShot` interface
+  - Added `'errorPlacement'` to `ErrorStep` type (error question flow)
+  - **New Error Shot Flow:** stroke → direction → intent → **errorPlacement** → errorType → next shot
+  - Added error placement UI: `InNetButton` and `ShotMissedButton` (Long)
+  - Save logic now updates `shot_result` from `'fault'` to `'in_net'` or `'missed_long'` based on user answer
+  - Added `errorPlacement` to shot details display
+
+**Rules Layer Updates (8 files):**
+All error detection logic updated to treat `'fault'` as an error condition:
+- `app/src/rules/infer/shot-level/inferShotType.ts` - Added `'fault'` to `isError` check
+- `app/src/rules/infer/rally-patterns/inferMovement.ts` - Added `'fault'` to severity check
+- `app/src/rules/stats/tacticalStats.ts` - Added `'fault'` to error detection
+- `app/src/rules/infer/rally-patterns/inferTacticalPatterns.ts` - Added `'fault'` to error checks
+
+**Files using `shot_result !== 'in_play'` (already correct, no changes needed):**
+- `app/src/rules/derive/shot/deriveShot_rally_end_role.ts` ✓
+- `app/src/rules/derive/rally/deriveRally_winner_id.ts` ✓
+- `app/src/rules/infer/shot-level/inferPressure.ts` ✓
+- `app/src/rules/stats/errorStats.ts` ✓
+
+**Data Flow:**
+1. **Phase 1:** User presses "Forced Error" → `shot_result = 'fault'` saved to DB
+2. **Phase 2:** User answers "Error Placement" → Net or Long
+3. **Phase 2 Save:** `shot_result` updated from `'fault'` to `'in_net'` or `'missed_long'`
+4. **Stats:** Error stats correctly count `'fault'` as errors; net/long breakdown excludes unresolved faults
+
+**Backward Compatibility:**
+- Existing forced errors with `shot_result = 'missed_long'` continue to work correctly
+- Only new forced errors tagged after this change will use `'fault'` initially
+- No data migration required
+
+**User Benefits:**
+- More accurate error tracking - forced errors no longer assumed to be long/missed
+- Better data quality for analysis and statistics
+- Phase 2 workflow now captures complete error information
+
+**Rationale:**
+When pressing "Forced Error" in Phase 1, we're tagging at full speed and don't have time to specify error placement. The error type (net vs long) should be determined during Phase 2 detailed review, not guessed in Phase 1. The `'fault'` value represents this intermediate state where we know an error occurred but haven't yet specified the details.
+
+**Testing Checklist:**
+- ✓ Phase 1: Press Forced Error → verify `shot_result = 'fault'` saved to DB
+- ✓ Phase 2: Review forced error shot → verify "Error Placement" question appears
+- ✓ Phase 2: Answer "Net" → verify `shot_result` updated to `'in_net'`
+- ✓ Phase 2: Answer "Long" → verify `shot_result` updated to `'missed_long'`
+- ✓ Stats: Error stats correctly count `'fault'` shots as errors
+- ✓ Stats: Net/long breakdown handles unresolved `'fault'` shots appropriately
+
+---
+
+### 2025-12-10: Phase 2 In-Progress Button Updates - Run Inference & Selective Redo (v3.8.0)
+
+**Change Type:** Feature Enhancement - UI/UX & Data Management
+
+**What Changed:**
+- Replaced "Continue Phase 2" button with "Run Inference" for `phase2_in_progress` sets
+- Replaced "Redo" button with "Redo Phase 2" for clarity
+- Added selective deletion mode: "Redo Phase 2" preserves Phase 1 data
+- Added "Run Inference" handler that marks set as `phase2_complete` and navigates to Phase 3
+- Phase 3 (inference) is now clearly separated from Phase 2 (tagging)
+
+**Button States Updated:**
+
+**When `phase2_in_progress`:**
+- **Primary:** "Run Inference" (NEW) - marks complete, navigates to Phase 3 inference view
+- **Secondary:** "Redo Phase 2" (RENAMED) - deletes Phase 2 data only, keeps Phase 1
+
+**Existing States (no change):**
+- **`not_started`:** "Tag Phase 1" + "Score"
+- **`phase1_in_progress`:** "Continue Phase 1" + "Redo"
+- **`phase1_complete`:** "Tag Phase 2" + "Redo Phase 1"
+- **`complete`:** "View Data" + "Redo"
+
+**Technical Details:**
+
+**Database Changes:**
+- Extended `deleteTaggingData()` function with mode parameter:
+  - `mode: 'all'` - Full deletion (Phase 1 + Phase 2), reset to `not_started`
+  - `mode: 'phase2_only'` - Selective deletion (Phase 2 only), reset to `phase1_complete`
+- Phase 2 only deletion resets shot fields to Phase 1 state:
+  - Clears: `shot_origin`, `shot_target`, `shot_wing`, `intent`, `shot_quality`, etc.
+  - Preserves: `timestamp_start`, `shot_index`, `player_id`, `rally_id`, `shot_result`, `rally_end_role`
+  - Keeps all Phase 1 rallies intact
+- Rally `detail_complete` flag reset to `false`
+
+**URL Parameters:**
+- `?redo=true` - Full redo (existing behavior, deletes all data)
+- `?redo=phase2` (NEW) - Phase 2 redo only (preserves Phase 1 data)
+
+**Phase Flow Clarification:**
+- **Phase 1:** Timestamp tagging → ends with `tagging_phase: 'phase1_complete'`
+- **Phase 2:** Detail tagging → ends with `tagging_phase: 'phase2_complete'`
+- **Phase 3:** Inference processing → separate phase (no longer part of Phase 2)
+- "Run Inference" button marks set as `phase2_complete` BEFORE navigating to Phase 3
+
+**Affected Components:**
+- `app/src/data/entities/sets/set.db.ts` - Added selective deletion mode
+- `app/src/features/match-management/sections/SetSelectionModal.tsx` - Updated buttons and handlers
+- `app/src/features/shot-tagging-engine/composers/TaggingUIComposer.tsx` - Added redo mode handling
+
+**User Benefits:**
+- Clearer separation between tagging (Phase 2) and inference (Phase 3)
+- Ability to redo Phase 2 tagging without losing Phase 1 timestamps (saves significant time)
+- Progressive backstep workflow: Phase 2 → Phase 1 → Not Started
+- Explicit "Run Inference" action makes workflow transparent
+
+**Rationale:**
+- Phase 2 tagging is time-consuming; users should not lose Phase 1 data when redoing detail questions
+- Inference is a separate concern from manual tagging and should be a distinct phase
+- Clear button labels reduce confusion about workflow state
+- Selective deletion supports iterative refinement of tagging without full restart
+
+**Testing:**
+- Verify "Run Inference" marks set as `phase2_complete` and navigates to Phase 3
+- Verify "Redo Phase 2" clears Phase 2 data but preserves Phase 1 rallies and shots
+- Verify Phase 1 data remains intact after Phase 2 redo (rally timestamps, shot contacts)
+- Verify full "Redo Phase 1" still deletes all data and resets to `not_started`
+- Check confirmation dialogs show correct messages for each redo type
+
+---
+
+### 2025-12-10: Fixed Button Overlap in Phase 1 Five-Column Grid (v3.7.1)
+
+**Change Type:** Bug Fix - UI/Layout
+
+**What Changed:**
+- Fixed button overlap issue in Phase 1 tagging UI with 5-column button grid
+- Modified `TableTennisButtonBase` component sizing constraints
+- Buttons now properly fit within grid cells while remaining square and centered
+
+**Technical Details:**
+
+**Previous Behavior:**
+- Buttons sized themselves based on grid height calculation: `(100vw - padding - gaps) / 4`
+- With 5 columns, grid cells were narrower than button width
+- Buttons overlapped horizontally due to width exceeding cell bounds
+- `maxWidth` constraint was based on grid height, not cell width
+
+**New Behavior:**
+- Buttons set explicit width/height to `var(--button-grid-height)` (maintains consistent sizing)
+- Added `max-w-full max-h-full` utility classes to constrain to grid cell dimensions
+- When cell width < button width, `max-w-full` caps the width
+- `aspect-square` ensures height adjusts to match capped width
+- Buttons stay square, centered, and never overflow their cells
+
+**Code Changes:**
+```typescript
+// Before (line 49-60)
+'h-full',          // Fill grid cell height
+'aspect-square',   // Keep buttons square
+maxWidth: 'var(--button-grid-height, 100%)'
+
+// After (line 50-62)
+'max-w-full max-h-full',  // Never exceed grid cell dimensions
+'aspect-square',           // Keep buttons square (constrained by smaller dimension)
+width: 'var(--button-grid-height, 100px)',
+height: 'var(--button-grid-height, 100px)'
+```
+
+**Affected Components:**
+- `app/src/ui-mine/TableTennisButtons/TableTennisButtonBase.tsx`
+- Used by Phase1ControlsBlock (5-column grid)
+- Also benefits all other button grid layouts (2-6 columns)
+
+**Testing:**
+- Verify Phase 1 buttons no longer overlap on various screen sizes
+- Confirm buttons remain square and centered
+- Check that buttons scale appropriately in all grid layouts (2-6 columns)
+
+**Rationale:**
+- Buttons must fit within available grid cell space without overflow
+- User experience degraded when buttons overlapped (tap targets unclear)
+- Fix maintains square aspect ratio and centered alignment as intended
+- Solution works for all grid column counts (2-6) without special cases
+
+---
+
+### 2025-12-10: Populate Dummy Data Feature in Settings (v3.7.0)
+
+**Change Type:** Feature Addition - Development Tools
+
+**What Changed:**
+- Added new "Populate Dummy Data" feature in Settings page
+- Created new feature module: `features/populate-dummy-data/`
+- Button appears below "Clear All Data" in Settings > Danger Zone
+- Button is **disabled unless database is empty** (no players or matches)
+- When clicked, populates database with test data for development and testing
+- **Mirrors complete match creation flow**: creates matches with all sets (matching MatchFormSection behavior)
+
+**Dummy Data Created:**
+
+**Players (4):**
+- Paul Overton - Right-handed Attacker
+- Ethan Overton - Right-handed Attacker
+- Ricardo Santos - Right-handed Attacker
+- Paulo Rocha - Right-handed Attacker
+
+**Matches (2) with Sets:**
+- Paul Overton vs Ricardo Santos - Friendly, 10/12/2025, Best of 3 (creates 3 sets)
+- Ethan Overton vs Paulo Rocha - Friendly, 10/12/2025, Best of 3 (creates 3 sets)
+
+**Feature Structure:**
+```
+features/populate-dummy-data/
+  ├── index.ts              # Public API exports
+  ├── dummyData.ts          # Dummy data definitions (easy to extend)
+  └── populateDummyData.ts  # Population service function
+```
+
+**UI Changes:**
+- Added "Populate Dummy Data" button in Settings
+- Button shows disabled state with warning message when database is not empty
+- Button shows "Populating..." state during data creation
+- Database empty status is checked on mount and after clearing data
+- Success/error alerts shown after population attempt
+
+**Technical Implementation:**
+- Uses existing player and match stores for data creation
+- Respects slug-based ID generation (generatePlayerId, generateMatchId, generateSetId)
+- All dummy data centralized in `dummyData.ts` for easy future additions
+- Service handles player creation first, then uses IDs for match creation
+- **Auto-creates all sets for each match** (mirrors MatchFormSection.tsx lines 93-118)
+- Sets follow service alternation logic: odd sets (1,3,5,7) = player1 serves, even sets (2,4,6) = player2 serves
+- Proper error handling with console logging and user alerts
+
+**Rationale:**
+- Speeds up development and testing workflows
+- Eliminates manual data entry for common test scenarios
+- Clear separation makes it easy to add more test data in the future
+- Button disabled state prevents accidental data corruption
+- Follows project architecture: features folder, clear separation of concerns
+
+**Future Extensibility:**
+- `dummyData.ts` can be easily expanded with more players, matches, sets, rallies, shots
+- Can add different test scenarios (tournaments, clubs, completed matches with video, etc.)
+- Service can be extended to handle more entity types as needed
+
+---
+
+### 2025-12-10: Add Forced Error Button to Phase 1 UI (v3.6.0)
+
+**Change Type:** Feature Addition - Phase 1 Tagging Enhancement
+
+**What Changed:**
+- Added 5th button to Phase 1 tagging UI: **Forced Error** button
+- Button grid expanded from 1x4 to 1x5 layout
+- New button order: `Shot Missed (Long)` | `In Net` | **`Forced Error`** | `Winning Shot` | `Serve/Shot`
+- Forced Error button uses grey table tennis button with "meh face" icon (matching ForcedErrorButton component)
+- Button is **disabled for shot 1 (serve)**, enabled for **shot 2+ (receive and rally shots)**
+- Phase 1 now captures forced vs unforced error classification immediately during tagging
+
+**Button Enable States:**
+| Rally State | Enabled Buttons |
+|-------------|-----------------|
+| Before serve (0 shots) | Only `Serve/Shot` |
+| After serve (1 shot) | `Long`, `Net`, `Win`, `Serve/Shot` — **NOT** Forced Error |
+| After receive (2+ shots) | `Long`, `Net`, `Forced Error`, `Win`, `Serve/Shot` — **ALL** |
+
+**Data Model Changes:**
+
+**Phase1Rally endCondition:**
+- Added `'forcederror'` to `EndCondition` type: `'innet' | 'long' | 'forcederror' | 'winner' | 'let'`
+
+**Rally-level point_end_type mapping:**
+```typescript
+// Shot 1 (serve) errors
+1 shot + Long/Net → 'serviceFault' (always unforced)
+
+// Shot 2 (receive) errors  
+2 shots + Long/Net → 'receiveError' (unforced receive error)
+2 shots + ForcedError → 'forcedError' (forced receive error)
+
+// Shot 3+ (rally) errors
+3+ shots + Long/Net → 'unforcedError'
+3+ shots + ForcedError → 'forcedError'
+
+// Winners
+Any shots + Win → 'winnerShot'
+```
+
+**Shot-level rally_end_role mapping (last shot only):**
+```typescript
+Shot 1 error (any button) → 'unforced_error' (service faults always unforced)
+Shot 2 error + Long/Net → 'unforced_error'
+Shot 2 error + ForcedError → 'forced_error'
+Shot 3+ error + Long/Net → 'unforced_error'
+Shot 3+ error + ForcedError → 'forced_error'
+Any shot + Win → 'winner'
+```
+
+**Files Modified:**
+- `app/src/features/shot-tagging-engine/blocks/Phase1ControlsBlock.tsx`
+  - Added `ForcedErrorButton` import
+  - Updated `EndCondition` type to include `'forcederror'`
+  - Changed `ButtonGrid columns={4}` → `columns={5}`
+  - Added `currentShotCount` prop to control button enable state
+  - Added `onForcedError` handler prop
+  - Inserted Forced Error button in 3rd position
+  - Button enabled only when `canEndRally && currentShotCount >= 2`
+
+- `app/src/features/shot-tagging-engine/composers/Phase1TimestampComposer.tsx`
+  - Added `handleForcedError()` handler function
+  - Updated `completeRally()` to handle `'forcederror'` end condition
+  - Updated winner derivation logic to handle forced errors
+  - Updated `isError` flag to include `endCondition === 'forcederror'`
+  - Updated `errorPlacement` to map forced errors to `'long'`
+  - Passed `currentShots.length` and `handleForcedError` to Phase1ControlsBlock
+
+- `app/src/features/shot-tagging-engine/composers/dataMapping.ts`
+  - Updated `EndCondition` type to include `'forcederror'`
+  - Refactored `mapPhase1RallyToDBRally()` with comprehensive logic:
+    - Shot 1 + error → `'serviceFault'`
+    - Shot 2 + Long/Net → `'receiveError'`
+    - Shot 2 + ForcedError → `'forcedError'`
+    - Shot 3+ + Long/Net → `'unforcedError'`
+    - Shot 3+ + ForcedError → `'forcedError'`
+  - Updated `mapPhase1ShotToDBShot()` to set `rally_end_role`:
+    - Shot 1 error → always `'unforced_error'`
+    - Shot 2+ error + ForcedError → `'forced_error'`
+    - Shot 2+ error + Long/Net → `'unforced_error'`
+  - Updated `convertDBRallyToPhase1Rally()` to reverse map `'forcedError'` → `'forcederror'`
+  - Updated `convertDBShotToDetailedShot()` to handle forced error end condition
+
+**Benefits:**
+- ✅ Error classification happens **during live tagging** when context is fresh
+- ✅ Reduces cognitive load in Phase 2 (no need to recall shot context)
+- ✅ Improves data accuracy by capturing forced/unforced immediately
+- ✅ Phase 2 can skip forced/unforced question for already-classified errors
+- ✅ Maintains correct service fault and receive error logic (always unforced for shot 1)
+- ✅ Allows forced receive errors (shot 2) to be captured correctly
+
+**Phase 2 Impact:**
+- Phase 2 Detail UI should **skip** the forced/unforced question for rallies where `point_end_type` is already `'forcedError'` or `'unforcedError'`
+- Only ask forced/unforced for legacy rallies where `point_end_type` is `null`
+
+**Rationale:**
+Taggers have the best context for error classification **during live tagging** when they can see the rally flow, opponent positioning, and shot quality. Capturing forced vs unforced during Phase 1 reduces the cognitive burden of recalling context in Phase 2, particularly for matches with many rallies. The button disable logic ensures service faults (shot 1) remain correctly classified as unforced, while allowing receive errors (shot 2) and rally errors (shot 3+) to be properly categorized.
+
+**Bug Fixes:**
+- Fixed `ButtonGrid.tsx` to support 5 columns (was only supporting 2/3/4/6)
+- Fixed `RallyCard.tsx` missing 'forcederror' in `EndCondition` type causing forced error rallies to display as "Let" and potentially not render correctly
+
+---
+
 ### 2025-12-10: Standardize Status Bar with 5-Column Template (v3.5.0)
 
 **Change Type:** UI/UX - Layout Standardization & Modularization
