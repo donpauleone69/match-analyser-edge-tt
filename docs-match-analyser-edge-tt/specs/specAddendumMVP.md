@@ -6,6 +6,66 @@
 
 ## Change Log
 
+### 2025-12-11: Added Inference Review Mode (v3.25.2)
+
+**Change Type:** Specification Update
+
+**What Changed:**
+- **Added** "Inference Review Mode" feature to `Next_MVP_Steps.md`
+
+**Feature Details: Visual Inference Validation**
+
+**Purpose:** Step through shots and visualize what the inference engine calculates for each shot.
+
+**Key Features:**
+- Step-through interface with video playback
+- Display all inferred attributes per shot:
+  - Pressure level (with confidence scores)
+  - Rally phase (serve/receive/third ball/rally)
+  - Shot effectiveness (winner/forced/unforced error)
+  - Server rotation validation
+  - Score tracking validation
+  - Player position inference
+- Side-by-side comparison: tagged data vs. inferred data
+- Error highlighting for mismatches
+- Manual correction capability
+- Re-run inference button
+- Overall accuracy metrics (e.g., "94.2% accurate")
+
+**Benefits:**
+- **Transparency:** See exactly what the system is inferring
+- **Validation:** Manually verify inference accuracy before production
+- **Debugging:** Identify and fix inference logic errors
+- **Confidence:** Build trust in automated inferences
+- **Education:** Learn what attributes are inferred vs. manually tagged
+- **Quality Assurance:** Ensure analytics are based on accurate data
+
+**Implementation:**
+- New route: `/inference-review/:matchId`
+- New UI: InferenceReviewComposer
+- Reuse video player (constrained playback per shot)
+- Display ShotInference data vs. Shot data
+- Add accuracy calculation rules
+
+**Use Cases:**
+- Validate inference engine before relying on it for analytics
+- Debug specific inference failures (e.g., wrong server, wrong score)
+- Build user confidence in automated inferences
+- Train users on what the system can infer
+- QA for edge cases and unusual rally patterns
+
+**Priority:** P1 — Essential for production confidence  
+**Effort:** Medium — New UI, reuses existing inference engine  
+**Timeline:** Week 2-3 (after data validation fixes)
+
+**Impact:**
+- Critical validation tool for inference engine
+- Builds confidence in automated analytics
+- Helps debug and improve inference logic
+- Transparency increases user trust
+
+---
+
 ### 2025-12-11: Added Tag Highlight Rallies Feature (v3.25.1)
 
 **Change Type:** Specification Update

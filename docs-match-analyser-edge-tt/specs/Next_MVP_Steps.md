@@ -117,6 +117,82 @@ This document outlines the immediate next steps for the MVP, prioritized by impa
 
 ---
 
+## Phase 1.5: Inference Engine Validation
+
+**Timeline:** 1 week  
+**Goal:** Validate and debug inference engine accuracy
+
+### 3.6. Inference Review Mode (Visual Validation)
+
+**Purpose:** Step through shots and visualize what the inference engine is calculating for each shot.
+
+**Problem:** Currently, inference runs silently in the background. No way to validate accuracy or debug incorrect inferences.
+
+**Features:**
+- [ ] **Inference Review Screen** — New UI mode for reviewing inferences
+- [ ] **Step-through interface** — Navigate shot-by-shot with video playback
+- [ ] **Inference visualization** — Show all inferred attributes for current shot:
+  - Shot pressure level (high/medium/low)
+  - Rally phase (serve/receive/third ball/rally)
+  - Shot effectiveness (winner/forced error/unforced error)
+  - Server rotation validation
+  - Score tracking validation
+  - Player position inference
+  - Any other derived/inferred attributes
+- [ ] **Side-by-side comparison** — Show tagged data vs. inferred data
+- [ ] **Confidence scores** — Display confidence level for each inference
+- [ ] **Error highlighting** — Flag mismatches between tagged and inferred data
+- [ ] **Manual corrections** — Allow user to correct incorrect inferences
+- [ ] **Re-run inference** — Button to re-run inference after fixing tagged data
+- [ ] **Accuracy metrics** — Show overall inference accuracy percentage
+
+**UI Layout:**
+```
+┌─────────────────────────────────────────────────────────┐
+│ Video Player (current shot highlighted)                │
+├────────────────────┬────────────────────────────────────┤
+│ Shot Navigation    │ Inference Details                  │
+│ ← Prev  [1/47]  →  │ ┌─ Pressure: HIGH (98% confidence)│
+│                    │ ├─ Phase: Third Ball Attack       │
+│ Jump to:           │ ├─ Effectiveness: Winner          │
+│ • First error      │ ├─ Server: Player A ✓             │
+│ • Mismatches only  │ ├─ Score: 3-2 ✓                   │
+│ • All shots        │ └─ Position: FH side (inferred)   │
+│                    │                                    │
+│ Accuracy: 94.2%    │ ⚠️ 3 mismatches found              │
+└────────────────────┴────────────────────────────────────┘
+```
+
+**Use Cases:**
+- Validate inference engine logic before production
+- Debug specific inference failures
+- Build confidence in automated inferences
+- Train users on what the system infers
+- Identify gaps in inference logic
+- Manual review of edge cases
+- Quality assurance for analytics accuracy
+
+**Implementation:**
+- New route: `/inference-review/:matchId`
+- New composer: `InferenceReviewComposer.tsx`
+- Reuse video player component (constrained playback)
+- Display all shot inferences from ShotInference table
+- Compare with manually tagged Shot data
+- Add accuracy calculation rules in `rules/analytics/`
+
+**Benefits:**
+- **Transparency:** See exactly what the system is thinking
+- **Validation:** Manually verify inference accuracy
+- **Debugging:** Identify and fix inference logic errors
+- **Confidence:** Build trust in automated inferences
+- **Education:** Learn what attributes are inferred vs. tagged
+
+**Impact:** HIGH — Essential for validating inference accuracy  
+**Effort:** MEDIUM — New UI, but reuses existing inference logic  
+**Priority:** P1 — Important before relying on inferences for analytics
+
+---
+
 ## Phase 2: Architecture Evolution
 
 **Timeline:** 2-3 weeks  
@@ -272,6 +348,7 @@ This document outlines the immediate next steps for the MVP, prioritized by impa
 | Data Validation Fixes | P0 | Medium | High | None |
 | UI/UX Polish | P1 | Medium | Medium | None |
 | Tag Highlight Rallies | P1 | Low | High | None |
+| Inference Review Mode | P1 | Medium | High | Data Validation |
 | Flexible Tagging Modules | P1 | High | High | None |
 | Authentication & User Context | P1 | Medium | High | None |
 | Supabase Migration | P1 | High | High | Authentication |
@@ -287,10 +364,16 @@ This document outlines the immediate next steps for the MVP, prioritized by impa
 3. Tag highlight rallies (P1 - quick win!)
 4. Start UI/UX polish (P1)
 
-### Week 3-4: Architecture
-1. Flexible tagging modules design (P1)
-2. Begin implementation
-3. Continue UI/UX polish
+### Week 2-3: Inference & Architecture
+1. Inference review mode (P1 - validation tool!)
+2. Flexible tagging modules design (P1)
+3. Begin flexible modules implementation
+4. Continue UI/UX polish
+
+### Week 4: Architecture Completion
+1. Complete flexible tagging modules (P1)
+2. Testing and refinement
+3. Finalize UI/UX polish
 
 ### Week 5-6: User Features
 1. Authentication & user context (P1)
@@ -310,6 +393,13 @@ This document outlines the immediate next steps for the MVP, prioritized by impa
 - ✅ Video player is smooth and responsive
 - ✅ No data inconsistencies between match and tagging data
 - ✅ UI looks professional and cohesive
+- ✅ Highlight rallies feature is functional
+
+### Phase 1.5 Complete When:
+- ✅ Inference review mode displays all inferences for each shot
+- ✅ Can step through shots with video playback
+- ✅ Mismatches between tagged and inferred data are highlighted
+- ✅ Inference accuracy metrics are calculated
 
 ### Phase 2 Complete When:
 - ✅ Users can choose which modules to tag
