@@ -6,6 +6,122 @@
 
 ## Change Log
 
+### 2025-12-11: docs-match-analyser-edge-tt Folder Major Cleanup (v3.23.0)
+
+**Change Type:** Documentation Consolidation & Cleanup
+
+**What Changed:**
+- **Deleted ~100 files** from docs folder (redundant/outdated/historical)
+- **Created consolidated spec** (MVP_Current_And_Roadmap.md)
+- **Renamed folder** Global_Analysis_Card_Prompts → analytics
+- **Final docs structure:** ~12 essential files, ~7,500 lines of quality documentation
+
+**Folders Deleted (5 folders, 59 files):**
+1. ❌ **Historical/** (29 HTML files) — Old UI prototypes, app is built
+2. ❌ **Figma_prompts_generated/** (22 MD files) — UI already built, specs outdated
+3. ❌ **videos/** (5 CSV files) — Test data exports
+4. ❌ **PlayerData/** (1 CSV file) — Test data
+5. ❌ **designs/** (2 HTML files) — Button design prototypes, built
+
+**chat_notes/ Cleanup (20+ files deleted):**
+- ❌ **MY NOTES/** folder — Personal temp notes (5+ files)
+- ❌ **Final/Final/** folder — Double-nested duplicates (6 files)
+- ❌ **Final/** folder — Outdated specs (3 files)
+- ❌ 4 gesture/inference duplicates (gestures_Intents_Inference_Engine*.md)
+- ❌ 6 outdated spec files (Spec_RallyCheckpointFlow.md, MVP_Descope, etc.)
+- ❌ Test data files (match-data CSV)
+- ✅ **Kept:** design_to_build_process.md, button_layout_flexible_width.md, video_export_and_constrained_playback.md
+
+**specs/ Cleanup (19 files deleted):**
+- ❌ FINAL_MVP_COMPLETE.md — Completion report
+- ❌ GapAnalysis_v0.9.5.md, GapResolution_Tasks.md — Gaps closed
+- ❌ Phase1_Setup_Flow_*.md (5 files) — Implementation complete
+- ❌ Implementation_RallyCheckpointFlow.md — Feature complete
+- ❌ Remove_Database_Saves_From_TaggingUIComposer.md — Refactoring complete
+- ❌ PERSISTENCE_TESTING_GUIDE.md, STATS_TESTING_GUIDE.md — Testing outdated
+- ❌ NotesTestingMVPPaul.md — Personal notes
+- ❌ MVP_flowchange.md — Redundant with MVP_flowchange_spec.md
+- ❌ shots_table.md — Redundant with DataSchema.md
+- ❌ logicanddiagrams.md, Analysis Engine.md — Outdated
+- ❌ figma_prompts (empty file)
+
+**Root Level Cleanup (2 files deleted):**
+- ❌ Tagger2StepUserFlow.md — Outdated workflow spec
+- ❌ v2_AItraining.md — Empty placeholder
+
+**New File Created:**
+- ✨ **specs/MVP_Current_And_Roadmap.md** — Consolidated spec
+  - Current state (v3.0) — What's implemented
+  - In progress — What's being worked on
+  - Roadmap — Supabase (Q1 2026), ML/AI (Q2), Video Export (Q3), Mobile (Q4)
+  - Feature status reference table
+  - Supersedes 20+ outdated spec files
+
+**Folder Reorganized:**
+- ✅ Global_Analysis_Card_Prompts/ → **analytics/**
+
+**Final Structure:**
+```
+docs-match-analyser-edge-tt/
+├── Architecture.md (v3.0) ✅
+├── DataSchema.md (v3.0) ✅
+├── Glossary.md ✅
+├── iOS_Video_Quick_Guide.md ✅
+├── LocalVideoHandling.md ✅
+├── specs/
+│   ├── specAddendumMVP.md ✅ Changelog
+│   ├── MVP_Current_And_Roadmap.md ✨ NEW - Consolidated spec
+│   ├── MVP_flowchange_spec.md ✅ Current workflow
+│   ├── MVP_flowchange_tasks.md ✅ Task tracking
+│   └── DesignSystem.md ✅ UI guidelines
+├── analytics/ (renamed)
+│   ├── analytics_card_implementation_guide.md ✅
+│   ├── context_prompt.md ✅
+│   └── phase1dataavailable.md ✅
+└── chat_notes/ (3 files kept)
+    ├── design_to_build_process.md
+    ├── button_layout_flexible_width.md
+    └── video_export_and_constrained_playback.md
+```
+
+**Files Deleted Summary:**
+- Historical prototypes: 29 HTML
+- Figma prompts: 22 MD
+- Test data: 6 CSV
+- Designs: 2 HTML
+- Outdated specs: 19 MD
+- Chat notes: 20+ MD/files
+- Root level: 2 MD
+- **Total: ~100 files deleted**
+
+**Documentation Quality:**
+- Before: 100+ files, massive redundancy, confusion about current state
+- After: ~15 essential files, single consolidated spec, clear structure
+- Result: -~15,000 lines of redundant docs, +~7,500 lines of quality docs
+
+**Rationale:**
+- docs folder is not for: prototypes, test data, personal notes, completed work logs
+- docs folder is for: current architecture, schema, specs, roadmap, guidelines
+- Single consolidated spec (MVP_Current_And_Roadmap.md) replaces 20+ fragmented specs
+- Clear separation: what's done vs what's planned
+- Professional structure ready for team/open source
+
+**Documentation Cleanup Progress (Complete):**
+- ✅ **v3.20.0** — Schema documentation (deleted 7 redundant schema docs)
+- ✅ **v3.21.0** — Architecture documentation (deleted 15 architecture/completion docs)
+- ✅ **v3.22.0** — Root folder cleanup (deleted 15 historical/bug/plan docs)
+- ✅ **v3.23.0** — docs folder cleanup (deleted ~100 redundant/outdated files)
+- **Total cleaned:** ~137 redundant documents deleted, 3 consolidated docs created
+
+**Impact:**
+- Cleaner, more professional documentation structure
+- Single source of truth for current state + roadmap
+- Easier navigation and onboarding
+- Historical work preserved in git history
+- Ready for Supabase migration and future features
+
+---
+
 ### 2025-12-11: Root Folder Documentation Cleanup (v3.22.0)
 
 **Change Type:** Documentation Cleanup
