@@ -6,6 +6,720 @@
 
 ## Change Log
 
+### 2025-12-11: Shot Tagging Engine Orchestration Document (v3.26.0)
+
+**Change Type:** Documentation - Agent Orchestration
+
+**What Changed:**
+- **Created** comprehensive orchestration document: `shotTaggingContext.md`
+- **Documented** complete Shot Tagging Engine architecture and workflows
+- **Established** systematic workflow for AI agents implementing features/fixes
+- **Defined** progress logging template for continuous agent collaboration
+
+**Purpose:**
+This document serves as a "live document" that enables AI agents to:
+1. Understand the Shot Tagging Engine system without repeated explanations
+2. Follow consistent workflows for implementing changes
+3. Document progress for the next agent to continue seamlessly
+4. Maintain code quality and project conventions
+
+**Document Structure:**
+
+**1. System Overview**
+- Purpose and key characteristics of the Shot Tagging Engine
+- Technology stack (React, TypeScript, Zustand, Dexie.js)
+- File locations and organization
+
+**2. Architecture & Code Organization**
+- Layer structure (Pages → Composers → Sections → Blocks → Rules → Data)
+- Naming conventions for components and functions
+- Clear separation of concerns
+
+**3. Data Flow & State Management**
+- Three state layers: Database (IndexedDB), UI State (Zustand), Component State (React)
+- State synchronization rules
+- Data flow diagram showing user action → composer → database → UI re-render
+
+**4. User Flows & Phases**
+- Phase 0: Session Initialization (resume/redo logic)
+- Phase 1: Timestamp Capture (setup, tagging, navigation, completion)
+- Phase 2: Shot Detail Tagging (question sequences, auto-advance)
+- Phase 3: Inference (optional analysis)
+
+**5. Database Interactions**
+- Entity relationships diagram
+- Key database operations with code examples
+- Database schema documentation for Sets, Rallies, Shots
+
+**6. Agent Workflow — How to Implement Changes**
+**Streamlined 4-step process (agents test everything end-to-end):**
+1. **Understand & Plan** — Quick mental model of what needs to happen
+2. **Implement** — Read → Edit → Test loop (test as you go in browser)
+3. **Verify End-to-End** — Complete testing with browser DevTools (no user testing)
+4. **Document & Clean Up** — Remove debug code, update progress log
+
+**Critical:** User will clarify requirements but will NOT test during implementation. Agents must verify everything using browser DevTools (console, IndexedDB inspection) and report only when feature is fully working.
+
+**7. Testing Strategy**
+- Manual testing checklists for all phases
+- Database verification techniques
+- Integration testing guidelines
+
+**8. Common Patterns & Conventions**
+- Import rules (what to use, what to avoid)
+- File structure patterns for composers and blocks
+- Rules layer patterns (pure functions only)
+- Database save patterns (optimistic UI, resume from DB)
+
+**9. Known Issues & Gotchas**
+- Performance issues (video player lag, seek accuracy)
+- Data consistency edge cases
+- UI/UX limitations
+- Browser compatibility notes
+
+**10. Agent Progress Log**
+- Template for documenting changes
+- Format: Date, Changes Made, Testing Performed, Issues Remaining, Notes for Next Agent
+- Agents append entries at bottom (never modify existing content)
+
+**Implementation Details:**
+
+**File:** `docs-match-analyser-edge-tt/shotTaggingContext.md`
+- **Location:** Documentation folder alongside Architecture.md and DataSchema.md
+- **Format:** Markdown with clear section hierarchy
+- **Length:** ~1000+ lines of comprehensive context
+- **Status:** Living document (agents append to progress log)
+
+**Key Features:**
+
+**Comprehensive Context:**
+- Explains entire system without requiring user to re-explain
+- Provides architecture diagrams and code examples
+- Documents all three tagging phases in detail
+- Includes database schema and state management
+
+**Systematic Workflow:**
+- Clear 7-step process for implementing any change
+- Emphasizes reading code before editing
+- Requires defining tests before implementing
+- Mandates progress logging for continuity
+
+**Code Examples:**
+- Real TypeScript code showing how to save rallies/shots
+- Database query patterns
+- State management examples
+- Component structure patterns
+
+**Avoids Common Mistakes:**
+- Lists "DO" and "DON'T" import rules
+- Warns against common pitfalls (duplicating logic, breaking types)
+- Documents known edge cases
+- Provides debugging tools and techniques
+
+**Progress Tracking:**
+- Agents log all changes in structured format
+- Next agent can read previous agent's notes
+- Creates continuity across sessions
+- Builds institutional knowledge over time
+
+**Rationale:**
+
+**Problem:**
+- Repeated explanations of Shot Tagging Engine architecture
+- Inconsistent implementation patterns across agents
+- Lost context between agent sessions
+- No systematic workflow for complex features
+
+**Solution:**
+- Single source of truth for Shot Tagging Engine context
+- Enforced workflow prevents ad-hoc implementations
+- Progress log creates continuity
+- Reduces user burden of re-explaining system
+
+**Benefits:**
+1. **Efficiency:** Agents start working faster with full context
+2. **Consistency:** Systematic workflow ensures quality
+3. **Continuity:** Progress log enables multi-session work
+4. **Knowledge Base:** Document grows with project experience
+5. **User Experience:** Less repetition, clearer communication
+
+**Usage Guidelines:**
+- **User requests change:** Agent reads context → implements → logs progress
+- **Multi-session work:** New agent reads previous logs → continues
+- **Bug fixes:** Agent consults "Known Issues" → implements fix → updates log
+- **Features:** Agent follows 7-step workflow → documents in log
+
+**Future Enhancements:**
+- Could add similar documents for Analytics, Data Audit, etc.
+- Could expand with automated test examples when tests added
+- Could include video walkthrough links
+- Could add troubleshooting decision trees
+
+**Technical Notes:**
+- Document is markdown-based for easy editing
+- Uses code fences for TypeScript examples
+- Includes diagrams in ASCII art for compatibility
+- Structured for easy navigation with table of contents
+
+**Related Documentation:**
+- `Architecture.md` — Overall project architecture
+- `DataSchema.md` — Database schema reference
+- `Shot_Tagging_Engine_Spec.md` — Detailed specification
+- `MVP_Current_And_Roadmap.md` — Current status and roadmap
+
+**Impact:**
+- **High** — Dramatically improves agent effectiveness on Shot Tagging Engine tasks
+- **Scalable** — Pattern can be applied to other features
+- **Maintainable** — Living document grows with project
+- **User-Friendly** — Reduces need for repeated explanations
+
+**Version:** v3.26.0
+**Date:** 2025-12-11
+**Author:** AI Agent
+**Status:** ✅ Complete and Ready for Use
+
+---
+
+### 2025-12-11: Global Player Color System for Phase 1 Tagging (v3.25.9)
+
+**Change Type:** UX Enhancement - Visual Feedback System
+
+**What Changed:**
+- **Added** comprehensive player color system throughout Phase 1 tagging interface
+- **Added** active tag tracking and highlighting in shot log
+- **Added** status bar color indication for active tag
+- **Applied** consistent player colors globally across all UI elements
+
+**Problem:**
+- No visual indication of which player a tag relates to in Phase 1
+- Difficult to identify mistags or find errors in shot log
+- No feedback when navigating through tags with back/forward buttons
+- Unclear which player served, hit shots, or won rallies
+- Hard to scan shot log for patterns or mistakes
+
+**Solution: Comprehensive Player Color System**
+
+**Global Color Scheme:**
+- **Player 1:** Blue `#3B82F6` (rgb(59, 130, 246))
+- **Player 2:** Orange `#F97316` (rgb(249, 115, 22))
+- Consistent across entire application (Phase 1 and Phase 2)
+- High contrast, colorblind-friendly, professional
+
+**Features Implemented:**
+
+**1. Status Bar Top Accent Bar**
+- Thin colored bar (1px) above status bar shows active tag's player
+- Blue for Player 1, Orange for Player 2
+- Smooth 300ms color transitions (no flash animations)
+- Persists while tag is active, disappears when back to live
+
+**2. Active Tag Tracking**
+- New state: `activeTagIndex` tracks current tag position
+- Updates when tagging, navigating back/forward, or deleting
+- Provides foundation for all visual feedback
+
+**3. Shot Log Active Highlighting**
+- Active tag shows **colored left border (4px) + subtle background**
+- Player 1: Blue border + `bg-blue-500/10` background
+- Player 2: Orange border + `bg-orange-500/10` background
+- Makes current position obvious when navigating
+
+**4. Colored Player Dots**
+- Every shot displays colored dot (2px) next to shot number
+- Blue for Player 1, Orange for Player 2
+- Grows to 3px with glow effect when shot is active
+- Enables instant visual scanning of player patterns
+
+**5. Player Name Coloring (Global)**
+- **Phase 1 Status Bar:** Player names in blue/orange (was neutral gray)
+- **Rally Cards:** Server name in player color
+- **Rally Cards:** Winner name in player color
+- **Shot List Items:** Player name in color for every shot
+- Consistent color usage builds mental association
+
+**Implementation Details:**
+
+**Components Modified:**
+
+1. **Phase1TimestampComposer.tsx:**
+   - Added `activeTagIndex` state tracking
+   - Added `getActiveTagPlayer()` helper function
+   - Updated `handleServeShot()` to set active tag when tagging
+   - Updated `handleShotBack()` to set active tag when navigating back
+   - Updated `handleShotForward()` to set active tag when navigating forward
+   - Updated `handleDelete()` to set active tag to previous after deletion
+   - Pass `playerTint={getActiveTagPlayer()}` to StatusBarSection
+   - Pass `playerColor` and `isActive` to all ShotListItem instances
+   - Pass `serverColor` and `winnerColor` to all RallyCard instances
+   - Colored player names in status bar (blue/orange text)
+
+2. **StatusBarSection.tsx:**
+   - Added `playerTint?: 'player1' | 'player2' | null` prop
+   - Added colored top accent bar (1px height)
+   - Smooth transitions between colors
+
+3. **ShotListItem.tsx:**
+   - Added `isActive?: boolean` prop
+   - Added `playerColor?: 'player1' | 'player2'` prop
+   - Added colored dot indicator (2px normal, 3px when active)
+   - Active shot gets colored left border + background
+   - Player name colored based on playerColor
+   - Active dot has glow effect (shadow)
+
+4. **RallyCard.tsx:**
+   - Added `serverColor?: 'player1' | 'player2'` prop
+   - Added `winnerColor?: 'player1' | 'player2'` prop
+   - Server name colored based on serverColor
+   - Winner name colored based on winnerColor
+
+**User Workflow Improvements:**
+
+**Tagging:**
+- Tag shot → Status bar accent turns blue/orange → Active shot highlighted in log
+- Immediate confirmation of which player was tagged
+- Can't miss the feedback (accent bar always visible)
+
+**Navigating:**
+- Press back button → Status bar accent changes color → Different shot highlighted
+- Shows which player's tag you're looking at
+- Easy to scan through tags to find specific player's shots
+
+**Finding Mistags:**
+- Scan shot log visually
+- Blue/orange dot pattern shows player sequence
+- Wrong color in pattern = mistag found
+- Navigate to that tag → highlighted with colored border → delete/fix
+
+**Example Pattern Detection:**
+```
+Rally 1:
+  ● Serve - John (blue)
+  ● Shot - Jane (orange)  ← Should be John! Pattern broken!
+  ● Shot - John (blue)
+```
+
+---
+
+### Technical Notes:
+
+**No Flash Animations:**
+- User requested no distracting flash effects
+- All transitions use smooth 300ms CSS transitions
+- Professional, calm visual experience
+
+**Accessibility:**
+- Colors chosen for colorblind accessibility (blue/orange)
+- Color not sole indicator (also has text labels, borders, dots)
+- High contrast ratios maintained
+
+**Performance:**
+- Minimal performance impact (CSS transitions only)
+- No JavaScript animations
+- Efficient re-renders
+
+---
+
+**Files Modified:**
+- `app/src/features/shot-tagging-engine/composers/Phase1TimestampComposer.tsx`
+- `app/src/features/shot-tagging-engine/sections/StatusBarSection.tsx`
+- `app/src/features/shot-tagging-engine/blocks/ShotListItem.tsx`
+- `app/src/features/shot-tagging-engine/blocks/RallyCard.tsx`
+
+---
+
+### 2025-12-11: Extended Duplicate Prevention to ALL Phase 1 Tagging Buttons (v3.25.8)
+
+**Change Type:** Bug Fix + UX Consistency
+
+**What Changed:**
+- **Extended** duplicate prevention logic to ALL Phase 1 tagging buttons (was only on Tag Shot/Serve)
+- ALL buttons now disabled when tag exists at or after current video position
+
+**Problem:**
+- Only the "Tag Shot/Serve" button checked for duplicate timestamps
+- Rally-ending buttons (Shot Missed, In Net, Forced Error, Winning Shot) did NOT check for duplicates
+- Users could create rally-end tags at duplicate or out-of-order timestamps
+- This caused timestamp ordering issues, shot index conflicts, and rally index problems
+
+**Solution:**
+- Applied duplicate prevention rule to ALL 5 Phase 1 tagging buttons
+- Rule: **"Only allow tagging when current video time is AFTER all existing tags"**
+- Buttons disabled when: current time ≤ any existing tag time (at or before)
+- Buttons enabled when: current time > all existing tag times (after all tags)
+
+**Changes Made:**
+
+1. **Renamed Prop for Clarity:**
+   - `isServeButtonDisabled` → `isDuplicateTag` (more generic, applies to all buttons)
+
+2. **Updated Phase1ControlsBlock.tsx:**
+   - Applied duplicate check to ALL buttons (combined with existing rules)
+   - Shot Missed: `disabled={!canEndRally || isDuplicateTag}`
+   - In Net: `disabled={!canEndRally || isDuplicateTag}`
+   - Forced Error: `disabled={!canUseForcedError || isDuplicateTag}`
+   - Winning Shot: `disabled={!canEndRally || isDuplicateTag}`
+   - Tag Shot/Serve: `disabled={isDuplicateTag}` (already implemented)
+
+3. **Added Tooltips to ALL Buttons:**
+   - When disabled due to duplicate: "Cannot tag - shot already exists at this time"
+   - Clear feedback on WHY button is disabled
+
+**Behavior Details:**
+
+**Duplicate Check Logic (hasTagAtOrAfter):**
+```typescript
+// Returns true if ANY tag exists at or after current time
+const hasTagAtOrAfter = (timestamp: number): boolean => {
+  const tolerance = 0.01 // 0.01 seconds
+  return shotHistory.some(item => item.timestamp >= timestamp - tolerance)
+}
+```
+
+**Example Scenarios:**
+- Current time = 4.0s, Tag exists at 5.0s → **Disabled** (4.0 < 5.0) ❌ Can't tag before existing tags
+- Current time = 5.0s, Tag exists at 5.0s → **Disabled** (5.0 = 5.0) ❌ Can't tag at same time
+- Current time = 6.0s, Tag exists at 5.0s → **Enabled** (6.0 > 5.0) ✅ Can tag after all existing tags
+
+**Impact:**
+
+**Before:**
+- ❌ Could create rally-end tags at duplicate timestamps
+- ❌ Could create tags out of chronological order
+- ❌ Inconsistent behavior (only serve button checked duplicates)
+- ❌ Led to data integrity issues (wrong shot/rally indices)
+
+**After:**
+- ✅ ALL buttons respect chronological order
+- ✅ Cannot create any duplicate or out-of-order tags
+- ✅ Consistent duplicate prevention across entire Phase 1
+- ✅ Maintains data integrity (timestamps, shot indices, rally indices)
+- ✅ Clear visual feedback (very obvious disabled state + tooltip)
+
+**User Workflow:**
+- Tag shots chronologically as video plays
+- If paused at or before existing tag: ALL buttons disabled
+- Must seek/play forward past existing tags to continue
+- Explicit, predictable, safe behavior
+
+**Files Modified:**
+- `app/src/features/shot-tagging-engine/composers/Phase1TimestampComposer.tsx`
+- `app/src/features/shot-tagging-engine/blocks/Phase1ControlsBlock.tsx`
+
+---
+
+### 2025-12-11: Phase 2 Tagging Improvements - Receive Depth Removal & Stronger Player Colors (v3.25.7)
+
+**Change Type:** UX Improvement + Data Simplification
+
+**What Changed:**
+- **Removed** receive shot depth/length data capture from Phase 2 tagging flow
+- **Enhanced** player background color tint strength (12% → 30% opacity)
+
+---
+
+### Part 1: Remove Receive Shot Depth Data
+
+**Problem:**
+- Receive shot depth (short/halflong/deep) was being captured but not needed for analysis
+- Extra question slowed down tagging workflow
+- Limited analytical value compared to other shot attributes
+
+**Solution:**
+- Removed length/depth question from receive shot flow
+- Simplified receive flow: Direction → Stroke → Length → Intent becomes Direction → Stroke → Intent
+- Only serve shots now capture length/depth data (which is more relevant for serve analysis)
+
+**Changes Made:**
+
+1. **Updated Question Flow (Phase2DetailComposer.tsx):**
+   - Header comment updated to reflect new flow
+   - `ReceiveStep` type: removed 'length' option
+   - `getNextStep()`: skip length step for receives
+   - `isLastQuestion()`: intent is now last question for receives
+   - Removed receive length UI buttons (Short/HalfLong/Deep)
+
+2. **Updated Save Logic:**
+   - Length only saved for serves: `if (shot.length && shot.isServe)`
+   - Validation check updated: only serves require length
+   - Receive shots will have `shot_length = null` in database
+
+3. **Backward Compatibility:**
+   - `length` field kept in `DetailedShot` interface
+   - Existing receive shots with length data remain in database
+   - New receives simply won't have length populated
+
+**Impact:**
+- ✅ Faster tagging: 3 questions instead of 4 for receive shots
+- ✅ Cleaner data: only relevant attributes captured
+- ✅ Simpler workflow: fewer decisions per shot
+- ✅ Serves still capture all relevant data (direction, length, spin)
+
+**New Flows:**
+- Serve: Direction → Length → Spin (unchanged)
+- **Receive: Direction → Stroke → Intent** (length removed)
+- Regular shots: Direction → Stroke → Intent (unchanged)
+- Errors: Direction → Stroke → Intent → Error Placement → Error Type (unchanged)
+
+---
+
+### Part 2: Enhanced Player Background Color Tint
+
+**Problem:**
+- Player background colors too subtle (12% opacity)
+- Difficult to tell at a glance which player's shot is being tagged
+- User feedback: needed much stronger visual indication
+
+**Solution:**
+- Increased opacity from 12% to 30% (2.5x stronger)
+- Colors remain in theme but much more prominent
+
+**Changes Made (UserInputSection.tsx):**
+- **Player 1 (blue):** `rgb(59 130 246 / 0.12)` → `rgb(59 130 246 / 0.30)`
+- **Player 2 (orange):** `rgb(249 115 22 / 0.12)` → `rgb(249 115 22 / 0.30)`
+
+**Visual Impact:**
+- **Before:** Barely noticeable tint (subtle)
+- **After:** Clearly visible strong color wash (obvious)
+- Still maintains professional look (not overwhelming)
+- Instant visual feedback of which player is being tagged
+
+**User Benefit:**
+- ✅ Immediately obvious which player's shot you're tagging
+- ✅ Reduces cognitive load during tagging
+- ✅ Less chance of confusion or tagging wrong attributes
+- ✅ Better color consistency with player indicators in status bar
+
+---
+
+**Files Modified:**
+- `app/src/features/shot-tagging-engine/composers/Phase2DetailComposer.tsx`
+- `app/src/features/shot-tagging-engine/sections/UserInputSection.tsx`
+
+---
+
+### 2025-12-11: Enhanced Disabled Button Visual Feedback (v3.25.6)
+
+**Change Type:** UI Enhancement
+
+**What Changed:**
+- **Enhanced** disabled button styling to be much more visually obvious
+- Applied consistently across all table tennis buttons throughout the application
+
+**Problem:**
+- Disabled buttons (like the "Tag Shot" button when a duplicate would occur) were not visually obvious
+- Previous styling: `opacity-60` was too subtle
+- Users couldn't easily tell when buttons were disabled
+
+**Solution:**
+- **New disabled styling** (applied to `TableTennisButtonBase`):
+  - `opacity-30` - Much lower opacity (was 60%, now 30%)
+  - `grayscale` - Removes all color saturation
+  - `contrast-50` - Reduces contrast by 50%
+  - `brightness-75` - Darkens the button by 25%
+
+**Visual Impact:**
+- **Before:** Slightly faded button (subtle, hard to notice)
+- **After:** Extremely obvious - grayed out, desaturated, darkened, very low opacity
+
+**Consistency:**
+- Applies to ALL button types that use `TableTennisButtonBase`:
+  - Phase 1 buttons (Serve, Shot, In Net, Shot Missed, Forced Error, Winning Shot)
+  - Phase 2 buttons (Direction, Stroke, Depth, Spin, Intent, Error buttons)
+  - All custom table tennis SVG buttons throughout the app
+
+**User Benefit:**
+- ✅ Immediately obvious when a button is disabled
+- ✅ No confusion about why clicking doesn't work
+- ✅ Consistent experience across entire tagging interface
+
+**Files Modified:**
+- `app/src/ui-mine/TableTennisButtons/TableTennisButtonBase.tsx`
+
+---
+
+### 2025-12-11: Phase 1 Tag Button Behavior & Duplicate Prevention (v3.25.5)
+
+**Change Type:** Bug Fix + UX Improvement
+
+**What Changed:**
+- **Removed** confusing "resume playback" functionality from Tag Shot/Serve button
+- **Added** duplicate prevention - button now disables when a tag already exists at current video position
+
+**Problem Solved:**
+
+**Issue 1: Confusing Button Behavior**
+- When paused on a tag (after using delete/navigation), the "Tag Shot" button would play the video instead of tagging
+- This was confusing because the button label said "Tag Shot" but clicking it played video
+- Users expected the button to always tag, not sometimes play
+
+**Issue 2: Duplicate Tags**
+- Nothing prevented creating duplicate tags at the same timestamp
+- Inserting tags into the timeline would cause indexing issues (shot index, rally index, timestamp order)
+- Simplest solution: prevent duplicate tags rather than handling complex re-indexing
+
+**Changes Made:**
+
+1. **Removed Resume Logic (Phase1TimestampComposer.tsx)**
+   - Deleted lines 270-277 in `handleServeShot()` function
+   - Removed: "RESUME case" that played video when paused on last tag
+   - Button now ONLY tags shots, never plays video
+
+2. **Added Duplicate Prevention Helper**
+   - New function: `hasTagAtOrAfter(timestamp)` checks if tag exists at or after current time
+   - Uses 0.01 second tolerance (exact match)
+   - Returns true if duplicate would occur
+
+3. **Button Disable Logic**
+   - Calculate `isServeButtonDisabled = hasTagAtOrAfter(currentTime)`
+   - Pass to `Phase1ControlsBlock` component
+   - Button grays out when disabled
+   - Tooltip: "Cannot tag - shot already exists at this time"
+
+4. **Updated Phase1ControlsBlock Component**
+   - Added `isServeButtonDisabled?: boolean` prop
+   - Applied to both `ServeButton` and `ShotButton`
+   - Shows tooltip on hover when disabled
+
+**Auto-Rewind Behavior (KEPT):**
+- When deleting a tag, video still seeks to previous tag and pauses ✓
+- This is GOOD behavior - helps user review context after deletion
+- Only the "resume playback" functionality was removed
+
+**User Impact:**
+
+**Before:**
+- ❌ "Tag Shot" button sometimes played video (confusing)
+- ❌ Could create duplicate tags at same timestamp
+- ❌ Unclear why button behavior changed
+
+**After:**
+- ✅ "Tag Shot" button ALWAYS tags (consistent behavior)
+- ✅ Cannot create duplicate tags (button disabled)
+- ✅ Clear visual feedback (grayed out + tooltip)
+- ✅ To continue tagging, user plays/seeks past existing tags (explicit action)
+
+**Workflow Change:**
+- **Old:** Delete tag → paused on previous tag → press Tag Shot to resume playback
+- **New:** Delete tag → paused on previous tag → manually play/seek forward → tag next shot
+
+**Rationale:**
+- Button should do what it says: "Tag Shot" = tag a shot
+- Duplicate prevention is simpler than handling timeline re-indexing
+- Explicit user action (play/seek) is clearer than implicit behavior
+- Reduces confusion and prevents data integrity issues
+
+**Files Modified:**
+- `app/src/features/shot-tagging-engine/composers/Phase1TimestampComposer.tsx`
+- `app/src/features/shot-tagging-engine/blocks/Phase1ControlsBlock.tsx`
+
+---
+
+### 2025-12-11: Phase 2 Tagging UX Improvements (v3.25.4)
+
+**Change Type:** UI/UX Enhancement + Workflow Change
+
+**What Changed:**
+- **Modified** shot direction button ordering when rotation is enabled
+- **Changed** Phase 2 question flow order for all non-serve shots
+
+**Part 1: Button Order Reversal When Rotated**
+
+When a player's rotation toggle is enabled:
+- **Shot direction buttons** (3-button rows) now reverse their position order (B1 B2 B3 → B3 B2 B1)
+- **Serve direction buttons** (6-button grid) maintain their original order (no change)
+- Button functionality remains the same (only visual position swaps)
+- Example: When rotated, `[Left-Left] [Left-Mid] [Left-Right]` becomes `[Left-Right] [Left-Mid] [Left-Left]`
+
+**Rationale:**
+- When buttons are rotated 180°, the visual orientation is flipped
+- Reversing the button order ensures the left-to-right button sequence matches the rotated visual orientation
+- This makes it easier for users to select the correct direction when using rotation
+- Serve buttons (6-button grid) don't need reversal due to their symmetric layout
+
+**Part 2: Phase 2 Question Flow Reordering**
+
+**New Question Order:**
+- **Serve shots**: Direction → Length → Spin (NO CHANGE)
+- **Receive shots**: Direction → Stroke → Length → Intent (CHANGED from Stroke → Direction → Length → Intent)
+- **Regular shots**: Direction → Stroke → Intent (CHANGED from Stroke → Direction → Intent)
+- **Error shots**: Direction → Stroke → Intent → Error Placement → Error Type (CHANGED from Stroke → Direction → Intent → Error Placement → Error Type)
+
+**Rationale:**
+- **Direction first** allows users to immediately see where the ball is going while watching the video
+- Direction is the most visible aspect of a shot and easiest to tag while watching in real-time
+- Stroke (backhand/forehand) is often easier to identify after seeing the ball direction
+- This order better matches the natural observation flow when watching table tennis
+- Improves tagging speed and reduces cognitive load
+
+**Implementation Details:**
+- Modified `getNextStep()` logic to reflect new question order
+- Modified `advanceToNextShot()` to always start with 'direction'
+- Modified `initialStep` to always start with 'direction'
+- Added `isCurrentPlayerRotated()` helper to check rotation state
+- Implemented button order reversal using array `.reverse()` for shot direction buttons
+- Updated shot direction button rendering for:
+  - Receive shots (direction step)
+  - Regular shots (direction step)
+  - Error shots (direction step)
+
+**Files Modified:**
+- `app/src/features/shot-tagging-engine/composers/Phase2DetailComposer.tsx`
+
+**User Impact:**
+- More intuitive button layout when rotation is enabled
+- Faster tagging workflow with direction-first question order
+- Better ergonomics for watching video and tagging simultaneously
+
+---
+
+### 2025-12-11: Added Direction Button Rotation in Phase 2 Tagging (v3.25.3)
+
+**Change Type:** UI Enhancement
+
+**What Changed:**
+- **Added** per-player rotation toggle for serve and shot direction buttons in Phase 2 tagging
+- **Added** "Rotate" button in status bar (column 5) during Phase 2 tagging
+- **Modified** `Phase2DetailComposer` to include rotation state for both players
+
+**Feature Details:**
+
+**Purpose:** Allow users to rotate direction button images by 180° to match their viewing perspective of the table tennis court.
+
+**Key Features:**
+- Per-player rotation state (Player 1 and Player 2 each have independent rotation settings)
+- Toggle button in status bar shows active state (primary/secondary variant)
+- Rotation applies to ALL direction buttons:
+  - Serve direction buttons (6 buttons: left-left, left-mid, left-right, right-left, right-mid, right-right)
+  - Shot direction buttons (3 buttons per starting position: left/mid/right combinations)
+- Rotation persists throughout Phase 2 tagging session
+- Smooth CSS transform (rotate-180 class)
+
+**Implementation:**
+- Added state: `player1RotateButtons`, `player2RotateButtons` to `Phase2DetailComposer`
+- Added helper: `getDirectionButtonRotation()` returns appropriate rotation class based on current player
+- Rotation button uses `RotateCw` icon from `@/ui-mine/Icon`
+- Applied rotation class to all serve and shot direction buttons in:
+  - Serve direction step (6 buttons)
+  - Receive direction step (3 buttons, dynamic based on previous shot)
+  - Regular shot direction step (3 buttons, dynamic based on previous shot)
+  - Error shot direction step (3 buttons, dynamic based on previous shot)
+
+**Use Cases:**
+- User films match from one side of the table and wants buttons to match their perspective
+- Player reviews their own matches and prefers rotated view for their side
+- Coach wants consistent orientation when reviewing different players
+
+**Rationale:**
+- Video filming angle varies (near-side vs far-side perspective)
+- Some users find it easier to tag when button orientation matches video perspective
+- Per-player rotation allows tagging matches filmed from either side without confusion
+- Improves tagging ergonomics and reduces cognitive load
+
+**Files Modified:**
+- `app/src/features/shot-tagging-engine/composers/Phase2DetailComposer.tsx`
+
+---
+
 ### 2025-12-11: Added Inference Review Mode (v3.25.2)
 
 **Change Type:** Specification Update
