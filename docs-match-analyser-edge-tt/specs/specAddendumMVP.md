@@ -6,6 +6,72 @@
 
 ## Change Log
 
+### 2025-12-11: Roadmap Update & Next Steps Plan (v3.25.0)
+
+**Change Type:** Specification Update
+
+**What Changed:**
+- **Updated** `MVP_Current_And_Roadmap.md` with revised priorities
+- **Created** `Next_MVP_Steps.md` — Detailed action plan for next 8 weeks
+
+**Roadmap Changes:**
+
+**Critical Fixes Added (High Priority):**
+1. **Video Player Improvements** — Essential quick fixes for janky performance
+2. **Data Validation & Consistency** — Fix match-level vs tagging data mismatches
+3. **UI/UX Polish** — Consistent theming and professional appearance
+
+**Architectural Evolution:**
+- **Flexible Tagging Modules** (replaces prescribed workflow)
+  - Phase 1 remains compulsory (match framework)
+  - Phase 2+ becomes optional modules users pick and choose:
+    - Basic Set (intent, quality, shot type) — sufficient for inference
+    - Footwork Module (player positions, movement)
+    - Distance Module (distance from table)
+    - Timing Module (early/mid/late contact)
+    - Advanced Attributes (spin, direction, placement)
+  - Users tag what they want to study
+  - Richer data, better UX, no forced workflow
+
+**Production Roadmap Priorities (Q1 2026):**
+1. **Authentication & User Context** — Login, current user tracking, personalized analytics
+2. **Supabase Migration** — Cloud storage, offline-first, sync strategy (upfront work done)
+3. **Vercel Deployment** — Production launch for public use
+
+**New File Created:**
+- ✨ **specs/Next_MVP_Steps.md** — 8-week execution plan
+  - Phase 1 (Weeks 1-2): Essential fixes (video player, data validation, UI polish)
+  - Phase 2 (Weeks 3-4): Flexible tagging modules architecture
+  - Phase 3 (Weeks 5-8): Authentication, Supabase, Vercel deployment
+  - Priority matrix with dependencies
+  - Success criteria for each phase
+
+**Key Insights:**
+- Video player fixes are **essential** before production use
+- Data consistency issues need resolution for accurate analytics
+- Flexible modules paradigm offers better UX and richer data
+- Much Supabase work already done, ready to complete migration
+- Launch target: Early Feb 2026 (8 weeks)
+
+**Documentation Structure:**
+- `MVP_Current_And_Roadmap.md` — Current state + long-term vision
+- `Next_MVP_Steps.md` — Immediate action plan (next 8 weeks)
+- Clear separation between "what we have" and "what's next"
+
+**Rationale:**
+- User feedback identified critical pain points (video player, data consistency)
+- Prescribed workflow too rigid — flexible modules offer better UX
+- Authentication + Supabase + Vercel = production-ready app
+- Detailed execution plan keeps team focused and on track
+
+**Impact:**
+- Clear priorities for next 2 months
+- Addresses critical usability issues first
+- Better user experience with flexible tagging
+- Path to production deployment with authentication
+
+---
+
 ### 2025-12-11: Final Documentation Cleanup - COMPLETE (v3.24.0)
 
 **Change Type:** Final Documentation Consolidation

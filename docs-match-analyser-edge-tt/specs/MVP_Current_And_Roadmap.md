@@ -99,26 +99,75 @@ This document consolidates:
 
 ---
 
+## Critical Fixes & Improvements 🔧
+
+### Video Player (Essential - High Priority)
+- ⚠️ **Current Issue:** Janky performance during tagging phases
+- 🔧 Multiple quick fixes needed for smooth tagging experience
+- 🎯 **Goal:** Fast, responsive video controls for efficient tagging
+
+### Data Validation & Consistency
+- ⚠️ **Current Issue:** Inconsistencies between match-level data and tagging data
+- 🔧 Validate and fix data mismatches
+- 🎯 **Goal:** Single source of truth with consistent data across all levels
+
+### UI/UX Polish
+- ⚠️ **Current Issue:** Disconnected and disjointed styling
+- 🔧 Consistent theming and visual cohesion needed
+- 🎯 **Goal:** Professional, polished interface with unified design language
+
+---
+
 ## In Progress 🚧
+
+### Flexible Tagging Architecture (Paradigm Shift)
+
+**Current:** Prescribed workflow (Phase 1 → Phase 2 → Phase 3)  
+**New Model:** Modular, user-driven tagging
+
+**Phase 1 (Compulsory):**
+- Match setup and framework tagging
+- Creates baseline data for all analytics
+
+**Optional Tagging Modules (User Choice):**
+- **Basic Set** — Intent, quality, shot type (sufficient for inference engine)
+- **Footwork Module** — Player positions and movement
+- **Distance Module** — Distance from table at contact
+- **Timing Module** — Early/mid/late contact timing
+- **Advanced Attributes** — Spin, direction, pressure, etc.
+
+**Benefits:**
+- Users tag what they want to study
+- Data richness grows organically
+- More flexible analytics as dataset expands
+- No forced workflow, better UX
 
 ### Analytics Expansion
 - 🚧 Additional analytics cards (6+ more planned)
 - 🚧 Advanced filtering options
 - 🚧 Match comparison views
 
-### Phase 3 Optimization
-- 🚧 Inference engine improvements
+### Inference Engine Optimization
+- 🚧 Improvements to shot-level inference
 - 🚧 Confidence scoring
 - 🚧 Re-run inference capability
-
-### Data Audit Tools
-- 🚧 Enhanced data viewer
-- 🚧 Validation reports
-- 🚧 Data integrity checks
 
 ---
 
 ## Roadmap 📋
+
+### Q1 2026: Authentication & User Context
+
+**Goal:** User accounts with personalized experience
+
+**Features:**
+- Login and authentication layer
+- Current user context (system knows "who you are")
+- Player profile linked to user account
+- Analytics defaults to current user as "player of interest"
+- Role-based access (all data centrally shared, no strict limits)
+
+**Tech:** Supabase Auth (integrates with migration below)
 
 ### Q1 2026: Supabase Migration
 
@@ -128,10 +177,25 @@ This document consolidates:
 - Add TanStack Query for server state
 - Migrate from Dexie (primary) to Dexie (cache)
 - Convert slug IDs to UUID primary keys (keep slugs as indexed fields)
-- Add Supabase Auth for user accounts
 - Implement sync strategy (optimistic updates, conflict resolution)
+- Local tagging remains local, consistent saving to cloud
+
+**Status:** Much of the upfront work already done
 
 **Migration Guide:** See DataSchema.md Section 8
+
+### Q1 2026: Vercel Deployment
+
+**Goal:** Production deployment for public use
+
+**Requirements:**
+- Supabase migration complete
+- Authentication implemented
+- UI/UX polish complete
+- Video player optimizations done
+- Data validation fixes applied
+
+**Result:** App available to anyone who wants to use it
 
 ### Q2 2026: ML/AI Shot Classification
 
