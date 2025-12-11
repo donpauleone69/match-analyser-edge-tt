@@ -21,7 +21,7 @@ export function inferShotType(
   }
   
   // If shot result indicates an error, confidence is high
-  const isError = shot.shot_result === 'in_net' || shot.shot_result === 'missed_long' || shot.shot_result === 'missed_wide'
+  const isError = shot.shot_result === 'in_net' || shot.shot_result === 'missed_long' || shot.shot_result === 'missed_wide' || shot.shot_result === 'fault'
   
   if (isError) {
     // Error shots - infer based on intent

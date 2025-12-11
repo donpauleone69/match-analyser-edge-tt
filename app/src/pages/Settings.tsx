@@ -1,20 +1,34 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { clearAllData, getDatabaseStats } from '@/data/db'
 import { useClubStore } from '@/data/entities/clubs/club.store'
 import { useTournamentStore } from '@/data/entities/tournaments/tournament.store'
 import { usePlayerStore } from '@/data/entities/players/player.store'
 import { useMatchStore } from '@/data/entities/matches/match.store'
-import { AlertTriangle, Trash2 } from 'lucide-react'
+import { AlertTriangle, Trash2, Database } from 'lucide-react'
+import { populateDummyData } from '@/features/populate-dummy-data'
 
 export function Settings() {
   const [isClearing, setIsClearing] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [, setStats] = useState<{ [key: string]: number } | null>(null)
+  const [isDatabaseEmpty, setIsDatabaseEmpty] = useState(false)
+  const [isPopulating, setIsPopulating] = useState(false)
 
   const clubStore = useClubStore()
   const tournamentStore = useTournamentStore()
   const playerStore = usePlayerStore()
   const matchStore = useMatchStore()
+
+  // Check if database is empty on mount and after clear
+  const checkDatabaseEmpty = async () => {
+    const stats = await getDatabaseStats()
+    const isEmpty = stats.players === 0 && stats.matches === 0
+    setIsDatabaseEmpty(isEmpty)
+  }
+
+  useEffect(() => {
+    checkDatabaseEmpty()
+  }, [])
 
   const handleClearData = async () => {
     setIsClearing(true)
@@ -35,12 +49,34 @@ export function Settings() {
       ])
 
       setShowConfirm(false)
+      await checkDatabaseEmpty() // Check if database is now empty
       alert('✅ All data cleared successfully!')
     } catch (error) {
       console.error('Failed to clear data:', error)
       alert('❌ Failed to clear data. Check console for details.')
     } finally {
       setIsClearing(false)
+    }
+  }
+
+  const handlePopulateDummyData = async () => {
+    setIsPopulating(true)
+    try {
+      await populateDummyData()
+      
+      // Reload all stores to sync with new data
+      await Promise.all([
+        playerStore.load(),
+        matchStore.load(),
+      ])
+
+      await checkDatabaseEmpty() // Update database empty status
+      alert('✅ Dummy data populated successfully!')
+    } catch (error) {
+      console.error('Failed to populate dummy data:', error)
+      alert('❌ Failed to populate dummy data. Check console for details.')
+    } finally {
+      setIsPopulating(false)
     }
   }
 
@@ -115,6 +151,31 @@ export function Settings() {
                       </button>
                     </div>
                   </div>
+                )}
+              </div>
+
+              {/* Populate Dummy Data */}
+              <div className="mt-6 pt-6 border-t border-neutral-700">
+                <h3 className="text-lg font-medium text-neutral-50 mb-2">
+                  Populate Dummy Data
+                </h3>
+                <p className="text-neutral-400 text-sm mb-4">
+                  Add test data to the database for development and testing purposes.
+                  This includes 4 players and 2 matches. This button is only enabled
+                  when the database is empty.
+                </p>
+                <button
+                  onClick={handlePopulateDummyData}
+                  disabled={!isDatabaseEmpty || isPopulating}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-neutral-700 disabled:cursor-not-allowed disabled:text-neutral-500 text-white rounded-lg transition-colors flex items-center gap-2"
+                >
+                  <Database className="h-4 w-4" />
+                  {isPopulating ? 'Populating...' : 'Populate Dummy Data'}
+                </button>
+                {!isDatabaseEmpty && (
+                  <p className="text-neutral-500 text-xs mt-2">
+                    ⚠️ Database must be cleared first before populating dummy data
+                  </p>
                 )}
               </div>
             </div>

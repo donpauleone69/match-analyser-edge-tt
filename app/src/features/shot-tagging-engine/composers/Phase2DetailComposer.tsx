@@ -56,6 +56,9 @@ import {
   // Error type buttons
   ForcedErrorButton,
   UnforcedErrorButton,
+  // Error placement buttons
+  InNetButton,
+  ShotMissedButton,
   // Intent buttons
   DefensiveButton,
   NeutralButton,
@@ -66,7 +69,7 @@ import {
 type ServeStep = 'direction' | 'length' | 'spin'
 type ReceiveStep = 'stroke' | 'direction' | 'length' | 'intent'
 type ShotStep = 'stroke' | 'direction' | 'intent'
-type ErrorStep = 'stroke' | 'direction' | 'intent' | 'errorType'
+type ErrorStep = 'stroke' | 'direction' | 'intent' | 'errorPlacement' | 'errorType'
 
 type QuestionStep = ServeStep | ReceiveStep | ShotStep | ErrorStep | 'complete'
 
@@ -99,6 +102,7 @@ export interface DetailedShot extends Phase1Shot {
   spin?: 'underspin' | 'nospin' | 'topspin'
   stroke?: 'backhand' | 'forehand'
   intent?: 'defensive' | 'neutral' | 'aggressive'
+  errorPlacement?: 'net' | 'long'  // For forced errors where shot_result is 'fault' in Phase 1
   errorType?: 'forced' | 'unforced'
   shotQuality?: 'average' | 'high'
 }
@@ -235,7 +239,10 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
   // Check if current step is the last question for this shot
   const isLastQuestion = (step: QuestionStep, shot: DetailedShot): boolean => {
     if (shot.isServe) return step === 'spin'
-    if (shot.isError) return step === 'errorType'
+    if (shot.isError) {
+      // For forced errors, errorType is last; for unforced, errorPlacement is skipped
+      return step === 'errorType'
+    }
     if (shot.isReceive) return step === 'intent'
     return step === 'intent' // Regular shots
   }
@@ -251,12 +258,13 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
       if (current === 'spin') return advanceToNextShot()
     }
     
-    // Error shot flow: stroke → direction → intent → errorType → next shot
+    // Error shot flow: stroke → direction → intent → errorPlacement (if forced) → errorType → next shot
     // (Error takes precedence over receive)
     if (currentShot.isError) {
       if (current === 'stroke') return 'direction'
       if (current === 'direction') return 'intent'
-      if (current === 'intent') return 'errorType'
+      if (current === 'intent') return 'errorPlacement'  // Ask placement first
+      if (current === 'errorPlacement') return 'errorType'  // Then ask forced/unforced
       if (current === 'errorType') return advanceToNextShot()
     }
     
@@ -358,6 +366,7 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
         shotIndex: shot.shotIndex,
         isError: shot.isError,
         isLastShot: shot.isLastShot,
+        errorPlacement: shot.errorPlacement,
         errorType: shot.errorType,
         shotQuality: shot.shotQuality,
         rallyEndCondition: shot.rallyEndCondition,
@@ -368,7 +377,13 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
         is_rally_end: matchingShot.is_rally_end,
       })
       
-      // shot_result is READ-ONLY from Phase 1 - do NOT modify
+      // shot_result can be updated if current value is 'fault' (forced errors from Phase 1)
+      if (matchingShot.shot_result === 'fault' && shot.errorPlacement) {
+        // Resolve 'fault' to actual error type based on user input
+        updates.shot_result = shot.errorPlacement === 'net' ? 'in_net' : 'missed_long'
+        console.log(`[Phase2] Resolving shot_result from 'fault' to:`, updates.shot_result)
+      }
+      
       // shot_quality is set based on whether shot is in play
       if (!shot.isError && shot.shotQuality) {
         // Only save quality if shot is in play AND user answered
@@ -552,6 +567,7 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
     if (currentStep === 'spin') return 'Spin Type'
     if (currentStep === 'stroke') return 'Stroke Type'
     if (currentStep === 'intent') return 'Shot Intent'
+    if (currentStep === 'errorPlacement') return 'Error Placement'
     if (currentStep === 'errorType') return 'Error Type'
     return ''
   }
@@ -616,6 +632,7 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
                   if (shot.length) details.push(`Depth:${shot.length}`)
                   if (shot.spin) details.push(`Spin:${shot.spin}`)
                   if (shot.intent) details.push(shot.intent)
+                  if (shot.errorPlacement) details.push(`Place:${shot.errorPlacement}`)
                   if (shot.errorType) details.push(`ERR:${shot.errorType}`)
                   if (shot.shotQuality) details.push(`Q:${shot.shotQuality}`)
                   
@@ -945,6 +962,12 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
             <DefensiveButton onClick={() => handleAnswer('intent', 'defensive')} />
             <NeutralButton onClick={() => handleAnswer('intent', 'neutral')} />
             <AggressiveButton onClick={() => handleAnswer('intent', 'aggressive')} />
+          </ButtonGrid>
+        )}
+        {currentShot.isError && currentStep === 'errorPlacement' && (
+          <ButtonGrid columns={2}>
+            <InNetButton onClick={() => handleAnswer('errorPlacement', 'net')} />
+            <ShotMissedButton onClick={() => handleAnswer('errorPlacement', 'long')} />
           </ButtonGrid>
         )}
         {currentShot.isError && currentStep === 'errorType' && (

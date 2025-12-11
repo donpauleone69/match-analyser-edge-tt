@@ -9,7 +9,7 @@
  * - Gaps: 3 gaps between 4 buttons (0.125rem each)
  * 
  * Button behavior:
- * - 2/3/4 buttons: Square, centered in grid cells
+ * - 2/3/4/5 buttons: Square, centered in grid cells
  * - 6 buttons: Tall rectangles (width < height), fill grid cells with !aspect-auto
  */
 
@@ -17,7 +17,7 @@ import { cn } from '@/helpers/utils'
 import type { ReactNode } from 'react'
 
 interface ButtonGridProps {
-  columns: 2 | 3 | 4 | 6
+  columns: 2 | 3 | 4 | 5 | 6
   children: ReactNode
   className?: string
 }
@@ -40,6 +40,7 @@ export function ButtonGrid({ columns, children, className }: ButtonGridProps) {
           'grid-cols-2': columns === 2,
           'grid-cols-3': columns === 3,
           'grid-cols-4': columns === 4,
+          'grid-cols-5': columns === 5,
           'grid-cols-6': columns === 6,
         },
         className

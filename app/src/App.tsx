@@ -11,7 +11,8 @@ import MatchCreatePage from './pages/MatchCreate'
 import { ShotTaggingEngine } from './pages/ShotTaggingEngine'
 import { Settings } from './pages/Settings'
 import { DataViewer } from './pages/DataViewer'
-import { StatsPage } from './pages/Stats'
+import { DataViewerAudit } from './pages/DataViewerAudit'
+import { AnalyticsPage } from './pages/Analytics'
 
 function App() {
   // Initialize IndexedDB database
@@ -34,8 +35,9 @@ function App() {
           <Route path="/matches" element={<MatchesPage />} />
           <Route path="/matches/create" element={<MatchCreatePage />} />
           <Route path="/matches/:id" element={<Dashboard />} /> {/* TODO: Match detail */}
-          <Route path="/stats" element={<StatsPage />} />
+          <Route path="/analytics" element={<AnalyticsPage />} />
           <Route path="/data-viewer" element={<DataViewer />} />
+          <Route path="/data-viewer/audit" element={<DataViewerAudit />} />
           <Route path="/settings" element={<Settings />} />
         </Route>
         

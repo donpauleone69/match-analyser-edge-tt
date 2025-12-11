@@ -33,6 +33,7 @@ export function SetSelectionModal({
 }: SetSelectionModalProps) {
   const navigate = useNavigate()
   const [showRedoConfirm, setShowRedoConfirm] = useState<number | null>(null)
+  const [redoMode, setRedoMode] = useState<'full' | 'phase2_only'>('full')
   const [editingSetScores, setEditingSetScores] = useState<number | null>(null)
   const [setScoreForm, setSetScoreForm] = useState({ player1Score: 0, player2Score: 0 })
 
@@ -40,12 +41,35 @@ export function SetSelectionModal({
     navigate(`/matches/${matchId}/tag?set=${setNumber}`)
   }
 
-  const handleRedoTagging = (setNumber: number) => {
+  const handleRedoTagging = (setNumber: number, mode: 'full' | 'phase2_only' = 'full') => {
     setShowRedoConfirm(setNumber)
+    // Store the redo mode for later confirmation
+    setRedoMode(mode)
   }
 
   const confirmRedo = (setNumber: number) => {
-    navigate(`/matches/${matchId}/tag?set=${setNumber}&redo=true`)
+    if (redoMode === 'phase2_only') {
+      // Redo Phase 2 only - use phase2_only mode
+      navigate(`/matches/${matchId}/tag?set=${setNumber}&redo=phase2`)
+    } else {
+      // Full redo - use existing redo=true
+      navigate(`/matches/${matchId}/tag?set=${setNumber}&redo=true`)
+    }
+  }
+
+  const handleRunInference = async (set: DBSet) => {
+    try {
+      // Mark set as phase2_complete before navigating to Phase 3
+      await updateSet(set.id, {
+        tagging_phase: 'phase2_complete',
+      })
+      
+      // Navigate to Phase 3 inference view
+      navigate(`/matches/${matchId}/tag?set=${set.set_number}`)
+    } catch (error) {
+      console.error('Failed to start inference:', error)
+      alert('Failed to start inference. Please try again.')
+    }
   }
 
   const handleEditSetScores = (setNumber: number, currentSet: DBSet) => {
@@ -198,7 +222,10 @@ export function SetSelectionModal({
                           <span className="font-semibold text-sm md:text-base">Confirm Redo</span>
                         </div>
                         <p className="text-sm text-neutral-300">
-                          This will delete all existing tagging data for Set {set.set_number}. This action cannot be undone.
+                          {redoMode === 'phase2_only' 
+                            ? `This will delete Phase 2 detailed tagging data for Set ${set.set_number}, but keep Phase 1 timestamps. This action cannot be undone.`
+                            : `This will delete all existing tagging data for Set ${set.set_number}. This action cannot be undone.`
+                          }
                         </p>
                         <div className="flex gap-2">
                           <Button
@@ -343,18 +370,18 @@ export function SetSelectionModal({
                           {status === 'phase2_in_progress' && (
                             <>
                               <Button
-                                onClick={() => handleStartTagging(set.set_number)}
+                                onClick={() => handleRunInference(set)}
                                 size="sm"
                                 variant="primary"
                               >
-                                Continue Phase 2
+                                Run Inference
                               </Button>
                               <Button
-                                onClick={() => handleRedoTagging(set.set_number)}
+                                onClick={() => handleRedoTagging(set.set_number, 'phase2_only')}
                                 variant="secondary"
                                 size="sm"
                               >
-                                Redo
+                                Redo Phase 2
                               </Button>
                             </>
                           )}

@@ -331,6 +331,7 @@ export function Phase1TimestampComposer({ playerContext, setId, player1Id, playe
     const shotResult = 
       endCondition === 'innet' ? 'in_net' :
       endCondition === 'long' ? 'missed_long' :
+      endCondition === 'forcederror' ? 'missed_long' :  // forced errors default to missed_long for winner derivation
       endCondition === 'let' ? 'in_play' :  // let rallies have in_play result
       'in_play' // 'winner' end condition - shot stayed in play
     
@@ -347,8 +348,8 @@ export function Phase1TimestampComposer({ playerContext, setId, player1Id, playe
       shots: [...currentShots],
       endCondition,
       endTimestamp: currentTime,
-      isError: endCondition === 'innet' || endCondition === 'long',
-      errorPlacement: endCondition === 'innet' ? 'innet' : endCondition === 'long' ? 'long' : undefined,
+      isError: endCondition === 'innet' || endCondition === 'long' || endCondition === 'forcederror',
+      errorPlacement: endCondition === 'innet' ? 'innet' : endCondition === 'long' ? 'long' : endCondition === 'forcederror' ? 'long' : undefined,
       serverId: serverResult.serverId as 'player1' | 'player2',
       winnerId: winnerId as 'player1' | 'player2',
       // Player names for UI
@@ -505,6 +506,11 @@ export function Phase1TimestampComposer({ playerContext, setId, player1Id, playe
   // Handle in net
   const handleInNet = () => {
     completeRally('innet').catch(console.error)
+  }
+  
+  // Handle forced error
+  const handleForcedError = () => {
+    completeRally('forcederror').catch(console.error)
   }
   
   // Handle winning shot
@@ -743,7 +749,7 @@ export function Phase1TimestampComposer({ playerContext, setId, player1Id, playe
             <RallyCard
               rallyNumber={completedRallies.length + 1}
               serverName={getPlayerName(serverResult.serverId as 'player1' | 'player2')}
-              winnerName="In Progress"
+              winnerName=""
               endCondition="winner"
               isCurrent
               className="mb-4"
@@ -909,9 +915,11 @@ export function Phase1TimestampComposer({ playerContext, setId, player1Id, playe
           ) : (
             <Phase1ControlsBlock
               rallyState={rallyState}
+              currentShotCount={currentShots.length}
               onServeShot={handleServeShot}
               onShotMissed={handleShotMissed}
               onInNet={handleInNet}
+              onForcedError={handleForcedError}
               onWin={handleWin}
             />
           )}

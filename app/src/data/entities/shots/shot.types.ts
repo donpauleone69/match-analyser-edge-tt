@@ -3,7 +3,7 @@
  */
 
 export type ShotIntent = 'defensive' | 'neutral' | 'aggressive'
-export type ShotResult = 'in_net' | 'missed_long' | 'missed_wide' | 'in_play'
+export type ShotResult = 'in_net' | 'missed_long' | 'missed_wide' | 'in_play' | 'fault'
 export type ShotQuality = 'high' | 'average'
 export type TablePosition = 'left' | 'mid' | 'right'
 export type RallyEndRole = 'winner' | 'forced_error' | 'unforced_error' | 'none'

@@ -7,9 +7,9 @@ export function AppShell() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   return (
-    <div className="h-full bg-bg-surface flex flex-col lg:flex-row">
-      {/* Mobile Header */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 h-14 bg-bg-shell border-b border-neutral-700 flex items-center px-4 shrink-0">
+    <div className="h-full bg-bg-surface flex flex-col">
+      {/* Header with Menu Toggle */}
+      <div className="fixed top-0 left-0 right-0 z-50 h-14 bg-bg-shell border-b border-neutral-700 flex items-center px-4 shrink-0">
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           className="p-2 -ml-2 text-neutral-50 hover:bg-bg-card rounded-lg"
@@ -21,29 +21,24 @@ export function AppShell() {
         </span>
       </div>
 
-      {/* Desktop Sidebar */}
-      <div className="hidden lg:block shrink-0">
-        <Sidebar />
-      </div>
-
-      {/* Mobile Sidebar Overlay */}
+      {/* Collapsible Sidebar Overlay */}
       {mobileMenuOpen && (
         <>
           {/* Backdrop */}
           <div
-            className="lg:hidden fixed inset-0 bg-black/50 z-40"
+            className="fixed inset-0 bg-black/50 z-40"
             onClick={() => setMobileMenuOpen(false)}
           />
           
           {/* Slide-in Menu */}
-          <div className="lg:hidden fixed left-0 top-0 bottom-0 w-60 z-50">
+          <div className="fixed left-0 top-0 bottom-0 w-60 z-50">
             <Sidebar onNavigate={() => setMobileMenuOpen(false)} />
           </div>
         </>
       )}
 
       {/* Main content area - SINGLE SCROLL CONTAINER */}
-      <main className="flex-1 overflow-y-auto overscroll-behavior-none mt-14 lg:mt-0">
+      <main className="flex-1 overflow-y-auto overscroll-behavior-none mt-14">
         <Outlet />
       </main>
     </div>

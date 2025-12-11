@@ -217,24 +217,35 @@ function MatchTable({ match, isExpanded, onToggle, expandedSets, expandedRallies
   return (
     <div className="bg-bg-card rounded-lg border border-neutral-700 overflow-hidden">
       {/* Match Header */}
-      <button
-        onClick={onToggle}
-        className="w-full p-3 md:p-4 bg-bg-shell hover:bg-neutral-800/50 transition-colors flex items-center gap-3 text-left"
-      >
-        {isExpanded ? (
-          <ChevronDown className="h-5 w-5 text-neutral-400 shrink-0" />
-        ) : (
-          <ChevronRight className="h-5 w-5 text-neutral-400 shrink-0" />
-        )}
-        <div className="flex-1 min-w-0">
-          <div className="text-base font-semibold text-neutral-50">
-            MATCH: {p1Name} vs {p2Name}
+      <div className="flex items-center">
+        <button
+          onClick={onToggle}
+          className="flex-1 p-3 md:p-4 bg-bg-shell hover:bg-neutral-800/50 transition-colors flex items-center gap-3 text-left"
+        >
+          {isExpanded ? (
+            <ChevronDown className="h-5 w-5 text-neutral-400 shrink-0" />
+          ) : (
+            <ChevronRight className="h-5 w-5 text-neutral-400 shrink-0" />
+          )}
+          <div className="flex-1 min-w-0">
+            <div className="text-base font-semibold text-neutral-50">
+              MATCH: {p1Name} vs {p2Name}
+            </div>
+            <div className="text-sm text-neutral-400 mt-1">
+              {match.sets.length} sets • {match.sets.reduce((acc, s) => acc + s.rallies.length, 0)} rallies • {match.sets.reduce((acc, s) => s.rallies.reduce((a, r) => a + r.shots.length, acc), 0)} shots
+            </div>
           </div>
-          <div className="text-sm text-neutral-400 mt-1">
-            {match.sets.length} sets • {match.sets.reduce((acc, s) => acc + s.rallies.length, 0)} rallies • {match.sets.reduce((acc, s) => s.rallies.reduce((a, r) => a + r.shots.length, acc), 0)} shots
-          </div>
-        </div>
-      </button>
+        </button>
+        
+        {/* Phase 1 Audit Button */}
+        <a
+          href={`/data-viewer/audit?matchId=${match.id}`}
+          className="px-4 py-2 m-3 bg-brand-primary hover:bg-brand-primary/90 text-white text-sm font-semibold rounded transition-colors shrink-0"
+          onClick={(e) => e.stopPropagation()}
+        >
+          Phase 1 Audit
+        </a>
+      </div>
 
       {/* Match Table */}
       {isExpanded && (

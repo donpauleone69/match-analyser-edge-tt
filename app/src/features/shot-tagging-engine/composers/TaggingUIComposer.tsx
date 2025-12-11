@@ -48,7 +48,9 @@ export function TaggingUIComposer({ className }: TaggingUIComposerProps) {
   
   // Get set number and redo flag from URL params
   const urlSetNumber = searchParams.get('set')
-  const isRedo = searchParams.get('redo') === 'true'
+  const redoParam = searchParams.get('redo')
+  const isRedo = redoParam === 'true' || redoParam === 'phase2'
+  const redoMode: 'all' | 'phase2_only' = redoParam === 'phase2' ? 'phase2_only' : 'all'
   
   useEffect(() => {
     loadMatches()
@@ -167,7 +169,7 @@ export function TaggingUIComposer({ className }: TaggingUIComposerProps) {
       }
       
       setIsPreparingSet(true)
-      console.log(`[Setup] Preparing set ${urlSetNumber} for match ${matchId}${isRedo ? ' (REDO)' : ''}`)
+      console.log(`[Setup] Preparing set ${urlSetNumber} for match ${matchId}${isRedo ? ` (REDO - ${redoMode})` : ''}`)
       try {
         const sets = await getSetsByMatchId(matchId)
         const targetSet = sets.find(s => s.set_number === parseInt(urlSetNumber))
@@ -181,12 +183,21 @@ export function TaggingUIComposer({ className }: TaggingUIComposerProps) {
         // Check if this is a resume or redo
         if (isRedo) {
           // Delete existing tagging data for redo
-          await deleteSetTaggingData(targetSet.id)
+          console.log(`[Setup] Deleting existing tagging data for redo (mode: ${redoMode})...`)
+          await deleteSetTaggingData(targetSet.id, redoMode)
           console.log(`Cleared tagging data for Set ${targetSet.set_number}`)
           // Clear localStorage session
           useTaggingSessionStore.getState().clearSession()
-          setPhase('phase1')  // Go directly to Phase1 (has its own setup)
-          await markSetTaggingStarted(targetSet.id)
+          
+          // If redo mode is phase2_only, resume from Phase 1 complete, otherwise start Phase 1
+          if (redoMode === 'phase2_only') {
+            // Resume from Phase 1 data
+            await resumeTaggingSession(targetSet, matchId)
+          } else {
+            // Full redo - start from Phase 1
+            setPhase('phase1')
+            await markSetTaggingStarted(targetSet.id)
+          }
         } else if (targetSet.tagging_phase && targetSet.tagging_phase !== 'not_started') {
           // Resume existing session
           await resumeTaggingSession(targetSet, matchId)
@@ -209,7 +220,7 @@ export function TaggingUIComposer({ className }: TaggingUIComposerProps) {
     if (urlSetNumber && phase === 'setup') {
       prepareSet()
     }
-  }, [matchId, urlSetNumber, isRedo, phase, currentMatch])
+  }, [matchId, urlSetNumber, isRedo, redoMode, phase, currentMatch])
   
   const handleCompletePhase2 = async (_detailedShots: DetailedShot[]) => {
     console.log('[TaggingUI] Phase 2 complete!')

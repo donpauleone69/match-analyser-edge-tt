@@ -17,6 +17,7 @@ export {
   type CardProps,
 } from './Card'
 export { Badge, type BadgeProps, badgeVariants } from './Badge'
+export { BasicInsightCardTemplate, type BasicInsightCardProps } from './BasicInsightCardTemplate'
 
 // Icon system
 export { Icon, icons, type IconName, type IconProps } from './Icon'
@@ -36,6 +37,7 @@ export * from './TableTennisButtons'
 
 // Form components
 export * from './Dialog'
+export * from './FilterBar'
 export * from './Input'
 export * from './Label'
 export * from './Table'

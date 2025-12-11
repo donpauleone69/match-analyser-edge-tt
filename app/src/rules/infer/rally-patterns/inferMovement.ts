@@ -121,7 +121,7 @@ export function inferOutOfPosition(
     severity = 'significant'
   }
   
-  if (currentShot.shot_result === 'in_net' || currentShot.shot_result === 'missed_long') {
+  if (currentShot.shot_result === 'in_net' || currentShot.shot_result === 'missed_long' || currentShot.shot_result === 'fault') {
     severity = 'extreme'
   }
   

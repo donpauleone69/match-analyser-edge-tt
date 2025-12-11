@@ -12,7 +12,7 @@
 import { type ReactNode } from 'react'
 import { cn } from '@/helpers/utils'
 
-export type EndCondition = 'winner' | 'innet' | 'long' | 'let'
+export type EndCondition = 'winner' | 'innet' | 'long' | 'forcederror' | 'let'
 
 export interface RallyCardProps {
   rallyNumber: number
@@ -41,6 +41,7 @@ export function RallyCard({
     endCondition === 'winner' ? 'Winner' :
     endCondition === 'innet' ? 'In-Net' :
     endCondition === 'long' ? 'Long' :
+    endCondition === 'forcederror' ? 'Forced Error' :
     'Let'
     
   const endConditionColor = 
@@ -66,13 +67,16 @@ export function RallyCard({
           </span>
           <span className="ml-2 text-neutral-500">Server: {serverName}</span>
         </div>
-        <div className="text-xs">
-          <span className="font-medium text-success mr-2">{winnerName} won</span>
-          <span className={cn('font-medium', endConditionColor)}>
-            {endConditionLabel}
-            {isError && ' (Error)'}
-          </span>
-        </div>
+        {/* Only show winner/end condition for completed rallies */}
+        {!isCurrent && (
+          <div className="text-xs">
+            <span className="font-medium text-success mr-2">{winnerName} won</span>
+            <span className={cn('font-medium', endConditionColor)}>
+              {endConditionLabel}
+              {isError && ' (Error)'}
+            </span>
+          </div>
+        )}
       </div>
       
       {/* Shot list */}

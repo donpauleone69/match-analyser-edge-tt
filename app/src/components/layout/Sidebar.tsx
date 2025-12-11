@@ -17,7 +17,7 @@ const navItems = [
   { to: '/tournaments', icon: Trophy, label: 'Tournaments' },
   { to: '/players', icon: Users, label: 'Players' },
   { to: '/matches', icon: Swords, label: 'Matches' },
-  { to: '/stats', icon: BarChart3, label: 'Stats' },
+  { to: '/analytics', icon: BarChart3, label: 'Analytics' },
   { to: '/data-viewer', icon: Database, label: 'Data Viewer' },
   { to: '/settings', icon: Settings, label: 'Settings' },
 ]

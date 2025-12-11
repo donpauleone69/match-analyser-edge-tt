@@ -27,3 +27,4 @@ export function StatusPlayerScore({ playerName, score, className }: StatusPlayer
   )
 }
 
+

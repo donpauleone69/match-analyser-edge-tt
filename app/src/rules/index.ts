@@ -8,7 +8,7 @@
  * - derive/    - Level 0: Deterministic derivations (100% fact)
  * - calculate/ - Deterministic calculations (arithmetic/logic)
  * - infer/     - Level 1+: Probabilistic inferences (with confidence)
- * - stats/     - Aggregated statistics and performance metrics
+ * - analytics/ - Analytics calculation rules (pure functions)
  * - validate/  - Data integrity and consistency checks
  */
 
@@ -24,8 +24,8 @@ export * from './calculate'
 // Level 1+: Inferences (probabilistic)
 export * from './infer'
 
-// Statistics
-export * from './stats'
+// Analytics
+export * from './analytics'
 
 // Validation
 export * from './validate'

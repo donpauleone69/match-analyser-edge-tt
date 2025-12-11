@@ -4,9 +4,12 @@
  * Provides consistent behavior for hover, focus, disabled states.
  * Wraps SVG content from individual button components.
  * 
- * LAYOUT CHANGE (2024-12-04): Changed from fixed-size to flexible width
- * - Buttons now use flex-1 to share space equally
- * - Fixed height maintained for consistency
+ * LAYOUT FIX (2025-12-10): Fixed button overlap in 5-column grid (Phase1)
+ * - Buttons size to grid height but constrained by max-w-full/max-h-full
+ * - aspect-square ensures buttons stay square within grid cell bounds
+ * - Buttons remain centered and no longer overlap in narrow columns
+ * 
+ * PREVIOUS CHANGE (2024-12-04): Changed from fixed-size to flexible width
  * - Allows 2-6 buttons to fill available width without overflow
  * 
  * TO ROLLBACK: Restore size prop logic:
@@ -45,18 +48,20 @@ export function TableTennisButtonBase({
         'bg-transparent border-none p-0 cursor-pointer rounded-lg overflow-hidden',
         'transition-all duration-150 shadow-md active:scale-95',
         'focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2',
-        // Square buttons that maximize available space
-        'h-full',          // Fill grid cell height
-        'aspect-square',   // Keep buttons square by default (width = height)
+        // Square buttons that fit within grid cells
+        // Use max dimensions to ensure button doesn't exceed cell bounds
+        'max-w-full max-h-full',  // Never exceed grid cell dimensions
+        'aspect-square',           // Keep buttons square (constrained by smaller dimension)
         // Remove inline spacing from SVG children
         '[&>svg]:block',   // Make SVG block element to remove inline gaps
         disabled && 'cursor-not-allowed opacity-60',
         className
       )}
       style={{
-        // Constrain width to never exceed container height (for square buttons in wide grid cells)
-        // This ensures direction buttons stay square even in 3-button layouts
-        maxWidth: 'var(--button-grid-height, 100%)',
+        // Size the button to fit within the grid height
+        // Grid cells will constrain width via max-w-full
+        width: 'var(--button-grid-height, 100px)',
+        height: 'var(--button-grid-height, 100px)',
       }}
     >
       {children}

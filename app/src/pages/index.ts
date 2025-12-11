@@ -7,5 +7,6 @@ export { default as MatchCreatePage } from './MatchCreate'
 export { ShotTaggingEngine } from './ShotTaggingEngine'
 export { Settings } from './Settings'
 export { DataViewer } from './DataViewer'
-export { StatsPage } from './Stats'
+export { DataViewerAudit } from './DataViewerAudit'
+export { AnalyticsPage } from './Analytics'
 

@@ -165,7 +165,8 @@ export function detectWeaknessExploitation(
                       nextShot.rally_end_role === 'forced_error' ||
                       nextShot.shot_result === 'in_net' ||
                       nextShot.shot_result === 'missed_long' ||
-                      nextShot.shot_result === 'missed_wide'
+                      nextShot.shot_result === 'missed_wide' ||
+                      nextShot.shot_result === 'fault'
       
       if (zone) {
         playerResponses.push({ zone, isError })

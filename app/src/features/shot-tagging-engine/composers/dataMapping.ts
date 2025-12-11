@@ -209,6 +209,26 @@ export function mapPhase1RallyToDBRally(
   // Map winnerId from Phase1Rally to actual player ID
   const winnerId = rally.winnerId === 'player1' ? player1Id : player2Id
   
+  // Determine point_end_type based on end condition and shot count
+  let pointEndType: NewRally['point_end_type'] = null
+  if (rally.endCondition === 'winner') {
+    pointEndType = 'winnerShot'
+  } else if (rally.endCondition === 'let') {
+    pointEndType = null
+  } else {
+    // Error conditions: innet, long, or forcederror
+    const shotCount = rally.shots.length
+    if (shotCount === 1) {
+      pointEndType = 'serviceFault'
+    } else if (shotCount === 2) {
+      // Shot 2 can be receiveError or forcedError
+      pointEndType = rally.endCondition === 'forcederror' ? 'forcedError' : 'receiveError'
+    } else {
+      // Shot 3+: forcedError or unforcedError
+      pointEndType = rally.endCondition === 'forcederror' ? 'forcedError' : 'unforcedError'
+    }
+  }
+  
   return {
     set_id: setId,
     rally_index: rallyIndex,
@@ -224,9 +244,7 @@ export function mapPhase1RallyToDBRally(
     player1_score_after: 0, // Will be calculated in batch
     player2_score_after: 0, // Will be calculated in batch
     end_of_point_time: rally.endTimestamp,
-    point_end_type: rally.isError 
-      ? (rally.shots.length === 1 ? 'serviceFault' : null) // Service fault if only 1 shot, otherwise determine in Phase 2
-      : 'winnerShot', // Non-error rallies are winner shots
+    point_end_type: pointEndType,
     has_video_data: true,
     is_highlight: false,
     framework_confirmed: true, // Phase 1 complete
@@ -256,7 +274,7 @@ export function mapPhase1ShotToDBShot(
   })
   
   // Determine shot_result based on rally end condition (only for last shot)
-  let shotResult: 'in_net' | 'missed_long' | 'in_play' = 'in_play'
+  let shotResult: 'in_net' | 'missed_long' | 'in_play' | 'fault' = 'in_play'
   let rallyEndRole: 'winner' | 'forced_error' | 'unforced_error' | 'none' = 'none'
   
   if (isLastShot) {
@@ -264,25 +282,38 @@ export function mapPhase1ShotToDBShot(
     
     if (rallyEndCondition === 'innet') {
       shotResult = 'in_net'
-      // Rally end role will be determined in Phase 2 based on shot index and errorType
-      // Shot 1 = service fault (unforced), Shot 2 = receive error (unforced), Shot 3+ = forced/unforced
+      // Shot 1 = service fault (always unforced)
+      // Shot 2 = receive error (always unforced)
+      // Shot 3+ = unforced error (from innet/long buttons)
       if (shot.shotIndex === 1) {
         rallyEndRole = 'unforced_error' // Service fault
       } else if (shot.shotIndex === 2) {
         rallyEndRole = 'unforced_error' // Receive error
+      } else {
+        rallyEndRole = 'unforced_error' // Shot 3+ with Net button
       }
       console.log('[mapPhase1ShotToDBShot] In-Net:', { shotResult, rallyEndRole })
-      // For shot 3+, leave as 'none' - will be updated in Phase 2 when errorType is captured
     } else if (rallyEndCondition === 'long') {
       shotResult = 'missed_long'
-      // Same logic as innet
+      // Same logic as innet - always unforced from Long button
       if (shot.shotIndex === 1) {
         rallyEndRole = 'unforced_error' // Service fault
       } else if (shot.shotIndex === 2) {
         rallyEndRole = 'unforced_error' // Receive error
+      } else {
+        rallyEndRole = 'unforced_error' // Shot 3+ with Long button
       }
       console.log('[mapPhase1ShotToDBShot] Long:', { shotResult, rallyEndRole })
-      // For shot 3+, leave as 'none' - will be updated in Phase 2
+    } else if (rallyEndCondition === 'forcederror') {
+      shotResult = 'fault' // Unknown error type - will be determined in Phase 2
+      // Shot 1 = service fault (always unforced, but button disabled so shouldn't happen)
+      // Shot 2+ = forced error
+      if (shot.shotIndex === 1) {
+        rallyEndRole = 'unforced_error' // Service fault (shouldn't happen - button disabled)
+      } else {
+        rallyEndRole = 'forced_error' // Shot 2+ with Forced Error button
+      }
+      console.log('[mapPhase1ShotToDBShot] Forced Error:', { shotResult, rallyEndRole })
     } else if (rallyEndCondition === 'winner') {
       shotResult = 'in_play'
       rallyEndRole = 'winner' // Winner shot - opponent couldn't return
@@ -541,7 +572,9 @@ export function convertDBRallyToPhase1Rally(
   const endCondition: EndCondition = 
     !dbRally.is_scoring ? 'let' :
     dbRally.point_end_type === 'winnerShot' ? 'winner' :
-    dbRally.point_end_type === 'forcedError' || dbRally.point_end_type === 'unforcedError' ? 'long' : 
+    dbRally.point_end_type === 'forcedError' ? 'forcederror' :
+    dbRally.point_end_type === 'unforcedError' ? 'long' : 
+    dbRally.point_end_type === 'serviceFault' || dbRally.point_end_type === 'receiveError' ? 'long' :
     'innet'
   
   // Determine serverId
@@ -594,7 +627,9 @@ export function convertDBShotToDetailedShot(
   const endCondition = 
     !rally.is_scoring ? 'let' :
     rally.point_end_type === 'winnerShot' ? 'winner' :
-    rally.point_end_type === 'forcedError' || rally.point_end_type === 'unforcedError' ? 'long' : 
+    rally.point_end_type === 'forcedError' ? 'forcederror' :
+    rally.point_end_type === 'unforcedError' ? 'long' :
+    rally.point_end_type === 'serviceFault' || rally.point_end_type === 'receiveError' ? 'long' :
     'innet'
   
   // Map direction from DB format to UI format
@@ -629,7 +664,7 @@ type Direction =
   | 'mid_left' | 'mid_mid' | 'mid_right'
   | 'right_left' | 'right_mid' | 'right_right'
 
-type EndCondition = 'innet' | 'long' | 'winner' | 'let'
+type EndCondition = 'innet' | 'long' | 'forcederror' | 'winner' | 'let'
 
 // Re-export types for convenience
 export type { Direction, EndCondition }

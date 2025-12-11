@@ -220,3 +220,4 @@ const isSuccess = shot_quality === 'high' || rally_end_role === 'winner'
 - All mapper functions already worked correctly - no changes needed
 - No breaking changes to existing UI components (only internal data handling)
 
+
