@@ -74,12 +74,46 @@ This document outlines the immediate next steps for the MVP, prioritized by impa
 - [ ] Professional loading states and error messages
 - [ ] Polish all modals and dialogs
 - [ ] Responsive design improvements
+- [ ] **Tag Highlight Rallies** — Mark important rallies for quick access/review
 
 **Reference:** Update `DesignSystem.md` with finalized tokens
 
 **Impact:** MEDIUM — Professional appearance  
 **Effort:** MEDIUM — Systematic component updates  
 **Priority:** P1 — Important for user experience
+
+---
+
+### 3.5. Tag Highlight Rallies (New Feature)
+
+**Purpose:** Mark important/interesting rallies for quick access and highlight reel creation.
+
+**Features:**
+- [ ] Add "highlight" flag to Rally entity (boolean field)
+- [ ] Star/bookmark icon in rally list to toggle highlight
+- [ ] Visual indicator for highlighted rallies (gold star, colored border)
+- [ ] Filter rallies by highlighted status
+- [ ] Bulk highlight/unhighlight operations
+- [ ] Highlight count in match summary
+- [ ] Export highlighted rallies only (future video export)
+- [ ] "Play all highlights" button in video player
+
+**Use Cases:**
+- Mark exceptional rallies during tagging
+- Create highlight reels from tagged matches
+- Focus review sessions on key rallies
+- Coach feedback on specific rally examples
+- Quick access to best/worst rallies for analysis
+
+**Implementation:**
+- Add `isHighlight: boolean` to Rally type
+- Add toggle button in RallyPodBlock component
+- Add filter in Match Panel Section
+- Update analytics to show highlight stats
+
+**Impact:** HIGH — Very handy for review and video export  
+**Effort:** LOW — Simple flag + UI updates  
+**Priority:** P1 — Quick win with high user value
 
 ---
 
@@ -237,6 +271,7 @@ This document outlines the immediate next steps for the MVP, prioritized by impa
 | Video Player Improvements | P0 | Low-Med | High | None |
 | Data Validation Fixes | P0 | Medium | High | None |
 | UI/UX Polish | P1 | Medium | Medium | None |
+| Tag Highlight Rallies | P1 | Low | High | None |
 | Flexible Tagging Modules | P1 | High | High | None |
 | Authentication & User Context | P1 | Medium | High | None |
 | Supabase Migration | P1 | High | High | Authentication |
@@ -249,7 +284,8 @@ This document outlines the immediate next steps for the MVP, prioritized by impa
 ### Week 1-2: Quick Wins
 1. Video player fixes (P0)
 2. Data validation fixes (P0)
-3. Start UI/UX polish (P1)
+3. Tag highlight rallies (P1 - quick win!)
+4. Start UI/UX polish (P1)
 
 ### Week 3-4: Architecture
 1. Flexible tagging modules design (P1)

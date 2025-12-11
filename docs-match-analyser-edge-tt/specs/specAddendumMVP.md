@@ -6,6 +6,44 @@
 
 ## Change Log
 
+### 2025-12-11: Added Tag Highlight Rallies Feature (v3.25.1)
+
+**Change Type:** Specification Update
+
+**What Changed:**
+- **Added** "Tag Highlight Rallies" feature to `Next_MVP_Steps.md`
+
+**Feature Details:**
+- Mark important/interesting rallies with highlight flag
+- Visual indicators (star/bookmark icons)
+- Filter rallies by highlighted status
+- Quick access for review and analysis
+- Foundation for future highlight reel export
+
+**Implementation:**
+- Add `isHighlight: boolean` to Rally entity
+- Toggle button in rally list UI
+- Filter controls in Match Panel
+- "Play all highlights" in video player
+- Export highlighted rallies only (future)
+
+**Priority:** P1 — Low effort, high impact quick win  
+**Timeline:** Week 1-2 (alongside video player and data validation fixes)
+
+**Use Cases:**
+- Mark exceptional rallies during tagging
+- Create highlight reels from tagged matches
+- Focus review on key rallies
+- Coach feedback on specific examples
+- Quick access to best/worst rallies
+
+**Impact:**
+- Very handy for match review
+- Essential for future video export feature
+- High user value with minimal implementation effort
+
+---
+
 ### 2025-12-11: Roadmap Update & Next Steps Plan (v3.25.0)
 
 **Change Type:** Specification Update
