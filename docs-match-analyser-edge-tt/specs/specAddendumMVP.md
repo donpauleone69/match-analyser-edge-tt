@@ -6,6 +6,74 @@
 
 ## Change Log
 
+### 2025-12-11: Root Folder Documentation Cleanup (v3.22.0)
+
+**Change Type:** Documentation Cleanup
+
+**What Changed:**
+- **Deleted 15 root-level markdown files** (historical clutter)
+- **Kept 2 recent cleanup reports** as reference
+- Root folder now clean and professional
+
+**Files Deleted (15 total):**
+
+**Bug Fix Reports (7):**
+1. ❌ `ALL_BUGS_FOUND_AND_FIXED.md` — Bug analysis (bugs fixed)
+2. ❌ `COMPLETE_BUG_AUDIT_FINAL.md` — Comprehensive audit (bugs fixed)
+3. ❌ `CRITICAL_BUG_FIX_is_rally_end.md` — Critical bug fix (bug fixed)
+4. ❌ `DATABASE_FIXES_2025-12-08.md` — Database issues (issues fixed)
+5. ❌ `SHOT_RESULT_QUALITY_SPLIT_COMPLETE.md` — Implementation complete
+6. ❌ `PHASE1_PHASE2_VERIFICATION.md` — Verification complete
+7. ❌ `RESTORATION_COMPLETE.md` — Service restoration complete
+
+**Migration/Refactoring Reports (2):**
+8. ❌ `MIGRATION_COMPLETE.md` — Data layer migration complete
+9. ❌ `MIGRATION_SUMMARY.md` — Video playback extraction complete
+
+**Feature Implementation Reports (2):**
+10. ❌ `MATCH_RESULT_ENTRY_IMPLEMENTATION.md` — Feature complete
+11. ❌ `MATCH_RESULT_UI_IMPROVEMENTS.md` — UI improvements complete
+
+**Planning Documents (2):**
+12. ❌ `PHASE3_INFERENCE_EXTRACTION_PLAN.md` — Plan executed (Phase 3 is live)
+13. ❌ `Brainstorming Shortcuts for shots.md` — Early brainstorming
+
+**User Instructions (1):**
+14. ❌ `CLEAR_LOCALSTORAGE_INSTRUCTIONS.md` — One-time instructions
+
+**Scratchpad (1):**
+15. ❌ `Untitled.md` — Development notes
+
+**Files Kept (2):**
+- ✅ `ARCHITECTURE_DOCUMENTATION_AUDIT.md` — Today's architecture audit
+- ✅ `DOCUMENTATION_CLEANUP_2025-12-11.md` — Today's schema cleanup
+- ✅ `ROOT_DOCUMENTATION_AUDIT.md` — Today's root folder audit
+
+**Rationale:**
+- Root folder is not a bug tracker, work log, or planning folder
+- All completed work is documented in specAddendumMVP.md (official changelog)
+- Git history preserves all details if needed
+- Root folder should be clean and professional (README, config, folders only)
+- Bug reports, completion reports, and planning docs are clutter after work is done
+
+**Root Folder Philosophy:**
+- ❌ NOT for: Bug reports, completion reports, implementation logs, plans, brainstorming, scratchpads
+- ✅ FOR: README, configuration files, project folders (app/, docs-match-analyser-edge-tt/)
+
+**Impact:**
+- Cleaner project structure
+- Easier to navigate root folder
+- Professional appearance
+- Historical work preserved in changelog and git history
+
+**Documentation Cleanup Progress:**
+- ✅ **v3.20.0** — Schema documentation (deleted 7 redundant schema docs)
+- ✅ **v3.21.0** — Architecture documentation (deleted 15 architecture/completion docs)
+- ✅ **v3.22.0** — Root folder cleanup (deleted 15 historical/bug/plan docs)
+- **Total cleaned:** 37 redundant/outdated documents deleted
+
+---
+
 ### 2025-12-11: Architecture Documentation Consolidation (v3.21.0)
 
 **Change Type:** Documentation Cleanup & Architecture Update
