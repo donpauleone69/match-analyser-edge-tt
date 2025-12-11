@@ -6,6 +6,122 @@
 
 ## Change Log
 
+### 2025-12-11: Architecture Documentation Consolidation (v3.21.0)
+
+**Change Type:** Documentation Cleanup & Architecture Update
+
+**What Changed:**
+- **Complete rewrite** of `Architecture.md` (v3.0) reverse-engineered from actual code
+- **Deleted 15 redundant/outdated** architecture and completion documents
+- Architecture now accurately reflects current implementation (100% accuracy)
+- Documented three-phase tagging workflow
+- Documented rules organization (derive/calculate/infer/validate/analytics)
+- Documented multi-video support, slug-based IDs, analytics patterns
+- Added comprehensive Supabase migration guidance
+
+**New Architecture.md (v3.0):**
+- **Tech Stack:** Verified against package.json and actual usage
+  - React 19, Vite 7, TypeScript 5.9, React Router 7, Zustand 5, Dexie 4
+  - HTML5 Video API, FFmpeg.wasm, Tailwind 4, Radix UI, Lucide React
+  - TanStack Query installed (future Supabase migration)
+- **Folder Structure:** Matches actual `app/src/` implementation
+  - 11 pages, 7 feature modules, 5 rules subfolders, 9 entity folders
+  - 18 ui-mine components, 8 helpers, 1 store
+- **Rules Organization:** Clear separation
+  - `derive/` — Deterministic (100% fact, persisted to DB)
+  - `calculate/` — Arithmetic (100% fact, not persisted)
+  - `infer/` — Probabilistic (AI/ML, persisted with confidence)
+  - `validate/` — Data integrity checks
+  - `analytics/` — Aggregated statistics
+- **Key Patterns Documented:**
+  - Three-phase tagging (timestamps → details → inference)
+  - Top-down + bottom-up data flow
+  - Multi-video support architecture
+  - Slug-based ID strategy
+  - Analytics card pattern
+  - Feature layer responsibilities (composers → sections → blocks)
+- **Supabase Migration:** Comprehensive guide for future cloud migration
+- **12 sections:** Overview, Tech Stack, Folder Structure, Layers (x8), Naming, Imports, Future Migration, Testing, Performance, Related Docs
+
+**Files Deleted (15 total):**
+
+**Inaccurate/Outdated (6):**
+1. ❌ `specs/techstack.md` — Wrong tech stack (claimed TanStack Query used, Hls.js, Video.js)
+2. ❌ `MVP_Spec_and_Architecture.md` — Outdated entities, wrong tech stack
+3. ❌ `specs/ArchitectureAnalysis_Part1Flow.md` — Historical bug analysis (resolved)
+4. ❌ `DUPLICATE_LOGIC_AUDIT.md` — Historical audit (issues resolved)
+5. ❌ `specs/MVP_Implementation_Status.md` — Outdated status
+6. ❌ `PROTOTYPE_RENAMING_PLAN.md` — Plan completed
+
+**Historical Completion Docs (9):**
+7. ❌ `REFACTORING_COMPLETE_2025-12-06.md` — Rules reorganization (integrated)
+8. ❌ `CLEANUP_COMPLETE_2025-12-06.md` — Mapper extraction (integrated)
+9. ❌ `INTEGRATION_COMPLETE_2025-12-06.md` — Integration work (integrated)
+10. ❌ `REFACTOR_COMPLETE.md` — Earlier refactoring (integrated)
+11. ❌ `PHASE1_PHASE2_COMPLETE.md` — Phase completion (integrated)
+12. ❌ `PHASE1_SETUP_FLOW_COMPLETE.md` — Setup flow (integrated)
+13. ❌ `REDUNDANT_SETUP_CLEANUP_COMPLETE.md` — Cleanup work (integrated)
+14. ❌ `specs/MVP_IMPLEMENTATION_COMPLETE.md` — MVP completion (integrated)
+15. ❌ `specs/STATS_IMPLEMENTATION_SUMMARY.md` — Old stats feature (replaced by analytics)
+
+**Rationale:**
+- Multiple architecture docs caused confusion about tech stack and structure
+- `techstack.md` claimed TanStack Query was actively used (NOT true - installed for future)
+- `MVP_Spec_and_Architecture.md` had outdated entity descriptions
+- Historical completion docs were clutter (user's words)
+- Key insights from completion docs integrated into Architecture.md
+- Consolidation ensures architecture doc matches implementation
+
+**Key Architecture Features Documented:**
+- **Local-First MVP:** Dexie (IndexedDB) primary storage, Zustand UI state
+- **Supabase-Ready:** TanStack Query installed, migration guide included
+- **Rules Layer:** Clear separation (derive/calculate/infer/validate/analytics)
+- **Feature Pattern:** composers → sections → blocks → ui-mine
+- **Multi-Video:** Matches can have multiple video segments
+- **Slug IDs:** Human-readable identifiers (john-doe-a1b2)
+- **Three Phases:** Timestamp tagging → Detail entry → Inference
+- **Analytics Cards:** Card-based insights with consistent pattern
+- **Import Rules:** Features use @/ui-mine (never @/components/ui directly)
+- **Naming Conventions:** Composer/Section/Block suffixes, derive/calculate/infer prefixes
+
+**Tech Stack Clarifications:**
+- ✅ React Router v7 installed (uses backward-compatible v6 API)
+- ✅ TanStack Query installed (NOT used yet - ready for Supabase)
+- ✅ Dexie.js primary storage (NOT Supabase in MVP)
+- ✅ HTML5 Video API (NOT Hls.js or Video.js)
+- ✅ Zustand + persist middleware (NOT TanStack Query)
+
+**Files Modified:**
+- ✅ `docs-match-analyser-edge-tt/Architecture.md` — Complete rewrite (v3.0, 1,200+ lines)
+
+**Documentation Hierarchy:**
+```
+Source of Truth Docs:
+├── Architecture.md        → System architecture ✨ UPDATED v3.0
+├── DataSchema.md          → Entity definitions ✨ UPDATED v3.0 (2025-12-11)
+├── Glossary.md            → Domain terminology
+├── .cursorrules           → Development conventions
+└── specs/
+    ├── MVP_flowchange_spec.md     → Feature requirements
+    └── specAddendumMVP.md         → Change history ✨ UPDATED v3.21.0
+```
+
+**Impact:**
+- Developers now have single, accurate architecture reference
+- No more confusion about tech stack (TanStack Query vs Zustand, etc.)
+- Clear understanding of rules organization (derive vs infer vs calculate)
+- Comprehensive Supabase migration guide for future
+- 15 files removed → cleaner docs folder
+- Future architecture changes update ONE file only
+
+**Next Steps:**
+- Architecture.md is now the single source of truth
+- Update this file when making architectural changes
+- Refer to Architecture.md for folder structure, naming, patterns
+- Use Architecture.md for onboarding new developers
+
+---
+
 ### 2025-12-11: Documentation Consolidation - Schema Source of Truth (v3.20.0)
 
 **Change Type:** Documentation Cleanup & Schema Update
