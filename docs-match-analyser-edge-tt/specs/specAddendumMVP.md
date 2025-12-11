@@ -6,6 +6,85 @@
 
 ## Change Log
 
+### 2025-12-11: Documentation Consolidation - Schema Source of Truth (v3.20.0)
+
+**Change Type:** Documentation Cleanup & Schema Update
+
+**What Changed:**
+- **Complete rewrite** of `DataSchema.md` as single source of truth
+- **Reverse-engineered** from actual TypeScript implementation (`app/src/data/entities/`)
+- **Deleted redundant** schema documentation files
+- Schema now accurately reflects current local-first implementation
+
+**New DataSchema.md (v3.0):**
+- Comprehensive documentation of all 9 entities (Players, Clubs, Tournaments, Matches, MatchVideos, Sets, Rallies, Shots, ShotInferences)
+- Slug-based ID strategy documented (e.g., `john-doe-a1b2`)
+- Multi-video support architecture explained
+- Three-phase workflow (Phase 1: Timestamps, Phase 2: Detail, Phase 3: Inference)
+- Top-down/bottom-up data flow explained
+- Entity relationships diagram
+- Future Supabase migration guidance with index recommendations
+- 868 lines → comprehensive reference
+
+**Files Deleted (Redundant/Outdated):**
+1. ❌ `specs/DatabaseSchema_PrototypeV2.md` (907 lines) - Superseded
+2. ❌ `specs/DatabaseERD.md` (571 lines) - ERD now in DataSchema.md
+3. ❌ `specs/Data-to-Stats-Mapping.md` (400 lines) - Outdated analytics mapping
+4. ❌ `specs/TaggingPrototypeV2_FlowAndSchemaMapping.md` (796 lines) - Outdated flow docs
+5. ❌ `chat_notes/Shots_Schema_Spec.md` - Duplicate
+6. ❌ `chat_notes/Final/Shots_Schema_Spec.md` - Duplicate
+7. ❌ `chat_notes/Final/Final/Shots_Schema_Spec.md` - Triple-nested duplicate
+
+**Rationale:**
+- Multiple schema docs caused confusion about which was current
+- Old docs used UUIDs and camelCase (outdated)
+- Actual code uses slug IDs and snake_case
+- Consolidation ensures schema doc matches implementation
+- Single source of truth reduces maintenance burden
+
+**Key Schema Features Documented:**
+- **Slug IDs**: Human-readable identifiers (e.g., `match-123-s1-r5-sh2`)
+- **Local Storage**: IndexedDB via Dexie.js
+- **Multi-Video**: Matches can have multiple video segments
+- **Stub Rallies**: Pre-populated from top-down score entry
+- **Video Contexts**: Sets track which video segments cover them
+- **Inference Tracking**: Sparse table tracks AI-inferred vs manually-entered fields
+- **Workflow Phases**: Clear separation of timestamp → detail → inference phases
+
+**Supabase Migration Path:**
+- Keep slugs as indexed fields for debugging
+- Add UUIDs as primary keys
+- Convert ISO strings to TIMESTAMPTZ
+- Add CHECK constraints for enums
+- Index recommendations provided
+
+**Files Modified:**
+- ✅ `docs-match-analyser-edge-tt/DataSchema.md` - Complete rewrite (v3.0)
+
+**Files Preserved (Still Relevant):**
+- ✅ `Architecture.md` - System architecture
+- ✅ `Glossary.md` - Domain terminology
+- ✅ `specs/MVP_flowchange_spec.md` - Current feature spec
+- ✅ `.cursorrules` - No changes needed (already pointed to DataSchema.md)
+
+**Documentation Hierarchy:**
+```
+Source of Truth Docs (per .cursorrules):
+├── Architecture.md         → System design & patterns
+├── DataSchema.md          → Entity definitions & relationships ✨ UPDATED
+├── Glossary.md            → Domain terminology
+├── specs/MVP_flowchange_spec.md → Feature requirements
+└── specs/specAddendumMVP.md     → Change history (this file)
+```
+
+**Impact:**
+- Developers now have single, accurate schema reference
+- No more confusion between v1, v2, PrototypeV2 schemas
+- Future schema changes update ONE file only
+- Easier onboarding for new developers
+
+---
+
 ### 2025-12-11: Rally Stats & Error Profile Analytics Cards (v3.19.0)
 
 **Change Type:** Feature Addition - New Analytics Cards
