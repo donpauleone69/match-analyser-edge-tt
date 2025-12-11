@@ -144,7 +144,6 @@ app/src/
 | Architecture | `docs-match-analyser-edge-tt/Architecture.md` |
 | Data Schema | `docs-match-analyser-edge-tt/DataSchema.md` |
 | Glossary | `docs-match-analyser-edge-tt/Glossary.md` |
-| Current Spec | `docs-match-analyser-edge-tt/specs/MVP_flowchange_spec.md` |
+| Current Spec & Roadmap | `docs-match-analyser-edge-tt/specs/MVP_Current_And_Roadmap.md` |
 | Changelog | `docs-match-analyser-edge-tt/specs/specAddendumMVP.md` |
-| Tasks | `docs-match-analyser-edge-tt/specs/MVP_flowchange_tasks.md` |
 
