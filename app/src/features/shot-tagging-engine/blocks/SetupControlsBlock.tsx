@@ -60,33 +60,39 @@ export function SetupControlsBlock({
   
   return (
     <div className={cn('bg-bg-card border-t border-neutral-700', className)}>
-      <ButtonGrid columns={3}>
-        {/* Column 1: Player 1 */}
+      <ButtonGrid columns={4}>
+        {/* Column 1: Labels */}
+        <div className="w-full h-full flex flex-col items-start justify-center gap-1 p-1 px-2">
+          <span className="text-[11px] text-neutral-400 leading-tight">Initial Server:</span>
+          <span className="text-[11px] text-neutral-400 leading-tight">Initial Score:</span>
+        </div>
+        
+        {/* Column 2: Player 1 */}
         <div className="w-full h-full flex flex-col items-center justify-center gap-1 p-1">
           <Button
             variant={nextServer === 'player1' ? 'primary' : 'secondary'}
             onClick={() => setNextServer('player1')}
-            className="w-full h-10 text-sm font-semibold"
+            className="w-full h-8 text-[11px] font-semibold"
           >
             {player1Name}
           </Button>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center justify-center gap-1">
             <button
               onClick={() => decrementScore('p1')}
               disabled={p1Score === 0}
               className={cn(
-                'w-8 h-8 rounded bg-neutral-700 text-white font-bold text-lg',
+                'w-5 h-5 rounded bg-neutral-700 text-white font-bold text-xs',
                 'hover:bg-neutral-600 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed'
               )}
             >
               −
             </button>
-            <span className="w-8 text-center font-semibold text-neutral-200 text-lg">{p1Score}</span>
+            <span className="w-5 text-center font-semibold text-neutral-200 text-xs">{p1Score}</span>
             <button
               onClick={() => incrementScore('p1')}
               disabled={p1Score === 20}
               className={cn(
-                'w-8 h-8 rounded bg-neutral-700 text-white font-bold text-lg',
+                'w-5 h-5 rounded bg-neutral-700 text-white font-bold text-xs',
                 'hover:bg-neutral-600 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed'
               )}
             >
@@ -95,32 +101,32 @@ export function SetupControlsBlock({
           </div>
         </div>
         
-        {/* Column 2: Player 2 */}
+        {/* Column 3: Player 2 */}
         <div className="w-full h-full flex flex-col items-center justify-center gap-1 p-1">
           <Button
             variant={nextServer === 'player2' ? 'primary' : 'secondary'}
             onClick={() => setNextServer('player2')}
-            className="w-full h-10 text-sm font-semibold"
+            className="w-full h-8 text-[11px] font-semibold"
           >
             {player2Name}
           </Button>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center justify-center gap-1">
             <button
               onClick={() => decrementScore('p2')}
               disabled={p2Score === 0}
               className={cn(
-                'w-8 h-8 rounded bg-neutral-700 text-white font-bold text-lg',
+                'w-5 h-5 rounded bg-neutral-700 text-white font-bold text-xs',
                 'hover:bg-neutral-600 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed'
               )}
             >
               −
             </button>
-            <span className="w-8 text-center font-semibold text-neutral-200 text-lg">{p2Score}</span>
+            <span className="w-5 text-center font-semibold text-neutral-200 text-xs">{p2Score}</span>
             <button
               onClick={() => incrementScore('p2')}
               disabled={p2Score === 20}
               className={cn(
-                'w-8 h-8 rounded bg-neutral-700 text-white font-bold text-lg',
+                'w-5 h-5 rounded bg-neutral-700 text-white font-bold text-xs',
                 'hover:bg-neutral-600 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed'
               )}
             >
@@ -129,14 +135,16 @@ export function SetupControlsBlock({
           </div>
         </div>
         
-        {/* Column 3: Start Button */}
-        <Button
-          variant="primary"
-          onClick={handleStartTagging}
-          className="w-full h-full text-lg font-bold"
-        >
-          Start
-        </Button>
+        {/* Column 4: Start Button */}
+        <div className="w-full h-full flex items-center justify-center p-1">
+          <Button
+            variant="primary"
+            onClick={handleStartTagging}
+            className="w-full h-8 text-[11px] font-bold"
+          >
+            Start
+          </Button>
+        </div>
       </ButtonGrid>
     </div>
   )

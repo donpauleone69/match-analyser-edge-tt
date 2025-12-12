@@ -1,5 +1,5 @@
 import { useRef, useEffect, useCallback, useState, forwardRef, useImperativeHandle } from 'react'
-import { Play, Pause, SkipBack, SkipForward, Upload, Repeat, X, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Upload } from 'lucide-react'
 import { useVideoPlaybackStore } from './videoPlaybackStore'
 import { cn, formatTime } from '@/helpers/utils'
 
@@ -30,6 +30,7 @@ export interface TaggingModeControls {
   onDelete: () => void
   onFrameStepBack: () => void
   onFrameStepForward: () => void
+  shotDescription?: string  // NEW: Display current shot info (e.g., "Shot 3/12 - FH Loop")
 }
 
 interface VideoPlayerProps {
@@ -38,8 +39,8 @@ interface VideoPlayerProps {
   constrainedPlayback?: ConstrainedPlayback
   onConstrainedEnd?: () => void
   showTimeOverlay?: boolean
-  compact?: boolean
   taggingMode?: TaggingModeControls
+  shotDescription?: string  // NEW: For Phase 2 - persistent shot label
 }
 
 export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
@@ -48,12 +49,11 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
   constrainedPlayback,
   onConstrainedEnd,
   showTimeOverlay = false,
-  compact = false,
   taggingMode,
+  shotDescription,
 }, ref) => {
   const videoRef = useRef<HTMLVideoElement>(null)
   const [localVideoUrl, setLocalVideoUrl] = useState<string | null>(null)
-  const [loopEnabled, setLoopEnabled] = useState(false)
   const [isProcessingFile, setIsProcessingFile] = useState(false)
   
   // Use either the provided src or local selection
@@ -67,7 +67,6 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
     setCurrentTime,
     setDuration,
     setIsPlaying,
-    setPlaybackSpeed,
   } = useVideoPlaybackStore()
 
   // Handle file selection
@@ -123,18 +122,17 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
     if (!video || !isPlaying) return
     
     const { startTime, endTime, loopOnEnd } = constrainedPlayback
-    const effectiveLoop = loopOnEnd ?? loopEnabled
     
     if (currentTime >= endTime) {
       video.pause()
-      if (effectiveLoop) {
+      if (loopOnEnd) {
         video.currentTime = startTime
         video.play().catch(console.error)
       } else {
         onConstrainedEnd?.()
       }
     }
-  }, [currentTime, isPlaying, constrainedPlayback, loopEnabled, onConstrainedEnd])
+  }, [currentTime, isPlaying, constrainedPlayback, onConstrainedEnd])
 
   // Video event handlers
   const handleTimeUpdate = useCallback(() => {
@@ -288,8 +286,6 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [togglePlay, stepFrame, seek, currentTime, duration])
 
-  const speedOptions = [0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4, 5]
-
   // Calculate progress bar positions for constrained mode
   const getProgressBarStyle = () => {
     if (!constrainedPlayback?.enabled || duration <= 0) {
@@ -379,7 +375,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
 
       {/* Time Overlay */}
       {showTimeOverlay && effectiveVideoSrc && (
-        <div className="absolute top-4 left-4 px-3 py-1.5 rounded-lg bg-black/70 text-white font-mono text-sm">
+        <div className="absolute top-4 left-4 px-3 py-1.5 rounded-lg bg-black/90 text-white font-mono text-sm">
           {formatTime(currentTime)}
           {constrainedPlayback?.enabled && (
             <span className="text-neutral-400 ml-2">
@@ -391,257 +387,78 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
 
       {/* Constrained mode indicator */}
       {constrainedPlayback?.enabled && effectiveVideoSrc && (
-        <div className="absolute top-4 right-16 px-2 py-1 rounded bg-brand-primary/80 text-white text-xs font-medium">
+        <div className="absolute top-4 right-16 px-2 py-1 rounded bg-brand-primary text-white text-xs font-medium">
           Shot View
         </div>
       )}
 
-      {/* Controls Overlay */}
+      {/* Shot Description Overlay - NEW */}
+      {(shotDescription || taggingMode?.shotDescription) && effectiveVideoSrc && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 px-4 py-2 rounded-lg bg-black/95 border border-neutral-600 text-white text-sm font-medium shadow-lg">
+          {shotDescription || taggingMode?.shotDescription}
+        </div>
+      )}
+
+      {/* Progress Bar Overlay - Always at bottom of video */}
       {effectiveVideoSrc && (
-        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
-          {taggingMode?.enabled ? (
-            /* Tagging Mode Controls */
-            <div className="flex items-center justify-between gap-2">
-              {/* Left: Frame/Shot Navigation */}
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={taggingMode.onFrameStepBack}
-                  className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors touch-manipulation"
-                  style={{ minWidth: '52px', minHeight: '52px' }}
-                  title="Frame back"
-                >
-                  <SkipBack className="w-5 h-5 text-white" />
-                </button>
-                <button
-                  onClick={taggingMode.onShotBack}
-                  disabled={!taggingMode.canNavigateBack}
-                  className={cn(
-                    "p-2 rounded-lg transition-colors touch-manipulation flex items-center gap-1",
-                    taggingMode.canNavigateBack 
-                      ? "bg-white/10 hover:bg-white/20" 
-                      : "bg-white/5 opacity-50 cursor-not-allowed"
-                  )}
-                  style={{ minWidth: '52px', minHeight: '52px' }}
-                  title="Shot back"
-                >
-                  <ChevronLeft className="w-5 h-5 text-white" />
-                </button>
-                <button
-                  onClick={taggingMode.onShotForward}
-                  disabled={!taggingMode.canNavigateForward}
-                  className={cn(
-                    "p-2 rounded-lg transition-colors touch-manipulation flex items-center gap-1",
-                    taggingMode.canNavigateForward 
-                      ? "bg-white/10 hover:bg-white/20" 
-                      : "bg-white/5 opacity-50 cursor-not-allowed"
-                  )}
-                  style={{ minWidth: '52px', minHeight: '52px' }}
-                  title="Shot forward"
-                >
-                  <ChevronRight className="w-5 h-5 text-white" />
-                </button>
-                <button
-                  onClick={taggingMode.onFrameStepForward}
-                  className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors touch-manipulation"
-                  style={{ minWidth: '52px', minHeight: '52px' }}
-                  title="Frame forward"
-                >
-                  <SkipForward className="w-5 h-5 text-white" />
-                </button>
-              </div>
-
-              {/* Center: Delete */}
-              <button
-                onClick={taggingMode.onDelete}
-                disabled={!taggingMode.canDelete}
-                className={cn(
-                  "p-2 rounded-lg transition-colors touch-manipulation",
-                  taggingMode.canDelete
-                    ? "bg-danger/20 hover:bg-danger/30 text-danger"
-                    : "bg-white/5 opacity-50 cursor-not-allowed text-white"
-                )}
-                style={{ minWidth: '52px', minHeight: '52px' }}
-                title="Delete last tag"
-              >
-                <X className="w-6 h-6" />
-              </button>
-
-              {/* Right: Play/Pause */}
-              <button
-                onClick={togglePlay}
-                className="p-3 rounded-full bg-white/20 hover:bg-white/30 transition-colors touch-manipulation"
-                style={{ minWidth: '60px', minHeight: '60px' }}
-                title="Play/Pause (Space)"
-              >
-                {isPlaying ? (
-                  <Pause className="w-8 h-8 text-white" />
-                ) : (
-                  <Play className="w-8 h-8 text-white" />
-                )}
-              </button>
-
-              {/* Far Right: Speed Indicator */}
-              <div className="flex flex-col gap-1 min-w-[80px]">
-                <div className={cn(
-                  'px-3 py-1.5 rounded text-xs font-medium text-center',
-                  taggingMode.currentSpeedMode === 'tag' && 'bg-success/30 text-success',
-                  taggingMode.currentSpeedMode === 'ff' && 'bg-warning/30 text-warning',
-                  taggingMode.currentSpeedMode === 'normal' && 'bg-white/20 text-white'
-                )}>
-                  {taggingMode.currentSpeedMode === 'tag' && `Tag ${taggingMode.speedPresets.tag}x`}
-                  {taggingMode.currentSpeedMode === 'ff' && `FF ${taggingMode.speedPresets.ff}x`}
-                  {taggingMode.currentSpeedMode === 'normal' && 'Normal'}
-                </div>
-              </div>
-            </div>
-          ) : (
-            /* Default Controls */
-            <div className="flex items-center justify-between">
-              {/* Left: Frame step buttons */}
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => stepFrame('backward')}
-                  className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
-                  title="Step backward"
-                >
-                  <SkipBack className="w-5 h-5 text-white" />
-                </button>
-                <button
-                  onClick={() => stepFrame('forward')}
-                  className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
-                  title="Step forward"
-                >
-                  <SkipForward className="w-5 h-5 text-white" />
-                </button>
+        <div className="absolute bottom-0 left-0 right-0 px-2 pb-2">
+          <div
+            className="h-2 bg-black/60 rounded-full cursor-pointer relative"
+            onClick={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect()
+              const percent = (e.clientX - rect.left) / rect.width
+              if (duration > 0) {
+                let targetTime = percent * duration
                 
-                {/* Loop toggle for constrained mode */}
-                {constrainedPlayback?.enabled && (
-                  <button
-                    onClick={() => setLoopEnabled(!loopEnabled)}
-                    className={cn(
-                      "p-2 rounded-lg transition-colors",
-                      loopEnabled ? "bg-brand-primary text-white" : "bg-white/10 hover:bg-white/20 text-white"
-                    )}
-                    title="Loop shot"
-                  >
-                    <Repeat className="w-5 h-5" />
-                  </button>
-                )}
-              </div>
-
-              {/* Center: Play/Pause */}
-              <button
-                onClick={togglePlay}
-                className="p-4 rounded-full bg-white/20 hover:bg-white/30 transition-colors"
-                title="Play/Pause (Space)"
-              >
-                {isPlaying ? (
-                  <Pause className="w-8 h-8 text-white" />
-                ) : (
-                  <Play className="w-8 h-8 text-white" />
-                )}
-              </button>
-
-              {/* Right: Speed selector */}
-              <div className="flex flex-col gap-1">
-                <div className="flex items-center gap-1 bg-white/10 rounded-lg p-1">
-                  {speedOptions.slice(0, 5).map((speed) => (
-                    <button
-                      key={speed}
-                      onClick={() => setPlaybackSpeed(speed)}
-                      className={cn(
-                        'px-2 py-1 rounded text-xs font-medium transition-colors min-w-[40px]',
-                        playbackSpeed === speed
-                          ? 'bg-brand-primary text-white'
-                          : 'text-white/70 hover:text-white hover:bg-white/10'
-                      )}
-                    >
-                      {speed}x
-                    </button>
-                  ))}
-                </div>
-                {!compact && (
-                  <div className="flex items-center gap-1 bg-white/10 rounded-lg p-1">
-                    {speedOptions.slice(5).map((speed) => (
-                      <button
-                        key={speed}
-                        onClick={() => setPlaybackSpeed(speed)}
-                        className={cn(
-                          'px-2 py-1 rounded text-xs font-medium transition-colors min-w-[40px]',
-                          playbackSpeed === speed
-                            ? 'bg-brand-primary text-white'
-                            : 'text-white/70 hover:text-white hover:bg-white/10'
-                        )}
-                      >
-                        {speed}x
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Progress bar with constrained bounds visualization */}
-          <div className="mt-3">
-            <div
-              className="h-2 bg-white/20 rounded-full cursor-pointer relative"
-              onClick={(e) => {
-                const rect = e.currentTarget.getBoundingClientRect()
-                const percent = (e.clientX - rect.left) / rect.width
-                if (duration > 0) {
-                  let targetTime = percent * duration
-                  
-                  // Constrain click to bounds if in constrained mode
-                  if (constrainedPlayback?.enabled) {
-                    const { startTime, endTime } = constrainedPlayback
-                    targetTime = Math.max(startTime, Math.min(endTime, targetTime))
-                  }
-                  
-                  seek(targetTime)
+                // Constrain click to bounds if in constrained mode
+                if (constrainedPlayback?.enabled) {
+                  const { startTime, endTime } = constrainedPlayback
+                  targetTime = Math.max(startTime, Math.min(endTime, targetTime))
                 }
-              }}
-            >
-              {/* Constrained region highlight */}
-              {constrainedPlayback?.enabled && 'constrainedStart' in progressStyle && (
-                <div
-                  className="absolute top-0 bottom-0 bg-brand-primary/30 rounded-full"
-                  style={{
-                    left: `${progressStyle.constrainedStart}%`,
-                    width: `${(progressStyle.constrainedEnd || 0) - (progressStyle.constrainedStart || 0)}%`,
-                  }}
-                />
-              )}
-              
-              {/* Progress indicator */}
+                
+                seek(targetTime)
+              }
+            }}
+          >
+            {/* Constrained region highlight */}
+            {constrainedPlayback?.enabled && 'constrainedStart' in progressStyle && (
               <div
-                className="h-full bg-white rounded-full transition-all absolute top-0 left-0"
+                className="absolute top-0 bottom-0 bg-brand-primary/30 rounded-full"
                 style={{
-                  width: duration > 0 ? `${(currentTime / duration) * 100}%` : '0%',
+                  left: `${progressStyle.constrainedStart}%`,
+                  width: `${(progressStyle.constrainedEnd || 0) - (progressStyle.constrainedStart || 0)}%`,
                 }}
               />
-              
-              {/* Constrained bounds markers */}
-              {constrainedPlayback?.enabled && 'constrainedStart' in progressStyle && (
-                <>
-                  <div
-                    className="absolute top-0 bottom-0 w-1 bg-brand-primary rounded"
-                    style={{ left: `${progressStyle.constrainedStart}%` }}
-                  />
-                  <div
-                    className="absolute top-0 bottom-0 w-1 bg-brand-primary rounded"
-                    style={{ left: `${progressStyle.constrainedEnd}%` }}
-                  />
-                </>
-              )}
-            </div>
+            )}
+            
+            {/* Progress indicator */}
+            <div
+              className="h-full bg-white rounded-full transition-all absolute top-0 left-0"
+              style={{
+                width: duration > 0 ? `${(currentTime / duration) * 100}%` : '0%',
+              }}
+            />
+            
+            {/* Constrained bounds markers */}
+            {constrainedPlayback?.enabled && 'constrainedStart' in progressStyle && (
+              <>
+                <div
+                  className="absolute top-0 bottom-0 w-1 bg-brand-primary rounded"
+                  style={{ left: `${progressStyle.constrainedStart}%` }}
+                />
+                <div
+                  className="absolute top-0 bottom-0 w-1 bg-brand-primary rounded"
+                  style={{ left: `${progressStyle.constrainedEnd}%` }}
+                />
+              </>
+            )}
           </div>
         </div>
       )}
 
       {/* Re-select video button */}
       {effectiveVideoSrc && (
-        <label className="absolute top-4 right-4 cursor-pointer">
+        <label className="absolute top-4 right-4 cursor-pointer z-10">
           <input
             type="file"
             accept="video/*"
@@ -651,7 +468,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
               if (file) handleFileSelect(file)
             }}
           />
-          <div className="px-3 py-1.5 rounded-lg bg-black/50 hover:bg-black/70 text-white text-sm flex items-center gap-2 transition-colors">
+          <div className="px-3 py-1.5 rounded-lg bg-black/95 hover:bg-black border border-neutral-600 text-white text-sm flex items-center gap-2 transition-colors">
             <Upload className="w-4 h-4" />
             Change
           </div>

@@ -27,12 +27,40 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Untitled.md",
+                "file": "docs-match-analyser-edge-tt/specs/Shot_Tagging_Engine_Spec.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Untitled"
+              "title": "Shot_Tagging_Engine_Spec"
+            }
+          },
+          {
+            "id": "b85c57165490e527",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "LocalVideo Thoughts.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "LocalVideo Thoughts"
+            }
+          },
+          {
+            "id": "45e781154772d64f",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Video Spec.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "Video Spec"
             }
           }
         ],
@@ -109,7 +137,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "docs-match-analyser-edge-tt/DataSchema.md",
+                "file": "docs-match-analyser-edge-tt/VideoPlayer_Controls_Update.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -119,7 +147,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Backlinks for DataSchema"
+              "title": "Backlinks for VideoPlayer_Controls_Update"
             }
           },
           {
@@ -200,42 +228,42 @@
   },
   "active": "dc45cf3b9a4e6791",
   "lastOpenFiles": [
-    "DATABASE_FIXES_2025-12-08.md",
-    "app/src/helpers/generateSlugId.ts",
-    "app/src/helpers/debugDatabase.ts",
-    "app/src/data/entities/shotInferences/index.ts",
-    "app/src/data/entities/shotInferences/shotInference.db.ts",
-    "app/src/data/entities/shotInferences/shotInference.types.ts",
-    "app/src/data/entities/shotInferences",
-    "app/src/helpers/slugGenerator.ts",
-    "docs-match-analyser-edge-tt/chat_notes/MY NOTES/BC0D1E00",
-    "docs-match-analyser-edge-tt/chat_notes/MY NOTES/72F91E00",
-    "docs-match-analyser-edge-tt/chat_notes/MY NOTES/6B911E00",
-    "docs-match-analyser-edge-tt/chat_notes/MY NOTES/Table Structure IDeas/shots.md",
-    "Untitled.md",
-    "docs-match-analyser-edge-tt/chat_notes/MY NOTES/Shot Sequence Objective Properties.md",
-    "docs-match-analyser-edge-tt/Architecture.md",
-    "docs-match-analyser-edge-tt/specs/DatabaseSchema_PrototypeV2.md",
-    "docs-match-analyser-edge-tt/specs/MVP_IMPLEMENTATION_COMPLETE.md",
-    "docs-match-analyser-edge-tt/specs/MVP_Implementation_Status.md",
-    "app/node_modules/dexie/SECURITY.md",
-    "app/node_modules/dexie/README.md",
-    "app/node_modules/dexie/CONTRIBUTING.md",
-    "app/node_modules/dexie/CODE_OF_CONDUCT.md",
-    "docs-match-analyser-edge-tt/specs/TaggingPrototypeV2_FlowAndSchemaMapping.md",
-    "docs-match-analyser-edge-tt/Tagger2StepUserFlow.md",
-    "docs-match-analyser-edge-tt/DataSchema.md",
-    "docs-match-analyser-edge-tt/specs/specAddendumMVP.md",
-    "docs-match-analyser-edge-tt/specs/shots_table.md",
-    "docs-match-analyser-edge-tt/specs/NotesTestingMVPPaul.md",
-    "docs-match-analyser-edge-tt/specs/MVP_flowchange_spec.md",
-    "docs-match-analyser-edge-tt/specs/MVP_flowchange.md",
-    "docs-match-analyser-edge-tt/specs/logicanddiagrams.md",
-    "docs-match-analyser-edge-tt/specs/Implementation_RallyCheckpointFlow.md",
-    "docs-match-analyser-edge-tt/specs/GapResolution_Tasks.md",
-    "docs-match-analyser-edge-tt/specs/GapAnalysis_v0.9.5.md",
-    "docs-match-analyser-edge-tt/specs/DesignSystem.md",
-    "docs-match-analyser-edge-tt/specs/DatabaseERD.md",
+    "docs-match-analyser-edge-tt/VIDEO_PLAYER_UI_IMPROVEMENTS_SUMMARY.md",
+    "app/src/ui-mine/SpeedSettingsButton/index.ts",
+    "app/src/ui-mine/SpeedSettingsButton/SpeedSettingsButton.tsx",
+    "app/src/ui-mine/SpeedSettingsButton",
+    "app/src/ui-mine/SpeedSettingsModal/index.ts",
+    "app/src/ui-mine/SpeedSettingsModal/SpeedSettingsModal.tsx",
+    "app/src/ui-mine/SpeedSettingsModal",
+    "app/node_modules/tinyrainbow/dist/index.js",
+    "app/node_modules/tinyrainbow/dist/index.d.ts",
+    "app/node_modules/tinyrainbow/dist",
+    "_ai_claude/PROMPT_TEMPLATE.md",
+    "_ai_claude/task_delete_button_db_sync.md",
+    "app/node_modules/expect-type/dist/utils.js",
+    "app/node_modules/expect-type/SECURITY.md",
+    "app/node_modules/expect-type/README.md",
+    "app/node_modules/pathe/README.md",
+    "app/node_modules/es-module-lexer/README.md",
+    "app/node_modules/tinybench/README.md",
+    "app/node_modules/@standard-schema/spec/README.md",
+    "app/node_modules/std-env/README.md",
+    "app/node_modules/obug/README.md",
+    "app/node_modules/vitest/README.md",
+    "app/node_modules/vitest/LICENSE.md",
+    "node_modules/vitest/README.md",
+    "node_modules/vitest/LICENSE.md",
+    "node_modules/@types/chai/README.md",
+    "node_modules/nanoid/README.md",
+    "node_modules/picocolors/README.md",
+    "node_modules/stackback/README.md",
+    "node_modules/source-map-js/README.md",
+    "docs-match-analyser-edge-tt/shotTaggingContext.md",
+    "_ai_claude/delete_button_db_sync_implementation.md",
+    "docs-match-analyser-edge-tt/VideoPlayer_Controls_Update.md",
+    "docs-match-analyser-edge-tt/VideoPlayer_Controls_Documentation.md",
+    "Video Spec.md",
+    "docs-match-analyser-edge-tt/chat_notes/video_export_and_constrained_playback.md",
     "docs-match-analyser-edge-tt/chat_notes/Final/Final/download.png",
     "app/dist/vite.svg"
   ]

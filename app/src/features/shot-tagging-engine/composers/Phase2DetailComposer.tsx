@@ -3,17 +3,19 @@
  * 
  * One question at a time with auto-advance.
  * 
- * Serve sequence: Contact → Direction → Length → Spin → Serve Type
- * Shot sequence: Stroke → Direction → Intent
- * Error sequence: Stroke → Intent → Error Type
+ * Serve sequence: Direction → Length → Spin
+ * Receive sequence: Direction → Stroke → Intent
+ * Shot sequence: Direction → Stroke → Intent
+ * Error sequence: Direction → Stroke → Intent → Error Placement → Error Type
  */
 
 import { useState, useRef, useEffect } from 'react'
 import { cn } from '@/helpers/utils'
 import type { Phase1Shot, Phase1Rally } from './Phase1TimestampComposer'
-import { ButtonGrid, ShotQualityToggleBlock, RallyCard, ShotListItem, type ShotQuality } from '../blocks'
+import { ButtonGrid, ShotQualityToggleBlock, RallyCard, ShotListItem, VideoControlsBar, type ShotQuality } from '../blocks'
 import { PhaseLayoutTemplate } from '../layouts'
 import { UserInputSection, VideoPlayerSection, StatusBarSection, RallyListSection } from '../sections'
+import { Button, Icon } from '@/ui-mine'
 import { calculateShotPlayer, type PlayerId } from '@/rules'
 import { 
   extractTargetFromDirection,
@@ -29,8 +31,8 @@ import {
 } from '@/rules/derive/shot/mappers_UI_to_DB'
 import { shotDb, setDb } from '@/data'
 import { type VideoPlayerHandle, useVideoPlaybackStore } from '@/ui-mine/VideoPlayer'
+import { SpeedSettingsModal } from '@/ui-mine/SpeedSettingsModal'
 import {
-  Button,
   // Serve direction buttons
   LeftLeftButton,
   LeftMidButton,
@@ -67,7 +69,7 @@ import {
 
 // Question step types
 type ServeStep = 'direction' | 'length' | 'spin'
-type ReceiveStep = 'stroke' | 'direction' | 'length' | 'intent'
+type ReceiveStep = 'stroke' | 'direction' | 'intent'
 type ShotStep = 'stroke' | 'direction' | 'intent'
 type ErrorStep = 'stroke' | 'direction' | 'intent' | 'errorPlacement' | 'errorType'
 
@@ -96,6 +98,7 @@ export interface DetailedShot extends Phase1Shot {
   isReceive: boolean  // NEW: flag for shot #2
   serverId: PlayerId  // who served this rally
   winnerId: PlayerId  // who won this rally
+  timestampEnd: number  // End time of shot (next shot's start or rally end)
   // Detailed data
   direction?: Direction
   length?: 'short' | 'halflong' | 'deep'  // Used for both serve AND receive
@@ -111,10 +114,27 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
   const videoUrl = useVideoPlaybackStore(state => state.videoUrl)
   const setVideoUrl = useVideoPlaybackStore(state => state.setVideoUrl)
   const setPlaybackSpeed = useVideoPlaybackStore(state => state.setPlaybackSpeed)
+  const isPlaying = useVideoPlaybackStore(state => state.isPlaying)
+  const playbackSpeed = useVideoPlaybackStore(state => state.playbackSpeed)
   const videoPlayerRef = useRef<VideoPlayerHandle>(null)
   
+  // Speed settings modal and loop state
+  const [speedSettingsOpen, setSpeedSettingsOpen] = useState(false)
+  const [loopEnabled, setLoopEnabled] = useState(true)
+  
+  // Refs for auto-scroll
+  const shotRefs = useRef<Map<string, HTMLDivElement>>(new Map())
+  
+  const setShotRef = (shotId: string, element: HTMLDivElement | null) => {
+    if (element) {
+      shotRefs.current.set(shotId, element)
+    } else {
+      shotRefs.current.delete(shotId)
+    }
+  }
+  
   // Video preview settings
-  const [previewBuffer] = useState(0.3) // 300ms before/after shot
+  const [previewBuffer] = useState(0.25) // 250ms before/after shot
   
   // Set playback speed to 0.5x for shot review
   useEffect(() => {
@@ -129,6 +149,11 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
         const isLastShot = index === rally.shots.length - 1
         const isError = rally.isError && isLastShot  // Only last shot can be error
         const isReceive = shot.shotIndex === 2  // NEW: flag for shot #2
+        
+        // Calculate shot end time (next shot's start or rally end)
+        const nextShot = rally.shots[index + 1]
+        const timestampEnd = nextShot ? nextShot.timestamp : rally.endTimestamp
+        
         shots.push({
           ...shot,
           isServe: shot.isServe ?? (shot.shotIndex === 1),  // Ensure isServe is always defined
@@ -139,6 +164,7 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
           isReceive,  // NEW
           serverId: rally.serverId,
           winnerId: rally.winnerId,
+          timestampEnd,  // Add calculated end time
         })
       })
     })
@@ -146,6 +172,13 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
   })
   
   const [currentShotIndex, setCurrentShotIndex] = useState(resumeFromShotIndex)
+  
+  // Navigation state for shot review
+  const [isReviewMode, setIsReviewMode] = useState(false) // true when user navigates to review other shots
+  
+  // Per-player rotation state for direction buttons (persists throughout Phase 2)
+  const [player1RotateButtons, setPlayer1RotateButtons] = useState(false)
+  const [player2RotateButtons, setPlayer2RotateButtons] = useState(false)
   
   // Load existing Phase 2 data from DB on mount (if resuming)
   useEffect(() => {
@@ -200,7 +233,10 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
     
     loadExistingPhase2Data()
   }, [setId, player1Id, player2Id, resumeFromShotIndex])
-  const [currentStep, setCurrentStep] = useState<QuestionStep>('direction')  // Start with serve direction
+  
+  // Determine initial step based on first shot type
+  const initialStep: QuestionStep = allShots[resumeFromShotIndex]?.isServe ? 'direction' : 'direction'
+  const [currentStep, setCurrentStep] = useState<QuestionStep>(initialStep)
   const [currentShotQuality, setCurrentShotQuality] = useState<ShotQuality>('average')  // Track shot quality for current shot
   
   const currentShot = allShots[currentShotIndex]
@@ -224,61 +260,121 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
   })
   
   // Calculate constrained playback range for current shot (loop preview)
+  // Start: shot start time minus buffer (0.25s before)
+  // End: shot end time (no buffer after)
   const constrainedPlayback = {
     enabled: true,
     startTime: Math.max(0, currentShot.timestamp - previewBuffer),
-    endTime: currentShot.timestamp + previewBuffer,
-    loopOnEnd: true,
+    endTime: currentShot.timestampEnd,
+    loopOnEnd: loopEnabled,
   }
+  
+  // Toggle play/pause handler
+  const handleTogglePlay = () => {
+    if (isPlaying) {
+      videoPlayerRef.current?.pause()
+    } else {
+      videoPlayerRef.current?.play()
+    }
+  }
+  
+  // Rewind handler (skip back 10 seconds)
+  const handleRewind = () => {
+    const currentTime = videoPlayerRef.current?.getCurrentTime() || 0
+    const newTime = Math.max(0, currentTime - 10)
+    videoPlayerRef.current?.seek(newTime)
+  }
+  
+  // Fast forward handler (skip forward 10 seconds)
+  const handleFastForward = () => {
+    const currentTime = videoPlayerRef.current?.getCurrentTime() || 0
+    videoPlayerRef.current?.seek(currentTime + 10)
+  }
+  
+  // Auto-seek to new shot's start position when shot changes
+  useEffect(() => {
+    if (!currentShot || !videoPlayerRef.current) return
+    
+    const startTime = Math.max(0, currentShot.timestamp - previewBuffer)
+    const endTime = currentShot.timestampEnd
+    
+    // Seek to the start of the new shot's timeframe
+    videoPlayerRef.current.seek(startTime)
+    
+    // If video was playing, it will continue playing in the new constrained range
+    // If video was paused, it will remain paused at the new start position
+    
+    console.log(`[Phase2] Seeking to shot ${currentShotIndex + 1} - range: ${startTime.toFixed(2)}s to ${endTime.toFixed(2)}s (shot duration: ${(currentShot.timestampEnd - currentShot.timestamp).toFixed(2)}s, buffer before: ${previewBuffer}s)`)
+  }, [currentShotIndex, currentShot?.timestamp, currentShot?.timestampEnd, previewBuffer])
+  
+  // Auto-scroll to current shot in shot log
+  useEffect(() => {
+    if (currentShot) {
+      const shotElement = shotRefs.current.get(currentShot.id)
+      if (shotElement) {
+        shotElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      }
+    }
+  }, [currentShotIndex, currentShot?.id])
   
   // Calculate which player is hitting the current shot
   const currentShotPlayer = currentShot 
     ? calculateShotPlayer(currentShot.serverId, currentShot.shotIndex)
     : null
   
+  // Helper to get rotation class for direction buttons (based on current player)
+  const getDirectionButtonRotation = (): string => {
+    if (currentShotPlayer === 'player1' && player1RotateButtons) return 'rotate-180'
+    if (currentShotPlayer === 'player2' && player2RotateButtons) return 'rotate-180'
+    return ''
+  }
+  
+  // Helper to check if current player has rotation enabled (for button order swap)
+  const isCurrentPlayerRotated = (): boolean => {
+    if (currentShotPlayer === 'player1') return player1RotateButtons
+    if (currentShotPlayer === 'player2') return player2RotateButtons
+    return false
+  }
+  
   // Check if current step is the last question for this shot
   const isLastQuestion = (step: QuestionStep, shot: DetailedShot): boolean => {
     if (shot.isServe) return step === 'spin'
-    if (shot.isError) {
-      // For forced errors, errorType is last; for unforced, errorPlacement is skipped
-      return step === 'errorType'
-    }
-    if (shot.isReceive) return step === 'intent'
-    return step === 'intent' // Regular shots
+    if (shot.isError) return step === 'errorType'  // Error: direction → stroke → intent → errorPlacement → errorType
+    if (shot.isReceive) return step === 'intent'   // Receive: direction → stroke → intent
+    return step === 'intent' // Regular shots: direction → stroke → intent
   }
   
   // Determine question flow based on shot type
   const getNextStep = (current: QuestionStep): QuestionStep => {
     if (!currentShot) return 'complete'
     
-    // Serve flow: direction → length → spin → next shot
+    // Serve flow: direction → length → spin → next shot (NO CHANGE)
     if (currentShot.isServe) {
       if (current === 'direction') return 'length'
       if (current === 'length') return 'spin'
       if (current === 'spin') return advanceToNextShot()
     }
     
-    // Error shot flow: stroke → direction → intent → errorPlacement (if forced) → errorType → next shot
+    // Error shot flow: direction → stroke → intent → errorPlacement → errorType → next shot
     // (Error takes precedence over receive)
     if (currentShot.isError) {
-      if (current === 'stroke') return 'direction'
-      if (current === 'direction') return 'intent'
+      if (current === 'direction') return 'stroke'
+      if (current === 'stroke') return 'intent'
       if (current === 'intent') return 'errorPlacement'  // Ask placement first
       if (current === 'errorPlacement') return 'errorType'  // Then ask forced/unforced
       if (current === 'errorType') return advanceToNextShot()
     }
     
-    // Receive flow (shot #2, but not error): stroke → direction → length → intent → next shot
+    // Receive flow (shot #2, but not error): direction → stroke → intent → next shot
     if (currentShot.isReceive) {
-      if (current === 'stroke') return 'direction'
-      if (current === 'direction') return 'length'
-      if (current === 'length') return 'intent'
+      if (current === 'direction') return 'stroke'
+      if (current === 'stroke') return 'intent'
       if (current === 'intent') return advanceToNextShot()
     }
     
-    // Regular shot flow: stroke → direction → intent → next shot
-    if (current === 'stroke') return 'direction'
-    if (current === 'direction') return 'intent'
+    // Regular shot flow: direction → stroke → intent → next shot
+    if (current === 'direction') return 'stroke'
+    if (current === 'stroke') return 'intent'
     if (current === 'intent') return advanceToNextShot()
     
     return 'complete'
@@ -290,13 +386,53 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
     console.log('[Phase2] advanceToNextShot called (save already handled in handleAnswer)')
     
     if (currentShotIndex < allShots.length - 1) {
-      // Next step will be determined by the new shot type
-      const nextShot = allShots[currentShotIndex + 1]
-      return nextShot?.isServe ? 'direction' : 'stroke'
+      // All shots now start with 'direction' (serves and non-serves)
+      return 'direction'
     }
     
     // All shots complete
     return 'complete'
+  }
+  
+  // NEW: Shot navigation handlers
+  const handleShotBack = () => {
+    if (currentShotIndex > 0) {
+      const newIndex = currentShotIndex - 1
+      setCurrentShotIndex(newIndex)
+      setIsReviewMode(true)
+      // Don't change current step - keep showing same question type for consistency
+      console.log(`[Phase2] Navigate back to shot ${newIndex + 1}`)
+    }
+  }
+  
+  const handleShotForward = () => {
+    if (currentShotIndex < allShots.length - 1) {
+      const newIndex = currentShotIndex + 1
+      setCurrentShotIndex(newIndex)
+      // If we're at the end of completed shots, exit review mode
+      if (newIndex >= allShots.length - 1) {
+        setIsReviewMode(false)
+      }
+      console.log(`[Phase2] Navigate forward to shot ${newIndex + 1}`)
+    }
+  }
+  
+  // Build shot description for display
+  const buildShotDescription = (shot: DetailedShot, index: number): string => {
+    const shotNum = index + 1
+    const totalShots = allShots.length
+    
+    // Shot type label
+    let typeLabel = ''
+    if (shot.isServe) typeLabel = 'Serve'
+    else if (shot.isReceive) typeLabel = 'Receive'
+    else if (shot.isLastShot) typeLabel = 'Rally End'
+    else typeLabel = `Shot ${shot.shotIndex}`
+    
+    // Add stroke info if available
+    const strokeInfo = shot.stroke ? ` - ${shot.stroke === 'forehand' ? 'FH' : 'BH'}` : ''
+    
+    return `Shot ${shotNum}/${totalShots}: ${typeLabel}${strokeInfo}`
   }
   
   const saveCurrentShotToDatabase = async (shot: DetailedShot) => {
@@ -348,7 +484,8 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
         updates.shot_origin = shot_origin
         updates.shot_target = shot_target
       }
-      if (shot.length) {
+      // Only save length for serves (not for receives)
+      if (shot.length && shot.isServe) {
         updates.shot_length = mapShotLengthUIToDB(shot.length)
       }
       if (shot.spin) {
@@ -408,7 +545,7 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
       console.log(`[Phase2] Updating shot ${matchingShot.id} with:`, updates)
       console.log(`[Phase2] Missing fields:`, {
         noDirection: !shot.direction,
-        noLength: !shot.length && (shot.isServe || shot.isReceive),
+        noLength: !shot.length && shot.isServe,  // Only serves need length
         noSpin: !shot.spin && shot.isServe,
         noStroke: !shot.stroke && !shot.isServe,
         noIntent: !shot.intent && !shot.isServe,
@@ -597,6 +734,7 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
   }
   
   return (
+    <>
     <PhaseLayoutTemplate
       className={className}
       
@@ -622,7 +760,7 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
                   const isCompleted = globalIdx < currentShotIndex
                   
                   // Calculate player for this shot
-                  const shotPlayer = calculateShotPlayer(rally.serverId, shot.shotIndex)
+                  const shotPlayer = calculateShotPlayer(rally.serverId, shot.shotIndex) as 'player1' | 'player2'
                   const playerName = shotPlayer === 'player1' ? rally.player1Name : rally.player2Name
                   
                   // Build detail string from collected data
@@ -637,17 +775,19 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
                   if (shot.shotQuality) details.push(`Q:${shot.shotQuality}`)
                   
                   return (
-                    <ShotListItem
-                      key={shot.id}
-                      shotNumber={idx + 1}
-                      shotType={shot.isServe ? 'serve' : shot.shotIndex === 2 ? 'receive' : 'shot'}
-                      playerName={playerName}
-                      timestamp={shot.timestamp}
-                      isError={shot.isError}
-                      isCurrent={isCurrent}
-                      isCompleted={isCompleted}
-                      details={details}
-                    />
+                    <div key={shot.id} ref={(el) => setShotRef(shot.id, el)}>
+                      <ShotListItem
+                        shotNumber={idx + 1}
+                        shotType={shot.isServe ? 'serve' : shot.shotIndex === 2 ? 'receive' : 'shot'}
+                        playerName={playerName}
+                        timestamp={shot.timestamp}
+                        isError={shot.isError}
+                        isCurrent={isCurrent}
+                        isCompleted={isCompleted}
+                        playerColor={shotPlayer}
+                        details={details}
+                      />
+                    </div>
                   )
                 })}
               </RallyCard>
@@ -662,56 +802,94 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
           videoUrl={videoUrl}
           onVideoSelect={setVideoUrl}
           constrainedPlayback={constrainedPlayback}
+          shotDescription={currentShot ? buildShotDescription(currentShot, currentShotIndex) : undefined}
+        />
+      }
+      
+      videoControls={
+        <VideoControlsBar
+          isPlaying={isPlaying}
+          onTogglePlay={handleTogglePlay}
+          onFrameStepBack={() => videoPlayerRef.current?.stepFrame('backward')}
+          onFrameStepForward={() => videoPlayerRef.current?.stepFrame('forward')}
+          onRewind={handleRewind}
+          onFastForward={handleFastForward}
+          showLoopToggle={true}
+          loopEnabled={loopEnabled}
+          onToggleLoop={() => setLoopEnabled(!loopEnabled)}
+          showRotateButton={true}
+          rotateEnabled={
+            (currentShotPlayer === 'player1' && player1RotateButtons) ||
+            (currentShotPlayer === 'player2' && player2RotateButtons)
+          }
+          onRotate={() => {
+            if (currentShotPlayer === 'player1') {
+              setPlayer1RotateButtons(prev => !prev)
+            } else if (currentShotPlayer === 'player2') {
+              setPlayer2RotateButtons(prev => !prev)
+            }
+          }}
         />
       }
       
       statusBar={
         <StatusBarSection
           items={[
-            // Column 1: Rally/Shot counters (left/right justified)
-            <div key="rally-shot" className="flex flex-col text-xs leading-tight min-w-[80px]">
-              <div className="flex justify-between">
+            // Column 1: Rally/Shot counters (vertically stacked)
+            <div key="rally-shot" className="flex flex-col text-[11px] leading-tight">
+              <div className="flex justify-between gap-2">
                 <span className="text-neutral-400">Rally</span>
                 <span className="text-neutral-200 font-semibold">
                   {phase1Rallies.findIndex(r => r.shots.some(s => allShots.indexOf(s as any) === currentShotIndex)) + 1 || 1}
                 </span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between gap-2">
                 <span className="text-neutral-400">Shot</span>
                 <span className="text-neutral-200 font-semibold">{currentShotIndex + 1}</span>
               </div>
             </div>,
             
-            // Column 2: Current question (centered, spans more width)
-            <div key="question" className="flex items-center justify-center px-6 min-w-[200px]">
-              <span className="text-xs text-neutral-300 font-medium">{currentQuestionLabel}?</span>
+            // Column 2: Current question (compact)
+            <div key="question" className="flex items-center px-2">
+              <span className="text-[11px] text-neutral-300 font-medium">{currentQuestionLabel}?</span>
             </div>,
             
-            // Column 3: Progress (centered)
-            <div key="progress" className="flex flex-col items-center text-xs leading-tight">
+            // Column 3: Progress (vertically stacked)
+            <div key="progress" className="flex flex-col items-center text-[11px] leading-tight">
               <span className="text-neutral-400">Progress</span>
               <span className="text-neutral-200 font-semibold">{progress}</span>
             </div>,
             
-            // Column 4: Player indicator (centered, colored badge)
-            <div 
-              key="player" 
+            // Column 3.5: Speed button (clickable, opens settings) - Phase 2 uses tag mode
+            <Button
+              key="speed" 
+              variant="secondary"
+              onClick={() => setSpeedSettingsOpen(true)}
+              className="h-8 px-2 text-[11px] font-medium leading-none gap-0.5 bg-success/20 text-success hover:bg-success/30"
+              title="Click to configure speed settings"
+            >
+              <span>Tag</span>
+              <span>{playbackSpeed}x</span>
+            </Button>,
+            
+            // Column 4: Player indicator (compact badge)
+            <Button
+              key="player"
+              variant="secondary"
+              disabled
               className={cn(
-                'h-full px-4 rounded flex flex-col items-center justify-center text-xs font-bold leading-tight',
+                'h-8 px-2 text-[11px] font-medium cursor-default',
                 currentShotPlayer === 'player1' && 'bg-blue-500/20 text-blue-400',
                 currentShotPlayer === 'player2' && 'bg-orange-500/20 text-orange-400',
                 !currentShotPlayer && 'bg-neutral-700 text-neutral-300'
               )}
             >
-              <div className="truncate max-w-[80px]">
+              <span className="truncate max-w-[60px]">
                 {currentShotPlayer === 'player1' && phase1Rallies[0]?.player1Name}
                 {currentShotPlayer === 'player2' && phase1Rallies[0]?.player2Name}
                 {!currentShotPlayer && '—'}
-              </div>
-            </div>,
-            
-            // Column 5: Placeholder for future action button
-            <div key="spacer" className="w-[80px]" />,
+              </span>
+            </Button>,
           ]}
         />
       }
@@ -721,12 +899,12 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
           {/* Serve questions */}
         {currentShot.isServe && currentStep === 'direction' && (
           <ButtonGrid columns={6}>
-            <LeftLeftButton onClick={() => handleAnswer('direction', 'left_left')} className="!w-full !aspect-auto" />
-            <LeftMidButton onClick={() => handleAnswer('direction', 'left_mid')} className="!w-full !aspect-auto" />
-            <LeftRightButton onClick={() => handleAnswer('direction', 'left_right')} className="!w-full !aspect-auto" />
-            <RightLeftButton onClick={() => handleAnswer('direction', 'right_left')} className="!w-full !aspect-auto" />
-            <RightMidButton onClick={() => handleAnswer('direction', 'right_mid')} className="!w-full !aspect-auto" />
-            <RightRightButton onClick={() => handleAnswer('direction', 'right_right')} className="!w-full !aspect-auto" />
+            <LeftLeftButton onClick={() => handleAnswer('direction', 'left_left')} className={cn("!w-full !aspect-auto", getDirectionButtonRotation())} />
+            <LeftMidButton onClick={() => handleAnswer('direction', 'left_mid')} className={cn("!w-full !aspect-auto", getDirectionButtonRotation())} />
+            <LeftRightButton onClick={() => handleAnswer('direction', 'left_right')} className={cn("!w-full !aspect-auto", getDirectionButtonRotation())} />
+            <RightLeftButton onClick={() => handleAnswer('direction', 'right_left')} className={cn("!w-full !aspect-auto", getDirectionButtonRotation())} />
+            <RightMidButton onClick={() => handleAnswer('direction', 'right_mid')} className={cn("!w-full !aspect-auto", getDirectionButtonRotation())} />
+            <RightRightButton onClick={() => handleAnswer('direction', 'right_right')} className={cn("!w-full !aspect-auto", getDirectionButtonRotation())} />
           </ButtonGrid>
         )}
         {currentShot.isServe && currentStep === 'length' && (
@@ -777,45 +955,36 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
             }} />
           </ButtonGrid>
         )}
-        {currentShot.isReceive && !currentShot.isError && currentStep === 'direction' && (
-          <ButtonGrid columns={3}>
-              {getNextShotStartingSide() === 'left' && (
-                <>
-                  <LeftLeftButton onClick={() => handleAnswer('direction', 'left_left')} />
-                  <LeftMidButton onClick={() => handleAnswer('direction', 'left_mid')} />
-                  <LeftRightButton onClick={() => handleAnswer('direction', 'left_right')} />
-                </>
-              )}
-              {getNextShotStartingSide() === 'mid' && (
-                <>
-                  <MidLeftButton onClick={() => handleAnswer('direction', 'mid_left')} />
-                  <MidMidButton onClick={() => handleAnswer('direction', 'mid_mid')} />
-                  <MidRightButton onClick={() => handleAnswer('direction', 'mid_right')} />
-                </>
-              )}
-              {getNextShotStartingSide() === 'right' && (
-                <>
-                  <RightLeftButton onClick={() => handleAnswer('direction', 'right_left')} />
-                  <RightMidButton onClick={() => handleAnswer('direction', 'right_mid')} />
-                  <RightRightButton onClick={() => handleAnswer('direction', 'right_right')} />
-                </>
-              )}
-              {!getNextShotStartingSide() && (
-                <>
-                  <MidLeftButton onClick={() => handleAnswer('direction', 'mid_left')} />
-                  <MidMidButton onClick={() => handleAnswer('direction', 'mid_mid')} />
-                  <MidRightButton onClick={() => handleAnswer('direction', 'mid_right')} />
-                </>
-              )}
-          </ButtonGrid>
-        )}
-        {currentShot.isReceive && !currentShot.isError && currentStep === 'length' && (
-          <ButtonGrid columns={3}>
-            <ShortButton onClick={() => handleAnswer('length', 'short')} />
-            <HalfLongButton onClick={() => handleAnswer('length', 'halflong')} />
-            <DeepButton onClick={() => handleAnswer('length', 'deep')} />
-          </ButtonGrid>
-        )}
+        {currentShot.isReceive && !currentShot.isError && currentStep === 'direction' && (() => {
+          const rotated = isCurrentPlayerRotated()
+          const rotationClass = getDirectionButtonRotation()
+          
+          // Build button arrays based on starting side
+          const leftButtons = [
+            <LeftLeftButton key="ll" onClick={() => handleAnswer('direction', 'left_left')} className={rotationClass} />,
+            <LeftMidButton key="lm" onClick={() => handleAnswer('direction', 'left_mid')} className={rotationClass} />,
+            <LeftRightButton key="lr" onClick={() => handleAnswer('direction', 'left_right')} className={rotationClass} />
+          ]
+          const midButtons = [
+            <MidLeftButton key="ml" onClick={() => handleAnswer('direction', 'mid_left')} className={rotationClass} />,
+            <MidMidButton key="mm" onClick={() => handleAnswer('direction', 'mid_mid')} className={rotationClass} />,
+            <MidRightButton key="mr" onClick={() => handleAnswer('direction', 'mid_right')} className={rotationClass} />
+          ]
+          const rightButtons = [
+            <RightLeftButton key="rl" onClick={() => handleAnswer('direction', 'right_left')} className={rotationClass} />,
+            <RightMidButton key="rm" onClick={() => handleAnswer('direction', 'right_mid')} className={rotationClass} />,
+            <RightRightButton key="rr" onClick={() => handleAnswer('direction', 'right_right')} className={rotationClass} />
+          ]
+          
+          // Select appropriate button set and conditionally reverse
+          let buttons
+          const startSide = getNextShotStartingSide()
+          if (startSide === 'left') buttons = rotated ? [...leftButtons].reverse() : leftButtons
+          else if (startSide === 'right') buttons = rotated ? [...rightButtons].reverse() : rightButtons
+          else buttons = rotated ? [...midButtons].reverse() : midButtons
+          
+          return <ButtonGrid columns={3}>{buttons}</ButtonGrid>
+        })()}
         {currentShot.isReceive && !currentShot.isError && currentStep === 'intent' && (
           <ButtonGrid columns={3}>
             <DefensiveButton onClick={() => handleAnswer('intent', 'defensive')} />
@@ -857,39 +1026,36 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
             }} />
           </ButtonGrid>
         )}
-        {!currentShot.isServe && !currentShot.isError && !currentShot.isReceive && currentStep === 'direction' && (
-          <ButtonGrid columns={3}>
-              {getNextShotStartingSide() === 'left' && (
-                <>
-                  <LeftLeftButton onClick={() => handleAnswer('direction', 'left_left')} />
-                  <LeftMidButton onClick={() => handleAnswer('direction', 'left_mid')} />
-                  <LeftRightButton onClick={() => handleAnswer('direction', 'left_right')} />
-                </>
-              )}
-              {getNextShotStartingSide() === 'mid' && (
-                <>
-                  <MidLeftButton onClick={() => handleAnswer('direction', 'mid_left')} />
-                  <MidMidButton onClick={() => handleAnswer('direction', 'mid_mid')} />
-                  <MidRightButton onClick={() => handleAnswer('direction', 'mid_right')} />
-                </>
-              )}
-              {getNextShotStartingSide() === 'right' && (
-                <>
-                  <RightLeftButton onClick={() => handleAnswer('direction', 'right_left')} />
-                  <RightMidButton onClick={() => handleAnswer('direction', 'right_mid')} />
-                  <RightRightButton onClick={() => handleAnswer('direction', 'right_right')} />
-                </>
-              )}
-              {/* Fallback if next starting side is null (shouldn't happen but safe) */}
-              {!getNextShotStartingSide() && (
-                <>
-                  <MidLeftButton onClick={() => handleAnswer('direction', 'mid_left')} />
-                  <MidMidButton onClick={() => handleAnswer('direction', 'mid_mid')} />
-                  <MidRightButton onClick={() => handleAnswer('direction', 'mid_right')} />
-                </>
-              )}
-          </ButtonGrid>
-        )}
+        {!currentShot.isServe && !currentShot.isError && !currentShot.isReceive && currentStep === 'direction' && (() => {
+          const rotated = isCurrentPlayerRotated()
+          const rotationClass = getDirectionButtonRotation()
+          
+          // Build button arrays based on starting side
+          const leftButtons = [
+            <LeftLeftButton key="ll" onClick={() => handleAnswer('direction', 'left_left')} className={rotationClass} />,
+            <LeftMidButton key="lm" onClick={() => handleAnswer('direction', 'left_mid')} className={rotationClass} />,
+            <LeftRightButton key="lr" onClick={() => handleAnswer('direction', 'left_right')} className={rotationClass} />
+          ]
+          const midButtons = [
+            <MidLeftButton key="ml" onClick={() => handleAnswer('direction', 'mid_left')} className={rotationClass} />,
+            <MidMidButton key="mm" onClick={() => handleAnswer('direction', 'mid_mid')} className={rotationClass} />,
+            <MidRightButton key="mr" onClick={() => handleAnswer('direction', 'mid_right')} className={rotationClass} />
+          ]
+          const rightButtons = [
+            <RightLeftButton key="rl" onClick={() => handleAnswer('direction', 'right_left')} className={rotationClass} />,
+            <RightMidButton key="rm" onClick={() => handleAnswer('direction', 'right_mid')} className={rotationClass} />,
+            <RightRightButton key="rr" onClick={() => handleAnswer('direction', 'right_right')} className={rotationClass} />
+          ]
+          
+          // Select appropriate button set and conditionally reverse
+          let buttons
+          const startSide = getNextShotStartingSide()
+          if (startSide === 'left') buttons = rotated ? [...leftButtons].reverse() : leftButtons
+          else if (startSide === 'right') buttons = rotated ? [...rightButtons].reverse() : rightButtons
+          else buttons = rotated ? [...midButtons].reverse() : midButtons
+          
+          return <ButtonGrid columns={3}>{buttons}</ButtonGrid>
+        })()}
         {!currentShot.isServe && !currentShot.isError && !currentShot.isReceive && currentStep === 'intent' && (
           <ButtonGrid columns={3}>
             <DefensiveButton onClick={() => handleAnswer('intent', 'defensive')} />
@@ -925,38 +1091,36 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
             }} />
           </ButtonGrid>
         )}
-        {currentShot.isError && !currentShot.isServe && currentStep === 'direction' && (
-          <ButtonGrid columns={3}>
-              {getNextShotStartingSide() === 'left' && (
-                <>
-                  <LeftLeftButton onClick={() => handleAnswer('direction', 'left_left')} />
-                  <LeftMidButton onClick={() => handleAnswer('direction', 'left_mid')} />
-                  <LeftRightButton onClick={() => handleAnswer('direction', 'left_right')} />
-                </>
-              )}
-              {getNextShotStartingSide() === 'mid' && (
-                <>
-                  <MidLeftButton onClick={() => handleAnswer('direction', 'mid_left')} />
-                  <MidMidButton onClick={() => handleAnswer('direction', 'mid_mid')} />
-                  <MidRightButton onClick={() => handleAnswer('direction', 'mid_right')} />
-                </>
-              )}
-              {getNextShotStartingSide() === 'right' && (
-                <>
-                  <RightLeftButton onClick={() => handleAnswer('direction', 'right_left')} />
-                  <RightMidButton onClick={() => handleAnswer('direction', 'right_mid')} />
-                  <RightRightButton onClick={() => handleAnswer('direction', 'right_right')} />
-                </>
-              )}
-              {!getNextShotStartingSide() && (
-                <>
-                  <MidLeftButton onClick={() => handleAnswer('direction', 'mid_left')} />
-                  <MidMidButton onClick={() => handleAnswer('direction', 'mid_mid')} />
-                  <MidRightButton onClick={() => handleAnswer('direction', 'mid_right')} />
-                </>
-              )}
-          </ButtonGrid>
-        )}
+        {currentShot.isError && !currentShot.isServe && currentStep === 'direction' && (() => {
+          const rotated = isCurrentPlayerRotated()
+          const rotationClass = getDirectionButtonRotation()
+          
+          // Build button arrays based on starting side
+          const leftButtons = [
+            <LeftLeftButton key="ll" onClick={() => handleAnswer('direction', 'left_left')} className={rotationClass} />,
+            <LeftMidButton key="lm" onClick={() => handleAnswer('direction', 'left_mid')} className={rotationClass} />,
+            <LeftRightButton key="lr" onClick={() => handleAnswer('direction', 'left_right')} className={rotationClass} />
+          ]
+          const midButtons = [
+            <MidLeftButton key="ml" onClick={() => handleAnswer('direction', 'mid_left')} className={rotationClass} />,
+            <MidMidButton key="mm" onClick={() => handleAnswer('direction', 'mid_mid')} className={rotationClass} />,
+            <MidRightButton key="mr" onClick={() => handleAnswer('direction', 'mid_right')} className={rotationClass} />
+          ]
+          const rightButtons = [
+            <RightLeftButton key="rl" onClick={() => handleAnswer('direction', 'right_left')} className={rotationClass} />,
+            <RightMidButton key="rm" onClick={() => handleAnswer('direction', 'right_mid')} className={rotationClass} />,
+            <RightRightButton key="rr" onClick={() => handleAnswer('direction', 'right_right')} className={rotationClass} />
+          ]
+          
+          // Select appropriate button set and conditionally reverse
+          let buttons
+          const startSide = getNextShotStartingSide()
+          if (startSide === 'left') buttons = rotated ? [...leftButtons].reverse() : leftButtons
+          else if (startSide === 'right') buttons = rotated ? [...rightButtons].reverse() : rightButtons
+          else buttons = rotated ? [...midButtons].reverse() : midButtons
+          
+          return <ButtonGrid columns={3}>{buttons}</ButtonGrid>
+        })()}
         {currentShot.isError && currentStep === 'intent' && (
           <ButtonGrid columns={3}>
             <DefensiveButton onClick={() => handleAnswer('intent', 'defensive')} />
@@ -979,5 +1143,12 @@ export function Phase2DetailComposer({ phase1Rallies, onComplete, className, set
         </UserInputSection>
       }
     />
+    
+    {/* Speed Settings Modal */}
+    <SpeedSettingsModal 
+      isOpen={speedSettingsOpen} 
+      onClose={() => setSpeedSettingsOpen(false)} 
+    />
+    </>
   )
 }

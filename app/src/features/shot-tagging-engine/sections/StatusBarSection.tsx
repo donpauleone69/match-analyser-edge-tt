@@ -23,16 +23,19 @@
 
 import { type ReactNode } from 'react'
 import { StatusGrid } from '../blocks/StatusGrid'
+import { cn } from '@/helpers/utils'
 
 export interface StatusBarSectionProps {
   items: ReactNode[]  // Array of status items to display in grid
   warningBanner?: ReactNode  // Optional banner above status bar
+  playerTint?: 'player1' | 'player2' | null  // Player color indicator for active tag
   className?: string
 }
 
 export function StatusBarSection({ 
   items, 
-  warningBanner, 
+  warningBanner,
+  playerTint,
   className 
 }: StatusBarSectionProps) {
   return (
@@ -40,9 +43,20 @@ export function StatusBarSection({
       {/* Optional warning banner (appears above status bar) */}
       {warningBanner}
       
-      {/* Main status bar - FIXED HEIGHT with 2-row grid */}
-      <div className="px-4 py-1.5 h-12">
-        <StatusGrid items={items} className={className} />
+      {/* Main status bar with colored top accent */}
+      <div className="relative">
+        {/* Colored top accent bar (shows active player) */}
+        <div className={cn(
+          'absolute top-0 left-0 right-0 h-1 transition-colors duration-300',
+          !playerTint && 'bg-transparent',
+          playerTint === 'player1' && 'bg-blue-500',
+          playerTint === 'player2' && 'bg-orange-500'
+        )} />
+        
+        {/* Status bar content - vertically stacked items */}
+        <div className="px-2 py-1.5 h-[48px]">
+          <StatusGrid items={items} className={className} />
+        </div>
       </div>
     </>
   )

@@ -1472,3 +1472,129 @@ Ask clarifying questions before implementing.
 
 <!-- NEW ENTRIES GO BELOW THIS LINE -->
 
+### 2025-12-11: Shot Log Highlighting and Auto-Scroll Fix
+
+**Changes Made:**
+- **Phase 1 (`Phase1TimestampComposer.tsx`):**
+  - Added `playerColor` and `isActive` props to current rally shots (lines 804-824)
+  - Added highlighting for rally-end tags when navigated to (lines 861-877)
+  - Added shot refs system for auto-scroll tracking (`setShotRef` function)
+  - Updated scroll effect to scroll to active shot instead of just rally (lines 759-771)
+  - Wrapped `ShotListItem` components in divs with refs for scroll targeting
+- **Phase 2 (`Phase2DetailComposer.tsx`):**
+  - Added `playerColor` prop to all `ShotListItem` calls (line 695)
+  - Added shot refs system for auto-scroll (`setShotRef` function, lines 122-128)
+  - Added auto-scroll effect to scroll to current shot (lines 281-288)
+  - Wrapped `ShotListItem` components in divs with refs for scroll targeting (lines 679-699)
+
+**Features Implemented:**
+1. **Player Color Highlighting:** Shots now show blue border/glow for player 1, orange for player 2 when active
+2. **Active Tag Highlighting:** Currently navigated shot is visually highlighted in both phases
+3. **Rally-End Highlighting:** Rally-end tags (shown as "Rally End" row) highlight when selected via delete navigation
+4. **Auto-Scroll:** Shot log automatically scrolls to keep the current/active shot visible when:
+   - Navigating with Shot Back/Forward buttons (Phase 1)
+   - Advancing through questions (Phase 2)
+   - Adding new shots (both phases)
+
+**Testing Performed:**
+- ✅ TypeScript compiles without errors
+- ✅ No linting errors in modified files
+- ✅ Code follows project patterns (refs, effects, props flow)
+- ✅ Dev server running with HMR updates applied
+- ⚠️ Browser testing limited by navigation flow (requires user to manually test tagging screens)
+
+**Code Quality:**
+- Follows existing patterns from `Phase1TimestampComposer` rally refs
+- Uses React refs with Map for efficient lookups
+- Scroll behavior uses `scrollIntoView` with `block: 'nearest'` to avoid jarring jumps
+- No breaking changes to existing functionality
+
+**Issues Remaining:**
+- None (code changes complete)
+
+**Notes for Next Agent:**
+- The highlighting uses the existing `isActive` and `playerColor` props on `ShotListItem`
+- Shot refs are separate from rally refs to allow precise scrolling to individual shots
+- Phase 2 auto-scroll triggers on `currentShotIndex` change (already happens when advancing)
+- Phase 1 auto-scroll triggers on `activeTagIndex` change (updates when navigating)
+- Rally-end highlighting was added by wrapping the "Rally End" div and applying same styling as shots
+
+**User Testing Required:**
+The user should test the following scenarios:
+1. **Phase 1:**
+   - Tag several shots in a rally
+   - Use "Shot Back" button to navigate backwards through shots
+   - Verify: Blue/orange highlighting appears on active shot
+   - Verify: Shot log scrolls to keep highlighted shot visible
+   - Delete a rally-end tag and verify the "Rally End" row highlights
+   - Add shots and verify the shot log auto-scrolls to show new shots
+2. **Phase 2:**
+   - Start Phase 2 tagging
+   - Answer questions and advance through shots
+   - Verify: Current shot shows with appropriate player color (blue/orange dot)
+   - Verify: Shot log auto-scrolls to keep current shot visible as you progress
+   - Scroll away from current shot manually, then answer a question
+   - Verify: Shot log auto-scrolls back to current shot
+
+---
+
+### 2025-12-11: Phase 1 Delete Button Database Synchronization
+
+**Changes Made:**
+- **File:** `app/src/features/shot-tagging-engine/composers/Phase1TimestampComposer.tsx`
+  - Added `deleteRallyFromDatabase()` helper function (40 lines, before line 635)
+  - Modified `handleDelete()` rally-end case to sync database deletion
+  - Modified `handleDelete()` shot deletion case for completed rallies to sync database deletion
+  - Implemented dev-only logging using `import.meta.env.DEV`
+  - Changed error handling from alert() to console.error() for less intrusive UX
+
+**Problem Fixed:**
+- Delete button only updated UI state (React `useState`), not IndexedDB
+- Deleted rallies and shots remained in database causing data inconsistency
+- Continuing to tag after delete created duplicate rallies with same index
+- Database scores and rally indices became incorrect
+
+**Solution Implemented:**
+- Created `deleteRallyFromDatabase(rally, setId)` helper that:
+  - Finds rally in DB by timestamp matching (memory IDs ≠ DB IDs)
+  - Calls `rallyDb.remove(id)` for cascade deletion (rally + all shots)
+  - Updates `phase1_last_rally` progress counter
+  - Handles errors gracefully (console.error, no alert popup)
+- Integrated into both rally-end deletion and completed-rally shot deletion
+- Runs in background (non-blocking) to keep UI responsive
+
+**Testing Performed:**
+- ✅ TypeScript compiles without errors (`npx tsc --noEmit`)
+- ✅ No linting errors
+- ✅ Code follows project patterns (async/await, error handling, optimistic UI)
+- ✅ Dev server running, HMR applied successfully
+- ✅ Dev-only logging verified (logs only in development mode)
+- ⚠️ Manual browser testing required by user (see below)
+
+**Database Operations:**
+- Uses `rallyDb.remove(id)` which cascade-deletes associated shots
+- Updates `setDb.update(setId, { phase1_last_rally: newCount })`
+- Rally lookup by timestamp matching: `Math.abs(db.timestamp - memory.timestamp) < 0.01`
+
+**Issues Remaining:**
+- None (implementation complete)
+
+**Notes for Next Agent:**
+- Delete function maintains "reverse sequential only" behavior (always deletes most recent)
+- No recalculation needed because only most recent rally deleted
+- Rally IDs differ between memory and database, so timestamp matching used
+- Error handling is intentionally non-blocking (background async with catch)
+- Detailed logs only in dev mode for production performance
+
+**User Testing Required:**
+Test these scenarios and verify in IndexedDB (Application tab in DevTools):
+1. Complete Rally 1, Rally 2 → Delete Rally 2 → Check IndexedDB → Rally 2 deleted ✓
+2. Complete Rally 1 (3 shots) → Delete shot → Check IndexedDB → Rally 1 deleted, reopened with 2 shots ✓
+3. Multiple sequential deletes → Each rally properly deleted from DB ✓
+4. Check `phase1_last_rally` counter decrements after each delete ✓
+5. Continue tagging after delete → New rallies use correct indices ✓
+
+Alternative: Use `window.dbInspect.inspectSet('set-id')` in console to verify database state programmatically.
+
+---
+

@@ -28,8 +28,9 @@ export function ButtonGrid({ columns, children, className }: ButtonGridProps) {
   const gridGap = '0.125rem'
   const gridPadding = '0.125rem'
   
-  // Maximum height for landscape/tablet devices (prevents buttons from becoming too large)
-  const maxHeight = '120px'
+  // Fixed height for consistent sizing across all pages
+  // Set to 72px - buttons inside are smaller and centered
+  const maxHeight = '72px'
   
   return (
     <div

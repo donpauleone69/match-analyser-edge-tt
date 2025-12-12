@@ -1,0 +1,1 @@
+Can we set a directory that is where all videos go.... referenced from the app so that it can resume if the video is there.

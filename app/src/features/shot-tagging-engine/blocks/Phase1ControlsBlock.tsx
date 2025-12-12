@@ -35,6 +35,7 @@ export interface Phase1ControlsBlockProps {
   onInNet: () => void
   onForcedError: () => void
   onWin: () => void
+  isDuplicateTag?: boolean  // Disable ALL buttons when tag already exists at/after current time
   className?: string
 }
 
@@ -46,6 +47,7 @@ export function Phase1ControlsBlock({
   onInNet,
   onForcedError,
   onWin,
+  isDuplicateTag = false,
   className,
 }: Phase1ControlsBlockProps) {
   const canEndRally = rallyState === 'after-serve'
@@ -57,32 +59,36 @@ export function Phase1ControlsBlock({
       {/* Shot Missed Button */}
       <ShotMissedButton
         onClick={onShotMissed}
-        disabled={!canEndRally}
+        disabled={!canEndRally || isDuplicateTag}
+        title={isDuplicateTag ? "Cannot tag - shot already exists at this time" : undefined}
       />
       
       {/* In Net Button */}
       <InNetButton
         onClick={onInNet}
-        disabled={!canEndRally}
+        disabled={!canEndRally || isDuplicateTag}
+        title={isDuplicateTag ? "Cannot tag - shot already exists at this time" : undefined}
       />
       
       {/* Forced Error Button - only enabled for shot 2+ */}
       <ForcedErrorButton
         onClick={onForcedError}
-        disabled={!canUseForcedError}
+        disabled={!canUseForcedError || isDuplicateTag}
+        title={isDuplicateTag ? "Cannot tag - shot already exists at this time" : undefined}
       />
       
       {/* Winning Shot Button */}
       <WinningShotButton
         onClick={onWin}
-        disabled={!canEndRally}
+        disabled={!canEndRally || isDuplicateTag}
+        title={isDuplicateTag ? "Cannot tag - shot already exists at this time" : undefined}
       />
       
       {/* Serve/Shot Button - changes dynamically */}
       {isBeforeServe ? (
-        <ServeButton onClick={onServeShot} />
+        <ServeButton onClick={onServeShot} disabled={isDuplicateTag} title={isDuplicateTag ? "Cannot tag - shot already exists at this time" : undefined} />
       ) : (
-        <ShotButton onClick={onServeShot} />
+        <ShotButton onClick={onServeShot} disabled={isDuplicateTag} title={isDuplicateTag ? "Cannot tag - shot already exists at this time" : undefined} />
       )}
     </ButtonGrid>
   )

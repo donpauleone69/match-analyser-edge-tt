@@ -31,6 +31,8 @@ export { PositionGrid, POSITION_LABELS, POSITION_SHORT_LABELS, type PositionGrid
 export { SpeedControls, TAGGING_SPEEDS, FF_SPEEDS, formatSpeed, type SpeedControlsProps } from './SpeedControls'
 export { VideoPlayer } from './VideoPlayer'
 export type { VideoPlayerHandle, ConstrainedPlayback } from './VideoPlayer'
+export { SpeedSettingsModal, type SpeedSettingsModalProps } from './SpeedSettingsModal'
+export { SpeedSettingsButton, type SpeedSettingsButtonProps } from './SpeedSettingsButton'
 
 // Table Tennis Buttons (for shot-tagging-engine)
 export * from './TableTennisButtons'

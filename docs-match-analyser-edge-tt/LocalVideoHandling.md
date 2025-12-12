@@ -153,14 +153,14 @@ localStorage.setItem('videoMetadata', JSON.stringify({
 
 ### Storage Architecture
 
-| Data Type | Storage Location | Persisted? | Synced to Supabase? |
-|-----------|------------------|------------|---------------------|
-| Video file content | Device memory | ❌ No | ❌ No |
-| Blob URL | JavaScript memory | ❌ No | ❌ No |
-| File object | Browser memory | ❌ No | ❌ No |
-| Video metadata | localStorage | ✅ Yes | ✅ Yes |
-| Tagging data | localStorage | ✅ Yes | ✅ Yes |
-| Match metadata | localStorage | ✅ Yes | ✅ Yes |
+| Data Type          | Storage Location  | Persisted? | Synced to Supabase? |
+| ------------------ | ----------------- | ---------- | ------------------- |
+| Video file content | Device memory     | ❌ No       | ❌ No                |
+| Blob URL           | JavaScript memory | ❌ No       | ❌ No                |
+| File object        | Browser memory    | ❌ No       | ❌ No                |
+| Video metadata     | localStorage      | ✅ Yes      | ✅ Yes               |
+| Tagging data       | localStorage      | ✅ Yes      | ✅ Yes               |
+| Match metadata     | localStorage      | ✅ Yes      | ✅ Yes               |
 
 ---
 
@@ -274,21 +274,21 @@ if (match.hasVideo && !videoUrl) {
 
 ### Desktop Browsers
 
-| Browser | File API | Blob URLs | Status |
-|---------|----------|-----------|--------|
-| Chrome 90+ | ✅ | ✅ | Full support |
-| Firefox 88+ | ✅ | ✅ | Full support |
-| Safari 14+ | ✅ | ✅ | Full support |
-| Edge 90+ | ✅ | ✅ | Full support |
+| Browser     | File API | Blob URLs | Status       |
+| ----------- | -------- | --------- | ------------ |
+| Chrome 90+  | ✅        | ✅         | Full support |
+| Firefox 88+ | ✅        | ✅         | Full support |
+| Safari 14+  | ✅        | ✅         | Full support |
+| Edge 90+    | ✅        | ✅         | Full support |
 
 ### Mobile Browsers
 
-| Browser | File API | Blob URLs | Photo Library Access | Status |
-|---------|----------|-----------|---------------------|--------|
-| iOS Safari 14+ | ✅ | ✅ | ✅ | Full support* |
-| iOS Chrome | ✅ | ✅ | ✅ | Full support* |
-| Android Chrome | ✅ | ✅ | ✅ | Full support |
-| Android Firefox | ✅ | ✅ | ✅ | Full support |
+| Browser         | File API | Blob URLs | Photo Library Access | Status        |
+| --------------- | -------- | --------- | -------------------- | ------------- |
+| iOS Safari 14+  | ✅        | ✅         | ✅                    | Full support* |
+| iOS Chrome      | ✅        | ✅         | ✅                    | Full support* |
+| Android Chrome  | ✅        | ✅         | ✅                    | Full support  |
+| Android Firefox | ✅        | ✅         | ✅                    | Full support  |
 
 \* *Requires iOS to transcode HEVC videos (shown as "preparing" indicator)*
 
@@ -298,19 +298,19 @@ if (match.hasVideo && !videoUrl) {
 
 ### File Selection Time
 
-| Device | Video Length | File Size | iOS Transcoding | Blob URL Creation | Total Time |
-|--------|--------------|-----------|-----------------|-------------------|------------|
-| iPhone 12 | 5 min | 500 MB | ~5-7 sec | <100 ms | ~5-7 sec |
-| iPhone 12 | 15 min | 1.5 GB | ~15-20 sec | <100 ms | ~15-20 sec |
-| Desktop | Any | Any | N/A (direct MP4) | <100 ms | <1 sec |
+| Device    | Video Length | File Size | iOS Transcoding  | Blob URL Creation | Total Time |
+| --------- | ------------ | --------- | ---------------- | ----------------- | ---------- |
+| iPhone 12 | 5 min        | 500 MB    | ~5-7 sec         | <100 ms           | ~5-7 sec   |
+| iPhone 12 | 15 min       | 1.5 GB    | ~15-20 sec       | <100 ms           | ~15-20 sec |
+| Desktop   | Any          | Any       | N/A (direct MP4) | <100 ms           | <1 sec     |
 
 ### Memory Usage
 
-| Video Size | Memory Impact | Notes |
-|------------|---------------|-------|
-| < 500 MB | Low | Safe for mobile |
-| 500 MB - 2 GB | Medium | Works on modern phones |
-| > 2 GB | High | May cause mobile browser crashes |
+| Video Size    | Memory Impact | Notes                            |
+| ------------- | ------------- | -------------------------------- |
+| < 500 MB      | Low           | Safe for mobile                  |
+| 500 MB - 2 GB | Medium        | Works on modern phones           |
+| > 2 GB        | High          | May cause mobile browser crashes |
 
 **Recommendations:**
 - Suggest users compress videos before import if > 1GB
@@ -507,6 +507,9 @@ getVideoPickerHint(): string
 
 *Document Version: 1.0*  
 *Last Updated: 2025-12-05*
+
+
+
 
 
 

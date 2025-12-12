@@ -31,8 +31,8 @@ export function UserInputSection({ children, playerTint, className }: UserInputS
       // Base background (no player context)
       !playerTint && 'bg-bg-card',
       // Player-specific tints (Phase 2 uses this for current shot player)
-      playerTint === 'player1' && 'bg-[rgb(59_130_246_/_0.12)]',  // Blue tint for player 1
-      playerTint === 'player2' && 'bg-[rgb(249_115_22_/_0.12)]',  // Orange tint for player 2
+      playerTint === 'player1' && 'bg-[rgb(59_130_246_/_0.30)]',  // Blue tint for player 1 (30% opacity - strong)
+      playerTint === 'player2' && 'bg-[rgb(249_115_22_/_0.30)]',  // Orange tint for player 2 (30% opacity - strong)
       className
     )}>
       {children}

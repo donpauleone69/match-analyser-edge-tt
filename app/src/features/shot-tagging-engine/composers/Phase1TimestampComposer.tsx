@@ -11,10 +11,12 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { cn } from '@/helpers/utils'
-import { Phase1ControlsBlock, SetupControlsBlock, SetEndWarningBlock, CompletionModal, RallyCard, ShotListItem, type RallyState, type EndCondition, type SetupData } from '../blocks'
+import { Phase1ControlsBlock, SetupControlsBlock, SetEndWarningBlock, CompletionModal, RallyCard, ShotListItem, VideoControlsBar, type RallyState, type EndCondition, type SetupData } from '../blocks'
 import { PhaseLayoutTemplate } from '../layouts'
 import { UserInputSection, VideoPlayerSection, StatusBarSection, RallyListSection } from '../sections'
-import { type VideoPlayerHandle, type TaggingModeControls, useVideoPlaybackStore } from '@/ui-mine/VideoPlayer'
+import { type VideoPlayerHandle, useVideoPlaybackStore } from '@/ui-mine/VideoPlayer'
+import { SpeedSettingsModal } from '@/ui-mine/SpeedSettingsModal'
+import { Button } from '@/ui-mine'
 import { calculateServer, calculateShotPlayer, calculatePreviousServers } from '@/rules'
 import { deriveRally_winner_id, getOpponentId } from '@/rules/derive/rally/deriveRally_winner_id'
 import { deriveSetEndConditions } from '@/rules/derive/set/deriveSetEndConditions'
@@ -75,7 +77,11 @@ export function Phase1TimestampComposer({ playerContext, setId, player1Id, playe
   const setSpeedMode = useVideoPlaybackStore(state => state.setSpeedMode)
   const currentSpeedMode = useVideoPlaybackStore(state => state.currentSpeedMode)
   const speedPresets = useVideoPlaybackStore(state => state.speedPresets)
+  const isPlaying = useVideoPlaybackStore(state => state.isPlaying)
   const videoPlayerRef = useRef<VideoPlayerHandle>(null)
+  
+  // Speed settings modal state
+  const [speedSettingsOpen, setSpeedSettingsOpen] = useState(false)
   
   // Rally state
   const [rallyState, setRallyState] = useState<RallyState>('before-serve')
@@ -86,6 +92,15 @@ export function Phase1TimestampComposer({ playerContext, setId, player1Id, playe
   const [shotHistory, setShotHistory] = useState<ShotHistoryItem[]>([])
   const [currentHistoryIndex, setCurrentHistoryIndex] = useState(-1) // -1 = playing live
   const [isNavigating, setIsNavigating] = useState(false) // true when paused on a historical tag
+  const [activeTagIndex, setActiveTagIndex] = useState<number>(-1) // Track active tag for visual feedback (-1 = none active)
+  
+  // NEW: Constrained playback for shot review during navigation
+  const [constrainedPlayback, setConstrainedPlayback] = useState<{ enabled: boolean; startTime: number; endTime: number; loopOnEnd: boolean }>({
+    enabled: false,
+    startTime: 0,
+    endTime: 0,
+    loopOnEnd: true,
+  })
   
   // Score tracking for server calculation
   const [currentScore, setCurrentScore] = useState({
@@ -250,6 +265,7 @@ export function Phase1TimestampComposer({ playerContext, setId, player1Id, playe
   // Refs for auto-scroll
   const shotLogRef = useRef<HTMLDivElement>(null)
   const rallyRefs = useRef<Map<string, HTMLDivElement>>(new Map())
+  const shotRefs = useRef<Map<string, HTMLDivElement>>(new Map())
   
   const setRallyRef = (rallyId: string, element: HTMLDivElement | null) => {
     if (element) {
@@ -259,24 +275,74 @@ export function Phase1TimestampComposer({ playerContext, setId, player1Id, playe
     }
   }
   
+  const setShotRef = (shotId: string, element: HTMLDivElement | null) => {
+    if (element) {
+      shotRefs.current.set(shotId, element)
+    } else {
+      shotRefs.current.delete(shotId)
+    }
+  }
+  
   // Helper to get player name
   const getPlayerName = (playerId: 'player1' | 'player2') => {
     if (!playerContext) return playerId === 'player1' ? 'Player 1' : 'Player 2'
     return playerId === 'player1' ? playerContext.player1Name : playerContext.player2Name
   }
   
+  // Helper to check if a tag already exists at or after current time (duplicate prevention)
+  const hasTagAtOrAfter = (timestamp: number): boolean => {
+    const tolerance = 0.01 // 0.01 seconds (exact match)
+    return shotHistory.some(item => item.timestamp >= timestamp - tolerance)
+  }
+  
+  // Helper to get player for active tag (for visual feedback)
+  const getActiveTagPlayer = (): 'player1' | 'player2' | null => {
+    if (activeTagIndex < 0 || activeTagIndex >= shotHistory.length) return null
+    
+    const tag = shotHistory[activeTagIndex]
+    
+    if (tag.type === 'rally-end') {
+      // For rally-end, get the last shot's player (the one who hit the winning/error shot)
+      const rally = completedRallies.find(r => r.id === tag.rallyId)
+      if (!rally) return null
+      const lastShotIndex = rally.shots.length
+      return calculateShotPlayer(rally.serverId, lastShotIndex) as 'player1' | 'player2'
+    } else {
+      // For shot tag, calculate which player hit it
+      const serverResult = playerContext 
+        ? calculateServer({
+            firstServerId: setupNextServer,
+            player1Score: currentScore.player1,
+            player2Score: currentScore.player2,
+          })
+        : { serverId: 'player1' as const }
+      
+      // Find shot index by counting shots before this tag
+      let shotCount = 0
+      for (let i = 0; i <= activeTagIndex; i++) {
+        if (shotHistory[i].type === 'shot') shotCount++
+        if (i === activeTagIndex) break
+      }
+      
+      return calculateShotPlayer(serverResult.serverId, shotCount) as 'player1' | 'player2'
+    }
+  }
+  
   // Handle serve/shot button press
   const handleServeShot = () => {
-    // RESUME case: paused on last tag, pressing button to continue
-    if (isNavigating && currentHistoryIndex === shotHistory.length - 1) {
+    // If navigating, disable constrained playback and resume live tagging
+    if (isNavigating) {
       setIsNavigating(false)
       setCurrentHistoryIndex(-1)
-      videoPlayerRef.current?.play()
-      setSpeedMode('tag') // Resume at tag speed
-      return // Don't add new shot
+      setConstrainedPlayback({
+        enabled: false,
+        startTime: 0,
+        endTime: 0,
+        loopOnEnd: true,
+      })
     }
     
-    // NEW TAG case: normal behavior
+    // Tag shot at current time
     const shotIndex = currentShots.length + 1  // 1-based: serve = 1, receive = 2, etc.
     const isServe = shotIndex === 1
     
@@ -296,6 +362,9 @@ export function Phase1TimestampComposer({ playerContext, setId, player1Id, playe
       rallyId: null, // current rally not completed yet
       shotId: newShot.id,
     }])
+    
+    // Set active tag to the new shot
+    setActiveTagIndex(shotHistory.length)
     
     // Set to tag speed
     setSpeedMode('tag')
@@ -368,6 +437,9 @@ export function Phase1TimestampComposer({ playerContext, setId, player1Id, playe
       rallyId: rally.id,
       rallyEndCondition: endCondition,
     }])
+    
+    // Set active tag to the rally-end
+    setActiveTagIndex(prevIndex => prevIndex + 1)
     
     // NEW: Calculate scores for database
     const newScore = endCondition === 'let' 
@@ -585,6 +657,48 @@ export function Phase1TimestampComposer({ playerContext, setId, player1Id, playe
     }
   }
   
+  /**
+   * Delete rally and its shots from database
+   * Used when deleting completed rallies (reverse sequential only)
+   */
+  const deleteRallyFromDatabase = async (rally: Phase1Rally, setId: string) => {
+    try {
+      // Find rally in DB by matching timestamps (rally IDs differ in memory vs DB)
+      const existingRallies = await rallyDb.getBySetId(setId)
+      const rallyToDelete = existingRallies.find(r => 
+        Math.abs((r.timestamp_start ?? 0) - rally.shots[0].timestamp) < 0.01 &&
+        Math.abs((r.timestamp_end ?? 0) - rally.endTimestamp) < 0.01
+      )
+      
+      if (!rallyToDelete) {
+        if (import.meta.env.DEV) {
+          console.log(`[Phase1] Rally not found in DB (not saved yet or already deleted)`)
+        }
+        return
+      }
+      
+      if (import.meta.env.DEV) {
+        console.log(`[Phase1] Deleting rally ${rallyToDelete.rally_index} from DB (ID: ${rallyToDelete.id})`)
+      }
+      
+      // Delete rally (this also deletes all associated shots via cascade)
+      await rallyDb.remove(rallyToDelete.id)
+      
+      // Update set progress (decrement last rally counter)
+      const newLastRally = Math.max(0, (rallyToDelete.rally_index ?? 1) - 1)
+      await setDb.update(setId, {
+        phase1_last_rally: newLastRally
+      })
+      
+      if (import.meta.env.DEV) {
+        console.log(`[Phase1] ✓ Rally ${rallyToDelete.rally_index} deleted from DB. Set progress updated to ${newLastRally}`)
+      }
+    } catch (error) {
+      console.error('[Phase1] Error deleting rally from database:', error)
+      throw error // Re-throw so caller can handle
+    }
+  }
+  
   // Handle delete - remove last tag and navigate back
   const handleDelete = () => {
     if (shotHistory.length === 0) return
@@ -605,6 +719,14 @@ export function Phase1TimestampComposer({ playerContext, setId, player1Id, playe
         player1: winnerWasPlayer1 ? prev.player1 - 1 : prev.player1,
         player2: winnerWasPlayer2 ? prev.player2 - 1 : prev.player2,
       }))
+      
+      // Delete from database
+      if (setId && player1Id && player2Id) {
+        // Don't await - let it run in background to avoid blocking UI
+        deleteRallyFromDatabase(lastRally, setId).catch(error => {
+          console.error('[Phase1] Failed to delete rally from DB:', error)
+        })
+      }
     } else {
       // Delete last shot
       if (currentShots.length > 0) {
@@ -629,6 +751,13 @@ export function Phase1TimestampComposer({ playerContext, setId, player1Id, playe
           setCurrentShots(shotsWithoutLast)
           setRallyState('after-serve')
         }
+        
+        // Delete rally from DB (will be re-saved when rally completed again)
+        if (setId && player1Id && player2Id) {
+          deleteRallyFromDatabase(lastRally, setId).catch(error => {
+            console.error('[Phase1] Failed to delete partial rally from DB:', error)
+          })
+        }
       }
     }
     
@@ -640,14 +769,17 @@ export function Phase1TimestampComposer({ playerContext, setId, player1Id, playe
       const prevItem = shotHistory[shotHistory.length - 2]
       videoPlayerRef.current?.seek(prevItem.timestamp)
       videoPlayerRef.current?.pause()
-      setCurrentHistoryIndex(shotHistory.length - 2)
+      const newIndex = shotHistory.length - 2
+      setCurrentHistoryIndex(newIndex)
       setIsNavigating(true)
+      setActiveTagIndex(newIndex) // Set active tag to previous
       // Set speed to tag mode (ready to resume)
       setSpeedMode('tag')
     } else {
       // No more history, back to start
       setCurrentHistoryIndex(-1)
       setIsNavigating(false)
+      setActiveTagIndex(-1) // Clear active tag
       setSpeedMode('normal')
     }
   }
@@ -658,18 +790,48 @@ export function Phase1TimestampComposer({ playerContext, setId, player1Id, playe
       // At live position, jump to last history item
       if (shotHistory.length > 0) {
         const lastItem = shotHistory[shotHistory.length - 1]
-        videoPlayerRef.current?.seek(lastItem.timestamp)
-        videoPlayerRef.current?.pause()
-        setCurrentHistoryIndex(shotHistory.length - 1)
+        const newIndex = shotHistory.length - 1
+        
+        // Enable constrained playback loop
+        const nextItem = shotHistory.length > newIndex + 1 ? shotHistory[newIndex + 1] : null
+        const startTime = Math.max(0, lastItem.timestamp - 0.3) // 300ms before
+        const endTime = nextItem ? nextItem.timestamp : lastItem.timestamp + 2.0 // Next shot or +2s
+        
+        setConstrainedPlayback({
+          enabled: true,
+          startTime,
+          endTime,
+          loopOnEnd: true,
+        })
+        
+        videoPlayerRef.current?.seek(startTime)
+        videoPlayerRef.current?.play() // Auto-play the loop
+        setCurrentHistoryIndex(newIndex)
         setIsNavigating(true)
         setSpeedMode('tag')
+        setActiveTagIndex(newIndex) // Set active tag
       }
     } else if (currentHistoryIndex > 0) {
       // Jump to previous item
       const prevItem = shotHistory[currentHistoryIndex - 1]
-      videoPlayerRef.current?.seek(prevItem.timestamp)
-      videoPlayerRef.current?.pause()
-      setCurrentHistoryIndex(currentHistoryIndex - 1)
+      const newIndex = currentHistoryIndex - 1
+      
+      // Enable constrained playback loop
+      const nextItem = currentHistoryIndex < shotHistory.length ? shotHistory[currentHistoryIndex] : null
+      const startTime = Math.max(0, prevItem.timestamp - 0.3) // 300ms before
+      const endTime = nextItem ? nextItem.timestamp : prevItem.timestamp + 2.0 // Next shot or +2s
+      
+      setConstrainedPlayback({
+        enabled: true,
+        startTime,
+        endTime,
+        loopOnEnd: true,
+      })
+      
+      videoPlayerRef.current?.seek(startTime)
+      videoPlayerRef.current?.play() // Auto-play the loop
+      setCurrentHistoryIndex(newIndex)
+      setActiveTagIndex(newIndex) // Set active tag
     }
   }
   
@@ -678,13 +840,38 @@ export function Phase1TimestampComposer({ playerContext, setId, player1Id, playe
     if (isNavigating && currentHistoryIndex < shotHistory.length - 1) {
       // Jump to next item
       const nextItem = shotHistory[currentHistoryIndex + 1]
-      videoPlayerRef.current?.seek(nextItem.timestamp)
-      videoPlayerRef.current?.pause()
-      setCurrentHistoryIndex(currentHistoryIndex + 1)
+      const newIndex = currentHistoryIndex + 1
+      
+      // Enable constrained playback loop
+      const followingItem = newIndex + 1 < shotHistory.length ? shotHistory[newIndex + 1] : null
+      const startTime = Math.max(0, nextItem.timestamp - 0.3) // 300ms before
+      const endTime = followingItem ? followingItem.timestamp : nextItem.timestamp + 2.0 // Next shot or +2s
+      
+      setConstrainedPlayback({
+        enabled: true,
+        startTime,
+        endTime,
+        loopOnEnd: true,
+      })
+      
+      videoPlayerRef.current?.seek(startTime)
+      videoPlayerRef.current?.play() // Auto-play the loop
+      setCurrentHistoryIndex(newIndex)
+      setActiveTagIndex(newIndex) // Set active tag
     } else if (currentHistoryIndex === shotHistory.length - 1) {
       // At end of history, back to live
       setIsNavigating(false)
       setCurrentHistoryIndex(-1)
+      setActiveTagIndex(-1) // Clear active tag
+      
+      // Disable constrained playback
+      setConstrainedPlayback({
+        enabled: false,
+        startTime: 0,
+        endTime: 0,
+        loopOnEnd: true,
+      })
+      
       videoPlayerRef.current?.play()
     }
   }
@@ -696,32 +883,45 @@ export function Phase1TimestampComposer({ playerContext, setId, player1Id, playe
     }
   }, [completedRallies.length, currentShots.length])
   
-  // Scroll to rally when navigating
+  // Scroll to active shot when navigating
   useEffect(() => {
-    if (isNavigating && currentHistoryIndex >= 0) {
-      const historyItem = shotHistory[currentHistoryIndex]
-      if (historyItem?.rallyId) {
+    if (activeTagIndex >= 0 && activeTagIndex < shotHistory.length) {
+      const historyItem = shotHistory[activeTagIndex]
+      
+      if (historyItem.type === 'shot' && historyItem.shotId) {
+        // Scroll to the specific shot
+        const shotElement = shotRefs.current.get(historyItem.shotId)
+        if (shotElement) {
+          shotElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+        }
+      } else if (historyItem.type === 'rally-end' && historyItem.rallyId) {
+        // Scroll to the rally (rally-end doesn't have its own ref, so scroll to rally)
         const rallyElement = rallyRefs.current.get(historyItem.rallyId)
         if (rallyElement) {
           rallyElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
         }
       }
     }
-  }, [isNavigating, currentHistoryIndex, shotHistory])
+  }, [activeTagIndex, shotHistory])
   
-  // Build tagging mode controls
-  const taggingModeControls: TaggingModeControls = {
-    enabled: true,
-    currentSpeedMode: currentSpeedMode,
-    speedPresets: { tag: speedPresets.tag, ff: speedPresets.ff },
-    canNavigateBack: shotHistory.length > 0,
-    canNavigateForward: isNavigating && currentHistoryIndex < shotHistory.length - 1,
-    canDelete: shotHistory.length > 0,
-    onShotBack: handleShotBack,
-    onShotForward: handleShotForward,
-    onDelete: handleDelete,
-    onFrameStepBack: () => videoPlayerRef.current?.stepFrame('backward'),
-    onFrameStepForward: () => videoPlayerRef.current?.stepFrame('forward'),
+  // Toggle play/pause handler
+  const handleTogglePlay = () => {
+    if (isPlaying) {
+      videoPlayerRef.current?.pause()
+    } else {
+      videoPlayerRef.current?.play()
+    }
+  }
+  
+  // Rewind handler (skip back 10 seconds)
+  const handleRewind = () => {
+    const newTime = Math.max(0, currentTime - 10)
+    videoPlayerRef.current?.seek(newTime)
+  }
+  
+  // Fast forward handler (skip forward 10 seconds)
+  const handleFastForward = () => {
+    videoPlayerRef.current?.seek(currentTime + 10)
   }
   
   // Calculate server for current rally
@@ -752,20 +952,26 @@ export function Phase1TimestampComposer({ playerContext, setId, player1Id, playe
               winnerName=""
               endCondition="winner"
               isCurrent
-              className="mb-4"
             >
               {currentShots.map((shot, idx) => {
                 const shotPlayer = calculateShotPlayer(serverResult.serverId, shot.shotIndex) as 'player1' | 'player2'
                 const playerName = getPlayerName(shotPlayer)
                 
+                // Find if this shot is the active tag
+                const shotHistoryIndex = shotHistory.findIndex(h => h.shotId === shot.id)
+                const isActive = shotHistoryIndex === activeTagIndex
+                
                 return (
-                  <ShotListItem
-                    key={shot.id}
-                    shotNumber={idx + 1}
-                    shotType={shot.isServe ? 'serve' : 'shot'}
-                    playerName={playerName}
-                    timestamp={shot.timestamp}
-                  />
+                  <div key={shot.id} ref={(el) => setShotRef(shot.id, el)}>
+                    <ShotListItem
+                      shotNumber={idx + 1}
+                      shotType={shot.isServe ? 'serve' : 'shot'}
+                      playerName={playerName}
+                      timestamp={shot.timestamp}
+                      isActive={isActive}
+                      playerColor={shotPlayer}
+                    />
+                  </div>
                 )
               })}
             </RallyCard>
@@ -785,29 +991,51 @@ export function Phase1TimestampComposer({ playerContext, setId, player1Id, playe
                   winnerName={winnerName}
                   endCondition={rally.endCondition}
                   isError={rally.isError}
+                  serverColor={rally.serverId}
+                  winnerColor={rally.winnerId}
                 >
                   {rally.shots.map((shot, idx) => {
                     const shotPlayer = calculateShotPlayer(rally.serverId, shot.shotIndex) as 'player1' | 'player2'
                     const playerName = getPlayerName(shotPlayer)
                     const isLastShot = idx === rally.shots.length - 1
                     
+                    // Find if this shot is the active tag
+                    const shotHistoryIndex = shotHistory.findIndex(h => h.shotId === shot.id)
+                    const isActive = shotHistoryIndex === activeTagIndex
+                    
                     return (
-                      <ShotListItem
-                        key={shot.id}
-                        shotNumber={idx + 1}
-                        shotType={shot.isServe ? 'serve' : 'shot'}
-                        playerName={playerName}
-                        timestamp={shot.timestamp}
-                        isEnding={isLastShot}
-                      />
+                      <div key={shot.id} ref={(el) => setShotRef(shot.id, el)}>
+                        <ShotListItem
+                          shotNumber={idx + 1}
+                          shotType={shot.isServe ? 'serve' : 'shot'}
+                          playerName={playerName}
+                          timestamp={shot.timestamp}
+                          isEnding={isLastShot}
+                          isActive={isActive}
+                          playerColor={shotPlayer}
+                        />
+                      </div>
                     )
                   })}
                   {/* Rally End timestamp */}
-                  <div className="flex items-center gap-2 text-sm pt-1 border-t border-neutral-700/50">
-                    <span className="font-mono text-xs text-neutral-600"></span>
-                    <span className="text-xs text-neutral-500">Rally End</span>
-                    <span className="ml-auto font-mono text-xs text-neutral-600">{rally.endTimestamp.toFixed(2)}s</span>
-                  </div>
+                  {(() => {
+                    // Find if this rally-end is the active tag
+                    const rallyEndHistoryIndex = shotHistory.findIndex(h => h.type === 'rally-end' && h.rallyId === rally.id)
+                    const isRallyEndActive = rallyEndHistoryIndex === activeTagIndex
+                    const rallyEndPlayer = rally.winnerId // Rally ended by winner's opponent (last shot player)
+                    
+                    return (
+                      <div className={cn(
+                        "flex items-center gap-2 text-sm pt-1 border-t border-neutral-700/50 -mx-2 px-2 py-1.5 rounded transition-all duration-200",
+                        isRallyEndActive && rallyEndPlayer === 'player1' && 'border-l-4 border-blue-500 bg-blue-500/10 pl-1',
+                        isRallyEndActive && rallyEndPlayer === 'player2' && 'border-l-4 border-orange-500 bg-orange-500/10 pl-1'
+                      )}>
+                        <span className="font-mono text-xs text-neutral-600"></span>
+                        <span className="text-xs text-neutral-500">Rally End</span>
+                        <span className="ml-auto font-mono text-xs text-neutral-600">{rally.endTimestamp.toFixed(2)}s</span>
+                      </div>
+                    )
+                  })()}
                 </RallyCard>
               </div>
             )
@@ -820,12 +1048,31 @@ export function Phase1TimestampComposer({ playerContext, setId, player1Id, playe
           ref={videoPlayerRef}
           videoUrl={videoUrl}
           onVideoSelect={setVideoUrl}
-          taggingMode={taggingModeControls}
+          constrainedPlayback={constrainedPlayback}
+        />
+      }
+      
+      videoControls={
+        <VideoControlsBar
+          isPlaying={isPlaying}
+          onTogglePlay={handleTogglePlay}
+          onFrameStepBack={() => videoPlayerRef.current?.stepFrame('backward')}
+          onFrameStepForward={() => videoPlayerRef.current?.stepFrame('forward')}
+          onRewind={handleRewind}
+          onFastForward={handleFastForward}
+          showShotNavigation={true}
+          canNavigateBack={shotHistory.length > 0}
+          canNavigateForward={isNavigating && currentHistoryIndex < shotHistory.length - 1}
+          onShotBack={handleShotBack}
+          onShotForward={handleShotForward}
+          canDelete={shotHistory.length > 0}
+          onDelete={handleDelete}
         />
       }
       
       statusBar={
         <StatusBarSection
+          playerTint={getActiveTagPlayer()}
           warningBanner={
             setEndDetected && setEndScore ? (
               <SetEndWarningBlock
@@ -840,66 +1087,63 @@ export function Phase1TimestampComposer({ playerContext, setId, player1Id, playe
             ) : undefined
           }
           items={[
-            // Column 1: Rally/Shots with numbers (left justify labels, right justify numbers)
-            <div key="rally-shots" className="flex flex-col text-xs leading-tight min-w-[80px]">
-              <div className="flex justify-between">
+            // Column 1: Rally/Shots (vertically stacked)
+            <div key="rally-shots" className="flex flex-col text-[11px] leading-tight">
+              <div className="flex justify-between gap-2">
                 <span className="text-neutral-400">Rally</span>
                 <span className="text-neutral-200 font-semibold">{completedRallies.length + 1}</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between gap-2">
                 <span className="text-neutral-400">Shots</span>
                 <span className="text-neutral-200 font-semibold">{currentShots.length}</span>
               </div>
             </div>,
             
-            // Column 2: Player names with scores (left justify names, right justify scores)
-            <div key="players-scores" className="flex flex-col text-xs leading-tight min-w-[100px]">
-              <div className="flex justify-between">
-                <span className="text-neutral-300">{playerContext?.player1Name || 'P1'}</span>
+            // Column 2: Player names with scores (vertically stacked)
+            <div key="players-scores" className="flex flex-col text-[11px] leading-tight">
+              <div className="flex justify-between gap-2">
+                <span className="text-blue-400 font-medium">{playerContext?.player1Name || 'P1'}</span>
                 <span className="text-success font-bold">{currentScore.player1}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-neutral-300">{playerContext?.player2Name || 'P2'}</span>
+              <div className="flex justify-between gap-2">
+                <span className="text-orange-400 font-medium">{playerContext?.player2Name || 'P2'}</span>
                 <span className="text-success font-bold">{currentScore.player2}</span>
               </div>
             </div>,
             
-            // Column 3: Saved (centered)
-            <div key="saved" className="flex flex-col items-center text-xs leading-tight">
+            // Column 3: Saved (centered, stacked)
+            <div key="saved" className="flex flex-col items-center text-[11px] leading-tight">
               <span className="text-neutral-400">Saved</span>
               <span className="text-neutral-200 font-semibold">{completedRallies.length}</span>
             </div>,
             
-            // Column 4: Speed indicator (centered, same size as Save Set)
-            <div 
+            // Column 4: Speed button (clickable, opens settings)
+            <Button
               key="speed" 
+              variant="secondary"
+              onClick={() => setSpeedSettingsOpen(true)}
               className={cn(
-                'h-full px-4 rounded flex flex-col items-center justify-center text-xs font-bold leading-tight',
-                currentSpeedMode === 'tag' && 'bg-success/20 text-success',
-                currentSpeedMode === 'ff' && 'bg-warning/20 text-warning',
-                currentSpeedMode === 'normal' && 'bg-neutral-700 text-neutral-300'
+                'h-8 px-2 text-[11px] font-medium leading-none gap-0.5',
+                currentSpeedMode === 'tag' && 'bg-success/20 text-success hover:bg-success/30',
+                currentSpeedMode === 'ff' && 'bg-warning/20 text-warning hover:bg-warning/30',
+                currentSpeedMode === 'normal' && 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
               )}
+              title="Click to configure speed settings"
             >
-              <div>{currentSpeedMode === 'tag' ? 'Tag' : currentSpeedMode === 'ff' ? 'FF' : 'Normal'}</div>
-              <div>{currentSpeedMode === 'tag' ? `${speedPresets.tag}x` : currentSpeedMode === 'ff' ? `${speedPresets.ff}x` : '1x'}</div>
-            </div>,
+              <span>{currentSpeedMode === 'tag' ? 'Tag' : currentSpeedMode === 'ff' ? 'FF' : 'Normal'}</span>
+              <span>{currentSpeedMode === 'tag' ? `${speedPresets.tag}x` : currentSpeedMode === 'ff' ? `${speedPresets.ff}x` : '1x'}</span>
+            </Button>,
             
             // Column 5: Save Set button (always present)
-            <button
+            <Button
               key="save-set"
+              variant={setEndDetected ? "success" : "primary"}
               onClick={handleSaveSet}
               disabled={!setupComplete || completedRallies.length === 0}
-              className={cn(
-                'h-full px-4 rounded text-white text-xs font-bold',
-                !setupComplete || completedRallies.length === 0
-                  ? 'bg-neutral-700 opacity-50 cursor-not-allowed'
-                  : setEndDetected 
-                    ? 'bg-green-600 hover:bg-green-700'
-                    : 'bg-brand-primary hover:bg-brand-primary/90'
-              )}
+              className="h-8 px-3 text-[11px] font-medium"
             >
               Save Set
-            </button>,
+            </Button>,
           ]}
         />
       }
@@ -921,6 +1165,7 @@ export function Phase1TimestampComposer({ playerContext, setId, player1Id, playe
               onInNet={handleInNet}
               onForcedError={handleForcedError}
               onWin={handleWin}
+              isDuplicateTag={hasTagAtOrAfter(currentTime)}
             />
           )}
         </UserInputSection>
@@ -945,6 +1190,12 @@ export function Phase1TimestampComposer({ playerContext, setId, player1Id, playe
           }}
         />
       )}
+      
+      {/* Speed Settings Modal */}
+      <SpeedSettingsModal 
+        isOpen={speedSettingsOpen} 
+        onClose={() => setSpeedSettingsOpen(false)} 
+      />
     </>
   )
 }

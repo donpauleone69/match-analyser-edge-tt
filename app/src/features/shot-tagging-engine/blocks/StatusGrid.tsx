@@ -24,11 +24,15 @@ export function StatusGrid({ items, className }: StatusGridProps) {
   return (
     <div 
       className={cn(
-        'grid grid-flow-col auto-cols-auto gap-x-4 h-full items-center',
+        'grid grid-cols-5 h-full w-full',
         className
       )}
     >
-      {items}
+      {items.map((item, idx) => (
+        <div key={idx} className="flex items-center justify-center h-full">
+          {item}
+        </div>
+      ))}
     </div>
   )
 }

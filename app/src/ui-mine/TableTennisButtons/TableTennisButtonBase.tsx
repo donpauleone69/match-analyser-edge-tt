@@ -54,7 +54,8 @@ export function TableTennisButtonBase({
         'aspect-square',           // Keep buttons square (constrained by smaller dimension)
         // Remove inline spacing from SVG children
         '[&>svg]:block',   // Make SVG block element to remove inline gaps
-        disabled && 'cursor-not-allowed opacity-60',
+        // Enhanced disabled state (very obvious visual feedback)
+        disabled && 'cursor-not-allowed opacity-30 grayscale contrast-50 brightness-75',
         className
       )}
       style={{
