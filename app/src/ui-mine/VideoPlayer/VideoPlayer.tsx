@@ -13,6 +13,7 @@ export interface ConstrainedPlayback {
 export interface VideoPlayerHandle {
   play: () => void
   pause: () => void
+  togglePlay: () => void
   seek: (time: number) => void
   stepFrame: (direction: 'forward' | 'backward', ignoreConstraints?: boolean) => void
   getCurrentTime: () => number
@@ -146,10 +147,12 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
     const video = videoRef.current
     if (video) {
       setDuration(video.duration)
+      // Sync store with element so Play/Pause label is not stale after navigation
+      setIsPlaying(!video.paused)
       // Clear processing state when video is ready
       setIsProcessingFile(false)
     }
-  }, [setDuration])
+  }, [setDuration, setIsPlaying])
 
   const handlePlay = useCallback(() => {
     if (!isPlaying) {
@@ -225,11 +228,12 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
   useImperativeHandle(ref, () => ({
     play: () => videoRef.current?.play().catch(console.error),
     pause: () => videoRef.current?.pause(),
+    togglePlay,
     seek,
     stepFrame: (direction: 'forward' | 'backward', ignoreConstraints?: boolean) => 
       stepFrame(direction, ignoreConstraints),
     getCurrentTime,
-  }), [seek, stepFrame, getCurrentTime])
+  }), [togglePlay, seek, stepFrame, getCurrentTime])
 
   // Keyboard shortcuts
   useEffect(() => {

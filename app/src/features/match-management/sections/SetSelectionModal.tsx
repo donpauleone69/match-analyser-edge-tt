@@ -323,6 +323,13 @@ export function SetSelectionModal({
                                 Tag Phase 1
                               </Button>
                               <Button
+                                onClick={() => navigate(`/matches/${matchId}/tag?set=${set.set_number}&mode=serves`)}
+                                variant="secondary"
+                                size="sm"
+                              >
+                                Tag Serves
+                              </Button>
+                              <Button
                                 onClick={() => handleEditSetScores(set.set_number, set)}
                                 variant="secondary"
                                 size="sm"

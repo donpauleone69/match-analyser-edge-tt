@@ -904,13 +904,9 @@ export function Phase1TimestampComposer({ playerContext, setId, player1Id, playe
     }
   }, [activeTagIndex, shotHistory])
   
-  // Toggle play/pause handler
+  // Toggle play/pause handler — use element state, not Zustand (avoids desync)
   const handleTogglePlay = () => {
-    if (isPlaying) {
-      videoPlayerRef.current?.pause()
-    } else {
-      videoPlayerRef.current?.play()
-    }
+    videoPlayerRef.current?.togglePlay()
   }
   
   // Rewind handler (skip back 10 seconds)

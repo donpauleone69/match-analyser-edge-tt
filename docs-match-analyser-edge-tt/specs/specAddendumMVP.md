@@ -6,6 +6,38 @@
 
 ## Change Log
 
+### 2026-11-06: Serve-Marking Phase Alternative (v3.29.0)
+
+**Change Type:** Feature — Alternative Tagging Path
+
+**What Changed:**
+- Added a separate **Tag Serves** flow beside Phase 1 (does not replace or edit Phase 1 / Phase 2)
+- Marks each serve; on the next serve (or End), pauses and asks who won the previous rally (or Let)
+- Saves one rally row plus serve shot (`shot_index` 1) and unnumbered end shot (`shot_index` 0, id `{rallyId}-sh0`)
+- Set `tagging_phase` is not changed; Phase 1 remains available on the same set
+
+**User Flow:**
+1. Set picker → **Tag Serves** → `/matches/:id/tag?set=N&mode=serves`
+2. Setup (first server + starting score) in the existing bottom input band
+3. **Serve** marks the first serve and keeps playing
+4. Next **Serve** pauses; choose player 1, player 2, or Let
+5. **End** in the status bar closes the last open rally the same way
+
+**Files:**
+- Added `app/src/features/shot-tagging-engine/composers/ServeMarkingComposer.tsx`
+- `SetSelectionModal.tsx` — Tag Serves button when set is `not_started`
+- `TaggingUIComposer.tsx` — `mode=serves` early branch only
+- `composers/index.ts` — export
+
+**Rationale:** Faster skeleton tagging (serve times + winners) for A/B against full Phase 1, without changing the existing path.
+
+**Impact:**
+- ✅ Serve-marking available as an alternative
+- ✅ Phase 1 / Phase 2 unchanged
+- ✅ Data Viewer shows rallies with serve + end shots
+
+---
+
 ### 2025-12-12: Moved Rotate Button to Control Bar in Phase 2 (v3.28.12)
 
 **Change Type:** UI/UX Enhancement - Layout Reorganization

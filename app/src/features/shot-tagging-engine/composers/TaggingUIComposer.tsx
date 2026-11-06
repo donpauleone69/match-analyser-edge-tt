@@ -11,6 +11,7 @@ import { cn } from '@/helpers/utils'
 import { Phase1TimestampComposer, type Phase1Rally } from './Phase1TimestampComposer'
 import { Phase2DetailComposer, type DetailedShot } from './Phase2DetailComposer'
 import { Phase3InferenceComposer } from './Phase3InferenceComposer'
+import { ServeMarkingComposer } from './ServeMarkingComposer'
 import { Button } from '@/ui-mine'
 import { Card } from '@/ui-mine/Card'
 import { useMatchStore, usePlayerStore, setDb, rallyDb, shotDb } from '@/data'
@@ -48,6 +49,8 @@ export function TaggingUIComposer({ className }: TaggingUIComposerProps) {
   
   // Get set number and redo flag from URL params
   const urlSetNumber = searchParams.get('set')
+  const taggingMode = searchParams.get('mode')
+  const isServesMode = taggingMode === 'serves'
   const redoParam = searchParams.get('redo')
   const isRedo = redoParam === 'true' || redoParam === 'phase2'
   const redoMode: 'all' | 'phase2_only' = redoParam === 'phase2' ? 'phase2_only' : 'all'
@@ -152,8 +155,10 @@ export function TaggingUIComposer({ className }: TaggingUIComposerProps) {
   }
   
   // Handle set preparation (redo workflow + resume)
+  // Skipped for serve-marking mode — that path uses ServeMarkingComposer only
   useEffect(() => {
     const prepareSet = async () => {
+      if (isServesMode) return
       if (!matchId || !urlSetNumber) return
       
       // Wait for match to be loaded before proceeding
@@ -220,7 +225,7 @@ export function TaggingUIComposer({ className }: TaggingUIComposerProps) {
     if (urlSetNumber && phase === 'setup') {
       prepareSet()
     }
-  }, [matchId, urlSetNumber, isRedo, redoMode, phase, currentMatch])
+  }, [matchId, urlSetNumber, isRedo, redoMode, phase, currentMatch, isServesMode])
   
   const handleCompletePhase2 = async (_detailedShots: DetailedShot[]) => {
     console.log('[TaggingUI] Phase 2 complete!')
@@ -261,6 +266,40 @@ export function TaggingUIComposer({ className }: TaggingUIComposerProps) {
           </Button>
         </Card>
       </div>
+    )
+  }
+
+  // Serve-marking alternative — does not enter Phase 1 / Phase 2
+  if (isServesMode) {
+    if (!urlSetNumber) {
+      return (
+        <div className={cn('h-dvh flex items-center justify-center bg-bg-surface', className)}>
+          <Card className="p-8 max-w-lg text-center">
+            <h2 className="text-2xl font-bold text-neutral-50 mb-4">No Set Selected</h2>
+            <p className="text-neutral-400 mb-6">
+              Open serve marking from the set picker.
+            </p>
+            <Button onClick={() => navigate('/matches')}>
+              Go to Matches
+            </Button>
+          </Card>
+        </div>
+      )
+    }
+
+    const servesPlayer1Name = players.find(p => p.id === currentMatch.player1_id)?.first_name || 'Player 1'
+    const servesPlayer2Name = players.find(p => p.id === currentMatch.player2_id)?.first_name || 'Player 2'
+
+    return (
+      <ServeMarkingComposer
+        matchId={matchId}
+        setNumber={parseInt(urlSetNumber, 10)}
+        player1Id={currentMatch.player1_id}
+        player2Id={currentMatch.player2_id}
+        player1Name={servesPlayer1Name}
+        player2Name={servesPlayer2Name}
+        className={className}
+      />
     )
   }
 
