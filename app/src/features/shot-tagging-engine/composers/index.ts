@@ -7,6 +7,7 @@ export { Phase1TimestampComposer, type Phase1Rally, type Phase1Shot } from './Ph
 export { Phase2DetailComposer } from './Phase2DetailComposer'
 export { Phase3InferenceComposer } from './Phase3InferenceComposer'
 export { ServeMarkingComposer } from './ServeMarkingComposer'
+export { TagPhaseComposer } from './TagPhaseComposer'
 
 
 

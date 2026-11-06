@@ -12,6 +12,7 @@ import { Phase1TimestampComposer, type Phase1Rally } from './Phase1TimestampComp
 import { Phase2DetailComposer, type DetailedShot } from './Phase2DetailComposer'
 import { Phase3InferenceComposer } from './Phase3InferenceComposer'
 import { ServeMarkingComposer } from './ServeMarkingComposer'
+import { TagPhaseComposer } from './TagPhaseComposer'
 import { Button } from '@/ui-mine'
 import { Card } from '@/ui-mine/Card'
 import { useMatchStore, usePlayerStore, setDb, rallyDb, shotDb } from '@/data'
@@ -51,6 +52,7 @@ export function TaggingUIComposer({ className }: TaggingUIComposerProps) {
   const urlSetNumber = searchParams.get('set')
   const taggingMode = searchParams.get('mode')
   const isServesMode = taggingMode === 'serves'
+  const isTagPhaseMode = taggingMode === 'tagphase'
   const redoParam = searchParams.get('redo')
   const isRedo = redoParam === 'true' || redoParam === 'phase2'
   const redoMode: 'all' | 'phase2_only' = redoParam === 'phase2' ? 'phase2_only' : 'all'
@@ -155,10 +157,10 @@ export function TaggingUIComposer({ className }: TaggingUIComposerProps) {
   }
   
   // Handle set preparation (redo workflow + resume)
-  // Skipped for serve-marking mode — that path uses ServeMarkingComposer only
+  // Skipped for serve-marking / tag-phase modes — those paths use their own composers
   useEffect(() => {
     const prepareSet = async () => {
-      if (isServesMode) return
+      if (isServesMode || isTagPhaseMode) return
       if (!matchId || !urlSetNumber) return
       
       // Wait for match to be loaded before proceeding
@@ -225,7 +227,7 @@ export function TaggingUIComposer({ className }: TaggingUIComposerProps) {
     if (urlSetNumber && phase === 'setup') {
       prepareSet()
     }
-  }, [matchId, urlSetNumber, isRedo, redoMode, phase, currentMatch, isServesMode])
+  }, [matchId, urlSetNumber, isRedo, redoMode, phase, currentMatch, isServesMode, isTagPhaseMode])
   
   const handleCompletePhase2 = async (_detailedShots: DetailedShot[]) => {
     console.log('[TaggingUI] Phase 2 complete!')
@@ -269,15 +271,15 @@ export function TaggingUIComposer({ className }: TaggingUIComposerProps) {
     )
   }
 
-  // Serve-marking alternative — does not enter Phase 1 / Phase 2
-  if (isServesMode) {
+  // Serve-marking / Tag Phase test alternatives — do not enter Phase 1 / Phase 2
+  if (isServesMode || isTagPhaseMode) {
     if (!urlSetNumber) {
       return (
         <div className={cn('h-dvh flex items-center justify-center bg-bg-surface', className)}>
           <Card className="p-8 max-w-lg text-center">
             <h2 className="text-2xl font-bold text-neutral-50 mb-4">No Set Selected</h2>
             <p className="text-neutral-400 mb-6">
-              Open serve marking from the set picker.
+              Open {isTagPhaseMode ? 'Tag Phase test' : 'serve marking'} from the set picker.
             </p>
             <Button onClick={() => navigate('/matches')}>
               Go to Matches
@@ -287,20 +289,23 @@ export function TaggingUIComposer({ className }: TaggingUIComposerProps) {
       )
     }
 
-    const servesPlayer1Name = players.find(p => p.id === currentMatch.player1_id)?.first_name || 'Player 1'
-    const servesPlayer2Name = players.find(p => p.id === currentMatch.player2_id)?.first_name || 'Player 2'
+    const altPlayer1Name = players.find(p => p.id === currentMatch.player1_id)?.first_name || 'Player 1'
+    const altPlayer2Name = players.find(p => p.id === currentMatch.player2_id)?.first_name || 'Player 2'
+    const altProps = {
+      matchId,
+      setNumber: parseInt(urlSetNumber, 10),
+      player1Id: currentMatch.player1_id,
+      player2Id: currentMatch.player2_id,
+      player1Name: altPlayer1Name,
+      player2Name: altPlayer2Name,
+      className,
+    }
 
-    return (
-      <ServeMarkingComposer
-        matchId={matchId}
-        setNumber={parseInt(urlSetNumber, 10)}
-        player1Id={currentMatch.player1_id}
-        player2Id={currentMatch.player2_id}
-        player1Name={servesPlayer1Name}
-        player2Name={servesPlayer2Name}
-        className={className}
-      />
-    )
+    if (isTagPhaseMode) {
+      return <TagPhaseComposer {...altProps} />
+    }
+
+    return <ServeMarkingComposer {...altProps} />
   }
 
   // Preparing set (redo workflow)

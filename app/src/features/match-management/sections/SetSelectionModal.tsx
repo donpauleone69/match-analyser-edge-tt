@@ -410,6 +410,13 @@ export function SetSelectionModal({
                               </Button>
                             </>
                           )}
+                          <Button
+                            onClick={() => navigate(`/matches/${matchId}/tag?set=${set.set_number}&mode=tagphase`)}
+                            variant="secondary"
+                            size="sm"
+                          >
+                            Tag Phase Test
+                          </Button>
                         </div>
                       </div>
                     )}

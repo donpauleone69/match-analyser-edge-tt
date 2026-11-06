@@ -6,6 +6,88 @@
 
 ## Change Log
 
+### 2026-11-06: Tag Phase Opening Test Funnel (v3.29.4)
+
+**Change Type:** UI Test — Opening phase only
+
+**What Changed:**
+- Tag Phase Test replaced full Stage 1–3 with an **opening funnel**: after winner + serve→end loop, ask serve length → serve spin → receive wing → push|open on balls 2–5 until first open (or stop at 5)
+- Labels match Phase 2 serve length/spin (Short / Half-long / Deep; Underspin / No spin / Topspin)
+- End screen shows opened-by-5 count and receive-attack rate; still in-memory only
+
+**Rationale:** Test the coaching-oriented “serve until open” path for fatigue and insight before adding opportunity/outcome.
+
+**Impact:**
+- ✅ Opening-only Tag Phase Test
+- ✅ Phase 1 / Tag Serves unchanged
+
+---
+
+### 2026-11-06: Tag Phase Full Fatigue Schema (v3.29.3)
+
+**Change Type:** UI Test — Full question set
+
+**What Changed:**
+- Tag Phase Test now walks Opening → Opportunity → Ending (Q1–11) on the serve→end loop
+- Skips: Neither open → skip 2–4; Neither opportunity → skip 6–7 and Q11; gift/luck → skip Q7; service fault → skip 9–11; same stroke → skip Q10
+- Q7 has Skip; status bar labeled **Fatigue test**; still in-memory only
+
+**Rationale:** Measure where question fatigue hits on a real match before thinning the schema.
+
+**Impact:**
+- ✅ Full schema available for feel-testing
+- ✅ Phase 1 / Tag Serves unchanged
+
+---
+
+### 2026-11-06: Tag Phase Point Loop (v3.29.2)
+
+**Change Type:** UI/UX Enhancement — Tag Phase Test
+
+**What Changed:**
+- After winner is tapped, video loops serve → winner timestamp while questions are open (`constrainedPlayback`)
+- On commit (or Back from Q1), loop clears and free playback resumes from the winner timestamp
+
+**Rationale:** Replaying the just-tagged point makes Q1–Q3 easier to answer without scrubbing by hand.
+
+**Impact:**
+- ✅ Tag Phase Test only — Phase 1 / Tag Serves unchanged
+
+---
+
+### 2026-11-06: Tag Phase UI Test (v3.29.1)
+
+**Change Type:** Feature — UI-only Feel Test
+
+**What Changed:**
+- Added a third tagging option, **Tag Phase Test**, beside Phase 1 and Tag Serves
+- Walks the post-point flowchart (serve → winner → Q1/Q2/Q3 with early exits)
+- After winner tap, loops serve→end while questions are answered; then resumes free play from end
+- Answers stay in memory for the session only — no DB writes, `tagging_phase` untouched
+- Let on the winner step discards the rally; Back rewinds questions; End closes the local session
+
+**User Flow:**
+1. Set picker → **Tag Phase Test** → `/matches/:id/tag?set=N&mode=tagphase`
+2. Setup (first server + starting score)
+3. **Serve** marks serve time; video keeps playing; choose winner or Let
+4. Winner tap starts serve→end loop; answer How did point end? → wing → shot type → who opened first
+5. Early exits: Service fault; Serve/Receive shot type → clear loop, play from end for next rally
+
+**Files:**
+- Added `app/src/features/shot-tagging-engine/composers/TagPhaseComposer.tsx`
+- `TaggingUIComposer.tsx` — `mode=tagphase` early branch (parallel to serves)
+- `SetSelectionModal.tsx` — Tag Phase Test button on every set status
+- `composers/index.ts` — export
+
+**Rationale:** Feel-test the pause-and-question loop on a real match without recording data or changing Phase 1 / Tag Serves.
+
+**Impact:**
+- ✅ UI test path available without schema changes
+- ✅ Phase 1 / Phase 2 / Tag Serves unchanged
+- ✅ Safe on in-progress sets (never writes)
+
+---
+
 ### 2026-11-06: Serve-Marking Phase Alternative (v3.29.0)
 
 **Change Type:** Feature — Alternative Tagging Path
