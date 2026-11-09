@@ -13,6 +13,7 @@ import { Phase2DetailComposer, type DetailedShot } from './Phase2DetailComposer'
 import { Phase3InferenceComposer } from './Phase3InferenceComposer'
 import { ServeMarkingComposer } from './ServeMarkingComposer'
 import { TagPhaseComposer } from './TagPhaseComposer'
+import { RallyTimelineComposer } from './RallyTimelineComposer'
 import { Button } from '@/ui-mine'
 import { Card } from '@/ui-mine/Card'
 import { useMatchStore, usePlayerStore, setDb, rallyDb, shotDb } from '@/data'
@@ -53,6 +54,8 @@ export function TaggingUIComposer({ className }: TaggingUIComposerProps) {
   const taggingMode = searchParams.get('mode')
   const isServesMode = taggingMode === 'serves'
   const isTagPhaseMode = taggingMode === 'tagphase'
+  const isRallyTimelineMode = taggingMode === 'rallytimeline'
+  const isAltTaggingMode = isServesMode || isTagPhaseMode || isRallyTimelineMode
   const redoParam = searchParams.get('redo')
   const isRedo = redoParam === 'true' || redoParam === 'phase2'
   const redoMode: 'all' | 'phase2_only' = redoParam === 'phase2' ? 'phase2_only' : 'all'
@@ -160,7 +163,7 @@ export function TaggingUIComposer({ className }: TaggingUIComposerProps) {
   // Skipped for serve-marking / tag-phase modes — those paths use their own composers
   useEffect(() => {
     const prepareSet = async () => {
-      if (isServesMode || isTagPhaseMode) return
+      if (isAltTaggingMode) return
       if (!matchId || !urlSetNumber) return
       
       // Wait for match to be loaded before proceeding
@@ -227,7 +230,7 @@ export function TaggingUIComposer({ className }: TaggingUIComposerProps) {
     if (urlSetNumber && phase === 'setup') {
       prepareSet()
     }
-  }, [matchId, urlSetNumber, isRedo, redoMode, phase, currentMatch, isServesMode, isTagPhaseMode])
+  }, [matchId, urlSetNumber, isRedo, redoMode, phase, currentMatch, isAltTaggingMode])
   
   const handleCompletePhase2 = async (_detailedShots: DetailedShot[]) => {
     console.log('[TaggingUI] Phase 2 complete!')
@@ -271,15 +274,20 @@ export function TaggingUIComposer({ className }: TaggingUIComposerProps) {
     )
   }
 
-  // Serve-marking / Tag Phase test alternatives — do not enter Phase 1 / Phase 2
-  if (isServesMode || isTagPhaseMode) {
+  // Serve-marking / Tag Phase / Rally Timeline test alternatives — do not enter Phase 1 / Phase 2
+  if (isAltTaggingMode) {
     if (!urlSetNumber) {
+      const altLabel = isRallyTimelineMode
+        ? 'Rally Timeline test'
+        : isTagPhaseMode
+          ? 'Tag Phase test'
+          : 'serve marking'
       return (
         <div className={cn('h-dvh flex items-center justify-center bg-bg-surface', className)}>
           <Card className="p-8 max-w-lg text-center">
             <h2 className="text-2xl font-bold text-neutral-50 mb-4">No Set Selected</h2>
             <p className="text-neutral-400 mb-6">
-              Open {isTagPhaseMode ? 'Tag Phase test' : 'serve marking'} from the set picker.
+              Open {altLabel} from the set picker.
             </p>
             <Button onClick={() => navigate('/matches')}>
               Go to Matches
@@ -299,6 +307,10 @@ export function TaggingUIComposer({ className }: TaggingUIComposerProps) {
       player1Name: altPlayer1Name,
       player2Name: altPlayer2Name,
       className,
+    }
+
+    if (isRallyTimelineMode) {
+      return <RallyTimelineComposer {...altProps} />
     }
 
     if (isTagPhaseMode) {

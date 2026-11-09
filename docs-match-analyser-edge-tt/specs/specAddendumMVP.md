@@ -6,6 +6,138 @@
 
 ## Change Log
 
+### 2026-11-09: Rally Timeline feel-test (v3.29.12)
+
+**Change Type:** UI Test — Rally Timeline one-tap tagging
+
+**What Changed:**
+- New set-picker action **Rally Timeline** → `/matches/:id/tag?set=N&mode=rallytimeline`
+- Session: Setup → Serve → Rally end → Let/Continue → four-mode timeline while video loops serve→end
+- Modes: **Rally** (FOS / End / Weak / Strong + Winner·Net·Missed), **Shot** (conditional spin/wing/length/strokes), **Placement**, **Mental**
+- Shots 1–7 + compact `8+ / Later`; phases from FOS (Opening / First Attack / Open Rally)
+- Exact End infers winner from server + parity + ending type; End 8+ asks explicit winner
+- In-memory only — no DB writes, `tagging_phase` untouched
+- Files: `rallyTimelineModel.ts`, `RallyTimelineBlock.tsx`, `RallyTimelineComposer.tsx`; wired via `TaggingUIComposer` + `SetSelectionModal`
+
+**Rationale:** Feel-test a denser, more natural rally-coding UI (handoff `RALLY_TIMELINE_SPEC.md`) beside Tag Phase Test before persistence.
+
+**Impact:**
+- ✅ Rally Timeline feel-test path available
+- ✅ Phase 1 / Phase 2 / Tag Serves / Tag Phase Test unchanged
+
+---
+
+### 2026-11-06: Ball attributes as optional toggles (v3.29.11)
+
+**Change Type:** UI/UX + Pass 1 logic
+
+**What Changed:**
+- Replaced height/attackability enums with optional **High · Weak · Attackable** multi-select flags (empty = normal)
+- **Serve flags** on Serve page (optional); **ball flags** only on later-FOS Shot (push/returned)
+- 2nd-ball paths (passive miss / attack missed / attacked in play) no longer ask ball height/attackability on Shot
+
+**Rationale:** Serve is the ball on 2nd-ball paths; consolidate attributes without forced questions.
+
+---
+
+### 2026-11-06: Pass 1 Serve → Opening → Shot consolidate (v3.29.10)
+
+**Change Type:** UI/UX + Pass 1 logic
+
+**What Changed:**
+- Sections reduced to **Serve → Opening → Shot** (Incoming removed; ball questions live on Shot before wing/stroke)
+- Bottom Back/Next removed — progress pills navigate; sticky **Save & next rally** only
+- Opening timing pills standardized: `3rd · Server`, `4th · Receiver`, `Later · …`, `No opening` (no `receiver_2nd` — covered by Serve attack outcomes)
+- Passed-up is **multi-select** (empty = none); new `MultiChoicePillRow`
+- FOS effect labeled **Outcome** on Shot
+- Rally ball-chain visual deferred (later idea)
+
+**Rationale:** Fix chronology (when → ball → stroke → result), drop redundant nav and 2nd-ball duplication.
+
+---
+
+### 2026-11-06: Rally-end outcome + Push receive (v3.29.9)
+
+**Change Type:** UI/UX — Tag Phase capture flow
+
+**What Changed:**
+- Capture is now **Serve → Rally end → Who won?** (paused), not winner-at-end-timestamp
+- Outcome choices: **Let · Service fault · Player A · Player B**
+- Service fault awards the point to the receiver and skips the Pass 1 form
+- Removed Service fault pill from the Serve form section
+- Receive outcomes add **Push** (same Opening branch as Returned)
+
+**Rationale:** Real-time winner naming is hard; mark the end first, decide after pause.
+
+---
+
+### 2026-11-06: Pass 1 simplified receive funnel (v3.29.8)
+
+**Change Type:** UI/UX + Pass 1 logic
+
+**What Changed:**
+- Replaced serve-effect + attack-attempt with one **receive outcome** question:
+  - Passive miss → wing + miss type (done)
+  - Attack missed → Shot (FOS 2nd · Missed)
+  - Attacked in play → Shot (FOS 2nd)
+  - Returned → Opening → Incoming → Shot
+- Folded weak/controlled return into **Returned**
+- Service fault is a normal pill (toggle), not a full-width bar
+- Dropped duplicate section titles (progress pills only)
+- Passed-up only shown when an earlier option exists
+
+**Rationale:** Fewer on-screen choices; same coverage as the decision flowchart.
+
+---
+
+### 2026-11-06: Failed attacking receive + pill sizing (v3.29.7)
+
+**Change Type:** UI/UX + Pass 1 logic
+
+**What Changed:**
+- **Receive error** now asks whether it was an attacking attempt:
+  - No → passive miss (wing + error type, No FOS) — stays on Serve
+  - Yes → failed attacking receive = FOS · 2nd · Missed → Serve → Shot (wing / stroke / miss type); skips Opening & Incoming
+- **Receiver attacked** remains “attack into play”; hint clarifies missed attacks use Receive error → Attacking attempt
+- All choice pills are **text-sized** (SegmentedChoice / TwoColChoiceGrid no longer stretch full width)
+
+**Rationale:** Cover “receiver attacked and missed” without conflating it with a landed receive attack.
+
+---
+
+### 2026-11-06: Pass 1 Section Paging (v3.29.6)
+
+**Change Type:** UI/UX — Pass 1 form navigation
+
+**What Changed:**
+- Pass 1 form is **paged by section**: Serve → Opening → Incoming → Shot
+- Short paths skip sections (e.g. service fault / receive error stay on Serve; No FOS skips Incoming/Shot)
+- Progress pills + Back / Next section; final step is Save & next rally
+
+**Rationale:** Dense pills stay visible without a long scroll fighting the video loop.
+
+---
+
+### 2026-11-06: Pass 1 Dense-Form Q&A UI Test (v3.29.5)
+
+**Change Type:** UI Test — Pass 1 Opening questionnaire
+
+**What Changed:**
+- Tag Phase Test rebuilt as a **video-first dense form** (no rally sidebar, no shot-by-shot Qx/y chrome)
+- Pass 1 form: pills, segmented length bars, 2-col Receiver/Server grids
+- Sections A–D with conditional show/hide (service fault, receive error, No FOS, missed FOS, FOS-resolved mark when rally continues)
+- Sticky save; prior rallies collapsed; in-memory only
+- New blocks: `ChoicePillRow`, `SegmentedChoice`, `TwoColChoiceGrid`, `Pass1FormSection`
+- Logic module: `pass1OpeningModel.ts`
+
+**Rationale:** Maximize question visibility for coaching Pass 1 tagging; validate funnel before persistence.
+
+**Impact:**
+- ✅ Pass 1 feel-test path via Tag Phase Test
+- ✅ Phase 1 / Tag Serves unchanged
+
+---
+
 ### 2026-11-06: Tag Phase Opening Test Funnel (v3.29.4)
 
 **Change Type:** UI Test — Opening phase only

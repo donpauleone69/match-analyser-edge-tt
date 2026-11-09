@@ -8,6 +8,7 @@ export { Phase2DetailComposer } from './Phase2DetailComposer'
 export { Phase3InferenceComposer } from './Phase3InferenceComposer'
 export { ServeMarkingComposer } from './ServeMarkingComposer'
 export { TagPhaseComposer } from './TagPhaseComposer'
+export { RallyTimelineComposer } from './RallyTimelineComposer'
 
 
 

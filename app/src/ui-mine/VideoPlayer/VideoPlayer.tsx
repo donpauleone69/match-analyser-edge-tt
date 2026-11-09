@@ -115,7 +115,8 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
     video.playbackRate = playbackSpeed
   }, [playbackSpeed])
 
-  // Constrained playback: auto-pause at endTime
+  // Constrained playback: loop or pause at endTime
+  // When looping, seek without pausing first — pause()+play() flickers Play/Pause UI
   useEffect(() => {
     if (!constrainedPlayback?.enabled) return
     
@@ -125,11 +126,13 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
     const { startTime, endTime, loopOnEnd } = constrainedPlayback
     
     if (currentTime >= endTime) {
-      video.pause()
       if (loopOnEnd) {
         video.currentTime = startTime
-        video.play().catch(console.error)
+        if (video.paused) {
+          video.play().catch(console.error)
+        }
       } else {
+        video.pause()
         onConstrainedEnd?.()
       }
     }
