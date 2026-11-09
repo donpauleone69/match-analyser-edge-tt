@@ -6,6 +6,94 @@
 
 ## Change Log
 
+### 2026-11-09: Rally Timeline Redo on video overlay (v3.29.18)
+
+**Change Type:** UI Test — capture recovery
+
+**What Changed:**
+- Shot counter on a solid dark panel (right of video) with a **Redo** button
+- Redo (form or mid-tap) clears contacts/timeline, seeks ~1s before serve, returns to tapping
+- Discard still skips forward past the rally; Redo redoes the same rally
+
+**Rationale:** Recover from a bad contact sequence without losing place in the set.
+
+---
+
+### 2026-11-09: Rally Timeline contact overlay + loop pad (v3.29.17)
+
+**Change Type:** UI Test — capture / playback polish
+
+**What Changed:**
+- Contact count overlay moved to the **right** of the video
+- Overlay colour alternates: **server (odd)** warm gold · **receiver (even)** cool blue
+- Overlay stays during form loop and tracks the shot in play from contact times
+- Point loop padded **1s before serve** and **1s after last contact**
+- Play/Pause bottom-right (larger control)
+
+**Rationale:** Read the active shot while tagging; show full serve motion and landing of the error.
+
+---
+
+### 2026-11-09: Rally Timeline tap-along contacts (v3.29.16)
+
+**Change Type:** UI Test — capture flow / data model
+
+**What Changed:**
+- Replaced Serve → Rally end → gate with **tap-along contacts**: large Tap contact control, count overlay on video, Let / discard, Redo taps
+- After **2s idle** with ≥1 tap: finalize — `endTimestamp` = last contact, timeline prefills `shotCount = N`, End on shot N
+- Dynamic `shotCount` + per-shot `contactTime`; dropped 1–7 / 8+ later ceiling and later-winner path
+- Timeline renders N rows from contacts (scroll as needed); Winner / In-Net / Missed still on End row
+
+**Rationale:** Feel-test contact tapping with uncapped rally length and per-shot timestamps before review/score overlays.
+
+**Impact:**
+- ✅ Rally Timeline feel-test path only (`mode=rallytimeline`)
+- ✅ Phase 1 / Tag Serves / Tag Phase Test unchanged
+
+---
+
+### 2026-11-09: Rally Timeline chrome polish (v3.29.15)
+
+**Change Type:** UI Test — layout / labels
+
+**What Changed:**
+- Ending type (**Winner · In-Net · Missed**) replaces Weak/Strong on the End shot row; 8+ shows ending + Won by on that row; bottom Ending panel removed
+- Serve spin label **Back → Under**
+- Form chrome: permanent `N tagged · score · Discard · End · Save`, modes on the row below
+
+---
+
+### 2026-11-09: Rally Timeline layout — full 16:9 video (v3.29.14)
+
+**Change Type:** UI Test — layout
+
+**What Changed:**
+- Restored full-width **16:9** video (Play/Pause overlay only); no score strip under video
+- Discard / End / Save live in the tagging chrome with mode pills; timeline scrolls (~5 shots visible is fine)
+- Serve/rally/gate keep a minimal `N tagged` · End bar only
+
+**Rationale:** Readable video first; tagging chrome belongs with the timeline, not under the player.
+
+---
+
+### 2026-11-09: Rally Timeline portrait compression (v3.29.13)
+
+**Change Type:** UI Test — layout densify
+
+**What Changed:**
+- Video capped ~20vh with Play/Pause overlay only (no `VideoControlsBar` / frame / seek chrome)
+- Single action strip: `N tagged` · score/server · Discard · End · Save
+- Mode pills as a thin row under the strip; timeline loses title/card frame and tighter rows/pills
+- Rollback checkpoint commit before this pass if compression needs reverting
+
+**Rationale:** Fit nearly the whole timeline on one portrait screen while the rally loops.
+
+**Impact:**
+- ✅ Rally Timeline feel-test path only
+- ✅ Phase 1 / Tag Serves / Tag Phase Test unchanged
+
+---
+
 ### 2026-11-09: Rally Timeline feel-test (v3.29.12)
 
 **Change Type:** UI Test — Rally Timeline one-tap tagging
