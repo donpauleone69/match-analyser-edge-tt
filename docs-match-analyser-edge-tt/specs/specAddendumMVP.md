@@ -6,6 +6,253 @@
 
 ## Change Log
 
+### 2026-11-10: Rally Focus first-attack pick then lock (v3.29.38)
+
+**Change Type:** UI Test — navigation
+
+**What Changed:**
+- Review opens in pick mode with **Tap the first attack** and **No attack**
+- After a row is picked (or No attack), FOS is locked; row taps no longer change it
+- **Change** on the FOS chip (or **Mark attack** when none) re-enters pick mode; **Cancel** keeps the current mark
+
+**Rationale:** Whole-row toggle caused misclicks while tagging pills. Prompt, then lock, with an explicit change step.
+
+---
+
+### 2026-11-10: Rally Focus tap row for first attack (v3.29.37)
+
+**Change Type:** UI Test — navigation
+
+**What Changed:**
+- Tap anywhere on a shot row (from shot 2) to mark or clear the first attack. Pills still only set their own values
+
+**Rationale:** The shot number was too small a target.
+
+---
+
+### 2026-11-10: Rally Focus row attack and serve timeline (v3.29.36)
+
+**Change Type:** UI Test — navigation
+
+**What Changed:**
+- The first attack is marked by tapping the shot number on a row (or the FOS chip to clear). The video seeks to that contact. The video overlay no longer has the attack button, −1 / +1, or Redo
+- Review bar has **Redo** with Discard and Highlight
+- While tapping, a serve timeline sits under the video: finished-rally serve ticks, current-contact dots, and a playhead. **Undo last** drops one tap without clearing the rally
+
+**Rationale:** Marking the attack on the row matches the shot you are looking at. Serve ticks keep place when a contact is missed.
+
+---
+
+### 2026-11-10: Rally Focus attributes (v3.29.35)
+
+**Change Type:** UI Test — coaching capture
+
+**What Changed:**
+- The first-attack label **Quality** is now **Attributes**
+- Serve and pre-offensive attributes are **Weak · High · Heavy**. **Strong** stays on the first attack only
+
+**Rationale:** High and heavy describe the ball before the attack. Strong stays a description of the attack itself.
+
+---
+
+### 2026-11-10: Rally Focus continuation end and smash / lob (v3.29.34)
+
+**Change Type:** UI Test — coaching capture
+
+**What Changed:**
+- When the point ends in **Continuation**, that row shows **Shot**, then **Result**
+- **Smash** and **Lob** are on the shot line in **Initial Offense** and **Continuation**
+
+**Rationale:** The last ball of a longer rally still needs the shot, and those two strokes show up once the rally is past the opening.
+
+---
+
+### 2026-11-10: Rally Focus contact relative to the table (v3.29.33)
+
+**Change Type:** UI Test — coaching capture
+
+**What Changed:**
+- On the first attack, the open side of the quality line is **Contact relative to table**: **Over · Behind**
+- **Weak · Strong** stays on the right of that line
+
+**Rationale:** Where the attack met the ball, over the table or behind it, is a separate fact from how strong the contact was.
+
+---
+
+### 2026-11-10: Rally Focus length and strength (v3.29.32)
+
+**Change Type:** UI Test — coaching capture
+
+**What Changed:**
+- Serve and pre-offensive placement is **BH · Middle · FH**, with **Short · Half · Long** on the right
+- **Weak · Strong** sits on the second line: beside spin on the serve, beside the shot on a pre-offensive ball, and under the shot on the first attack
+
+**Rationale:** Depth belongs with placement. Strength is a second-line quality, and the first attack’s shot is the line to answer first.
+
+---
+
+### 2026-11-10: Rally Focus serve phase (v3.29.31)
+
+**Change Type:** UI Test — coaching capture
+
+**What Changed:**
+- The serve is its own phase, **Serve**, in its own colour. **Pre Offensive Shot** starts on the next ball
+- The serve keeps placement, and **Spin** (Under · Top · Side) stands in for the shot line
+
+**Rationale:** The serve is not the same question as the balls that follow it.
+
+---
+
+### 2026-11-10: Rally Focus pre-offensive rows and highlight (v3.29.30)
+
+**Change Type:** UI Test — coaching capture
+
+**What Changed:**
+- Every shot before the first attack uses the same lines: **Placement** (BH · Middle · FH, **Weak**) and **Shot** (BH · FH)
+- **Highlight** sits on the tagged-score bar. That bar no longer has **End**; ending the session stays on the contact-tap screen
+
+**Rationale:** The serve and the earlier balls were asking different questions. Highlight had a row to itself, and End was already on the tap screen.
+
+---
+
+### 2026-11-10: Rally Focus phone labels and phases (v3.29.29)
+
+**Change Type:** UI Test — coaching capture
+
+**What Changed:**
+- Pill-line labels sit in a short caption above the pills, so the phone width is left for the choices
+- Phase headers are **Pre Offensive Shot**, **Initial Offense** (the attack and the next two shots), and **Continuation**
+
+**Rationale:** A side label column crowded the pills on a phone. The three headers match the coaching phases instead of a header on every shot.
+
+---
+
+### 2026-11-10: Rally Focus must-have row (v3.29.28)
+
+**Change Type:** UI Test — coaching capture
+
+**What Changed:**
+- **Shot** is the second line. The first line is the must-have: placement on the ball, **Quality · Weak** on the first attack, initiative on the reply and the next shot
+- Placement on the ball is **BH · Middle · FH**, with **Weak** on the right. Short / Half / Long are not on this row
+- **Weak** also sits on the first attack, and on the far right of initiative
+
+**Rationale:** Wing and stroke describe how the shot was played. The first line is the coaching fact: where the ball was, whether the attack was weak, and who held initiative after the reply.
+
+---
+
+### 2026-11-10: Rally Focus ball row (v3.29.27)
+
+**Change Type:** UI Test — coaching capture
+
+**What Changed:**
+- The ball before the attack leads with **Shot**: **BH · FH**, and **Weak** on the right
+- **Placement** keeps **BH · Middle · FH**, with **Short · Half · Long** on the right
+
+**Rationale:** Attackable as its own row did not match the other shot lines. Weak is the same flag, named from the ball that was played.
+
+---
+
+### 2026-11-10: Rally Focus labels and the next shot (v3.29.26)
+
+**Change Type:** UI Test — coaching capture
+
+**What Changed:**
+- Each pill line is labeled: **Spin**, **Ball**, **Placement**, **Shot**, **Initiative**, **Result**
+- The reply and the next shot both offer a shot (**BH · FH**, **Block · Loop · Drive**) and **Behind · Level · Ahead** while the point continues
+
+**Rationale:** Rows were asking different questions with the same-looking pills. Keep the extra shot and initiative lines until a trial shows they are unused.
+
+---
+
+### 2026-11-10: Rally Focus feel-test (v3.29.25)
+
+**Change Type:** UI Test — coaching capture
+
+**What Changed:**
+- New set-picker action **Rally Focus** → `mode=rallyfocus`. Rally Timeline is unchanged
+- Rows follow the attack: serve spin; **Attackable** and placement on the ball before the attack; **BH · FH** and **Flick · Loop · Drive** on the attack; **Behind · Level · Ahead** on the reply while the point continues; ending pills on the last shot
+
+**Rationale:** Try the coaching phases beside the existing timeline without replacing it.
+
+---
+
+### 2026-11-10: First offensive shot on the video (v3.29.24)
+
+**Change Type:** UI Test — first-attack capture
+
+**What Changed:**
+- **First offensive shot** sits on the video under the shot number, with **−1 / +1** and Redo. It reads **Shot N** once stamped
+- The Attack row under the mode pills is gone
+- **Weak / Strong** removed from Rally rows
+- A stamped attack is a **FOS** label beside the name, same treatment as **Serve**
+
+**Rationale:** The outline already follows the picture, so the stamp belongs there. Strength was a second pill line, and the row no longer needs its own FOS control.
+
+---
+
+### 2026-11-10: Rally Timeline Attack stamp (v3.29.23)
+
+**Change Type:** UI Test — first-attack capture
+
+**What Changed:**
+- Review loop has an **Attack** button that stamps the shot on screen (serve ignored; tap again clears)
+- **−1 / +1** moves that stamp by one shot
+- Rally rows show wing and stroke pills immediately: length before the attack, Flick · Loop · Drive on it, Block · Loop · Drive after
+- No Attack press leaves every row on length
+- The on-screen shot row is outlined
+
+**Rationale:** Shot options depend on which contact is the first attack. Mark it on the loop, then fill the row without changing mode.
+
+---
+
+### 2026-11-10: Rally Timeline Highlight + tapping score bar (v3.29.22)
+
+**Change Type:** UI Test — capture polish
+
+**What Changed:**
+- **★ Highlight** toggle next to Mental modes (rally-level; saved into completed list with ★)
+- Tapping page chrome matches form: **N tagged** dropdown + **names · score** + End
+
+---
+
+### 2026-11-09: Rally Timeline speed auto, pill collapse, Lucky (v3.29.21)
+
+**Change Type:** UI Test — capture polish
+
+**What Changed:**
+- Playback auto **0.75×** on serve tap; back to **1×** on Save / End / Discard / Let / Redo
+- Score chrome shows **names** beside the score
+- Once FOS or End is chosen, other rows hide that pill (deselect restores all)
+- Removed “Serve” label before End on shot 1
+- Ending **Strong → Lucky**
+
+---
+
+### 2026-11-09: Rally Timeline endings, Redo rewind, tap size, speed (v3.29.20)
+
+**Change Type:** UI Test — capture polish
+
+**What Changed:**
+- End pills: **Winner · Strong · In-Net · Long** (Strong counts as hitter win; Long replaces Missed)
+- Shot overlay + Redo always shown while tapping (0 contacts); Redo with no contacts **rewinds 2s**
+- **Tap contact** fills the remaining lower panel (eyes-up tap target)
+- Video overlay **− / speed / +** steps through 0.5× … 2×
+
+---
+
+### 2026-11-09: Rally Timeline live tap / overlay clock (v3.29.19)
+
+**Change Type:** UI Test — timestamp accuracy
+
+**What Changed:**
+- Contact taps and FOS marks read **live** `video.getCurrentTime()` (not Zustand `timeupdate` sample)
+- Store is synced to that value on tap/FOS
+- Form loop shot overlay driven by a **requestAnimationFrame** live clock so the digit tracks the picture
+
+**Rationale:** Remove ~200–250ms `timeupdate` lag between picture, stored contacts, and overlay.
+
+---
+
 ### 2026-11-09: Rally Timeline Redo on video overlay (v3.29.18)
 
 **Change Type:** UI Test — capture recovery

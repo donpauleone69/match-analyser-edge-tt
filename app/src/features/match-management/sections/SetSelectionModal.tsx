@@ -424,6 +424,13 @@ export function SetSelectionModal({
                           >
                             Rally Timeline
                           </Button>
+                          <Button
+                            onClick={() => navigate(`/matches/${matchId}/tag?set=${set.set_number}&mode=rallyfocus`)}
+                            variant="secondary"
+                            size="sm"
+                          >
+                            Rally Focus
+                          </Button>
                         </div>
                       </div>
                     )}

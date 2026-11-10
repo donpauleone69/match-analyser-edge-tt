@@ -14,6 +14,7 @@ import { Phase3InferenceComposer } from './Phase3InferenceComposer'
 import { ServeMarkingComposer } from './ServeMarkingComposer'
 import { TagPhaseComposer } from './TagPhaseComposer'
 import { RallyTimelineComposer } from './RallyTimelineComposer'
+import { RallyFocusComposer } from './RallyFocusComposer'
 import { Button } from '@/ui-mine'
 import { Card } from '@/ui-mine/Card'
 import { useMatchStore, usePlayerStore, setDb, rallyDb, shotDb } from '@/data'
@@ -55,7 +56,8 @@ export function TaggingUIComposer({ className }: TaggingUIComposerProps) {
   const isServesMode = taggingMode === 'serves'
   const isTagPhaseMode = taggingMode === 'tagphase'
   const isRallyTimelineMode = taggingMode === 'rallytimeline'
-  const isAltTaggingMode = isServesMode || isTagPhaseMode || isRallyTimelineMode
+  const isRallyFocusMode = taggingMode === 'rallyfocus'
+  const isAltTaggingMode = isServesMode || isTagPhaseMode || isRallyTimelineMode || isRallyFocusMode
   const redoParam = searchParams.get('redo')
   const isRedo = redoParam === 'true' || redoParam === 'phase2'
   const redoMode: 'all' | 'phase2_only' = redoParam === 'phase2' ? 'phase2_only' : 'all'
@@ -277,11 +279,13 @@ export function TaggingUIComposer({ className }: TaggingUIComposerProps) {
   // Serve-marking / Tag Phase / Rally Timeline test alternatives — do not enter Phase 1 / Phase 2
   if (isAltTaggingMode) {
     if (!urlSetNumber) {
-      const altLabel = isRallyTimelineMode
-        ? 'Rally Timeline test'
-        : isTagPhaseMode
-          ? 'Tag Phase test'
-          : 'serve marking'
+      const altLabel = isRallyFocusMode
+        ? 'Rally Focus test'
+        : isRallyTimelineMode
+          ? 'Rally Timeline test'
+          : isTagPhaseMode
+            ? 'Tag Phase test'
+            : 'serve marking'
       return (
         <div className={cn('h-dvh flex items-center justify-center bg-bg-surface', className)}>
           <Card className="p-8 max-w-lg text-center">
@@ -307,6 +311,10 @@ export function TaggingUIComposer({ className }: TaggingUIComposerProps) {
       player1Name: altPlayer1Name,
       player2Name: altPlayer2Name,
       className,
+    }
+
+    if (isRallyFocusMode) {
+      return <RallyFocusComposer {...altProps} />
     }
 
     if (isRallyTimelineMode) {

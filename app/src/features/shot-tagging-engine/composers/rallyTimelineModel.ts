@@ -7,7 +7,7 @@
 export type TimelineMode = 'Rally' | 'Shot' | 'Placement' | 'Mental'
 
 /** Spec backing values for point ending */
-export type PointEnding = 'winner' | 'error_net' | 'error_missed'
+export type PointEnding = 'winner' | 'lucky' | 'error_net' | 'error_long'
 
 export type ServeSpin = 'Under' | 'Top'
 export type Wing = 'BH' | 'FH'
@@ -56,9 +56,17 @@ export const PHASE_META: Record<
 
 export const ENDING_OPTIONS: { value: PointEnding; label: string }[] = [
   { value: 'winner', label: 'Winner' },
+  { value: 'lucky', label: 'Lucky' },
   { value: 'error_net', label: 'In-Net' },
-  { value: 'error_missed', label: 'Missed' },
+  { value: 'error_long', label: 'Long' },
 ]
+
+/** Default capture speed after the serve is tagged */
+export const CAPTURE_PLAYBACK_SPEED = 0.75
+export const NORMAL_PLAYBACK_SPEED = 1
+
+/** Playback rates for feel-test speed nudge controls */
+export const PLAYBACK_SPEED_STEPS = [0.5, 0.75, 1, 1.25, 1.5, 2] as const
 
 /** Idle gap after last contact before the point is considered finished */
 export const CONTACT_IDLE_MS = 2000
@@ -190,7 +198,7 @@ export function playerForShot(
 }
 
 /**
- * Exact End: winner from terminal hitter + winner vs error.
+ * Exact End: winner from terminal hitter + winner/lucky vs error.
  */
 export function inferWinnerName(
   end: number | null,
@@ -200,7 +208,7 @@ export function inferWinnerName(
 ): string | null {
   if (typeof end !== 'number' || !ending) return null
   const hitter = playerForShot(end, players, server)
-  if (ending === 'winner') return hitter
+  if (ending === 'winner' || ending === 'lucky') return hitter
   return playerForShot(end + 1, players, server)
 }
 
@@ -240,8 +248,9 @@ export function describeEnd(end: number | null): string {
 export function describeEndingLabel(ending: PointEnding | null): string {
   if (!ending) return 'Select ending type'
   if (ending === 'winner') return 'Winner'
+  if (ending === 'lucky') return 'Lucky'
   if (ending === 'error_net') return 'Error — In-Net'
-  return 'Error — Missed'
+  return 'Error — Long'
 }
 
 /** Attribute keys that toggle via pills (not contactTime). */
@@ -282,6 +291,30 @@ export function markFos(
     ...state,
     fos: next,
     fosTimeSeconds: next !== null ? videoTimeSeconds : null,
+  }
+}
+
+/** Last shot that can carry the first attack (end row, otherwise the last contact). */
+export function fosUpperBound(state: RallyTimelineState): number {
+  if (typeof state.end === 'number') return Math.min(state.end, state.shotCount)
+  return state.shotCount
+}
+
+/**
+ * Move an existing first-attack stamp by one shot.
+ * Stores that shot's contact time. No-op when unmarked or out of range.
+ */
+export function nudgeFos(
+  state: RallyTimelineState,
+  delta: -1 | 1
+): RallyTimelineState {
+  if (typeof state.fos !== 'number') return state
+  const next = state.fos + delta
+  if (next < 2 || next > fosUpperBound(state)) return state
+  return {
+    ...state,
+    fos: next,
+    fosTimeSeconds: state.shots[next]?.contactTime ?? null,
   }
 }
 

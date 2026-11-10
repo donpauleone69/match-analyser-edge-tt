@@ -25,8 +25,9 @@ export interface RallyTimelineBlockProps {
   mode: TimelineMode
   players: [string, string]
   server: string
+  /** Shot whose contact the loop is currently on. */
+  activeShot?: number | null
   onToggleShotChoice: (n: number, key: ShotChoiceKey, value: string) => void
-  onMarkFos: (at: number) => void
   onMarkEnd: (at: number) => void
   onToggleEnding: (value: PointEnding) => void
   className?: string
@@ -109,13 +110,86 @@ function TimelinePill({
   )
 }
 
+function ShotOptionPills({
+  n,
+  phase,
+  isOpening,
+  isServe,
+  shot,
+  onToggleShotChoice,
+}: {
+  n: number
+  phase: RallyPhase
+  isOpening: boolean
+  isServe: boolean
+  shot: NonNullable<RallyTimelineState['shots'][number]>
+  onToggleShotChoice: (n: number, key: ShotChoiceKey, value: string) => void
+}) {
+  return (
+    <div className="flex gap-1 items-center flex-nowrap w-full min-w-0">
+      <div
+        className="flex gap-1 flex-none items-center"
+        aria-label={isServe ? 'Serve spin' : 'Stroke wing'}
+      >
+        {(isServe ? (['Under', 'Top'] as const) : (['BH', 'FH'] as const)).map((v) => (
+          <TimelinePill
+            key={v}
+            kind="wing"
+            label={v}
+            selected={(isServe ? shot.spin : shot.wing) === v}
+            onClick={() => onToggleShotChoice(n, isServe ? 'spin' : 'wing', v)}
+            className="min-w-[36px]"
+          />
+        ))}
+      </div>
+
+      {isOpening ? (
+        <div
+          className="flex gap-1 flex-none items-center ml-auto"
+          aria-label="Ball length"
+        >
+          {(['Short', 'Half', 'Long'] as const).map((v) => (
+            <TimelinePill
+              key={v}
+              kind="stroke"
+              label={v}
+              selected={shot.length === v}
+              onClick={() => onToggleShotChoice(n, 'length', v)}
+              className="min-w-[40px]"
+            />
+          ))}
+        </div>
+      ) : (
+        <div
+          className="flex gap-1 flex-none items-center ml-auto"
+          aria-label="Stroke technique"
+        >
+          {(phase === 'fos'
+            ? (['Flick', 'Loop', 'Drive'] as const)
+            : (['Block', 'Loop', 'Drive'] as const)
+          ).map((v) => (
+            <TimelinePill
+              key={v}
+              kind="stroke"
+              label={v}
+              selected={shot.stroke === v}
+              onClick={() => onToggleShotChoice(n, 'stroke', v)}
+              className="min-w-[44px] max-w-[90px]"
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function RallyTimelineBlock({
   state,
   mode,
   players,
   server,
+  activeShot = null,
   onToggleShotChoice,
-  onMarkFos,
   onMarkEnd,
   onToggleEnding,
   className,
@@ -162,9 +236,11 @@ export function RallyTimelineBlock({
               )}
 
               <div
+                data-rally-shot={n}
                 className={cn(
                   'flex items-stretch gap-1.5 rounded-md px-1.5 py-1 min-w-0 w-full',
-                  rowBg
+                  rowBg,
+                  activeShot === n && 'outline outline-2 outline-[#7eb8e8]'
                 )}
               >
                 <div
@@ -184,6 +260,11 @@ export function RallyTimelineBlock({
                           Serve
                         </span>
                       )}
+                      {state.fos === n && (
+                        <span className="inline-flex items-center h-[18px] px-1.5 rounded-full bg-[#329985] text-white text-[9px] font-bold tracking-wide uppercase">
+                          FOS
+                        </span>
+                      )}
                     </div>
                     <span
                       className="min-w-0 text-right overflow-hidden text-ellipsis whitespace-nowrap text-[10px] text-neutral-500"
@@ -193,85 +274,23 @@ export function RallyTimelineBlock({
                     </span>
                   </div>
 
-                  {mode === 'Shot' && (
-                    <div className="flex gap-1 items-center flex-nowrap w-full min-w-0">
-                      <div
-                        className="flex gap-1 flex-none items-center"
-                        aria-label={isServe ? 'Serve spin' : 'Stroke wing'}
-                      >
-                        {(isServe ? (['Under', 'Top'] as const) : (['BH', 'FH'] as const)).map(
-                          (v) => (
-                            <TimelinePill
-                              key={v}
-                              kind="wing"
-                              label={v}
-                              selected={(isServe ? shot.spin : shot.wing) === v}
-                              onClick={() =>
-                                onToggleShotChoice(n, isServe ? 'spin' : 'wing', v)
-                              }
-                              className="min-w-[36px]"
-                            />
-                          )
-                        )}
-                      </div>
-
-                      {isOpening ? (
-                        <div
-                          className="flex gap-1 flex-none items-center ml-auto"
-                          aria-label="Ball length"
-                        >
-                          {(['Short', 'Half', 'Long'] as const).map((v) => (
-                            <TimelinePill
-                              key={v}
-                              kind="stroke"
-                              label={v}
-                              selected={shot.length === v}
-                              onClick={() => onToggleShotChoice(n, 'length', v)}
-                              className="min-w-[40px]"
-                            />
-                          ))}
-                        </div>
-                      ) : (
-                        <div
-                          className="flex gap-1 flex-none items-center ml-auto"
-                          aria-label="Stroke technique"
-                        >
-                          {(phase === 'fos'
-                            ? (['Flick', 'Loop', 'Drive'] as const)
-                            : (['Block', 'Loop', 'Drive'] as const)
-                          ).map((v) => (
-                            <TimelinePill
-                              key={v}
-                              kind="stroke"
-                              label={v}
-                              selected={shot.stroke === v}
-                              onClick={() => onToggleShotChoice(n, 'stroke', v)}
-                              className="min-w-[44px] max-w-[90px]"
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                  {(mode === 'Shot' || mode === 'Rally') && (
+                    <ShotOptionPills
+                      n={n}
+                      phase={phase}
+                      isOpening={isOpening}
+                      isServe={isServe}
+                      shot={shot}
+                      onToggleShotChoice={onToggleShotChoice}
+                    />
                   )}
 
-                  {mode === 'Rally' && (
+                  {mode === 'Rally' && (state.end === null || state.end === n) && (
                     <div className="flex gap-1 items-center flex-nowrap w-full min-w-0">
                       <div
                         className="flex gap-1 flex-none items-center"
-                        aria-label="Structural rally events"
+                        aria-label="Point end"
                       >
-                        {isServe ? (
-                          <span className="inline-flex w-9 text-[11px] text-neutral-500">
-                            Serve
-                          </span>
-                        ) : (
-                          <TimelinePill
-                            kind="fos"
-                            label="FOS"
-                            selected={state.fos === n}
-                            onClick={() => onMarkFos(n)}
-                          />
-                        )}
                         <TimelinePill
                           kind="end"
                           label="End"
@@ -279,7 +298,7 @@ export function RallyTimelineBlock({
                           onClick={() => onMarkEnd(n)}
                         />
                       </div>
-                      {state.end === n ? (
+                      {state.end === n && (
                         <div
                           className="flex gap-1 flex-none items-center ml-auto"
                           aria-label="Point ending"
@@ -291,21 +310,6 @@ export function RallyTimelineBlock({
                               label={label}
                               selected={state.ending === value}
                               onClick={() => onToggleEnding(value)}
-                            />
-                          ))}
-                        </div>
-                      ) : (
-                        <div
-                          className="flex gap-1 flex-none items-center ml-auto"
-                          aria-label="Shot strength"
-                        >
-                          {(['Weak', 'Strong'] as const).map((v) => (
-                            <TimelinePill
-                              key={v}
-                              kind={v === 'Weak' ? 'weak' : 'strong'}
-                              label={v}
-                              selected={shot.strength === v}
-                              onClick={() => onToggleShotChoice(n, 'strength', v)}
                             />
                           ))}
                         </div>
