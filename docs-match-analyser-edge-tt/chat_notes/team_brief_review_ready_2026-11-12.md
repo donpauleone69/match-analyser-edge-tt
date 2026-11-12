@@ -454,6 +454,8 @@ The older menu outside tagging and last night’s review may be removed or repla
 | D | Signed | `93464ee` (+ polish `9a43b76`) |
 | E | Signed | `e85f4b8` |
 | F | Signed | `01f9797` |
+| Access (LAN) | Signed | `950ea70` |
+| A′ light pastel | Signed | `1573607` (+ docs hash `5cf5a13`) |
 
 ### Follow-up 2026-11-12 (session worker) — access + A′ + authenticated UAT
 
