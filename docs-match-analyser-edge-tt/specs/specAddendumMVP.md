@@ -6,6 +6,20 @@
 
 ## Change Log
 
+### 2026-11-12: Training posts compared over time (v3.46.0)
+
+**Change Type:** Training feature + schema
+
+**What Changed:**
+- Dexie v7 `training_posts` (shot_type | combination, open label, YYYY-MM, ordered clip asset ids).
+- Clips stored as `video_assets` under `training:{playerId}` — same OPFS store, not a second video system.
+- Pure comparison rules + tests; Training library UI to post and compare months (prove with forehand_loop and serve-open-drive).
+- Training never enters match review scopes.
+
+**Rationale:** Progress over months for a shot or combination is not a match and must stay out of tournament/opponent review.
+
+---
+
 ### 2026-11-12: Multi-match review scopes (v3.45.0)
 
 **Change Type:** Review navigation + pure scope rules
@@ -7003,6 +7017,7 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v3.46.0 | 2026-11-12 | Training posts (shot type + combination) compared across months |
 | v3.45.0 | 2026-11-12 | Review scopes: match / tournament / opponent / all; scoped clips reuse |
 | v3.44.0 | 2026-11-12 | Trim/archive video assets with source-time map; clip Download via EDL |
 | v3.43.0 | 2026-11-12 | Library nav: Matches + Training stub; remove Clubs/Players/Tournaments/Analytics/Data viewer from path |

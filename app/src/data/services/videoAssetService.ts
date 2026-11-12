@@ -323,6 +323,48 @@ export async function removeAssetFromDevice(asset: DBVideoAsset): Promise<DBVide
   return videoAssetDb.update(asset.id, { local_store: null })
 }
 
+/** Synthetic match_id bucket for a player’s training clips (not a real match). */
+export function trainingVideoMatchId(playerId: string): string {
+  return `training:${playerId}`
+}
+
+/** Store one training clip in video_assets (same OPFS store as match video). */
+export async function storeTrainingClip(input: {
+  playerId: string
+  file: File
+  label: string
+}): Promise<DBVideoAsset> {
+  const matchId = trainingVideoMatchId(input.playerId)
+  const meta = await probeVideo(input.file)
+  const fingerprint = await fingerprintFile(input.file)
+  const lastModifiedMs =
+    typeof input.file.lastModified === 'number' && input.file.lastModified > 0
+      ? input.file.lastModified
+      : null
+  const asset = await videoAssetDb.create({
+    match_id: matchId,
+    set_number: null,
+    kind: 'source',
+    label: input.label,
+    file_name: input.file.name,
+    mime_type: input.file.type || 'video/mp4',
+    size_bytes: input.file.size,
+    duration_s: meta.duration,
+    width: meta.width,
+    height: meta.height,
+    file_last_modified_ms: lastModifiedMs,
+    fingerprint,
+    local_store: null,
+    remote_path: null,
+    remote_uploaded_at: null,
+    archived_locally_at: null,
+    source_asset_ids: null,
+    segments: null,
+  })
+  const store = await putLocalVideo(asset.id, input.file, input.file.name)
+  return videoAssetDb.update(asset.id, { local_store: store })
+}
+
 /** Archive = remove device bytes; keep the asset row and any cloud path. Tags untouched. */
 export async function archiveAssetLocally(asset: DBVideoAsset): Promise<DBVideoAsset> {
   await deleteLocalVideo(asset.id)

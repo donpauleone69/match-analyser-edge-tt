@@ -32,6 +32,31 @@ How the tables connect, and a looser video-first shape that is not built yet: [T
 
 ---
 
+## Training posts (not matches)
+
+Practice posts for a focal player. They never appear in match review scopes.
+
+**File:** `app/src/data/entities/trainingPosts/trainingPost.types.ts` · Dexie v7 `training_posts`
+
+```typescript
+type TrainingPostKind = 'shot_type' | 'combination'
+
+interface DBTrainingPost {
+  id: string
+  player_id: string
+  kind: TrainingPostKind
+  label: string              // open string, e.g. "forehand_loop" or "serve-open-drive"
+  month: string              // YYYY-MM
+  clip_asset_ids: string[]   // ordered video_asset ids (~10)
+  created_at: string
+  updated_at: string
+}
+```
+
+Clips are ordinary `video_assets` stored under synthetic `match_id` `training:{playerId}` (same OPFS store). Timestamps stay source-video seconds.
+
+---
+
 ## Account Scope Metadata
 
 Cloud authentication remains the only account system. Each authenticated Supabase user has a small local profile stored under `edge-tt-account-profile:{authUserId}`:

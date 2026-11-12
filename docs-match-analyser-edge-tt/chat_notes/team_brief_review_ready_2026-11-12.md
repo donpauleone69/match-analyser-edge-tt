@@ -416,9 +416,12 @@ The older menu outside tagging and last night’s review may be removed or repla
 - Video uses the Slice D asset and source-time timestamps. Do not create a second video store.
 - Browser, three viewports: post a shot-type set, post the same shot type in a later month, compare them; post a serve–open–drive combination and see it only under that combination. A coach acting as the player sees that player’s posts, not someone else’s.
 
-**UX bet.** _(before code. Comparison is the point, not a chart wall.)_
+**UX bet.** Training → post ~10 clips as shot type `forehand_loop` or combination `serve-open-drive` for this month → Compare months plays each month’s own clips side by side. Combinations listed separately from shot types.
 
-**Test cases.** _(before code)_
+**Test cases.**
+
+- **Functional:** November excluded from October month list; combination excluded from shot-type series; training never in match scopes; coach focal sees only that player’s posts.
+- **Browser:** auth may block; functional tests cover the model.
 
 **Functional check.** Pure tests: a November post is excluded from October’s comparison of that shot type; a combination post is excluded from shot-type comparison and the reverse; a training post is excluded from every match scope in Slice E.
 
@@ -426,7 +429,9 @@ The older menu outside tagging and last night’s review may be removed or repla
 
 **Out of scope.** Match stats from training clips. Automatic shot detection. Reminders, a social feed, or a required monthly schedule. Every shot type and every combination on day one.
 
-**Result / Critique.**
+**Result (coordinator).** Dexie `training_posts` v7; `compareTrainingPosts` tests; Training UI posts/compare using `video_assets` via `training:{playerId}`. Prove labels: forehand_loop + serve-open-drive.
+
+**Critique.** **Keep.** **Change:** none. **Next:** richer month picker UI when auth works for browser proof.
 
 ---
 

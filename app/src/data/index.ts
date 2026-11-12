@@ -84,6 +84,8 @@ export type {
 
 // Export DB operations for entities without stores
 export { videoAssetDb } from './entities/videoAssets'
+export { trainingPostDb } from './entities/trainingPosts'
+export type { DBTrainingPost, NewTrainingPost, TrainingPostKind } from './entities/trainingPosts'
 export { matchDb, linkMatchOpponent } from './entities/matches'
 export { setDb } from './entities/sets'
 export { rallyDb } from './entities/rallies'
