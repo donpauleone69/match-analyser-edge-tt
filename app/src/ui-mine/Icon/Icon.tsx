@@ -71,6 +71,26 @@ import {
   Calendar,
   User,
   Users,
+
+  // Cloud / library
+  Cloud,
+  CloudOff,
+  CloudUpload,
+  CloudDownload,
+  RefreshCw,
+  Film,
+  Scissors,
+  Swords,
+  ListVideo,
+  LogIn,
+  LogOut,
+  HardDrive,
+  Trophy,
+  Building2,
+  Database,
+  FileUp,
+  FileDown,
+  Loader2,
   
   type LucideIcon,
 } from 'lucide-react'
@@ -137,6 +157,26 @@ const icons = {
   calendar: Calendar,
   user: User,
   users: Users,
+
+  // Cloud / library
+  cloud: Cloud,
+  'cloud-off': CloudOff,
+  'cloud-upload': CloudUpload,
+  'cloud-download': CloudDownload,
+  refresh: RefreshCw,
+  film: Film,
+  scissors: Scissors,
+  swords: Swords,
+  'list-video': ListVideo,
+  'log-in': LogIn,
+  'log-out': LogOut,
+  'hard-drive': HardDrive,
+  trophy: Trophy,
+  building: Building2,
+  database: Database,
+  'file-up': FileUp,
+  'file-down': FileDown,
+  loader: Loader2,
 } as const
 
 export type IconName = keyof typeof icons

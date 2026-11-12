@@ -5,6 +5,26 @@
 import { setDb, type DBMatch, type DBSet } from '@/data'
 import { resolveSetVideo, storeSetVideo } from '@/data/services/videoAssetService'
 import { resolveOpponentId } from '@/helpers/themSide'
+import { downloadMatchBundle, pullMatch, pushMatch, uploadVideoAsset, type PushResult } from '@/data/cloud'
+
+export async function backUpMatch(matchId: string, force = false): Promise<PushResult> {
+  return pushMatch(matchId, { force })
+}
+
+export async function replaceWithCloudCopy(matchId: string): Promise<void> {
+  await pullMatch(matchId)
+}
+
+export async function backUpSetVideo(
+  assetId: string,
+  onProgress?: (sent: number, total: number) => void,
+): Promise<void> {
+  await uploadVideoAsset(assetId, onProgress)
+}
+
+export async function saveMatchFile(matchId: string): Promise<void> {
+  await downloadMatchBundle(matchId)
+}
 
 /** Device copy first, then the cloud copy. */
 export async function loadSetVideoUrl(matchId: string, setNumber: number): Promise<string | null> {

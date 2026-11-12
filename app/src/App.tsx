@@ -15,15 +15,20 @@ import { Settings } from './pages/Settings'
 import { DataViewer } from './pages/DataViewer'
 import { DataViewerAudit } from './pages/DataViewerAudit'
 import { AnalyticsPage } from './pages/Analytics'
+import { ClipsPage } from './pages/Clips'
+import { useCloudStore } from './stores/cloudStore'
 
 function App() {
+  const initCloud = useCloudStore((s) => s.init)
+
   // Initialize IndexedDB database
   useEffect(() => {
     // Database initializes automatically when imported
     db.open().catch(error => {
       console.error('Failed to initialize database:', error)
     })
-  }, [])
+    initCloud()
+  }, [initCloud])
   
   return (
     <BrowserRouter>
@@ -37,6 +42,7 @@ function App() {
           <Route path="/matches" element={<MatchesPage />} />
           <Route path="/matches/create" element={<MatchCreatePage />} />
           <Route path="/matches/:id" element={<MatchReviewPage />} />
+          <Route path="/clips" element={<ClipsPage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />
           <Route path="/data-viewer" element={<DataViewer />} />
           <Route path="/data-viewer/audit" element={<DataViewerAudit />} />

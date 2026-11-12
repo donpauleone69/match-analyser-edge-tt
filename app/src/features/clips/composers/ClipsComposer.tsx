@@ -1,0 +1,386 @@
+/**
+ * ClipsComposer — "show me the clips".
+ *
+ * Routes: /clips (every tagged match) and the Clips tab of Match Review
+ * (one match). `?clip=<filter key>` picks the playlist.
+ *
+ * Plays a playlist straight from the source videos (no file is made), moving
+ * clip to clip. "Save as reel" cuts the playlist into one small MP4 that can be
+ * backed up to the cloud and played anywhere.
+ */
+
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Button, Card, Icon, type VideoPlayerHandle } from '@/ui-mine'
+import { useVideoPlaybackStore } from '@/ui-mine/VideoPlayer'
+import { formatFileSize } from '@/helpers/videoFileHelpers'
+import { useCloudStore } from '@/stores/cloudStore'
+import { decodeClipFilter, deriveClips, encodeClipFilter } from '@/rules/derive/clips/deriveClips'
+import { clipSourceKey, deriveClipEdl } from '@/rules/derive/clips/deriveClipEdl'
+import type { ClipPreset } from '@/rules/derive/clips/deriveClipPresets'
+import { useDeriveClipLibrary } from '../derive/useDeriveClipLibrary'
+import { buildClipRows, formatSeconds } from '../derive/buildClipLibrary'
+import { ClipPresetListBlock } from '../blocks/ClipPresetListBlock'
+import { ClipQueueBlock } from '../blocks/ClipQueueBlock'
+import { ClipStageBlock } from '../blocks/ClipStageBlock'
+import { ReelListBlock } from '../blocks/ReelListBlock'
+import {
+  backUpReel,
+  checkReel,
+  fetchReelToDevice,
+  loadClipVideo,
+  loadReelVideo,
+  saveClipVideoFromUrl,
+  saveReel,
+  type ReelExportProgress,
+} from './clipActions'
+import type { ReelRowModel } from '../models'
+
+type VideoSlot = { url: string | null; origin: 'device' | 'cloud' | null } | 'loading'
+
+interface ReelPlayback {
+  assetId: string
+  label: string
+  url: string
+  origin: 'device' | 'cloud'
+}
+
+const STAGE_LABEL: Record<ReelExportProgress['stage'], string> = {
+  loading: 'Starting video tools',
+  cutting: 'Cutting clips',
+  joining: 'Joining clips',
+  saving: 'Saving reel',
+}
+
+export interface ClipsComposerProps {
+  /** One match (Match Review tab) or null for every match */
+  matchId?: string | null
+  embedded?: boolean
+}
+
+export function ClipsComposer({ matchId = null, embedded = false }: ClipsComposerProps) {
+  const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const { data, isLoading, error, refresh } = useDeriveClipLibrary(matchId)
+  const cloudUser = useCloudStore((s) => s.user)
+  const playerRef = useRef<VideoPlayerHandle>(null)
+  const isPlaying = useVideoPlaybackStore((s) => s.isPlaying)
+
+  const [index, setIndex] = useState(0)
+  const [autoAdvance, setAutoAdvance] = useState(true)
+  const [videos, setVideos] = useState<Record<string, VideoSlot>>({})
+  const [reel, setReel] = useState<ReelPlayback | null>(null)
+  const [exporting, setExporting] = useState<ReelExportProgress | null>(null)
+  const [busyReel, setBusyReel] = useState<string | null>(null)
+  const [notice, setNotice] = useState<{ tone: 'good' | 'bad'; text: string } | null>(null)
+  const blobUrls = useRef<string[]>([])
+  const clipStartedAt = useRef(0)
+
+  useEffect(() => {
+    const urls = blobUrls.current
+    return () => urls.forEach((u) => URL.revokeObjectURL(u))
+  }, [])
+
+  const presets = useMemo(() => data?.groups.flatMap((g) => g.presets) ?? [], [data])
+  const clipParam = searchParams.get('clip')
+  const filter = decodeClipFilter(clipParam) ?? presets[0]?.filter ?? null
+  const activeKey = filter ? encodeClipFilter(filter) : null
+  const playlistLabel =
+    presets.find((p) => p.key === activeKey)?.label ??
+    (filter?.kind === 'rallies' ? (searchParams.get('clipTitle') ?? 'Selected rallies') : 'Clips')
+
+  const clips = useMemo(
+    () => (data && filter ? deriveClips(data.inputs, filter) : []),
+    // filter is rebuilt each render; its key is the identity
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [data, activeKey]
+  )
+  const rows = useMemo(
+    () => (data && filter ? buildClipRows(clips, data.inputs, filter, data.matchLabels) : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [clips, data, activeKey]
+  )
+  const edl = useMemo(() => deriveClipEdl(clips), [clips])
+
+  useEffect(() => {
+    setIndex(0)
+  }, [activeKey])
+
+  const current = rows[Math.min(index, rows.length - 1)] ?? null
+  const sourceKey = current ? clipSourceKey(current.clip) : null
+
+  useEffect(() => {
+    if (!current || !sourceKey || sourceKey in videos) return
+    const { matchId: m, setNumber } = current.clip
+    setVideos((v) => ({ ...v, [sourceKey]: 'loading' }))
+    loadClipVideo(m, setNumber)
+      .then((resolved) => {
+        if (resolved?.url.startsWith('blob:')) blobUrls.current.push(resolved.url)
+        setVideos((v) => ({ ...v, [sourceKey]: { url: resolved?.url ?? null, origin: resolved?.origin ?? null } }))
+      })
+      .catch(() => setVideos((v) => ({ ...v, [sourceKey]: { url: null, origin: null } })))
+  }, [current, sourceKey, videos])
+
+  const slot = sourceKey ? videos[sourceKey] : undefined
+  const clipVideo = slot && slot !== 'loading' ? slot : null
+  const videoUrl = reel ? reel.url : (clipVideo?.url ?? null)
+
+  // Start each clip at its window (and each reel at 0)
+  useEffect(() => {
+    if (!videoUrl) return
+    if (!reel && !current) return
+    clipStartedAt.current = Date.now()
+    const start = reel ? 0 : current!.clip.start
+    const t = setTimeout(() => {
+      playerRef.current?.seek(start, true)
+      playerRef.current?.play()
+    }, 150)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [videoUrl, current?.clip.id, reel?.assetId])
+
+  const selectPreset = (preset: ClipPreset) => {
+    setReel(null)
+    const next = new URLSearchParams(searchParams)
+    next.set('clip', preset.key)
+    next.delete('clipTitle')
+    setSearchParams(next, { replace: true })
+  }
+
+  useEffect(() => {
+    clipStartedAt.current = Date.now()
+  }, [current?.clip.id])
+
+  const handleClipEnd = useCallback(() => {
+    // The shared playback time can still belong to the previous clip/video:
+    // only move on when this video really reached this clip's end.
+    if (!current || Date.now() - clipStartedAt.current < 800) return
+    const at = playerRef.current?.getCurrentTime() ?? 0
+    if (at < current.clip.end - 0.3 || at > current.clip.end + 2) return
+    if (autoAdvance) setIndex((i) => (i < rows.length - 1 ? i + 1 : i))
+  }, [autoAdvance, rows.length, current])
+
+  const handleVideoSelect = async (pickedUrl: string) => {
+    if (!current || !sourceKey) return
+    try {
+      const url = await saveClipVideoFromUrl(current.clip.matchId, current.clip.setNumber, pickedUrl)
+      blobUrls.current.push(url)
+      setVideos((v) => ({ ...v, [sourceKey]: { url, origin: 'device' } }))
+    } catch {
+      setVideos((v) => ({ ...v, [sourceKey]: { url: pickedUrl, origin: 'device' } }))
+    }
+  }
+
+  // A reel travels with one match's bundle; a cross-match reel goes with its first clip's match
+  const reelMatchId = matchId ?? clips[0]?.matchId ?? ''
+
+  const handleExport = async () => {
+    setNotice(null)
+    const plan = await checkReel(edl)
+    if (plan.missingSources.length > 0) {
+      setNotice({ tone: 'bad', text: 'Some clips use a set video that isn’t on this device yet. Play them once and load the video, then try again.' })
+      return
+    }
+    if (plan.tooBig && !window.confirm(`This reel would be about ${formatFileSize(plan.estimatedBytes)}. Big reels can run out of browser memory. Try anyway?`)) {
+      return
+    }
+    setExporting({ stage: 'loading', done: 0, total: edl.segments.length })
+    try {
+      const asset = await saveReel({ matchId: reelMatchId, label: playlistLabel, edl, onProgress: setExporting })
+      setNotice({ tone: 'good', text: `Saved “${playlistLabel}” — ${formatFileSize(asset.size_bytes)}.` })
+      refresh()
+    } catch (err) {
+      console.error('[Clips] Reel export failed:', err)
+      setNotice({ tone: 'bad', text: err instanceof Error ? err.message : 'Reel export failed' })
+    } finally {
+      setExporting(null)
+    }
+  }
+
+  const playReel = async (r: ReelRowModel) => {
+    const resolved = await loadReelVideo(r.assetId)
+    if (!resolved) {
+      setNotice({ tone: 'bad', text: 'That reel isn’t on this device or in the cloud.' })
+      return
+    }
+    if (resolved.url.startsWith('blob:')) blobUrls.current.push(resolved.url)
+    setReel({ assetId: r.assetId, label: r.label, url: resolved.url, origin: resolved.origin })
+  }
+
+  const runReelAction = async (r: ReelRowModel, action: (id: string) => Promise<void>, done: string) => {
+    setBusyReel(r.assetId)
+    setNotice(null)
+    try {
+      await action(r.assetId)
+      setNotice({ tone: 'good', text: done })
+      refresh()
+    } catch (err) {
+      setNotice({ tone: 'bad', text: err instanceof Error ? err.message : 'Something went wrong' })
+    } finally {
+      setBusyReel(null)
+    }
+  }
+
+  if (isLoading) return <p className="text-neutral-400">Loading clips…</p>
+  if (error) return <p className="text-rose-400">{error}</p>
+  if (!data) return null
+
+  const header = !embedded && (
+    <header>
+      <h1 className="text-2xl md:text-3xl font-bold text-neutral-50">Clips</h1>
+      <p className="mt-1 text-sm text-neutral-400">
+        Playlists from every tagged match — what to work on, highlights and opening attacks.
+      </p>
+    </header>
+  )
+
+  if (presets.length === 0 && filter?.kind !== 'rallies') {
+    return (
+      <div className="space-y-6">
+        {header}
+        <Card className="p-8 text-center border border-dashed border-neutral-700">
+          <h2 className="text-lg font-semibold text-neutral-50">No clips yet</h2>
+          <p className="mt-2 text-sm text-neutral-400 max-w-md mx-auto">
+            Tag a set with Pass 1 — star highlights and flag shots for review — and your playlists appear here.
+          </p>
+          {!embedded && (
+            <Button className="mt-4" onClick={() => navigate('/matches')}>
+              <Icon name="swords" size="sm" /> Go to matches
+            </Button>
+          )}
+        </Card>
+      </div>
+    )
+  }
+
+  const activeReel = reel
+  const missingMessage = current
+    ? `Set ${current.clip.setNumber} video isn’t on this device${cloudUser ? ' or in your cloud backup' : ''} — load it once and it’s remembered.`
+    : ''
+
+  return (
+    <div className="space-y-6">
+      {header}
+
+      {notice && (
+        <div
+          className={
+            notice.tone === 'good'
+              ? 'flex items-start gap-3 rounded-lg border border-emerald-800/60 bg-emerald-950/30 px-4 py-3 text-sm text-emerald-100'
+              : 'flex items-start gap-3 rounded-lg border border-rose-800/60 bg-rose-950/30 px-4 py-3 text-sm text-rose-100'
+          }
+        >
+          <Icon name={notice.tone === 'good' ? 'check' : 'warning'} size="sm" className="mt-0.5" />
+          <span className="flex-1">{notice.text}</span>
+          <button type="button" aria-label="Dismiss" onClick={() => setNotice(null)}>
+            <Icon name="x" size="sm" />
+          </button>
+        </div>
+      )}
+
+      <div className="grid gap-6 md:grid-cols-[17rem_minmax(0,1fr)]">
+        <aside className="md:sticky md:top-4 md:self-start md:max-h-[calc(100vh-6rem)] md:overflow-y-auto md:pr-1">
+          <ClipPresetListBlock groups={data.groups} activeKey={reel ? null : activeKey} onSelect={selectPreset} />
+        </aside>
+
+        <div className="space-y-4 min-w-0">
+          {activeReel ? (
+            <ClipStageBlock
+              ref={playerRef}
+              heading="Saved reel"
+              title={activeReel.label}
+              subtitle=""
+              position={0}
+              total={1}
+              videoUrl={activeReel.url}
+              videoOrigin={activeReel.origin}
+              videoLoading={false}
+              window={null}
+              isPlaying={isPlaying}
+              autoAdvance={false}
+              missingMessage=""
+              onClipEnd={() => undefined}
+              onTogglePlay={() => playerRef.current?.togglePlay()}
+              onReplay={() => {
+                playerRef.current?.seek(0, true)
+                playerRef.current?.play()
+              }}
+              onPrev={() => undefined}
+              onNext={() => undefined}
+              onToggleAutoAdvance={() => undefined}
+              onClose={() => setReel(null)}
+            />
+          ) : current ? (
+            <ClipStageBlock
+              ref={playerRef}
+              heading={playlistLabel}
+              title={current.title}
+              subtitle={current.subtitle}
+              position={index}
+              total={rows.length}
+              videoUrl={videoUrl}
+              videoOrigin={clipVideo?.origin ?? null}
+              videoLoading={slot === 'loading'}
+              window={{ start: current.clip.start, end: current.clip.end }}
+              isPlaying={isPlaying}
+              autoAdvance={autoAdvance}
+              missingMessage={missingMessage}
+              onVideoSelect={handleVideoSelect}
+              onClipEnd={handleClipEnd}
+              onTogglePlay={() => playerRef.current?.togglePlay()}
+              onReplay={() => {
+                clipStartedAt.current = Date.now()
+                playerRef.current?.seek(current.clip.start, true)
+                playerRef.current?.play()
+              }}
+              onPrev={() => setIndex((i) => Math.max(0, i - 1))}
+              onNext={() => setIndex((i) => Math.min(rows.length - 1, i + 1))}
+              onToggleAutoAdvance={() => setAutoAdvance((a) => !a)}
+              onEdit={() =>
+                navigate(
+                  `/matches/${current.clip.matchId}/edit-rally?set=${current.clip.setNumber}&rally=${current.clip.rallyIndex}`
+                )
+              }
+            />
+          ) : (
+            <Card className="p-6 text-sm text-neutral-400">No clips in this playlist.</Card>
+          )}
+
+          {!activeReel && rows.length > 0 && (
+            <div className="flex flex-wrap items-center gap-3 rounded-lg border border-neutral-700 bg-bg-card px-4 py-3">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-neutral-100 truncate">{playlistLabel}</p>
+                <p className="text-xs text-neutral-500">
+                  {rows.length} clip{rows.length === 1 ? '' : 's'} · {formatSeconds(edl.duration)} of footage
+                </p>
+              </div>
+              {exporting ? (
+                <p className="flex items-center gap-2 text-sm text-neutral-300">
+                  <Icon name="loader" size="sm" className="animate-spin" />
+                  {STAGE_LABEL[exporting.stage]}
+                  {exporting.stage === 'cutting' && ` ${exporting.done + 1}/${exporting.total}`}
+                </p>
+              ) : (
+                <Button size="sm" variant="secondary" onClick={handleExport}>
+                  <Icon name="scissors" size="sm" /> Save as reel
+                </Button>
+              )}
+            </div>
+          )}
+
+          {!activeReel && rows.length > 0 && <ClipQueueBlock rows={rows} activeIndex={index} onSelect={setIndex} />}
+
+          <ReelListBlock
+            reels={data.reels}
+            activeAssetId={activeReel?.assetId ?? null}
+            busyAssetId={busyReel}
+            canUseCloud={Boolean(cloudUser)}
+            onPlay={playReel}
+            onUpload={(r) => runReelAction(r, backUpReel, `“${r.label}” is backed up to the cloud.`)}
+            onDownload={(r) => runReelAction(r, fetchReelToDevice, `“${r.label}” is saved on this device.`)}
+          />
+        </div>
+      </div>
+    </div>
+  )
+}

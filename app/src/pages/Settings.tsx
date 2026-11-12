@@ -6,6 +6,7 @@ import { usePlayerStore } from '@/data/entities/players/player.store'
 import { useMatchStore } from '@/data/entities/matches/match.store'
 import { AlertTriangle, Trash2, Database } from 'lucide-react'
 import { populateDummyData } from '@/features/populate-dummy-data'
+import { AccountComposer } from '@/features/account'
 
 export function Settings() {
   const [isClearing, setIsClearing] = useState(false)
@@ -84,10 +85,14 @@ export function Settings() {
     <div className="w-full">
       <div className="max-w-4xl mx-auto p-4 md:p-6">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-neutral-50">Settings</h1>
+          <h1 className="text-3xl font-bold text-neutral-50">Account & data</h1>
           <p className="text-neutral-400 mt-2">
-            Manage your application settings and data
+            Cloud backup, device storage and moving matches between devices
           </p>
+        </div>
+
+        <div className="mb-6">
+          <AccountComposer />
         </div>
 
         {/* Danger Zone */}

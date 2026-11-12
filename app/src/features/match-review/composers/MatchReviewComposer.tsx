@@ -24,16 +24,25 @@ import { WorkOnSection } from '../sections/WorkOnSection'
 import { HighlightsSection, type RallyActions } from '../sections/HighlightsSection'
 import { RalliesSection, type RallyFilter } from '../sections/RalliesSection'
 import { SetsPanelSection } from '../sections/SetsPanelSection'
+import { ClipsComposer } from '@/features/clips'
+import { encodeClipFilter } from '@/rules/derive/clips/deriveClips'
 import {
   addNextSet,
+  backUpMatch,
+  backUpSetVideo,
   loadSetVideoUrl,
+  replaceWithCloudCopy,
+  saveMatchFile,
   saveSetVideoFromUrl,
   startSetOver,
 } from './matchReviewActions'
+import { useDeriveMatchStorage } from '../derive/useDeriveMatchStorage'
+import { MatchStorageBlock } from '../blocks/MatchStorageBlock'
+import { useCloudStore } from '@/stores/cloudStore'
 import type { EvidenceRef, RallyRowModel, SetPanelModel } from '../models'
 
-type ReviewTab = 'overview' | 'workon' | 'highlights' | 'rallies'
-const TABS: ReviewTab[] = ['overview', 'workon', 'highlights', 'rallies']
+type ReviewTab = 'overview' | 'workon' | 'clips' | 'highlights' | 'rallies'
+const TABS: ReviewTab[] = ['overview', 'workon', 'clips', 'highlights', 'rallies']
 
 interface PlayerState {
   playlist: RallyRowModel[]
@@ -65,6 +74,26 @@ export function MatchReviewComposer() {
   )
   const playerRef = useRef<VideoPlayerHandle>(null)
   const isPlaying = useVideoPlaybackStore((s) => s.isPlaying)
+  const cloudConfigured = useCloudStore((s) => s.configured)
+  const cloudUser = useCloudStore((s) => s.user)
+  const { storage, refreshStorage } = useDeriveMatchStorage(matchId, data)
+  const [storageBusy, setStorageBusy] = useState<string | null>(null)
+  const [conflict, setConflict] = useState(false)
+  const [uploadPercent, setUploadPercent] = useState<number | null>(null)
+
+  const runStorage = async (key: string, action: () => Promise<string | null>) => {
+    setStorageBusy(key)
+    try {
+      const message = await action()
+      if (message) setNotice(message)
+    } catch (err) {
+      console.error('[MatchReview] Storage action failed:', err)
+      alert(err instanceof Error ? err.message : 'Something went wrong')
+    } finally {
+      setStorageBusy(null)
+      refreshStorage()
+    }
+  }
 
   useEffect(() => {
     const incoming = (location.state as RallyEditNotice | null)?.notice
@@ -241,6 +270,7 @@ export function MatchReviewComposer() {
   const tabs: TabItem<ReviewTab>[] = [
     { id: 'overview', label: 'Overview' },
     { id: 'workon', label: 'Work on', badge: review.workOn.hero.total },
+    { id: 'clips', label: 'Clips' },
     { id: 'highlights', label: 'Highlights', badge: review.highlights.flagged.length },
     { id: 'rallies', label: 'Rallies', badge: review.rallies.length },
   ]
@@ -301,6 +331,55 @@ export function MatchReviewComposer() {
           onStartOver={handleStartOver}
           onAddSet={handleAddSet}
         />
+
+        {storage && (
+          <MatchStorageBlock
+            storage={storage}
+            signedIn={Boolean(cloudUser)}
+            cloudAvailable={cloudConfigured}
+            busy={storageBusy}
+            uploadPercent={uploadPercent}
+            conflict={conflict}
+            onSignIn={() => navigate('/settings')}
+            onBackUpMatch={() =>
+              runStorage('match', async () => {
+                const result = await backUpMatch(matchId)
+                if (result.status === 'conflict') {
+                  setConflict(true)
+                  return null
+                }
+                return 'Match backed up to the cloud.'
+              })
+            }
+            onKeepDevice={() =>
+              runStorage('match', async () => {
+                await backUpMatch(matchId, true)
+                setConflict(false)
+                return 'Cloud copy replaced with this device’s match.'
+              })
+            }
+            onUseCloud={() =>
+              runStorage('match', async () => {
+                await replaceWithCloudCopy(matchId)
+                setConflict(false)
+                refresh()
+                return 'This device now has the cloud copy.'
+              })
+            }
+            onBackUpVideo={(assetId) =>
+              runStorage(assetId, async () => {
+                setUploadPercent(0)
+                try {
+                  await backUpSetVideo(assetId, (sent, total) => setUploadPercent(Math.floor((sent / total) * 100)))
+                } finally {
+                  setUploadPercent(null)
+                }
+                return 'Video backed up — it can now play on your other devices.'
+              })
+            }
+            onSaveFile={() => runStorage('file', async () => (await saveMatchFile(matchId), null))}
+          />
+        )}
       </header>
 
       {notice && (
@@ -349,6 +428,8 @@ export function MatchReviewComposer() {
             if (rally) openEditor(rally)
           }}
         />
+      ) : tab === 'clips' ? (
+        <ClipsComposer matchId={matchId} embedded />
       ) : tab === 'highlights' ? (
         <HighlightsSection
           flagged={toRows(review.highlights.flagged)}
@@ -377,7 +458,14 @@ export function MatchReviewComposer() {
           subtitle={evidence.subtitle}
           count={evidenceRallies.length}
           canPlayAll={evidenceRallies.length > 1}
-          onPlayAll={() => watch(evidenceRallies[0], evidenceRallies, evidence.title)}
+          onPlayAll={() => {
+            setParams({
+              tab: 'clips',
+              clip: encodeClipFilter({ kind: 'rallies', rallyIds: evidenceRallies.map((r) => r.id) }),
+              clipTitle: evidence.title,
+            })
+            setEvidence(null)
+          }}
           onClose={() => setEvidence(null)}
         >
           {evidenceRallies.map((r) => (

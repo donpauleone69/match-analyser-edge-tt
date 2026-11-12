@@ -32,7 +32,7 @@ export type ClipFilter =
   | { kind: 'rallies'; rallyIds: string[] }
 
 export interface ClipMatchInput {
-  match: Pick<DBMatch, 'id' | 'player1_id'> & Partial<Pick<DBMatch, 'match_date'>>
+  match: Pick<DBMatch, 'id' | 'player1_id'> & Partial<Pick<DBMatch, 'match_date' | 'player2_id'>>
   sets: Pick<DBSet, 'id' | 'set_number'>[]
   rallies: DBRally[]
   shots: DBShot[]

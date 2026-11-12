@@ -118,7 +118,21 @@ export async function storeSetVideo(matchId: string, setNumber: number, file: Fi
  * Register a set video that only exists under the legacy per-set key
  * (saved before assets existed). No copy — the file stays where it is.
  */
-async function adoptLegacySetVideo(matchId: string, setNumber: number): Promise<DBVideoAsset | null> {
+const adoptions = new Map<string, Promise<DBVideoAsset | null>>()
+
+function adoptLegacySetVideo(matchId: string, setNumber: number): Promise<DBVideoAsset | null> {
+  const key = legacySetVideoKey(matchId, setNumber)
+  let pending = adoptions.get(key)
+  if (!pending) {
+    pending = adoptLegacySetVideoOnce(matchId, setNumber).finally(() => adoptions.delete(key))
+    adoptions.set(key, pending)
+  }
+  return pending
+}
+
+async function adoptLegacySetVideoOnce(matchId: string, setNumber: number): Promise<DBVideoAsset | null> {
+  const already = await videoAssetDb.getSetSource(matchId, setNumber)
+  if (already) return already
   const legacy = await getLocalVideo(legacySetVideoKey(matchId, setNumber))
   if (!legacy) return null
   const meta = await probeVideo(legacy.file)

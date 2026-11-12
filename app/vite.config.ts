@@ -14,13 +14,10 @@ export default defineConfig({
     },
   },
   
-  // Required headers for FFmpeg.wasm (SharedArrayBuffer support)
+  // No cross-origin isolation headers: reel export uses the single-thread
+  // ffmpeg core (no SharedArrayBuffer), and COEP would block cloud video URLs.
   server: {
     host: true,
-    headers: {
-      'Cross-Origin-Opener-Policy': 'same-origin',
-      'Cross-Origin-Embedder-Policy': 'require-corp',
-    },
     hmr: {
       overlay: false, // Disable overlay to prevent refresh loops on mobile
     },
@@ -28,7 +25,7 @@ export default defineConfig({
   
   // Exclude FFmpeg from pre-bundling
   optimizeDeps: {
-    exclude: ['@ffmpeg/ffmpeg', '@ffmpeg/util'],
+    exclude: ['@ffmpeg/ffmpeg', '@ffmpeg/util', '@ffmpeg/core'],
   },
   
   // Build optimizations for mobile

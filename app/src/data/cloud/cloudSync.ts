@@ -10,7 +10,8 @@
 import { db } from '@/data/db'
 import { videoAssetDb } from '@/data/entities/videoAssets'
 import { getAssetFile } from '@/data/services/videoAssetService'
-import { supabase, MATCH_BUNDLES_TABLE, VIDEO_BUCKET } from './supabaseClient'
+import { supabase, cloudAnonKey, cloudUrl, MATCH_BUNDLES_TABLE, VIDEO_BUCKET } from './supabaseClient'
+import { resumableUpload } from './resumableUpload'
 import { readMatchBundle, writeMatchBundle } from './bundleStore'
 import {
   hashMatchBundle,
@@ -80,7 +81,7 @@ async function requireUser() {
   const { data } = await supabase.auth.getSession()
   const user = data.session?.user
   if (!user) throw new Error('Sign in to use the cloud')
-  return { client: supabase, user }
+  return { client: supabase, user, accessToken: data.session!.access_token }
 }
 
 export async function getLocalSyncStatus(matchId: string): Promise<LocalSyncStatus> {
@@ -217,18 +218,27 @@ export async function syncAll(): Promise<SyncAllResult> {
 }
 
 /** Upload a video file from this device to the private bucket, then re-push the match. */
-export async function uploadVideoAsset(assetId: string): Promise<void> {
-  const { client, user } = await requireUser()
+export async function uploadVideoAsset(
+  assetId: string,
+  onProgress?: (sent: number, total: number) => void,
+): Promise<void> {
+  const { user, accessToken } = await requireUser()
   const asset = await videoAssetDb.getById(assetId)
   if (!asset) throw new Error('Video not found')
   const file = await getAssetFile(asset)
   if (!file) throw new Error('This video is not on this device')
   const ext = (asset.file_name.split('.').pop() || 'mp4').toLowerCase()
   const path = `${user.id}/${asset.match_id}/${asset.id}.${ext}`
-  const { error } = await client.storage
-    .from(VIDEO_BUCKET)
-    .upload(path, file, { upsert: true, contentType: asset.mime_type || 'video/mp4' })
-  if (error) throw new Error(error.message)
+  await resumableUpload({
+    baseUrl: cloudUrl!,
+    anonKey: cloudAnonKey!,
+    accessToken,
+    bucket: VIDEO_BUCKET,
+    objectPath: path,
+    file,
+    contentType: asset.mime_type || 'video/mp4',
+    onProgress,
+  })
   await videoAssetDb.update(asset.id, { remote_path: path, remote_uploaded_at: new Date().toISOString() })
-  await pushMatch(asset.match_id, { force: true })
+  if (await db.matches.get(asset.match_id)) await pushMatch(asset.match_id, { force: true })
 }
