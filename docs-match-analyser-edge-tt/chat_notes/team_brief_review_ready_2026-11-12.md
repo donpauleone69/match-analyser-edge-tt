@@ -366,15 +366,16 @@ The older menu outside tagging and last night’s review may be removed or repla
 
 **Result (coordinator built after Task abort).**
 
-- Pure trim/EDL map: contact at source 42.5 after a 10s leading trim stays 42.5 in tags; file time 32.5 maps back. Vitest clip suite 15/15.
-- `kind: 'trimmed'`, `archived_locally_at`; archive/retrieve/trim actions on Details → Storage; Clips stage Download via existing EDL exporter.
+- Pure trim/EDL map: contact at source 42.5 after a 10s leading trim stays 42.5 in tags; file time 32.5 maps back. Vitest clip suite includes trim mapping + validateTrimWindow + download filename (17/17 in final gate).
+- `kind: 'trimmed'`, `archived_locally_at`; archive/retrieve/trim on Details → Storage; Clips stage Download via existing EDL exporter.
+- Polish `9a43b76`: archive/retrieve require cloud copy (honest error); trim start/end in source seconds (not hardcoded first 10s).
 - **Browser — BLOCKED** by account gate (same Supabase non-response). Functional done-when for mapping met; UI wired behind the gate.
 
 **Critique.**
 
-- **Keep:** Source-time contract tested; archive/trim/download use one video store and EDL map; no tag rewrite.
+- **Keep:** Source-time contract tested; archive/trim/download use one video store and EDL map; no tag rewrite; polish closes the thin trim UX gap.
 - **Change:** none for sign-off given env browser block already recorded.
-- **Next:** Live attach/reload walk when auth works; richer trim UI than “first 10s”.
+- **Next:** Live attach/reload/download walk when auth works; optional Download on inline Work-on player.
 
 ### E — The same review, across more than one match
 
@@ -462,17 +463,17 @@ The older menu outside tagging and last night’s review may be removed or repla
 | `fddee5f5c8cb4fbc80385d56c8c393e61ad7eb9d` | B | Library/tag/review require account; coach can switch “Reviewing as”; player defaults to self | `git revert fddee5f` |
 | `f41ad9cced22f48a8b552e3616505b07a0f0f01e` | C | Shell is Library · Matches · Training · Clips · Account; old Clubs/Players/Tournaments/Analytics/Data viewer paths redirect home | `git revert f41ad9c` |
 | `93464ee3e2ed9410f5e9906930af31a5dcef085f` | D | Details storage: archive / retrieve / trim; Clips Download; source-time trim map | `git revert 93464ee` |
-| `9a43b76b3d49bbd2bd69bb061dcfb9d6b8e4b714` | D′ | Archive/trim window polish on storage + clip download | `git revert 9a43b76` |
 | `e85f4b83f235f06eaa5950fdd7cfab5a7a8863c6` | E | Scope control: this match / tournament / opponent / all of mine; `/review` | `git revert e85f4b8` |
+| `9a43b76b3d49bbd2bd69bb061dcfb9d6b8e4b714` | D′ | Archive requires cloud backup; trim start/end in source seconds | `git revert 9a43b76` (before dropping D core if removing all of D) |
 | `01f9797c123eb460ed32909139101efc55de1f3d` | F | Training posts (shot type + combination) with month compare | `git revert 01f9797` |
 
-Deferred: none (all A–F signed). Browser end-to-end after sign-in was blocked by unresponsive Supabase on this machine; gates and Vitest cover the models.
+Deferred: none (all A–F signed). Browser end-to-end after sign-in was blocked by unresponsive Supabase on this machine; gates and Vitest cover the models. Final regression 35/35.
 
 Also state:
 
 - Full rollback: check out tag `pre-team-brief-2026-11-12` (`540fb5b`). The branch can be deleted later; the team does not delete it.
-- Keep a subset: revert unwanted commits in reverse order (`01f9797` … `992adae`), leave the rest.
-- Nothing is pushed; looking is safe.
+- Keep a subset: revert unwanted commits in reverse chronological order (`01f9797` → `9a43b76` → `e85f4b8` → `93464ee` → `f41ad9c` → `fddee5f` → `992adae`).
+- Nothing is pushed; nothing is merged; looking is safe.
 
 ## Ready to look at
 
