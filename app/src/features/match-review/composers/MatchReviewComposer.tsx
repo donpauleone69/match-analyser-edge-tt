@@ -48,6 +48,8 @@ import { useDeriveMatchStorage } from '../derive/useDeriveMatchStorage'
 import { useCloudStore } from '@/stores/cloudStore'
 import { useMatchStore, usePlayerStore, useTournamentStore, type MatchRound } from '@/data'
 import type { EvidenceRef, RallyRowModel, SetPanelModel } from '../models'
+import { ScopeControlBlock } from '../blocks/ScopeControlBlock'
+import type { ReviewScope } from '@/rules/reviewScope'
 
 type ReviewTab = 'summary' | 'details' | 'workon' | 'clips' | 'highlights' | 'rallies'
 const TABS: ReviewTab[] = ['summary', 'details', 'workon', 'clips', 'highlights', 'rallies']
@@ -76,6 +78,7 @@ export function MatchReviewComposer() {
   const { data, review, isLoading, notFound, error, refresh } = useDeriveMatchReview(matchId)
   const { players } = usePlayerStore()
   const { tournaments, load: loadTournaments } = useTournamentStore()
+  const { matches, load: loadMatches } = useMatchStore()
 
   const tab = resolveReviewTab(searchParams.get('tab'))
   const categoryId = searchParams.get('cat')
@@ -120,6 +123,10 @@ export function MatchReviewComposer() {
       navigate(`${location.pathname}${location.search}`, { replace: true, state: null })
     }
   }, [location.state, location.pathname, location.search, navigate])
+
+  useEffect(() => {
+    loadMatches()
+  }, [loadMatches])
 
   // Details: apply stored video lastModified once when date isn't locked manual
   useEffect(() => {
@@ -459,13 +466,32 @@ export function MatchReviewComposer() {
               </span>
             </p>
           </div>
-          {nextSet && (
-            <Button onClick={() => openTagger(nextSet)}>
-              <Icon name="play" size="sm" />
-              {nextSet.status === 'in_progress' ? 'Continue tagging' : 'Start tagging'}
-              {multiSet && ` Set ${nextSet.setNumber}`}
-            </Button>
-          )}
+          <div className="flex flex-wrap items-center gap-3">
+            <ScopeControlBlock
+              scope={{ kind: 'match', id: matchId ?? null }}
+              matches={matches.filter((m) => data && m.player1_id === data.match.player1_id)}
+              players={players}
+              tournaments={tournaments}
+              currentMatchId={matchId}
+              onChange={(next: ReviewScope) => {
+                if (next.kind === 'match' && next.id) {
+                  navigate(`/matches/${next.id}`)
+                  return
+                }
+                const p = new URLSearchParams()
+                p.set('scope', next.kind)
+                if (next.id) p.set('id', next.id)
+                navigate(`/review?${p.toString()}`)
+              }}
+            />
+            {nextSet && (
+              <Button onClick={() => openTagger(nextSet)}>
+                <Icon name="play" size="sm" />
+                {nextSet.status === 'in_progress' ? 'Continue tagging' : 'Start tagging'}
+                {multiSet && ` Set ${nextSet.setNumber}`}
+              </Button>
+            )}
+          </div>
         </div>
       </header>
 

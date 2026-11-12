@@ -11,6 +11,7 @@ import { RallyEdit } from './pages/RallyEdit'
 import { Settings } from './pages/Settings'
 import { ClipsPage } from './pages/Clips'
 import { TrainingPage } from './pages/Training'
+import { ScopeReviewPage } from './pages/ScopeReview'
 import { useCloudStore } from './stores/cloudStore'
 import { AccountGateComposer } from '@/features/account'
 
@@ -36,6 +37,7 @@ function App() {
           <Route path="/matches/create" element={<AccountGateComposer><MatchCreatePage /></AccountGateComposer>} />
           <Route path="/matches/:id" element={<AccountGateComposer><MatchReviewPage /></AccountGateComposer>} />
           <Route path="/training" element={<AccountGateComposer><TrainingPage /></AccountGateComposer>} />
+          <Route path="/review" element={<AccountGateComposer><ScopeReviewPage /></AccountGateComposer>} />
           <Route path="/clips" element={<AccountGateComposer><ClipsPage /></AccountGateComposer>} />
           <Route path="/settings" element={<Settings />} />
           {/* Old shell destinations removed from the path */}

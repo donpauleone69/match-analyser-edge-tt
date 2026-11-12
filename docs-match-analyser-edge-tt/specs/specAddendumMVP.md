@@ -6,15 +6,28 @@
 
 ## Change Log
 
+### 2026-11-12: Multi-match review scopes (v3.45.0)
+
+**Change Type:** Review navigation + pure scope rules
+
+**What Changed:**
+- Added `rules/reviewScope/filterMatchesByScope` with tests for tournament / opponent / all / no-tournament.
+- `/review` ScopeReviewComposer with scope control; Match Review and Library link into the same scopes.
+- ClipsComposer accepts `matchIds` so scoped playlists reuse the existing clips UI.
+
+**Rationale:** Tournament, opponent, and library views are scopes of the same review, not separate apps.
+
+---
+
 ### 2026-11-12: Video trim, archive, clip download (v3.44.0)
 
 **Change Type:** Video assets + clip EDL mapping + storage UX
 
 **What Changed:**
 - Extended `video_assets.kind` with `trimmed` and added `archived_locally_at`.
-- Pure EDL helpers: `mapReelToSource`, `deriveTrimMapping`, `contactSourceAfterTrim` — prove contacts stay on source-video seconds after a leading trim.
-- Details → Storage: archive device copy, retrieve from cloud, trim first 10s into a mapped trimmed asset.
-- Clips stage: Download exports the current window via the existing EDL cutter (no second exporter).
+- Pure EDL helpers: `mapReelToSource`, `deriveTrimMapping`, `contactSourceAfterTrim`, `validateTrimWindow`, `deriveClipDownloadFileName` — prove contacts stay on source-video seconds after a leading trim.
+- Details → Storage: Archive device copy (requires a cloud backup; honest error otherwise), Retrieve from cloud, Trim with start/end in source seconds into a mapped `trimmed` asset (ffmpeg one-segment path via `exportReel` → kind update). Tags are not rewritten.
+- Clips / Work-on stage: Download exports the current window (whole rally by default) via the existing EDL cutter and triggers a browser file download.
 
 **Rationale:** Cutting or archiving must not move tags onto the wrong ball; file clocks map through segments back to source time.
 
@@ -6990,6 +7003,7 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v3.45.0 | 2026-11-12 | Review scopes: match / tournament / opponent / all; scoped clips reuse |
 | v3.44.0 | 2026-11-12 | Trim/archive video assets with source-time map; clip Download via EDL |
 | v3.43.0 | 2026-11-12 | Library nav: Matches + Training stub; remove Clubs/Players/Tournaments/Analytics/Data viewer from path |
 | v3.42.0 | 2026-11-12 | Account gate + focal-player scope for library/review/tagging |

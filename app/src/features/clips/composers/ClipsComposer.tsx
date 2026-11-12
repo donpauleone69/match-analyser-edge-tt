@@ -64,13 +64,15 @@ const STAGE_LABEL: Record<ReelExportProgress['stage'], string> = {
 export interface ClipsComposerProps {
   /** One match (Match Review tab) or null for every match */
   matchId?: string | null
+  /** When set with matchId null, limit the library to these match ids (scope review). */
+  matchIds?: string[] | null
   embedded?: boolean
 }
 
-export function ClipsComposer({ matchId = null, embedded = false }: ClipsComposerProps) {
+export function ClipsComposer({ matchId = null, matchIds = null, embedded = false }: ClipsComposerProps) {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
-  const { data, isLoading, error, refresh } = useDeriveClipLibrary(matchId)
+  const { data, isLoading, error, refresh } = useDeriveClipLibrary(matchId, matchIds)
   const cloudUser = useCloudStore((s) => s.user)
   const playerRef = useRef<VideoPlayerHandle>(null)
   const isPlaying = useVideoPlaybackStore((s) => s.isPlaying)

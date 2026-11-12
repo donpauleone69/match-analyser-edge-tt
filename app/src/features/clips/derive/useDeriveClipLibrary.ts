@@ -33,7 +33,7 @@ function firstName(p: DBPlayer | undefined, fallback: string): string {
   return p?.first_name || fallback
 }
 
-export function useDeriveClipLibrary(matchId: string | null) {
+export function useDeriveClipLibrary(matchId: string | null, matchIds?: string[] | null) {
   const { players, load: loadPlayers } = usePlayerStore()
   const profile = useCloudStore((state) => state.profile)
   const [inputs, setInputs] = useState<ClipMatchInput[] | null>(null)
@@ -41,6 +41,7 @@ export function useDeriveClipLibrary(matchId: string | null) {
   const [reels, setReels] = useState<ReelRowModel[]>([])
   const [error, setError] = useState<string | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
+  const matchIdsKey = matchIds?.slice().sort().join(',') ?? ''
 
   useEffect(() => {
     loadPlayers()
@@ -53,7 +54,11 @@ export function useDeriveClipLibrary(matchId: string | null) {
     ;(async () => {
       try {
         const candidates = matchId ? [await matchDb.getById(matchId)].filter(Boolean) : await matchDb.getAll()
-        const matches = deriveAccountScope(profile, candidates.filter((match): match is NonNullable<typeof match> => Boolean(match))).matches
+        let matches = deriveAccountScope(profile, candidates.filter((match): match is NonNullable<typeof match> => Boolean(match))).matches
+        if (matchIds && matchIds.length > 0) {
+          const allow = new Set(matchIds)
+          matches = matches.filter((m) => allow.has(m.id))
+        }
         const complete = await Promise.all(matches.map((m) => matchDb.getCompleteMatchData(m!.id)))
         const loaded = complete.filter((c): c is NonNullable<typeof c> => Boolean(c) && c!.rallies.length > 0)
         const scopedMatchIds = new Set(matches.map((match) => match.id))
@@ -84,7 +89,7 @@ export function useDeriveClipLibrary(matchId: string | null) {
     return () => {
       active = false
     }
-  }, [matchId, reloadKey, profile])
+  }, [matchId, matchIdsKey, reloadKey, profile])
 
   const data = useMemo<ClipLibraryData | null>(() => {
     if (!inputs) return null

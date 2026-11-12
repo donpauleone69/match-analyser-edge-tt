@@ -386,9 +386,12 @@ The older menu outside tagging and last night’s review may be removed or repla
 - Numbers and playlists come from `rules/` over the matches in scope. A test builds a tiny set of matches and checks that a tournament scope includes those matches and excludes another tournament, and that an opponent scope includes only matches against that player.
 - A match with no tournament still appears in “all of mine” and in an opponent scope, and does not appear in a tournament scope.
 
-**UX bet.**
+**UX bet.** From a match review or Library → All of mine, pick a scope (this match / tournament / opponent / all). Clips for that scope use the existing Clips UI filtered to those matches. Work on lists the scoped matches’ evidence entry points. Same first-person framing.
 
 **Test cases.**
+
+- **Functional:** tournament / opponent / all / no-tournament fixtures as in done-when.
+- **Browser:** scope control reachable; auth may still block.
 
 **Functional check.** The scope test above.
 
@@ -396,7 +399,9 @@ The older menu outside tagging and last night’s review may be removed or repla
 
 **Out of scope.** New card dashboards. Style/attribute analysis. Federations as a product.
 
-**Result / Critique.**
+**Result (coordinator).** Pure `filterMatchesByScope` 5/5 tests. `/review` ScopeReviewComposer + ScopeControl on Match Review and Library. ClipsComposer accepts `matchIds` for scoped playlists. Browser auth-blocked.
+
+**Critique.** **Keep** scope rule + control + reuse of Clips. **Change:** none. **Next:** richer combined Work on narrative across matches when auth allows UX polish.
 
 ### F — Training posts, compared over time
 

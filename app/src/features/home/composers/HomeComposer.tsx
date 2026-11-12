@@ -64,6 +64,9 @@ export function HomeComposer() {
           )}
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button variant="secondary" onClick={() => navigate('/review?scope=all')}>
+            <Icon name="film" size="sm" /> All of mine
+          </Button>
           <Button variant="secondary" onClick={() => navigate('/training')}>
             <Icon name="target" size="sm" /> Training
           </Button>
