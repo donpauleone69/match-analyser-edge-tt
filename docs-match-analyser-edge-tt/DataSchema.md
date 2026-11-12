@@ -59,7 +59,7 @@ Clips are ordinary `video_assets` stored under synthetic `match_id` `training:{p
 
 ## Account Scope Metadata
 
-Cloud authentication remains the only account system. Each authenticated Supabase user has a small local profile stored under `edge-tt-account-profile:{authUserId}`:
+Access is still one account model (focal player / coach). Cloud sign-in uses Supabase when reachable. For local / LAN testing, a **local device session** (`user id` `local-device`, flag `edge-tt-local-device-session`) unlocks the same gate without Supabase. Both session kinds store the same profile under `edge-tt-account-profile:{userId}`:
 
 ```typescript
 interface AccountProfile {
@@ -69,7 +69,7 @@ interface AccountProfile {
 }
 ```
 
-This is account preference metadata, not a Dexie domain entity and not a login credential. A player account resolves to `linkedPlayerId`; a coach resolves to `selectedFocalPlayerId`. The resolved focal player scopes the library to matches where `match.player1_id` is that recorded hero. Switching scope never updates matches, rallies, or shots.
+This is account preference metadata, not a Dexie domain entity and not a login credential. A player account resolves to `linkedPlayerId`; a coach resolves to `selectedFocalPlayerId`. The resolved focal player scopes the library to matches where `match.player1_id` is that recorded hero. Switching scope never updates matches, rallies, or shots. Local device sessions do not cloud-sync.
 
 ---
 
@@ -625,6 +625,11 @@ CREATE INDEX idx_shots_wing ON shots(wing);
 ---
 
 ## Changelog
+
+### 2026-11-12 — Local device session for LAN / offline gate (no Dexie bump)
+- Added optional local device session (`local-device`) that reuses `AccountProfile` + `deriveAccountScope`.
+- Cloud Supabase sign-in remains available; auth calls fail fast so create-account cannot hang on unreachable LAN loopback rewrite.
+- Empty Dexie can seed a `Local Player` so first visit is not stuck on “Select player…”.
 
 ### 2026-11-12 — Account and focal-player scope (no Dexie bump)
 - Added local `AccountProfile`, keyed by the authenticated Supabase user id.

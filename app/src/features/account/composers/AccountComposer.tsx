@@ -16,12 +16,14 @@ export function AccountComposer() {
     configured,
     ready,
     user,
+    sessionKind,
     profile,
     busy,
     error,
     lastSync,
     signIn,
     signUp,
+    continueOnThisDevice,
     signOut,
     setAccountRole,
     setLinkedPlayer,
@@ -30,6 +32,7 @@ export function AccountComposer() {
   } = useCloudStore()
   const loadMatches = useMatchStore((s) => s.load)
   const { players, load: loadPlayers } = usePlayerStore()
+  const createPlayer = usePlayerStore((s) => s.create)
   const [storage, setStorage] = useState<{ usage: number; quota: number; persisted: boolean } | null>(null)
   const [fileNotice, setFileNotice] = useState<{ tone: 'good' | 'bad'; text: string } | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -38,6 +41,22 @@ export function AccountComposer() {
     getStorageEstimate().then(setStorage)
     loadPlayers()
   }, [loadPlayers])
+
+  const ensurePlayerList = async () => {
+    await loadPlayers()
+    const list = usePlayerStore.getState().players
+    if (list.length > 0) return list
+    const created = await createPlayer({
+      first_name: 'Local',
+      last_name: 'Player',
+      handedness: 'right',
+      playstyle: null,
+      club_id: null,
+      is_archived: false,
+    })
+    await loadPlayers()
+    return created ? usePlayerStore.getState().players : usePlayerStore.getState().players
+  }
 
   const focalPlayerId =
     profile?.role === 'player' ? profile.linkedPlayerId : profile?.selectedFocalPlayerId
@@ -80,29 +99,43 @@ export function AccountComposer() {
           </div>
         </div>
 
-        {!configured ? (
-          <p className="text-sm text-amber-300">
-            Account sign-in is unavailable because this copy has no Supabase URL configured. Library, tagging and review
-            stay locked until cloud authentication is configured.
-          </p>
-        ) : !ready ? (
+        {!ready ? (
           <p className="text-sm text-neutral-400">Checking sign-in…</p>
         ) : !user ? (
-          <SignInFormBlock busy={busy} error={error} onSignIn={signIn} onSignUp={signUp} />
+          <SignInFormBlock
+            busy={busy}
+            error={error}
+            cloudAvailable={configured}
+            onSignIn={signIn}
+            onSignUp={signUp}
+            onContinueOnThisDevice={() => {
+              void continueOnThisDevice().then((ok) => {
+                if (ok) void loadPlayers()
+              })
+            }}
+          />
         ) : (
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-3">
               <span className="flex items-center gap-2 rounded-full bg-emerald-950 px-3 py-1 text-sm text-emerald-300">
-                <Icon name="user" size="sm" /> {user.email}
+                <Icon name="user" size="sm" />{' '}
+                {sessionKind === 'local' ? 'Local device session' : user.email}
               </span>
-              <Button onClick={handleSync} disabled={busy}>
-                <Icon name={busy ? 'loader' : 'refresh'} size="sm" className={busy ? 'animate-spin' : undefined} />
-                Sync now
-              </Button>
+              {sessionKind === 'cloud' && (
+                <Button onClick={handleSync} disabled={busy}>
+                  <Icon name={busy ? 'loader' : 'refresh'} size="sm" className={busy ? 'animate-spin' : undefined} />
+                  Sync now
+                </Button>
+              )}
               <Button variant="secondary" onClick={signOut} disabled={busy}>
-                <Icon name="log-out" size="sm" /> Sign out
+                <Icon name="log-out" size="sm" /> {sessionKind === 'local' ? 'Leave device session' : 'Sign out'}
               </Button>
             </div>
+            {sessionKind === 'local' && (
+              <p className="text-sm text-neutral-400">
+                This browser keeps your library locally. Cloud backup stays available when you sign in with Supabase.
+              </p>
+            )}
             {error && <p className="text-sm text-rose-400">{error}</p>}
             {lastSync && (
               <p className="text-sm text-neutral-400">
@@ -129,10 +162,20 @@ export function AccountComposer() {
 
               {!profile?.role ? (
                 <div className="flex flex-wrap gap-2">
-                  <Button variant="secondary" onClick={() => setAccountRole('player')}>
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      void ensurePlayerList().then(() => setAccountRole('player'))
+                    }}
+                  >
                     I am the player
                   </Button>
-                  <Button variant="secondary" onClick={() => setAccountRole('coach')}>
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      void ensurePlayerList().then(() => setAccountRole('coach'))
+                    }}
+                  >
                     I am a coach
                   </Button>
                 </div>
@@ -157,6 +200,17 @@ export function AccountComposer() {
                       ))}
                     </select>
                   </label>
+                  {players.length === 0 && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => {
+                        void ensurePlayerList()
+                      }}
+                    >
+                      Create Local Player
+                    </Button>
+                  )}
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="text-sm text-neutral-400">
                       {focalPlayer

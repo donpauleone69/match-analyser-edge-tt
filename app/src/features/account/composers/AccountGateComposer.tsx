@@ -13,7 +13,7 @@ interface AccountGateComposerProps {
 export function AccountGateComposer({ children }: AccountGateComposerProps) {
   const location = useLocation()
   const navigate = useNavigate()
-  const { configured, ready, user, profile } = useCloudStore()
+  const { ready, user, profile } = useCloudStore()
   const [routeMatch, setRouteMatch] = useState<DBMatch | null | undefined>(undefined)
   const rawMatchSegment = location.pathname.match(/^\/matches\/([^/]+)/)?.[1] ?? null
   const matchId =
@@ -39,14 +39,16 @@ export function AccountGateComposer({ children }: AccountGateComposerProps) {
     return <p className="p-6 text-neutral-400">Checking account…</p>
   }
 
-  if (!configured || !user || scope.status !== 'ready') {
+  // Cloud auth or a local device session both unlock the same AccountProfile scope.
+  if (!user || scope.status !== 'ready') {
     return (
       <main className="min-h-dvh bg-bg-shell p-4 md:p-8">
         <div className="mx-auto max-w-3xl space-y-4">
           <Card className="p-5">
             <h1 className="text-2xl font-bold text-neutral-50">Account required</h1>
             <p className="mt-2 text-sm text-neutral-400">
-              Sign in and choose the player whose library you are reviewing to continue to {location.pathname}.
+              Sign in, or continue on this device, then choose the player whose library you are reviewing to continue to{' '}
+              {location.pathname}.
             </p>
           </Card>
           <AccountComposer />
