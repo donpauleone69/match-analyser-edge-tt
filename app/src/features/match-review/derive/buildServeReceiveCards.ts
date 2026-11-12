@@ -74,7 +74,7 @@ function row(spec: RowSpec, names: Names): CompareRowModel {
   return {
     key: spec.key,
     label: spec.label,
-    hero: cellOf(hero, tones.hero, spec.evidenceTitle(names.heroName)),
+    hero: cellOf(hero, tones.hero, spec.evidenceTitle('You')),
     villain: cellOf(villain, tones.villain, spec.evidenceTitle(names.villainName)),
   }
 }
@@ -267,14 +267,14 @@ export function buildServeReceiveSections(story: ServeReceiveResult, names: Name
   return [
     {
       id: 'B',
-      title: 'Serve',
-      question: 'Is my serve effective? Does it win points, force mistakes and set up my attack, or does it get punished?',
+      title: 'Your serve',
+      question: 'Is your serve effective? Does it win points, force mistakes and set up your attack, or get punished?',
       cards: buildServeCards(story, names),
     },
     {
       id: 'C',
-      title: 'Receive',
-      question: 'How do I choose to receive, attack or passive, and how well does each work?',
+      title: 'Your receive',
+      question: 'How do you choose to receive — attack or passive — and how well does each work?',
       cards: buildReceiveCards(story, names),
     },
   ]

@@ -37,6 +37,7 @@ export type {
   DBMatch,
   NewMatch,
   MatchRound,
+  MatchDateSource,
   TaggingMode,
   BestOf,
 } from './entities/matches'

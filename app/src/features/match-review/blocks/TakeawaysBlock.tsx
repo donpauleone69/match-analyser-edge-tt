@@ -22,7 +22,7 @@ export function TakeawaysBlock({ takeaways, onOpenEvidence }: TakeawaysBlockProp
   if (takeaways.length === 0) return null
   return (
     <Card className="p-4 md:p-5 border border-neutral-700">
-      <h2 className="text-lg font-semibold text-neutral-50">What this match says</h2>
+      <h2 className="text-lg font-semibold text-neutral-50">What this match says about you</h2>
       <ul className="mt-3 space-y-2">
         {takeaways.map((t) => (
           <li key={t.key} className="flex items-start gap-3">

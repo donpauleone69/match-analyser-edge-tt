@@ -88,19 +88,22 @@ export function deriveClipPresets(matches: ClipMatchInput[], names: ClipPresetNa
     filter,
   })
 
+  // First-person for the hero; opponent keeps a name (or "Them").
+  const you = 'You'
+  const them = names.villain
   const candidates: ClipPreset[] = [
-    make('work-on', `${names.hero} · all technical review`, { kind: 'review', side: 'hero', reviewKind: 'technical' }),
+    make('work-on', `${you} · all technical review`, { kind: 'review', side: 'hero', reviewKind: 'technical' }),
     ...reviewPatterns(matches, 'technical'),
-    make('work-on', `${names.hero} · all tactical review`, { kind: 'review', side: 'hero', reviewKind: 'tactical' }),
+    make('work-on', `${you} · all tactical review`, { kind: 'review', side: 'hero', reviewKind: 'tactical' }),
     ...reviewPatterns(matches, 'tactical'),
     make('highlights', 'Highlights', { kind: 'highlights' }),
-    make('attack', `${names.hero} · opening attacks`, { kind: 'opening', side: 'hero' }),
-    make('attack', `${names.hero} · opening attacks lost`, { kind: 'opening', side: 'hero', outcome: 'lost' }),
-    make('attack', `${names.villain} · opening attacks`, { kind: 'opening', side: 'villain' }),
-    make('points', `${names.hero} · errors`, { kind: 'errors', side: 'hero' }),
-    make('points', `${names.hero} · winners`, { kind: 'winners', side: 'hero' }),
-    make('points', `${names.hero} · points lost on serve`, { kind: 'serve', side: 'hero', outcome: 'lost' }),
-    make('points', `${names.villain} · winners`, { kind: 'winners', side: 'villain' }),
+    make('attack', `${you} · opening attacks`, { kind: 'opening', side: 'hero' }),
+    make('attack', `${you} · opening attacks lost`, { kind: 'opening', side: 'hero', outcome: 'lost' }),
+    make('attack', `${them} · opening attacks`, { kind: 'opening', side: 'villain' }),
+    make('points', `${you} · errors`, { kind: 'errors', side: 'hero' }),
+    make('points', `${you} · winners`, { kind: 'winners', side: 'hero' }),
+    make('points', `${you} · points lost on serve`, { kind: 'serve', side: 'hero', outcome: 'lost' }),
+    make('points', `${them} · winners`, { kind: 'winners', side: 'villain' }),
   ]
 
   const seen = new Set<string>()

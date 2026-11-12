@@ -28,6 +28,11 @@ export interface DBVideoAsset {
   duration_s: number | null
   width: number | null
   height: number | null
+  /**
+   * Browser File.lastModified at pick time (ms). OPFS rewrite loses original
+   * lastModified — persist here so match date can stay honest without fake EXIF.
+   */
+  file_last_modified_ms?: number | null
   /** sha-256 of size + first and last MiB — identifies the file across devices */
   fingerprint: string | null
 

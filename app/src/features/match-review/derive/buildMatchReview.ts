@@ -27,6 +27,7 @@ import { calculateRallyHighlights } from '@/rules/analytics/calculateRallyHighli
 import { deriveCompareTone, type ComparePolarity } from '@/rules/analytics/deriveCompareTone'
 import { deriveSetTaggingStatus } from '@/rules/derive/set/deriveSetTaggingStatus'
 import { isErrorEnding } from '@/rules/derive/rally/derivePointEndClass'
+import { matchDateSourceLabel, matchRoundLabel } from '@/rules/matchContext'
 import type {
   CompareCardModel,
   CompareRowModel,
@@ -69,6 +70,7 @@ const ENDING_LABEL: Record<PointEnding, string> = {
   error_net: 'In-Net',
   error_long: 'Long',
   error_wide: 'Wide',
+  error_air: 'Air',
 }
 
 export const MISS_REASON_LABEL: Record<MissReasonKey, string> = {
@@ -152,7 +154,8 @@ function row(spec: RowSpec, names: Names): CompareRowModel {
   return {
     key: spec.key,
     label: spec.label,
-    hero: cell(spec.hero, tones.hero, spec, names.heroName),
+    // First-person evidence titles: "You · errors", not the hero display name
+    hero: cell(spec.hero, tones.hero, spec, 'You'),
     villain: cell(spec.villain, tones.villain, spec, names.villainName),
   }
 }
@@ -550,14 +553,14 @@ export function buildTakeaways(
       key: 'errors',
       tone: 'bad',
       text: `You gave away ${he.count} points on errors (${pct(he.share)} of all points) — ${names.villainName} gave away ${ve.count}.`,
-      evidence: evidence(`${names.heroName} · errors`, he.rallyIds),
+      evidence: evidence('You · errors', he.rallyIds),
     })
   } else if (ve.share - he.share >= 0.1) {
     out.push({
       key: 'errors',
       tone: 'good',
       text: `You kept errors down: ${he.count} vs ${ve.count} from ${names.villainName}.`,
-      evidence: evidence(`${names.heroName} · errors`, he.rallyIds),
+      evidence: evidence('You · errors', he.rallyIds),
     })
   }
 
@@ -568,7 +571,7 @@ export function buildTakeaways(
       key: 'serve',
       tone,
       text: `You won ${serve.count} of ${serve.denominator} points on your serve (${pct(serve.share)}).`,
-      evidence: evidence(`${names.heroName} · on serve`, serve.denominatorRallyIds ?? [], 'Every point you served — won and lost.'),
+      evidence: evidence('You · on serve', serve.denominatorRallyIds ?? [], 'Every point you served — won and lost.'),
     })
   }
 
@@ -579,7 +582,7 @@ export function buildTakeaways(
       key: 'attack',
       tone: conv.share >= 0.6 ? 'good' : conv.share < 0.4 ? 'bad' : 'info',
       text: `You attacked first in ${pct(first.share)} of points and won ${pct(conv.share)} of those (${conv.count}/${conv.denominator}).`,
-      evidence: evidence(`${names.heroName} · attacked first`, first.rallyIds),
+      evidence: evidence('You · attacked first', first.rallyIds),
     })
   } else if (attack.attackedFirst.villain.count > 0) {
     out.push({
@@ -599,7 +602,7 @@ export function buildTakeaways(
       key: 'miss',
       tone: 'info',
       text: `Most of your misses were ${MISS_REASON_LABEL[heroMiss].toLowerCase()} (${m.count} of ${m.denominator}).`,
-      evidence: evidence(`${names.heroName} · ${MISS_REASON_LABEL[heroMiss].toLowerCase()} misses`, m.rallyIds),
+      evidence: evidence(`You · ${MISS_REASON_LABEL[heroMiss].toLowerCase()} misses`, m.rallyIds),
     })
   }
 
@@ -857,7 +860,7 @@ export function buildMatchReviewViewModel(
     {
       id: 'A',
       title: 'Match story',
-      question: 'Why did the match end with this score?',
+      question: 'Why did you finish with this score?',
       cards: [
         buildScoreCard(story, names),
         buildEndingCard(story, names),
@@ -871,18 +874,19 @@ export function buildMatchReviewViewModel(
     ),
     {
       id: 'D',
-      title: 'First attack',
-      question: 'When do I attack first, with what, and does it work?',
+      title: 'Your first attack',
+      question: 'When do you attack first, with what, and does it work?',
       cards: [buildTimingCard(attack, names), buildWeaponsCard(attack, names)],
     },
     {
       id: 'F',
-      title: 'Misses',
-      question: 'What kind of error am I making?',
+      title: 'Your misses',
+      question: 'What kind of error are you making?',
       cards: [workOn.missReasons],
     },
   ]
 
+  const source = data.match.match_date_source ?? null
   return {
     heroName,
     villainName,
@@ -901,5 +905,17 @@ export function buildMatchReviewViewModel(
     },
     sets,
     rallies: buildRallyRows(data, names),
+    context: {
+      matchDate: data.match.match_date.slice(0, 10),
+      matchDateSource: source,
+      matchDateSourceLabel: matchDateSourceLabel(source),
+      suggestedVideoDate: null,
+      player1Id: data.match.player1_id,
+      player2Id: data.match.player2_id,
+      tournamentId: data.match.tournament_id,
+      tournamentName: null,
+      round: data.match.round,
+      roundLabel: matchRoundLabel(data.match.round),
+    },
   }
 }

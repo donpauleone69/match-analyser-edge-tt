@@ -15,12 +15,14 @@ export type PointEndClass =
   | 'error_net'
   | 'error_long'
   | 'error_wide'
+  | 'error_air'
 
 export function isErrorEnding(ending: PointEnding): boolean {
   return (
     ending === 'error_net' ||
     ending === 'error_long' ||
-    ending === 'error_wide'
+    ending === 'error_wide' ||
+    ending === 'error_air'
   )
 }
 

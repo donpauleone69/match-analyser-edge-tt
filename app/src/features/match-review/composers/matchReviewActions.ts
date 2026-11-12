@@ -2,10 +2,32 @@
  * Match Review IO actions — the only place Match Review writes data.
  */
 
-import { rallyDb, setDb, type DBMatch, type DBSet } from '@/data'
-import { resolveSetVideo, storeSetVideo } from '@/data/services/videoAssetService'
+import {
+  rallyDb,
+  setDb,
+  linkMatchOpponent,
+  useMatchStore,
+  usePlayerStore,
+  useTournamentStore,
+  type DBMatch,
+  type DBSet,
+  type MatchRound,
+} from '@/data'
+import {
+  maybeApplyMatchDateFromVideo,
+  maybeApplyStoredVideoMatchDate,
+  resolveSetVideo,
+  storeSetVideo,
+  suggestedVideoMatchDate,
+} from '@/data/services/videoAssetService'
 import { resolveOpponentId } from '@/helpers/themSide'
 import { downloadMatchBundle, pullMatch, pushMatch, uploadVideoAsset, type PushResult } from '@/data/cloud'
+
+export {
+  maybeApplyMatchDateFromVideo,
+  maybeApplyStoredVideoMatchDate,
+  suggestedVideoMatchDate,
+}
 
 export async function backUpMatch(matchId: string, force = false): Promise<PushResult> {
   return pushMatch(matchId, { force })
@@ -101,6 +123,130 @@ export async function addNextSet(match: DBMatch, sets: DBSet[]): Promise<DBSet> 
     setup_completed_at: null,
     score_confirmed: null,
   })
-  // create() resets setup fields; the tagger reads the first server from here.
   return setDb.update(created.id, { setup_next_server_id: setFirstServer })
+}
+
+export type MatchContextSaveInput = {
+  matchDate: string
+  player2Id: string | null
+  tournamentId: string | null
+  round: MatchRound | null
+}
+
+/** Soft-fail save for Details context. Returns an error message or null. */
+export async function saveMatchContext(
+  match: DBMatch,
+  input: MatchContextSaveInput
+): Promise<string | null> {
+  try {
+    if (input.player2Id && input.player2Id === match.player1_id) {
+      return 'Opponent must be different from you'
+    }
+
+    const nextOpponent = input.player2Id
+    if (nextOpponent !== match.player2_id) {
+      if (nextOpponent) {
+        await linkMatchOpponent(match.id, nextOpponent)
+        await useMatchStore.getState().load()
+      } else {
+        await useMatchStore.getState().update(match.id, { player2_id: null })
+      }
+    }
+
+    const tournamentId = input.tournamentId
+    const round = tournamentId && input.round ? input.round : null
+    const date = input.matchDate.trim()
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return 'Match date must be YYYY-MM-DD'
+    }
+
+    const dateChanged = date !== match.match_date.slice(0, 10)
+    await useMatchStore.getState().update(match.id, {
+      match_date: date,
+      match_date_source: dateChanged ? 'manual' : match.match_date_source ?? null,
+      tournament_id: tournamentId,
+      round,
+    })
+    return null
+  } catch (err) {
+    console.error('[MatchReview] saveMatchContext failed:', err)
+    return err instanceof Error ? err.message : 'Could not save match context'
+  }
+}
+
+/** Quick-create an opponent player and link them. Returns error or null. */
+export async function createAndLinkOpponent(
+  match: DBMatch,
+  firstName: string,
+  lastName: string
+): Promise<string | null> {
+  const first = firstName.trim()
+  const last = lastName.trim()
+  if (!first) return 'Opponent needs a first name'
+  try {
+    const player = await usePlayerStore.getState().create({
+      first_name: first,
+      last_name: last || first,
+      handedness: 'right',
+      playstyle: null,
+      club_id: null,
+      is_archived: false,
+    })
+    await linkMatchOpponent(match.id, player.id)
+    await useMatchStore.getState().load()
+    return null
+  } catch (err) {
+    console.error('[MatchReview] createAndLinkOpponent failed:', err)
+    return err instanceof Error ? err.message : 'Could not create opponent'
+  }
+}
+
+/** Optional quick tournament create (name only). */
+export async function createTournamentForMatch(
+  name: string,
+  startDate: string
+): Promise<{ id: string } | { error: string }> {
+  const trimmed = name.trim()
+  if (!trimmed) return { error: 'Tournament needs a name' }
+  try {
+    const tournament = await useTournamentStore.getState().create({
+      name: trimmed,
+      location: null,
+      start_date: startDate,
+      end_date: null,
+      tournament_type: 'club',
+      tournament_host_club_id: null,
+      notes: null,
+    })
+    return { id: tournament.id }
+  } catch (err) {
+    console.error('[MatchReview] createTournamentForMatch failed:', err)
+    return { error: err instanceof Error ? err.message : 'Could not create tournament' }
+  }
+}
+
+/** Apply a suggested video date from Details (clears a prior manual lock). */
+export async function applySuggestedVideoDate(
+  matchId: string,
+  suggestedDate: string
+): Promise<string | null> {
+  try {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(suggestedDate)) return 'Invalid video date'
+    await useMatchStore.getState().update(matchId, {
+      match_date: suggestedDate,
+      match_date_source: 'video',
+    })
+    return null
+  } catch (err) {
+    console.error('[MatchReview] applySuggestedVideoDate failed:', err)
+    return err instanceof Error ? err.message : 'Failed to apply video date'
+  }
+}
+
+/**
+ * On Details open: if date isn't manual and a stored video lastModified exists,
+ * apply it once. Soft-fail.
+ */
+export async function applyStoredVideoMatchDateIfNeeded(matchId: string): Promise<boolean> {
+  return maybeApplyStoredVideoMatchDate(matchId)
 }

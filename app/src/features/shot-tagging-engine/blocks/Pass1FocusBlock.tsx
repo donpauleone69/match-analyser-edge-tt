@@ -1,11 +1,9 @@
 /**
- * Pass 1 Focus — minimal shot pills for the first-pass capture.
+ * Pass 1 Focus — shot pills for first-pass capture (Match Review aesthetic).
  *
- * Which pills a shot shows is decided by `derivePass1ShotTagAllowList`
- * (the same allow-list the save mapper uses) — never by local role logic.
- * Technical review also forces wing + stroke on that shot.
- *
- * First attack: "No first attack" default + alternating shot-number buttons.
+ * Allow-list from `derivePass1ShotTagAllowList`. First attack only from the
+ * dedicated row. Review = single “tag to view” row under first attack;
+ * Technical/Tactical optional when a shot is selected. Live contact outlined.
  */
 
 import type { ReactNode } from 'react'
@@ -42,9 +40,12 @@ export interface Pass1FocusBlockProps {
   state: RallyTimelineState
   players: [string, string]
   server: string
-  /** Shot whose contact the loop is currently on. */
+  /** Shot whose contact the loop is currently on (outlined). */
   activeShot?: number | null
-  /** When true, rows from shot 2 are tappable to set the first attack. */
+  /** Shot selected for optional tags / review kind. */
+  selectedShot?: number | null
+  onSelectShot?: (n: number) => void
+  /** @deprecated First attack is only set from the dedicated row. */
   fosPickMode?: boolean
   onToggleShotChoice: (n: number, key: ShotChoiceKey, value: string) => void
   onToggleAttribute: (n: number, key: ShotAttributeKey) => void
@@ -56,10 +57,11 @@ export interface Pass1FocusBlockProps {
   onToggleEnding: (value: PointEnding) => void
   onToggleMissReason: (value: PointMissReason) => void
   onToggleReviewKind: (n: number, value: ShotReviewKind) => void
+  onToggleReviewFlag: (n: number) => void
   className?: string
 }
 
-type PillKind = 'wing' | 'stroke' | 'fos' | 'end' | 'standing'
+type PillKind = 'wing' | 'stroke' | 'fos' | 'end' | 'standing' | 'review'
 
 const PILL_COLOR: Record<PillKind, string> = {
   wing: '#477eae',
@@ -67,18 +69,19 @@ const PILL_COLOR: Record<PillKind, string> = {
   fos: '#329985',
   end: '#758596',
   standing: '#ae823e',
+  review: '#c4a035',
 }
 
 const PHASE_ROW: Record<RallyPhase, { odd: string; even: string }> = {
-  opening: { odd: 'bg-[#f1f5f7]', even: 'bg-[#e7eef2]' },
-  ball: { odd: 'bg-[#faf6ef]', even: 'bg-[#f3ecdf]' },
-  fos: { odd: 'bg-[#f0f7f4]', even: 'bg-[#e4f1ec]' },
-  reply: { odd: 'bg-[#f3f7fb]', even: 'bg-[#e7eef6]' },
-  next: { odd: 'bg-[#f4f7f9]', even: 'bg-[#e8eef2]' },
-  after: { odd: 'bg-[#f5f2f8]', even: 'bg-[#ece8f3]' },
+  opening: { odd: 'bg-neutral-900/80', even: 'bg-neutral-900/50' },
+  ball: { odd: 'bg-amber-950/25', even: 'bg-amber-950/15' },
+  fos: { odd: 'bg-emerald-950/30', even: 'bg-emerald-950/20' },
+  reply: { odd: 'bg-sky-950/25', even: 'bg-sky-950/15' },
+  next: { odd: 'bg-neutral-900/70', even: 'bg-neutral-900/40' },
+  after: { odd: 'bg-violet-950/25', even: 'bg-violet-950/15' },
 }
 
-const SERVE_ROW_BG = 'bg-[#f7f0e6]'
+const SERVE_ROW_BG = 'bg-amber-950/30'
 const SERVE_STRIPE = '#c4a574'
 
 const PHASE_GROUP: Record<RallyPhase, string> = {
@@ -114,7 +117,7 @@ function TimelinePill({
       }}
       className={cn(
         'inline-flex flex-none items-center justify-center',
-        'h-7 whitespace-nowrap rounded-full border text-[11px] font-semibold',
+        'h-7 whitespace-nowrap rounded-md border text-[11px] font-semibold',
         'px-2 cursor-pointer',
         'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-500',
         className
@@ -122,7 +125,7 @@ function TimelinePill({
       style={
         selected
           ? { backgroundColor: color, borderColor: color, color: '#fff' }
-          : { backgroundColor: '#fff', borderColor: color, color: '#34424e' }
+          : { backgroundColor: 'transparent', borderColor: '#525252', color: '#d4d4d4' }
       }
     >
       {label}
@@ -130,16 +133,10 @@ function TimelinePill({
   )
 }
 
-function ChoiceRow({
-  label,
-  children,
-}: {
-  label: string
-  children: ReactNode
-}) {
+function ChoiceRow({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="w-full min-w-0" aria-label={label}>
-      <div className="text-[8px] font-bold uppercase tracking-wide text-neutral-400 leading-none mb-px">
+      <div className="text-[8px] font-bold uppercase tracking-wide text-neutral-500 leading-none mb-px">
         {label}
       </div>
       <div className="flex gap-1 items-center flex-nowrap w-full min-w-0">{children}</div>
@@ -231,27 +228,34 @@ export function Pass1FocusBlock({
   players,
   server,
   activeShot = null,
-  fosPickMode = false,
+  selectedShot = null,
+  onSelectShot,
   onToggleShotChoice,
   onToggleAttribute,
   onMarkFos,
-  onChangeFos,
+  onChangeFos: _onChangeFos,
   onNoAttack,
   onCancelFosPick: _onCancelFosPick,
   onMarkEnd,
   onToggleEnding,
   onToggleMissReason,
   onToggleReviewKind,
+  onToggleReviewFlag,
   className,
 }: Pass1FocusBlockProps) {
   const visible = visibleShotNumbers(state.shotCount, state.end)
 
   return (
     <section
-      className={cn('bg-white text-[#253341] min-w-0 w-full px-1.5 py-1', className)}
+      className={cn('bg-bg-card text-neutral-100 min-w-0 w-full px-1.5 py-1 border-t border-neutral-800', className)}
       aria-label="Pass 1 focus"
     >
       <FirstAttackPicker state={state} onMarkFos={onMarkFos} onNoAttack={onNoAttack} />
+      <ReviewFlagRow
+        state={state}
+        onToggleReviewFlag={onToggleReviewFlag}
+        onSelectShot={onSelectShot}
+      />
       <div className="flex flex-col gap-1">
         {visible.map((n) => {
           const shot = state.shots[n]
@@ -261,7 +265,10 @@ export function Pass1FocusBlock({
           const allow = derivePass1ShotTagAllowList(n, state.fos, state.end)
           const role = derivePass1ShotTagRole(n, state.fos, state.end)
           const forceTechnical = shot.reviewKind === 'technical'
-          const showShotType = (allow.shot_wing && allow.shot_stroke) || forceTechnical
+          const isSelected = selectedShot === n
+          const showShotType =
+            ((allow.shot_wing && allow.shot_stroke) || forceTechnical) &&
+            (isSelected || allow.shot_wing || allow.shot_stroke || forceTechnical)
 
           const phase = phaseAt(n, state)
           const prior = n > 1 ? phaseAt(n - 1, state) : null
@@ -278,7 +285,6 @@ export function Pass1FocusBlock({
           const stripeColor = isServe ? SERVE_STRIPE : isPre ? PHASE_META.ball.stripe : meta.stripe
           const showPhaseMark = n === 1 || phaseName !== priorName
 
-          // Stroke list follows the role: first attack > end shot > reply.
           const strokes: readonly string[] =
             role === 'first_attack'
               ? ATTACK_STROKE_OPTIONS
@@ -286,11 +292,19 @@ export function Pass1FocusBlock({
                 ? END_STROKE_OPTIONS
                 : REPLY_STROKE_OPTIONS
 
+          const showOptional =
+            isSelected &&
+            (allow.shot_is_high ||
+              allow.shot_is_safe ||
+              allow.shot_initiative ||
+              showShotType ||
+              shot.reviewKind !== null)
+
           return (
             <div key={n}>
               {showPhaseMark && (
                 <div
-                  className="flex gap-1.5 items-center mt-1 mb-0.5 first:mt-0 text-[9px] font-bold text-neutral-400 tracking-wide"
+                  className="flex gap-1.5 items-center mt-1 mb-0.5 first:mt-0 text-[9px] font-bold text-neutral-500 tracking-wide"
                   aria-label={phaseName}
                 >
                   <span
@@ -298,7 +312,7 @@ export function Pass1FocusBlock({
                     style={{ background: stripeColor }}
                   />
                   <span>{phaseName}</span>
-                  <span className="flex-1 min-w-2 h-px bg-neutral-200" />
+                  <span className="flex-1 min-w-2 h-px bg-neutral-700" />
                 </div>
               )}
 
@@ -309,14 +323,25 @@ export function Pass1FocusBlock({
                 rowBg={rowBg}
                 stripeColor={stripeColor}
                 active={activeShot === n}
+                selected={isSelected}
                 isServe={isServe}
                 isFos={state.fos === n}
-                fosPickMode={fosPickMode}
+                flagged={shot.reviewKind !== null}
                 summary={getShotSummary(n, shot)}
-                onMarkFos={onMarkFos}
-                onChangeFos={onChangeFos}
+                onSelect={() => onSelectShot?.(n)}
               >
-                {allow.shot_is_high && (
+                {/* Always-visible role tags when allow-list requires them (first attack / end) */}
+                {!isSelected && (allow.shot_wing && allow.shot_stroke) && (
+                  <ShotTypeRow
+                    n={n}
+                    shot={shot}
+                    strokes={strokes}
+                    showPivot={allow.shot_is_pivot}
+                    onToggleShotChoice={onToggleShotChoice}
+                    onToggleAttribute={onToggleAttribute}
+                  />
+                )}
+                {!isSelected && allow.shot_is_high && (
                   <ChoiceRow label="Ball">
                     <TimelinePill
                       kind="standing"
@@ -326,23 +351,7 @@ export function Pass1FocusBlock({
                     />
                   </ChoiceRow>
                 )}
-
-                {showShotType && (
-                  <ShotTypeRow
-                    n={n}
-                    shot={shot}
-                    strokes={
-                      forceTechnical && !allow.shot_stroke
-                        ? END_STROKE_OPTIONS
-                        : strokes
-                    }
-                    showPivot={allow.shot_is_pivot || forceTechnical}
-                    onToggleShotChoice={onToggleShotChoice}
-                    onToggleAttribute={onToggleAttribute}
-                  />
-                )}
-
-                {allow.shot_is_safe && (
+                {!isSelected && allow.shot_is_safe && (
                   <ChoiceRow label="Attribute">
                     <TimelinePill
                       kind="standing"
@@ -352,37 +361,13 @@ export function Pass1FocusBlock({
                     />
                   </ChoiceRow>
                 )}
-
-                {allow.shot_initiative && (
-                  <InitiativeRow
-                    n={n}
-                    shot={shot}
-                    onToggleShotChoice={onToggleShotChoice}
-                  />
+                {!isSelected && allow.shot_initiative && (
+                  <InitiativeRow n={n} shot={shot} onToggleShotChoice={onToggleShotChoice} />
                 )}
-
-                <ChoiceRow label="Review">
-                  <div className="flex flex-1 min-w-0 flex-wrap gap-1">
-                    {REVIEW_KIND_OPTIONS.map(({ value, label }) => (
-                      <TimelinePill
-                        key={value}
-                        kind="standing"
-                        label={label}
-                        selected={shot.reviewKind === value}
-                        onClick={() => onToggleReviewKind(n, value)}
-                      />
-                    ))}
-                  </div>
-                </ChoiceRow>
 
                 {(state.end === null || isEnd) && (
                   <ChoiceRow label="Result">
-                    <TimelinePill
-                      kind="end"
-                      label="End"
-                      selected={isEnd}
-                      onClick={() => onMarkEnd(n)}
-                    />
+                    <TimelinePill kind="end" label="End" selected={isEnd} onClick={() => onMarkEnd(n)} />
                     {isEnd && (
                       <div className="flex flex-1 min-w-0 flex-wrap justify-end gap-1">
                         {ENDING_OPTIONS.map(({ value, label }) => (
@@ -414,6 +399,59 @@ export function Pass1FocusBlock({
                     </div>
                   </ChoiceRow>
                 )}
+
+                {showOptional && (
+                  <>
+                    {allow.shot_is_high && (
+                      <ChoiceRow label="Ball">
+                        <TimelinePill
+                          kind="standing"
+                          label="High"
+                          selected={shot.isHigh}
+                          onClick={() => onToggleAttribute(n, 'isHigh')}
+                        />
+                      </ChoiceRow>
+                    )}
+                    {showShotType && (
+                      <ShotTypeRow
+                        n={n}
+                        shot={shot}
+                        strokes={
+                          forceTechnical && !allow.shot_stroke ? END_STROKE_OPTIONS : strokes
+                        }
+                        showPivot={allow.shot_is_pivot || forceTechnical}
+                        onToggleShotChoice={onToggleShotChoice}
+                        onToggleAttribute={onToggleAttribute}
+                      />
+                    )}
+                    {allow.shot_is_safe && (
+                      <ChoiceRow label="Attribute">
+                        <TimelinePill
+                          kind="standing"
+                          label="Safe"
+                          selected={shot.isSafe}
+                          onClick={() => onToggleAttribute(n, 'isSafe')}
+                        />
+                      </ChoiceRow>
+                    )}
+                    {allow.shot_initiative && (
+                      <InitiativeRow n={n} shot={shot} onToggleShotChoice={onToggleShotChoice} />
+                    )}
+                    <ChoiceRow label="Review kind">
+                      <div className="flex flex-1 min-w-0 flex-wrap gap-1">
+                        {REVIEW_KIND_OPTIONS.map(({ value, label }) => (
+                          <TimelinePill
+                            key={value}
+                            kind="review"
+                            label={label}
+                            selected={shot.reviewKind === value}
+                            onClick={() => onToggleReviewKind(n, value)}
+                          />
+                        ))}
+                      </div>
+                    </ChoiceRow>
+                  </>
+                )}
               </ShotRow>
             </div>
           )
@@ -437,13 +475,11 @@ function FirstAttackPicker({
 
   return (
     <div
-      className="mb-1.5 rounded-md border border-neutral-200 bg-neutral-50 px-2 py-1.5"
+      className="mb-1.5 rounded-md border border-neutral-700 bg-neutral-900/60 px-2 py-1.5"
       role="group"
       aria-label="First attack"
     >
-      <p className="text-[10px] font-bold tracking-wide text-neutral-500 mb-1">
-        First attack
-      </p>
+      <p className="text-[10px] font-bold tracking-wide text-neutral-400 mb-1">First attack</p>
       <div className="flex flex-wrap gap-1 items-center">
         <button
           type="button"
@@ -453,7 +489,7 @@ function FirstAttackPicker({
             'h-7 px-2 rounded-md text-[11px] font-bold border',
             !hasFos
               ? 'bg-[#329985] text-white border-[#329985]'
-              : 'bg-white text-neutral-600 border-neutral-300'
+              : 'bg-transparent text-neutral-300 border-neutral-600'
           )}
         >
           No first attack
@@ -470,7 +506,7 @@ function FirstAttackPicker({
               onClick={() => onMarkFos(n)}
               className={cn(
                 'h-7 min-w-7 px-2 rounded-md text-[12px] font-black tabular-nums border',
-                selected ? 'text-white border-transparent' : 'bg-white'
+                selected ? 'text-white border-transparent' : 'bg-transparent'
               )}
               style={
                 selected
@@ -483,8 +519,62 @@ function FirstAttackPicker({
           )
         })}
       </div>
-      <p className="mt-1 text-[9px] text-neutral-400">
-        Default is none · gold = server side · blue = receiver side
+      <p className="mt-1 text-[9px] text-neutral-500">
+        Only from this row · gold = your side when you serve · blue = receiver side
+      </p>
+    </div>
+  )
+}
+
+function ReviewFlagRow({
+  state,
+  onToggleReviewFlag,
+  onSelectShot,
+}: {
+  state: RallyTimelineState
+  onToggleReviewFlag: (n: number) => void
+  onSelectShot?: (n: number) => void
+}) {
+  const candidates = visibleShotNumbers(state.shotCount, state.end)
+  if (candidates.length === 0) return null
+
+  return (
+    <div
+      className="mb-1.5 rounded-md border border-neutral-700 bg-neutral-900/40 px-2 py-1.5"
+      role="group"
+      aria-label="Tag to view"
+    >
+      <p className="text-[10px] font-bold tracking-wide text-neutral-400 mb-1">
+        Review · tag to view
+      </p>
+      <div className="flex flex-wrap gap-1 items-center">
+        {candidates.map((n) => {
+          const shot = state.shots[n]
+          const on = Boolean(shot?.reviewKind)
+          const color = PILL_COLOR.review
+          return (
+            <button
+              key={n}
+              type="button"
+              aria-pressed={on}
+              title={on ? `Clear review on shot ${n}` : `Mark shot ${n} for review`}
+              onClick={() => {
+                onToggleReviewFlag(n)
+                onSelectShot?.(n)
+              }}
+              className={cn(
+                'h-7 min-w-7 px-2 rounded-md text-[12px] font-black tabular-nums border',
+                on ? 'text-neutral-950 border-transparent' : 'bg-transparent text-neutral-400 border-neutral-600'
+              )}
+              style={on ? { backgroundColor: color, borderColor: color } : undefined}
+            >
+              {n}
+            </button>
+          )
+        })}
+      </div>
+      <p className="mt-1 text-[9px] text-neutral-500">
+        Tap a shot number to flag it for Work on / Clips. Select the shot below to set Technical or Tactical.
       </p>
     </div>
   )
@@ -497,12 +587,12 @@ function ShotRow({
   rowBg,
   stripeColor,
   active,
+  selected,
   isServe,
   isFos,
-  fosPickMode,
+  flagged,
   summary,
-  onMarkFos,
-  onChangeFos,
+  onSelect,
   children,
 }: {
   n: number
@@ -511,40 +601,34 @@ function ShotRow({
   rowBg: string
   stripeColor: string
   active: boolean
+  selected: boolean
   isServe: boolean
   isFos: boolean
-  fosPickMode: boolean
+  flagged: boolean
   summary: string
-  onMarkFos: (at: number) => void
-  onChangeFos: () => void
+  onSelect: () => void
   children: ReactNode
 }) {
-  const canMarkFosRow = fosPickMode && n >= 2
-  const canMarkFosNumber = n >= 2
-
   return (
     <div
       data-rally-shot={n}
-      role={canMarkFosRow ? 'button' : undefined}
-      tabIndex={canMarkFosRow ? 0 : undefined}
-      aria-label={canMarkFosRow ? `Mark shot ${n} as first attack` : undefined}
-      aria-pressed={canMarkFosRow ? isFos : undefined}
-      onClick={canMarkFosRow ? () => onMarkFos(n) : undefined}
-      onKeyDown={
-        canMarkFosRow
-          ? (e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault()
-                onMarkFos(n)
-              }
-            }
-          : undefined
-      }
+      role="button"
+      tabIndex={0}
+      aria-pressed={selected}
+      aria-label={`Shot ${n}${active ? ', live contact' : ''}`}
+      onClick={onSelect}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onSelect()
+        }
+      }}
       className={cn(
-        'flex items-stretch gap-1.5 rounded-md px-1.5 py-1 min-w-0 w-full',
+        'flex items-stretch gap-1.5 rounded-md px-1.5 py-1 min-w-0 w-full cursor-pointer border border-transparent',
         rowBg,
-        active && 'outline outline-2 outline-[#7eb8e8]',
-        canMarkFosRow && 'cursor-pointer ring-1 ring-dashed ring-[#329985]/60'
+        active && 'outline outline-2 outline-[#7eb8e8] outline-offset-0',
+        selected && !active && 'border-neutral-500 bg-neutral-800/80',
+        selected && active && 'ring-1 ring-brand-primary/50'
       )}
     >
       <div
@@ -555,55 +639,26 @@ function ShotRow({
       <div className="flex-1 min-w-0 flex flex-col gap-0.5">
         <div className="min-w-0 flex justify-between items-center gap-1.5 min-h-[15px]">
           <div className="inline-flex flex-none items-center gap-1.5 text-[11px]">
-            {canMarkFosNumber ? (
-              <button
-                type="button"
-                title={`Mark shot ${n} as first attack`}
-                aria-label={`Mark shot ${n} as first attack`}
-                aria-pressed={isFos}
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onMarkFos(n)
-                }}
-                className={cn(
-                  'w-3.5 text-[12px] font-bold rounded-sm',
-                  'hover:text-[#14584c] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#329985]',
-                  isFos ? 'text-[#14584c]' : 'text-neutral-900'
-                )}
-              >
-                {n}
-              </button>
-            ) : (
-              <span className="w-3.5 text-[12px] font-bold">{n}</span>
-            )}
-            <strong className="text-neutral-800">{playerForShot(n, players, server)}</strong>
+            <span className="w-3.5 text-[12px] font-bold text-neutral-100">{n}</span>
+            <strong className="text-neutral-100">{playerForShot(n, players, server)}</strong>
             {isServe && (
-              <span className="inline-flex items-center h-[18px] px-1.5 rounded-full bg-[#c4a574] text-white text-[9px] font-bold tracking-wide uppercase">
+              <span className="inline-flex items-center h-[18px] px-1.5 rounded-full bg-[#c4a574] text-neutral-950 text-[9px] font-bold tracking-wide uppercase">
                 Serve
               </span>
             )}
             {isFos && (
-              <>
-                <span className="inline-flex items-center h-[18px] px-1.5 rounded-full bg-[#329985] text-white text-[9px] font-bold tracking-wide uppercase">
-                  FOS
-                </span>
-                {!fosPickMode && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onChangeFos()
-                    }}
-                    className="h-[18px] px-1.5 rounded-full text-[9px] font-bold tracking-wide uppercase border border-[#329985]/50 text-[#14584c] bg-white"
-                  >
-                    Change
-                  </button>
-                )}
-              </>
+              <span className="inline-flex items-center h-[18px] px-1.5 rounded-full bg-[#329985] text-white text-[9px] font-bold tracking-wide uppercase">
+                FOS
+              </span>
+            )}
+            {flagged && (
+              <span className="inline-flex items-center h-[18px] px-1.5 rounded-full bg-amber-700/80 text-amber-50 text-[9px] font-bold tracking-wide uppercase">
+                Review
+              </span>
             )}
           </div>
           <span
-            className="min-w-0 text-right overflow-hidden text-ellipsis whitespace-nowrap text-[10px] text-neutral-500"
+            className="min-w-0 text-right overflow-hidden text-ellipsis whitespace-nowrap text-[10px] text-neutral-400"
             title={summary}
           >
             {summary}

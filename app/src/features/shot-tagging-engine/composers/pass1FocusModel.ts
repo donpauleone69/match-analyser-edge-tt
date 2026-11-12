@@ -24,6 +24,7 @@ export type PointEnding =
   | 'error_net'
   | 'error_long'
   | 'error_wide'
+  | 'error_air'
 
 export type Wing = 'BH' | 'FH'
 /** First attack strokes. */
@@ -102,6 +103,7 @@ export const ENDING_OPTIONS: { value: PointEnding; label: string }[] = [
   { value: 'error_net', label: 'In-Net' },
   { value: 'error_long', label: 'Long' },
   { value: 'error_wide', label: 'Wide' },
+  { value: 'error_air', label: 'Air' },
 ]
 
 export const MISS_REASON_OPTIONS: { value: PointMissReason; label: string }[] = [
@@ -165,7 +167,10 @@ export const CONTACT_OVERLAY_RECEIVER = '#7eb8e8'
 
 export function isErrorEnding(ending: PointEnding | null): boolean {
   return (
-    ending === 'error_net' || ending === 'error_long' || ending === 'error_wide'
+    ending === 'error_net' ||
+    ending === 'error_long' ||
+    ending === 'error_wide' ||
+    ending === 'error_air'
   )
 }
 
@@ -462,8 +467,10 @@ export function describeEndingLabel(ending: PointEnding | null): string {
   if (ending === 'winner') return 'Winner'
   if (ending === 'lucky') return 'Lucky'
   if (ending === 'error_net') return 'Error — In-Net'
+  if (ending === 'error_long') return 'Error — Long'
   if (ending === 'error_wide') return 'Error — Wide'
-  return 'Error — Long'
+  if (ending === 'error_air') return 'Error — Air'
+  return 'Error'
 }
 
 export function describeMissReason(reason: PointMissReason | null): string | null {
@@ -657,6 +664,29 @@ export function toggleShotReviewKind(
       [n]: {
         ...shot,
         reviewKind: shot.reviewKind === value ? null : value,
+      },
+    },
+  }
+}
+
+/**
+ * Single Review flag (“tag to view”). On → technical by default so Work on
+ * still groups; off → clears kind. Refine Technical/Tactical when the shot is selected.
+ */
+export function toggleShotReviewFlag(
+  state: RallyTimelineState,
+  n: number
+): RallyTimelineState {
+  const shot = state.shots[n]
+  if (!shot) return state
+  const on = shot.reviewKind !== null
+  return {
+    ...state,
+    shots: {
+      ...state.shots,
+      [n]: {
+        ...shot,
+        reviewKind: on ? null : 'technical',
       },
     },
   }

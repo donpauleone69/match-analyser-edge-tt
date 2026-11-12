@@ -113,9 +113,9 @@ export function WorkOnSection({
         <h2 className="text-lg font-semibold text-neutral-50">What to work on</h2>
         {workOn.total === 0 ? (
           <p className="mt-2 text-sm text-neutral-400">
-            No shots flagged yet. While tagging (or editing a rally), tap <span className="text-neutral-200">Technical</span> or{' '}
-            <span className="text-neutral-200">Tactical</span> under Review on any shot you want to look at again. Repeated
-            patterns show up here.
+            No shots flagged yet. While tagging (or editing a rally), use the <span className="text-neutral-200">Review</span> row
+            (tag to view). Select a shot to set <span className="text-neutral-200">Technical</span> or{' '}
+            <span className="text-neutral-200">Tactical</span>. Repeated patterns show up here.
           </p>
         ) : heroFocus.length > 0 ? (
           <ul className="mt-3 flex flex-wrap gap-2">

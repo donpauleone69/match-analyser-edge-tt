@@ -6,9 +6,11 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { matchDb, usePlayerStore } from '@/data'
+import { matchDb, usePlayerStore, useTournamentStore } from '@/data'
 import type { CompleteMatchData, DBPlayer } from '@/data'
+import { suggestedVideoMatchDate } from '@/data/services/videoAssetService'
 import { THEM_SIDE_LABEL } from '@/helpers/themSide'
+import { matchDateSourceLabel } from '@/rules/matchContext'
 import { buildMatchReviewViewModel } from './buildMatchReview'
 import type { MatchReviewViewModel } from '../models'
 
@@ -29,7 +31,9 @@ function playerFullName(player: DBPlayer | undefined, fallback: string): string 
 
 export function useDeriveMatchReview(matchId: string | undefined): DeriveMatchReviewResult {
   const { players, load: loadPlayers } = usePlayerStore()
+  const { tournaments, load: loadTournaments } = useTournamentStore()
   const [data, setData] = useState<CompleteMatchData | null>(null)
+  const [suggestedVideoDate, setSuggestedVideoDate] = useState<string | null>(null)
   const [loadedKey, setLoadedKey] = useState<string | null>(null)
   const [notFound, setNotFound] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -37,7 +41,8 @@ export function useDeriveMatchReview(matchId: string | undefined): DeriveMatchRe
 
   useEffect(() => {
     loadPlayers()
-  }, [loadPlayers])
+    loadTournaments()
+  }, [loadPlayers, loadTournaments])
 
   const refresh = useCallback(() => setReloadKey((k) => k + 1), [])
 
@@ -63,18 +68,53 @@ export function useDeriveMatchReview(matchId: string | undefined): DeriveMatchRe
     }
   }, [matchId, reloadKey])
 
+  useEffect(() => {
+    if (!matchId || !data) {
+      setSuggestedVideoDate(null)
+      return
+    }
+    let active = true
+    suggestedVideoMatchDate(matchId)
+      .then((date) => {
+        if (active) setSuggestedVideoDate(date)
+      })
+      .catch(() => {
+        if (active) setSuggestedVideoDate(null)
+      })
+    return () => {
+      active = false
+    }
+  }, [matchId, data, reloadKey])
+
   const review = useMemo(() => {
     if (!data) return null
     const hero = players.find((p) => p.id === data.match.player1_id)
     const villain = data.match.player2_id
       ? players.find((p) => p.id === data.match.player2_id)
       : undefined
-    return buildMatchReviewViewModel(
+    const base = buildMatchReviewViewModel(
       data,
       playerFullName(hero, 'Hero'),
       data.match.player2_id ? playerFullName(villain, THEM_SIDE_LABEL) : THEM_SIDE_LABEL
     )
-  }, [data, players])
+    const tournament = data.match.tournament_id
+      ? tournaments.find((t) => t.id === data.match.tournament_id)
+      : undefined
+    const source = data.match.match_date_source ?? null
+    return {
+      ...base,
+      context: {
+        ...base.context,
+        matchDateSourceLabel: matchDateSourceLabel(source),
+        tournamentName: tournament?.name ?? null,
+        // Offer when video lastModified yields a different day (user may still be manual).
+        suggestedVideoDate:
+          suggestedVideoDate && suggestedVideoDate !== base.context.matchDate
+            ? suggestedVideoDate
+            : null,
+      },
+    }
+  }, [data, players, tournaments, suggestedVideoDate])
 
   return {
     data,

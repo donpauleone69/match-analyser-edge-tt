@@ -8,7 +8,6 @@ import { Card } from '@/ui-mine/Card'
 import type { DBMatch, DBPlayer, DBSet, DBTournament } from '@/data'
 import { useNavigate } from 'react-router-dom'
 import { MatchResultEntryModal } from './MatchResultEntryModal'
-import { MatchDetailsModal } from './MatchDetailsModal'
 import { setDb } from '@/data'
 import { THEM_SIDE_LABEL } from '@/helpers/themSide'
 
@@ -29,8 +28,6 @@ export function MatchListSection({
   matches,
   isLoading,
   onCreateNew,
-  players,
-  tournaments,
   getPlayerName,
   getTournamentName,
   onRefresh,
@@ -40,7 +37,6 @@ export function MatchListSection({
 
   const [matchForResults, setMatchForResults] = useState<DBMatch | null>(null)
   const [setsForResults, setSetsForResults] = useState<DBSet[]>([])
-  const [matchForDetails, setMatchForDetails] = useState<DBMatch | null>(null)
 
   const [matchSets, setMatchSets] = useState<Record<string, DBSet[]>>({})
 
@@ -206,7 +202,7 @@ export function MatchListSection({
                       </Button>
                     )}
                     <Button
-                      onClick={() => setMatchForDetails(match)}
+                      onClick={() => navigate(`/matches/${match.id}?tab=details`)}
                       size="sm"
                       variant="secondary"
                     >
@@ -228,17 +224,6 @@ export function MatchListSection({
             )
           })}
         </div>
-      )}
-
-      {matchForDetails && (
-        <MatchDetailsModal
-          match={matchForDetails}
-          players={players}
-          tournaments={tournaments}
-          player1Name={getPlayerName(matchForDetails.player1_id)}
-          onClose={() => setMatchForDetails(null)}
-          onSaved={() => onRefresh?.()}
-        />
       )}
 
       {matchForResults && matchForResults.player2_id && (

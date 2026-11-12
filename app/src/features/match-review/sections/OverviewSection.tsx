@@ -1,67 +1,115 @@
 /**
- * OverviewSection — takeaways, then the comparison sections (A, D, F) and
- * the sections still to come.
+ * OverviewSection — Summary body: takeaways, category nav, or one category
+ * (hero-first stats + playlist of your points). Replaces the wall of cards.
  */
 
+import { Icon } from '@/ui-mine'
 import { CompareCardBlock } from '../blocks/CompareCardBlock'
 import { LockedSectionBlock } from '../blocks/LockedSectionBlock'
 import { TakeawaysBlock } from '../blocks/TakeawaysBlock'
-import type { EvidenceRef, MatchReviewViewModel } from '../models'
+import { SummaryCategoryNavBlock } from '../blocks/SummaryCategoryNavBlock'
+import { SummaryCategoryPlaylistBlock } from '../blocks/SummaryCategoryPlaylistBlock'
+import { buildCategoryPlaylist } from '../derive/buildSummaryCategories'
+import type { EvidenceRef, MatchReviewViewModel, RallyRowModel } from '../models'
 
 export interface OverviewSectionProps {
   review: MatchReviewViewModel
   activeEvidenceTitle: string | null
+  categoryId: string | null
+  onSelectCategory: (id: string | null) => void
   onOpenEvidence: (evidence: EvidenceRef) => void
+  activeRallyId?: string | null
+  onPlayCategoryPlaylist: (title: string, rallies: RallyRowModel[]) => void
+  onWatchRally: (rally: RallyRowModel, playlist: RallyRowModel[], title: string) => void
+  onEditRally: (rally: RallyRowModel) => void
+  onToggleHighlight: (rally: RallyRowModel) => void
 }
 
-export function OverviewSection({ review, activeEvidenceTitle, onOpenEvidence }: OverviewSectionProps) {
+export function OverviewSection({
+  review,
+  activeEvidenceTitle,
+  categoryId,
+  onSelectCategory,
+  onOpenEvidence,
+  activeRallyId = null,
+  onPlayCategoryPlaylist,
+  onWatchRally,
+  onEditRally,
+  onToggleHighlight,
+}: OverviewSectionProps) {
+  const rallyById = new Map(review.rallies.map((r) => [r.id, r]))
+  const multiSet = review.sets.length > 1
+  const activeSection = categoryId ? review.sections.find((s) => s.id === categoryId) ?? null : null
+
+  if (activeSection) {
+    const playlist = buildCategoryPlaylist(activeSection, rallyById)
+    return (
+      <div className="space-y-6">
+        <button
+          type="button"
+          onClick={() => onSelectCategory(null)}
+          className="inline-flex items-center gap-1 text-sm text-neutral-400 hover:text-neutral-100"
+        >
+          <Icon name="arrow-left" size="sm" /> All categories
+        </button>
+        <div>
+          <h2 className="text-xl font-semibold text-neutral-50">{activeSection.title}</h2>
+          <p className="text-sm italic text-neutral-400">{activeSection.question}</p>
+        </div>
+        <div className="grid gap-4 lg:grid-cols-2">
+          {activeSection.cards.map((card) => (
+            <CompareCardBlock
+              key={card.id}
+              id={card.id}
+              title={card.title}
+              story={card.story}
+              heroName="You"
+              villainName={review.villainName}
+              rows={card.rows}
+              scoreline={card.scoreline}
+              emptyMessage={card.emptyMessage}
+              activeEvidenceTitle={activeEvidenceTitle}
+              onOpenEvidence={onOpenEvidence}
+            />
+          ))}
+        </div>
+        <SummaryCategoryPlaylistBlock
+          title={activeSection.title}
+          rallies={playlist.rallies}
+          heroName={review.heroName}
+          multiSet={multiSet}
+          activeRallyId={activeRallyId}
+          onPlayAll={() => onPlayCategoryPlaylist(playlist.evidence.title, playlist.rallies)}
+          onWatch={(rally, list) => onWatchRally(rally, list, playlist.evidence.title)}
+          onEdit={onEditRally}
+          onToggleHighlight={onToggleHighlight}
+        />
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-8">
       <TakeawaysBlock takeaways={review.takeaways} onOpenEvidence={onOpenEvidence} />
 
       {review.hasPointData && (
         <p className="text-xs text-neutral-500 -mt-4">
-          Tap any underlined number to see the rallies behind it. Green = better side, red = worse.
+          Tap a category for your stats and the points behind them. Underlined numbers open evidence.
         </p>
       )}
 
-      {review.sections.map((section) => (
-        <section key={section.id} className="space-y-3">
-          <div>
-            <h2 className="text-xl font-semibold text-neutral-50">
-              <span className="text-neutral-500 mr-2">{section.id}</span>
-              {section.title}
-            </h2>
-            <p className="text-sm italic text-neutral-400">{section.question}</p>
-          </div>
-          <div className="grid gap-4 lg:grid-cols-2">
-            {section.cards.map((card) => (
-              <CompareCardBlock
-                key={card.id}
-                id={card.id}
-                title={card.title}
-                story={card.story}
-                heroName={review.heroName}
-                villainName={review.villainName}
-                rows={card.rows}
-                scoreline={card.scoreline}
-                emptyMessage={card.emptyMessage}
-                activeEvidenceTitle={activeEvidenceTitle}
-                onOpenEvidence={onOpenEvidence}
-              />
+      <SummaryCategoryNavBlock sections={review.sections} onSelect={onSelectCategory} />
+
+      {review.locked.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-xl font-semibold text-neutral-50">Coming next</h2>
+          <div className="grid gap-4 md:grid-cols-3">
+            {review.locked.map((s) => (
+              <LockedSectionBlock key={s.id} id={s.id} title={s.title} question={s.question} note={s.note} />
             ))}
           </div>
         </section>
-      ))}
-
-      <section className="space-y-3">
-        <h2 className="text-xl font-semibold text-neutral-50">Coming next</h2>
-        <div className="grid gap-4 md:grid-cols-3">
-          {review.locked.map((s) => (
-            <LockedSectionBlock key={s.id} id={s.id} title={s.title} question={s.question} note={s.note} />
-          ))}
-        </div>
-      </section>
+      )}
     </div>
   )
 }

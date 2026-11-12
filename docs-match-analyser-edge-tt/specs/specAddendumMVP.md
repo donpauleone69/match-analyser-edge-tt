@@ -6,6 +6,37 @@
 
 ## Change Log
 
+### 2026-11-12: Match Details context (player-centric) (v3.40.0)
+
+**Change Type:** Data model + Match Review Details UX
+
+**What Changed:**
+- **Details → Match context:** edit match date, opponent (player entity — pick or quick-create), optional tournament + round. First-person framing (“Your match”).
+- **Schema:** `DBMatch.match_date_source` (`manual` | `video` | null); `DBVideoAsset.file_last_modified_ms` (persist browser `File.lastModified` because OPFS rewrite loses it). No fake EXIF.
+- **Video attach:** `storeSetVideo` auto-applies match date from lastModified when source isn’t `manual`; Details open re-applies from stored ms; user can accept a suggested video date.
+- **Simplified create / list:** match create drops tournament ceremony (context lives in Details); Matches list **Details** navigates to Review `?tab=details` (list modal removed).
+- Kept clubs/tournaments/players entities; deferred global “all matches vs X” views.
+
+**Rationale:** Context must be reviewable where the player looks (Details), with honest dates and real opponent FKs so later tournament / opponent / over-time views are possible. Plan: Phase 2b in `chat_notes/match_review_feedback_and_plan_2026-11-12.md`.
+
+---
+
+### 2026-11-12: Player-perspective Review + Clips playback + Pass 1 UX (v3.39.0)
+
+**Change Type:** Product principle + UI/IA + Clips + Pass 1 + schema
+
+**What Changed:**
+- **Principle:** Match Review speaks in the **player’s shoes** (hero / player1): “you / your serve / your errors.” Documented in `chat_notes/match_review_feedback_and_plan_2026-11-12.md`. Takeaways, Summary categories, Clips labels, Details, and Pass 1 copy extended toward first-person.
+- **Clips Phase 1:** Shot-based playlists (Work on / opening) get **Whole rally** (default) ↔ **Shot** toggle; shot clips keep both windows (`rallyStart`/`rallyEnd` + shot `start`/`end`). Slow-mo cycles **1× → 0.5× → 0.25×** on the clip stage (and reels). Reel export / duration follow the active window mode.
+- **Match Review IA Phase 2:** Tabs are **Summary · Details · Work on · Clips · Highlights · Rallies**. Heavy chrome (sets, storage, tagging admin) moved under **Details**. Light header: “You vs …”. Legacy `?tab=overview` maps to Summary.
+- **Summary Phase 3:** Wall of comparison cards replaced by **navigable categories** (Match story, Your serve, Your receive, Your first attack, Your misses). Each category shows hero-led stats (“You” column) + a **Points for you** playlist (problem-first hero evidence → Play all / Clips).
+- **Pass 1 Phase 4:** Single **Review · tag to view** row under first attack (on → stores `shot_review_kind: technical` by default; Technical/Tactical optional when shot selected). **Air** ending (`error_air`). First attack only from the dedicated row (not shot-number / row-pick). Live contact outline kept; dark Pass 1 strip aligned with Match Review.
+- **Deferred:** defining moment / risk / wrong-shot miss reasons / discuss notes (Phase 5); momentum / audit (Phase 6).
+
+**Rationale:** Insights + playlists beat dashboards; chrome was burying the story; Pass 1 Review crowding fought the Work on loop. Decisions locked in the plan doc §5.
+
+---
+
 ### 2026-11-12: Durable video, clips, cloud sync, Home, B/C cards (v3.38.0)
 
 **Change Type:** Architecture + data model + UI/IA + Match Review
@@ -6902,6 +6933,9 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v3.40.0 | 2026-11-12 | Match Details context: date (video lastModified / manual), opponent player link+create, tournament+round; list Details → Review |
+| v3.40.0 | 2026-11-12 | Match Details context: date (video lastModified / manual), opponent player pick/create, tournament+round; create/list simplified |
+| v3.39.0 | 2026-11-12 | Player-perspective principle; Clips whole-rally/shot + slow-mo; Summary/Details IA; category playlists; Pass 1 Review row + Air + dark restyle |
 | v3.38.0 | 2026-11-12 | Video assets (OPFS), clips + reels, Supabase sync + TUS upload, Home/nav reset, re-tag from rally, Serve/Receive cards |
 | v3.37.0 | 2026-11-11 | FOS number picker, shot Review technical/tactical, Match Review list |
 | v3.36.1 | 2026-11-11 | Under-video rally strip zooms to tagged window |

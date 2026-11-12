@@ -38,6 +38,8 @@ export interface ClipMatchInput {
   shots: DBShot[]
 }
 
+export type ClipPlaybackMode = 'rally' | 'shot'
+
 export interface Clip {
   /** rally id for rally clips, shot id for shot clips */
   id: string
@@ -50,11 +52,39 @@ export interface Clip {
   shotIndex: number | null
   /** Contact time the clip is about (shot clips) */
   focusTime: number | null
+  /** Active / shot window (shot clips) or rally window (rally clips) */
   start: number
   end: number
+  /** Whole-rally padded window — used when playback mode is "rally" */
+  rallyStart: number
+  rallyEnd: number
   heroWon: boolean
   /** hero–villain before the rally */
   scoreBefore: string
+}
+
+/** Shot-based playlists support Whole rally ↔ Shot toggle (default = rally). */
+export function isShotBasedClipFilter(filter: ClipFilter | null | undefined): boolean {
+  return filter?.kind === 'review' || filter?.kind === 'opening'
+}
+
+/** Playback / EDL window for a clip given Whole rally vs Shot. */
+export function resolveClipPlaybackWindow(
+  clip: Clip,
+  mode: ClipPlaybackMode
+): { start: number; end: number } {
+  if (mode === 'rally' || !clip.shotId) {
+    return { start: clip.rallyStart, end: clip.rallyEnd }
+  }
+  return { start: clip.start, end: clip.end }
+}
+
+/** Copy clips with start/end set to the active playback mode (for EDL / duration). */
+export function applyClipPlaybackMode(clips: Clip[], mode: ClipPlaybackMode): Clip[] {
+  return clips.map((clip) => {
+    const { start, end } = resolveClipPlaybackWindow(clip, mode)
+    return { ...clip, start, end }
+  })
 }
 
 export interface ClipWindowOptions {
@@ -100,6 +130,8 @@ function sideOf(playerId: string | null, heroId: string): ClipSide {
 
 function rallyClip(ctx: RallyContext, opts: ClipWindowOptions): Clip {
   const { rally, input } = ctx
+  const start = Math.max(0, ctx.window.start - opts.rallyLead)
+  const end = ctx.window.end + opts.rallyTail
   return {
     id: rally.id,
     matchId: input.match.id,
@@ -110,8 +142,10 @@ function rallyClip(ctx: RallyContext, opts: ClipWindowOptions): Clip {
     shotId: null,
     shotIndex: null,
     focusTime: null,
-    start: Math.max(0, ctx.window.start - opts.rallyLead),
-    end: ctx.window.end + opts.rallyTail,
+    start,
+    end,
+    rallyStart: start,
+    rallyEnd: end,
     heroWon: ctx.heroWon,
     scoreBefore: `${rally.player1_score_before}–${rally.player2_score_before}`,
   }
@@ -123,8 +157,9 @@ function shotClip(ctx: RallyContext, shot: DBShot, opts: ClipWindowOptions): Cli
   const until = next ? Math.min(next.timestamp_start, rallyEnd) : rallyEnd
   const start = Math.max(0, Math.max(ctx.window.start - opts.rallyLead, shot.timestamp_start - opts.shotLead))
   const end = Math.max(until, shot.timestamp_start) + opts.shotTail
+  const base = rallyClip(ctx, opts)
   return {
-    ...rallyClip(ctx, opts),
+    ...base,
     id: shot.id,
     shotId: shot.id,
     shotIndex: shot.shot_index,

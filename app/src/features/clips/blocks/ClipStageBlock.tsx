@@ -3,11 +3,25 @@
  *
  * Clip mode plays the clip window and reports its end so the composer can move
  * on (virtual gameplay reel: no file is made). Reel mode plays a saved reel.
+ * Shot-based playlists can toggle Whole rally (default) vs Shot; slow-mo cycles
+ * 1× → 0.5× → 0.25×.
  */
 
 import { forwardRef } from 'react'
 import { Button, Icon, VideoPlayer, type VideoPlayerHandle } from '@/ui-mine'
 import { cn } from '@/helpers/utils'
+import type { ClipPlaybackMode } from '@/rules/derive/clips/deriveClips'
+
+export const CLIP_SLOW_MO_RATES = [1, 0.5, 0.25] as const
+
+export function formatClipRate(rate: number): string {
+  return rate === 1 ? '1×' : `${rate}×`
+}
+
+export function nextClipRate(rate: number): number {
+  const i = CLIP_SLOW_MO_RATES.findIndex((r) => r === rate)
+  return CLIP_SLOW_MO_RATES[i >= 0 ? (i + 1) % CLIP_SLOW_MO_RATES.length : 0]
+}
 
 export interface ClipStageBlockProps {
   heading: string
@@ -23,6 +37,12 @@ export interface ClipStageBlockProps {
   isPlaying: boolean
   autoAdvance: boolean
   missingMessage: string
+  /** Whole rally vs Shot — only when playlist is shot-based */
+  playbackMode?: ClipPlaybackMode | null
+  onPlaybackModeChange?: (mode: ClipPlaybackMode) => void
+  /** Current playback rate (1 / 0.5 / 0.25) */
+  playbackRate?: number
+  onCyclePlaybackRate?: () => void
   onVideoSelect?: (url: string) => void
   onClipEnd: () => void
   onTogglePlay: () => void
@@ -49,6 +69,10 @@ export const ClipStageBlock = forwardRef<VideoPlayerHandle, ClipStageBlockProps>
       isPlaying,
       autoAdvance,
       missingMessage,
+      playbackMode = null,
+      onPlaybackModeChange,
+      playbackRate = 1,
+      onCyclePlaybackRate,
       onVideoSelect,
       onClipEnd,
       onTogglePlay,
@@ -64,6 +88,7 @@ export const ClipStageBlock = forwardRef<VideoPlayerHandle, ClipStageBlockProps>
     const ctl =
       'h-10 min-w-10 px-3 rounded-md border border-neutral-600 text-neutral-100 flex items-center justify-center gap-1.5 text-sm hover:border-neutral-400 disabled:opacity-40 disabled:pointer-events-none'
     const clipMode = window !== null
+    const showWindowToggle = clipMode && playbackMode != null && onPlaybackModeChange
     return (
       <div className="rounded-xl border border-neutral-700 bg-bg-card overflow-hidden">
         <div className="flex items-center gap-3 px-4 py-2.5 border-b border-neutral-700">
@@ -138,6 +163,42 @@ export const ClipStageBlock = forwardRef<VideoPlayerHandle, ClipStageBlockProps>
           <button type="button" className={ctl} onClick={onNext} disabled={position >= total - 1} aria-label="Next clip">
             <Icon name="chevron-right" size="sm" />
           </button>
+          {onCyclePlaybackRate && (
+            <button
+              type="button"
+              className={ctl}
+              onClick={onCyclePlaybackRate}
+              disabled={!videoUrl}
+              aria-label={`Playback speed ${formatClipRate(playbackRate)}. Click to change.`}
+              title="Cycle speed: 1× → 0.5× → 0.25×"
+            >
+              {formatClipRate(playbackRate)}
+            </button>
+          )}
+          {showWindowToggle && (
+            <div className="ml-1 flex rounded-md border border-neutral-600 overflow-hidden text-xs">
+              <button
+                type="button"
+                className={cn(
+                  'px-2.5 h-10 transition-colors',
+                  playbackMode === 'rally' ? 'bg-neutral-600 text-neutral-50' : 'text-neutral-400 hover:text-neutral-100'
+                )}
+                onClick={() => onPlaybackModeChange('rally')}
+              >
+                Whole rally
+              </button>
+              <button
+                type="button"
+                className={cn(
+                  'px-2.5 h-10 transition-colors border-l border-neutral-600',
+                  playbackMode === 'shot' ? 'bg-neutral-600 text-neutral-50' : 'text-neutral-400 hover:text-neutral-100'
+                )}
+                onClick={() => onPlaybackModeChange('shot')}
+              >
+                Shot
+              </button>
+            </div>
+          )}
           {clipMode && (
             <label className="ml-1 flex items-center gap-2 text-xs text-neutral-400 select-none cursor-pointer">
               <input type="checkbox" checked={autoAdvance} onChange={onToggleAutoAdvance} className="accent-brand-primary" />

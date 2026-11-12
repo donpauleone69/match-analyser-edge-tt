@@ -1,7 +1,7 @@
 # Data Schema – Edge TT Match Analyser
 
-> **Version:** 3.0 (Current Implementation)  
-> **Last Updated:** 2025-12-11  
+> **Version:** 3.1 (Current Implementation)  
+> **Last Updated:** 2026-11-12  
 > **Status:** ✅ Single Source of Truth
 
 ---
@@ -152,8 +152,8 @@ interface DBMatch {
   round: MatchRound | null
   
   // Players
-  player1_id: string                    // FK (slug)
-  player2_id: string                    // FK (slug)
+  player1_id: string                    // FK (slug) — hero / you
+  player2_id: string | null              // FK (slug) — opponent; null until linked
   first_server_id: string               // FK (slug)
   
   // Match result (TOP-DOWN ENTRY)
@@ -163,7 +163,8 @@ interface DBMatch {
   
   // Match parameters
   best_of: BestOf                       // 1, 3, 5, or 7 sets
-  match_date: string                    // ISO date
+  match_date: string                    // ISO date (YYYY-MM-DD)
+  match_date_source?: 'manual' | 'video' | null  // Honest provenance; video = File.lastModified
   
   // Tagging configuration
   tagging_mode: TaggingMode | null
@@ -184,6 +185,9 @@ interface DBMatch {
 
 **Notes:**
 - Slug ID example: `john-smith-vs-jane-doe-20251211-x7y3`
+- **Player-centric:** `player1_id` is the hero (you); `player2_id` is the opponent entity (nullable until linked)
+- **Match context:** date / tournament / round / opponent are editable under Match Review → Details
+- **Date source:** `match_date_source: 'video'` means browser `File.lastModified` only — no invented EXIF; `'manual'` locks out auto-apply; `null` = create-day placeholder
 - **Top-down result entry:** User enters match result before tagging (if known)
 - **Bottom-up verification:** Tagging validates/corrects the entered result
 - **Multi-video support:** A match can have multiple video files (e.g., one per set)
@@ -246,6 +250,7 @@ interface DBVideoAsset {
   duration_s: number | null
   width: number | null
   height: number | null
+  file_last_modified_ms?: number | null  // browser File.lastModified at pick (OPFS loses original)
   fingerprint: string | null       // sha-256 of size + first/last MiB
   local_store: 'opfs' | 'idb' | null   // device-only; stripped from cloud bundles
   remote_path: string | null       // {uid}/{matchId}/{assetId}.ext in bucket match-videos
@@ -259,7 +264,7 @@ interface DBVideoAsset {
 
 **Indexes:** `id, match_id, [match_id+set_number], kind`
 
-**Notes:** Rally/shot timestamps stay in source-video time; reels map back through `segments`. Signed URLs are created at play time and never stored.
+**Notes:** Rally/shot timestamps stay in source-video time; reels map back through `segments`. Signed URLs are created at play time and never stored. `file_last_modified_ms` feeds honest match-date suggestions (not EXIF).
 
 ---
 
@@ -349,7 +354,7 @@ Represents a single rally (point) within a set. Written by Rally Focus on Save.
 **File:** pp/src/data/entities/rallies/rally.types.ts
 
 `	ypescript
-type PointEnding = 'winner' | 'lucky' | 'error_net' | 'error_long' | 'error_wide'
+type PointEnding = 'winner' | 'lucky' | 'error_net' | 'error_long' | 'error_wide' | 'error_air'
 type PointMissReason = 'technical' | 'timing' | 'footwork' | 'positioning' | 'misread' | 'forced'
 
 interface DBRally {
@@ -401,7 +406,7 @@ interface DBRally {
 
 **Notes:**
 - **first_attack_index:** FOS stamp from Rally Focus; phase is derived from this + shot_index
-- **point_ending:** Tagged ending only (winner / lucky / error_net / error_long / error_wide)
+- **point_ending:** Tagged ending only (winner / lucky / error_net / error_long / error_wide / error_air — swung and missed)
 - **point_miss_reason:** Optional miss reason after an error ending; default null (Pass 1 Focus)
 - **Service fault / receive error:** Derived — last shot_index 1 + error → service fault; shot 2 + error → receive error
 - **winner_id:** winner/lucky → last-shot player; either error → opponent
@@ -592,7 +597,7 @@ CREATE INDEX idx_shots_wing ON shots(wing);
 ### 2026-11-11 — Pass 1 Focus additive fields (no Dexie bump)
 - `ShotStroke` adds `push` | `chop`
 - Shot toggle `shot_is_safe` (default false; first attack only for Pass 1 Focus)
-- `PointEnding` adds `error_wide`; rally `point_miss_reason` (`technical` | `timing` | `footwork` | `positioning` | `misread` | `forced` | null)
+- `PointEnding` adds `error_wide` and `error_air` (swung and missed); rally `point_miss_reason` (`technical` | `timing` | `footwork` | `positioning` | `misread` | `forced` | null)
 - Rally Focus unchanged beyond writing defaults for the new fields
 
 ### 2026-11-11 — Shot tag alignment (Dexie v5)

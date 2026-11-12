@@ -13,7 +13,13 @@ export type TimelineMode = 'Rally' | 'Shot' | 'Placement' | 'Mental'
 /** Spec backing values for point ending */
 // error_wide exists in the DB (Pass 1 Focus writes it); Rally Focus UI does not offer it
 // but must still round-trip it on resume.
-export type PointEnding = 'winner' | 'lucky' | 'error_net' | 'error_long' | 'error_wide'
+export type PointEnding =
+  | 'winner'
+  | 'lucky'
+  | 'error_net'
+  | 'error_long'
+  | 'error_wide'
+  | 'error_air'
 
 export type ServeSpin = 'Under' | 'Top' | 'Side'
 export type Wing = 'BH' | 'FH'

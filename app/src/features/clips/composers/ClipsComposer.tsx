@@ -15,14 +15,22 @@ import { Button, Card, Icon, type VideoPlayerHandle } from '@/ui-mine'
 import { useVideoPlaybackStore } from '@/ui-mine/VideoPlayer'
 import { formatFileSize } from '@/helpers/videoFileHelpers'
 import { useCloudStore } from '@/stores/cloudStore'
-import { decodeClipFilter, deriveClips, encodeClipFilter } from '@/rules/derive/clips/deriveClips'
+import {
+  applyClipPlaybackMode,
+  decodeClipFilter,
+  deriveClips,
+  encodeClipFilter,
+  isShotBasedClipFilter,
+  resolveClipPlaybackWindow,
+  type ClipPlaybackMode,
+} from '@/rules/derive/clips/deriveClips'
 import { clipSourceKey, deriveClipEdl } from '@/rules/derive/clips/deriveClipEdl'
 import type { ClipPreset } from '@/rules/derive/clips/deriveClipPresets'
 import { useDeriveClipLibrary } from '../derive/useDeriveClipLibrary'
 import { buildClipRows, formatSeconds } from '../derive/buildClipLibrary'
 import { ClipPresetListBlock } from '../blocks/ClipPresetListBlock'
 import { ClipQueueBlock } from '../blocks/ClipQueueBlock'
-import { ClipStageBlock } from '../blocks/ClipStageBlock'
+import { ClipStageBlock, nextClipRate } from '../blocks/ClipStageBlock'
 import { ReelListBlock } from '../blocks/ReelListBlock'
 import {
   backUpReel,
@@ -65,9 +73,13 @@ export function ClipsComposer({ matchId = null, embedded = false }: ClipsCompose
   const cloudUser = useCloudStore((s) => s.user)
   const playerRef = useRef<VideoPlayerHandle>(null)
   const isPlaying = useVideoPlaybackStore((s) => s.isPlaying)
+  const playbackSpeed = useVideoPlaybackStore((s) => s.playbackSpeed)
+  const setPlaybackSpeed = useVideoPlaybackStore((s) => s.setPlaybackSpeed)
 
   const [index, setIndex] = useState(0)
   const [autoAdvance, setAutoAdvance] = useState(true)
+  /** Default whole rally for shot-based playlists (Work on, opening). */
+  const [playbackMode, setPlaybackMode] = useState<ClipPlaybackMode>('rally')
   const [videos, setVideos] = useState<Record<string, VideoSlot>>({})
   const [reel, setReel] = useState<ReelPlayback | null>(null)
   const [exporting, setExporting] = useState<ReelExportProgress | null>(null)
@@ -95,18 +107,23 @@ export function ClipsComposer({ matchId = null, embedded = false }: ClipsCompose
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [data, activeKey]
   )
+  const shotBased = isShotBasedClipFilter(filter)
+  const effectiveMode: ClipPlaybackMode = shotBased ? playbackMode : 'rally'
+  const playClips = useMemo(() => applyClipPlaybackMode(clips, effectiveMode), [clips, effectiveMode])
   const rows = useMemo(
     () => (data && filter ? buildClipRows(clips, data.inputs, filter, data.matchLabels) : []),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [clips, data, activeKey]
   )
-  const edl = useMemo(() => deriveClipEdl(clips), [clips])
+  const edl = useMemo(() => deriveClipEdl(playClips), [playClips])
 
   useEffect(() => {
     setIndex(0)
+    setPlaybackMode('rally')
   }, [activeKey])
 
   const current = rows[Math.min(index, rows.length - 1)] ?? null
+  const playWindow = current ? resolveClipPlaybackWindow(current.clip, effectiveMode) : null
   const sourceKey = current ? clipSourceKey(current.clip) : null
 
   useEffect(() => {
@@ -130,14 +147,14 @@ export function ClipsComposer({ matchId = null, embedded = false }: ClipsCompose
     if (!videoUrl) return
     if (!reel && !current) return
     clipStartedAt.current = Date.now()
-    const start = reel ? 0 : current!.clip.start
+    const start = reel ? 0 : playWindow!.start
     const t = setTimeout(() => {
       playerRef.current?.seek(start, true)
       playerRef.current?.play()
     }, 150)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [videoUrl, current?.clip.id, reel?.assetId])
+  }, [videoUrl, current?.clip.id, reel?.assetId, playWindow?.start, playWindow?.end, effectiveMode])
 
   const selectPreset = (preset: ClipPreset) => {
     setReel(null)
@@ -154,11 +171,11 @@ export function ClipsComposer({ matchId = null, embedded = false }: ClipsCompose
   const handleClipEnd = useCallback(() => {
     // The shared playback time can still belong to the previous clip/video:
     // only move on when this video really reached this clip's end.
-    if (!current || Date.now() - clipStartedAt.current < 800) return
+    if (!current || !playWindow || Date.now() - clipStartedAt.current < 800) return
     const at = playerRef.current?.getCurrentTime() ?? 0
-    if (at < current.clip.end - 0.3 || at > current.clip.end + 2) return
+    if (at < playWindow.end - 0.3 || at > playWindow.end + 2) return
     if (autoAdvance) setIndex((i) => (i < rows.length - 1 ? i + 1 : i))
-  }, [autoAdvance, rows.length, current])
+  }, [autoAdvance, rows.length, current, playWindow])
 
   const handleVideoSelect = async (pickedUrl: string) => {
     if (!current || !sourceKey) return
@@ -299,6 +316,8 @@ export function ClipsComposer({ matchId = null, embedded = false }: ClipsCompose
               isPlaying={isPlaying}
               autoAdvance={false}
               missingMessage=""
+              playbackRate={playbackSpeed}
+              onCyclePlaybackRate={() => setPlaybackSpeed(nextClipRate(playbackSpeed))}
               onClipEnd={() => undefined}
               onTogglePlay={() => playerRef.current?.togglePlay()}
               onReplay={() => {
@@ -310,7 +329,7 @@ export function ClipsComposer({ matchId = null, embedded = false }: ClipsCompose
               onToggleAutoAdvance={() => undefined}
               onClose={() => setReel(null)}
             />
-          ) : current ? (
+          ) : current && playWindow ? (
             <ClipStageBlock
               ref={playerRef}
               heading={playlistLabel}
@@ -321,16 +340,20 @@ export function ClipsComposer({ matchId = null, embedded = false }: ClipsCompose
               videoUrl={videoUrl}
               videoOrigin={clipVideo?.origin ?? null}
               videoLoading={slot === 'loading'}
-              window={{ start: current.clip.start, end: current.clip.end }}
+              window={playWindow}
               isPlaying={isPlaying}
               autoAdvance={autoAdvance}
               missingMessage={missingMessage}
+              playbackMode={shotBased ? playbackMode : null}
+              onPlaybackModeChange={shotBased ? setPlaybackMode : undefined}
+              playbackRate={playbackSpeed}
+              onCyclePlaybackRate={() => setPlaybackSpeed(nextClipRate(playbackSpeed))}
               onVideoSelect={handleVideoSelect}
               onClipEnd={handleClipEnd}
               onTogglePlay={() => playerRef.current?.togglePlay()}
               onReplay={() => {
                 clipStartedAt.current = Date.now()
-                playerRef.current?.seek(current.clip.start, true)
+                playerRef.current?.seek(playWindow.start, true)
                 playerRef.current?.play()
               }}
               onPrev={() => setIndex((i) => Math.max(0, i - 1))}

@@ -1,6 +1,15 @@
 import { describe, it, expect } from 'vitest'
 import type { DBRally, DBShot } from '@/data'
-import { decodeClipFilter, deriveClips, encodeClipFilter, type ClipFilter, type ClipMatchInput } from './deriveClips'
+import {
+  applyClipPlaybackMode,
+  decodeClipFilter,
+  deriveClips,
+  encodeClipFilter,
+  isShotBasedClipFilter,
+  resolveClipPlaybackWindow,
+  type ClipFilter,
+  type ClipMatchInput,
+} from './deriveClips'
 import { applyMeasuredDurations, deriveClipEdl, mapSourceToReel } from './deriveClipEdl'
 import { deriveClipPresets } from './deriveClipPresets'
 
@@ -85,13 +94,24 @@ describe('deriveClips', () => {
     expect(ids({ kind: 'review', reviewKind: 'tactical' })).toEqual(['r3-sh3'])
   })
 
-  it('shot clip runs from contact − lead to next contact + tail', () => {
+  it('shot clip runs from contact − lead to next contact + tail; keeps rally window', () => {
     const [c] = deriveClips([match], { kind: 'review', reviewKind: 'technical', stroke: 'loop', wing: 'BH' })
     // r1 shot 3 at 23, last shot → rally end 28 (+1 tail)
     expect([c.start, c.end, c.focusTime]).toEqual([21.5, 29, 23])
+    expect([c.rallyStart, c.rallyEnd]).toEqual([19, 29])
+    expect(resolveClipPlaybackWindow(c, 'rally')).toEqual({ start: 19, end: 29 })
+    expect(resolveClipPlaybackWindow(c, 'shot')).toEqual({ start: 21.5, end: 29 })
     const r3 = deriveClips([match], { kind: 'review', reviewKind: 'technical' }).find((x) => x.id === 'r3-sh1')!
     // contact 61 − 1.5 but not before rally start − 1 (59); next contact 62 (+1)
     expect([r3.start, r3.end]).toEqual([59.5, 63])
+    expect(applyClipPlaybackMode([r3], 'rally')[0].start).toBe(r3.rallyStart)
+  })
+
+  it('isShotBasedClipFilter: review and opening only', () => {
+    expect(isShotBasedClipFilter({ kind: 'review' })).toBe(true)
+    expect(isShotBasedClipFilter({ kind: 'opening', side: 'hero' })).toBe(true)
+    expect(isShotBasedClipFilter({ kind: 'highlights' })).toBe(false)
+    expect(isShotBasedClipFilter({ kind: 'errors', side: 'hero' })).toBe(false)
   })
 
   it('opening: attacks by side, optional outcome', () => {
@@ -175,6 +195,7 @@ describe('deriveClipPresets', () => {
     expect(byKey['review.hero.technical.BH.loop'].count).toBe(2)
     expect(byKey['review.hero.technical.BH.push'].count).toBe(1)
     expect(byKey['highlights'].count).toBe(1)
+    expect(byKey['opening.hero.*'].label).toBe('You · opening attacks')
     expect(byKey['opening.villain.*'].label).toBe('Opp · opening attacks')
     expect(byKey['review.hero.tactical.FH.loop'].count).toBe(1)
     const workOn = presets.filter((p) => p.group === 'work-on').map((p) => p.key)

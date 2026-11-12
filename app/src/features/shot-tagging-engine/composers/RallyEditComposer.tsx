@@ -29,6 +29,7 @@ import {
   toggleShotAttribute,
   toggleShotChoice,
   toggleShotReviewKind,
+  toggleShotReviewFlag,
   type PointEnding,
   type PointMissReason,
   type RallyTimelineState,
@@ -75,6 +76,7 @@ export function RallyEditComposer() {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [fosPickMode, setFosPickMode] = useState(false)
+  const [selectedShot, setSelectedShot] = useState<number | null>(null)
   const [liveTime, setLiveTime] = useState(0)
 
   useEffect(() => {
@@ -429,6 +431,8 @@ export function RallyEditComposer() {
           players={playersPair}
           server={serverName}
           activeShot={activeShot}
+          selectedShot={selectedShot}
+          onSelectShot={setSelectedShot}
           fosPickMode={fosPickMode}
           onToggleShotChoice={(n: number, key: ShotChoiceKey, value: string) =>
             patchTimeline((s) => toggleShotChoice(s, n, key, value))
@@ -455,6 +459,7 @@ export function RallyEditComposer() {
           onToggleReviewKind={(n: number, value: ShotReviewKind) =>
             patchTimeline((s) => toggleShotReviewKind(s, n, value))
           }
+          onToggleReviewFlag={(n: number) => patchTimeline((s) => toggleShotReviewFlag(s, n))}
         />
       </div>
     </div>

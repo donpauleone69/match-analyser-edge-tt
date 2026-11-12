@@ -6,6 +6,8 @@ export type MatchRound = 'groups' | 'last_32' | 'last_16' | 'quarter_final' | 's
 export type TaggingMode = 'essential' | 'full'
 export type BestOf = 1 | 3 | 5 | 7
 export type MatchDetailLevel = 'result_only' | 'sets' | 'rallies' | 'shots'
+/** Where match_date came from. null = placeholder / unset (e.g. create-day default). */
+export type MatchDateSource = 'manual' | 'video'
 
 export interface DBMatch {
   id: string // Slug format: {p1}-vs-{p2}-{yyyymmdd}-{id4}
@@ -15,7 +17,7 @@ export interface DBMatch {
   round: MatchRound | null
   
   // Players
-  player1_id: string // FK (slug) — focal player
+  player1_id: string // FK (slug) — focal player (hero / you)
   player2_id: string | null // FK (slug) — opponent; null until linked ("Villain")
   first_server_id: string // FK (slug) or placeholder
   
@@ -26,7 +28,9 @@ export interface DBMatch {
   
   // Match parameters
   best_of: BestOf                    // 1, 3, 5, or 7 sets
-  match_date: string                 // ISO date
+  match_date: string                 // ISO date (YYYY-MM-DD)
+  /** Honest provenance — never invent EXIF; 'video' means File.lastModified. */
+  match_date_source?: MatchDateSource | null
   
   // Tagging configuration
   tagging_mode: TaggingMode | null

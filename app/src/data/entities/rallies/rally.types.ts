@@ -5,7 +5,14 @@
  * Service fault / receive error are derived from point_ending + last shot_index.
  */
 
-export type PointEnding = 'winner' | 'lucky' | 'error_net' | 'error_long' | 'error_wide'
+export type PointEnding =
+  | 'winner'
+  | 'lucky'
+  | 'error_net'
+  | 'error_long'
+  | 'error_wide'
+  /** Swung and missed the ball */
+  | 'error_air'
 export type PointMissReason =
   | 'technical'
   | 'timing'

@@ -1,12 +1,13 @@
 /**
- * MatchFormSection - Thin start: focal player required, opponent/tournament optional.
+ * MatchFormSection - Thin start: focal player required, opponent optional.
+ * Tournament / date / round live under Match Review → Details.
  * Creates one set at 0–0 and opens Rally Focus tagging.
  */
 
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/ui-mine/Button'
-import type { DBPlayer, DBTournament, MatchRound } from '@/data'
+import type { DBPlayer, DBTournament } from '@/data'
 import { useMatchStore, setDb } from '@/data'
 
 const { create: createSet } = setDb
@@ -16,17 +17,7 @@ interface MatchFormSectionProps {
   tournaments: DBTournament[]
 }
 
-const MATCH_ROUNDS: { value: MatchRound; label: string }[] = [
-  { value: 'groups', label: 'Groups' },
-  { value: 'last_32', label: 'Round of 32' },
-  { value: 'last_16', label: 'Round of 16' },
-  { value: 'quarter_final', label: 'Quarter-Final' },
-  { value: 'semi_final', label: 'Semi-Final' },
-  { value: 'final', label: 'Final' },
-  { value: 'other', label: 'Other' },
-]
-
-export function MatchFormSection({ players, tournaments }: MatchFormSectionProps) {
+export function MatchFormSection({ players }: MatchFormSectionProps) {
   const navigate = useNavigate()
   const { create: createMatch } = useMatchStore()
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -34,8 +25,6 @@ export function MatchFormSection({ players, tournaments }: MatchFormSectionProps
   const [formData, setFormData] = useState({
     player1_id: '',
     player2_id: '',
-    tournament_id: '',
-    round: '' as MatchRound | '',
   })
 
   const player1 = players.find((p) => p.id === formData.player1_id)
@@ -62,9 +51,10 @@ export function MatchFormSection({ players, tournaments }: MatchFormSectionProps
       const newMatch = await createMatch({
         player1_id: formData.player1_id,
         player2_id: player2Id,
-        tournament_id: formData.tournament_id || null,
-        round: formData.round || null,
+        tournament_id: null,
+        round: null,
         match_date: matchDate,
+        match_date_source: null,
         best_of: 1,
 
         first_server_id: formData.player1_id,
@@ -115,13 +105,13 @@ export function MatchFormSection({ players, tournaments }: MatchFormSectionProps
     <div className="bg-bg-card border border-neutral-700 rounded-lg p-4 md:p-6">
       <form onSubmit={handleSubmit} className="space-y-4">
         <p className="text-sm text-neutral-400">
-          Choose who you are tagging. Opponent and tournament can wait.
+          Choose who you are tagging. Opponent can wait — date, tournament and round are edited under Match Review → Details.
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-neutral-300 mb-2">
-              Player *
+              You (player) *
             </label>
             <select
               required
@@ -147,7 +137,7 @@ export function MatchFormSection({ players, tournaments }: MatchFormSectionProps
               onChange={(e) => setFormData({ ...formData, player2_id: e.target.value })}
               className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-md text-neutral-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
             >
-              <option value="">Villain (add later)</option>
+              <option value="">Villain (add later in Details)</option>
               {players.map((player) => (
                 <option
                   key={player.id}
@@ -159,48 +149,6 @@ export function MatchFormSection({ players, tournaments }: MatchFormSectionProps
               ))}
             </select>
           </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-neutral-300 mb-2">
-              Tournament
-            </label>
-            <select
-              value={formData.tournament_id}
-              onChange={(e) => setFormData({ ...formData, tournament_id: e.target.value })}
-              className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-md text-neutral-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
-            >
-              <option value="">None</option>
-              {tournaments.map((tournament) => (
-                <option key={tournament.id} value={tournament.id}>
-                  {tournament.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {formData.tournament_id && (
-            <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-2">
-                Round
-              </label>
-              <select
-                value={formData.round}
-                onChange={(e) =>
-                  setFormData({ ...formData, round: e.target.value as MatchRound })
-                }
-                className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-md text-neutral-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
-              >
-                <option value="">Select...</option>
-                {MATCH_ROUNDS.map((round) => (
-                  <option key={round.value} value={round.value}>
-                    {round.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
         </div>
 
         <div className="flex gap-3 pt-2">

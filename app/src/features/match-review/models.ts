@@ -2,6 +2,7 @@
  * Match Review — view model types
  */
 
+import type { MatchRound } from '@/data'
 import type { SetTaggingStatus } from '@/rules/derive/set/deriveSetTaggingStatus'
 
 export type CellTone = 'good' | 'bad' | 'amber' | 'none'
@@ -148,6 +149,21 @@ export interface SetPanelModel {
   heroWon: boolean | null
 }
 
+/** Editable match context shown under Details (player-centric). */
+export interface MatchContextModel {
+  matchDate: string
+  matchDateSource: 'manual' | 'video' | null
+  matchDateSourceLabel: string
+  /** Suggested YYYY-MM-DD from stored video lastModified when different / applicable */
+  suggestedVideoDate: string | null
+  player1Id: string
+  player2Id: string | null
+  tournamentId: string | null
+  tournamentName: string | null
+  round: MatchRound | null
+  roundLabel: string | null
+}
+
 export interface MatchReviewViewModel {
   heroName: string
   villainName: string
@@ -164,4 +180,5 @@ export interface MatchReviewViewModel {
   highlights: HighlightsModel
   sets: SetPanelModel[]
   rallies: RallyRowModel[]
+  context: MatchContextModel
 }

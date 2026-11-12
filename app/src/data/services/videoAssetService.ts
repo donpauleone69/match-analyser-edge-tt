@@ -7,9 +7,14 @@
  */
 
 import { videoAssetDb, type DBVideoAsset } from '@/data/entities/videoAssets'
+import { matchDb } from '@/data/entities/matches/match.db'
 import { getLocalVideo, putLocalVideo, deleteLocalVideo, requestPersistentStorage } from '@/helpers/videoStorage'
 import { supabase, VIDEO_BUCKET } from '@/data/cloud/supabaseClient'
 import type { EdlSegment } from '@/rules/derive/clips/deriveClipEdl'
+import {
+  isoDateFromEpochMs,
+  shouldApplyVideoMatchDate,
+} from '@/rules/matchContext'
 
 export type VideoOrigin = 'device' | 'cloud'
 
@@ -82,12 +87,70 @@ async function localFileFor(asset: DBVideoAsset): Promise<File | null> {
   return null
 }
 
+/**
+ * If the match date isn't locked as manual, set it from File.lastModified.
+ * Returns true when the match row was updated. Never invents EXIF.
+ */
+export async function maybeApplyMatchDateFromVideo(
+  matchId: string,
+  lastModifiedMs: number | null | undefined
+): Promise<boolean> {
+  const date = lastModifiedMs != null ? isoDateFromEpochMs(lastModifiedMs) : null
+  if (!date) return false
+  try {
+    const match = await matchDb.getById(matchId)
+    if (!match) return false
+    if (!shouldApplyVideoMatchDate(match.match_date_source)) return false
+    if (match.match_date === date && match.match_date_source === 'video') return false
+    await matchDb.update(matchId, { match_date: date, match_date_source: 'video' })
+    return true
+  } catch (err) {
+    console.error('[videoAssetService] match date from video failed:', err)
+    return false
+  }
+}
+
+/** On Details open: apply earliest stored source-video lastModified if date isn't manual. */
+export async function maybeApplyStoredVideoMatchDate(matchId: string): Promise<boolean> {
+  try {
+    const match = await matchDb.getById(matchId)
+    if (!match || !shouldApplyVideoMatchDate(match.match_date_source)) return false
+    const assets = await videoAssetDb.getByMatch(matchId)
+    const msList = assets
+      .filter((a) => a.kind === 'source')
+      .map((a) => a.file_last_modified_ms)
+      .filter((ms): ms is number => typeof ms === 'number' && ms > 0)
+    if (msList.length === 0) return false
+    return maybeApplyMatchDateFromVideo(matchId, Math.min(...msList))
+  } catch (err) {
+    console.error('[videoAssetService] stored video date failed:', err)
+    return false
+  }
+}
+
+/** Earliest YYYY-MM-DD from source assets' file_last_modified_ms, or null. */
+export async function suggestedVideoMatchDate(matchId: string): Promise<string | null> {
+  try {
+    const assets = await videoAssetDb.getByMatch(matchId)
+    const msList = assets
+      .filter((a) => a.kind === 'source')
+      .map((a) => a.file_last_modified_ms)
+      .filter((ms): ms is number => typeof ms === 'number' && ms > 0)
+    if (msList.length === 0) return null
+    return isoDateFromEpochMs(Math.min(...msList))
+  } catch {
+    return null
+  }
+}
+
 /** Save a video picked for a set: write it to the device and register (or reuse) its asset. */
 export async function storeSetVideo(matchId: string, setNumber: number, file: File): Promise<DBVideoAsset> {
   void requestPersistentStorage()
   const [fingerprint, meta] = await Promise.all([fingerprintFile(file), probeVideo(file)])
   const existing = await videoAssetDb.getSetSource(matchId, setNumber)
   const sameFile = existing && fingerprint && existing.fingerprint === fingerprint
+  const lastModifiedMs =
+    typeof file.lastModified === 'number' && file.lastModified > 0 ? file.lastModified : null
 
   const asset = sameFile
     ? existing
@@ -102,6 +165,7 @@ export async function storeSetVideo(matchId: string, setNumber: number, file: Fi
         duration_s: meta.duration,
         width: meta.width,
         height: meta.height,
+        file_last_modified_ms: lastModifiedMs,
         fingerprint,
         local_store: null,
         remote_path: null,
@@ -111,7 +175,16 @@ export async function storeSetVideo(matchId: string, setNumber: number, file: Fi
       })
 
   const store = await putLocalVideo(asset.id, file, file.name)
-  return videoAssetDb.update(asset.id, { local_store: store })
+  const updated = await videoAssetDb.update(asset.id, {
+    local_store: store,
+    ...(lastModifiedMs != null && !asset.file_last_modified_ms
+      ? { file_last_modified_ms: lastModifiedMs }
+      : sameFile && lastModifiedMs != null
+        ? { file_last_modified_ms: lastModifiedMs }
+        : {}),
+  })
+  await maybeApplyMatchDateFromVideo(matchId, lastModifiedMs ?? updated.file_last_modified_ms)
+  return updated
 }
 
 /**

@@ -1,11 +1,10 @@
 /**
  * MatchReviewComposer — Match Review page (route: /matches/:id)
  *
- * The player-facing hub for a match:
- *   Overview (takeaways + comparison cards) · Work on · Highlights · Rallies
- * Every number opens its evidence (the rallies behind it); every rally can be
- * watched (if the set video is on this device) or edited on its own.
- * Sets and their tagging actions live in the header panel.
+ * First-person hub for a match (hero / player1):
+ *   Summary · Details · Work on · Clips · Highlights · Rallies
+ * Summary = narrative + story; Details = result, sets, storage.
+ * Every number opens its evidence; every rally can be watched or edited.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -19,31 +18,42 @@ import { TabBarBlock, type TabItem } from '../blocks/TabBarBlock'
 import { EvidenceDrawerBlock } from '../blocks/EvidenceDrawerBlock'
 import { RallyRowBlock } from '../blocks/RallyRowBlock'
 import { RallyPlayerBlock } from '../blocks/RallyPlayerBlock'
-import { OverviewSection } from '../sections/OverviewSection'
+import { SummarySection } from '../sections/SummarySection'
+import { DetailsSection } from '../sections/DetailsSection'
 import { WorkOnSection } from '../sections/WorkOnSection'
 import { HighlightsSection, type RallyActions } from '../sections/HighlightsSection'
 import { RalliesSection, type RallyFilter } from '../sections/RalliesSection'
-import { SetsPanelSection } from '../sections/SetsPanelSection'
 import { ClipsComposer } from '@/features/clips'
 import { encodeClipFilter } from '@/rules/derive/clips/deriveClips'
 import {
   addNextSet,
+  applyStoredVideoMatchDateIfNeeded,
+  applySuggestedVideoDate,
   backUpMatch,
   backUpSetVideo,
+  createAndLinkOpponent,
+  createTournamentForMatch,
   loadSetVideoUrl,
   replaceWithCloudCopy,
+  saveMatchContext,
   saveMatchFile,
   saveSetVideoFromUrl,
   retagFromRally,
   startSetOver,
 } from './matchReviewActions'
 import { useDeriveMatchStorage } from '../derive/useDeriveMatchStorage'
-import { MatchStorageBlock } from '../blocks/MatchStorageBlock'
 import { useCloudStore } from '@/stores/cloudStore'
+import { useMatchStore, usePlayerStore, useTournamentStore, type MatchRound } from '@/data'
 import type { EvidenceRef, RallyRowModel, SetPanelModel } from '../models'
 
-type ReviewTab = 'overview' | 'workon' | 'clips' | 'highlights' | 'rallies'
-const TABS: ReviewTab[] = ['overview', 'workon', 'clips', 'highlights', 'rallies']
+type ReviewTab = 'summary' | 'details' | 'workon' | 'clips' | 'highlights' | 'rallies'
+const TABS: ReviewTab[] = ['summary', 'details', 'workon', 'clips', 'highlights', 'rallies']
+
+function resolveReviewTab(param: string | null): ReviewTab {
+  if (param === 'overview') return 'summary' // legacy URL
+  if (param && (TABS as string[]).includes(param)) return param as ReviewTab
+  return 'summary'
+}
 
 interface PlayerState {
   playlist: RallyRowModel[]
@@ -61,9 +71,11 @@ export function MatchReviewComposer() {
   const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
   const { data, review, isLoading, notFound, error, refresh } = useDeriveMatchReview(matchId)
+  const { players } = usePlayerStore()
+  const { tournaments, load: loadTournaments } = useTournamentStore()
 
-  const tabParam = searchParams.get('tab') as ReviewTab | null
-  const tab: ReviewTab = tabParam && TABS.includes(tabParam) ? tabParam : 'overview'
+  const tab = resolveReviewTab(searchParams.get('tab'))
+  const categoryId = searchParams.get('cat')
   const rallySetParam = Number(searchParams.get('s'))
 
   const [filter, setFilter] = useState<RallyFilter>('all')
@@ -81,6 +93,7 @@ export function MatchReviewComposer() {
   const [storageBusy, setStorageBusy] = useState<string | null>(null)
   const [conflict, setConflict] = useState(false)
   const [uploadPercent, setUploadPercent] = useState<number | null>(null)
+  const [contextSaving, setContextSaving] = useState(false)
 
   const runStorage = async (key: string, action: () => Promise<string | null>) => {
     setStorageBusy(key)
@@ -104,6 +117,18 @@ export function MatchReviewComposer() {
       navigate(`${location.pathname}${location.search}`, { replace: true, state: null })
     }
   }, [location.state, location.pathname, location.search, navigate])
+
+  // Details: apply stored video lastModified once when date isn't locked manual
+  useEffect(() => {
+    if (!matchId || tab !== 'details') return
+    let active = true
+    applyStoredVideoMatchDateIfNeeded(matchId).then((changed) => {
+      if (active && changed) refresh()
+    })
+    return () => {
+      active = false
+    }
+  }, [matchId, tab, refresh])
 
   const setParams = useCallback(
     (patch: Record<string, string | null>) => {
@@ -263,6 +288,69 @@ export function MatchReviewComposer() {
     }
   }
 
+  const handleSaveContext = async (input: {
+    matchDate: string
+    player2Id: string | null
+    tournamentId: string | null
+    round: MatchRound | null
+  }) => {
+    if (!data) return
+    setContextSaving(true)
+    const err = await saveMatchContext(data.match, input)
+    setContextSaving(false)
+    if (err) {
+      setNotice(err)
+      return
+    }
+    setNotice('Match context saved.')
+    refresh()
+  }
+
+  const handleCreateOpponent = async (firstName: string, lastName: string) => {
+    if (!data) return
+    setContextSaving(true)
+    const err = await createAndLinkOpponent(data.match, firstName, lastName)
+    setContextSaving(false)
+    if (err) {
+      setNotice(err)
+      return
+    }
+    setNotice('Opponent linked.')
+    refresh()
+  }
+
+  const handleCreateTournament = async (name: string) => {
+    if (!data) return
+    setContextSaving(true)
+    const result = await createTournamentForMatch(name, data.match.match_date.slice(0, 10))
+    if ('error' in result) {
+      setContextSaving(false)
+      setNotice(result.error)
+      return
+    }
+    await useMatchStore.getState().update(data.match.id, {
+      tournament_id: result.id,
+      round: data.match.round,
+    })
+    await loadTournaments()
+    setContextSaving(false)
+    setNotice('Tournament added to your match.')
+    refresh()
+  }
+
+  const handleUseVideoDate = async (date: string) => {
+    if (!matchId) return
+    setContextSaving(true)
+    const err = await applySuggestedVideoDate(matchId, date)
+    setContextSaving(false)
+    if (err) {
+      setNotice(err)
+      return
+    }
+    setNotice('Match date set from video file (last modified).')
+    refresh()
+  }
+
   const handleVideoSelect = async (pickedUrl: string) => {
     if (!playerRally) return
     const setNumber = playerRally.setNumber
@@ -283,7 +371,8 @@ export function MatchReviewComposer() {
     : []
 
   const tabs: TabItem<ReviewTab>[] = [
-    { id: 'overview', label: 'Overview' },
+    { id: 'summary', label: 'Summary' },
+    { id: 'details', label: 'Details' },
     { id: 'workon', label: 'Work on', badge: review.workOn.hero.total },
     { id: 'clips', label: 'Clips' },
     { id: 'highlights', label: 'Highlights', badge: review.highlights.flagged.length },
@@ -293,9 +382,46 @@ export function MatchReviewComposer() {
   const toRows = (ids: string[]) =>
     ids.map((id) => rallyById.get(id)).filter((r): r is RallyRowModel => Boolean(r))
 
+  const storageHandlers = {
+    onSignIn: () => navigate('/settings'),
+    onBackUpMatch: () =>
+      runStorage('match', async () => {
+        const result = await backUpMatch(matchId)
+        if (result.status === 'conflict') {
+          setConflict(true)
+          return null
+        }
+        return 'Match backed up to the cloud.'
+      }),
+    onKeepDevice: () =>
+      runStorage('match', async () => {
+        await backUpMatch(matchId, true)
+        setConflict(false)
+        return 'Cloud copy replaced with this device’s match.'
+      }),
+    onUseCloud: () =>
+      runStorage('match', async () => {
+        await replaceWithCloudCopy(matchId)
+        setConflict(false)
+        refresh()
+        return 'This device now has the cloud copy.'
+      }),
+    onBackUpVideo: (assetId: string) =>
+      runStorage(assetId, async () => {
+        setUploadPercent(0)
+        try {
+          await backUpSetVideo(assetId, (sent, total) => setUploadPercent(Math.floor((sent / total) * 100)))
+        } finally {
+          setUploadPercent(null)
+        }
+        return 'Video backed up — it can now play on your other devices.'
+      }),
+    onSaveFile: () => runStorage('file', async () => (await saveMatchFile(matchId), null)),
+  }
+
   return (
     <div className={cn('space-y-6 transition-[margin]', evidence && 'md:mr-[420px]')}>
-      <header className="space-y-4">
+      <header className="space-y-3">
         <button
           type="button"
           onClick={() => navigate('/matches')}
@@ -307,12 +433,14 @@ export function MatchReviewComposer() {
         <div className="flex items-start justify-between flex-wrap gap-4">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-neutral-50">
-              {review.heroName} <span className="text-neutral-500 font-normal">vs</span> {review.villainName}
+              You vs {review.villainName}
             </h1>
-            <p className="mt-1 text-sm md:text-base text-neutral-400">
+            <p className="mt-1 text-sm text-neutral-400">
+              <span className="text-neutral-300">{review.heroName}</span>
+              <span className="mx-2 text-neutral-600">·</span>
               <span
                 className={cn(
-                  'font-semibold',
+                  'font-medium',
                   review.resultTone === 'good' && 'text-emerald-400',
                   review.resultTone === 'bad' && 'text-rose-400',
                   review.resultTone === 'info' && 'text-neutral-200'
@@ -320,14 +448,6 @@ export function MatchReviewComposer() {
               >
                 {review.resultLabel}
               </span>
-              <span className="mx-2 text-neutral-600">·</span>
-              {review.dateLabel}
-              {review.totalPoints > 0 && (
-                <>
-                  <span className="mx-2 text-neutral-600">·</span>
-                  {review.totalPoints} points tagged
-                </>
-              )}
             </p>
           </div>
           {nextSet && (
@@ -338,63 +458,6 @@ export function MatchReviewComposer() {
             </Button>
           )}
         </div>
-
-        <SetsPanelSection
-          sets={review.sets}
-          onTag={openTagger}
-          onBrowse={(set) => setParams({ tab: 'rallies', s: String(set.setNumber) })}
-          onStartOver={handleStartOver}
-          onAddSet={handleAddSet}
-        />
-
-        {storage && (
-          <MatchStorageBlock
-            storage={storage}
-            signedIn={Boolean(cloudUser)}
-            cloudAvailable={cloudConfigured}
-            busy={storageBusy}
-            uploadPercent={uploadPercent}
-            conflict={conflict}
-            onSignIn={() => navigate('/settings')}
-            onBackUpMatch={() =>
-              runStorage('match', async () => {
-                const result = await backUpMatch(matchId)
-                if (result.status === 'conflict') {
-                  setConflict(true)
-                  return null
-                }
-                return 'Match backed up to the cloud.'
-              })
-            }
-            onKeepDevice={() =>
-              runStorage('match', async () => {
-                await backUpMatch(matchId, true)
-                setConflict(false)
-                return 'Cloud copy replaced with this device’s match.'
-              })
-            }
-            onUseCloud={() =>
-              runStorage('match', async () => {
-                await replaceWithCloudCopy(matchId)
-                setConflict(false)
-                refresh()
-                return 'This device now has the cloud copy.'
-              })
-            }
-            onBackUpVideo={(assetId) =>
-              runStorage(assetId, async () => {
-                setUploadPercent(0)
-                try {
-                  await backUpSetVideo(assetId, (sent, total) => setUploadPercent(Math.floor((sent / total) * 100)))
-                } finally {
-                  setUploadPercent(null)
-                }
-                return 'Video backed up — it can now play on your other devices.'
-              })
-            }
-            onSaveFile={() => runStorage('file', async () => (await saveMatchFile(matchId), null))}
-          />
-        )}
       </header>
 
       {notice && (
@@ -407,9 +470,35 @@ export function MatchReviewComposer() {
         </div>
       )}
 
-      <TabBarBlock tabs={tabs} active={tab} onChange={(id) => setParams({ tab: id === 'overview' ? null : id })} />
+      <TabBarBlock
+        tabs={tabs}
+        active={tab}
+        onChange={(id) => setParams({ tab: id === 'summary' ? null : id, cat: null })}
+      />
 
-      {!review.hasPointData && tab !== 'rallies' ? (
+      {tab === 'details' ? (
+        <DetailsSection
+          review={review}
+          players={players}
+          tournaments={tournaments}
+          storage={storage}
+          signedIn={Boolean(cloudUser)}
+          cloudAvailable={cloudConfigured}
+          busy={storageBusy}
+          uploadPercent={uploadPercent}
+          conflict={conflict}
+          contextSaving={contextSaving}
+          onSaveContext={handleSaveContext}
+          onCreateOpponent={handleCreateOpponent}
+          onCreateTournament={handleCreateTournament}
+          onUseVideoDate={handleUseVideoDate}
+          onTag={openTagger}
+          onBrowse={(set) => setParams({ tab: 'rallies', s: String(set.setNumber) })}
+          onStartOver={handleStartOver}
+          onAddSet={handleAddSet}
+          {...storageHandlers}
+        />
+      ) : !review.hasPointData && tab !== 'rallies' ? (
         <Card className="p-8 text-center border border-dashed border-neutral-700">
           <h2 className="text-xl font-semibold text-neutral-50">Nothing tagged yet</h2>
           <p className="mt-2 text-sm text-neutral-400 max-w-md mx-auto">
@@ -422,8 +511,26 @@ export function MatchReviewComposer() {
             </Button>
           )}
         </Card>
-      ) : tab === 'overview' ? (
-        <OverviewSection review={review} activeEvidenceTitle={evidence?.title ?? null} onOpenEvidence={openEvidence} />
+      ) : tab === 'summary' ? (
+        <SummarySection
+          review={review}
+          activeEvidenceTitle={evidence?.title ?? null}
+          categoryId={categoryId}
+          onSelectCategory={(id) => setParams({ cat: id, tab: null })}
+          onOpenEvidence={openEvidence}
+          activeRallyId={playerRally?.id ?? null}
+          onPlayCategoryPlaylist={(title, rallies) => {
+            setParams({
+              tab: 'clips',
+              clip: encodeClipFilter({ kind: 'rallies', rallyIds: rallies.map((r) => r.id) }),
+              clipTitle: title,
+              cat: null,
+            })
+          }}
+          onWatchRally={(rally, playlist, title) => watch(rally, playlist, title)}
+          onEditRally={openEditor}
+          onToggleHighlight={toggleHighlight}
+        />
       ) : tab === 'workon' ? (
         <WorkOnSection
           workOn={review.workOn}

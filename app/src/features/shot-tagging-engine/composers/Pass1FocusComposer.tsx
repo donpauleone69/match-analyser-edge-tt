@@ -26,6 +26,7 @@ import {
   toggleEnding,
   toggleMissReason,
   toggleShotReviewKind,
+  toggleShotReviewFlag,
   timelineFromContacts,
   contactTimesFromTimeline,
   shotNumberAtTime,
@@ -134,6 +135,7 @@ export function Pass1FocusComposer({
   const [liveTime, setLiveTime] = useState(0)
   /** When true, shot rows from 2 onward pick the first attack. */
   const [fosPickMode, setFosPickMode] = useState(false)
+  const [selectedShot, setSelectedShot] = useState<number | null>(null)
   /** null = not answered yet on the complete screen */
   const [scoreConfirmed, setScoreConfirmed] = useState<boolean | null>(null)
 
@@ -616,6 +618,10 @@ export function Pass1FocusComposer({
     patchTimeline((s) => toggleShotReviewKind(s, n, value))
   }
 
+  const handleToggleReviewFlag = (n: number) => {
+    patchTimeline((s) => toggleShotReviewFlag(s, n))
+  }
+
   const handleUndoLastContact = () => {
     if (phase !== 'tapping' || contactTimes.length === 0) return
     clearIdleTimer()
@@ -1068,6 +1074,8 @@ export function Pass1FocusComposer({
                 players={players}
                 server={serverName}
                 activeShot={overlayShot}
+                selectedShot={selectedShot}
+                onSelectShot={setSelectedShot}
                 fosPickMode={fosPickMode}
                 onToggleShotChoice={handleToggleShotChoice}
                 onToggleAttribute={handleToggleAttribute}
@@ -1079,6 +1087,7 @@ export function Pass1FocusComposer({
                 onToggleEnding={handleToggleEnding}
                 onToggleMissReason={handleToggleMissReason}
                 onToggleReviewKind={handleToggleReviewKind}
+                onToggleReviewFlag={handleToggleReviewFlag}
               />
             </div>
           </div>
