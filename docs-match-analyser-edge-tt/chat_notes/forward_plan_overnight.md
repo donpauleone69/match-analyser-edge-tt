@@ -37,8 +37,19 @@ Clips are generated from rules, not stored: `deriveClips(matches, filter)` → c
 ## Next phases
 
 1. **Now (this session):** asset registry + OPFS, clip rules + Clips UI (match + all matches), gameplay reel export, Supabase sign-in + push/pull bundles + video upload/stream, navigation reset (Home → Matches → Review hub → Clips), resume/re-tag from a rally, Section B/C cards from Pass 1 data.
-2. **Next:** resumable (TUS) uploads for big originals; sync status per match on the list; conflict prompt when both devices edited; portable folder export via File System Access.
+2. **Next:** sync status per match on the Matches list; cloud-only matches listed before download; portable folder export via File System Access; aggregate Work-on across matches on Home; Section D3/D4 + E/F cards.
 3. **Later:** Capacitor iOS/Android shell with native AVFoundation / Media3 export behind the `VideoEngine` interface; Tauri desktop; Pass 2 detail cards.
+
+## What shipped (overnight 2026-11-12)
+
+Branch `overnight/player-dashboard`, rollback tag `pre-overnight-2026-11-12`.
+
+- **Video assets:** `video_assets` table (Dexie v6), OPFS device storage, fingerprint + legacy IndexedDB adoption. Tagger, review and clips all resolve a set's video device → cloud.
+- **Clips:** `/clips` (all matches) and the Match Review **Clips** tab. Presets: highlights, work-on (review shots by wing/stroke), opening attacks won/lost, errors, winners, points lost on serve; any evidence list ("Play all"). Play-through with per-clip windows. **Save as reel** = ffmpeg.wasm stream copy, measured segment map; reels are assets (play, back up, save to device).
+- **Cloud:** Supabase Auth + `match_bundles` (one JSONB doc per match, RLS) + private `match-videos` bucket. Account & data page (sign in, Sync now, storage use, import match file). Match Review storage strip (backup status, per-set video backup with % progress, conflict choice). Video uploads are resumable TUS (6 MiB chunks). Verified: second origin with empty storage → Sync → 9 matches restored → reel streams from signed URL. 2.6 GB original uploads in under a minute locally.
+- **Navigation:** real Home (continue tagging, recent matches, clip shortcuts); sidebar Home / Matches / Clips / Players / Tournaments / Clubs / Account & data with Analytics + Data viewer under Tools; Matches list → Review; `SetSelectionModal` removed; tagger completion → Review / clips.
+- **Edit without wiping:** Rallies tab ↺ "re-tag from this rally" (keeps earlier rallies, resumes the tagger) alongside per-rally Edit and Start over.
+- **Cards:** Section B (B0–B3) and C (C1–C3) from Pass 1 data, evidence on every number. E stays locked (needs reply tags).
 
 ## How to run the cloud locally
 

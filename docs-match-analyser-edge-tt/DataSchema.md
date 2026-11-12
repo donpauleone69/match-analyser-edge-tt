@@ -223,6 +223,43 @@ interface DBMatchVideo {
 - `video_url` is a blob URL from local file picker (not uploaded to server)
 - A match can have multiple videos covering different sets
 - Videos stored locally in IndexedDB, referenced by blob URL
+- **Superseded for playback by `video_assets` (5b).** Kept for history.
+
+---
+
+### 5b. Video Assets (Dexie v6)
+
+Durable record of every source video and exported reel. The file lives on the device (OPFS, else IndexedDB) and/or in the private cloud bucket.
+
+**File:** `app/src/data/entities/videoAssets/videoAsset.types.ts`
+
+```typescript
+interface DBVideoAsset {
+  id: string                       // va_<16 hex>
+  match_id: string
+  set_number: number | null        // source videos: the set it covers; reels: null
+  kind: 'source' | 'reel'
+  label: string | null             // reel name, e.g. "Hero · opening attacks lost"
+  file_name: string
+  mime_type: string
+  size_bytes: number
+  duration_s: number | null
+  width: number | null
+  height: number | null
+  fingerprint: string | null       // sha-256 of size + first/last MiB
+  local_store: 'opfs' | 'idb' | null   // device-only; stripped from cloud bundles
+  remote_path: string | null       // {uid}/{matchId}/{assetId}.ext in bucket match-videos
+  remote_uploaded_at: string | null
+  source_asset_ids: string[] | null  // reels: sources they were cut from
+  segments: EdlSegment[] | null    // reels: source interval → reel time (measured)
+  created_at: string
+  updated_at: string
+}
+```
+
+**Indexes:** `id, match_id, [match_id+set_number], kind`
+
+**Notes:** Rally/shot timestamps stay in source-video time; reels map back through `segments`. Signed URLs are created at play time and never stored.
 
 ---
 
@@ -541,6 +578,9 @@ CREATE INDEX idx_shots_wing ON shots(wing);
 ---
 
 ## Changelog
+
+### 2026-11-12 — Video assets (Dexie v6)
+- New table `video_assets` (see 5b). Cloud mirror: Supabase `match_bundles` (one JSONB bundle per match: match, sets, rallies, shots, players, tournament, video asset manifest; `schemaVersion` 1) + private bucket `match-videos`
 
 ### 2026-11-11 — Shot review flag (no Dexie bump)
 - `shot_review_kind`: `technical` | `tactical` | null. Technical review also stores wing + stroke even off the role allow-list

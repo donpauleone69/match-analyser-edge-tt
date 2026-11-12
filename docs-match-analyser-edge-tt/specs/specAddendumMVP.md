@@ -6,6 +6,23 @@
 
 ## Change Log
 
+### 2026-11-12: Durable video, clips, cloud sync, Home, B/C cards (v3.38.0)
+
+**Change Type:** Architecture + data model + UI/IA + Match Review
+
+**What Changed:**
+- **Video assets:** new Dexie v6 table `video_assets` (`DBVideoAsset`: kind source/reel, fingerprint, `local_store` opfs/idb, `remote_path`, reel `segments`). Device copies in OPFS; old `tt-match-videos` IndexedDB copies are adopted on first use. All video lookups go through `videoAssetService` (device → cloud signed URL → missing).
+- **Clips:** rules `deriveClips` / `deriveClipEdl` / `deriveClipPresets` (pure, tested). `/clips` page + Match Review **Clips** tab; evidence "Play all" opens a clip playlist. **Save as reel**: ffmpeg.wasm stream copy, segment map measured from the output. Cross-match reels attach to their first clip's match so they sync.
+- **Cloud (Supabase):** `supabase/` config + migration: `match_bundles` (one JSONB bundle per match, owner-only RLS) and private bucket `match-videos` (`{uid}/{matchId}/{assetId}.ext`). Match bundle `schemaVersion 1` is also the portable "Save match file" format. Per-match revision; conflict → user picks device or cloud copy. Video uploads are resumable TUS (6 MiB chunks). New store `cloudStore` (`init`, `signIn`, `signUp`, `signOut`, `syncNow`).
+- **Navigation:** Home replaces the mock Dashboard (continue tagging, recent matches, clip shortcuts). Sidebar reordered; Analytics + Data viewer moved under Tools; Settings → **Account & data**. Matches list: Review is primary; `SetSelectionModal` deleted. Tagger completion → Review / clips.
+- **Edit:** Rallies tab "re-tag from this rally" deletes that rally and later ones, keeps earlier ones, resumes the tagger (`retagFromRally`).
+- **Match Review:** Section B (B0–B3) and C (C1–C3) built from Pass 1 data (`calculateServeReceiveStory` — each serve point gets one outcome; B groups by server, C by receiver). Removed from the locked list.
+- COOP/COEP headers removed from Vite config (would block cross-origin cloud video).
+
+**Rationale:** The product output is insights + clips; videos had to survive reloads and move between devices. Local-first keeps tagging offline; one bundle per match keeps sync and file export on one format. Decision record: `chat_notes/forward_plan_overnight.md`.
+
+---
+
 ### 2026-11-11: FOS picker + shot Review + dashboard list (v3.37.0)
 
 **Change Type:** UI + data model + Match Review
@@ -6885,6 +6902,7 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v3.38.0 | 2026-11-12 | Video assets (OPFS), clips + reels, Supabase sync + TUS upload, Home/nav reset, re-tag from rally, Serve/Receive cards |
 | v3.37.0 | 2026-11-11 | FOS number picker, shot Review technical/tactical, Match Review list |
 | v3.36.1 | 2026-11-11 | Under-video rally strip zooms to tagged window |
 | v3.36.0 | 2026-11-11 | Pass 1 Pivot + previous placement, miss Misread/Forced (drop Tactical), FOS click, Let on form |
