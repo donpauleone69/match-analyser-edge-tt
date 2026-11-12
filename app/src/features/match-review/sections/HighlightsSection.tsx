@@ -14,6 +14,8 @@ export interface RallyActions {
   onWatch: (rally: RallyRowModel, playlist: RallyRowModel[], playlistTitle: string) => void
   onEdit: (rally: RallyRowModel) => void
   onToggleHighlight: (rally: RallyRowModel) => void
+  /** Delete this rally and later ones, then resume tagging here */
+  onRetagFrom?: (rally: RallyRowModel) => void
 }
 
 export interface HighlightsSectionProps {

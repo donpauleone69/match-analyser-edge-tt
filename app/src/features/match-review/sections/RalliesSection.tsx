@@ -75,7 +75,8 @@ export function RalliesSection({
     <div className="space-y-4">
       <p className="text-sm text-neutral-400">
         Fix a mistake without re-tagging: open any rally, change its tags and save — only that rally is rewritten, and later
-        scores follow if the winner changes.
+        scores follow if the winner changes. If tagging went off track, use{' '}
+        <Icon name="rotate-ccw" size="xs" className="inline align-[-2px]" /> to re-tag from that rally onwards.
       </p>
 
       {sets.length > 1 && (
@@ -130,6 +131,7 @@ export function RalliesSection({
                 onWatch={(rally) => actions.onWatch(rally, shown, `Set ${selectedSetNumber} rallies`)}
                 onEdit={actions.onEdit}
                 onToggleHighlight={actions.onToggleHighlight}
+                onRetagFrom={actions.onRetagFrom}
               />
             ))}
           </ul>

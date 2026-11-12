@@ -16,6 +16,7 @@ export interface RallyRowBlockProps {
   onWatch: (rally: RallyRowModel) => void
   onEdit: (rally: RallyRowModel) => void
   onToggleHighlight: (rally: RallyRowModel) => void
+  onRetagFrom?: (rally: RallyRowModel) => void
 }
 
 export function RallyRowBlock({
@@ -26,6 +27,7 @@ export function RallyRowBlock({
   onWatch,
   onEdit,
   onToggleHighlight,
+  onRetagFrom,
 }: RallyRowBlockProps) {
   const iconBtn =
     'h-8 w-8 shrink-0 rounded-md border border-neutral-700 flex items-center justify-center text-neutral-300 hover:border-neutral-400 hover:text-neutral-50 transition-colors'
@@ -99,6 +101,17 @@ export function RallyRowBlock({
       >
         <Icon name="star" size="sm" className={rally.isHighlight ? 'fill-current' : undefined} />
       </button>
+      {onRetagFrom && (
+        <button
+          type="button"
+          aria-label={`Re-tag from rally ${rally.rallyIndex}`}
+          title="Re-tag from this rally onwards (earlier rallies are kept)"
+          onClick={() => onRetagFrom(rally)}
+          className={cn(iconBtn, 'text-neutral-500 hover:text-amber-300 hover:border-amber-700')}
+        >
+          <Icon name="rotate-ccw" size="sm" />
+        </button>
+      )}
     </li>
   )
 }

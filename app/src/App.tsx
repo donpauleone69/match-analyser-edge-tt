@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AppShell } from './components/layout'
 import { db } from '@/data'
-import { Dashboard } from './pages/Dashboard'
+import { HomePage } from './pages/Home'
 import { Clubs } from './pages/Clubs'
 import MatchesPage from './pages/Matches'
 import TournamentsPage from './pages/Tournaments'
@@ -35,7 +35,7 @@ function App() {
       <Routes>
         {/* Main app with sidebar */}
         <Route element={<AppShell />}>
-          <Route path="/" element={<Dashboard />} />
+          <Route path="/" element={<HomePage />} />
           <Route path="/clubs" element={<Clubs />} />
           <Route path="/tournaments" element={<TournamentsPage />} />
           <Route path="/players" element={<PlayersPage />} />

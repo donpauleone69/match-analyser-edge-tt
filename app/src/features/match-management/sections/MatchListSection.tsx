@@ -7,7 +7,6 @@ import { Button } from '@/ui-mine/Button'
 import { Card } from '@/ui-mine/Card'
 import type { DBMatch, DBPlayer, DBSet, DBTournament } from '@/data'
 import { useNavigate } from 'react-router-dom'
-import { SetSelectionModal } from './SetSelectionModal'
 import { MatchResultEntryModal } from './MatchResultEntryModal'
 import { MatchDetailsModal } from './MatchDetailsModal'
 import { setDb } from '@/data'
@@ -37,8 +36,6 @@ export function MatchListSection({
   onRefresh,
 }: MatchListSectionProps) {
   const navigate = useNavigate()
-  const [selectedMatch, setSelectedMatch] = useState<DBMatch | null>(null)
-  const [sets, setSets] = useState<DBSet[]>([])
   const [isLoadingSets, setIsLoadingSets] = useState(false)
 
   const [matchForResults, setMatchForResults] = useState<DBMatch | null>(null)
@@ -63,25 +60,6 @@ export function MatchListSection({
 
   const opponentName = (match: DBMatch) =>
     match.player2_id ? getPlayerName(match.player2_id) : THEM_SIDE_LABEL
-
-  const handleTagMatch = async (match: DBMatch) => {
-    setIsLoadingSets(true)
-    try {
-      const matchSetsForTag = await getSetsByMatchId(match.id)
-      setSets(matchSetsForTag)
-      setSelectedMatch(match)
-    } catch (error) {
-      console.error('Failed to load sets:', error)
-      alert('Failed to load sets for this match')
-    } finally {
-      setIsLoadingSets(false)
-    }
-  }
-
-  const handleCloseModal = () => {
-    setSelectedMatch(null)
-    setSets([])
-  }
 
   const handleEnterResults = async (match: DBMatch) => {
     setIsLoadingSets(true)
@@ -215,13 +193,18 @@ export function MatchListSection({
                   </div>
 
                   <div className="flex flex-wrap gap-2 ml-4 justify-end">
-                    <Button
-                      onClick={() => navigate(`/matches/${match.id}`)}
-                      size="sm"
-                      variant="secondary"
-                    >
+                    <Button onClick={() => navigate(`/matches/${match.id}`)} size="sm">
                       Review
                     </Button>
+                    {matchSets[match.id]?.every((s) => !s.tagging_phase || s.tagging_phase === 'not_started') && (
+                      <Button
+                        onClick={() => navigate(`/matches/${match.id}/tag?set=1&mode=pass1focus`)}
+                        size="sm"
+                        variant="secondary"
+                      >
+                        Start tagging
+                      </Button>
+                    )}
                     <Button
                       onClick={() => setMatchForDetails(match)}
                       size="sm"
@@ -229,15 +212,6 @@ export function MatchListSection({
                     >
                       Details
                     </Button>
-                    {!isComplete && (
-                      <Button
-                        onClick={() => handleTagMatch(match)}
-                        size="sm"
-                        disabled={isLoadingSets}
-                      >
-                        {match.tagging_mode ? 'Resume Tagging' : 'Tag Match'}
-                      </Button>
-                    )}
                     {match.winner_id === null && !isComplete && (
                       <Button
                         onClick={() => handleEnterResults(match)}
@@ -246,15 +220,6 @@ export function MatchListSection({
                         disabled={isLoadingSets || !match.player2_id}
                       >
                         Enter Result
-                      </Button>
-                    )}
-                    {isComplete && (
-                      <Button
-                        onClick={() => navigate(`/data-viewer?match=${match.id}`)}
-                        variant="secondary"
-                        size="sm"
-                      >
-                        View Data
                       </Button>
                     )}
                   </div>
@@ -284,18 +249,6 @@ export function MatchListSection({
           player2Name={getPlayerName(matchForResults.player2_id)}
           onClose={handleCloseResultsModal}
           onSave={handleResultsSaved}
-        />
-      )}
-
-      {selectedMatch && (
-        <SetSelectionModal
-          matchId={selectedMatch.id}
-          sets={sets}
-          player1Name={getPlayerName(selectedMatch.player1_id)}
-          player2Name={opponentName(selectedMatch)}
-          player1Id={selectedMatch.player1_id}
-          player2Id={selectedMatch.player2_id ?? 'villain'}
-          onClose={handleCloseModal}
         />
       )}
     </div>

@@ -1,4 +1,4 @@
-export { Dashboard } from './Dashboard'
+export { HomePage } from './Home'
 export { Clubs } from './Clubs'
 export { default as MatchesPage } from './Matches'
 export { default as TournamentsPage } from './Tournaments'

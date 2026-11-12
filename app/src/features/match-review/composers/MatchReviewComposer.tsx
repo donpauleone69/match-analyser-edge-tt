@@ -34,6 +34,7 @@ import {
   replaceWithCloudCopy,
   saveMatchFile,
   saveSetVideoFromUrl,
+  retagFromRally,
   startSetOver,
 } from './matchReviewActions'
 import { useDeriveMatchStorage } from '../derive/useDeriveMatchStorage'
@@ -224,6 +225,20 @@ export function MatchReviewComposer() {
     onWatch: (rally, playlist, title) => watch(rally, playlist, title),
     onEdit: openEditor,
     onToggleHighlight: toggleHighlight,
+    onRetagFrom: async (rally) => {
+      const later = (review?.rallies.filter((r) => r.setId === rally.setId && r.rallyIndex > rally.rallyIndex).length ?? 0)
+      const what = later > 0 ? `rally ${rally.rallyIndex} and the ${later} after it` : `rally ${rally.rallyIndex}`
+      const kept = rally.rallyIndex > 1 ? `\n\nRallies 1–${rally.rallyIndex - 1} are kept.` : ''
+      const ok = window.confirm(`Delete ${what} in Set ${rally.setNumber}, then continue tagging from there?${kept}`)
+      if (!ok) return
+      try {
+        await retagFromRally(rally.setId, rally.rallyIndex)
+        navigate(`/matches/${matchId}/tag?set=${rally.setNumber}&mode=pass1focus`)
+      } catch (err) {
+        console.error('[MatchReview] Re-tag failed:', err)
+        alert('Could not reset the set from that rally')
+      }
+    },
   }
 
   const handleStartOver = async (set: SetPanelModel) => {

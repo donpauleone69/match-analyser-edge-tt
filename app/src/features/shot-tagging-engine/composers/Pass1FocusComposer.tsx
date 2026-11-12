@@ -748,14 +748,11 @@ export function Pass1FocusComposer({
             </p>
           )}
           <div className="flex gap-3 justify-center">
-            <Button variant="secondary" onClick={() => navigate(`/matches/${matchId}`)}>
-              Back to Match Review
+            <Button variant="secondary" onClick={() => navigate(`/matches/${matchId}?tab=clips`)}>
+              Watch clips
             </Button>
-            <Button
-              variant="primary"
-              onClick={() => navigate(`/data-viewer?match=${matchId}`)}
-            >
-              View Data
+            <Button variant="primary" onClick={() => navigate(`/matches/${matchId}`)}>
+              Review match
             </Button>
           </div>
         </div>

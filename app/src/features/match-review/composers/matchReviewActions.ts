@@ -2,7 +2,7 @@
  * Match Review IO actions — the only place Match Review writes data.
  */
 
-import { setDb, type DBMatch, type DBSet } from '@/data'
+import { rallyDb, setDb, type DBMatch, type DBSet } from '@/data'
 import { resolveSetVideo, storeSetVideo } from '@/data/services/videoAssetService'
 import { resolveOpponentId } from '@/helpers/themSide'
 import { downloadMatchBundle, pullMatch, pushMatch, uploadVideoAsset, type PushResult } from '@/data/cloud'
@@ -44,6 +44,28 @@ export async function saveSetVideoFromUrl(
   const file = new File([blob], `${matchId}-${setNumber}.mp4`, { type: blob.type || 'video/mp4' })
   await storeSetVideo(matchId, setNumber, file)
   return URL.createObjectURL(file)
+}
+
+/**
+ * Delete rally `fromIndex` and every later rally in the set, so tagging resumes
+ * there. Earlier rallies (and their detail tags) are kept.
+ */
+export async function retagFromRally(setId: string, fromIndex: number): Promise<void> {
+  const set = await setDb.getById(setId)
+  if (!set) throw new Error('Set not found')
+  const rallies = (await rallyDb.getBySetId(setId)).sort((a, b) => a.rally_index - b.rally_index)
+  for (const r of rallies.filter((r) => r.rally_index >= fromIndex)) await rallyDb.remove(r.id)
+  const kept = rallies.filter((r) => r.rally_index < fromIndex)
+  const last = kept[kept.length - 1]
+  await setDb.update(setId, {
+    tagging_phase: kept.length > 0 ? 'phase2_in_progress' : 'not_started',
+    phase1_last_rally: last?.rally_index ?? null,
+    player1_score_final: last?.player1_score_after ?? set.setup_starting_score_p1 ?? 0,
+    player2_score_final: last?.player2_score_after ?? set.setup_starting_score_p2 ?? 0,
+    winner_id: null,
+    is_tagged: false,
+    tagging_completed_at: null,
+  })
 }
 
 /** Delete every rally + shot in the set and reset it to not started. */
