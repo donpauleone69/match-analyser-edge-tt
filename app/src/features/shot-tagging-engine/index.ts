@@ -5,6 +5,11 @@
 export { TaggingUIComposer } from './composers/TaggingUIComposer'
 export { Pass1FocusComposer } from './composers/Pass1FocusComposer'
 export { RallyFocusComposer } from './composers/RallyFocusComposer'
+export { RallyEditComposer, type RallyEditNotice } from './composers/RallyEditComposer'
+export {
+  setPersistedRallyHighlight,
+  updatePersistedPass1FocusRally,
+} from './composers/persistPass1FocusRally'
 
 export { PhaseLayoutTemplate, type PhaseLayoutTemplateProps } from './layouts'
 export {

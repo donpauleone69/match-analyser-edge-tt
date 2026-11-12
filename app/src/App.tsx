@@ -10,6 +10,7 @@ import PlayersPage from './pages/Players'
 import MatchCreatePage from './pages/MatchCreate'
 import MatchReviewPage from './pages/MatchReview'
 import { ShotTaggingEngine } from './pages/ShotTaggingEngine'
+import { RallyEdit } from './pages/RallyEdit'
 import { Settings } from './pages/Settings'
 import { DataViewer } from './pages/DataViewer'
 import { DataViewerAudit } from './pages/DataViewerAudit'
@@ -44,6 +45,8 @@ function App() {
         
         {/* Shot tagging engine - full-screen tagging interface */}
         <Route path="/matches/:matchId/tag" element={<ShotTaggingEngine />} />
+        {/* Single-rally edit - full-screen, saves only that rally */}
+        <Route path="/matches/:matchId/edit-rally" element={<RallyEdit />} />
       </Routes>
     </BrowserRouter>
   )

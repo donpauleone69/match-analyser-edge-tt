@@ -2,7 +2,8 @@
  * Persist one Pass 1 Focus rally + shots to IndexedDB.
  */
 
-import { rallyDb, shotDb, setDb, type DBRally, type DBShot } from '@/data'
+import { db, rallyDb, shotDb, setDb, type DBRally, type DBShot } from '@/data'
+import { deriveRallyScoreChain } from '@/rules/derive/rally/deriveRallyScoreChain'
 import {
   attachRallyIdToPass1Shots,
   mapPass1FocusRallyToDb,
@@ -115,6 +116,116 @@ export async function persistPass1FocusRally(
     serverName,
     winnerName,
   }
+}
+
+export interface UpdatePass1FocusRallyInput {
+  setId: string
+  rallyId: string
+  serverId: string
+  player1Id: string
+  player2Id: string
+  isHighlight: boolean
+  timeline: RallyTimelineState
+}
+
+export interface UpdatedPass1FocusRally {
+  rally: DBRally
+  winnerChanged: boolean
+  /** Later rallies whose stored score was re-chained */
+  rescoredCount: number
+  finalScore: { player1: number; player2: number }
+}
+
+/**
+ * Save edits to one already-tagged rally without touching the rest of the set.
+ *
+ * Re-maps the rally with the same allow-list as a fresh save, replaces its
+ * shots, then re-chains before/after scores through the set (only rallies
+ * whose score actually moved are written). Set final score follows; the set
+ * winner is refreshed only when the set was already ended.
+ */
+export async function updatePersistedPass1FocusRally(
+  input: UpdatePass1FocusRallyInput
+): Promise<UpdatedPass1FocusRally> {
+  return db.transaction('rw', [db.sets, db.rallies, db.shots], async () => {
+    const set = await setDb.getById(input.setId)
+    if (!set) throw new Error(`Set ${input.setId} not found`)
+    const existing = await rallyDb.getById(input.rallyId)
+    if (!existing) throw new Error(`Rally ${input.rallyId} not found`)
+
+    const { rally: mapped, shots: mappedShots } = mapPass1FocusRallyToDb({
+      timeline: toMapperTimeline(input.timeline),
+      setId: input.setId,
+      rallyIndex: existing.rally_index,
+      videoId: existing.video_id,
+      serverId: input.serverId,
+      player1Id: input.player1Id,
+      player2Id: input.player2Id,
+      player1ScoreBefore: existing.player1_score_before,
+      player2ScoreBefore: existing.player2_score_before,
+      isHighlight: input.isHighlight,
+    })
+
+    const winnerChanged = mapped.winner_id !== existing.winner_id
+    const updated = await rallyDb.update(existing.id, {
+      ...mapped,
+      // Keep corrections history visible on the row
+      server_corrected: existing.server_corrected || mapped.server_id !== existing.server_id,
+      score_corrected: existing.score_corrected,
+      correction_notes: existing.correction_notes,
+    })
+
+    await shotDb.deleteByRallyId(existing.id)
+    await shotDb.bulkCreate(attachRallyIdToPass1Shots(mappedShots, existing.id))
+
+    const rallies = await rallyDb.getBySetId(input.setId)
+    const first = rallies[0]
+    const chain = deriveRallyScoreChain({
+      rallies,
+      player1Id: input.player1Id,
+      start: {
+        player1: set.setup_starting_score_p1 ?? first?.player1_score_before ?? 0,
+        player2: set.setup_starting_score_p2 ?? first?.player2_score_before ?? 0,
+      },
+    })
+
+    let rescoredCount = 0
+    let savedRally = updated
+    for (const entry of chain.entries) {
+      if (!entry.changed) continue
+      const { id, changed: _changed, ...scores } = entry
+      const written = await rallyDb.update(id, scores)
+      if (id === existing.id) savedRally = written
+      else rescoredCount++
+    }
+
+    const ended = set.is_tagged || set.tagging_phase === 'phase2_complete'
+    const { player1, player2 } = chain.final
+    await setDb.update(input.setId, {
+      player1_score_final: player1,
+      player2_score_final: player2,
+      ...(ended
+        ? {
+            winner_id:
+              player1 > player2
+                ? input.player1Id
+                : player2 > player1
+                  ? toStoredPlayerId(input.player2Id)
+                  : null,
+          }
+        : {}),
+    })
+
+    return { rally: savedRally, winnerChanged, rescoredCount, finalScore: chain.final }
+  })
+}
+
+/** Star / un-star a rally as a highlight. */
+export async function setPersistedRallyHighlight(
+  rallyId: string,
+  isHighlight: boolean
+): Promise<void> {
+  await rallyDb.update(rallyId, { is_highlight: isHighlight })
 }
 
 export async function finalizePass1FocusSet(input: {
