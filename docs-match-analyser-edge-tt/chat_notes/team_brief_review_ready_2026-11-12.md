@@ -445,21 +445,42 @@ The older menu outside tagging and last night’s review may be removed or repla
 
 ## Session progress (coordinator live board)
 
-| Slice | Status | Commit / notes | Ownership lock |
-|--|--|--|--|
-| A | **Signed** | `992adaea8032d69ec14d654519f0501588b48252` — `slice A: readable shot list tokens` | clear |
-| B | **Built, awaiting critique** | Dirty tree on branch (account gate + focal scope). Vitest account scope 3/3. Browser post-sign-in blocked by cloud auth non-response; gate verified at three viewports. | lock while criticising / possible one rebuild — touch: `App.tsx`, `features/account/**`, `stores/cloudStore.ts`, `rules/derive/account/**`, home/match/clips scope derives, DataSchema + specAddendum |
-| C–F | Not started | — | clear |
-
-Regression gate before next build after B signs: run `themeTokens.test.ts` + `deriveAccountScope.test.ts`.
+| Slice | Status | Commit |
+|--|--|--|
+| A | Signed | `992adae` |
+| B | Signed | `fddee5f` |
+| C | Signed | `f41ad9c` |
+| D | Signed | `93464ee` (+ polish `9a43b76`) |
+| E | Signed | `e85f4b8` |
+| F | Signed | `01f9797` |
 
 ## Change list
 
-_(Coordinator, last. One row per signed commit. Deferred slices listed under the table with the reason and no hash.)_
+| Commit | Slice | What the user will notice | How to drop only this |
+|--|--|--|--|
+| `992adaea8032d69ec14d654519f0501588b48252` | A | Pass 1 shot list uses shared player/role/result tokens; Review/Clips share the same semantics | `git revert 992adae` on the branch |
+| `fddee5f5c8cb4fbc80385d56c8c393e61ad7eb9d` | B | Library/tag/review require account; coach can switch “Reviewing as”; player defaults to self | `git revert fddee5f` |
+| `f41ad9cced22f48a8b552e3616505b07a0f0f01e` | C | Shell is Library · Matches · Training · Clips · Account; old Clubs/Players/Tournaments/Analytics/Data viewer paths redirect home | `git revert f41ad9c` |
+| `93464ee3e2ed9410f5e9906930af31a5dcef085f` | D | Details storage: archive / retrieve / trim; Clips Download; source-time trim map | `git revert 93464ee` |
+| `9a43b76b3d49bbd2bd69bb061dcfb9d6b8e4b714` | D′ | Archive/trim window polish on storage + clip download | `git revert 9a43b76` |
+| `e85f4b83f235f06eaa5950fdd7cfab5a7a8863c6` | E | Scope control: this match / tournament / opponent / all of mine; `/review` | `git revert e85f4b8` |
+| `01f9797c123eb460ed32909139101efc55de1f3d` | F | Training posts (shot type + combination) with month compare | `git revert 01f9797` |
+
+Deferred: none (all A–F signed). Browser end-to-end after sign-in was blocked by unresponsive Supabase on this machine; gates and Vitest cover the models.
+
+Also state:
+
+- Full rollback: check out tag `pre-team-brief-2026-11-12` (`540fb5b`). The branch can be deleted later; the team does not delete it.
+- Keep a subset: revert unwanted commits in reverse order (`01f9797` … `992adae`), leave the rest.
+- Nothing is pushed; looking is safe.
 
 ## Ready to look at
 
-_(Clicks, URL, what was removed from the old shell, what was deferred and why.)_
+1. Open `http://localhost:5173/` on branch `team/review-ready-2026-11-12`.
+2. Sign in (Account required). If cloud auth is down, you will see the gate — fix Supabase session to walk further.
+3. After sign-in + player/coach setup: **Library** → open a match → Pass 1 colors → Review (Summary / Work on / Clips) → scope control → **Training** (not a match) → post/compare.
+4. Removed from the shell path: Clubs, Players, Tournaments, Analytics, Data viewer (URLs redirect to Library).
+5. Tagging Pass 1 and last night’s review payoff (Work on, clips, player-voice summary) stay.
 
 ---
 
