@@ -20,6 +20,8 @@ import {
   type WinPhase,
 } from '@/rules/analytics/calculateAttackStory'
 import { calculateReviewShots } from '@/rules/analytics/calculateReviewShots'
+import { calculateServeReceiveStory } from '@/rules/analytics/calculateServeReceiveStory'
+import { buildServeReceiveSections } from './buildServeReceiveCards'
 import { groupReviewShots, type ReviewPattern } from '@/rules/analytics/groupReviewShots'
 import { calculateRallyHighlights } from '@/rules/analytics/calculateRallyHighlights'
 import { deriveCompareTone, type ComparePolarity } from '@/rules/analytics/deriveCompareTone'
@@ -811,18 +813,6 @@ function buildResult(
 
 const LOCKED: LockedSectionModel[] = [
   {
-    id: 'B',
-    title: 'Serve',
-    question: 'Is my serve effective? Does it win points, force mistakes and set up my attack, or does it get punished?',
-    note: 'Uses tags you already capture in Pass 1 — card coming next.',
-  },
-  {
-    id: 'C',
-    title: 'Receive',
-    question: 'How do I choose to receive, attack or passive, and how well does each work?',
-    note: 'Uses tags you already capture in Pass 1 — card coming next.',
-  },
-  {
     id: 'E',
     title: 'When they attack',
     question: 'When my opponent attacks first, how do I respond, and do I get back into the point?',
@@ -875,6 +865,10 @@ export function buildMatchReviewViewModel(
         buildWinPhaseCard(attack, names),
       ],
     },
+    ...buildServeReceiveSections(
+      calculateServeReceiveStory({ rallies: data.rallies, shots: data.shots, heroId: names.heroId }),
+      names
+    ),
     {
       id: 'D',
       title: 'First attack',
