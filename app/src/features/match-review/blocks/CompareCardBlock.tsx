@@ -23,9 +23,9 @@ export interface CompareCardBlockProps {
 }
 
 export const TONE_TEXT: Record<CellTone, string> = {
-  good: 'text-emerald-400',
-  bad: 'text-rose-400',
-  amber: 'text-amber-300',
+  good: 'text-result-winner',
+  bad: 'text-result-error',
+  amber: 'text-warning',
   none: 'text-neutral-50',
 }
 
@@ -92,8 +92,8 @@ export function CompareCardBlock({
               key={s.setNumber}
               className={cn(
                 'inline-flex items-baseline gap-2 rounded-lg border px-3 py-1.5',
-                s.heroWon === true && 'border-emerald-700/60 bg-emerald-950/40',
-                s.heroWon === false && 'border-rose-800/60 bg-rose-950/30',
+                s.heroWon === true && 'border-result-winner/60 bg-result-winner-bg',
+                s.heroWon === false && 'border-result-error/60 bg-result-error-bg',
                 s.heroWon === null && 'border-neutral-700 bg-neutral-900/50'
               )}
             >

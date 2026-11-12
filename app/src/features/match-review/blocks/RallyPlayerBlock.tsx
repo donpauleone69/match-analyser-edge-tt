@@ -62,7 +62,7 @@ export const RallyPlayerBlock = forwardRef<VideoPlayerHandle, RallyPlayerBlockPr
                 <span className="ml-2 font-mono text-neutral-400 font-normal">
                   {rally.scoreBefore} → {rally.scoreAfter}
                 </span>
-                <span className={rally.heroWon ? 'ml-2 text-emerald-400' : 'ml-2 text-rose-400'}>
+                <span className={rally.heroWon ? 'ml-2 text-result-winner' : 'ml-2 text-result-error'}>
                   {rally.winnerName.split(' ')[0]} won
                 </span>
               </p>
@@ -93,7 +93,7 @@ export const RallyPlayerBlock = forwardRef<VideoPlayerHandle, RallyPlayerBlockPr
               </p>
             )}
             {videoUrl && !loop && (
-              <p className="absolute top-3 inset-x-0 text-center text-xs text-amber-300">
+              <p className="absolute top-3 inset-x-0 text-center text-xs text-warning">
                 This rally has no contact times, so it can’t be clipped.
               </p>
             )}

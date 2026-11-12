@@ -441,8 +441,8 @@ export function MatchReviewComposer() {
               <span
                 className={cn(
                   'font-medium',
-                  review.resultTone === 'good' && 'text-emerald-400',
-                  review.resultTone === 'bad' && 'text-rose-400',
+                  review.resultTone === 'good' && 'text-result-winner',
+                  review.resultTone === 'bad' && 'text-result-error',
                   review.resultTone === 'info' && 'text-neutral-200'
                 )}
               >
@@ -461,10 +461,10 @@ export function MatchReviewComposer() {
       </header>
 
       {notice && (
-        <div className="flex items-start gap-3 rounded-lg border border-emerald-800/60 bg-emerald-950/30 px-4 py-3 text-sm text-emerald-100">
-          <Icon name="check" size="sm" className="mt-0.5 text-emerald-400" />
+        <div className="flex items-start gap-3 rounded-lg border border-result-winner/60 bg-result-winner-bg px-4 py-3 text-sm text-result-winner">
+          <Icon name="check" size="sm" className="mt-0.5 text-result-winner" />
           <span className="flex-1">{notice}</span>
-          <button type="button" aria-label="Dismiss" onClick={() => setNotice(null)} className="text-emerald-300 hover:text-emerald-50">
+          <button type="button" aria-label="Dismiss" onClick={() => setNotice(null)} className="text-result-winner hover:text-neutral-50">
             <Icon name="x" size="sm" />
           </button>
         </div>

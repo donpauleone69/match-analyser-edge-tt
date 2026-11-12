@@ -749,7 +749,7 @@ export function Pass1FocusComposer({
             </Button>
           </div>
           {scoreConfirmed === false && (
-            <p className="text-amber-400/90 text-xs mb-4">
+            <p className="text-warning text-xs mb-4">
               Flagged. Stored point scores are unchanged.
             </p>
           )}
@@ -782,7 +782,7 @@ export function Pass1FocusComposer({
   const overlayColor =
     typeof overlayShot === 'number' && overlayShot > 0
       ? contactOverlayColor(overlayShot)
-      : '#e5e7eb'
+      : 'var(--color-neutral-200)'
   const speedLabel =
     Number.isInteger(playbackSpeed) ? `${playbackSpeed}×` : `${playbackSpeed}×`
   return (
@@ -834,7 +834,7 @@ export function Pass1FocusComposer({
                   : 'top-1/2 right-3 -translate-y-1/2 px-3 py-2.5',
                 phase === 'form' &&
                   overlayShot >= 2 &&
-                  'cursor-pointer hover:border-[#329985]/60'
+                  'cursor-pointer hover:border-shot-first-attack'
               )}
               aria-live="polite"
               aria-label={
@@ -1030,8 +1030,8 @@ export function Pass1FocusComposer({
                     tagBtn,
                     'shrink-0',
                     openRally?.isHighlight
-                      ? 'bg-amber-500/90 text-neutral-950 border-amber-400'
-                      : 'text-amber-200/90 border-amber-700/60'
+                      ? 'bg-review text-neutral-950 border-review'
+                      : 'text-review border-review/60'
                   )}
                 >
                   ★ Highlight
@@ -1056,7 +1056,7 @@ export function Pass1FocusComposer({
                     <div key={r.rallyIndex} className="text-[10px] text-neutral-400 leading-snug">
                       <span className="text-neutral-500">R{r.rallyIndex}</span>
                       {r.isHighlight && (
-                        <span className="ml-1 text-amber-400" title="Highlight">
+                        <span className="ml-1 text-review" title="Highlight">
                           ★
                         </span>
                       )}{' '}
@@ -1233,7 +1233,7 @@ function TaggingSessionBar({
             <div key={r.rallyIndex} className="text-[10px] text-neutral-400 leading-snug">
               <span className="text-neutral-500">R{r.rallyIndex}</span>
               {r.isHighlight && (
-                <span className="ml-1 text-amber-400" title="Highlight">
+                <span className="ml-1 text-review" title="Highlight">
                   ★
                 </span>
               )}{' '}
@@ -1323,7 +1323,9 @@ function RallyProgressTimeline({
           // Slight pad so contact-to-contact spans read as a filled rally block.
           const start = Math.max(viewStart, rawStart - LOOP_PAD_SECONDS)
           const end = Math.min(viewEnd, rawEnd + LOOP_PAD_SECONDS)
-          const fill = r.isHighlight ? '#f59e0b' : '#c4a574'
+          const fill = r.isHighlight
+            ? 'var(--color-review)'
+            : 'var(--color-shot-serve)'
           return (
             <button
               key={r.rallyIndex}
@@ -1345,7 +1347,7 @@ function RallyProgressTimeline({
         {contactTimes.map((t, i) => (
           <span
             key={`c-${i}-${t}`}
-            className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-[#7eb8e8] pointer-events-none z-10"
+            className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-contact-live pointer-events-none z-10"
             style={{ left: pct(t) }}
             aria-hidden
           />

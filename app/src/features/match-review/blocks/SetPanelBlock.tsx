@@ -16,8 +16,8 @@ export interface SetPanelBlockProps {
 
 const STATUS_STYLE: Record<SetPanelModel['status'], string> = {
   not_started: 'text-neutral-400 bg-neutral-800 border-neutral-700',
-  in_progress: 'text-amber-300 bg-amber-950/40 border-amber-800/60',
-  tagged: 'text-emerald-300 bg-emerald-950/40 border-emerald-800/60',
+  in_progress: 'text-warning bg-warning-muted border-warning/60',
+  tagged: 'text-success bg-success-muted border-success/60',
 }
 
 export function SetPanelBlock({ set, onTag, onBrowse, onStartOver }: SetPanelBlockProps) {
@@ -25,7 +25,7 @@ export function SetPanelBlock({ set, onTag, onBrowse, onStartOver }: SetPanelBlo
 
   if (confirming) {
     return (
-      <div className="rounded-lg border border-rose-800/60 bg-rose-950/20 p-3 space-y-2">
+      <div className="rounded-lg border border-danger/60 bg-danger-muted p-3 space-y-2">
         <p className="text-sm text-neutral-200">
           Delete all {set.rallyCount} tagged rallies in Set {set.setNumber} and start again?
         </p>
@@ -62,8 +62,8 @@ export function SetPanelBlock({ set, onTag, onBrowse, onStartOver }: SetPanelBlo
           <span
             className={cn(
               'font-mono text-lg font-bold',
-              set.heroWon === true && 'text-emerald-400',
-              set.heroWon === false && 'text-rose-400',
+              set.heroWon === true && 'text-result-winner',
+              set.heroWon === false && 'text-result-error',
               set.heroWon === null && 'text-neutral-100'
             )}
           >
@@ -91,7 +91,7 @@ export function SetPanelBlock({ set, onTag, onBrowse, onStartOver }: SetPanelBlo
             onClick={() => setConfirming(true)}
             title="Delete this set's tags and start again"
             aria-label={`Start Set ${set.setNumber} over`}
-            className="h-9 w-9 rounded-md border border-neutral-700 text-neutral-500 hover:text-rose-300 hover:border-rose-800 flex items-center justify-center"
+            className="h-9 w-9 rounded-md border border-neutral-700 text-neutral-500 hover:text-danger hover:border-danger flex items-center justify-center"
           >
             <Icon name="trash" size="sm" />
           </button>

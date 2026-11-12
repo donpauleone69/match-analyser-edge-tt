@@ -239,7 +239,7 @@ export function ClipsComposer({ matchId = null, embedded = false }: ClipsCompose
   }
 
   if (isLoading) return <p className="text-neutral-400">Loading clips…</p>
-  if (error) return <p className="text-rose-400">{error}</p>
+  if (error) return <p className="text-result-error">{error}</p>
   if (!data) return null
 
   const header = !embedded && (
@@ -283,8 +283,8 @@ export function ClipsComposer({ matchId = null, embedded = false }: ClipsCompose
         <div
           className={
             notice.tone === 'good'
-              ? 'flex items-start gap-3 rounded-lg border border-emerald-800/60 bg-emerald-950/30 px-4 py-3 text-sm text-emerald-100'
-              : 'flex items-start gap-3 rounded-lg border border-rose-800/60 bg-rose-950/30 px-4 py-3 text-sm text-rose-100'
+              ? 'flex items-start gap-3 rounded-lg border border-result-winner/60 bg-result-winner-bg px-4 py-3 text-sm text-result-winner'
+              : 'flex items-start gap-3 rounded-lg border border-result-error/60 bg-result-error-bg px-4 py-3 text-sm text-result-error'
           }
         >
           <Icon name={notice.tone === 'good' ? 'check' : 'warning'} size="sm" className="mt-0.5" />

@@ -61,28 +61,31 @@ export interface Pass1FocusBlockProps {
   className?: string
 }
 
-type PillKind = 'wing' | 'stroke' | 'fos' | 'end' | 'standing' | 'review'
+type PillKind =
+  | 'wing'
+  | 'stroke'
+  | 'fos'
+  | 'end'
+  | 'winner'
+  | 'error'
+  | 'air'
+  | 'standing'
+  | 'review'
 
 const PILL_COLOR: Record<PillKind, string> = {
-  wing: '#477eae',
-  stroke: '#8970aa',
-  fos: '#329985',
-  end: '#758596',
-  standing: '#ae823e',
-  review: '#c4a035',
+  wing: 'var(--color-player-1)',
+  stroke: 'var(--color-shot-aggressive)',
+  fos: 'var(--color-shot-first-attack)',
+  end: 'var(--color-neutral-500)',
+  winner: 'var(--color-result-winner)',
+  error: 'var(--color-result-error)',
+  air: 'var(--color-result-air)',
+  standing: 'var(--color-shot-serve)',
+  review: 'var(--color-review)',
 }
 
-const PHASE_ROW: Record<RallyPhase, { odd: string; even: string }> = {
-  opening: { odd: 'bg-neutral-900/80', even: 'bg-neutral-900/50' },
-  ball: { odd: 'bg-amber-950/25', even: 'bg-amber-950/15' },
-  fos: { odd: 'bg-emerald-950/30', even: 'bg-emerald-950/20' },
-  reply: { odd: 'bg-sky-950/25', even: 'bg-sky-950/15' },
-  next: { odd: 'bg-neutral-900/70', even: 'bg-neutral-900/40' },
-  after: { odd: 'bg-violet-950/25', even: 'bg-violet-950/15' },
-}
-
-const SERVE_ROW_BG = 'bg-amber-950/30'
-const SERVE_STRIPE = '#c4a574'
+const PLAYER_ROW = { odd: 'bg-player-1-bg', even: 'bg-player-2-bg' }
+const SERVE_STRIPE = 'var(--color-shot-serve)'
 
 const PHASE_GROUP: Record<RallyPhase, string> = {
   opening: 'PRE OFFENSIVE SHOT',
@@ -124,8 +127,12 @@ function TimelinePill({
       )}
       style={
         selected
-          ? { backgroundColor: color, borderColor: color, color: '#fff' }
-          : { backgroundColor: 'transparent', borderColor: '#525252', color: '#d4d4d4' }
+          ? { backgroundColor: color, borderColor: color, color: 'var(--color-neutral-50)' }
+          : {
+              backgroundColor: 'transparent',
+              borderColor: 'var(--color-neutral-600)',
+              color: 'var(--color-neutral-300)',
+            }
       }
     >
       {label}
@@ -274,15 +281,25 @@ export function Pass1FocusBlock({
           const prior = n > 1 ? phaseAt(n - 1, state) : null
           const phaseName = isServe ? 'SERVE' : PHASE_GROUP[phase]
           const priorName = prior ? (n - 1 === 1 ? 'SERVE' : PHASE_GROUP[prior]) : null
-          const meta = PHASE_META[phase]
           const isPre = !isServe && (phase === 'opening' || phase === 'ball')
-          const tone = isPre ? 'ball' : phase
-          const rowBg = isServe
-            ? SERVE_ROW_BG
-            : n % 2 === 0
-              ? PHASE_ROW[tone].even
-              : PHASE_ROW[tone].odd
-          const stripeColor = isServe ? SERVE_STRIPE : isPre ? PHASE_META.ball.stripe : meta.stripe
+          const rowBg = n % 2 === 0 ? PLAYER_ROW.even : PLAYER_ROW.odd
+          const resultStripe =
+            state.ending === 'winner' || state.ending === 'lucky'
+              ? 'var(--color-result-winner)'
+              : state.ending === 'error_air'
+                ? 'var(--color-result-air)'
+                : 'var(--color-result-error)'
+          const stripeColor = isServe
+            ? SERVE_STRIPE
+            : isEnd && state.ending
+              ? resultStripe
+              : role === 'first_attack'
+                ? 'var(--color-shot-first-attack)'
+                : n === 2 || role === 'reply'
+                  ? 'var(--color-shot-receive)'
+                  : isPre
+                    ? PHASE_META.ball.stripe
+                    : PHASE_META[phase].stripe
           const showPhaseMark = n === 1 || phaseName !== priorName
 
           const strokes: readonly string[] =
@@ -324,8 +341,35 @@ export function Pass1FocusBlock({
                 stripeColor={stripeColor}
                 active={activeShot === n}
                 selected={isSelected}
-                isServe={isServe}
                 isFos={state.fos === n}
+                roleLabel={
+                  isEnd && state.ending
+                    ? state.ending === 'winner' || state.ending === 'lucky'
+                      ? 'Winner'
+                      : state.ending === 'error_air'
+                        ? 'Air'
+                        : 'Error'
+                    : isServe
+                      ? 'Serve'
+                      : role === 'first_attack'
+                        ? 'First attack'
+                        : n === 2 || role === 'reply'
+                          ? 'Receive'
+                          : null
+                }
+                roleTone={
+                  isEnd && state.ending
+                    ? state.ending === 'winner' || state.ending === 'lucky'
+                      ? 'winner'
+                      : state.ending === 'error_air'
+                        ? 'air'
+                        : 'error'
+                    : isServe
+                      ? 'serve'
+                      : role === 'first_attack'
+                        ? 'attack'
+                        : 'receive'
+                }
                 flagged={shot.reviewKind !== null}
                 summary={getShotSummary(n, shot)}
                 onSelect={() => onSelectShot?.(n)}
@@ -373,7 +417,13 @@ export function Pass1FocusBlock({
                         {ENDING_OPTIONS.map(({ value, label }) => (
                           <TimelinePill
                             key={value}
-                            kind="end"
+                            kind={
+                              value === 'winner' || value === 'lucky'
+                                ? 'winner'
+                                : value === 'error_air'
+                                  ? 'air'
+                                  : 'error'
+                            }
                             label={label}
                             selected={state.ending === value}
                             onClick={() => onToggleEnding(value)}
@@ -488,7 +538,7 @@ function FirstAttackPicker({
           className={cn(
             'h-7 px-2 rounded-md text-[11px] font-bold border',
             !hasFos
-              ? 'bg-[#329985] text-white border-[#329985]'
+              ? 'bg-shot-first-attack text-neutral-950 border-shot-first-attack'
               : 'bg-transparent text-neutral-300 border-neutral-600'
           )}
         >
@@ -588,8 +638,9 @@ function ShotRow({
   stripeColor,
   active,
   selected,
-  isServe,
   isFos,
+  roleLabel,
+  roleTone,
   flagged,
   summary,
   onSelect,
@@ -602,8 +653,9 @@ function ShotRow({
   stripeColor: string
   active: boolean
   selected: boolean
-  isServe: boolean
   isFos: boolean
+  roleLabel: string | null
+  roleTone: 'serve' | 'receive' | 'attack' | 'winner' | 'error' | 'air'
   flagged: boolean
   summary: string
   onSelect: () => void
@@ -626,9 +678,9 @@ function ShotRow({
       className={cn(
         'flex items-stretch gap-1.5 rounded-md px-1.5 py-1 min-w-0 w-full cursor-pointer border border-transparent',
         rowBg,
-        active && 'outline outline-2 outline-[#7eb8e8] outline-offset-0',
-        selected && !active && 'border-neutral-500 bg-neutral-800/80',
-        selected && active && 'ring-1 ring-brand-primary/50'
+        active && 'outline outline-2 outline-contact-live outline-offset-0',
+        selected && !active && 'border-contact-selected bg-contact-selected-bg',
+        selected && active && 'ring-2 ring-contact-selected'
       )}
     >
       <div
@@ -641,18 +693,28 @@ function ShotRow({
           <div className="inline-flex flex-none items-center gap-1.5 text-[11px]">
             <span className="w-3.5 text-[12px] font-bold text-neutral-100">{n}</span>
             <strong className="text-neutral-100">{playerForShot(n, players, server)}</strong>
-            {isServe && (
-              <span className="inline-flex items-center h-[18px] px-1.5 rounded-full bg-[#c4a574] text-neutral-950 text-[9px] font-bold tracking-wide uppercase">
-                Serve
+            {roleLabel && (
+              <span
+                className={cn(
+                  'inline-flex items-center h-[18px] px-1.5 rounded-full text-[9px] font-bold tracking-wide uppercase',
+                  roleTone === 'serve' && 'bg-shot-serve text-neutral-950',
+                  roleTone === 'receive' && 'bg-shot-receive text-neutral-950',
+                  roleTone === 'attack' && 'bg-shot-first-attack text-neutral-950',
+                  roleTone === 'winner' && 'bg-result-winner text-neutral-950',
+                  roleTone === 'error' && 'bg-result-error text-neutral-950',
+                  roleTone === 'air' && 'bg-result-air text-neutral-950'
+                )}
+              >
+                {roleLabel}
               </span>
             )}
-            {isFos && (
-              <span className="inline-flex items-center h-[18px] px-1.5 rounded-full bg-[#329985] text-white text-[9px] font-bold tracking-wide uppercase">
+            {isFos && roleTone !== 'attack' && (
+              <span className="inline-flex items-center h-[18px] px-1.5 rounded-full bg-shot-first-attack text-neutral-950 text-[9px] font-bold tracking-wide uppercase">
                 FOS
               </span>
             )}
             {flagged && (
-              <span className="inline-flex items-center h-[18px] px-1.5 rounded-full bg-amber-700/80 text-amber-50 text-[9px] font-bold tracking-wide uppercase">
+              <span className="inline-flex items-center h-[18px] px-1.5 rounded-full bg-review text-neutral-950 text-[9px] font-bold tracking-wide uppercase">
                 Review
               </span>
             )}

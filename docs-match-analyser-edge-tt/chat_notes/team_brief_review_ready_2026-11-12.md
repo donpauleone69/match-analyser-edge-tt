@@ -157,17 +157,58 @@ The builder fills **UX bet**, **Test cases**, **Result**, and **Critique**. The 
 - Match Review, Clips, and tagging use the same tokens. A light base is acceptable. A dark base is acceptable only if the shot list is genuinely easier to scan than today, proven by using it on desktop, iPad, and iPhone.
 - Empty, selected, and live-contact states are still obvious.
 
-**UX bet.** _(before code)_
+**Job confirmation (coordinator + scout).** Confirmed. Pass 1 list is painted by `Pass1FocusBlock` / `pass1FocusModel` / `Pass1FocusComposer` with duplicated raw hex; `@theme` already has unused `player-*` and `shot-*` tokens but no serve/receive/first-attack/result/live/selected semantics. Winner/error/air currently share one `end` color. Light base preferred if it makes the shot list easier to scan; dark only if proven better in browser.
 
-**Test cases.** _(before code: functional + browser at the three viewports)_
+**Touch folders.** `app/src/index.css`; Pass 1 paint files; shared outcome/selected/review color uses in Match Review + Clips (token swap, not layout rebuild). Optional: Rally Focus duplicates if still reachable. Vitest token invariant next to theme.
+
+**Out of scope.** Theme picker. New tagging behaviour. Routes/shell. Schema. Full repaint of screens Slice C will replace. Unused `ShotListItem.tsx`.
+
+**UX bet.** Open a match in Pass 1 and scan the contact rail before reading labels: alternating player-side treatments establish who hit, while role accents distinguish serve, receive, first attack, and winner / error / air. Select a contact, move the live contact, and add an empty contact; selected, live, and empty states remain unmistakable without changing any tagging action. Open Match Review and Clips from the existing flow and see the same winner / error / review semantics carried through.
+
+**Rebuild UX bet.** Unchanged: complete the same semantic language across the remaining visible Match Review and tagging outcome/review/highlight surfaces; no interaction or layout change.
+
+**Test cases.**
+
+- **Functional:** `index.css` defines semantic tokens for app surfaces/text, both player sides, serve, receive, first attack, winner, error, air, live contact, selected contact, and review state.
+- **Functional:** `Pass1FocusBlock.tsx`, `pass1FocusModel.ts`, and `Pass1FocusComposer.tsx` contain no raw `#hex`; visual changes in those files resolve through theme-backed Tailwind utilities.
+- **Functional:** Pass 1 role derivation and tagging behavior are unchanged; the visual mapping presents distinct role tokens for serve, receive, first attack, winner, error, and air.
+- **Browser — Desktop 1440 × 900:** open an existing match → Tag / Pass 1; click adjacent contacts from both players, select a contact, move/play to the live contact, and inspect an empty slot. Expect player side and role to be distinguishable at a glance, with selected/live/empty states obvious and all controls still usable. Then open Match Review and Clips and expect winner/error/review colors to match Pass 1 semantics.
+- **Browser — iPad 820 × 1180:** repeat the same click path. Expect the contact rail/list to remain readable without overlap or clipped role/state cues, and review/clip outcomes to use the same semantic colors.
+- **Browser — iPhone 390 × 844:** repeat the same click path. Expect horizontal/compact presentation to preserve player, role, selected, live, and empty distinctions; tagging, review, and clip navigation remain reachable and usable.
 
 **Functional check.** Token names cover surface, text, player side, and shot role. A feature file that needs a new color adds a token rather than a raw hex.
 
-**Touch.** `app/src/index.css`, tagging blocks that paint the shot list, shared surfaces those screens already use. Skip a full repaint of screens Slice C will replace.
+**Result (builder).**
 
-**Out of scope.** A theme picker with many skins. New tagging behaviour.
+- Added shared semantic tokens for player sides, serve, receive, first attack, winner, error, air, live contact, selected contact, and review. Pass 1 paint now uses tokens only; player alternation is carried by row surfaces, while role/result is carried by the accent and explicit label.
+- Match Review and Clips winner/error, review, and selected treatments now use the same tokens. Tagging behavior, role derivation, routes, and layout were not changed.
+- **Functional — PASS:** `npx vitest run src/themeTokens.test.ts` (2/2); required token names exist and all three Pass 1 paint files contain no raw hex. `npm run build` passed. No linter errors; `git diff --check` passed.
+- **Desktop 1440 × 900 — PASS:** Review → Continue tagging; created four unsaved contacts; selected shot 2; marked shot 3 first attack and shot 4 Air; observed alternating blue/orange player surfaces, Serve / Receive / First attack / Air role labels, distinct live outline and selected surface, and the empty pre-contact state. No horizontal overflow. Returned without saving, opened Clips, and switched to the winner playlist; controls and semantic selected/winner states remained usable.
+- **iPad 820 × 1180 — PASS:** repeated the full click path with four unsaved contacts, selected/live/first-attack/Air states, then Review → Clips → winner playlist. Shot rows stayed within 814 px with no horizontal overflow or clipped role cues.
+- **iPhone 390 × 844 — PASS:** repeated the full click path. Shot rows stayed within 376 px, retained player alternation and Serve / Receive / First attack / Air labels, selected and live states remained distinct, and Review / Clips / winner playlist stayed reachable with no horizontal overflow.
+- **Done-when:** met. Scheme changes are token edits; adjacent Pass 1 contacts differ by player and meaningful role/result; Review and Clips share the semantics; empty, selected, and live states remain obvious.
 
-**Result / Critique.** _(builder, then fresh critique)_
+**Rebuild result.**
+
+- Replaced the remaining direct emerald / rose / amber outcome, review, and highlight utilities in Set panels, rally player, comparison cards, Work on, Highlights, review patterns, and Pass 1 highlight states. Match outcomes now use `result-winner` / `result-error`, review/highlight uses `review`, and genuinely operational states use `success`, `warning`, or `danger`.
+- Extended `themeTokens.test.ts` across all seven critique-named surfaces so direct emerald / rose / amber palette utilities fail the invariant.
+- **Functional — PASS:** `npx vitest run src/themeTokens.test.ts` (3/3), `npm run build`, and edited-file lint checks all passed.
+- **Desktop 1440 × 900 — PASS:** clicked through Summary, Details/sets, Work on, Highlights, Rallies, the rally player, Pass 1, and Clips. In Pass 1, created four unsaved contacts, selected shot 2, marked shot 3 First attack and shot 4 Winner, and toggled Highlight; role/player/live/selected states and the token-backed highlight remained distinct. Returned without saving and switched Clips to the winner playlist. No horizontal overflow.
+- **iPad 820 × 1180 — PASS (quick regression):** winner Clips playlist, review navigation, playback/edit/export controls remained reachable with no horizontal overflow.
+- **iPhone 390 × 844 — PASS (quick regression):** the same winner Clips and review controls remained reachable with no horizontal overflow.
+- **Rebuild done-when:** met; the critique-named visible surfaces now share the semantic scheme and are covered by an invariant.
+
+**Critique.**
+
+- **Keep:** The desktop 1440 × 900 walk reached Match Review, Clips, and Pass 1. The dark base is materially clearer in Pass 1: player turns have alternating blue/orange surfaces, role/result colors are distinct and explicitly labelled, and live/selected treatments have separate outlines/rings. The new semantic token set and the removal of raw hex from the three Pass 1 paint files are the right foundation.
+- **Change:** The shared scheme is not complete enough to sign off yet. Several visible winner/error/review/highlight treatments in this same flow still bypass the semantic tokens with direct Tailwind palette utilities: notably `SetPanelBlock.tsx`, `RallyPlayerBlock.tsx`, `CompareCardBlock.tsx`, `WorkOnSection.tsx`, `HighlightsSection.tsx`, `ReviewPatternBlock.tsx`, and highlight uses in `Pass1FocusComposer.tsx`. Replace matching `emerald` / `rose` / `amber` outcome and review uses with `result-winner`, `result-error`, and `review` tokens (or an existing general semantic token where the meaning is genuinely not match outcome/review). Extend the invariant so these reviewed surfaces cannot silently reintroduce direct palette colors for those semantics. Otherwise changing the scheme still requires hunting feature classes, and Match Review/tagging do not consistently share the scheme.
+- **Next:** Later visual cleanup can tokenise unrelated operational states such as cloud availability, sync, focus rings, and generic information colors; those are not Slice A blockers.
+
+**Post-rebuild critique.**
+
+- **Keep:** The blocking change is satisfied. The seven named Match Review and Pass 1 surfaces now use `result-winner`, `result-error`, `review`, or the appropriate general semantic status tokens, and the expanded invariant rejects direct emerald / rose / amber utilities in those files. The rebuild result is supported by a fresh `themeTokens.test.ts` pass (3/3), a successful production build, and the recorded desktop plus responsive browser regressions. Slice A's done-when holds: Pass 1 remains readable by player, role, result, live, selected, and empty state, while Review and Clips share the same token-backed semantics.
+- **Change:** None. No hard done-when failure remains.
+- **Next:** Keep the earlier non-blocking cleanup note for operational states and alternate/test tagging surfaces; do not extend Slice A for it.
 
 ### B — Logged in, and clear whose shoes you are in
 
@@ -295,8 +336,8 @@ The older menu outside tagging and last night’s review may be removed or repla
 
 - Prior branch: `overnight/player-dashboard` at `cb4604390f8f3df4faed4932a90f29c8bd92e173`
 - Working branch: `team/review-ready-2026-11-12` (created from that HEAD with accepted dirty review work)
-- Baseline commit: _(filled after `baseline: accepted review session 2026-11-12`)_
-- Tag `pre-team-brief-2026-11-12`: _(filled after tag)_
+- Baseline commit: `540fb5b4ea939b6fa17230536a9b9b9f4cb1c1d2` (`baseline: accepted review session 2026-11-12`)
+- Tag `pre-team-brief-2026-11-12`: exists on that baseline commit
 - Excluded from baseline: `.env`, `tmp_patch_phase1.py`, `tmp_patch_phase2.py`
 
 ## Change list

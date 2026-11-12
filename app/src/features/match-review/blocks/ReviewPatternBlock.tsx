@@ -28,7 +28,7 @@ export function ReviewPatternBlock({ pattern, defaultOpen = false, onWatch, onEd
         <span
           className={cn(
             'shrink-0 min-w-9 h-7 px-2 rounded-md flex items-center justify-center font-mono text-sm font-bold',
-            pattern.count > 1 ? 'bg-amber-500/20 text-amber-200' : 'bg-neutral-800 text-neutral-300'
+            pattern.count > 1 ? 'bg-review-bg text-review' : 'bg-neutral-800 text-neutral-300'
           )}
         >
           {pattern.count}×

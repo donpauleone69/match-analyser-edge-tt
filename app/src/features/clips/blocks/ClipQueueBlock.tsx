@@ -24,14 +24,14 @@ export function ClipQueueBlock({ rows, activeIndex, onSelect }: ClipQueueBlockPr
               onClick={() => onSelect(i)}
               className={cn(
                 'w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors',
-                active ? 'bg-brand-primary/10' : 'hover:bg-neutral-800/60'
+                active ? 'bg-contact-selected-bg ring-1 ring-inset ring-contact-selected/40' : 'hover:bg-neutral-800/60'
               )}
             >
               <span className={cn('w-6 text-right font-mono text-xs', active ? 'text-brand-primary' : 'text-neutral-500')}>
                 {active ? <Icon name="play" size="xs" className="inline" /> : i + 1}
               </span>
               <span
-                className={cn('h-2 w-2 rounded-full shrink-0', row.heroWon ? 'bg-emerald-400' : 'bg-rose-400')}
+                className={cn('h-2 w-2 rounded-full shrink-0', row.heroWon ? 'bg-result-winner' : 'bg-result-error')}
                 aria-label={row.heroWon ? 'Won' : 'Lost'}
               />
               <span className="min-w-0 flex-1">

@@ -6,6 +6,20 @@
 
 ## Change Log
 
+### 2026-11-12: Shared match color semantics (v3.41.0)
+
+**Change Type:** Design tokens + Pass 1 / Match Review / Clips UI
+
+**What Changed:**
+- Added one token palette for player sides, serve, receive, first attack, winner, error, air, live contact, selected contact, and review.
+- Pass 1 contact rows now alternate player-side surfaces and carry explicit role/result accents and labels; live, selected, and empty capture states remain distinct.
+- Removed raw hex colors from the three Pass 1 paint files. Match Review and Clips outcome, selected, and review treatments use the same semantic tokens.
+- Added a Vitest invariant for required token names and raw-hex exclusion in Pass 1 paint.
+
+**Rationale:** Contacts need to be scannable by player and role without changing tagging behavior, and future palette changes should be made in the theme rather than feature files.
+
+---
+
 ### 2026-11-12: Match Details context (player-centric) (v3.40.0)
 
 **Change Type:** Data model + Match Review Details UX
@@ -6933,6 +6947,7 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v3.41.0 | 2026-11-12 | Shared match color tokens; Pass 1 player/role/result scanability; Review + Clips semantic alignment |
 | v3.40.0 | 2026-11-12 | Match Details context: date (video lastModified / manual), opponent player link+create, tournament+round; list Details → Review |
 | v3.40.0 | 2026-11-12 | Match Details context: date (video lastModified / manual), opponent player pick/create, tournament+round; create/list simplified |
 | v3.39.0 | 2026-11-12 | Player-perspective principle; Clips whole-rally/shot + slow-mo; Summary/Details IA; category playlists; Pass 1 Review row + Air + dark restyle |

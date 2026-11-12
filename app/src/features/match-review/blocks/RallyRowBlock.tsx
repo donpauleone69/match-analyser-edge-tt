@@ -35,7 +35,7 @@ export function RallyRowBlock({
     <li
       className={cn(
         'flex items-center gap-3 px-3 py-2.5 bg-neutral-900/50',
-        active && 'bg-neutral-800/80 ring-1 ring-inset ring-brand-primary/50'
+        active && 'bg-contact-selected-bg ring-1 ring-inset ring-contact-selected/50'
       )}
     >
       <button
@@ -56,15 +56,15 @@ export function RallyRowBlock({
             className={cn(
               'text-[11px] font-semibold rounded px-1.5 py-0.5 border',
               rally.heroWon
-                ? 'text-emerald-300 border-emerald-800/70 bg-emerald-950/40'
-                : 'text-rose-300 border-rose-900/70 bg-rose-950/30'
+                ? 'text-result-winner border-result-winner/70 bg-result-winner-bg'
+                : 'text-result-error border-result-error/70 bg-result-error-bg'
             )}
           >
             {rally.heroWon ? `${heroName.split(' ')[0]} won` : `${rally.winnerName.split(' ')[0]} won`}
           </span>
-          {rally.isHighlight && <span className="text-amber-400 text-xs" aria-label="Highlight">★</span>}
+          {rally.isHighlight && <span className="text-review text-xs" aria-label="Highlight">★</span>}
           {rally.reviewCount > 0 && (
-            <span className="text-[10px] font-bold uppercase tracking-wide text-amber-200/90 border border-amber-700/50 rounded px-1">
+            <span className="text-[10px] font-bold uppercase tracking-wide text-review border border-review/50 rounded px-1">
               {rally.reviewCount} flagged
             </span>
           )}
@@ -97,7 +97,7 @@ export function RallyRowBlock({
         aria-label={rally.isHighlight ? 'Remove highlight' : 'Add to highlights'}
         title={rally.isHighlight ? 'Remove from highlights' : 'Add to highlights'}
         onClick={() => onToggleHighlight(rally)}
-        className={cn(iconBtn, rally.isHighlight && 'text-amber-400 border-amber-700/70')}
+        className={cn(iconBtn, rally.isHighlight && 'text-review border-review/70')}
       >
         <Icon name="star" size="sm" className={rally.isHighlight ? 'fill-current' : undefined} />
       </button>
@@ -107,7 +107,7 @@ export function RallyRowBlock({
           aria-label={`Re-tag from rally ${rally.rallyIndex}`}
           title="Re-tag from this rally onwards (earlier rallies are kept)"
           onClick={() => onRetagFrom(rally)}
-          className={cn(iconBtn, 'text-neutral-500 hover:text-amber-300 hover:border-amber-700')}
+          className={cn(iconBtn, 'text-neutral-500 hover:text-review hover:border-review')}
         >
           <Icon name="rotate-ccw" size="sm" />
         </button>

@@ -30,12 +30,12 @@ export function ClipPresetListBlock({ groups, activeKey, onSelect }: ClipPresetL
                   className={cn(
                     'flex items-center justify-between gap-3 rounded-md border px-3 py-2 text-left text-sm transition-colors',
                     active
-                      ? 'border-brand-primary bg-brand-primary/15 text-neutral-50'
+                      ? 'border-contact-selected bg-contact-selected-bg text-neutral-50'
                       : 'border-neutral-700 bg-bg-card text-neutral-300 hover:border-neutral-500 hover:text-neutral-50'
                   )}
                 >
                   <span className="truncate">{p.label}</span>
-                  <span className={cn('shrink-0 font-mono text-xs', active ? 'text-brand-primary' : 'text-neutral-500')}>
+                  <span className={cn('shrink-0 font-mono text-xs', active ? 'text-contact-selected' : 'text-neutral-500')}>
                     {p.count}
                   </span>
                 </button>

@@ -88,7 +88,7 @@ export function HighlightsSection({ flagged, longest, heroName, multiSet, action
       ) : (
         <Card className="p-5 border border-dashed border-neutral-700">
           <h3 className="text-lg font-semibold text-neutral-50 flex items-center gap-2">
-            <Icon name="star" size="md" className="text-amber-400" /> No starred rallies yet
+            <Icon name="star" size="md" className="text-review" /> No starred rallies yet
           </h3>
           <p className="mt-1 text-sm text-neutral-400">
             Star a rally with <span className="text-neutral-200">★ Highlight</span> while tagging, or tap the star next to any

@@ -120,7 +120,7 @@ export function WorkOnSection({
         ) : heroFocus.length > 0 ? (
           <ul className="mt-3 flex flex-wrap gap-2">
             {heroFocus.map((f) => (
-              <li key={f.key} className="rounded-full border border-amber-700/60 bg-amber-950/30 px-3 py-1 text-sm text-amber-100">
+              <li key={f.key} className="rounded-full border border-review/60 bg-review-bg px-3 py-1 text-sm text-review">
                 {f.text}
               </li>
             ))}

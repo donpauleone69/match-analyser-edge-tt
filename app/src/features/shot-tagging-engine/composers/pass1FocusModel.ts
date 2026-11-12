@@ -89,12 +89,12 @@ export const PHASE_META: Record<
   RallyPhase,
   { name: string; stripe: string }
 > = {
-  opening: { name: 'OPENING', stripe: '#8399A9' },
-  ball: { name: 'THE BALL', stripe: '#ae823e' },
-  fos: { name: 'FIRST ATTACK', stripe: '#329985' },
-  reply: { name: 'REPLY', stripe: '#477eae' },
-  next: { name: 'NEXT', stripe: '#6c879e' },
-  after: { name: 'AFTER', stripe: '#9379AD' },
+  opening: { name: 'OPENING', stripe: 'var(--color-shot-receive)' },
+  ball: { name: 'THE BALL', stripe: 'var(--color-shot-serve)' },
+  fos: { name: 'FIRST ATTACK', stripe: 'var(--color-shot-first-attack)' },
+  reply: { name: 'REPLY', stripe: 'var(--color-shot-receive)' },
+  next: { name: 'NEXT', stripe: 'var(--color-player-1)' },
+  after: { name: 'AFTER', stripe: 'var(--color-player-2)' },
 }
 
 export const ENDING_OPTIONS: { value: PointEnding; label: string }[] = [
@@ -162,8 +162,8 @@ export const CONTACT_IDLE_MS = 2000
 export const LOOP_PAD_SECONDS = 1
 
 /** Server (odd) vs receiver (even) overlay colours */
-export const CONTACT_OVERLAY_SERVER = '#f0c674'
-export const CONTACT_OVERLAY_RECEIVER = '#7eb8e8'
+export const CONTACT_OVERLAY_SERVER = 'var(--color-player-1)'
+export const CONTACT_OVERLAY_RECEIVER = 'var(--color-player-2)'
 
 export function isErrorEnding(ending: PointEnding | null): boolean {
   return (

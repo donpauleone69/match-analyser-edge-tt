@@ -12,7 +12,8 @@ import {
   MatchContextBlock,
   type MatchContextDraft,
 } from '../blocks/MatchContextBlock'
-import type { MatchReviewViewModel, MatchStorageModel, SetPanelModel } from '../models'
+import type { MatchReviewViewModel, SetPanelModel } from '../models'
+import type { MatchStorageModel } from '../derive/useDeriveMatchStorage'
 import type { DBPlayer, DBTournament, MatchRound } from '@/data'
 
 export interface DetailsSectionProps {
@@ -123,8 +124,8 @@ export function DetailsSection({
             <dd
               className={cn(
                 'mt-0.5 font-semibold',
-                review.resultTone === 'good' && 'text-emerald-400',
-                review.resultTone === 'bad' && 'text-rose-400',
+                review.resultTone === 'good' && 'text-result-winner',
+                review.resultTone === 'bad' && 'text-result-error',
                 review.resultTone === 'info' && 'text-neutral-200'
               )}
             >

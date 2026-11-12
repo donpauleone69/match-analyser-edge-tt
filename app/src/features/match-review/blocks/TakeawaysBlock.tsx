@@ -13,8 +13,8 @@ export interface TakeawaysBlockProps {
 }
 
 const DOT: Record<TakeawayModel['tone'], string> = {
-  good: 'bg-emerald-400',
-  bad: 'bg-rose-400',
+  good: 'bg-result-winner',
+  bad: 'bg-result-error',
   info: 'bg-sky-400',
 }
 

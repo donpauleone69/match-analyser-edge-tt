@@ -18,9 +18,9 @@ export interface ReelListBlockProps {
 
 const AVAILABILITY: Record<ReelRowModel['availability'], { icon: 'hard-drive' | 'cloud' | 'cloud-off'; label: string; tone: string }> = {
   device: { icon: 'hard-drive', label: 'This device', tone: 'text-neutral-400' },
-  'device+cloud': { icon: 'cloud', label: 'Device + cloud', tone: 'text-emerald-400' },
+  'device+cloud': { icon: 'cloud', label: 'Device + cloud', tone: 'text-result-winner' },
   cloud: { icon: 'cloud', label: 'Cloud only', tone: 'text-sky-300' },
-  missing: { icon: 'cloud-off', label: 'Missing', tone: 'text-amber-400' },
+  missing: { icon: 'cloud-off', label: 'Missing', tone: 'text-review' },
 }
 
 export function ReelListBlock({ reels, activeAssetId, busyAssetId, canUseCloud, onPlay, onUpload, onDownload }: ReelListBlockProps) {
@@ -33,7 +33,7 @@ export function ReelListBlock({ reels, activeAssetId, busyAssetId, canUseCloud, 
           const a = AVAILABILITY[r.availability]
           const busy = busyAssetId === r.assetId
           return (
-            <li key={r.assetId} className={cn('flex flex-wrap items-center gap-3 px-3 py-2.5', activeAssetId === r.assetId && 'bg-brand-primary/10')}>
+            <li key={r.assetId} className={cn('flex flex-wrap items-center gap-3 px-3 py-2.5', activeAssetId === r.assetId && 'bg-contact-selected-bg ring-1 ring-inset ring-contact-selected/40')}>
               <Icon name="film" size="sm" className="text-neutral-500" />
               <div className="min-w-0 flex-1">
                 <p className="text-sm text-neutral-100 truncate">{r.label}</p>
