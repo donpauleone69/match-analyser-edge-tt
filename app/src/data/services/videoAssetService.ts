@@ -10,7 +10,7 @@ import { videoAssetDb, type DBVideoAsset } from '@/data/entities/videoAssets'
 import { matchDb } from '@/data/entities/matches/match.db'
 import { getLocalVideo, putLocalVideo, deleteLocalVideo, requestPersistentStorage } from '@/helpers/videoStorage'
 import { supabase, VIDEO_BUCKET } from '@/data/cloud/supabaseClient'
-import type { EdlSegment } from '@/rules/derive/clips/deriveClipEdl'
+import { deriveTrimMapping, type EdlSegment } from '@/rules/derive/clips/deriveClipEdl'
 import {
   isoDateFromEpochMs,
   shouldApplyVideoMatchDate,
@@ -321,4 +321,63 @@ export async function downloadAssetToDevice(asset: DBVideoAsset): Promise<DBVide
 export async function removeAssetFromDevice(asset: DBVideoAsset): Promise<DBVideoAsset> {
   await deleteLocalVideo(asset.id)
   return videoAssetDb.update(asset.id, { local_store: null })
+}
+
+/** Archive = remove device bytes; keep the asset row and any cloud path. Tags untouched. */
+export async function archiveAssetLocally(asset: DBVideoAsset): Promise<DBVideoAsset> {
+  await deleteLocalVideo(asset.id)
+  return videoAssetDb.update(asset.id, {
+    local_store: null,
+    archived_locally_at: new Date().toISOString(),
+  })
+}
+
+/** Retrieve a previously archived (or cloud-only) asset onto this device. */
+export async function retrieveAssetToDevice(asset: DBVideoAsset): Promise<DBVideoAsset> {
+  const restored = await downloadAssetToDevice(asset)
+  return videoAssetDb.update(restored.id, { archived_locally_at: null })
+}
+
+/**
+ * Register a trimmed derivative of a set source. The cut file's clock maps to
+ * source time via `segments` (same EDL pattern as reels). Shot tags stay in source seconds.
+ */
+export async function storeTrimmedSetVideo(input: {
+  matchId: string
+  setNumber: number
+  sourceAsset: DBVideoAsset
+  blob: Blob
+  sourceStart: number
+  sourceEnd: number
+  label?: string
+}): Promise<DBVideoAsset> {
+  const edl = deriveTrimMapping({
+    matchId: input.matchId,
+    setNumber: input.setNumber,
+    sourceStart: input.sourceStart,
+    sourceEnd: input.sourceEnd,
+  })
+  const meta = await probeVideo(input.blob)
+  const fileName = `set-${input.setNumber}-trim-${Math.round(input.sourceStart)}-${Math.round(input.sourceEnd)}.mp4`
+  const asset = await videoAssetDb.create({
+    match_id: input.matchId,
+    set_number: input.setNumber,
+    kind: 'trimmed',
+    label: input.label ?? `Trimmed set ${input.setNumber}`,
+    file_name: fileName,
+    mime_type: 'video/mp4',
+    size_bytes: input.blob.size,
+    duration_s: meta.duration,
+    width: meta.width,
+    height: meta.height,
+    fingerprint: await fingerprintFile(input.blob),
+    local_store: null,
+    remote_path: null,
+    remote_uploaded_at: null,
+    archived_locally_at: null,
+    source_asset_ids: [input.sourceAsset.id],
+    segments: edl.segments,
+  })
+  const store = await putLocalVideo(asset.id, input.blob, fileName)
+  return videoAssetDb.update(asset.id, { local_store: store })
 }

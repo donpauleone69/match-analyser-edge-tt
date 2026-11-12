@@ -13,6 +13,9 @@ export interface SetVideoStorageModel {
   setNumber: number
   availability: VideoAvailability
   sizeLabel: string
+  archivedLocally: boolean
+  canRetrieve: boolean
+  durationS: number | null
 }
 
 export interface MatchStorageModel {
@@ -45,12 +48,18 @@ export function useDeriveMatchStorage(matchId: string | undefined, dataVersion: 
         .sort((a, b) => (a.set_number ?? 0) - (b.set_number ?? 0) || b.updated_at.localeCompare(a.updated_at))
       const latestPerSet = sources.filter((a, i) => sources.findIndex((b) => b.set_number === a.set_number) === i)
       const setVideos = await Promise.all(
-        latestPerSet.map(async (a) => ({
-          assetId: a.id,
-          setNumber: a.set_number!,
-          availability: await deriveVideoAvailability(a),
-          sizeLabel: formatFileSize(a.size_bytes),
-        }))
+        latestPerSet.map(async (a) => {
+          const availability = await deriveVideoAvailability(a)
+          return {
+            assetId: a.id,
+            setNumber: a.set_number!,
+            availability,
+            sizeLabel: formatFileSize(a.size_bytes),
+            archivedLocally: Boolean(a.archived_locally_at) || availability === 'cloud' || availability === 'missing',
+            canRetrieve: Boolean(a.remote_path),
+            durationS: a.duration_s,
+          }
+        })
       )
       const entry = getSyncEntry(matchId)
       if (active) setModel({ sync, syncedAtLabel: entry ? ago(entry.syncedAt) : null, setVideos })

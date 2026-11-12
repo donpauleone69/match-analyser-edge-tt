@@ -35,6 +35,7 @@ import { ReelListBlock } from '../blocks/ReelListBlock'
 import {
   backUpReel,
   checkReel,
+  downloadClipFile,
   fetchReelToDevice,
   loadClipVideo,
   loadReelVideo,
@@ -84,6 +85,7 @@ export function ClipsComposer({ matchId = null, embedded = false }: ClipsCompose
   const [reel, setReel] = useState<ReelPlayback | null>(null)
   const [exporting, setExporting] = useState<ReelExportProgress | null>(null)
   const [busyReel, setBusyReel] = useState<string | null>(null)
+  const [downloadBusy, setDownloadBusy] = useState(false)
   const [notice, setNotice] = useState<{ tone: 'good' | 'bad'; text: string } | null>(null)
   const blobUrls = useRef<string[]>([])
   const clipStartedAt = useRef(0)
@@ -190,6 +192,23 @@ export function ClipsComposer({ matchId = null, embedded = false }: ClipsCompose
 
   // A reel travels with one match's bundle; a cross-match reel goes with its first clip's match
   const reelMatchId = matchId ?? clips[0]?.matchId ?? ''
+
+  const handleDownloadClip = async () => {
+    const clipForDownload = playClips[Math.min(index, playClips.length - 1)]
+    if (!clipForDownload) return
+    setDownloadBusy(true)
+    setNotice(null)
+    try {
+      await downloadClipFile(clipForDownload)
+      setNotice({ tone: 'good', text: 'Clip downloaded. Tags still use source-video time.' })
+      refresh()
+    } catch (err) {
+      console.error('[Clips] Clip download failed:', err)
+      setNotice({ tone: 'bad', text: err instanceof Error ? err.message : 'Clip download failed' })
+    } finally {
+      setDownloadBusy(false)
+    }
+  }
 
   const handleExport = async () => {
     setNotice(null)
@@ -359,6 +378,8 @@ export function ClipsComposer({ matchId = null, embedded = false }: ClipsCompose
               onPrev={() => setIndex((i) => Math.max(0, i - 1))}
               onNext={() => setIndex((i) => Math.min(rows.length - 1, i + 1))}
               onToggleAutoAdvance={() => setAutoAdvance((a) => !a)}
+              onDownload={handleDownloadClip}
+              downloadBusy={downloadBusy}
               onEdit={() =>
                 navigate(
                   `/matches/${current.clip.matchId}/edit-rally?set=${current.clip.setNumber}&rally=${current.clip.rallyIndex}`

@@ -257,9 +257,9 @@ Durable record of every source video and exported reel. The file lives on the de
 interface DBVideoAsset {
   id: string                       // va_<16 hex>
   match_id: string
-  set_number: number | null        // source videos: the set it covers; reels: null
-  kind: 'source' | 'reel'
-  label: string | null             // reel name, e.g. "Hero · opening attacks lost"
+  set_number: number | null        // source/trimmed: the set it covers; reels: null
+  kind: 'source' | 'reel' | 'trimmed'
+  label: string | null             // reel/trim name
   file_name: string
   mime_type: string
   size_bytes: number
@@ -271,8 +271,9 @@ interface DBVideoAsset {
   local_store: 'opfs' | 'idb' | null   // device-only; stripped from cloud bundles
   remote_path: string | null       // {uid}/{matchId}/{assetId}.ext in bucket match-videos
   remote_uploaded_at: string | null
-  source_asset_ids: string[] | null  // reels: sources they were cut from
-  segments: EdlSegment[] | null    // reels: source interval → reel time (measured)
+  archived_locally_at?: string | null // device bytes removed; row + cloud path may remain
+  source_asset_ids: string[] | null  // reels/trimmed: sources they were cut from
+  segments: EdlSegment[] | null    // file time → source-video time (measured)
   created_at: string
   updated_at: string
 }
@@ -280,7 +281,7 @@ interface DBVideoAsset {
 
 **Indexes:** `id, match_id, [match_id+set_number], kind`
 
-**Notes:** Rally/shot timestamps stay in source-video time; reels map back through `segments`. Signed URLs are created at play time and never stored. `file_last_modified_ms` feeds honest match-date suggestions (not EXIF).
+**Notes:** Rally/shot timestamps stay in source-video time; reels and trimmed files map back through `segments`. Archive clears the device copy without rewriting tags. Signed URLs are created at play time and never stored. `file_last_modified_ms` feeds honest match-date suggestions (not EXIF).
 
 ---
 

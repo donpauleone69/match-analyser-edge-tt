@@ -364,7 +364,17 @@ The older menu outside tagging and last night’s review may be removed or repla
 
 **Out of scope.** A second exporter that ignores the EDL. Re-encoding the whole match as the only way to save a clip. Fake video metadata.
 
-**Result / Critique.**
+**Result (coordinator built after Task abort).**
+
+- Pure trim/EDL map: contact at source 42.5 after a 10s leading trim stays 42.5 in tags; file time 32.5 maps back. Vitest clip suite 15/15.
+- `kind: 'trimmed'`, `archived_locally_at`; archive/retrieve/trim actions on Details → Storage; Clips stage Download via existing EDL exporter.
+- **Browser — BLOCKED** by account gate (same Supabase non-response). Functional done-when for mapping met; UI wired behind the gate.
+
+**Critique.**
+
+- **Keep:** Source-time contract tested; archive/trim/download use one video store and EDL map; no tag rewrite.
+- **Change:** none for sign-off given env browser block already recorded.
+- **Next:** Live attach/reload walk when auth works; richer trim UI than “first 10s”.
 
 ### E — The same review, across more than one match
 

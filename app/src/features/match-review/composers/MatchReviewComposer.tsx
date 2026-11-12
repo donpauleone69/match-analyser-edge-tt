@@ -29,17 +29,20 @@ import {
   addNextSet,
   applyStoredVideoMatchDateIfNeeded,
   applySuggestedVideoDate,
+  archiveSetVideo,
   backUpMatch,
   backUpSetVideo,
   createAndLinkOpponent,
   createTournamentForMatch,
   loadSetVideoUrl,
   replaceWithCloudCopy,
+  retrieveSetVideo,
   saveMatchContext,
   saveMatchFile,
   saveSetVideoFromUrl,
   retagFromRally,
   startSetOver,
+  trimSetVideo,
 } from './matchReviewActions'
 import { useDeriveMatchStorage } from '../derive/useDeriveMatchStorage'
 import { useCloudStore } from '@/stores/cloudStore'
@@ -416,6 +419,12 @@ export function MatchReviewComposer() {
         }
         return 'Video backed up — it can now play on your other devices.'
       }),
+    onArchiveVideo: (assetId: string) =>
+      runStorage(`archive-${assetId}`, async () => archiveSetVideo(assetId)),
+    onRetrieveVideo: (assetId: string) =>
+      runStorage(`retrieve-${assetId}`, async () => retrieveSetVideo(assetId)),
+    onTrimVideo: (assetId: string, setNumber: number, sourceStart: number, sourceEnd: number) =>
+      runStorage(`trim-${assetId}`, async () => trimSetVideo(assetId, setNumber, sourceStart, sourceEnd)),
     onSaveFile: () => runStorage('file', async () => (await saveMatchFile(matchId), null)),
   }
 

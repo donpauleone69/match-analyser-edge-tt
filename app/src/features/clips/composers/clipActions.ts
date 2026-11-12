@@ -12,7 +12,9 @@ import {
   type ResolvedVideo,
 } from '@/data/services/videoAssetService'
 import { exportReel, planReel, type ReelExportProgress, type ReelPlan } from '@/data/services/reelExportService'
-import type { Edl } from '@/rules/derive/clips/deriveClipEdl'
+import { deriveClipEdl, type Edl } from '@/rules/derive/clips/deriveClipEdl'
+import type { Clip } from '@/rules/derive/clips/deriveClips'
+import { getAssetFile } from '@/data/services/videoAssetService'
 
 export type { ReelExportProgress, ReelPlan }
 
@@ -54,4 +56,28 @@ export async function fetchReelToDevice(assetId: string): Promise<void> {
   const asset = await videoAssetDb.getById(assetId)
   if (!asset) throw new Error('Reel not found')
   await downloadAssetToDevice(asset)
+}
+
+/** Export one clip window via the EDL cutter and trigger a browser download. */
+export async function downloadClipFile(
+  clip: Clip,
+  onProgress?: (p: ReelExportProgress) => void,
+): Promise<void> {
+  const edl = deriveClipEdl([clip])
+  const asset = await exportReel({
+    matchId: clip.matchId,
+    label: `clip-s${clip.setNumber}-r${clip.rallyIndex + 1}`,
+    edl,
+    onProgress,
+  })
+  const file = await getAssetFile(asset)
+  if (!file) throw new Error('Exported clip is not on this device')
+  const url = URL.createObjectURL(file)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = asset.file_name || 'clip.mp4'
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
 }

@@ -16,6 +16,9 @@ export interface MatchStorageBlockProps {
   conflict: boolean
   onBackUpMatch: () => void
   onBackUpVideo: (assetId: string) => void
+  onArchiveVideo: (assetId: string) => void
+  onRetrieveVideo: (assetId: string) => void
+  onTrimVideo: (assetId: string, setNumber: number, sourceStart: number, sourceEnd: number) => void
   onKeepDevice: () => void
   onUseCloud: () => void
   onSaveFile: () => void
@@ -38,6 +41,9 @@ export function MatchStorageBlock({
   conflict,
   onBackUpMatch,
   onBackUpVideo,
+  onArchiveVideo,
+  onRetrieveVideo,
+  onTrimVideo,
   onKeepDevice,
   onUseCloud,
   onSaveFile,
@@ -76,7 +82,7 @@ export function MatchStorageBlock({
         )}
 
         {storage.setVideos.map((v) => (
-          <span key={v.assetId} className="flex items-center gap-1.5 text-neutral-400">
+          <span key={v.assetId} className="flex flex-wrap items-center gap-x-2 gap-y-1 text-neutral-400">
             <Icon name="video" size="sm" />
             Set {v.setNumber} video: {VIDEO_LABEL[v.availability]}
             {cloudAvailable && signedIn && v.availability === 'device' && (
@@ -89,6 +95,44 @@ export function MatchStorageBlock({
               >
                 <Icon name={busy === v.assetId ? 'loader' : 'cloud-upload'} size="xs" className={spin(v.assetId)} />
                 {busy === v.assetId && uploadPercent !== null ? `Uploading ${uploadPercent}%` : `Back up (${v.sizeLabel})`}
+              </button>
+            )}
+            {(v.availability === 'device' || v.availability === 'device+cloud') && (
+              <button
+                type="button"
+                onClick={() => onArchiveVideo(v.assetId)}
+                disabled={busy !== null}
+                className="flex items-center gap-1 text-neutral-300 hover:underline disabled:opacity-50"
+                title="Remove the device copy. Tags stay on source-video time."
+              >
+                <Icon name={busy === `archive-${v.assetId}` ? 'loader' : 'hard-drive'} size="xs" className={spin(`archive-${v.assetId}`)} />
+                Archive device copy
+              </button>
+            )}
+            {v.canRetrieve && v.availability !== 'device' && v.availability !== 'device+cloud' && (
+              <button
+                type="button"
+                onClick={() => onRetrieveVideo(v.assetId)}
+                disabled={busy !== null}
+                className="flex items-center gap-1 text-brand-primary hover:underline disabled:opacity-50"
+              >
+                <Icon name={busy === `retrieve-${v.assetId}` ? 'loader' : 'cloud-download'} size="xs" className={spin(`retrieve-${v.assetId}`)} />
+                Retrieve to device
+              </button>
+            )}
+            {(v.availability === 'device' || v.availability === 'device+cloud') && (
+              <button
+                type="button"
+                onClick={() => {
+                  const end = v.durationS && v.durationS > 10 ? v.durationS : 600
+                  onTrimVideo(v.assetId, v.setNumber, 10, end)
+                }}
+                disabled={busy !== null}
+                className="flex items-center gap-1 text-neutral-300 hover:underline disabled:opacity-50"
+                title="Cut a trimmed file starting 10s in. Tags stay in source seconds."
+              >
+                <Icon name={busy === `trim-${v.assetId}` ? 'loader' : 'scissors'} size="xs" className={spin(`trim-${v.assetId}`)} />
+                Trim first 10s
               </button>
             )}
           </span>

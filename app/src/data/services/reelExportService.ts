@@ -15,7 +15,7 @@ import coreURL from '@ffmpeg/core?url'
 import wasmURL from '@ffmpeg/core/wasm?url'
 import type { DBVideoAsset } from '@/data/entities/videoAssets'
 import { videoAssetDb } from '@/data/entities/videoAssets'
-import { applyMeasuredDurations, type Edl } from '@/rules/derive/clips/deriveClipEdl'
+import { applyMeasuredDurations, deriveTrimMapping, type Edl } from '@/rules/derive/clips/deriveClipEdl'
 import { getSetVideoFile, probeVideo, storeReel } from './videoAssetService'
 
 // FFFSType isn't re-exported by @ffmpeg/ffmpeg; its WORKERFS member is this string
@@ -143,4 +143,37 @@ export async function exportReel(input: {
     for (const dir of mounts) await ffmpeg.unmount(dir).catch(() => undefined)
     ffmpeg.terminate()
   }
+}
+
+/**
+ * Cut one contiguous window from a set source into a `trimmed` video_asset.
+ * Shot tags stay in source-video seconds; the asset keeps the segment map.
+ */
+export async function exportTrimmedSetVideo(input: {
+  matchId: string
+  setNumber: number
+  sourceStart: number
+  sourceEnd: number
+  onProgress?: (p: ReelExportProgress) => void
+}): Promise<DBVideoAsset> {
+  const source = await videoAssetDb.getSetSource(input.matchId, input.setNumber)
+  if (!source) throw new Error(`Set ${input.setNumber} has no source video`)
+  const edl = deriveTrimMapping({
+    matchId: input.matchId,
+    setNumber: input.setNumber,
+    sourceStart: input.sourceStart,
+    sourceEnd: input.sourceEnd,
+  })
+  const cut = await exportReel({
+    matchId: input.matchId,
+    label: `Trimmed set ${input.setNumber}`,
+    edl,
+    onProgress: input.onProgress,
+  })
+  return videoAssetDb.update(cut.id, {
+    kind: 'trimmed',
+    set_number: input.setNumber,
+    label: `Trimmed set ${input.setNumber}`,
+    source_asset_ids: [source.id],
+  })
 }

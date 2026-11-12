@@ -10,7 +10,14 @@ import {
   type ClipFilter,
   type ClipMatchInput,
 } from './deriveClips'
-import { applyMeasuredDurations, deriveClipEdl, mapSourceToReel } from './deriveClipEdl'
+import {
+  applyMeasuredDurations,
+  contactSourceAfterTrim,
+  deriveClipEdl,
+  deriveTrimMapping,
+  mapReelToSource,
+  mapSourceToReel,
+} from './deriveClipEdl'
 import { deriveClipPresets } from './deriveClipPresets'
 
 const HERO = 'hero-1'
@@ -184,6 +191,30 @@ describe('deriveClipEdl', () => {
     // first segment measured 0.5 s longer → starts 0.5 s earlier in source
     expect(mapSourceToReel(measured, 'm1#1', 23)).toBe(0.5 + 1.5)
     expect(measured.segments[1].reelStart).toBe(8)
+  })
+
+  it('maps reel time back to source without rewriting contacts', () => {
+    const edl = deriveClipEdl(deriveClips([match], { kind: 'review', side: 'hero' }))
+    const reel = mapSourceToReel(edl, 'm1#1', 43)
+    expect(reel).not.toBeNull()
+    expect(mapReelToSource(edl, reel!)).toEqual({ sourceKey: 'm1#1', sourceTime: 43 })
+  })
+})
+
+describe('trim mapping keeps source-time contacts', () => {
+  it('does not move a contact after a 10s leading trim', () => {
+    const contactSourceTime = 42.5
+    const result = contactSourceAfterTrim({
+      contactSourceTime,
+      trimStart: 10,
+      trimEnd: 120,
+      matchId: 'm1',
+      setNumber: 1,
+    })
+    expect(result.sourceTime).toBe(42.5)
+    expect(result.fileTime).toBe(32.5)
+    const edl = deriveTrimMapping({ matchId: 'm1', setNumber: 1, sourceStart: 10, sourceEnd: 120 })
+    expect(mapReelToSource(edl, 32.5)?.sourceTime).toBe(42.5)
   })
 })
 

@@ -11,16 +11,16 @@
 
 import type { EdlSegment } from '@/rules/derive/clips/deriveClipEdl'
 
-export type VideoAssetKind = 'source' | 'reel'
+export type VideoAssetKind = 'source' | 'reel' | 'trimmed'
 /** Where the device copy lives. 'idb' = legacy per-set IndexedDB store. */
 export type VideoLocalStore = 'opfs' | 'idb'
 
 export interface DBVideoAsset {
   id: string // va_{random}
   match_id: string
-  set_number: number | null // sources: the set it covers; reels: null
+  set_number: number | null // sources/trimmed: the set it covers; reels: null
   kind: VideoAssetKind
-  label: string | null // reels: playlist name
+  label: string | null // reels: playlist name; trimmed: human label
 
   file_name: string
   mime_type: string
@@ -40,8 +40,13 @@ export interface DBVideoAsset {
   /** Object key in the cloud bucket; signed URLs are made at play time */
   remote_path: string | null
   remote_uploaded_at: string | null
+  /**
+   * When set, the device copy was archived (bytes removed) while the asset row
+   * and any cloud path remain. Tags stay in source-video seconds.
+   */
+  archived_locally_at?: string | null
 
-  /** Reels only */
+  /** Reels / trimmed: map file time back to source-video seconds */
   source_asset_ids: string[] | null
   segments: EdlSegment[] | null
 

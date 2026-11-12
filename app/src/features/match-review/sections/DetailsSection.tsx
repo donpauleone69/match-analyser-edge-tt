@@ -45,6 +45,9 @@ export interface DetailsSectionProps {
   onKeepDevice: () => void
   onUseCloud: () => void
   onBackUpVideo: (assetId: string) => void
+  onArchiveVideo: (assetId: string) => void
+  onRetrieveVideo: (assetId: string) => void
+  onTrimVideo: (assetId: string, setNumber: number, sourceStart: number, sourceEnd: number) => void
   onSaveFile: () => void
 }
 
@@ -87,6 +90,9 @@ export function DetailsSection({
   onKeepDevice,
   onUseCloud,
   onBackUpVideo,
+  onArchiveVideo,
+  onRetrieveVideo,
+  onTrimVideo,
   onSaveFile,
 }: DetailsSectionProps) {
   const taggedSets = review.sets.filter((s) => s.rallyCount > 0).length
@@ -220,6 +226,9 @@ export function DetailsSection({
             onKeepDevice={onKeepDevice}
             onUseCloud={onUseCloud}
             onBackUpVideo={onBackUpVideo}
+            onArchiveVideo={onArchiveVideo}
+            onRetrieveVideo={onRetrieveVideo}
+            onTrimVideo={onTrimVideo}
             onSaveFile={onSaveFile}
           />
         </section>

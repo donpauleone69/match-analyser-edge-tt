@@ -6,6 +6,20 @@
 
 ## Change Log
 
+### 2026-11-12: Video trim, archive, clip download (v3.44.0)
+
+**Change Type:** Video assets + clip EDL mapping + storage UX
+
+**What Changed:**
+- Extended `video_assets.kind` with `trimmed` and added `archived_locally_at`.
+- Pure EDL helpers: `mapReelToSource`, `deriveTrimMapping`, `contactSourceAfterTrim` — prove contacts stay on source-video seconds after a leading trim.
+- Details → Storage: archive device copy, retrieve from cloud, trim first 10s into a mapped trimmed asset.
+- Clips stage: Download exports the current window via the existing EDL cutter (no second exporter).
+
+**Rationale:** Cutting or archiving must not move tags onto the wrong ball; file clocks map through segments back to source time.
+
+---
+
 ### 2026-11-12: One library navigation model (v3.43.0)
 
 **Change Type:** Navigation / shell IA
@@ -6976,6 +6990,7 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v3.44.0 | 2026-11-12 | Trim/archive video assets with source-time map; clip Download via EDL |
 | v3.43.0 | 2026-11-12 | Library nav: Matches + Training stub; remove Clubs/Players/Tournaments/Analytics/Data viewer from path |
 | v3.42.0 | 2026-11-12 | Account gate + focal-player scope for library/review/tagging |
 | v3.41.0 | 2026-11-12 | Shared match color tokens; Pass 1 player/role/result scanability; Review + Clips semantic alignment |

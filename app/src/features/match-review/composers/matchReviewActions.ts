@@ -14,12 +14,16 @@ import {
   type MatchRound,
 } from '@/data'
 import {
+  archiveAssetLocally,
   maybeApplyMatchDateFromVideo,
   maybeApplyStoredVideoMatchDate,
   resolveSetVideo,
+  retrieveAssetToDevice,
   storeSetVideo,
   suggestedVideoMatchDate,
 } from '@/data/services/videoAssetService'
+import { videoAssetDb } from '@/data'
+import { exportTrimmedSetVideo } from '@/data/services/reelExportService'
 import { resolveOpponentId } from '@/helpers/themSide'
 import { downloadMatchBundle, pullMatch, pushMatch, uploadVideoAsset, type PushResult } from '@/data/cloud'
 
@@ -46,6 +50,37 @@ export async function backUpSetVideo(
 
 export async function saveMatchFile(matchId: string): Promise<void> {
   await downloadMatchBundle(matchId)
+}
+
+export async function archiveSetVideo(assetId: string): Promise<string> {
+  const asset = await videoAssetDb.getById(assetId)
+  if (!asset) throw new Error('Video not found')
+  await archiveAssetLocally(asset)
+  return 'Device copy archived. Tags still use source-video time.'
+}
+
+export async function retrieveSetVideo(assetId: string): Promise<string> {
+  const asset = await videoAssetDb.getById(assetId)
+  if (!asset) throw new Error('Video not found')
+  await retrieveAssetToDevice(asset)
+  return 'Video retrieved to this device.'
+}
+
+export async function trimSetVideo(
+  assetId: string,
+  setNumber: number,
+  sourceStart: number,
+  sourceEnd: number,
+): Promise<string> {
+  const asset = await videoAssetDb.getById(assetId)
+  if (!asset) throw new Error('Video not found')
+  await exportTrimmedSetVideo({
+    matchId: asset.match_id,
+    setNumber,
+    sourceStart,
+    sourceEnd,
+  })
+  return `Trimmed set ${setNumber} saved. Contacts stay on source-video seconds.`
 }
 
 /** Device copy first, then the cloud copy. */
