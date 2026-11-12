@@ -7,4 +7,5 @@
 export * from './deriveSet_winner_id'
 export * from './deriveSet_final_scores'
 export * from './deriveSetEndConditions'
+export * from './deriveSetTaggingStatus'
 

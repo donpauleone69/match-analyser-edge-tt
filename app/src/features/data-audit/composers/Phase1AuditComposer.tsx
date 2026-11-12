@@ -47,7 +47,7 @@ export function Phase1AuditComposer({ matchId }: Phase1AuditComposerProps) {
       
       // Get player names
       const player1 = getPlayerById(match.player1_id)
-      const player2 = getPlayerById(match.player2_id)
+      const player2 = match.player2_id ? getPlayerById(match.player2_id) : undefined
       
       const matchWithNames: MatchWithPlayerNames = {
         ...match,

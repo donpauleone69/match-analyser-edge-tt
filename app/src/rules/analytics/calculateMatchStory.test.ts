@@ -142,6 +142,13 @@ describe('calculateMatchStory', () => {
     expect(result.pointsFromOpponentError.villain.share).toBeCloseTo(2 / 3)
   })
 
+  it('returns the rallies behind each count as evidence', () => {
+    expect(result.errors.hero.rallyIds).toEqual(['r3', 'r5'])
+    expect(result.pointsWonOnServe.hero.rallyIds).toEqual(['r1', 'r2'])
+    expect(result.pointsWonOnServe.hero.denominatorRallyIds).toEqual(['r1', 'r2', 'r5'])
+    expect(result.pointsFromOpponentError.villain.rallyIds).toEqual(['r3', 'r5'])
+  })
+
   it('reports match and set scores hero-oriented, skipping unscored sets', () => {
     expect(result.matchScore).toEqual({ hero: 3, villain: 1 })
     expect(result.matchWinner).toBe('hero')

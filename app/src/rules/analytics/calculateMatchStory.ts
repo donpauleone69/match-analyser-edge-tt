@@ -32,6 +32,10 @@ export interface CountShare {
   count: number
   share: number
   denominator: number
+  /** Rallies that make up the count (evidence). */
+  rallyIds: string[]
+  /** Rallies that make up the denominator, when it is its own set of points. */
+  denominatorRallyIds?: string[]
 }
 
 export interface SidePair<T> {
@@ -72,8 +76,23 @@ export interface MatchStoryResult {
   pointsFromOpponentError: SidePair<CountShare>
 }
 
-function share(count: number, denominator: number): CountShare {
-  return { count, share: denominator > 0 ? count / denominator : 0, denominator }
+export function shareOf(
+  rallyIds: string[],
+  denominator: number,
+  denominatorRallyIds?: string[]
+): CountShare {
+  const count = rallyIds.length
+  return {
+    count,
+    share: denominator > 0 ? count / denominator : 0,
+    denominator,
+    rallyIds,
+    ...(denominatorRallyIds ? { denominatorRallyIds } : {}),
+  }
+}
+
+function emptyIds(): SidePair<string[]> {
+  return { hero: [], villain: [] }
 }
 
 /** Villain side = anyone who is not the hero (null id = unnamed Villain). */
@@ -121,20 +140,20 @@ export function calculateMatchStory(input: MatchStoryInput): MatchStoryResult {
   const scoring = rallies.filter((r) => r.is_scoring)
   const totalPoints = scoring.length
 
-  const pointsWon: SidePair<number> = { hero: 0, villain: 0 }
-  const served: SidePair<number> = { hero: 0, villain: 0 }
-  const wonOnServe: SidePair<number> = { hero: 0, villain: 0 }
-  const errors: SidePair<number> = { hero: 0, villain: 0 }
-  const winners: SidePair<number> = { hero: 0, villain: 0 }
+  const pointsWon = emptyIds()
+  const served = emptyIds()
+  const wonOnServe = emptyIds()
+  const errors = emptyIds()
+  const winners = emptyIds()
 
   for (const rally of scoring) {
     // null winner_id on a scoring rally = Villain won
     const winnerSide = sideOf(rally.winner_id, heroId)
-    pointsWon[winnerSide]++
+    pointsWon[winnerSide].push(rally.id)
 
     const serverSide = sideOf(rally.server_id, heroId)
-    served[serverSide]++
-    if (winnerSide === serverSide) wonOnServe[serverSide]++
+    served[serverSide].push(rally.id)
+    if (winnerSide === serverSide) wonOnServe[serverSide].push(rally.id)
 
     const lastShot = lastShotByRally.get(rally.id)
     const hitterSide = lastHitterSide(
@@ -146,15 +165,15 @@ export function calculateMatchStory(input: MatchStoryInput): MatchStoryResult {
     )
 
     if (isErrorEnding(rally.point_ending)) {
-      errors[hitterSide]++
+      errors[hitterSide].push(rally.id)
     } else if (rally.point_ending === 'winner') {
-      winners[hitterSide]++
+      winners[hitterSide].push(rally.id)
     }
     // 'lucky' is neither an error nor a winner
   }
 
   // Points from opponent error: my points won where the opponent was the one who missed
-  const pointsFromOpponentError: SidePair<number> = {
+  const pointsFromOpponentError: SidePair<string[]> = {
     hero: errors.villain,
     villain: errors.hero,
   }
@@ -190,24 +209,28 @@ export function calculateMatchStory(input: MatchStoryInput): MatchStoryResult {
     matchWinner,
     setScores,
     pointsWon: {
-      hero: share(pointsWon.hero, totalPoints),
-      villain: share(pointsWon.villain, totalPoints),
+      hero: shareOf(pointsWon.hero, totalPoints),
+      villain: shareOf(pointsWon.villain, totalPoints),
     },
     pointsWonOnServe: {
-      hero: share(wonOnServe.hero, served.hero),
-      villain: share(wonOnServe.villain, served.villain),
+      hero: shareOf(wonOnServe.hero, served.hero.length, served.hero),
+      villain: shareOf(wonOnServe.villain, served.villain.length, served.villain),
     },
     errors: {
-      hero: share(errors.hero, totalPoints),
-      villain: share(errors.villain, totalPoints),
+      hero: shareOf(errors.hero, totalPoints),
+      villain: shareOf(errors.villain, totalPoints),
     },
     winners: {
-      hero: share(winners.hero, totalPoints),
-      villain: share(winners.villain, totalPoints),
+      hero: shareOf(winners.hero, totalPoints),
+      villain: shareOf(winners.villain, totalPoints),
     },
     pointsFromOpponentError: {
-      hero: share(pointsFromOpponentError.hero, pointsWon.hero),
-      villain: share(pointsFromOpponentError.villain, pointsWon.villain),
+      hero: shareOf(pointsFromOpponentError.hero, pointsWon.hero.length, pointsWon.hero),
+      villain: shareOf(
+        pointsFromOpponentError.villain,
+        pointsWon.villain.length,
+        pointsWon.villain
+      ),
     },
   }
 }

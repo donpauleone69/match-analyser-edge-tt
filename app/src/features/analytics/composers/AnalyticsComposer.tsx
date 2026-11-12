@@ -38,7 +38,7 @@ export function AnalyticsComposer() {
   
   const matchOptions = matches.map((m) => ({
     id: m.id,
-    label: `${getPlayerName(m.player1_id)} vs ${getPlayerName(m.player2_id)} - ${new Date(m.match_date).toLocaleDateString()}`,
+    label: `${getPlayerName(m.player1_id)} vs ${m.player2_id ? getPlayerName(m.player2_id) : 'Villain'} - ${new Date(m.match_date).toLocaleDateString()}`,
   }))
   
   return (
