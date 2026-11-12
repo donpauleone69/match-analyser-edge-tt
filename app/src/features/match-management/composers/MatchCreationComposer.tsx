@@ -6,10 +6,14 @@ import { useEffect } from 'react'
 import { usePlayerStore, useTournamentStore } from '@/data'
 import { MatchFormSection } from '../sections/MatchFormSection'
 import { Plus } from 'lucide-react'
+import { useCloudStore } from '@/stores/cloudStore'
+import { deriveAccountScope } from '@/rules/derive/account/deriveAccountScope'
 
 export function MatchCreationComposer() {
   const { players, load: loadPlayers } = usePlayerStore()
   const { tournaments, load: loadTournaments } = useTournamentStore()
+  const profile = useCloudStore((state) => state.profile)
+  const focalPlayerId = deriveAccountScope(profile, []).focalPlayerId
   
   useEffect(() => {
     loadPlayers()
@@ -32,6 +36,7 @@ export function MatchCreationComposer() {
       <MatchFormSection 
         players={players}
         tournaments={tournaments}
+        focalPlayerId={focalPlayerId}
       />
     </div>
   )

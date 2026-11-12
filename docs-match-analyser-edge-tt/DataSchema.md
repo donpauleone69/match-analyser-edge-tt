@@ -1,6 +1,6 @@
 # Data Schema – Edge TT Match Analyser
 
-> **Version:** 3.1 (Current Implementation)  
+> **Version:** 3.2 (Current Implementation)
 > **Last Updated:** 2026-11-12  
 > **Status:** ✅ Single Source of Truth
 
@@ -29,6 +29,22 @@ How the tables connect, and a looser video-first shape that is not built yet: [T
    - Phase 2: Shot detail entry
    - Phase 3: Inference/analytics
 5. **Top-Down + Bottom-Up:** Match results entered top-down, verified by tagging bottom-up
+
+---
+
+## Account Scope Metadata
+
+Cloud authentication remains the only account system. Each authenticated Supabase user has a small local profile stored under `edge-tt-account-profile:{authUserId}`:
+
+```typescript
+interface AccountProfile {
+  role: 'player' | 'coach' | null
+  linkedPlayerId: string | null         // player accounts: their own DBPlayer
+  selectedFocalPlayerId: string | null  // coach accounts: current student
+}
+```
+
+This is account preference metadata, not a Dexie domain entity and not a login credential. A player account resolves to `linkedPlayerId`; a coach resolves to `selectedFocalPlayerId`. The resolved focal player scopes the library to matches where `match.player1_id` is that recorded hero. Switching scope never updates matches, rallies, or shots.
 
 ---
 
@@ -583,6 +599,11 @@ CREATE INDEX idx_shots_wing ON shots(wing);
 ---
 
 ## Changelog
+
+### 2026-11-12 — Account and focal-player scope (no Dexie bump)
+- Added local `AccountProfile`, keyed by the authenticated Supabase user id.
+- Player accounts default to their linked player; coaches explicitly select a focal player.
+- `match.player1_id` remains the recorded hero. Scope changes filter reads and do not rewrite historical rows.
 
 ### 2026-11-12 — Video assets (Dexie v6)
 - New table `video_assets` (see 5b). Cloud mirror: Supabase `match_bundles` (one JSONB bundle per match: match, sets, rallies, shots, players, tournament, video asset manifest; `schemaVersion` 1) + private bucket `match-videos`

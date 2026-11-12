@@ -1,29 +1,47 @@
 /**
- * AccountComposer — sign in, sync matches, see device storage, move a match by file.
- *
- * Tagging works without an account. Signing in backs matches up and makes them
- * (and any backed-up videos) available on your other devices.
+ * AccountComposer — sign in, choose whose library is in scope, and manage sync.
  */
 
 import { useEffect, useRef, useState } from 'react'
 import { Button, Card, Icon } from '@/ui-mine'
 import { useCloudStore } from '@/stores/cloudStore'
-import { useMatchStore } from '@/data'
+import { useMatchStore, usePlayerStore } from '@/data'
 import { cloudUrl, importMatchBundleFile } from '@/data/cloud'
 import { getStorageEstimate, requestPersistentStorage } from '@/helpers/videoStorage'
 import { formatFileSize } from '@/helpers/videoFileHelpers'
 import { SignInFormBlock } from '../blocks/SignInFormBlock'
 
 export function AccountComposer() {
-  const { configured, ready, user, busy, error, lastSync, signIn, signUp, signOut, syncNow } = useCloudStore()
+  const {
+    configured,
+    ready,
+    user,
+    profile,
+    busy,
+    error,
+    lastSync,
+    signIn,
+    signUp,
+    signOut,
+    setAccountRole,
+    setLinkedPlayer,
+    setFocalPlayer,
+    syncNow,
+  } = useCloudStore()
   const loadMatches = useMatchStore((s) => s.load)
+  const { players, load: loadPlayers } = usePlayerStore()
   const [storage, setStorage] = useState<{ usage: number; quota: number; persisted: boolean } | null>(null)
   const [fileNotice, setFileNotice] = useState<{ tone: 'good' | 'bad'; text: string } | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     getStorageEstimate().then(setStorage)
-  }, [])
+    loadPlayers()
+  }, [loadPlayers])
+
+  const focalPlayerId =
+    profile?.role === 'player' ? profile.linkedPlayerId : profile?.selectedFocalPlayerId
+  const focalPlayer = players.find((player) => player.id === focalPlayerId)
 
   const handleSync = async () => {
     const result = await syncNow()
@@ -57,14 +75,15 @@ export function AccountComposer() {
           <div>
             <h2 className="text-xl font-semibold text-neutral-50">Account & cloud backup</h2>
             <p className="text-sm text-neutral-400">
-              Back up your matches and open them on any device. Tagging always works offline.
+              Sign in to use your library, tagging and review. Your data remains local-first and can be backed up.
             </p>
           </div>
         </div>
 
         {!configured ? (
           <p className="text-sm text-amber-300">
-            Cloud isn’t set up for this copy of the app (no Supabase URL configured). Everything stays on this device.
+            Account sign-in is unavailable because this copy has no Supabase URL configured. Library, tagging and review
+            stay locked until cloud authentication is configured.
           </p>
         ) : !ready ? (
           <p className="text-sm text-neutral-400">Checking sign-in…</p>
@@ -100,6 +119,61 @@ export function AccountComposer() {
                 .
               </p>
             )}
+            <div className="rounded-lg border border-neutral-700 bg-bg-surface p-4 space-y-3">
+              <div>
+                <h3 className="font-semibold text-neutral-100">Whose matches are you reviewing?</h3>
+                <p className="text-sm text-neutral-400">
+                  Your account is separate from the player in the point. Review speaks as the selected player.
+                </p>
+              </div>
+
+              {!profile?.role ? (
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="secondary" onClick={() => setAccountRole('player')}>
+                    I am the player
+                  </Button>
+                  <Button variant="secondary" onClick={() => setAccountRole('coach')}>
+                    I am a coach
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <label className="block text-sm text-neutral-300">
+                    {profile.role === 'player' ? 'Your player record' : 'Reviewing as'}
+                    <select
+                      value={focalPlayerId ?? ''}
+                      onChange={(event) =>
+                        profile.role === 'player'
+                          ? setLinkedPlayer(event.target.value)
+                          : setFocalPlayer(event.target.value)
+                      }
+                      className="mt-2 w-full rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-neutral-50"
+                    >
+                      <option value="">Select player…</option>
+                      {players.map((player) => (
+                        <option key={player.id} value={player.id}>
+                          {player.first_name} {player.last_name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-sm text-neutral-400">
+                      {focalPlayer
+                        ? `The library and “you” now mean ${focalPlayer.first_name} ${focalPlayer.last_name}.`
+                        : 'Choose a player to unlock the library.'}
+                    </p>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setAccountRole(profile.role === 'player' ? 'coach' : 'player')}
+                    >
+                      Switch to {profile.role === 'player' ? 'coach' : 'player'}
+                    </Button>
+                  </div>
+                </>
+              )}
+            </div>
             <p className="text-xs text-neutral-500">
               Matches sync as one record each. Videos are only uploaded when you choose “Back up” on a video or reel.
               {cloudUrl && <> Server: {cloudUrl}</>}
@@ -141,7 +215,7 @@ export function AccountComposer() {
           <Button variant="secondary" onClick={() => fileRef.current?.click()}>
             <Icon name="file-up" size="sm" /> Import a match file
           </Button>
-          <span className="text-xs text-neutral-500">Restore a match saved with “Save match file” — no account needed.</span>
+          <span className="text-xs text-neutral-500">Restore a match saved with “Save match file” into this account’s device library.</span>
         </div>
         {fileNotice && (
           <p className={fileNotice.tone === 'good' ? 'text-sm text-emerald-400' : 'text-sm text-rose-400'}>{fileNotice.text}</p>

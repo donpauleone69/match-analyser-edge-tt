@@ -7,10 +7,13 @@ import { useNavigate } from 'react-router-dom'
 import { useMatchStore, usePlayerStore, useTournamentStore } from '@/data'
 import { MatchListSection } from '../sections/MatchListSection'
 import { Swords } from 'lucide-react'
+import { useCloudStore } from '@/stores/cloudStore'
+import { deriveAccountScope } from '@/rules/derive/account/deriveAccountScope'
 
 export function MatchListComposer() {
   const navigate = useNavigate()
   const { matches, isLoading, load: loadMatches } = useMatchStore()
+  const profile = useCloudStore((state) => state.profile)
   const { players, load: loadPlayers } = usePlayerStore()
   const { tournaments, load: loadTournaments } = useTournamentStore()
   
@@ -38,6 +41,8 @@ export function MatchListComposer() {
   const handleRefresh = () => {
     loadMatches()
   }
+
+  const scopedMatches = deriveAccountScope(profile, matches).matches
   
   return (
     <div className="space-y-6">
@@ -55,7 +60,7 @@ export function MatchListComposer() {
       </div>
       
       <MatchListSection
-        matches={matches}
+        matches={scopedMatches}
         isLoading={isLoading}
         onCreateNew={handleCreateNew}
         players={players}

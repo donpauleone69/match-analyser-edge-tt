@@ -7,9 +7,12 @@ import { matchDb, rallyDb, setDb, usePlayerStore } from '@/data'
 import { THEM_SIDE_LABEL } from '@/helpers/themSide'
 import { buildHome, type HomeMatchInput } from './buildHome'
 import type { HomeModel } from '../models'
+import { useCloudStore } from '@/stores/cloudStore'
+import { deriveAccountScope } from '@/rules/derive/account/deriveAccountScope'
 
 export function useDeriveHome() {
   const { players, load: loadPlayers } = usePlayerStore()
+  const profile = useCloudStore((state) => state.profile)
   const [inputs, setInputs] = useState<HomeMatchInput[] | null>(null)
 
   useEffect(() => {
@@ -19,7 +22,8 @@ export function useDeriveHome() {
   useEffect(() => {
     let active = true
     ;(async () => {
-      const matches = await matchDb.getAll()
+      const allMatches = await matchDb.getAll()
+      const matches = deriveAccountScope(profile, allMatches).matches
       const loaded = await Promise.all(
         matches.map(async (match): Promise<HomeMatchInput> => {
           const sets = await setDb.getByMatchId(match.id)
@@ -35,7 +39,7 @@ export function useDeriveHome() {
     return () => {
       active = false
     }
-  }, [])
+  }, [profile])
 
   const home = useMemo<HomeModel | null>(() => {
     if (!inputs) return null

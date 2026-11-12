@@ -35,31 +35,61 @@ Stay on Vite, React, TypeScript, Zustand, Tailwind, and Dexie. The user is not a
 
 ## How the team works
 
-One parent chat is the coordinator. It does not write feature code. It runs **one builder at a time** in this checkout. Parallel builders will overwrite each other. Do not use multitask to fan out slices.
+One parent chat is the **coordinator**. It does not write feature code. It owns order, ownership locks, git, consolidation of parallel results into this note, and the final change list.
+
+**Multitask is allowed. Parallel writers in this checkout are not.** Prefer Cursor multi mode for scouts, viewport walks, and critiques. Keep **exactly one builder editing app code** in this checkout at a time. If two slices need simultaneous code edits, they must have disjoint touch folders written into both cards first; otherwise run them serially.
 
 Use the role that fits the moment:
 
-| Role | Who | Does |
+| Role | Who | Does | Parallel OK? |
+|--|--|--|--|
+| Coordinator | Parent chat | Order, locks, git, consolidate results into this note. No feature code. | n/a (one) |
+| Scout | `explore` | Read an area; report files, behaviour, touch list. No edits. | Yes — fan out A–F scouts |
+| Builder | `generalPurpose` | One owned slice: design → implement → own Vitest. | Only if touch folders are disjoint and locked |
+| Browser | Browser tools on `http://localhost:5173/` | Walk assigned viewport cases. No feature edits. | Yes — one agent per viewport after code freeze |
+| Critique | Fresh `generalPurpose` that did not build the slice | Judge done-when; propose Keep / Change / Next. Prefer **not** editing this file — return text to coordinator. | Yes — code critique + UX critique in parallel |
+
+### Ownership and non-collision
+
+Before any builder starts code:
+
+1. Coordinator writes **Touch** on the slice card (folders/files).
+2. Coordinator records an **ownership lock** under Session progress: slice id, owner role, touch paths, status `building`.
+3. No other builder may edit locked paths. Scouts/browsers/critiques may read them.
+4. After implement, coordinator sets status `code-frozen` before fanning out browser or critique agents.
+5. Only the owning builder may un-freeze to fix test or critique Change items (at most one rebuild).
+6. When signed or deferred, coordinator clears the lock and commits (signed only).
+
+### What to parallelise (best practice)
+
+| Wave | Parallel work | Serial work |
 |--|--|--|
-| Coordinator | Parent chat | Order, git, this note, the final change list. No feature code. |
-| Scout | `explore` | Read the area before a slice is planned. Report files and behaviour. No edits. |
-| Builder | `generalPurpose` | One slice: design through test. |
-| Browser | Browser tools on `http://localhost:5173/` | Walk the test cases. Desktop, iPad, iPhone. |
-| Critique | A **new** `generalPurpose` that did not build the slice | Use the feature, then edit only this note (Keep / Change / Next). |
+| Ahead of build | Scouts for upcoming slices | — |
+| During build | — | One builder (or disjoint locked builders) |
+| After code-frozen | Vitest (builder or dedicated runner); Desktop / iPad / iPhone browser agents; 1–2 critique agents | — |
+| After agents return | — | Coordinator consolidates into the slice card, then sign / one rebuild / defer |
 
-### The loop
+Do **not** parallelise two builders that both touch `App.tsx`, shell/nav, `cloudStore`, match-review composers, or `index.css` tokens. Prefer serial there.
 
-Every slice goes through this, in order. Do not start implementation before the plan, the UX bet, and the test cases are written into the slice card.
+Dependency default (do not violate without a written reason on the card):
 
-1. **Think.** Scout the code the slice will touch. Read the constraints in this brief.
-2. **Plan.** Fill job confirmation, touch folders, and out of scope. Flavor is allowed inside the job. New products the job does not need are not.
-3. **Design.** Write the UX bet (the click path in a few lines) and the test cases (below) before editing feature code.
-4. **Implement.** Build only that bet. Follow `.cursorrules`.
-5. **Test.** Run the functional tests. Walk every browser case on desktop, iPad, and iPhone. Fix failures.
-6. **Critique.** Fresh pass. Write **Keep / Change / Next** on the card.
-7. **Repeat once if needed.** A “change” sends the slice back through design → implement → test one time. Then sign off or defer with a reason. Do not loop further.
+`A → B → C → (D ∥ E scout/design) → D build → E build → F`
 
-The next slice starts from the critique, not from a new idea.
+D and E may share a design/scout wave after C; their builds stay serial unless touch lists are proven disjoint. F waits on B + C + D.
+
+### The loop (per slice)
+
+Do not start implementation before the plan, the UX bet, and the test cases are written into the slice card.
+
+1. **Think.** Scout (may already be done in parallel).
+2. **Plan.** Job confirmation, touch folders, out of scope, ownership lock.
+3. **Design.** UX bet + test cases on the card before feature code.
+4. **Implement.** One owning builder. Follow `.cursorrules`.
+5. **Code-freeze + Test.** Builder runs Vitest for the slice. Coordinator fans out the three browser viewports (and optional second critique) in multi mode. Agents return results to coordinator; coordinator writes one consolidated Result on the card.
+6. **Critique.** Fresh agents; coordinator consolidates **Keep / Change / Next** onto the card.
+7. **Repeat at most once.** A Change sends the slice through design → implement → test **one** time. Then sign off or defer with a reason. No further loops.
+
+The next *build* starts from the critique, not from a new idea. Scouts for later slices may already be running.
 
 ### Test cases
 
@@ -67,7 +97,7 @@ Each slice card gets two lists **before** implementation.
 
 **Functional cases** become Vitest tests next to the pure rule (inputs, expected outputs, the edge the user cares about). Run them and record pass/fail on the card. A slice with no pure decision still gets a test for the invariant it claims (token names exist, optional links stay optional, a trim offset does not move a contact, a scope filter includes and excludes the right matches).
 
-**Browser cases** are steps a person can follow. For each case record device, steps, and what you should see. Run the same cases at three sizes:
+**Browser cases** are steps a person can follow. For each case record device, steps, and what you should see. Run the same cases at three sizes (parallel agents OK after code-freeze):
 
 | Device | Viewport |
 |--|--|
@@ -76,6 +106,8 @@ Each slice card gets two lists **before** implementation.
 | iPhone | 390 × 844 |
 
 Use the browser tools and set the viewport. Click and type through the flow. A screenshot alone is not a pass. If a viewport breaks the path (cannot reach tagging, cannot read the shot list, cannot play a clip), fix the layout before sign-off. If the browser tools are unavailable, write that on the card and do not claim the device passed.
+
+**Regression gate when slices advance.** After each signed commit, before the next builder starts, run the prior slices’ Vitest files that guard shared contracts (at least: theme tokens if A signed; account scope if B signed; later: trim mapping, review scope, training exclusion). Record that gate on Session progress. This is how parallel later work proves it did not tread on earlier toes.
 
 ### Git, so slices can be kept or dropped
 
@@ -221,17 +253,46 @@ The builder fills **UX bet**, **Test cases**, **Result**, and **Critique**. The 
 - This matches `focal_player_and_loose_video.md` unless the slice card records a revision and why.
 - Switching focal player changes whose matches and whose “you” you see, and does not rewrite historical shot rows.
 
-**UX bet.** _(before code)_
+**Job confirmation (coordinator + scout).** Confirmed. Supabase auth exists but only gates cloud sync; all routes are public and copy says tagging works without account. `match.player1_id` is already the hero / “you”; keep that meaning. No account↔player link, role, or focal switcher yet. Pure scope rule should live at `rules/derive/account/deriveAccountScope.ts`. Do not rewrite shot rows. Prefer local profile persistence tied to `auth.uid()` if a new cloud table is not required for done-when; if a migration is the smallest honest store, document it in DataSchema.
 
-**Test cases.** _(before code)_
+**Touch.** `App.tsx` gate; `cloudStore` / `features/account`; home/match list/clips scope derives; match create default to focal; review entry scope check; `rules/derive/account/*`; DataSchema + specAddendum if types change.
+
+**Out of scope.** Teams, clubs as permissions, federation login, billing. Shot rewriting. Analytics internals. Changing Pass 1 tagger.
+
+**UX bet.** A signed-out visitor who opens Home, Matches, Clips, Match Review, or Tagging sees the existing cloud account screen instead of library data; after sign-in they return to the path they asked for. The first signed-in visit asks for one small, explicit profile choice: player or coach. A player links their account to their own player record and immediately reviews as that player. A coach chooses a focal player and can switch the “Reviewing as” player from Account & data; Home, Matches, Clips, match creation, review, and tagging then consistently use that player’s library and first-person “you”. Switching focal player filters the visible library and entry routes but never changes a match, rally, or shot row.
+
+**Test cases.**
+
+- **Functional:** a player account linked to player A resolves focal player A by default and includes only matches whose recorded hero (`match.player1_id`) is A.
+- **Functional:** a coach account resolves the selected focal player; switching from A to B changes the included match ids and first-person focal id without mutating the supplied matches or shots.
+- **Functional:** an incomplete player profile and a coach with no selected focal player resolve to setup-required, never to another player by inference.
+- **Functional:** match-create defaults `player1_id` to the resolved focal player while preserving `player1_id` as the recorded hero; no shot `player_id` is rewritten.
+- **Browser — Desktop 1440 × 900:** signed out, open Home, Matches, Clips, a Match Review URL, and its Tag URL. Expect the same existing cloud sign-in gate and no library content. Sign in, complete player/coach setup, return to the requested path, switch focal player as coach, and expect Home/Matches/Clips plus review/tag entry to show only that focal player’s matches and “you”.
+- **Browser — iPad 820 × 1180:** repeat the gate, setup, and coach switch. Expect account controls, player choices, and blocked/out-of-scope messages to remain readable and actionable without horizontal overflow.
+- **Browser — iPhone 390 × 844:** repeat the gate, setup, and coach switch. Expect sign-in, “Reviewing as”, and focal selection to remain reachable; match rows and review/tag entry messages fit the viewport.
+- **Browser environment fallback:** if Supabase is not configured or browser sign-in cannot complete, verify the signed-out/configuration gate at all three viewports, record the exact blocker here, and complete resolver/store tests without adding a second authentication path.
 
 **Functional check.** A pure rule or a single store action resolves “account → focal player → matches in scope.” A test covers coach-switch versus player-default, including “opponent shots are not rewritten.”
 
-**Touch.** Account gate, player link on the account, match list scope, review hero derivation (`player1_id` is today’s hero — keep that meaning or migrate it in the schema with a note).
+**Result (builder).**
 
-**Out of scope.** Teams, clubs as permissions, federation login, billing.
+- Reused Supabase auth and `cloudStore` as the only account system. Home/library, Matches, Clips, Match Review, Tagging, and Rally Edit now fail closed behind one account gate. A stalled session lookup falls back to the sign-in gate after 2.5 seconds instead of hanging.
+- Added local account profile preference keyed by Supabase auth user id: player accounts explicitly link to their own player record; coaches explicitly choose and can switch “Reviewing as”. No credential or second login is stored locally.
+- Added pure `deriveAccountScope`: player defaults to the linked player, coach resolves the selected focal player, and scope includes only matches whose recorded hero is that player. Home, match list, clips/reels, match-create default, and direct review/tag entry use that scope. `match.player1_id` remains the recorded hero.
+- Switching focal player filters reads only. No match, rally, or shot update was added; tests retain opponent and focal shot rows byte-for-byte.
+- **Functional — PASS:** `npx vitest run src/rules/derive/account/deriveAccountScope.test.ts` (3/3). Player default, coach switch, explicit setup requirement, match filtering, and unchanged matches/shots passed. `npm run build` passed; edited-file lint checks and `git diff --check` passed.
+- **Full-suite baseline — unrelated failure:** `npx vitest run` passed 178/179 tests; the pre-existing `calculateServer.test.ts` 9–9 expectation failed (`player2` received, `player1` expected). Slice B’s test file passed in that run.
+- **Browser blocker:** Supabase is configured, but session lookup did not respond and browser sign-in could not be completed. The app displayed the explicit account-service error and did not expose local library data; no fallback auth was added.
+- **Desktop 1440 × 900 — PARTIAL PASS (blocked after gate):** direct Home/Matches, Clips, Match Review, and Tagging paths all resolved to the same account-required sign-in gate. The route stayed at the requested URL, sign-in controls were actionable, and there was no horizontal overflow.
+- **iPad 820 × 1180 — PARTIAL PASS (blocked after gate):** the direct Tagging path showed the responsive account gate and sign-in controls with no horizontal overflow.
+- **iPhone 390 × 844 — PARTIAL PASS (blocked after gate):** the same gate, requested-path copy, email/password fields, and sign-in action remained readable and reachable with no horizontal overflow.
+- Coach/player setup, authenticated focal switching, and post-sign-in return could not be walked in the browser because the existing cloud auth service did not respond; resolver tests and production build cover the shipped model and scoping behavior.
 
-**Result / Critique.**
+**Critique.** _(coordinator fresh pass after Task critique agents aborted; code + gate UI inspected)_
+
+- **Keep:** Done-when holds. Library/home, matches, clips, review, tagging, and rally-edit sit behind `AccountGateComposer` using the existing `cloudStore`/Supabase account only. `deriveAccountScope` (+ 3/3 tests) resolves player-default vs coach focal switch and filters `player1_id` matches without mutating match/shot inputs. Gate UI at desktop shows Account required + sign-in; stalled session fails closed with an explicit error and does not leak library data. Match-create defaults to focal; out-of-scope match URLs get a clear switch/back message.
+- **Change:** none for sign-off.
+- **Next:** Live coach/player setup walk still needs a working Supabase response. Ungated leftover shell routes (`/clubs`, `/players`, `/tournaments`, `/analytics`, data viewer) are Slice C cleanup, not a second auth. Tighten `/matches/create` so it is not treated as a match id in the gate matcher.
 
 ### C — One flow that matches how the data actually links
 

@@ -12,6 +12,8 @@ import type { ClipMatchInput } from '@/rules/derive/clips/deriveClips'
 import { deriveClipPresets, type ClipPresetNames } from '@/rules/derive/clips/deriveClipPresets'
 import { formatSeconds, groupClipPresets } from './buildClipLibrary'
 import type { ClipPresetGroupModel, ReelRowModel } from '../models'
+import { useCloudStore } from '@/stores/cloudStore'
+import { deriveAccountScope } from '@/rules/derive/account/deriveAccountScope'
 
 export interface ClipLibraryData {
   inputs: ClipMatchInput[]
@@ -33,6 +35,7 @@ function firstName(p: DBPlayer | undefined, fallback: string): string {
 
 export function useDeriveClipLibrary(matchId: string | null) {
   const { players, load: loadPlayers } = usePlayerStore()
+  const profile = useCloudStore((state) => state.profile)
   const [inputs, setInputs] = useState<ClipMatchInput[] | null>(null)
   const [reelAssets, setReelAssets] = useState<DBVideoAsset[]>([])
   const [reels, setReels] = useState<ReelRowModel[]>([])
@@ -49,10 +52,13 @@ export function useDeriveClipLibrary(matchId: string | null) {
     let active = true
     ;(async () => {
       try {
-        const matches = matchId ? [await matchDb.getById(matchId)].filter(Boolean) : await matchDb.getAll()
+        const candidates = matchId ? [await matchDb.getById(matchId)].filter(Boolean) : await matchDb.getAll()
+        const matches = deriveAccountScope(profile, candidates.filter((match): match is NonNullable<typeof match> => Boolean(match))).matches
         const complete = await Promise.all(matches.map((m) => matchDb.getCompleteMatchData(m!.id)))
         const loaded = complete.filter((c): c is NonNullable<typeof c> => Boolean(c) && c!.rallies.length > 0)
-        const assets = matchId ? await videoAssetDb.getByMatch(matchId) : await videoAssetDb.getAll()
+        const scopedMatchIds = new Set(matches.map((match) => match.id))
+        const allAssets = matchId ? await videoAssetDb.getByMatch(matchId) : await videoAssetDb.getAll()
+        const assets = allAssets.filter((asset) => scopedMatchIds.has(asset.match_id))
         const reelList = assets.filter((a) => a.kind === 'reel').sort((a, b) => b.created_at.localeCompare(a.created_at))
         const rows = await Promise.all(
           reelList.map(async (a): Promise<ReelRowModel> => ({
@@ -78,7 +84,7 @@ export function useDeriveClipLibrary(matchId: string | null) {
     return () => {
       active = false
     }
-  }, [matchId, reloadKey])
+  }, [matchId, reloadKey, profile])
 
   const data = useMemo<ClipLibraryData | null>(() => {
     if (!inputs) return null

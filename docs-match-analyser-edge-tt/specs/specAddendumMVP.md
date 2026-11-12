@@ -6,6 +6,21 @@
 
 ## Change Log
 
+### 2026-11-12: Account and focal-player scope (v3.42.0)
+
+**Change Type:** Authentication gate + account preference model + library scope
+
+**What Changed:**
+- Home/library, Matches, Clips, Match Review, tagging, and rally edit now require the existing Supabase account; no local or second login was added.
+- Authenticated users explicitly choose player or coach. Player accounts link to their own player; coaches choose and can switch the focal player under Account & data.
+- The profile is local preference metadata keyed by Supabase auth user id. The focal player scopes Home, Matches, Clips, match creation, and match route access.
+- `match.player1_id` remains the recorded hero and match creation defaults it to the focal player. Switching focal player only filters reads; historical match and shot rows are unchanged.
+- Added pure resolver tests for player default, coach switch, explicit setup, and immutable historical rows.
+
+**Rationale:** The signed-in account owns access to a library, but the person reviewing may be a coach acting in a player’s shoes. Keeping authentication and focal-player identity separate preserves honest first-person review without changing tagged history.
+
+---
+
 ### 2026-11-12: Shared match color semantics (v3.41.0)
 
 **Change Type:** Design tokens + Pass 1 / Match Review / Clips UI

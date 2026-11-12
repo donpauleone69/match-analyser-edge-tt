@@ -4,7 +4,7 @@
  * Creates one set at 0–0 and opens Rally Focus tagging.
  */
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/ui-mine/Button'
 import type { DBPlayer, DBTournament } from '@/data'
@@ -15,17 +15,24 @@ const { create: createSet } = setDb
 interface MatchFormSectionProps {
   players: DBPlayer[]
   tournaments: DBTournament[]
+  focalPlayerId: string | null
 }
 
-export function MatchFormSection({ players }: MatchFormSectionProps) {
+export function MatchFormSection({ players, focalPlayerId }: MatchFormSectionProps) {
   const navigate = useNavigate()
   const { create: createMatch } = useMatchStore()
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const [formData, setFormData] = useState({
-    player1_id: '',
+    player1_id: focalPlayerId ?? '',
     player2_id: '',
   })
+
+  useEffect(() => {
+    if (focalPlayerId) {
+      setFormData((current) => ({ ...current, player1_id: focalPlayerId }))
+    }
+  }, [focalPlayerId])
 
   const player1 = players.find((p) => p.id === formData.player1_id)
 
@@ -116,7 +123,7 @@ export function MatchFormSection({ players }: MatchFormSectionProps) {
             <select
               required
               value={formData.player1_id}
-              onChange={(e) => setFormData({ ...formData, player1_id: e.target.value })}
+              disabled
               className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-md text-neutral-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
             >
               <option value="">Select player...</option>
@@ -126,6 +133,7 @@ export function MatchFormSection({ players }: MatchFormSectionProps) {
                 </option>
               ))}
             </select>
+            <p className="mt-1 text-xs text-neutral-500">Change “Reviewing as” in Account & data.</p>
           </div>
 
           <div>
