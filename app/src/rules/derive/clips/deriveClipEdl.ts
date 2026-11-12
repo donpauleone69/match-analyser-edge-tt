@@ -175,3 +175,37 @@ export function contactSourceAfterTrim(args: {
     fileTime: back && Math.abs(back.sourceTime - args.contactSourceTime) < 1e-6 ? fileTime : null,
   }
 }
+
+/** Validate a source-seconds trim window. Does not rewrite tags. */
+export function validateTrimWindow(input: {
+  sourceStart: number
+  sourceEnd: number
+  durationS?: number | null
+}): { ok: true; sourceStart: number; sourceEnd: number } | { ok: false; error: string } {
+  const start = Number(input.sourceStart)
+  const end = Number(input.sourceEnd)
+  if (!Number.isFinite(start) || !Number.isFinite(end)) {
+    return { ok: false, error: 'Start and end must be numbers in source-video seconds.' }
+  }
+  if (start < 0) return { ok: false, error: 'Start cannot be before 0.' }
+  if (end <= start) return { ok: false, error: 'End must be after start.' }
+  if (typeof input.durationS === 'number' && Number.isFinite(input.durationS) && input.durationS > 0) {
+    if (start >= input.durationS) return { ok: false, error: 'Start is past the end of the video.' }
+    if (end > input.durationS + 0.5) {
+      return { ok: false, error: 'End is past the end of the video.' }
+    }
+  }
+  return { ok: true, sourceStart: start, sourceEnd: end }
+}
+
+/** Stable browser download name for one clip window (source seconds). */
+export function deriveClipDownloadFileName(input: {
+  setNumber: number
+  rallyIndex: number
+  sourceStart: number
+  sourceEnd: number
+}): string {
+  const s = Math.max(0, Math.round(input.sourceStart))
+  const e = Math.max(s, Math.round(input.sourceEnd))
+  return `set-${input.setNumber}-rally-${input.rallyIndex}-${s}-${e}s.mp4`
+}

@@ -24,6 +24,7 @@ import {
 } from '@/data/services/videoAssetService'
 import { videoAssetDb } from '@/data'
 import { exportTrimmedSetVideo } from '@/data/services/reelExportService'
+import { validateTrimWindow } from '@/rules/derive/clips/deriveClipEdl'
 import { resolveOpponentId } from '@/helpers/themSide'
 import { downloadMatchBundle, pullMatch, pushMatch, uploadVideoAsset, type PushResult } from '@/data/cloud'
 
@@ -55,6 +56,9 @@ export async function saveMatchFile(matchId: string): Promise<void> {
 export async function archiveSetVideo(assetId: string): Promise<string> {
   const asset = await videoAssetDb.getById(assetId)
   if (!asset) throw new Error('Video not found')
+  if (!asset.remote_path) {
+    throw new Error('Back up this video to the cloud first — archive removes the only copy on this device.')
+  }
   await archiveAssetLocally(asset)
   return 'Device copy archived. Tags still use source-video time.'
 }
@@ -62,6 +66,9 @@ export async function archiveSetVideo(assetId: string): Promise<string> {
 export async function retrieveSetVideo(assetId: string): Promise<string> {
   const asset = await videoAssetDb.getById(assetId)
   if (!asset) throw new Error('Video not found')
+  if (!asset.remote_path) {
+    throw new Error('No cloud copy to retrieve. Sign in and back up the video first.')
+  }
   await retrieveAssetToDevice(asset)
   return 'Video retrieved to this device.'
 }
@@ -74,13 +81,19 @@ export async function trimSetVideo(
 ): Promise<string> {
   const asset = await videoAssetDb.getById(assetId)
   if (!asset) throw new Error('Video not found')
+  const check = validateTrimWindow({
+    sourceStart,
+    sourceEnd,
+    durationS: asset.duration_s,
+  })
+  if (!check.ok) throw new Error(check.error)
   await exportTrimmedSetVideo({
     matchId: asset.match_id,
     setNumber,
-    sourceStart,
-    sourceEnd,
+    sourceStart: check.sourceStart,
+    sourceEnd: check.sourceEnd,
   })
-  return `Trimmed set ${setNumber} saved. Contacts stay on source-video seconds.`
+  return `Trimmed set ${setNumber} saved (${Math.round(check.sourceStart)}–${Math.round(check.sourceEnd)}s). Contacts stay on source-video seconds.`
 }
 
 /** Device copy first, then the cloud copy. */

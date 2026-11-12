@@ -13,10 +13,12 @@ import {
 import {
   applyMeasuredDurations,
   contactSourceAfterTrim,
+  deriveClipDownloadFileName,
   deriveClipEdl,
   deriveTrimMapping,
   mapReelToSource,
   mapSourceToReel,
+  validateTrimWindow,
 } from './deriveClipEdl'
 import { deriveClipPresets } from './deriveClipPresets'
 
@@ -215,6 +217,22 @@ describe('trim mapping keeps source-time contacts', () => {
     expect(result.fileTime).toBe(32.5)
     const edl = deriveTrimMapping({ matchId: 'm1', setNumber: 1, sourceStart: 10, sourceEnd: 120 })
     expect(mapReelToSource(edl, 32.5)?.sourceTime).toBe(42.5)
+  })
+
+  it('rejects an invalid trim window', () => {
+    expect(validateTrimWindow({ sourceStart: 20, sourceEnd: 10 }).ok).toBe(false)
+    expect(validateTrimWindow({ sourceStart: 0, sourceEnd: 30, durationS: 25 }).ok).toBe(false)
+    expect(validateTrimWindow({ sourceStart: 5, sourceEnd: 40, durationS: 120 })).toEqual({
+      ok: true,
+      sourceStart: 5,
+      sourceEnd: 40,
+    })
+  })
+
+  it('names a downloadable clip from source seconds', () => {
+    expect(
+      deriveClipDownloadFileName({ setNumber: 2, rallyIndex: 7, sourceStart: 41.2, sourceEnd: 48.8 })
+    ).toBe('set-2-rally-7-41-49s.mp4')
   })
 })
 

@@ -2,6 +2,7 @@
  * MatchStorageBlock — backup status for the match and each set video.
  */
 
+import { useState } from 'react'
 import { Button, Icon } from '@/ui-mine'
 import { cn } from '@/helpers/utils'
 import type { MatchStorageModel } from '../derive/useDeriveMatchStorage'
@@ -49,6 +50,10 @@ export function MatchStorageBlock({
   onSaveFile,
   onSignIn,
 }: MatchStorageBlockProps) {
+  const [trimFor, setTrimFor] = useState<string | null>(null)
+  const [trimStart, setTrimStart] = useState('0')
+  const [trimEnd, setTrimEnd] = useState('')
+
   const syncText =
     storage.sync === 'synced'
       ? `Backed up ${storage.syncedAtLabel ?? ''}`
@@ -56,6 +61,12 @@ export function MatchStorageBlock({
         ? 'Changed since last backup'
         : 'Not backed up'
   const spin = (key: string) => (busy === key ? 'animate-spin' : undefined)
+
+  const openTrim = (assetId: string, durationS: number | null) => {
+    setTrimFor(assetId)
+    setTrimStart('0')
+    setTrimEnd(durationS && durationS > 0 ? String(Math.floor(durationS)) : '')
+  }
 
   return (
     <div className="rounded-lg border border-neutral-700 bg-bg-card px-4 py-3 space-y-2 text-sm">
@@ -85,6 +96,9 @@ export function MatchStorageBlock({
           <span key={v.assetId} className="flex flex-wrap items-center gap-x-2 gap-y-1 text-neutral-400">
             <Icon name="video" size="sm" />
             Set {v.setNumber} video: {VIDEO_LABEL[v.availability]}
+            {v.archivedLocally && (
+              <span className="rounded bg-neutral-800 px-1.5 py-0.5 text-[11px] text-amber-300">archived</span>
+            )}
             {cloudAvailable && signedIn && v.availability === 'device' && (
               <button
                 type="button"
@@ -103,7 +117,7 @@ export function MatchStorageBlock({
                 onClick={() => onArchiveVideo(v.assetId)}
                 disabled={busy !== null}
                 className="flex items-center gap-1 text-neutral-300 hover:underline disabled:opacity-50"
-                title="Remove the device copy. Tags stay on source-video time."
+                title="Remove the device copy after a cloud backup. Tags stay on source-video time."
               >
                 <Icon name={busy === `archive-${v.assetId}` ? 'loader' : 'hard-drive'} size="xs" className={spin(`archive-${v.assetId}`)} />
                 Archive device copy
@@ -123,17 +137,56 @@ export function MatchStorageBlock({
             {(v.availability === 'device' || v.availability === 'device+cloud') && (
               <button
                 type="button"
-                onClick={() => {
-                  const end = v.durationS && v.durationS > 10 ? v.durationS : 600
-                  onTrimVideo(v.assetId, v.setNumber, 10, end)
-                }}
+                onClick={() => (trimFor === v.assetId ? setTrimFor(null) : openTrim(v.assetId, v.durationS))}
                 disabled={busy !== null}
                 className="flex items-center gap-1 text-neutral-300 hover:underline disabled:opacity-50"
-                title="Cut a trimmed file starting 10s in. Tags stay in source seconds."
+                title="Cut a trimmed file for a source-seconds window. Tags stay in source seconds."
               >
                 <Icon name={busy === `trim-${v.assetId}` ? 'loader' : 'scissors'} size="xs" className={spin(`trim-${v.assetId}`)} />
-                Trim first 10s
+                {trimFor === v.assetId ? 'Cancel trim' : 'Trim…'}
               </button>
+            )}
+            {trimFor === v.assetId && (
+              <span className="flex flex-wrap items-center gap-2 text-neutral-300">
+                <label className="flex items-center gap-1">
+                  Start
+                  <input
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={trimStart}
+                    onChange={(e) => setTrimStart(e.target.value)}
+                    className="w-20 rounded border border-neutral-600 bg-neutral-900 px-2 py-1 text-neutral-100"
+                  />
+                  s
+                </label>
+                <label className="flex items-center gap-1">
+                  End
+                  <input
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={trimEnd}
+                    onChange={(e) => setTrimEnd(e.target.value)}
+                    className="w-20 rounded border border-neutral-600 bg-neutral-900 px-2 py-1 text-neutral-100"
+                    placeholder={v.durationS ? String(Math.floor(v.durationS)) : 'end'}
+                  />
+                  s
+                </label>
+                <button
+                  type="button"
+                  disabled={busy !== null}
+                  className="flex items-center gap-1 text-brand-primary hover:underline disabled:opacity-50"
+                  onClick={() => {
+                    const start = Number(trimStart)
+                    const end = Number(trimEnd)
+                    onTrimVideo(v.assetId, v.setNumber, start, end)
+                    setTrimFor(null)
+                  }}
+                >
+                  Save trimmed asset
+                </button>
+              </span>
             )}
           </span>
         ))}

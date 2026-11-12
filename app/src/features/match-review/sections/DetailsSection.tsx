@@ -213,7 +213,9 @@ export function DetailsSection({
       {storage && (
         <section className="space-y-2">
           <h2 className="text-lg font-semibold text-neutral-50">Storage &amp; backup</h2>
-          <p className="text-sm text-neutral-400">Archive a copy, back up this match, or push set videos to the cloud.</p>
+          <p className="text-sm text-neutral-400">
+            Back up, archive the device copy (cloud kept), retrieve, or trim a set video. Tags stay on source-video time.
+          </p>
           <MatchStorageBlock
             storage={storage}
             signedIn={signedIn}

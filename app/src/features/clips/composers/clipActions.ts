@@ -6,15 +6,15 @@ import { videoAssetDb } from '@/data'
 import { uploadVideoAsset } from '@/data/cloud'
 import {
   downloadAssetToDevice,
+  getAssetFile,
   resolveAssetVideo,
   resolveSetVideo,
   storeSetVideo,
   type ResolvedVideo,
 } from '@/data/services/videoAssetService'
 import { exportReel, planReel, type ReelExportProgress, type ReelPlan } from '@/data/services/reelExportService'
-import { deriveClipEdl, type Edl } from '@/rules/derive/clips/deriveClipEdl'
+import { deriveClipDownloadFileName, deriveClipEdl, type Edl } from '@/rules/derive/clips/deriveClipEdl'
 import type { Clip } from '@/rules/derive/clips/deriveClips'
-import { getAssetFile } from '@/data/services/videoAssetService'
 
 export type { ReelExportProgress, ReelPlan }
 
@@ -64,20 +64,27 @@ export async function downloadClipFile(
   onProgress?: (p: ReelExportProgress) => void,
 ): Promise<void> {
   const edl = deriveClipEdl([clip])
+  const label = `Set ${clip.setNumber} · rally ${clip.rallyIndex}`
   const asset = await exportReel({
     matchId: clip.matchId,
-    label: `clip-s${clip.setNumber}-r${clip.rallyIndex + 1}`,
+    label,
     edl,
     onProgress,
   })
   const file = await getAssetFile(asset)
   if (!file) throw new Error('Exported clip is not on this device')
+  const fileName = deriveClipDownloadFileName({
+    setNumber: clip.setNumber,
+    rallyIndex: clip.rallyIndex,
+    sourceStart: clip.start,
+    sourceEnd: clip.end,
+  })
   const url = URL.createObjectURL(file)
   const a = document.createElement('a')
   a.href = url
-  a.download = asset.file_name || 'clip.mp4'
+  a.download = fileName
   document.body.appendChild(a)
   a.click()
   a.remove()
-  URL.revokeObjectURL(url)
+  setTimeout(() => URL.revokeObjectURL(url), 5000)
 }
