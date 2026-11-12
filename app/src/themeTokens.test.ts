@@ -13,6 +13,12 @@ describe('shared match color tokens', () => {
     const required = [
       '--color-bg-app',
       '--color-bg-surface',
+      '--color-text',
+      '--color-text-muted',
+      '--color-text-on-accent',
+      '--control-height',
+      '--control-px',
+      '--control-text',
       '--color-neutral-50',
       '--color-neutral-300',
       '--color-player-1',
@@ -26,6 +32,7 @@ describe('shared match color tokens', () => {
       '--color-result-winner',
       '--color-result-error',
       '--color-result-air',
+      '--color-shot-end',
       '--color-contact-live',
       '--color-contact-selected',
       '--color-review',
@@ -67,8 +74,16 @@ describe('shared match color tokens', () => {
   it('prefers a light app surface for tagging readability', () => {
     const app = css.match(/--color-bg-app:\s*([^;]+);/)?.[1]?.trim() ?? ''
     expect(app.toLowerCase()).toMatch(/^#[ef]/i)
-    const ink = css.match(/--color-neutral-50:\s*([^;]+);/)?.[1]?.trim() ?? ''
+    const ink = css.match(/--color-text:\s*([^;]+);/)?.[1]?.trim() ?? ''
     expect(ink.toLowerCase()).toMatch(/^#[0-3]/i)
+  })
+
+  it('keeps muted text as dark ink (not light grey on paper)', () => {
+    const text = css.match(/--color-text:\s*([^;]+);/)?.[1]?.trim() ?? ''
+    const muted = css.match(/--color-text-muted:\s*([^;]+);/)?.[1]?.trim() ?? ''
+    expect(muted).toBe(text)
+    const mid = css.match(/--color-neutral-600:\s*([^;]+);/)?.[1]?.trim() ?? ''
+    expect(mid.toLowerCase()).toMatch(/^#[0-3]/i)
   })
 
   it('keeps Pass 1 paint free of raw hex colors', () => {

@@ -436,63 +436,63 @@ export function MatchReviewComposer() {
   }
 
   return (
-    <div className={cn('space-y-6 transition-[margin]', evidence && 'md:mr-[420px]')}>
-      <header className="space-y-3">
-        <button
-          type="button"
-          onClick={() => navigate('/matches')}
-          className="flex items-center gap-1 text-sm text-neutral-400 hover:text-neutral-100 transition-colors"
-        >
-          <Icon name="arrow-left" size="sm" />
-          Matches
-        </button>
-        <div className="flex items-start justify-between flex-wrap gap-4">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-neutral-50">
+    <div className={cn('space-y-3 transition-[margin]', evidence && 'md:mr-[420px]')}>
+      {/* Slim sticky chrome — tabs get the viewport; title is one row */}
+      <header className="sticky top-0 z-20 -mx-0 bg-bg-surface/95 backdrop-blur border-b border-pill-idle-border px-0 py-2 space-y-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <button
+            type="button"
+            onClick={() => navigate('/matches')}
+            className="tag-control shrink-0"
+            aria-label="Back to matches"
+          >
+            <Icon name="arrow-left" size="sm" />
+          </button>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-base md:text-lg font-bold text-primary truncate">
               You vs {review.villainName}
             </h1>
-            <p className="mt-1 text-sm text-neutral-400">
-              <span className="text-neutral-300">{review.heroName}</span>
-              <span className="mx-2 text-neutral-600">·</span>
+            <p className="text-[11px] text-primary truncate">
               <span
                 className={cn(
                   'font-medium',
                   review.resultTone === 'good' && 'text-result-winner',
-                  review.resultTone === 'bad' && 'text-result-error',
-                  review.resultTone === 'info' && 'text-neutral-200'
+                  review.resultTone === 'bad' && 'text-result-error'
                 )}
               >
                 {review.resultLabel}
               </span>
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <ScopeControlBlock
-              scope={{ kind: 'match', id: matchId ?? null }}
-              matches={matches.filter((m) => data && m.player1_id === data.match.player1_id)}
-              players={players}
-              tournaments={tournaments}
-              currentMatchId={matchId}
-              onChange={(next: ReviewScope) => {
-                if (next.kind === 'match' && next.id) {
-                  navigate(`/matches/${next.id}`)
-                  return
-                }
-                const p = new URLSearchParams()
-                p.set('scope', next.kind)
-                if (next.id) p.set('id', next.id)
-                navigate(`/review?${p.toString()}`)
-              }}
-            />
-            {nextSet && (
-              <Button onClick={() => openTagger(nextSet)}>
-                <Icon name="play" size="sm" />
-                {nextSet.status === 'in_progress' ? 'Continue tagging' : 'Start tagging'}
-                {multiSet && ` Set ${nextSet.setNumber}`}
-              </Button>
-            )}
-          </div>
+          <ScopeControlBlock
+            scope={{ kind: 'match', id: matchId ?? null }}
+            matches={matches.filter((m) => data && m.player1_id === data.match.player1_id)}
+            players={players}
+            tournaments={tournaments}
+            currentMatchId={matchId}
+            onChange={(next: ReviewScope) => {
+              if (next.kind === 'match' && next.id) {
+                navigate(`/matches/${next.id}`)
+                return
+              }
+              const p = new URLSearchParams()
+              p.set('scope', next.kind)
+              if (next.id) p.set('id', next.id)
+              navigate(`/review?${p.toString()}`)
+            }}
+          />
+          {nextSet && (
+            <Button size="sm" onClick={() => openTagger(nextSet)} className="shrink-0">
+              <Icon name="play" size="sm" />
+              {nextSet.status === 'in_progress' ? 'Tag' : 'Tag'}
+            </Button>
+          )}
         </div>
+        <TabBarBlock
+          tabs={tabs}
+          active={tab}
+          onChange={(id) => setParams({ tab: id === 'summary' ? null : id, cat: null })}
+        />
       </header>
 
       {notice && (
@@ -504,12 +504,6 @@ export function MatchReviewComposer() {
           </button>
         </div>
       )}
-
-      <TabBarBlock
-        tabs={tabs}
-        active={tab}
-        onChange={(id) => setParams({ tab: id === 'summary' ? null : id, cat: null })}
-      />
 
       {tab === 'details' ? (
         <DetailsSection

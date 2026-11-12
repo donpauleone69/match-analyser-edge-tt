@@ -3,32 +3,33 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/helpers/utils'
 
 const buttonVariants = cva(
-  // Base styles
-  `inline-flex items-center justify-center gap-2 font-semibold 
-   transition-all duration-[var(--animate-micro)] 
+  // Base styles — match Pass 1 tag-control density and ink
+  `inline-flex items-center justify-center gap-1.5 font-semibold
+   transition-all duration-[var(--animate-micro)]
    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg-surface
    disabled:opacity-50 disabled:pointer-events-none
    active:scale-[0.98]`,
   {
     variants: {
       variant: {
-        primary: 
-          'bg-brand-primary text-neutral-50 hover:bg-brand-primary-hover',
-        secondary: 
-          'bg-neutral-700 border border-neutral-600 text-neutral-100 hover:bg-neutral-600',
-        ghost: 
-          'bg-transparent text-neutral-300 hover:bg-neutral-800 hover:text-neutral-100',
-        destructive: 
-          'bg-danger text-neutral-50 hover:bg-danger/90',
+        primary:
+          'bg-brand-primary text-on-accent hover:bg-brand-primary-hover',
+        secondary:
+          'bg-pill-idle border border-pill-idle-border text-primary hover:bg-bg-elevated',
+        ghost:
+          'bg-transparent text-primary hover:bg-pill-idle',
+        destructive:
+          'bg-danger text-on-accent hover:bg-danger/90',
         success:
-          'bg-success text-neutral-50 hover:bg-success/90',
+          'bg-success text-on-accent hover:bg-success/90',
       },
       size: {
-        sm: 'h-9 px-3 text-sm rounded-md',
-        default: 'h-11 px-5 text-base rounded-md',
-        lg: 'h-12 px-6 text-base rounded-md',
-        xl: 'h-14 px-8 text-lg rounded-md', // For CONTACT button
-        icon: 'h-10 w-10 rounded-md',
+        // sm matches .tag-control (tagging pills)
+        sm: 'h-[var(--control-height)] px-[var(--control-px)] text-[length:var(--control-text)] rounded-[var(--control-radius)]',
+        default: 'h-9 px-3 text-sm rounded-md',
+        lg: 'h-11 px-5 text-base rounded-md',
+        xl: 'h-14 px-8 text-lg rounded-md',
+        icon: 'h-9 w-9 rounded-md',
       },
     },
     defaultVariants: {

@@ -1,9 +1,9 @@
 /** Shared selected / unselected styles for Pass 1 choice controls */
 export const choicePillBase =
-  'px-3 py-2 rounded-full text-[12px] font-medium border transition-colors'
+  'h-[var(--control-height)] px-[var(--control-px)] rounded-[var(--control-radius)] text-[length:var(--control-text)] font-semibold border transition-colors'
 
 export const choicePillSelected =
-  'bg-neutral-100 text-neutral-900 border-neutral-100'
+  'bg-brand-primary text-on-accent border-brand-primary'
 
 export const choicePillIdle =
-  'bg-neutral-800/80 text-neutral-200 border-neutral-600 hover:border-neutral-400'
+  'bg-pill-idle text-muted border-pill-idle-border hover:border-neutral-600'

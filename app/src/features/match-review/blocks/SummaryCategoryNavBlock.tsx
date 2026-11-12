@@ -18,8 +18,8 @@ export function SummaryCategoryNavBlock({ sections, onSelect }: SummaryCategoryN
   return (
     <section className="space-y-3" aria-label="Match story categories">
       <div>
-        <h2 className="text-xl font-semibold text-neutral-50">Your story</h2>
-        <p className="text-sm text-neutral-400">
+        <h2 className="text-xl font-semibold text-primary">Your story</h2>
+        <p className="text-sm text-primary">
           Pick an area — see your numbers, then the points behind them.
         </p>
       </div>
@@ -30,20 +30,18 @@ export function SummaryCategoryNavBlock({ sections, onSelect }: SummaryCategoryN
               type="button"
               onClick={() => onSelect(section.id)}
               className={cn(
-                'w-full text-left rounded-xl border border-neutral-700 bg-bg-card px-4 py-3',
-                'hover:border-neutral-500 hover:bg-neutral-900/80 transition-colors group'
+                'w-full text-left rounded-xl border border-pill-idle-border bg-bg-card px-4 py-3',
+                'hover:border-neutral-600 hover:bg-bg-elevated transition-colors group'
               )}
             >
               <div className="flex items-start gap-3">
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-neutral-50 group-hover:text-white">
-                    {section.title}
-                  </p>
-                  <p className="mt-1 text-xs text-neutral-400 line-clamp-2">
+                  <p className="text-sm font-semibold text-primary">{section.title}</p>
+                  <p className="mt-1 text-xs text-primary line-clamp-2">
                     {deriveCategoryTeaser(section)}
                   </p>
                 </div>
-                <Icon name="chevron-right" size="sm" className="mt-0.5 text-neutral-500 group-hover:text-neutral-300" />
+                <Icon name="chevron-right" size="sm" className="mt-0.5 text-primary" />
               </div>
             </button>
           </li>

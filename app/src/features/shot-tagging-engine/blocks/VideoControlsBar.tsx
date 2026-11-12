@@ -74,10 +74,10 @@ export function VideoControlsBar({
   onRotate,
 }: VideoControlsBarProps) {
   return (
-    <div className="h-[48px] bg-neutral-900 border-t border-neutral-700 px-2 grid grid-cols-5 w-full">
+    <div className="h-10 bg-bg-card border-t border-pill-idle-border px-1.5 grid grid-cols-5 w-full">
       {/* Column 1: Frame Controls */}
       <div className="flex flex-col items-center justify-center gap-0.5">
-        <span className="text-[8px] text-neutral-500 font-medium uppercase tracking-wider leading-none">Frame</span>
+        <span className="text-[8px] text-muted font-medium uppercase tracking-wider leading-none">Frame</span>
         <div className="flex items-center gap-0.5">
           <Button
             variant="ghost"
@@ -101,7 +101,7 @@ export function VideoControlsBar({
       {/* Column 2: Video Seek (FF/Rewind) */}
       {(onRewind || onFastForward) ? (
         <div className="flex flex-col items-center justify-center gap-0.5">
-          <span className="text-[8px] text-neutral-500 font-medium uppercase tracking-wider leading-none">Seek</span>
+          <span className="text-[8px] text-muted font-medium uppercase tracking-wider leading-none">Seek</span>
           <div className="flex items-center gap-0.5">
             {onRewind && (
               <Button
@@ -130,7 +130,7 @@ export function VideoControlsBar({
       {/* Column 3: Shot Navigation (Phase 1) or Rotate Button (Phase 2) */}
       {showShotNavigation ? (
         <div className="flex flex-col items-center justify-center gap-0.5">
-          <span className="text-[8px] text-neutral-500 font-medium uppercase tracking-wider leading-none">Shot</span>
+          <span className="text-[8px] text-muted font-medium uppercase tracking-wider leading-none">Shot</span>
           <div className="flex items-center gap-0.5">
             <Button
               variant="ghost"

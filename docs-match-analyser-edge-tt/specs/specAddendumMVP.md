@@ -6,6 +6,34 @@
 
 ## Change Log
 
+### 2026-11-12: Pass 1 density, video chrome, review shell (v3.49.0)
+
+**Change Type:** UX — tagging density + shared video chrome + library nav
+
+**What Changed:**
+- Fixed End pill (was black-on-black via `neutral-500`); added `--color-shot-end`. Choice rows use equal flex pills, tighter control tokens, nowrap so wing/stroke/miss fit one iPhone row.
+- Merged First attack + Review into one 12-slot rail (FA / Rv mode + No FA).
+- Score + server on the video; transport uses `.tag-control` on the video bottom. Phase actions stay under the video.
+- Contact capture stays a **mode** of the same Pass 1 page (not a separate route).
+- AppShell: bottom nav replaces hamburger drawer; Match Review header collapsed so tabs lead.
+
+**Rationale:** Mobile tagging must keep single-row choice groups; review viewport should be content, not chrome.
+
+---
+
+### 2026-11-12: Theme text/control standardize + compact tagging chrome (v3.48.0)
+
+**Change Type:** Design tokens + Pass 1 chrome density
+
+**What Changed:**
+- Reduced app text to two roles: `--color-text` and `--color-text-muted` (+ `--color-text-on-accent` for solid brand/danger fills). Mid `neutral-400/500/600` steps pinned to muted ink so leftover light-grey copy is readable on paper.
+- Control density tokens (`--control-height/px/text`) and `.tag-control` match Pass 1 pills; Button `sm` / secondary follow the same look.
+- Pass 1 choice pills tightened (24px height); session/form bars compacted (score-only, single server chip, short action labels). Seek / speed / play stay on the video overlay.
+
+**Rationale:** Invisible light-grey labels and oversized pills broke mobile tagging; one control language lets theme sweeps stay cheap.
+
+---
+
 ### 2026-11-12: Local device session + light pastel tagging (v3.47.0)
 
 **Change Type:** Auth access for LAN testing + theme tokens
@@ -7030,6 +7058,8 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v3.49.0 | 2026-11-12 | Pass 1 single-row pills + 12-slot FA/Rv rail; video chrome; bottom nav |
+| v3.48.0 | 2026-11-12 | Two text roles + control density tokens; compact Pass 1 chrome |
 | v3.47.0 | 2026-11-12 | Local device session for LAN; light pastel opaque tagging tokens |
 | v3.46.0 | 2026-11-12 | Training posts (shot type + combination) compared across months |
 | v3.45.0 | 2026-11-12 | Review scopes: match / tournament / opponent / all; scoped clips reuse |

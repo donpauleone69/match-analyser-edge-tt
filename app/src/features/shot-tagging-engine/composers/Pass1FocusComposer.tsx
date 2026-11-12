@@ -766,8 +766,7 @@ export function Pass1FocusComposer({
     )
   }
 
-  const tagBtn =
-    'h-7 px-2 text-[11px] font-semibold rounded-md border border-neutral-600 text-neutral-200 hover:border-neutral-400 disabled:opacity-40 disabled:pointer-events-none'
+  const tagBtn = 'tag-control'
 
   const contactCount = contactTimes.length
   const formContactTimes =
@@ -856,56 +855,69 @@ export function Pass1FocusComposer({
               </span>
             </div>
           )}
+          {/* Shared video chrome: score/server on top; transport on bottom */}
+          <div className="absolute top-2 left-2 right-2 z-30 flex items-center gap-1.5 pointer-events-none">
+            <span className="pointer-events-auto rounded-md bg-black/70 px-2 py-1 text-[11px] font-bold tabular-nums text-white border border-white/20">
+              {currentScore.player1}–{currentScore.player2}
+            </span>
+            <div className="pointer-events-auto">
+              <ServerPill
+                serverId={openServerId}
+                player1Name={player1Name}
+                player2Name={player2Name}
+                onToggle={handleToggleServer}
+              />
+            </div>
+          </div>
           {videoUrl && (
-            <>
-              <div className="absolute bottom-3 left-3 z-30 flex items-center gap-1.5">
-                <button
-                  type="button"
-                  aria-label={`Rewind ${SEEK_STEP_SECONDS} seconds`}
-                  onClick={() => handleSeekBy(-SEEK_STEP_SECONDS)}
-                  className="h-10 w-10 rounded-full bg-black/70 text-white flex items-center justify-center border border-white/25"
-                >
-                  <Icon name="skip-back" className="w-5 h-5" />
-                </button>
-                <button
-                  type="button"
-                  aria-label={`Forward ${SEEK_STEP_SECONDS} seconds`}
-                  onClick={() => handleSeekBy(SEEK_STEP_SECONDS)}
-                  className="h-10 w-10 rounded-full bg-black/70 text-white flex items-center justify-center border border-white/25"
-                >
-                  <Icon name="skip-forward" className="w-5 h-5" />
-                </button>
-                <button
-                  type="button"
-                  aria-label="Slower"
-                  onClick={() => nudgePlaybackSpeed(-1)}
-                  disabled={playbackSpeed <= PLAYBACK_SPEED_STEPS[0]}
-                  className="h-10 w-10 rounded-full bg-black/70 text-white flex items-center justify-center border border-white/25 disabled:opacity-40"
-                >
-                  <Icon name="minus" className="w-5 h-5" />
-                </button>
-                <span className="min-w-[2.75rem] text-center text-[12px] font-bold text-white tabular-nums bg-black/70 rounded-md px-1.5 py-1 border border-white/20">
-                  {speedLabel}
-                </span>
-                <button
-                  type="button"
-                  aria-label="Faster"
-                  onClick={() => nudgePlaybackSpeed(1)}
-                  disabled={playbackSpeed >= PLAYBACK_SPEED_STEPS[PLAYBACK_SPEED_STEPS.length - 1]}
-                  className="h-10 w-10 rounded-full bg-black/70 text-white flex items-center justify-center border border-white/25 disabled:opacity-40"
-                >
-                  <Icon name="plus" className="w-5 h-5" />
-                </button>
-              </div>
+            <div className="absolute bottom-2 left-2 right-2 z-30 flex items-center gap-1">
+              <button
+                type="button"
+                aria-label={`Rewind ${SEEK_STEP_SECONDS} seconds`}
+                onClick={() => handleSeekBy(-SEEK_STEP_SECONDS)}
+                className="tag-control h-8 w-8 px-0 bg-black/70 text-white border-white/25"
+              >
+                <Icon name="skip-back" className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                aria-label={`Forward ${SEEK_STEP_SECONDS} seconds`}
+                onClick={() => handleSeekBy(SEEK_STEP_SECONDS)}
+                className="tag-control h-8 w-8 px-0 bg-black/70 text-white border-white/25"
+              >
+                <Icon name="skip-forward" className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                aria-label="Slower"
+                onClick={() => nudgePlaybackSpeed(-1)}
+                disabled={playbackSpeed <= PLAYBACK_SPEED_STEPS[0]}
+                className="tag-control h-8 w-8 px-0 bg-black/70 text-white border-white/25 disabled:opacity-40"
+              >
+                <Icon name="minus" className="w-4 h-4" />
+              </button>
+              <span className="min-w-[2.25rem] text-center text-[11px] font-bold text-white tabular-nums bg-black/70 rounded-md px-1.5 py-1 border border-white/20">
+                {speedLabel}
+              </span>
+              <button
+                type="button"
+                aria-label="Faster"
+                onClick={() => nudgePlaybackSpeed(1)}
+                disabled={playbackSpeed >= PLAYBACK_SPEED_STEPS[PLAYBACK_SPEED_STEPS.length - 1]}
+                className="tag-control h-8 w-8 px-0 bg-black/70 text-white border-white/25 disabled:opacity-40"
+              >
+                <Icon name="plus" className="w-4 h-4" />
+              </button>
+              <div className="flex-1" />
               <button
                 type="button"
                 aria-label={isPlaying ? 'Pause' : 'Play'}
                 onClick={() => videoPlayerRef.current?.togglePlay()}
-                className="absolute bottom-3 right-3 z-30 h-12 w-12 rounded-full bg-black/70 text-white flex items-center justify-center border border-white/25"
+                className="tag-control h-8 min-w-8 px-2 bg-brand-primary text-on-accent border-brand-primary"
               >
-                <Icon name={isPlaying ? 'pause' : 'play'} className="w-6 h-6" />
+                <Icon name={isPlaying ? 'pause' : 'play'} className="w-4 h-4" />
               </button>
-            </>
+            </div>
           )}
         </div>
       </div>
@@ -934,11 +946,6 @@ export function Pass1FocusComposer({
               onJumpLast={handleJumpToLastRallyEnd}
               onDeleteLast={handleDeleteLastRally}
               tagBtn={tagBtn}
-              player1Name={player1Name}
-              player2Name={player2Name}
-              score={currentScore}
-              serverId={openServerId}
-              onToggleServer={handleToggleServer}
             />
             <div className="flex-1 min-h-0 flex flex-col gap-2 p-2">
               <Button
@@ -974,7 +981,7 @@ export function Pass1FocusComposer({
                   Redo
                 </Button>
               </div>
-              <p className="shrink-0 text-[11px] text-neutral-500 text-center pb-1">
+              <p className="shrink-0 text-[11px] text-muted text-center pb-1">
                 {contactCount === 0
                   ? 'Tap each bat contact · first tap is the serve · Undo last drops one tap'
                   : `${contactCount} contact${contactCount === 1 ? '' : 's'} · auto-finishes after 2s idle`}
@@ -983,43 +990,32 @@ export function Pass1FocusComposer({
           </div>
         ) : (
           <div className="flex flex-col flex-1 min-h-0">
-            {/* Tagging chrome */}
-            <div className="shrink-0 border-t border-neutral-700 bg-neutral-900">
-              <div className="h-9 px-2 flex items-center gap-1.5 text-[11px]">
+            {/* Tagging chrome — compact; seek/speed/play are on the video overlay */}
+            <div className="shrink-0 border-t border-pill-idle-border bg-bg-card">
+              <div className="min-h-9 px-1.5 py-1 flex items-center gap-1 text-[length:var(--control-text)]">
                 <button
                   type="button"
                   onClick={() => completed.length > 0 && setPriorsOpen((o) => !o)}
-                  className={cn(
-                    'shrink-0 px-1.5 h-7 rounded-md text-neutral-300',
-                    completed.length > 0 && 'hover:bg-neutral-800'
-                  )}
+                  className={cn(tagBtn, 'shrink-0')}
                 >
-                  {completed.length} tagged
+                  {completed.length}
                   {completed.length > 0 && (
-                    <span className="ml-1 text-neutral-500">{priorsOpen ? '▾' : '▸'}</span>
+                    <span className="ml-0.5 text-muted">{priorsOpen ? '▾' : '▸'}</span>
                   )}
                 </button>
-                <span className="min-w-0 truncate text-neutral-400">
-                  <span className="text-neutral-300">{player1Name}</span>
-                  <span className="mx-1 font-mono">
-                    {currentScore.player1}–{currentScore.player2}
-                  </span>
-                  <span className="text-neutral-300">{player2Name}</span>
-                </span>
-                <ServerPill
-                  serverId={openServerId}
-                  player1Name={player1Name}
-                  player2Name={player2Name}
-                  onToggle={handleToggleServer}
-                />
                 <div className="flex-1" />
-                <button type="button" onClick={handleLet} className={cn(tagBtn, 'shrink-0')}>
+                <button type="button" onClick={handleLet} className={cn(tagBtn, 'shrink-0')} title="Let">
                   Let
                 </button>
-                <button type="button" onClick={handleDiscardOpen} className={cn(tagBtn, 'shrink-0')}>
-                  Discard
+                <button
+                  type="button"
+                  onClick={handleDiscardOpen}
+                  className={cn(tagBtn, 'tag-control-danger shrink-0')}
+                  title="Discard open rally"
+                >
+                  Disc
                 </button>
-                <button type="button" onClick={handleRedoRally} className={cn(tagBtn, 'shrink-0')}>
+                <button type="button" onClick={handleRedoRally} className={cn(tagBtn, 'shrink-0')} title="Redo">
                   Redo
                 </button>
                 <button
@@ -1029,32 +1025,28 @@ export function Pass1FocusComposer({
                   className={cn(
                     tagBtn,
                     'shrink-0',
-                    openRally?.isHighlight
-                      ? 'bg-review text-neutral-950 border-review'
-                      : 'text-review border-review/60'
+                    openRally?.isHighlight && 'bg-review border-review text-primary'
                   )}
+                  title="Highlight"
                 >
-                  ★ Highlight
+                  ★
                 </button>
                 <button
                   type="button"
                   onClick={handleSave}
                   disabled={!canSave || saving}
-                  className={cn(
-                    tagBtn,
-                    'shrink-0 border-teal-600/60 text-teal-300',
-                    canSave && 'bg-teal-700/40 border-teal-500 text-teal-100'
-                  )}
+                  className={cn(tagBtn, 'shrink-0', canSave && 'tag-control-active')}
+                  title="Save rally"
                 >
                   Save
                 </button>
               </div>
 
               {priorsOpen && completed.length > 0 && (
-                <div className="px-2 pb-1.5 max-h-16 overflow-y-auto space-y-0.5 border-t border-neutral-800">
+                <div className="px-2 pb-1.5 max-h-16 overflow-y-auto space-y-0.5 border-t border-pill-idle-border">
                   {completed.map((r) => (
-                    <div key={r.rallyIndex} className="text-[10px] text-neutral-400 leading-snug">
-                      <span className="text-neutral-500">R{r.rallyIndex}</span>
+                    <div key={r.rallyIndex} className="text-[10px] text-muted leading-snug">
+                      <span className="text-muted">R{r.rallyIndex}</span>
                       {r.isHighlight && (
                         <span className="ml-1 text-review" title="Highlight">
                           ★
@@ -1065,7 +1057,6 @@ export function Pass1FocusComposer({
                   ))}
                 </div>
               )}
-
             </div>
 
             <div className="flex-1 min-h-0 overflow-y-auto">
@@ -1108,39 +1099,17 @@ function ServerPill({
   player2Name: string
   onToggle: () => void
 }) {
+  const label = serverId === 'player1' ? player1Name : player2Name
   return (
-    <div className="shrink-0 flex items-center gap-1" role="group" aria-label="Server">
-      <button
-        type="button"
-        aria-pressed={serverId === 'player1'}
-        onClick={() => {
-          if (serverId !== 'player1') onToggle()
-        }}
-        className={cn(
-          'h-7 px-2 rounded-md text-[11px] font-semibold border truncate max-w-[5.5rem]',
-          serverId === 'player1'
-            ? 'bg-teal-700/50 border-teal-500 text-teal-100'
-            : 'border-neutral-600 text-neutral-400 hover:border-neutral-400'
-        )}
-      >
-        {player1Name}
-      </button>
-      <button
-        type="button"
-        aria-pressed={serverId === 'player2'}
-        onClick={() => {
-          if (serverId !== 'player2') onToggle()
-        }}
-        className={cn(
-          'h-7 px-2 rounded-md text-[11px] font-semibold border truncate max-w-[5.5rem]',
-          serverId === 'player2'
-            ? 'bg-teal-700/50 border-teal-500 text-teal-100'
-            : 'border-neutral-600 text-neutral-400 hover:border-neutral-400'
-        )}
-      >
-        {player2Name}
-      </button>
-    </div>
+    <button
+      type="button"
+      aria-label={`Server ${label}. Tap to switch.`}
+      title="Tap to switch server"
+      onClick={onToggle}
+      className={cn('tag-control tag-control-active max-w-[5.5rem] truncate')}
+    >
+      Srv {label}
+    </button>
   )
 }
 
@@ -1153,11 +1122,6 @@ function TaggingSessionBar({
   onJumpLast,
   onDeleteLast,
   tagBtn,
-  player1Name,
-  player2Name,
-  score,
-  serverId,
-  onToggleServer,
 }: {
   completed: CompletedRally[]
   priorsOpen: boolean
@@ -1167,43 +1131,19 @@ function TaggingSessionBar({
   onJumpLast: () => void
   onDeleteLast: () => void
   tagBtn: string
-  player1Name: string
-  player2Name: string
-  score: { player1: number; player2: number }
-  serverId: WinnerId
-  onToggleServer: () => void
 }) {
   return (
-    <div className="shrink-0 border-t border-neutral-700 bg-neutral-900">
-      <div className="h-9 px-2 flex items-center gap-1.5 text-[11px]">
+    <div className="shrink-0 border-t border-pill-idle-border bg-bg-card">
+      <div className="min-h-9 px-1.5 py-1 flex items-center gap-1 text-[length:var(--control-text)]">
         <button
           type="button"
           disabled={completed.length === 0}
           onClick={onTogglePriors}
-          className={cn(
-            'shrink-0 px-1.5 h-7 rounded-md text-neutral-300',
-            completed.length > 0 && 'hover:bg-neutral-800',
-            'disabled:opacity-40'
-          )}
+          className={cn(tagBtn, 'shrink-0')}
         >
-          {completed.length} tagged
-          {completed.length > 0 && (
-            <span className="ml-1 text-neutral-500">{priorsOpen ? '▾' : '▸'}</span>
-          )}
+          {completed.length}
+          {completed.length > 0 && <span className="ml-0.5 text-muted">{priorsOpen ? '▾' : '▸'}</span>}
         </button>
-        <span className="min-w-0 truncate text-neutral-400">
-          <span className="text-neutral-300">{player1Name}</span>
-          <span className="mx-1 font-mono">
-            {score.player1}–{score.player2}
-          </span>
-          <span className="text-neutral-300">{player2Name}</span>
-        </span>
-        <ServerPill
-          serverId={serverId}
-          player1Name={player1Name}
-          player2Name={player2Name}
-          onToggle={onToggleServer}
-        />
         <div className="flex-1" />
         <button
           type="button"
@@ -1212,26 +1152,26 @@ function TaggingSessionBar({
           className={tagBtn}
           title="Jump to end of last completed rally"
         >
-          Last rally
+          Last
         </button>
         <button
           type="button"
           onClick={onDeleteLast}
           disabled={completed.length === 0}
-          className={cn(tagBtn, 'text-red-300 border-red-800/60')}
+          className={cn(tagBtn, 'tag-control-danger')}
           title="Delete last completed rally"
         >
-          Delete last
+          Del
         </button>
         <button type="button" onClick={onEnd} disabled={!canEnd} className={tagBtn}>
           End
         </button>
       </div>
       {priorsOpen && completed.length > 0 && (
-        <div className="px-2 pb-1.5 max-h-16 overflow-y-auto space-y-0.5 border-t border-neutral-800">
+        <div className="px-2 pb-1.5 max-h-16 overflow-y-auto space-y-0.5 border-t border-pill-idle-border">
           {completed.map((r) => (
-            <div key={r.rallyIndex} className="text-[10px] text-neutral-400 leading-snug">
-              <span className="text-neutral-500">R{r.rallyIndex}</span>
+            <div key={r.rallyIndex} className="text-[10px] text-muted leading-snug">
+              <span className="text-muted">R{r.rallyIndex}</span>
               {r.isHighlight && (
                 <span className="ml-1 text-review" title="Highlight">
                   ★
