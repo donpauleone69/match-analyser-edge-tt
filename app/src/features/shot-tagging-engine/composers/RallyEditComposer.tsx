@@ -12,7 +12,7 @@ import { cn } from '@/helpers/utils'
 import { Button, Icon } from '@/ui-mine'
 import { type VideoPlayerHandle, useVideoPlaybackStore } from '@/ui-mine/VideoPlayer'
 import { matchDb, setDb, usePlayerStore, type DBMatch } from '@/data'
-import { getVideoFile } from '@/helpers/videoStorage'
+import { resolveSetVideo } from '@/data/services/videoAssetService'
 import { resolveOpponentId, resolveOpponentName } from '@/helpers/themSide'
 import { Pass1FocusBlock } from '../blocks'
 import { VideoPlayerSection } from '../sections'
@@ -141,8 +141,8 @@ export function RallyEditComposer() {
         setDraft(next)
         setFosPickMode(false)
 
-        const file = await getVideoFile(`${matchId}-${setNumber}`)
-        if (active && file) setVideoUrl(URL.createObjectURL(file))
+        const video = await resolveSetVideo(matchId, setNumber)
+        if (active && video) setVideoUrl(video.url)
       } catch (err) {
         if (active) setLoadError(err instanceof Error ? err.message : 'Failed to load rally')
       }

@@ -3,17 +3,12 @@
  */
 
 import { setDb, type DBMatch, type DBSet } from '@/data'
-import { getVideoFile, saveVideoFile } from '@/helpers/videoStorage'
+import { resolveSetVideo, storeSetVideo } from '@/data/services/videoAssetService'
 import { resolveOpponentId } from '@/helpers/themSide'
 
-/** Video files are stored per set as `${matchId}-${setNumber}` (same key the tagger uses). */
-export function setVideoKey(matchId: string, setNumber: number): string {
-  return `${matchId}-${setNumber}`
-}
-
+/** Device copy first, then the cloud copy. */
 export async function loadSetVideoUrl(matchId: string, setNumber: number): Promise<string | null> {
-  const file = await getVideoFile(setVideoKey(matchId, setNumber))
-  return file ? URL.createObjectURL(file) : null
+  return (await resolveSetVideo(matchId, setNumber))?.url ?? null
 }
 
 /**
@@ -26,8 +21,8 @@ export async function saveSetVideoFromUrl(
   pickedUrl: string
 ): Promise<string> {
   const blob = await (await fetch(pickedUrl)).blob()
-  const file = new File([blob], `${setVideoKey(matchId, setNumber)}.mp4`, { type: blob.type || 'video/mp4' })
-  await saveVideoFile(setVideoKey(matchId, setNumber), file)
+  const file = new File([blob], `${matchId}-${setNumber}.mp4`, { type: blob.type || 'video/mp4' })
+  await storeSetVideo(matchId, setNumber, file)
   return URL.createObjectURL(file)
 }
 

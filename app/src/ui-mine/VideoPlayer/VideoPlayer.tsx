@@ -74,21 +74,17 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
   const handleFileSelect = async (file: File) => {
     setIsProcessingFile(true)
     
-    // Save to IndexedDB for persistence (import saveVideoFile dynamically to avoid issues)
+    // Tagger routes (/matches/:matchId/tag?set=N): keep the file on this device as the set's video
     try {
-      const { saveVideoFile } = await import('@/helpers/videoStorage')
-      // Use a session ID from URL params if available
       const urlParams = new URLSearchParams(window.location.search)
-      const matchId = window.location.pathname.split('/')[2] // Extract from /matches/:matchId/tag
-      const setNumber = urlParams.get('set')
-      
-      if (matchId && setNumber) {
-        const sessionId = `${matchId}-${setNumber}`
-        await saveVideoFile(sessionId, file)
-        console.log('Video saved to IndexedDB')
+      const matchId = window.location.pathname.split('/')[2]
+      const setNumber = Number(urlParams.get('set'))
+      if (matchId && setNumber > 0) {
+        const { storeSetVideo } = await import('@/data/services/videoAssetService')
+        await storeSetVideo(matchId, setNumber, file)
       }
     } catch (error) {
-      console.error('Failed to save video to IndexedDB:', error)
+      console.error('Failed to save video on this device:', error)
       // Don't block - video will still work from blob URL
     }
     

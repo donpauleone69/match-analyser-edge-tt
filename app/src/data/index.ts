@@ -74,7 +74,15 @@ export type {
   MatchCoverageType,
 } from './entities/matchVideos'
 
+export type {
+  DBVideoAsset,
+  NewVideoAsset,
+  VideoAssetKind,
+  VideoLocalStore,
+} from './entities/videoAssets'
+
 // Export DB operations for entities without stores
+export { videoAssetDb } from './entities/videoAssets'
 export { matchDb, linkMatchOpponent } from './entities/matches'
 export { setDb } from './entities/sets'
 export { rallyDb } from './entities/rallies'

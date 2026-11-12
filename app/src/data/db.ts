@@ -14,6 +14,7 @@ import type { DBMatchVideo } from './entities/matchVideos/matchVideo.types'
 import type { DBSet } from './entities/sets/set.types'
 import type { DBRally } from './entities/rallies/rally.types'
 import type { DBShot } from './entities/shots/shot.types'
+import type { DBVideoAsset } from './entities/videoAssets/videoAsset.types'
 
 // TODO: Add player profiles when needed
 type DBPlayerProfile = any
@@ -33,6 +34,7 @@ export class EdgeTTDatabase extends Dexie {
   sets!: EntityTable<DBSet, 'id'>
   rallies!: EntityTable<DBRally, 'id'>
   shots!: EntityTable<DBShot, 'id'>
+  video_assets!: EntityTable<DBVideoAsset, 'id'>
   player_profiles!: EntityTable<DBPlayerProfile, 'id'>
   player_skill_metrics!: EntityTable<DBPlayerSkillMetrics, 'id'>
 
@@ -174,6 +176,22 @@ export class EdgeTTDatabase extends Dexie {
         })
       }
     })
+
+    // Version 6: video_assets — stable ids for source videos and exported reels.
+    // Additive; legacy per-set files are registered lazily on first read.
+    this.version(6).stores({
+      clubs: 'id, name, city',
+      tournaments: 'id, name, tournament_type, tournament_host_club_id, start_date',
+      players: 'id, last_name, first_name, club_id, playstyle, is_archived',
+      matches: 'id, tournament_id, player1_id, player2_id, winner_id, match_date, best_of, match_detail_level, has_video, video_count, step1_complete, step2_complete',
+      match_videos: 'id, match_id, sequence_number, start_set_number, end_set_number',
+      sets: 'id, match_id, set_number, winner_id, has_video, set_first_server_id, player1_sets_before, player2_sets_before',
+      rallies: 'id, set_id, rally_index, video_id, server_id, winner_id, player1_score_before, player2_score_before, framework_confirmed, detail_complete, first_attack_index, point_ending',
+      shots: 'id, rally_id, video_id, shot_index, player_id, timestamp_start',
+      video_assets: 'id, match_id, [match_id+set_number], kind',
+      player_profiles: 'id, player_id',
+      player_skill_metrics: 'id, player_id, match_id, skill_key, period_type',
+    })
   }
 }
 
@@ -213,9 +231,11 @@ export async function clearAllData(): Promise<void> {
     db.sets,
     db.rallies,
     db.shots,
+    db.video_assets,
     db.player_profiles,
     db.player_skill_metrics,
   ], async () => {
+    await db.video_assets.clear()
     await db.clubs.clear()
     await db.tournaments.clear()
     await db.players.clear()

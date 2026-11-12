@@ -14,7 +14,7 @@ import { type VideoPlayerHandle, useVideoPlaybackStore } from '@/ui-mine/VideoPl
 import { Button, Icon } from '@/ui-mine'
 import { calculateServer } from '@/rules'
 import { setDb } from '@/data'
-import { getVideoFile } from '@/helpers/videoStorage'
+import { resolveSetVideo } from '@/data/services/videoAssetService'
 import {
   emptyRallyTimelineState,
   canSaveRallyTimeline,
@@ -240,10 +240,9 @@ export function Pass1FocusComposer({
           setScoreConfirmed(target.score_confirmed)
         }
 
-        const sessionId = `${matchId}-${setNumber}`
-        const videoFile = await getVideoFile(sessionId)
-        if (videoFile) {
-          setVideoUrl(URL.createObjectURL(videoFile))
+        const video = await resolveSetVideo(matchId, setNumber)
+        if (video) {
+          setVideoUrl(video.url)
         }
       } catch (error) {
         console.error('[Pass1Focus] Failed to init:', error)
