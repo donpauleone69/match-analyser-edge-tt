@@ -493,7 +493,7 @@ The older menu outside tagging and last night’s review may be removed or repla
 | `9a43b76b3d49bbd2bd69bb061dcfb9d6b8e4b714` | D′ | Archive requires cloud backup; trim start/end in source seconds | `git revert 9a43b76` (before dropping D core if removing all of D) |
 | `01f9797c123eb460ed32909139101efc55de1f3d` | F | Training posts (shot type + combination) with month compare | `git revert 01f9797` |
 | `950ea70b43af689f729dedeb99c1fde3954033f2` | Access | Continue on this device unlocks library on localhost and LAN without hanging Supabase | `git revert 950ea70` |
-| _(pending A′)_ | A′ | Light pastel opaque tagging tokens | _(filled after commit)_ |
+| `15736077c5fde94c56ef4f2a034dbfbca4292595` | A′ | Light pastel opaque tagging tokens | `git revert 1573607` |
 
 Deferred: none (all A–F signed). Follow-up access + A′ completed authenticated UAT (Training clip file-picker partial).
 
