@@ -1,14 +1,8 @@
 /**
- * Inference Functions (Level 1+ - Probabilistic)
- * 
- * Functions that infer attributes with varying levels of confidence.
- * Unlike derivations, these involve uncertainty and include confidence scores.
- * 
- * Organized by scope:
- * - shot-level/      - Infer shot attributes (persisted to DB with confidence)
- * - rally-patterns/  - Infer tactical patterns (computed on-demand for stats)
+ * Inference layer — retired for Rally Focus.
+ *
+ * Shot-level inference and initiative guessing were removed.
+ * First attack and initiative are tagged directly.
  */
 
-export * from './shot-level'
-export * from './rally-patterns'
-
+export {}

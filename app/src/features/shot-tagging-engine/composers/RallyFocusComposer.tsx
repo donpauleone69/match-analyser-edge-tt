@@ -1,18 +1,14 @@
 /**
- * RallyFocusComposer — coaching-phase copy of the Rally Timeline feel-test
+ * RallyFocusComposer — sequential rally tagging (Rally Focus)
  *
  * Setup → tap contacts → 2s idle finalize → timeline while video loops.
- * In-memory only. Does not touch DB or tagging_phase.
+ * Each Save writes the rally + shots to IndexedDB.
  */
 
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { cn } from '@/helpers/utils'
-import {
-  SetupControlsBlock,
-  RallyFocusBlock,
-  type SetupData,
-} from '../blocks'
+import { RallyFocusBlock } from '../blocks'
 import { VideoPlayerSection } from '../sections'
 import { type VideoPlayerHandle, useVideoPlaybackStore } from '@/ui-mine/VideoPlayer'
 import { Button, Icon } from '@/ui-mine'
@@ -23,8 +19,8 @@ import {
   emptyRallyTimelineState,
   canSaveRallyTimeline,
   inferWinnerName,
-  summarizeRallyLine,
   toggleShotChoice,
+  toggleShotAttribute,
   markFos,
   markEnd,
   toggleEnding,
@@ -33,16 +29,26 @@ import {
   shotNumberAtTime,
   contactOverlayColor,
   loopWindowFromContacts,
+  seekFloorFromCompleted,
+  rallyTimelineViewWindow,
+  clampSeekTime,
   CONTACT_IDLE_MS,
   LOOP_PAD_SECONDS,
   PLAYBACK_SPEED_STEPS,
   CAPTURE_PLAYBACK_SPEED,
   NORMAL_PLAYBACK_SPEED,
-  toggleAttackable,
+  SEEK_STEP_SECONDS,
   type RallyTimelineState,
   type PointEnding,
   type ShotChoiceKey,
+  type ShotAttributeKey,
 } from './rallyFocusModel'
+import {
+  persistRallyFocusRally,
+  finalizeRallyFocusSet,
+  loadResumedRallyFocusState,
+  deleteLastPersistedRallyFocusRally,
+} from './persistRallyFocusRally'
 
 /** How far Redo rewinds when there are no contacts yet */
 const REDO_REWIND_SECONDS = 2
@@ -68,6 +74,7 @@ interface OpenRally {
 }
 
 interface CompletedRally {
+  dbRallyId: string | null
   rallyIndex: number
   serveTimestamp: number
   endTimestamp: number
@@ -78,11 +85,15 @@ interface CompletedRally {
   timeline: RallyTimelineState
   summary: string
   isHighlight: boolean
+  player1ScoreAfter: number
+  player2ScoreAfter: number
 }
 
 export function RallyFocusComposer({
   matchId,
   setNumber,
+  player1Id,
+  player2Id,
   player1Name,
   player2Name,
   className,
@@ -97,10 +108,12 @@ export function RallyFocusComposer({
   const duration = useVideoPlaybackStore((state) => state.duration)
   const videoPlayerRef = useRef<VideoPlayerHandle>(null)
 
+  const [setId, setSetId] = useState<string | null>(null)
   const [setReady, setSetReady] = useState(false)
   const [setupComplete, setSetupComplete] = useState(false)
   const [setupNextServer, setSetupNextServer] = useState<'player1' | 'player2'>('player1')
   const [currentScore, setCurrentScore] = useState({ player1: 0, player2: 0 })
+  const [saving, setSaving] = useState(false)
 
   const [phase, setPhase] = useState<PhaseStep>('setup')
   const [contactTimes, setContactTimes] = useState<number[]>([])
@@ -117,6 +130,8 @@ export function RallyFocusComposer({
   const [liveTime, setLiveTime] = useState(0)
   /** When true, shot rows from 2 onward pick the first attack. */
   const [fosPickMode, setFosPickMode] = useState(false)
+  /** null = not answered yet on the complete screen */
+  const [scoreConfirmed, setScoreConfirmed] = useState<boolean | null>(null)
 
   const contactTimesRef = useRef(contactTimes)
   contactTimesRef.current = contactTimes
@@ -127,13 +142,36 @@ export function RallyFocusComposer({
     videoPlayerRef.current?.getCurrentTime() ??
     useVideoPlaybackStore.getState().currentTime
 
-  const clearPointLoop = () => {
+  const minSeek = useMemo(() => seekFloorFromCompleted(completed), [completed])
+
+  /** While tapping, constrain seek to [last rally end, duration]. */
+  const applyTappingConstraints = (rallies: CompletedRally[] = completed) => {
+    const floor = seekFloorFromCompleted(rallies)
+    const dur = useVideoPlaybackStore.getState().duration
+    const endTime =
+      typeof dur === 'number' && dur > 0 ? dur : Math.max(floor + 0.1, 1)
     setConstrainedPlayback({
-      enabled: false,
-      startTime: 0,
-      endTime: 0,
-      loopOnEnd: true,
+      enabled: true,
+      startTime: floor,
+      endTime,
+      loopOnEnd: false,
     })
+  }
+
+  const seekClamped = (t: number, rallies: CompletedRally[] = completed) => {
+    // Form loop: let VideoPlayer clamp to the contact window (includes serve pad).
+    if (phase === 'form') {
+      setCurrentTime(t)
+      videoPlayerRef.current?.seek(t)
+      return t
+    }
+    const floor = seekFloorFromCompleted(rallies)
+    const dur = useVideoPlaybackStore.getState().duration
+    const next = clampSeekTime(t, floor, dur)
+    setCurrentTime(next)
+    // ignoreConstraints: floor already applied; constrainedPlayback state may lag
+    videoPlayerRef.current?.seek(next, true)
+    return next
   }
 
   const clearIdleTimer = () => {
@@ -153,7 +191,51 @@ export function RallyFocusComposer({
           navigate('/matches')
           return
         }
+        setSetId(target.id)
         setSetReady(true)
+
+        const resumed = await loadResumedRallyFocusState({
+          setId: target.id,
+          player1Id,
+          player2Id,
+          player1Name,
+          player2Name,
+        })
+
+        if (resumed.completed.length > 0) {
+          setCompleted(resumed.completed)
+          setCurrentScore(resumed.currentScore)
+          setSetupNextServer(resumed.setupNextServer)
+          setSetupComplete(true)
+          setPhase('tapping')
+        } else {
+          // Thin start: always begin at 0–0 with the focal player serving.
+          // No pre-tagging setup screen.
+          const firstServer: 'player1' | 'player2' =
+            target.setup_next_server_id === player2Id ? 'player2' : 'player1'
+          setSetupNextServer(firstServer)
+          setCurrentScore({ player1: 0, player2: 0 })
+          setSetupComplete(true)
+          setPhase('tapping')
+
+          if (!target.setup_completed_at) {
+            await setDb.update(target.id, {
+              setup_starting_score_p1: 0,
+              setup_starting_score_p2: 0,
+              setup_next_server_id:
+                firstServer === 'player1' ? player1Id : player2Id,
+              setup_completed_at: new Date().toISOString(),
+              tagging_phase: 'phase1_in_progress',
+              tagging_started_at: new Date().toISOString(),
+            })
+            await setDb.markTaggingStarted(target.id)
+          }
+        }
+
+        if (typeof target.score_confirmed === 'boolean') {
+          setScoreConfirmed(target.score_confirmed)
+        }
+
         const sessionId = `${matchId}-${setNumber}`
         const videoFile = await getVideoFile(sessionId)
         if (videoFile) {
@@ -161,13 +243,20 @@ export function RallyFocusComposer({
         }
       } catch (error) {
         console.error('[RallyFocus] Failed to init:', error)
-        alert('Failed to load set for Rally Focus test')
+        alert('Failed to load set for Rally Focus')
       }
     }
     init()
-  }, [matchId, setNumber, navigate, setVideoUrl])
+  }, [matchId, setNumber, navigate, setVideoUrl, player1Id, player2Id, player1Name, player2Name])
 
   useEffect(() => () => clearIdleTimer(), [])
+
+  // Keep tapping seek floor in sync with completed rallies + duration
+  useEffect(() => {
+    if (phase !== 'tapping') return
+    applyTappingConstraints(completed)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, completed, duration])
 
   // Sample live video time for the form overlay and the tapping timeline
   useEffect(() => {
@@ -269,13 +358,29 @@ export function RallyFocusComposer({
     }, CONTACT_IDLE_MS)
   }
 
-  const handleSetupComplete = (setup: SetupData) => {
-    setSetupNextServer(setup.nextServerId)
-    setCurrentScore({ player1: setup.p1Score, player2: setup.p2Score })
-    setSetupComplete(true)
-    setContactTimes([])
-    setPhase('tapping')
-    videoPlayerRef.current?.play()
+  /** One tap: this side serves here; re-anchor first-server so later pills follow. */
+  const handleToggleServer = async () => {
+    if (!setupComplete || phase === 'complete') return
+    const desired: WinnerId = openServerId === 'player1' ? 'player2' : 'player1'
+    let nextFirst: 'player1' | 'player2' = setupNextServer
+    for (const candidate of ['player1', 'player2'] as const) {
+      const result = calculateServer({
+        firstServerId: candidate,
+        player1Score: currentScore.player1,
+        player2Score: currentScore.player2,
+      })
+      if (result.serverId === desired) {
+        nextFirst = candidate
+        break
+      }
+    }
+    setSetupNextServer(nextFirst)
+    if (setId) {
+      await setDb.update(setId, {
+        setup_next_server_id: nextFirst === 'player1' ? player1Id : player2Id,
+        set_first_server_id: nextFirst === 'player1' ? player1Id : player2Id,
+      })
+    }
   }
 
   const handleTapContact = () => {
@@ -295,14 +400,14 @@ export function RallyFocusComposer({
 
   const handleLet = () => {
     clearIdleTimer()
-    clearPointLoop()
     const first = contactTimes[0]
     setContactTimes([])
     setOpenRally(null)
     setPhase('tapping')
     setPlaybackSpeed(NORMAL_PLAYBACK_SPEED)
+    applyTappingConstraints()
     if (typeof first === 'number') {
-      videoPlayerRef.current?.seek(first)
+      seekClamped(first)
     }
     videoPlayerRef.current?.play()
   }
@@ -314,17 +419,16 @@ export function RallyFocusComposer({
       (contactTimes.length > 0 ? contactTimes[0] : null)
 
     clearIdleTimer()
-    clearPointLoop()
     setOpenRally(null)
     setContactTimes([])
     setPhase('tapping')
     setPlaybackSpeed(NORMAL_PLAYBACK_SPEED)
+    applyTappingConstraints()
 
     if (typeof seekSource === 'number') {
-      videoPlayerRef.current?.seek(Math.max(0, seekSource - LOOP_PAD_SECONDS))
+      seekClamped(seekSource - LOOP_PAD_SECONDS)
     } else {
-      const t = readVideoTime()
-      videoPlayerRef.current?.seek(Math.max(0, t - REDO_REWIND_SECONDS))
+      seekClamped(readVideoTime() - REDO_REWIND_SECONDS)
     }
     videoPlayerRef.current?.play()
   }
@@ -340,90 +444,139 @@ export function RallyFocusComposer({
     setPlaybackSpeed(steps[next])
   }
 
+  const handleSeekBy = (deltaSeconds: number) => {
+    seekClamped(readVideoTime() + deltaSeconds)
+  }
+
+  const handleJumpToLastRallyEnd = () => {
+    if (completed.length === 0) return
+    seekClamped(minSeek)
+    if (!isPlaying) {
+      videoPlayerRef.current?.play()
+    }
+  }
+
   const handleDiscardOpen = () => {
     if (!openRally) return
     const endAt = openRally.endTimestamp
-    clearPointLoop()
     setOpenRally(null)
     setContactTimes([])
     setPhase('tapping')
     setPlaybackSpeed(NORMAL_PLAYBACK_SPEED)
-    videoPlayerRef.current?.seek(endAt)
+    applyTappingConstraints()
+    seekClamped(endAt)
     videoPlayerRef.current?.play()
-  }
-
-  const commitCompletedRally = (
-    serveTimestamp: number,
-    endTimestamp: number,
-    winnerId: WinnerId,
-    timelineState: RallyTimelineState,
-    summary: string,
-    isHighlight: boolean
-  ) => {
-    const scoreAfter = {
-      player1: winnerId === 'player1' ? currentScore.player1 + 1 : currentScore.player1,
-      player2: winnerId === 'player2' ? currentScore.player2 + 1 : currentScore.player2,
-    }
-    setCompleted((prev) => [
-      ...prev,
-      {
-        rallyIndex: prev.length + 1,
-        serveTimestamp,
-        endTimestamp,
-        serverId: openServerId,
-        winnerId,
-        serverName: getPlayerName(openServerId),
-        winnerName: getPlayerName(winnerId),
-        timeline: timelineState,
-        summary,
-        isHighlight,
-      },
-    ])
-    setCurrentScore(scoreAfter)
   }
 
   const handleToggleHighlight = () => {
     setOpenRally((cur) => (cur ? { ...cur, isHighlight: !cur.isHighlight } : cur))
   }
 
-  const handleSave = () => {
-    if (!openRally || !canSave || !winnerName) return
+  const handleSave = async () => {
+    if (!openRally || !canSave || !winnerName || !setId || saving) return
     const winnerId = winnerIdFromName(winnerName)
     if (!winnerId) return
-    const summary = summarizeRallyLine(openRally.timeline, winnerName)
-    commitCompletedRally(
-      openRally.serveTimestamp,
-      openRally.endTimestamp,
-      winnerId,
-      openRally.timeline,
-      summary,
-      openRally.isHighlight
-    )
-    setOpenRally(null)
-    setContactTimes([])
-    setPhase('tapping')
-    clearPointLoop()
-    setPlaybackSpeed(NORMAL_PLAYBACK_SPEED)
-    videoPlayerRef.current?.seek(openRally.endTimestamp)
-    videoPlayerRef.current?.play()
+
+    setSaving(true)
+    try {
+      const serverId = openServerId === 'player1' ? player1Id : player2Id
+      const rallyIndex = completed.length + 1
+      const persisted = await persistRallyFocusRally({
+        setId,
+        rallyIndex,
+        videoId: null,
+        serverId,
+        player1Id,
+        player2Id,
+        player1Name,
+        player2Name,
+        player1ScoreBefore: currentScore.player1,
+        player2ScoreBefore: currentScore.player2,
+        isHighlight: openRally.isHighlight,
+        timeline: openRally.timeline,
+      })
+
+      const savedEntry: CompletedRally = {
+        dbRallyId: persisted.rally.id,
+        rallyIndex,
+        serveTimestamp: openRally.serveTimestamp,
+        endTimestamp: openRally.endTimestamp,
+        serverId: openServerId,
+        winnerId,
+        serverName: persisted.serverName,
+        winnerName: persisted.winnerName,
+        timeline: openRally.timeline,
+        summary: persisted.summary,
+        isHighlight: openRally.isHighlight,
+        player1ScoreAfter: persisted.rally.player1_score_after,
+        player2ScoreAfter: persisted.rally.player2_score_after,
+      }
+      const nextCompleted = [...completed, savedEntry]
+      setCompleted(nextCompleted)
+      setCurrentScore({
+        player1: persisted.rally.player1_score_after,
+        player2: persisted.rally.player2_score_after,
+      })
+
+      setOpenRally(null)
+      setContactTimes([])
+      setPhase('tapping')
+      applyTappingConstraints(nextCompleted)
+      setPlaybackSpeed(NORMAL_PLAYBACK_SPEED)
+      seekClamped(openRally.endTimestamp, nextCompleted)
+      videoPlayerRef.current?.play()
+    } catch (error) {
+      console.error('[RallyFocus] Save failed:', error)
+      alert(error instanceof Error ? error.message : 'Failed to save rally')
+    } finally {
+      setSaving(false)
+    }
   }
 
-  const handleEndSession = () => {
+  const handleEndSession = async () => {
     if (completed.length === 0 && !openRally) return
+    if (!setId) return
     clearIdleTimer()
-    clearPointLoop()
     setOpenRally(null)
     setContactTimes([])
     setPlaybackSpeed(NORMAL_PLAYBACK_SPEED)
+    setScoreConfirmed(null)
+
+    try {
+      await finalizeRallyFocusSet({
+        setId,
+        player1Id,
+        player2Id,
+        player1Score: currentScore.player1,
+        player2Score: currentScore.player2,
+        scoreConfirmed: null,
+      })
+    } catch (error) {
+      console.error('[RallyFocus] Finalize failed:', error)
+      alert('Failed to finalize set')
+      return
+    }
+
     setPhase('complete')
+  }
+
+  const handleScoreConfirm = async (matches: boolean) => {
+    if (!setId) return
+    setScoreConfirmed(matches)
+    try {
+      await setDb.update(setId, { score_confirmed: matches })
+    } catch (error) {
+      console.error('[RallyFocus] Score confirm failed:', error)
+      alert('Failed to save score confirmation')
+    }
   }
 
   const handleToggleShotChoice = (n: number, key: ShotChoiceKey, value: string) => {
     patchTimeline((s) => toggleShotChoice(s, n, key, value))
   }
 
-  const handleToggleAttackable = (n: number) => {
-    patchTimeline((s) => toggleAttackable(s, n))
+  const handleToggleAttribute = (n: number, key: ShotAttributeKey) => {
+    patchTimeline((s) => toggleShotAttribute(s, n, key))
   }
 
   const handleMarkFos = (at: number) => {
@@ -459,8 +612,7 @@ export function RallyFocusComposer({
     const removed = contactTimes[contactTimes.length - 1]
     const next = contactTimes.slice(0, -1)
     setContactTimes(next)
-    setCurrentTime(removed)
-    videoPlayerRef.current?.seek(removed)
+    seekClamped(removed)
     if (next.length === 0) {
       setPlaybackSpeed(NORMAL_PLAYBACK_SPEED)
     } else {
@@ -471,12 +623,62 @@ export function RallyFocusComposer({
     }
   }
 
-  const handleSeekToServe = (serveTimestamp: number) => {
-    const t = Math.max(0, serveTimestamp - LOOP_PAD_SECONDS)
-    setCurrentTime(t)
-    videoPlayerRef.current?.seek(t)
+  /** Timeline click on a completed rally → its end (seek floor for that rally). */
+  const handleSeekToRallyEnd = (endTimestamp: number) => {
+    seekClamped(endTimestamp)
     if (!isPlaying) {
       videoPlayerRef.current?.play()
+    }
+  }
+
+  const handleTimelineScrub = (t: number) => {
+    seekClamped(t)
+  }
+
+  const handleDeleteLastRally = async () => {
+    if (phase !== 'tapping' || completed.length === 0) return
+    if (contactTimes.length > 0) {
+      const ok = window.confirm(
+        'Discard current taps and delete the last completed rally?'
+      )
+      if (!ok) return
+      clearIdleTimer()
+      setContactTimes([])
+      setPlaybackSpeed(NORMAL_PLAYBACK_SPEED)
+    }
+
+    const last = completed[completed.length - 1]
+    const nextCompleted = completed.slice(0, -1)
+    const prev = nextCompleted[nextCompleted.length - 1]
+    const rolledScore = prev
+      ? {
+          player1: prev.player1ScoreAfter,
+          player2: prev.player2ScoreAfter,
+        }
+      : { player1: 0, player2: 0 }
+
+    try {
+      if (setId && last.dbRallyId) {
+        await deleteLastPersistedRallyFocusRally({
+          setId,
+          rallyId: last.dbRallyId,
+        })
+      }
+      setCompleted(nextCompleted)
+      setCurrentScore(rolledScore)
+      applyTappingConstraints(nextCompleted)
+      seekClamped(
+        nextCompleted.length > 0
+          ? nextCompleted[nextCompleted.length - 1].endTimestamp
+          : 0,
+        nextCompleted
+      )
+      if (!isPlaying) {
+        videoPlayerRef.current?.play()
+      }
+    } catch (error) {
+      console.error('[RallyFocus] Delete last failed:', error)
+      alert(error instanceof Error ? error.message : 'Failed to delete last rally')
     }
   }
 
@@ -496,20 +698,52 @@ export function RallyFocusComposer({
             completed.reduce((sum, r) => sum + r.timeline.shotCount, 0) / completed.length
           ).toFixed(1)
         : '0'
+    const scoreLabel = `${currentScore.player1}–${currentScore.player2}`
 
     return (
       <div className={cn('h-dvh flex items-center justify-center bg-bg-surface', className)}>
         <div className="p-8 max-w-lg text-center bg-bg-card rounded-lg border border-neutral-700">
-          <h2 className="text-2xl font-bold text-neutral-50 mb-2">Rally Focus test complete</h2>
-          <p className="text-neutral-400 mb-1">{completed.length} rallies tagged</p>
-          <p className="text-neutral-500 text-sm mb-6">
+          <h2 className="text-2xl font-bold text-neutral-50 mb-2">Rally Focus complete</h2>
+          <p className="text-neutral-400 mb-1">{completed.length} rallies saved</p>
+          <p className="text-neutral-500 text-sm mb-4">
             Avg contacts {avgShots} · With FOS {withFos}
-            <br />
-            Nothing saved — UI test only.
           </p>
-          <Button variant="secondary" onClick={() => navigate('/matches')}>
-            Back to Matches
-          </Button>
+          <p className="text-neutral-200 text-lg font-semibold mb-2">
+            Counted score {scoreLabel}
+          </p>
+          <p className="text-neutral-400 text-sm mb-3">
+            Does that match the scoreboard?
+          </p>
+          <div className="flex gap-3 justify-center mb-6">
+            <Button
+              variant={scoreConfirmed === true ? 'primary' : 'secondary'}
+              onClick={() => handleScoreConfirm(true)}
+            >
+              Yes
+            </Button>
+            <Button
+              variant={scoreConfirmed === false ? 'primary' : 'secondary'}
+              onClick={() => handleScoreConfirm(false)}
+            >
+              No
+            </Button>
+          </div>
+          {scoreConfirmed === false && (
+            <p className="text-amber-400/90 text-xs mb-4">
+              Flagged. Stored point scores are unchanged.
+            </p>
+          )}
+          <div className="flex gap-3 justify-center">
+            <Button variant="secondary" onClick={() => navigate('/matches')}>
+              Back to Matches
+            </Button>
+            <Button
+              variant="primary"
+              onClick={() => navigate(`/data-viewer?match=${matchId}`)}
+            >
+              View Data
+            </Button>
+          </div>
         </div>
       </div>
     )
@@ -581,6 +815,22 @@ export function RallyFocusComposer({
               <div className="absolute bottom-3 left-3 z-30 flex items-center gap-1.5">
                 <button
                   type="button"
+                  aria-label={`Rewind ${SEEK_STEP_SECONDS} seconds`}
+                  onClick={() => handleSeekBy(-SEEK_STEP_SECONDS)}
+                  className="h-10 w-10 rounded-full bg-black/70 text-white flex items-center justify-center border border-white/25"
+                >
+                  <Icon name="skip-back" className="w-5 h-5" />
+                </button>
+                <button
+                  type="button"
+                  aria-label={`Forward ${SEEK_STEP_SECONDS} seconds`}
+                  onClick={() => handleSeekBy(SEEK_STEP_SECONDS)}
+                  className="h-10 w-10 rounded-full bg-black/70 text-white flex items-center justify-center border border-white/25"
+                >
+                  <Icon name="skip-forward" className="w-5 h-5" />
+                </button>
+                <button
+                  type="button"
                   aria-label="Slower"
                   onClick={() => nudgePlaybackSpeed(-1)}
                   disabled={playbackSpeed <= PLAYBACK_SPEED_STEPS[0]}
@@ -615,25 +865,19 @@ export function RallyFocusComposer({
       </div>
 
       {phase === 'tapping' && typeof duration === 'number' && duration > 0 && (
-        <ServeTimeline
+        <RallyProgressTimeline
           duration={duration}
           liveTime={liveTime}
           completed={completed}
           contactTimes={contactTimes}
-          onSeekServe={handleSeekToServe}
+          minSeek={minSeek}
+          onSeekRallyEnd={handleSeekToRallyEnd}
+          onScrub={handleTimelineScrub}
         />
       )}
 
       <div className="flex-1 min-h-0 flex flex-col bg-bg-surface">
-        {!setupComplete ? (
-          <div className="p-3 overflow-y-auto">
-            <SetupControlsBlock
-              player1Name={player1Name}
-              player2Name={player2Name}
-              onComplete={handleSetupComplete}
-            />
-          </div>
-        ) : phase === 'tapping' ? (
+        {phase === 'tapping' ? (
           <div className="flex flex-col flex-1 min-h-0">
             <TaggingSessionBar
               completed={completed}
@@ -641,10 +885,14 @@ export function RallyFocusComposer({
               onTogglePriors={() => setPriorsOpen((o) => !o)}
               onEnd={handleEndSession}
               canEnd={completed.length > 0}
+              onJumpLast={handleJumpToLastRallyEnd}
+              onDeleteLast={handleDeleteLastRally}
               tagBtn={tagBtn}
               player1Name={player1Name}
               player2Name={player2Name}
               score={currentScore}
+              serverId={openServerId}
+              onToggleServer={handleToggleServer}
             />
             <div className="flex-1 min-h-0 flex flex-col gap-2 p-2">
               <Button
@@ -712,6 +960,12 @@ export function RallyFocusComposer({
                   </span>
                   <span className="text-neutral-300">{player2Name}</span>
                 </span>
+                <ServerPill
+                  serverId={openServerId}
+                  player1Name={player1Name}
+                  player2Name={player2Name}
+                  onToggle={handleToggleServer}
+                />
                 <div className="flex-1" />
                 <button type="button" onClick={handleDiscardOpen} className={cn(tagBtn, 'shrink-0')}>
                   Discard
@@ -736,7 +990,7 @@ export function RallyFocusComposer({
                 <button
                   type="button"
                   onClick={handleSave}
-                  disabled={!canSave}
+                  disabled={!canSave || saving}
                   className={cn(
                     tagBtn,
                     'shrink-0 border-teal-600/60 text-teal-300',
@@ -773,7 +1027,7 @@ export function RallyFocusComposer({
                 activeShot={overlayShot}
                 fosPickMode={fosPickMode}
                 onToggleShotChoice={handleToggleShotChoice}
-                onToggleAttackable={handleToggleAttackable}
+                onToggleAttribute={handleToggleAttribute}
                 onMarkFos={handleMarkFos}
                 onChangeFos={handleChangeFos}
                 onNoAttack={handleNoAttack}
@@ -789,26 +1043,81 @@ export function RallyFocusComposer({
   )
 }
 
+function ServerPill({
+  serverId,
+  player1Name,
+  player2Name,
+  onToggle,
+}: {
+  serverId: WinnerId
+  player1Name: string
+  player2Name: string
+  onToggle: () => void
+}) {
+  return (
+    <div className="shrink-0 flex items-center gap-1" role="group" aria-label="Server">
+      <button
+        type="button"
+        aria-pressed={serverId === 'player1'}
+        onClick={() => {
+          if (serverId !== 'player1') onToggle()
+        }}
+        className={cn(
+          'h-7 px-2 rounded-md text-[11px] font-semibold border truncate max-w-[5.5rem]',
+          serverId === 'player1'
+            ? 'bg-teal-700/50 border-teal-500 text-teal-100'
+            : 'border-neutral-600 text-neutral-400 hover:border-neutral-400'
+        )}
+      >
+        {player1Name}
+      </button>
+      <button
+        type="button"
+        aria-pressed={serverId === 'player2'}
+        onClick={() => {
+          if (serverId !== 'player2') onToggle()
+        }}
+        className={cn(
+          'h-7 px-2 rounded-md text-[11px] font-semibold border truncate max-w-[5.5rem]',
+          serverId === 'player2'
+            ? 'bg-teal-700/50 border-teal-500 text-teal-100'
+            : 'border-neutral-600 text-neutral-400 hover:border-neutral-400'
+        )}
+      >
+        {player2Name}
+      </button>
+    </div>
+  )
+}
+
 function TaggingSessionBar({
   completed,
   priorsOpen,
   onTogglePriors,
   onEnd,
   canEnd,
+  onJumpLast,
+  onDeleteLast,
   tagBtn,
   player1Name,
   player2Name,
   score,
+  serverId,
+  onToggleServer,
 }: {
   completed: CompletedRally[]
   priorsOpen: boolean
   onTogglePriors: () => void
   onEnd: () => void
   canEnd: boolean
+  onJumpLast: () => void
+  onDeleteLast: () => void
   tagBtn: string
   player1Name: string
   player2Name: string
   score: { player1: number; player2: number }
+  serverId: WinnerId
+  onToggleServer: () => void
 }) {
   return (
     <div className="shrink-0 border-t border-neutral-700 bg-neutral-900">
@@ -835,7 +1144,31 @@ function TaggingSessionBar({
           </span>
           <span className="text-neutral-300">{player2Name}</span>
         </span>
+        <ServerPill
+          serverId={serverId}
+          player1Name={player1Name}
+          player2Name={player2Name}
+          onToggle={onToggleServer}
+        />
         <div className="flex-1" />
+        <button
+          type="button"
+          onClick={onJumpLast}
+          disabled={completed.length === 0}
+          className={tagBtn}
+          title="Jump to end of last completed rally"
+        >
+          Last rally
+        </button>
+        <button
+          type="button"
+          onClick={onDeleteLast}
+          disabled={completed.length === 0}
+          className={cn(tagBtn, 'text-red-300 border-red-800/60')}
+          title="Delete last completed rally"
+        >
+          Delete last
+        </button>
         <button type="button" onClick={onEnd} disabled={!canEnd} className={tagBtn}>
           End
         </button>
@@ -859,51 +1192,109 @@ function TaggingSessionBar({
   )
 }
 
-function ServeTimeline({
+function RallyProgressTimeline({
   duration,
   liveTime,
   completed,
   contactTimes,
-  onSeekServe,
+  minSeek,
+  onSeekRallyEnd,
+  onScrub,
 }: {
   duration: number
   liveTime: number
   completed: CompletedRally[]
   contactTimes: number[]
-  onSeekServe: (serveTimestamp: number) => void
+  minSeek: number
+  onSeekRallyEnd: (endTimestamp: number) => void
+  onScrub: (t: number) => void
 }) {
-  const pct = (t: number) => `${Math.min(100, Math.max(0, (t / duration) * 100))}%`
+  const trackRef = useRef<HTMLDivElement>(null)
+  const { viewStart, viewEnd } = rallyTimelineViewWindow({
+    duration,
+    liveTime,
+    completed,
+    contactTimes,
+  })
+  const span = Math.max(0.001, viewEnd - viewStart)
+  const pct = (t: number) =>
+    `${Math.min(100, Math.max(0, ((t - viewStart) / span) * 100))}%`
+  const rangeStyle = (start: number, end: number) => {
+    const left = Math.min(100, Math.max(0, ((start - viewStart) / span) * 100))
+    const rawW = ((Math.max(end, start) - start) / span) * 100
+    const width = Math.min(100 - left, Math.max(0, rawW))
+    return {
+      left: `${left}%`,
+      width: `max(12px, ${width}%)`,
+    }
+  }
+
+  const timeFromClientX = (clientX: number) => {
+    const el = trackRef.current
+    if (!el || span <= 0) return minSeek
+    const rect = el.getBoundingClientRect()
+    const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width))
+    return clampSeekTime(viewStart + ratio * span, minSeek, duration)
+  }
 
   return (
     <div
-      className="shrink-0 h-7 px-2 bg-neutral-950 border-t border-neutral-800 flex items-center"
-      aria-label="Serve timeline"
+      className="shrink-0 h-9 px-2 bg-neutral-950 border-t border-neutral-800 flex items-center"
+      aria-label="Rally timeline"
     >
-      <div className="relative w-full h-2 rounded-full bg-neutral-800">
-        {completed.map((r) => (
-          <button
-            key={r.rallyIndex}
-            type="button"
-            title={`Rally ${r.rallyIndex} serve`}
-            aria-label={`Jump to rally ${r.rallyIndex} serve`}
-            onClick={() => onSeekServe(r.serveTimestamp)}
-            className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-sm border border-neutral-950"
-            style={{
-              left: pct(r.serveTimestamp),
-              backgroundColor: r.isHighlight ? '#f59e0b' : '#c4a574',
-            }}
-          />
-        ))}
+      <div
+        ref={trackRef}
+        role="slider"
+        aria-valuemin={viewStart}
+        aria-valuemax={viewEnd}
+        aria-valuenow={liveTime}
+        tabIndex={0}
+        className="relative w-full h-4 rounded-sm bg-black cursor-pointer touch-none overflow-hidden"
+        onClick={(e) => onScrub(timeFromClientX(e.clientX))}
+        onKeyDown={(e) => {
+          if (e.key === 'ArrowLeft') {
+            e.preventDefault()
+            onScrub(liveTime - 1)
+          } else if (e.key === 'ArrowRight') {
+            e.preventDefault()
+            onScrub(liveTime + 1)
+          }
+        }}
+      >
+        {completed.map((r) => {
+          const rawStart = Math.min(r.serveTimestamp, r.endTimestamp)
+          const rawEnd = Math.max(r.serveTimestamp, r.endTimestamp)
+          const start = Math.max(viewStart, rawStart - LOOP_PAD_SECONDS)
+          const end = Math.min(viewEnd, rawEnd + LOOP_PAD_SECONDS)
+          const fill = r.isHighlight ? '#f59e0b' : '#c4a574'
+          return (
+            <button
+              key={r.rallyIndex}
+              type="button"
+              title={`Rally ${r.rallyIndex} · jump to end`}
+              aria-label={`Jump to end of rally ${r.rallyIndex}`}
+              onClick={(e) => {
+                e.stopPropagation()
+                onSeekRallyEnd(r.endTimestamp)
+              }}
+              className="absolute top-0 bottom-0 rounded-[1px] border border-black/25 hover:brightness-110"
+              style={{
+                ...rangeStyle(start, end),
+                backgroundColor: fill,
+              }}
+            />
+          )
+        })}
         {contactTimes.map((t, i) => (
           <span
             key={`c-${i}-${t}`}
-            className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-[#7eb8e8] pointer-events-none"
+            className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-[#7eb8e8] pointer-events-none z-10"
             style={{ left: pct(t) }}
             aria-hidden
           />
         ))}
         <span
-          className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 w-0.5 h-3.5 rounded-full bg-white pointer-events-none"
+          className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 w-0.5 h-5 rounded-full bg-white pointer-events-none z-20"
           style={{ left: pct(liveTime) }}
           aria-hidden
         />

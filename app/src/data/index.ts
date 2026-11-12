@@ -1,9 +1,9 @@
 /**
  * Data Layer - Central export
- * 
+ *
  * Entities with stores (use these in components):
  * - Clubs, Tournaments, Players, Matches
- * 
+ *
  * Entities without stores (DB operations only):
  * - Sets, Rallies, Shots (managed through tagging context)
  */
@@ -50,27 +50,22 @@ export type {
 export type {
   DBRally,
   NewRally,
+  PointEnding,
+  PointMissReason,
 } from './entities/rallies'
 
 export type {
   DBShot,
   NewShot,
-  ShotIntent,
-  ShotResult,
+  ShotSpin,
+  ShotWing,
+  ShotReviewKind,
+  ShotStroke,
+  ShotDepth,
+  ShotPlacement,
+  ShotContact,
+  ShotInitiative,
   ShotQuality,
-  TablePosition,
-  RallyEndRole,
-  PressureLevel,
-  IntentQuality,
-  ServeSpinFamily,
-  ShotLength,
-  ShotLabel,
-  ShotContactTiming,
-  PlayerPosition,
-  PlayerDistance,
-  ShotSpeed,
-  ShotArc,
-  ServeType,
 } from './entities/shots'
 
 export type {
@@ -79,18 +74,11 @@ export type {
   MatchCoverageType,
 } from './entities/matchVideos'
 
-export type {
-  DBShotInference,
-  NewShotInference,
-  InferenceFieldName,
-} from './entities/shotInferences'
-
 // Export DB operations for entities without stores
-export { matchDb } from './entities/matches'
+export { matchDb, linkMatchOpponent } from './entities/matches'
 export { setDb } from './entities/sets'
 export { rallyDb } from './entities/rallies'
 export { shotDb } from './entities/shots'
-export { shotInferenceDb } from './entities/shotInferences'
 
 // Export match helper functions
 export { getCompleteMatchData, saveCompleteMatch } from './entities/matches'
@@ -112,7 +100,5 @@ export {
   generateClubId,
   generateTournamentId,
   generateMatchVideoId,
-  generateShotInferenceId,
   slugify,
 } from '@/helpers/generateSlugId'
-

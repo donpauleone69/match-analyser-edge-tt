@@ -108,21 +108,21 @@ export function FilterBar({ filter, onChange, players, matches }: FilterBarProps
             <div className="flex flex-wrap gap-2">
               <Button
                 size="sm"
-                variant={filter.scopeType === 'single_match' ? 'default' : 'outline'}
+                variant={filter.scopeType === 'single_match' ? 'primary' : 'secondary'}
                 onClick={() => onChange({ ...filter, scopeType: 'single_match' })}
               >
                 Single Match
               </Button>
               <Button
                 size="sm"
-                variant={filter.scopeType === 'recent_n_matches' ? 'default' : 'outline'}
+                variant={filter.scopeType === 'recent_n_matches' ? 'primary' : 'secondary'}
                 onClick={() => onChange({ ...filter, scopeType: 'recent_n_matches' })}
               >
                 Recent Matches
               </Button>
               <Button
                 size="sm"
-                variant={filter.scopeType === 'date_range' ? 'default' : 'outline'}
+                variant={filter.scopeType === 'date_range' ? 'primary' : 'secondary'}
                 onClick={() => onChange({ ...filter, scopeType: 'date_range' })}
               >
                 Date Range
@@ -159,7 +159,7 @@ export function FilterBar({ filter, onChange, players, matches }: FilterBarProps
                     <Button
                       key={count}
                       size="sm"
-                      variant={filter.recentMatchCount === count ? 'default' : 'outline'}
+                      variant={filter.recentMatchCount === count ? 'primary' : 'secondary'}
                       onClick={() => onChange({ ...filter, recentMatchCount: count })}
                     >
                       {count}
@@ -199,7 +199,7 @@ export function FilterBar({ filter, onChange, players, matches }: FilterBarProps
             <div className="flex flex-wrap gap-2">
               <Button
                 size="sm"
-                variant={filter.setFilter === 'all' ? 'default' : 'outline'}
+                variant={filter.setFilter === 'all' ? 'primary' : 'secondary'}
                 onClick={() => onChange({ ...filter, setFilter: 'all' })}
               >
                 All
@@ -208,7 +208,7 @@ export function FilterBar({ filter, onChange, players, matches }: FilterBarProps
                 <Button
                   key={set}
                   size="sm"
-                  variant={filter.setFilter === set ? 'default' : 'outline'}
+                  variant={filter.setFilter === set ? 'primary' : 'secondary'}
                   onClick={() => onChange({ ...filter, setFilter: set })}
                 >
                   Set {set}
@@ -223,21 +223,21 @@ export function FilterBar({ filter, onChange, players, matches }: FilterBarProps
             <div className="flex flex-wrap gap-2">
               <Button
                 size="sm"
-                variant={filter.contextFilter === 'all_points' ? 'default' : 'outline'}
+                variant={filter.contextFilter === 'all_points' ? 'primary' : 'secondary'}
                 onClick={() => onChange({ ...filter, contextFilter: 'all_points' })}
               >
                 All Points
               </Button>
               <Button
                 size="sm"
-                variant={filter.contextFilter === 'serve_only' ? 'default' : 'outline'}
+                variant={filter.contextFilter === 'serve_only' ? 'primary' : 'secondary'}
                 onClick={() => onChange({ ...filter, contextFilter: 'serve_only' })}
               >
                 Serve Only
               </Button>
               <Button
                 size="sm"
-                variant={filter.contextFilter === 'receive_only' ? 'default' : 'outline'}
+                variant={filter.contextFilter === 'receive_only' ? 'primary' : 'secondary'}
                 onClick={() => onChange({ ...filter, contextFilter: 'receive_only' })}
               >
                 Receive Only

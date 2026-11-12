@@ -20,18 +20,17 @@ export function RallyGroupBlock({
   // Infer button pressed from point_end_type (for display only)
   const getButtonPressed = (): string => {
     if (!rally.is_scoring) return 'Let'
-    
-    const lastShot = shots[shots.length - 1]
-    
-    switch (rally.point_end_type) {
-      case 'serviceFault':
-      case 'receiveError':
-      case 'unforcedError':
-        return lastShot?.shot_result === 'in_net' ? 'Net' : 'Long'
-      case 'forcedError':
-        return 'Forced Error'
-      case 'winnerShot':
-        return 'Win'
+    switch (rally.point_ending) {
+      case 'error_net':
+        return 'In-Net'
+      case 'error_long':
+        return 'Long'
+      case 'error_wide':
+        return 'Wide'
+      case 'lucky':
+        return 'Lucky'
+      case 'winner':
+        return 'Winner'
       default:
         return 'Unknown'
     }

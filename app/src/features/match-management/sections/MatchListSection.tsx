@@ -5,17 +5,22 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/ui-mine/Button'
 import { Card } from '@/ui-mine/Card'
-import type { DBMatch, DBSet } from '@/data'
+import type { DBMatch, DBPlayer, DBSet, DBTournament } from '@/data'
 import { useNavigate } from 'react-router-dom'
 import { SetSelectionModal } from './SetSelectionModal'
 import { MatchResultEntryModal } from './MatchResultEntryModal'
+import { MatchDetailsModal } from './MatchDetailsModal'
 import { setDb } from '@/data'
+import { THEM_SIDE_LABEL } from '@/helpers/themSide'
+
 const { getByMatchId: getSetsByMatchId } = setDb
 
 interface MatchListSectionProps {
   matches: DBMatch[]
   isLoading: boolean
   onCreateNew: () => void
+  players: DBPlayer[]
+  tournaments: DBTournament[]
   getPlayerName: (id: string) => string
   getTournamentName: (id: string | null) => string
   onRefresh?: () => void
@@ -25,6 +30,8 @@ export function MatchListSection({
   matches,
   isLoading,
   onCreateNew,
+  players,
+  tournaments,
   getPlayerName,
   getTournamentName,
   onRefresh,
@@ -33,14 +40,13 @@ export function MatchListSection({
   const [selectedMatch, setSelectedMatch] = useState<DBMatch | null>(null)
   const [sets, setSets] = useState<DBSet[]>([])
   const [isLoadingSets, setIsLoadingSets] = useState(false)
-  
-  // Result entry modal state
+
   const [matchForResults, setMatchForResults] = useState<DBMatch | null>(null)
   const [setsForResults, setSetsForResults] = useState<DBSet[]>([])
-  
-  // Load sets for all matches to display point scores
+  const [matchForDetails, setMatchForDetails] = useState<DBMatch | null>(null)
+
   const [matchSets, setMatchSets] = useState<Record<string, DBSet[]>>({})
-  
+
   useEffect(() => {
     const loadAllSets = async () => {
       const setsMap: Record<string, DBSet[]> = {}
@@ -54,12 +60,15 @@ export function MatchListSection({
       loadAllSets()
     }
   }, [matches])
-  
+
+  const opponentName = (match: DBMatch) =>
+    match.player2_id ? getPlayerName(match.player2_id) : THEM_SIDE_LABEL
+
   const handleTagMatch = async (match: DBMatch) => {
     setIsLoadingSets(true)
     try {
-      const matchSets = await getSetsByMatchId(match.id)
-      setSets(matchSets)
+      const matchSetsForTag = await getSetsByMatchId(match.id)
+      setSets(matchSetsForTag)
       setSelectedMatch(match)
     } catch (error) {
       console.error('Failed to load sets:', error)
@@ -68,17 +77,17 @@ export function MatchListSection({
       setIsLoadingSets(false)
     }
   }
-  
+
   const handleCloseModal = () => {
     setSelectedMatch(null)
     setSets([])
   }
-  
+
   const handleEnterResults = async (match: DBMatch) => {
     setIsLoadingSets(true)
     try {
-      const matchSets = await getSetsByMatchId(match.id)
-      setSetsForResults(matchSets)
+      const loaded = await getSetsByMatchId(match.id)
+      setSetsForResults(loaded)
       setMatchForResults(match)
     } catch (error) {
       console.error('Failed to load sets:', error)
@@ -87,19 +96,16 @@ export function MatchListSection({
       setIsLoadingSets(false)
     }
   }
-  
+
   const handleCloseResultsModal = () => {
     setMatchForResults(null)
     setSetsForResults([])
   }
-  
+
   const handleResultsSaved = () => {
-    // Reload matches from parent
-    if (onRefresh) {
-      onRefresh()
-    }
+    if (onRefresh) onRefresh()
   }
-  
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -107,13 +113,11 @@ export function MatchListSection({
       </div>
     )
   }
-  
+
   return (
     <div className="space-y-4">
-      <Button onClick={onCreateNew}>
-        Create Match
-      </Button>
-      
+      <Button onClick={onCreateNew}>Create Match</Button>
+
       {matches.length === 0 ? (
         <Card className="p-8 text-center">
           <p className="text-neutral-400">No matches yet</p>
@@ -123,12 +127,12 @@ export function MatchListSection({
         </Card>
       ) : (
         <div className="grid gap-4">
-          {matches.map(match => {
+          {matches.map((match) => {
             const player1Name = getPlayerName(match.player1_id)
-            const player2Name = getPlayerName(match.player2_id)
+            const player2Name = opponentName(match)
             const tournamentName = getTournamentName(match.tournament_id)
             const isComplete = match.step1_complete && match.step2_complete
-            
+
             return (
               <Card key={match.id} className="p-6">
                 <div className="flex items-start justify-between">
@@ -147,8 +151,13 @@ export function MatchListSection({
                           Complete
                         </span>
                       )}
+                      {!match.player2_id && (
+                        <span className="px-2 py-1 text-xs bg-neutral-800 text-neutral-400 rounded">
+                          Opponent open
+                        </span>
+                      )}
                     </div>
-                    
+
                     <div className="space-y-1 text-sm text-neutral-400">
                       {match.winner_id ? (
                         <>
@@ -157,33 +166,36 @@ export function MatchListSection({
                             <span className="text-green-400 font-semibold">
                               {getPlayerName(match.winner_id)}
                             </span>
-                            <span className="ml-2">({match.player1_sets_final}-{match.player2_sets_final})</span>
+                            <span className="ml-2">
+                              ({match.player1_sets_final}-{match.player2_sets_final})
+                            </span>
                           </p>
-                          
-                          {/* Show individual set point scores if available */}
                           {(() => {
-                            const sets = matchSets[match.id] || []
-                            const setsWithScores = sets.filter(s => s.player1_score_final > 0 || s.player2_score_final > 0)
-                            if (setsWithScores.length > 0) {
-                              return (
-                                <p className="text-xs text-neutral-500">
-                                  <span className="font-medium text-neutral-400">Set scores:</span>{' '}
-                                  {setsWithScores
-                                    .map(s => `${s.player1_score_final}-${s.player2_score_final}`)
-                                    .join(', ')}
-                                </p>
-                              )
-                            }
-                            return null
+                            const setsForMatch = matchSets[match.id] || []
+                            const setsWithScores = setsForMatch.filter(
+                              (s) =>
+                                s.player1_score_final > 0 || s.player2_score_final > 0
+                            )
+                            if (setsWithScores.length === 0) return null
+                            return (
+                              <p className="text-xs text-neutral-500">
+                                <span className="font-medium text-neutral-400">
+                                  Set scores:
+                                </span>{' '}
+                                {setsWithScores
+                                  .map(
+                                    (s) =>
+                                      `${s.player1_score_final}-${s.player2_score_final}`
+                                  )
+                                  .join(', ')}
+                              </p>
+                            )
                           })()}
                         </>
                       ) : (
                         <p>
                           <span className="font-medium text-neutral-300">Score:</span>{' '}
                           {match.player1_sets_final} - {match.player2_sets_final}
-                          <span className="ml-2 text-yellow-400 text-xs">
-                            (Result not entered)
-                          </span>
                         </p>
                       )}
                       <p>
@@ -192,34 +204,32 @@ export function MatchListSection({
                       </p>
                       {tournamentName && (
                         <p>
-                          <span className="font-medium text-neutral-300">Tournament:</span>{' '}
+                          <span className="font-medium text-neutral-300">
+                            Tournament:
+                          </span>{' '}
                           {tournamentName}
                           {match.round && ` (${match.round.replace('_', ' ')})`}
                         </p>
                       )}
-                      {match.tagging_mode && (
-                        <p>
-                          <span className="font-medium text-neutral-300">Tagging:</span>{' '}
-                          <span className="capitalize">{match.tagging_mode}</span>
-                        </p>
-                      )}
                     </div>
                   </div>
-                  
-                  <div className="flex gap-2 ml-4">
-                    {/* Show "Enter Match Result" if no winner yet */}
-                    {match.winner_id === null && !isComplete && (
-                      <Button
-                        onClick={() => handleEnterResults(match)}
-                        size="sm"
-                        disabled={isLoadingSets}
-                      >
-                        Enter Match Result
-                      </Button>
-                    )}
-                    
-                    {/* Show "Tag Match" only after results are entered */}
-                    {match.winner_id !== null && !isComplete && (
+
+                  <div className="flex flex-wrap gap-2 ml-4 justify-end">
+                    <Button
+                      onClick={() => navigate(`/matches/${match.id}`)}
+                      size="sm"
+                      variant="secondary"
+                    >
+                      Review
+                    </Button>
+                    <Button
+                      onClick={() => setMatchForDetails(match)}
+                      size="sm"
+                      variant="secondary"
+                    >
+                      Details
+                    </Button>
+                    {!isComplete && (
                       <Button
                         onClick={() => handleTagMatch(match)}
                         size="sm"
@@ -228,7 +238,16 @@ export function MatchListSection({
                         {match.tagging_mode ? 'Resume Tagging' : 'Tag Match'}
                       </Button>
                     )}
-                    
+                    {match.winner_id === null && !isComplete && (
+                      <Button
+                        onClick={() => handleEnterResults(match)}
+                        size="sm"
+                        variant="secondary"
+                        disabled={isLoadingSets || !match.player2_id}
+                      >
+                        Enter Result
+                      </Button>
+                    )}
                     {isComplete && (
                       <Button
                         onClick={() => navigate(`/data-viewer?match=${match.id}`)}
@@ -245,9 +264,19 @@ export function MatchListSection({
           })}
         </div>
       )}
-      
-      {/* Match Result Entry Modal */}
-      {matchForResults && (
+
+      {matchForDetails && (
+        <MatchDetailsModal
+          match={matchForDetails}
+          players={players}
+          tournaments={tournaments}
+          player1Name={getPlayerName(matchForDetails.player1_id)}
+          onClose={() => setMatchForDetails(null)}
+          onSaved={() => onRefresh?.()}
+        />
+      )}
+
+      {matchForResults && matchForResults.player2_id && (
         <MatchResultEntryModal
           match={matchForResults}
           sets={setsForResults}
@@ -257,20 +286,18 @@ export function MatchListSection({
           onSave={handleResultsSaved}
         />
       )}
-      
-      {/* Set Selection Modal */}
+
       {selectedMatch && (
         <SetSelectionModal
           matchId={selectedMatch.id}
           sets={sets}
           player1Name={getPlayerName(selectedMatch.player1_id)}
-          player2Name={getPlayerName(selectedMatch.player2_id)}
+          player2Name={opponentName(selectedMatch)}
           player1Id={selectedMatch.player1_id}
-          player2Id={selectedMatch.player2_id}
+          player2Id={selectedMatch.player2_id ?? 'villain'}
           onClose={handleCloseModal}
         />
       )}
     </div>
   )
 }
-

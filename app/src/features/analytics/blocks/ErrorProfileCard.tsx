@@ -26,16 +26,16 @@ export function ErrorProfileCard({ filter }: ErrorProfileCardProps) {
         icon={<AlertTriangle className="h-5 w-5" />}
         primaryMetric={{
           value: '...',
-          label: 'Unforced Error Rate',
-          description: 'Unforced Error Rate',
+          label: 'Error Rate',
+          description: 'Error Rate',
           status: 'average',
         }}
         secondaryMetrics={[
-          { value: '...', label: 'Forced errors conceded', description: 'of points are lost to opponent forcing you into errors' },
-          { value: '...', label: 'Serve UEs', description: 'of your unforced errors happen on the serve' },
-          { value: '...', label: 'Receive UEs', description: 'of your unforced errors happen on the receive' },
-          { value: '...', label: 'Rally UEs', description: 'of your unforced errors happen in rallies (4+ shots)' },
-          { value: '...', label: 'Opponent UEs', description: 'of points are won from opponent unforced errors' },
+          { value: '...', label: 'Serve errors', description: 'of your errors happen on the serve' },
+          { value: '...', label: 'Receive errors', description: 'of your errors happen on the receive' },
+          { value: '...', label: 'Attack errors', description: 'of your errors happen on the first-attack exchange' },
+          { value: '...', label: 'Continuation errors', description: 'of your errors happen in continuation' },
+          { value: '...', label: 'Opponent errors', description: 'of points are won from opponent errors' },
         ]}
         chart={
           <div className="flex items-center justify-center h-full text-neutral-500 text-sm">
@@ -58,8 +58,8 @@ export function ErrorProfileCard({ filter }: ErrorProfileCardProps) {
         icon={<AlertTriangle className="h-5 w-5" />}
         primaryMetric={{
           value: 'Error',
-          label: 'Unforced Error Rate',
-          description: 'Unforced Error Rate',
+          label: 'Error Rate',
+          description: 'Error Rate',
           status: 'poor',
         }}
         secondaryMetrics={[]}
@@ -84,16 +84,16 @@ export function ErrorProfileCard({ filter }: ErrorProfileCardProps) {
         icon={<AlertTriangle className="h-5 w-5" />}
         primaryMetric={{
           value: 'N/A',
-          label: 'Unforced Error Rate',
-          description: 'Unforced Error Rate',
+          label: 'Error Rate',
+          description: 'Error Rate',
           status: 'average',
         }}
         secondaryMetrics={[
-          { value: 'N/A', label: 'Forced errors conceded', description: 'of points are lost to opponent forcing you into errors' },
-          { value: 'N/A', label: 'Serve UEs', description: 'of your unforced errors happen on the serve' },
-          { value: 'N/A', label: 'Receive UEs', description: 'of your unforced errors happen on the receive' },
-          { value: 'N/A', label: 'Rally UEs', description: 'of your unforced errors happen in rallies (4+ shots)' },
-          { value: 'N/A', label: 'Opponent UEs', description: 'of points are won from opponent unforced errors' },
+          { value: 'N/A', label: 'Serve errors', description: 'of your errors happen on the serve' },
+          { value: 'N/A', label: 'Receive errors', description: 'of your errors happen on the receive' },
+          { value: 'N/A', label: 'Attack errors', description: 'of your errors happen on the first-attack exchange' },
+          { value: 'N/A', label: 'Continuation errors', description: 'of your errors happen in continuation' },
+          { value: 'N/A', label: 'Opponent errors', description: 'of points are won from opponent errors' },
         ]}
         chart={
           <div className="flex items-center justify-center h-full text-neutral-500 text-sm">
@@ -110,9 +110,9 @@ export function ErrorProfileCard({ filter }: ErrorProfileCardProps) {
   // Format metrics
   const { metrics, status, insight, recommendation, footerText } = data
   const uePct = `${Math.round(metrics.unforcedErrorRate * 100)}%`
-  const forcedPct = `${Math.round(metrics.forcedErrorsConcededRate * 100)}%`
   const serveUEpct = `${Math.round(metrics.serveUEshare * 100)}%`
   const receiveUEpct = `${Math.round(metrics.receiveUEshare * 100)}%`
+  const attackUEpct = `${Math.round(metrics.attackUEshare * 100)}%`
   const rallyUEpct = `${Math.round(metrics.rallyUEshare * 100)}%`
   const oppUEpct = `${Math.round(metrics.opponentUErate * 100)}%`
   
@@ -123,35 +123,35 @@ export function ErrorProfileCard({ filter }: ErrorProfileCardProps) {
       icon={<AlertTriangle className="h-5 w-5" />}
       primaryMetric={{
         value: uePct,
-        label: 'Unforced Error Rate',
-        description: 'Unforced Error Rate',
+        label: 'Error Rate',
+        description: 'Error Rate',
         status,
       }}
       secondaryMetrics={[
         { 
-          value: forcedPct, 
-          label: 'Forced errors conceded',
-          description: 'of points are lost to opponent forcing you into errors'
-        },
-        { 
           value: serveUEpct, 
-          label: 'Serve UEs',
-          description: 'of your unforced errors happen on the serve'
+          label: 'Serve errors',
+          description: 'of your errors happen on the serve'
         },
         { 
           value: receiveUEpct, 
-          label: 'Receive UEs',
-          description: 'of your unforced errors happen on the receive'
+          label: 'Receive errors',
+          description: 'of your errors happen on the receive'
+        },
+        { 
+          value: attackUEpct, 
+          label: 'Attack errors',
+          description: 'of your errors happen on the first-attack exchange'
         },
         { 
           value: rallyUEpct, 
-          label: 'Rally UEs',
-          description: 'of your unforced errors happen in rallies (4+ shots)'
+          label: 'Continuation errors',
+          description: 'of your errors happen in continuation'
         },
         { 
           value: oppUEpct, 
-          label: 'Opponent UEs',
-          description: 'of points are won from opponent unforced errors'
+          label: 'Opponent errors',
+          description: 'of points are won from opponent errors'
         },
       ]}
       chart={

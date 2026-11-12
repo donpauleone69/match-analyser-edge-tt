@@ -3,25 +3,30 @@
  *
  * Same contact tap and first-attack stamp. Row pills follow the coaching
  * phases: the ball before the attack, the attack, the reply, then the ending.
+ *
+ * Attribute switches (weak/high/heavy) are independent booleans.
+ * Quality is a choice on the first attack only.
  */
 
 export type TimelineMode = 'Rally' | 'Shot' | 'Placement' | 'Mental'
 
 /** Spec backing values for point ending */
-export type PointEnding = 'winner' | 'lucky' | 'error_net' | 'error_long'
+// error_wide exists in the DB (Pass 1 Focus writes it); Rally Focus UI does not offer it
+// but must still round-trip it on resume.
+export type PointEnding = 'winner' | 'lucky' | 'error_net' | 'error_long' | 'error_wide'
 
 export type ServeSpin = 'Under' | 'Top' | 'Side'
 export type Wing = 'BH' | 'FH'
-export type BallLength = 'Short' | 'Half' | 'Long'
+export type BallDepth = 'Short' | 'Half' | 'Long'
 export type AttackStroke = 'Flick' | 'Loop' | 'Drive' | 'Smash' | 'Lob'
 export type RallyStroke = 'Block' | 'Loop' | 'Drive' | 'Smash' | 'Lob'
-export type ShotStrength = 'Weak' | 'Strong' | 'High' | 'Heavy'
 export type Placement = 'BH' | 'Middle' | 'FH'
 export type Mental = 'Positive' | 'Negative'
 /** Where the player who was attacked stands after their reply. */
 export type Standing = 'behind' | 'level' | 'ahead'
 /** Where the first attack met the ball, relative to the table. */
-export type TableContact = 'Over' | 'Behind'
+export type TableContact = 'Over' | 'Off'
+export type ShotQuality = 'Good' | 'Normal' | 'Poor'
 
 export type RallyPhase = 'opening' | 'ball' | 'fos' | 'reply' | 'next' | 'after'
 
@@ -29,16 +34,21 @@ export interface ShotTags {
   spin: ServeSpin | null
   wing: Wing | null
   stroke: AttackStroke | RallyStroke | null
-  length: BallLength | null
-  strength: ShotStrength | null
+  depth: BallDepth | null
   placement: Placement | null
   mental: Mental | null
-  /** The ball that was attacked (or could have been) sat up. */
-  attackable: boolean
+  /** Easy ball — serve / pre-offensive only in UI. */
+  isWeak: boolean
+  /** Higher than intended — serve / pre-offensive. */
+  isHigh: boolean
+  /** Loaded with spin — serve / pre-offensive. */
+  isHeavy: boolean
   /** Reply only, while the point is still going. */
   standing: Standing | null
-  /** First attack only. Contact over the table, or behind it. */
+  /** First attack only. Over the table, or off it. */
   tableContact: TableContact | null
+  /** First attack only. Good / Normal / Poor. */
+  quality: ShotQuality | null
   /** Video time of the contact tap (seconds), if captured */
   contactTime: number | null
 }
@@ -97,13 +107,15 @@ function emptyShot(contactTime: number | null = null): ShotTags {
     spin: null,
     wing: null,
     stroke: null,
-    length: null,
-    strength: null,
+    depth: null,
     placement: null,
     mental: null,
-    attackable: false,
+    isWeak: false,
+    isHigh: false,
+    isHeavy: false,
     standing: null,
     tableContact: null,
+    quality: null,
     contactTime,
   }
 }
@@ -220,6 +232,40 @@ export function loopWindowFromContacts(
   return { startTime, endTime }
 }
 
+/** ± seek step on the Rally Focus video overlay (and keyboard J/L). */
+export const SEEK_STEP_SECONDS = 10
+
+/**
+ * Earliest legal seek while tagging sequentially:
+ * end of the last completed rally (not into its interior).
+ */
+export function seekFloorFromCompleted(
+  completed: ReadonlyArray<{ endTimestamp: number }>
+): number {
+  if (completed.length === 0) return 0
+  return completed[completed.length - 1].endTimestamp
+}
+
+/** Clamp a seek target to [minSeek, duration] (duration optional). */
+export function clampSeekTime(
+  t: number,
+  minSeek: number,
+  durationSeconds?: number | null
+): number {
+  let next = Math.max(minSeek, t)
+  if (typeof durationSeconds === 'number' && durationSeconds > 0) {
+    next = Math.min(durationSeconds, next)
+  }
+  return next
+}
+
+export {
+  RALLY_TIMELINE_PAD_SECONDS,
+  RALLY_TIMELINE_MIN_WINDOW_SECONDS,
+  rallyTimelineViewWindow,
+  rallyTimelineViewEnd,
+} from './pass1FocusModel'
+
 /** Players alternate from the known server. Shot 1 = server. */
 export function playerForShot(
   n: number,
@@ -258,11 +304,19 @@ export function getShotSummary(n: number, shot: ShotTags): string {
     shot.spin,
     shot.wing,
     shot.stroke,
-    shot.length,
-    shot.strength,
-    shot.tableContact,
-    shot.attackable ? 'Weak' : null,
-    shot.standing === 'behind' ? 'Behind' : shot.standing === 'level' ? 'Level' : shot.standing === 'ahead' ? 'Ahead' : null,
+    shot.depth,
+    shot.tableContact === 'Over' ? 'Over table' : shot.tableContact === 'Off' ? 'Off table' : null,
+    shot.quality,
+    shot.isWeak ? 'Weak' : null,
+    shot.isHigh ? 'High' : null,
+    shot.isHeavy ? 'Heavy' : null,
+    shot.standing === 'behind'
+      ? 'Behind'
+      : shot.standing === 'level'
+        ? 'Level'
+        : shot.standing === 'ahead'
+          ? 'Ahead'
+          : null,
     shot.placement,
     shot.mental,
     formatContactTime(shot.contactTime),
@@ -286,11 +340,23 @@ export function describeEndingLabel(ending: PointEnding | null): string {
   if (ending === 'winner') return 'Winner'
   if (ending === 'lucky') return 'Lucky'
   if (ending === 'error_net') return 'Error — In-Net'
+  if (ending === 'error_wide') return 'Error — Wide'
   return 'Error — Long'
 }
 
-/** Attribute keys that toggle via pills (not contactTime or the attackable flag). */
-export type ShotChoiceKey = Exclude<keyof ShotTags, 'contactTime' | 'attackable'>
+/** Choice keys that toggle via mutually exclusive pills. */
+export type ShotChoiceKey =
+  | 'spin'
+  | 'wing'
+  | 'stroke'
+  | 'depth'
+  | 'placement'
+  | 'mental'
+  | 'standing'
+  | 'tableContact'
+  | 'quality'
+
+export type ShotAttributeKey = 'isWeak' | 'isHigh' | 'isHeavy'
 
 /** Toggle mutually exclusive optional choice (tap again clears). */
 export function toggleShotChoice(
@@ -314,9 +380,11 @@ export function toggleShotChoice(
   }
 }
 
-export function toggleAttackable(
+/** Toggle an independent attribute switch. */
+export function toggleShotAttribute(
   state: RallyTimelineState,
-  n: number
+  n: number,
+  key: ShotAttributeKey
 ): RallyTimelineState {
   const shot = state.shots[n]
   if (!shot) return state
@@ -324,7 +392,7 @@ export function toggleAttackable(
     ...state,
     shots: {
       ...state.shots,
-      [n]: { ...shot, attackable: !shot.attackable },
+      [n]: { ...shot, [key]: !shot[key] },
     },
   }
 }
@@ -362,10 +430,11 @@ export function nudgeFos(
   if (typeof state.fos !== 'number') return state
   const next = state.fos + delta
   if (next < 2 || next > fosUpperBound(state)) return state
+  const contact = state.shots[next]?.contactTime ?? null
   return {
     ...state,
     fos: next,
-    fosTimeSeconds: state.shots[next]?.contactTime ?? null,
+    fosTimeSeconds: contact,
   }
 }
 
@@ -416,4 +485,22 @@ export function summarizeRallyLine(
     state.ending ? describeEndingLabel(state.ending) : null,
   ]
   return parts.filter(Boolean).join(' · ')
+}
+
+/** Map UI timeline shot tags into the DB mapper input shape. */
+export function toRallyFocusMapperShot(shot: ShotTags) {
+  return {
+    spin: shot.spin,
+    wing: shot.wing,
+    stroke: shot.stroke,
+    depth: shot.depth,
+    placement: shot.placement,
+    standing: shot.standing,
+    tableContact: shot.tableContact,
+    quality: shot.quality,
+    isWeak: shot.isWeak,
+    isHigh: shot.isHigh,
+    isHeavy: shot.isHeavy,
+    contactTime: shot.contactTime,
+  }
 }

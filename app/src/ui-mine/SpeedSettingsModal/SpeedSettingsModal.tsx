@@ -6,7 +6,6 @@
  */
 
 import { useState, useEffect } from 'react'
-import { Dialog } from '@/ui-mine'
 import { Icon } from '@/ui-mine/Icon'
 import { Button } from '@/ui-mine/Button'
 import { cn } from '@/helpers/utils'
@@ -37,13 +36,6 @@ export function SpeedSettingsModal({ isOpen, onClose }: SpeedSettingsModalProps)
   
   // Local state for editing (apply on save)
   const [localPresets, setLocalPresets] = useState(speedPresets)
-  
-  // Update local state when modal opens
-  const handleOpenChange = (open: boolean) => {
-    if (!open) {
-      onClose()
-    }
-  }
   
   // Sync local state when speedPresets change (on mount or when modal opens)
   useEffect(() => {

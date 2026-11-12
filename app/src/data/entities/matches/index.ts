@@ -7,4 +7,5 @@ export { useMatchStore } from './match.store'
 export { matchDb } from './match.db'
 export type { CompleteMatchData } from './match.db'
 export { getCompleteMatchData, saveCompleteMatch } from './match.db'
+export { linkMatchOpponent } from './linkMatchOpponent'
 

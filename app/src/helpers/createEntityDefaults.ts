@@ -1,6 +1,6 @@
 /**
  * Entity Default Values
- * 
+ *
  * Provides default values for creating new database entities with multi-video support.
  * Used when creating new matches, sets, rallies, and shots.
  */
@@ -32,17 +32,17 @@ export function getMatchDefaults(): Partial<DBMatch> {
 
 /**
  * Get default values for new set fields
- * 
+ *
  * @param matchFirstServerId - Who serves first in the entire match
  * @param setNumber - Set number (1-based)
  * @returns Default values for creating a new set
  */
 export function getSetDefaults(matchFirstServerId: string, setNumber: number): Partial<DBSet> {
   // Service alternation: odd sets = match first server, even sets = other player
-  const setFirstServerId = setNumber % 2 === 1 
-    ? matchFirstServerId 
+  const setFirstServerId = setNumber % 2 === 1
+    ? matchFirstServerId
     : (matchFirstServerId === 'player1' ? 'player2' : 'player1')
-  
+
   return {
     player1_sets_before: 0,
     player1_sets_after: 0,
@@ -65,9 +65,6 @@ export function getSetDefaults(matchFirstServerId: string, setNumber: number): P
 
 /**
  * Get default values for new rally fields
- * 
- * @param setFinalScores - The final scores for the set (for validation context)
- * @returns Default values for creating a new rally
  */
 export function getRallyDefaults(_setFinalScores: {
   player1: number
@@ -83,7 +80,9 @@ export function getRallyDefaults(_setFinalScores: {
     player1_score_after: 0,
     player2_score_after: 0,
     is_scoring: true,
-    point_end_type: null,
+    first_attack_index: null,
+    point_ending: 'winner',
+    point_miss_reason: null,
     is_highlight: false,
     framework_confirmed: false,
     detail_complete: false,
@@ -98,46 +97,24 @@ export function getRallyDefaults(_setFinalScores: {
 // =============================================================================
 
 /**
- * Get default values for new shot fields
- * 
- * @returns Default values for creating a new shot
+ * Get default values for new shot fields (Rally Focus schema)
  */
 export function getShotDefaults(): Partial<DBShot> {
   return {
     video_id: null,
-    timestamp_end: null,
-    // Serve-only fields
-    serve_spin_family: null,
-    serve_type: null,
-    // Serve/Receive fields
-    shot_length: null,
-    // Rally shot fields
-    shot_wing: null,
-    intent: null,
-    // All shots
-    shot_result: 'in_play', // NOT NULL - defaults to in_play
-    // Subjective data
-    intent_quality: null,
-    pressure_level: null,
-    shot_quality: null,
-    // Derived data
-    shot_origin: null,
-    shot_target: null,
-    shot_label: 'rally_shot', // Default, should be overridden
-    is_rally_end: false,
-    rally_end_role: 'none',
-    // Inferred data (may be auto-calculated or manual)
-    shot_type: null,
-    shot_contact_timing: null,
-    player_position: null,
-    player_distance: null,
     shot_spin: null,
-    shot_speed: null,
-    shot_arc: null,
-    is_third_ball_attack: false,
-    is_receive_attack: false,
-    // Workflow
-    is_tagged: false,
+    shot_wing: null,
+    shot_stroke: null,
+    shot_placement: null,
+    shot_depth: null,
+    shot_contact: null,
+    shot_initiative: null,
+    shot_quality: null,
+    shot_is_weak: false,
+    shot_is_high: false,
+    shot_is_heavy: false,
+    shot_is_safe: false,
+    shot_is_pivot: false,
+    shot_review_kind: null,
   }
 }
-

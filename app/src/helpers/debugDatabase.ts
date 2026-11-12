@@ -75,13 +75,16 @@ export async function inspectDatabase() {
     console.log(`    Is slug format: ${sampleShot.id.includes('-sh')}`)
   }
   
-  // Check shot timestamps
-  console.log('\n⏱️ TIMESTAMP ANALYSIS:')
-  const shotsWithoutEnd = shots.filter(s => s.timestamp_end === null)
-  console.log(`  Shots with null timestamp_end: ${shotsWithoutEnd.length}/${shots.length}`)
-  if (shotsWithoutEnd.length > 0) {
-    console.log(`  ❌ timestamp_end not being calculated!`)
-  }
+  // Check shot tags (Rally Focus schema — no timestamp_end)
+  console.log('\n⏱️ SHOT TAG ANALYSIS:')
+  const taggedShots = shots.filter(
+    (s) =>
+      s.shot_wing !== null ||
+      s.shot_spin !== null ||
+      s.shot_stroke !== null ||
+      s.shot_quality !== null
+  )
+  console.log(`  Shots with at least one tag: ${taggedShots.length}/${shots.length}`)
   
   // Check rally scores
   console.log('\n🎯 SCORE ANALYSIS:')

@@ -1,8 +1,7 @@
 /**
  * RallyStatsCard
- * 
- * Analytics card for rally statistics.
- * Rally phase = 4+ shots (after serve/receive/3rd ball)
+ *
+ * Continuation-phase stats: last shot phase is continuation.
  */
 
 import type { AnalyticsFilterModel } from '@/rules/analytics'
@@ -22,20 +21,19 @@ export function RallyStatsCard({ filter }: RallyStatsCardProps) {
     return (
       <BasicInsightCardTemplate
         title="Rally Stats"
-        subtitle="What happens once the rally starts (4+ shots)"
+        subtitle="What happens once the point reaches continuation"
         icon={<Swords className="h-5 w-5" />}
         primaryMetric={{
           value: '...',
-          label: 'Rally Win Rate',
-          description: 'Rally Win Rate',
+          label: 'Continuation Win Rate',
+          description: 'Continuation Win Rate',
           status: 'average',
         }}
         secondaryMetrics={[
           { value: '...', label: 'Long rallies won', description: 'of rallies with 6+ shots are won by you' },
-          { value: '...', label: 'Rally UEs', description: 'of rally points are lost to your unforced errors' },
-          { value: '...', label: 'FEs created', description: 'of rally points are won by forcing opponent errors' },
+          { value: '...', label: 'Continuation errors', description: 'of continuation points are lost to your errors' },
           { value: '...', label: 'Avg rally length', description: 'shots per point on average' },
-          { value: '...', label: 'Avg rally phase length', description: 'shots per rally-phase point (4+ shots)' },
+          { value: '...', label: 'Avg continuation length', description: 'shots per continuation point' },
         ]}
         chart={
           <div className="flex items-center justify-center h-full text-neutral-500 text-sm">
@@ -54,12 +52,12 @@ export function RallyStatsCard({ filter }: RallyStatsCardProps) {
     return (
       <BasicInsightCardTemplate
         title="Rally Stats"
-        subtitle="What happens once the rally starts (4+ shots)"
+        subtitle="What happens once the point reaches continuation"
         icon={<Swords className="h-5 w-5" />}
         primaryMetric={{
           value: 'Error',
-          label: 'Rally Win Rate',
-          description: 'Rally Win Rate',
+          label: 'Continuation Win Rate',
+          description: 'Continuation Win Rate',
           status: 'poor',
         }}
         secondaryMetrics={[]}
@@ -80,27 +78,26 @@ export function RallyStatsCard({ filter }: RallyStatsCardProps) {
     return (
       <BasicInsightCardTemplate
         title="Rally Stats"
-        subtitle="What happens once the rally starts (4+ shots)"
+        subtitle="What happens once the point reaches continuation"
         icon={<Swords className="h-5 w-5" />}
         primaryMetric={{
           value: 'N/A',
-          label: 'Rally Win Rate',
-          description: 'Rally Win Rate',
+          label: 'Continuation Win Rate',
+          description: 'Continuation Win Rate',
           status: 'average',
         }}
         secondaryMetrics={[
           { value: 'N/A', label: 'Long rallies won', description: 'of rallies with 6+ shots are won by you' },
-          { value: 'N/A', label: 'Rally UEs', description: 'of rally points are lost to your unforced errors' },
-          { value: 'N/A', label: 'FEs created', description: 'of rally points are won by forcing opponent errors' },
+          { value: 'N/A', label: 'Continuation errors', description: 'of continuation points are lost to your errors' },
           { value: 'N/A', label: 'Avg rally length', description: 'shots per point on average' },
-          { value: 'N/A', label: 'Avg rally phase length', description: 'shots per rally-phase point (4+ shots)' },
+          { value: 'N/A', label: 'Avg continuation length', description: 'shots per continuation point' },
         ]}
         chart={
           <div className="flex items-center justify-center h-full text-neutral-500 text-sm">
-            No rally-phase data available
+            No continuation-phase data available
           </div>
         }
-        insight="Not enough rally-phase data (4+ shots) in the selected scope."
+        insight="Not enough continuation-phase data in the selected scope."
         coaching=""
         footer="No data"
       />
@@ -112,19 +109,18 @@ export function RallyStatsCard({ filter }: RallyStatsCardProps) {
   const rallyWinPct = `${Math.round(metrics.rallyWinRate * 100)}%`
   const longRallyWinPct = `${Math.round(metrics.longRallyWinRate * 100)}%`
   const rallyUEpct = `${Math.round(metrics.rallyUnforcedErrorRate * 100)}%`
-  const rallyFEpct = `${Math.round(metrics.rallyForcedErrorsCreatedRate * 100)}%`
   const avgLength = metrics.avgRallyLength.toFixed(1)
   const avgRallyPhaseLength = metrics.avgRallyPhaseLength.toFixed(1)
   
   return (
     <BasicInsightCardTemplate
       title="Rally Stats"
-      subtitle="What happens once the rally starts (4+ shots)"
+      subtitle="What happens once the point reaches continuation"
       icon={<Swords className="h-5 w-5" />}
       primaryMetric={{
         value: rallyWinPct,
-        label: 'Rally Win Rate',
-        description: 'Rally Win Rate',
+        label: 'Continuation Win Rate',
+        description: 'Continuation Win Rate',
         status,
       }}
       secondaryMetrics={[
@@ -135,13 +131,8 @@ export function RallyStatsCard({ filter }: RallyStatsCardProps) {
         },
         { 
           value: rallyUEpct, 
-          label: 'Rally UEs',
-          description: 'of rally points are lost to your unforced errors'
-        },
-        { 
-          value: rallyFEpct, 
-          label: 'FEs created',
-          description: 'of rally points are won by forcing opponent errors'
+          label: 'Continuation UEs',
+          description: 'of continuation points are lost to your errors'
         },
         { 
           value: avgLength, 
@@ -150,8 +141,8 @@ export function RallyStatsCard({ filter }: RallyStatsCardProps) {
         },
         { 
           value: avgRallyPhaseLength, 
-          label: 'Avg rally phase length',
-          description: 'shots per rally-phase point (4+ shots)'
+          label: 'Avg continuation length',
+          description: 'shots per continuation point'
         },
       ]}
       chart={

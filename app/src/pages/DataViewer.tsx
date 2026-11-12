@@ -5,6 +5,7 @@ import type { DBSet } from '@/data/entities/sets/set.types'
 import type { DBRally } from '@/data/entities/rallies/rally.types'
 import type { DBShot } from '@/data/entities/shots/shot.types'
 import type { DBPlayer } from '@/data/entities/players/player.types'
+import { deriveShotPhase, describeShotPhase } from '@/rules/derive/shot/deriveShotPhase'
 import { Database, RefreshCw, ChevronDown, ChevronRight } from 'lucide-react'
 
 interface DatabaseStats {
@@ -432,7 +433,9 @@ function RallyTable({ rally, rallyNumber, isExpanded, onToggle }: RallyTableProp
               <TableRow label="player2_score_before" value={rally.player2_score_before} />
               <TableRow label="player1_score_after" value={rally.player1_score_after} />
               <TableRow label="player2_score_after" value={rally.player2_score_after} />
-              <TableRow label="point_end_type" value={rally.point_end_type} highlight={!rally.point_end_type && rally.is_scoring} />
+              <TableRow label="first_attack_index" value={rally.first_attack_index} />
+              <TableRow label="point_ending" value={rally.point_ending} />
+              <TableRow label="point_miss_reason" value={rally.point_miss_reason} />
               <TableRow label="is_highlight" value={rally.is_highlight} />
               <TableRow label="framework_confirmed" value={rally.framework_confirmed} />
               <TableRow label="detail_complete" value={rally.detail_complete} />
@@ -446,7 +449,11 @@ function RallyTable({ rally, rallyNumber, isExpanded, onToggle }: RallyTableProp
           <div className="border-t-4 border-neutral-400 mt-2 p-3 pl-6">
             <div className="text-xs font-semibold text-cyan-400 mb-2">SHOTS ({rally.shots.length}):</div>
             {rally.shots.map(shot => (
-              <ShotTable key={shot.id} shot={shot} />
+              <ShotTable
+                key={shot.id}
+                shot={shot}
+                firstAttackIndex={rally.first_attack_index}
+              />
             ))}
           </div>
         </div>
@@ -455,12 +462,19 @@ function RallyTable({ rally, rallyNumber, isExpanded, onToggle }: RallyTableProp
   )
 }
 
-function ShotTable({ shot }: { shot: DBShot }) {
+function ShotTable({
+  shot,
+  firstAttackIndex,
+}: {
+  shot: DBShot
+  firstAttackIndex: number | null
+}) {
+  const phase = describeShotPhase(deriveShotPhase(shot.shot_index, firstAttackIndex))
   return (
     <div className="mb-4 bg-neutral-900/70 border border-cyan-900/50 rounded overflow-hidden">
       <div className="bg-cyan-950/30 px-3 py-1.5 border-b border-cyan-900/50">
         <span className="text-xs font-mono font-semibold text-cyan-300">
-          Shot {shot.shot_index} - Player: {shot.player_id}
+          Shot {shot.shot_index} - {phase} - Player: {shot.player_id}
         </span>
       </div>
       <table className="w-full text-xs">
@@ -468,38 +482,24 @@ function ShotTable({ shot }: { shot: DBShot }) {
           <TableRow label="id" value={shot.id} />
           <TableRow label="rally_id" value={shot.rally_id} />
           <TableRow label="video_id" value={shot.video_id} />
-          <TableRow label="timestamp_start" value={shot.timestamp_start} />
-          <TableRow label="timestamp_end" value={shot.timestamp_end} />
           <TableRow label="shot_index" value={shot.shot_index} />
           <TableRow label="player_id" value={shot.player_id} />
-          {/* Recorded Data */}
-          <TableRow label="serve_spin_family" value={shot.serve_spin_family} highlight={shot.shot_index === 1 && !shot.serve_spin_family} />
-          <TableRow label="serve_type" value={shot.serve_type} />
-          <TableRow label="shot_length" value={shot.shot_length} highlight={(shot.shot_index === 1 || shot.shot_index === 2) && !shot.shot_length} />
-          <TableRow label="shot_wing" value={shot.shot_wing} highlight={shot.shot_index > 1 && !shot.shot_wing} />
-          <TableRow label="intent" value={shot.intent} highlight={shot.shot_index > 1 && !shot.intent} />
-          <TableRow label="shot_result" value={shot.shot_result} />
-          {/* Derived Data */}
-          <TableRow label="shot_origin" value={shot.shot_origin} highlight={!shot.shot_origin} />
-          <TableRow label="shot_target" value={shot.shot_target} highlight={!shot.shot_target} />
-          <TableRow label="shot_label" value={shot.shot_label} />
-          <TableRow label="is_rally_end" value={shot.is_rally_end} />
-          <TableRow label="rally_end_role" value={shot.rally_end_role} />
-          {/* Subjective Data */}
-          <TableRow label="intent_quality" value={shot.intent_quality} />
-          <TableRow label="pressure_level" value={shot.pressure_level} />
-          <TableRow label="shot_quality" value={shot.shot_quality} />
-          {/* Inferred Data */}
-          <TableRow label="shot_type" value={shot.shot_type} />
-          <TableRow label="shot_contact_timing" value={shot.shot_contact_timing} />
-          <TableRow label="player_position" value={shot.player_position} />
-          <TableRow label="player_distance" value={shot.player_distance} />
+          <TableRow label="timestamp_start" value={shot.timestamp_start} />
+          <TableRow label="phase (derived)" value={phase} />
           <TableRow label="shot_spin" value={shot.shot_spin} />
-          <TableRow label="shot_speed" value={shot.shot_speed} />
-          <TableRow label="shot_arc" value={shot.shot_arc} />
-          <TableRow label="is_third_ball_attack" value={shot.is_third_ball_attack} />
-          <TableRow label="is_receive_attack" value={shot.is_receive_attack} />
-          <TableRow label="is_tagged" value={shot.is_tagged} />
+          <TableRow label="shot_wing" value={shot.shot_wing} />
+          <TableRow label="shot_stroke" value={shot.shot_stroke} />
+          <TableRow label="shot_placement" value={shot.shot_placement} />
+          <TableRow label="shot_depth" value={shot.shot_depth} />
+          <TableRow label="shot_contact" value={shot.shot_contact} />
+          <TableRow label="shot_initiative" value={shot.shot_initiative} />
+          <TableRow label="shot_quality" value={shot.shot_quality} />
+          <TableRow label="shot_is_weak" value={shot.shot_is_weak} />
+          <TableRow label="shot_is_high" value={shot.shot_is_high} />
+          <TableRow label="shot_is_heavy" value={shot.shot_is_heavy} />
+          <TableRow label="shot_is_safe" value={shot.shot_is_safe} />
+          <TableRow label="shot_is_pivot" value={shot.shot_is_pivot} />
+          <TableRow label="shot_review_kind" value={shot.shot_review_kind} />
         </tbody>
       </table>
     </div>

@@ -60,35 +60,31 @@ export function Phase1ControlsBlock({
       <ShotMissedButton
         onClick={onShotMissed}
         disabled={!canEndRally || isDuplicateTag}
-        title={isDuplicateTag ? "Cannot tag - shot already exists at this time" : undefined}
       />
       
       {/* In Net Button */}
       <InNetButton
         onClick={onInNet}
         disabled={!canEndRally || isDuplicateTag}
-        title={isDuplicateTag ? "Cannot tag - shot already exists at this time" : undefined}
       />
       
       {/* Forced Error Button - only enabled for shot 2+ */}
       <ForcedErrorButton
         onClick={onForcedError}
         disabled={!canUseForcedError || isDuplicateTag}
-        title={isDuplicateTag ? "Cannot tag - shot already exists at this time" : undefined}
       />
       
       {/* Winning Shot Button */}
       <WinningShotButton
         onClick={onWin}
         disabled={!canEndRally || isDuplicateTag}
-        title={isDuplicateTag ? "Cannot tag - shot already exists at this time" : undefined}
       />
       
       {/* Serve/Shot Button - changes dynamically */}
       {isBeforeServe ? (
-        <ServeButton onClick={onServeShot} disabled={isDuplicateTag} title={isDuplicateTag ? "Cannot tag - shot already exists at this time" : undefined} />
+        <ServeButton onClick={onServeShot} disabled={isDuplicateTag} />
       ) : (
-        <ShotButton onClick={onServeShot} disabled={isDuplicateTag} title={isDuplicateTag ? "Cannot tag - shot already exists at this time" : undefined} />
+        <ShotButton onClick={onServeShot} disabled={isDuplicateTag} />
       )}
     </ButtonGrid>
   )

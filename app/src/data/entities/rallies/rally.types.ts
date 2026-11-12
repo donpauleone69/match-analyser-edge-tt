@@ -1,51 +1,64 @@
 /**
- * Rally Entity Types
+ * Rally Entity Types — Rally Focus schema
+ *
+ * first_attack_index and point_ending are the rally-level tags.
+ * Service fault / receive error are derived from point_ending + last shot_index.
  */
+
+export type PointEnding = 'winner' | 'lucky' | 'error_net' | 'error_long' | 'error_wide'
+export type PointMissReason =
+  | 'technical'
+  | 'timing'
+  | 'footwork'
+  | 'positioning'
+  | 'misread'
+  | 'forced'
 
 export interface DBRally {
   id: string // Slug format: {set_id}-r{num}
   set_id: string // FK (slug)
   rally_index: number
-  
+
   // Video reference (MULTI-VIDEO)
-  video_id: string | null            // Which video segment is this rally in? (FK slug)
-  has_video_data: boolean            // False if score-only (no video coverage)
-  
+  video_id: string | null
+  has_video_data: boolean
+
   // Rally timing
-  timestamp_start: number | null     // First shot's timestamp_start
-  timestamp_end: number | null       // Last shot's timestamp_end  
-  end_of_point_time: number | null   // Timestamp WITHIN the video_id video (rally end, NOT last shot) - LEGACY
-  
-  // Participants
-  server_id: string // FK (slug)
-  receiver_id: string // FK (slug)
-  
+  timestamp_start: number | null
+  timestamp_end: number | null
+  end_of_point_time: number | null // Legacy alias of timestamp_end
+
+  // Participants (null = Villain / unnamed opponent)
+  server_id: string | null // FK (slug)
+  receiver_id: string | null // FK (slug)
+
   // Outcome
   is_scoring: boolean
-  winner_id: string | null // FK (slug)
-  
+  winner_id: string | null // FK (slug); null on a scoring rally = Villain won
+
   // Score progression (WITHIN SET)
   player1_score_before: number
   player2_score_before: number
   player1_score_after: number
   player2_score_after: number
-  
-  // Rally end details
-  point_end_type: 'serviceFault' | 'receiveError' | 'forcedError' | 'unforcedError' | 'winnerShot' | null
-  
+
+  // Rally Focus end tags
+  first_attack_index: number | null // null = no attack in this rally
+  point_ending: PointEnding
+  point_miss_reason: PointMissReason | null
+
   // Workflow
   is_highlight: boolean
-  framework_confirmed: boolean // Phase 1 complete
-  detail_complete: boolean // Phase 2 complete
-  
+  framework_confirmed: boolean
+  detail_complete: boolean
+
   // Manual corrections
   server_corrected: boolean
   score_corrected: boolean
   correction_notes: string | null
-  
+
   // Stub rally flag (for pre-populated rallies from setup)
   is_stub_rally: boolean
 }
 
 export type NewRally = Omit<DBRally, 'id'>
-

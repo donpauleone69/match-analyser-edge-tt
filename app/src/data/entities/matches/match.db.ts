@@ -54,21 +54,26 @@ export async function getIncomplete(): Promise<DBMatch[]> {
  * Generates slug ID based on player names and match date
  */
 export async function create(data: NewMatch): Promise<DBMatch> {
-  // Look up player names to generate slug
+  // Look up player names to generate slug (opponent optional)
   const player1 = await db.players.get(data.player1_id)
-  const player2 = await db.players.get(data.player2_id)
-  
-  if (!player1 || !player2) {
-    throw new Error('Cannot create match: player not found')
+  if (!player1) {
+    throw new Error('Cannot create match: focal player not found')
+  }
+
+  const player2 = data.player2_id
+    ? await db.players.get(data.player2_id)
+    : undefined
+  if (data.player2_id && !player2) {
+    throw new Error('Cannot create match: opponent player not found')
   }
   
-  // Generate slug ID: {p1short}-vs-{p2short}-{yyyymmdd}-{id4}
+  // Generate slug ID: {p1short}-vs-{p2short|villain}-{yyyymmdd}-{id4}
   const matchDate = new Date(data.match_date)
   const id = generateMatchId(
     player1.first_name,
     player1.last_name,
-    player2.first_name,
-    player2.last_name,
+    player2?.first_name ?? null,
+    player2?.last_name ?? null,
     matchDate
   )
   

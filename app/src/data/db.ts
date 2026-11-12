@@ -1,6 +1,6 @@
 /**
  * Dexie Database Schema
- * 
+ *
  * IndexedDB database for Edge TT Match Analyser
  * Local-first with future Supabase sync capability
  */
@@ -14,7 +14,6 @@ import type { DBMatchVideo } from './entities/matchVideos/matchVideo.types'
 import type { DBSet } from './entities/sets/set.types'
 import type { DBRally } from './entities/rallies/rally.types'
 import type { DBShot } from './entities/shots/shot.types'
-import type { DBShotInference } from './entities/shotInferences/shotInference.types'
 
 // TODO: Add player profiles when needed
 type DBPlayerProfile = any
@@ -34,13 +33,12 @@ export class EdgeTTDatabase extends Dexie {
   sets!: EntityTable<DBSet, 'id'>
   rallies!: EntityTable<DBRally, 'id'>
   shots!: EntityTable<DBShot, 'id'>
-  shot_inferences!: EntityTable<DBShotInference, 'id'>
   player_profiles!: EntityTable<DBPlayerProfile, 'id'>
   player_skill_metrics!: EntityTable<DBPlayerSkillMetrics, 'id'>
 
   constructor() {
     super('EdgeTTMatchAnalyser')
-    
+
     // Version 1: Final schema with multi-video support (DEPRECATED)
     this.version(1).stores({
       clubs: 'id, name, location',
@@ -54,74 +52,127 @@ export class EdgeTTDatabase extends Dexie {
       player_profiles: 'id, player_id',
       player_skill_metrics: 'id, player_id, match_id, skill_key, period_type',
     })
-    
+
     // Version 2: Schema refactor - field renames, additions, removals (fresh start)
     this.version(2).stores({
-      // Clubs
       clubs: 'id, name, location',
-      
-      // Tournaments
       tournaments: 'id, name, tournament_type, tournament_host_club_id, start_date',
-      
-      // Players
       players: 'id, last_name, first_name, club_id, playstyle, is_archived',
-      
-      // Matches (renamed player1_sets_won→player1_sets_final, added match_detail_level, removed set_score_summary)
       matches: 'id, tournament_id, player1_id, player2_id, winner_id, match_date, best_of, match_detail_level, has_video, video_count, step1_complete, step2_complete',
-      
-      // Match Videos
       match_videos: 'id, match_id, sequence_number, start_set_number, end_set_number',
-      
-      // Sets (renamed player1_final_score→player1_score_final, added sets_before/after, removed derived fields and validation)
       sets: 'id, match_id, set_number, winner_id, has_video, set_first_server_id, player1_sets_before, player2_sets_before',
-      
-      // Rallies (added player1_score_before/player2_score_before, removed set context and luck fields)
       rallies: 'id, set_id, rally_index, video_id, server_id, winner_id, player1_score_before, player2_score_before, framework_confirmed, detail_complete',
-      
-      // Shots (renamed time→timestamp_start, wing→shot_wing, added timestamp_end, serve_type, shot_label, renamed inferred fields)
       shots: 'id, rally_id, video_id, shot_index, player_id, timestamp_start, shot_label, is_tagged',
-      
-      // Player Profiles (deferred, but schema ready)
       player_profiles: 'id, player_id',
-      
-      // Player Skill Metrics (deferred, but schema ready)
       player_skill_metrics: 'id, player_id, match_id, skill_key, period_type',
     })
-    
+
     // Version 3: Add shot_inferences table, rename club.location→city, slug-based IDs
     this.version(3).stores({
-      // Clubs (renamed location→city, slug-based IDs)
       clubs: 'id, name, city',
-      
-      // Tournaments (slug-based IDs)
       tournaments: 'id, name, tournament_type, tournament_host_club_id, start_date',
-      
-      // Players (slug-based IDs)
       players: 'id, last_name, first_name, club_id, playstyle, is_archived',
-      
-      // Matches (slug-based IDs)
       matches: 'id, tournament_id, player1_id, player2_id, winner_id, match_date, best_of, match_detail_level, has_video, video_count, step1_complete, step2_complete',
-      
-      // Match Videos (slug-based IDs)
       match_videos: 'id, match_id, sequence_number, start_set_number, end_set_number',
-      
-      // Sets (slug-based IDs)
       sets: 'id, match_id, set_number, winner_id, has_video, set_first_server_id, player1_sets_before, player2_sets_before',
-      
-      // Rallies (slug-based IDs)
       rallies: 'id, set_id, rally_index, video_id, server_id, winner_id, player1_score_before, player2_score_before, framework_confirmed, detail_complete',
-      
-      // Shots (slug-based IDs, removed inferred_ prefixes from field names)
       shots: 'id, rally_id, video_id, shot_index, player_id, timestamp_start, shot_label, is_tagged',
-      
-      // Shot Inferences (NEW TABLE - tracks which fields were AI inferred vs manual)
       shot_inferences: 'id, shot_id, [shot_id+field_name], field_name, inferred',
-      
-      // Player Profiles (deferred, but schema ready)
       player_profiles: 'id, player_id',
-      
-      // Player Skill Metrics (deferred, but schema ready)
       player_skill_metrics: 'id, player_id, match_id, skill_key, period_type',
+    })
+
+    // Version 4: Rally Focus schema — new shot tags, rally first_attack_index / point_ending,
+    // drop shot_inferences. Old point rows cannot be mapped; clear them on upgrade.
+    this.version(4).stores({
+      clubs: 'id, name, city',
+      tournaments: 'id, name, tournament_type, tournament_host_club_id, start_date',
+      players: 'id, last_name, first_name, club_id, playstyle, is_archived',
+      matches: 'id, tournament_id, player1_id, player2_id, winner_id, match_date, best_of, match_detail_level, has_video, video_count, step1_complete, step2_complete',
+      match_videos: 'id, match_id, sequence_number, start_set_number, end_set_number',
+      sets: 'id, match_id, set_number, winner_id, has_video, set_first_server_id, player1_sets_before, player2_sets_before',
+      rallies: 'id, set_id, rally_index, video_id, server_id, winner_id, player1_score_before, player2_score_before, framework_confirmed, detail_complete, first_attack_index, point_ending',
+      shots: 'id, rally_id, video_id, shot_index, player_id, timestamp_start',
+      shot_inferences: null,
+      player_profiles: 'id, player_id',
+      player_skill_metrics: 'id, player_id, match_id, skill_key, period_type',
+    }).upgrade(async (tx) => {
+      await tx.table('shots').clear()
+      await tx.table('rallies').clear()
+      // shot_inferences is deleted by stores: null above; clear if still present mid-upgrade
+      try {
+        await tx.table('shot_inferences').clear()
+      } catch {
+        // Table already removed
+      }
+
+      const sets = await tx.table('sets').toArray()
+      for (const set of sets) {
+        await tx.table('sets').update(set.id, {
+          is_tagged: false,
+          tagging_started_at: null,
+          tagging_completed_at: null,
+          tagging_phase: 'not_started',
+          phase1_last_rally: null,
+          phase1_total_rallies: null,
+          phase2_last_shot_index: null,
+          phase2_total_shots: null,
+          inference_complete: null,
+          inference_completed_at: null,
+        })
+      }
+
+      const matches = await tx.table('matches').toArray()
+      for (const match of matches) {
+        await tx.table('matches').update(match.id, {
+          step1_complete: false,
+          step2_complete: false,
+          match_detail_level: match.has_video ? 'sets' : 'result_only',
+        })
+      }
+    })
+
+    // Version 5: shot_* renamed tags, quality + is_* attribute switches.
+    // Old strength/attackable/length/table_contact rows cannot be mapped; clear them.
+    this.version(5).stores({
+      clubs: 'id, name, city',
+      tournaments: 'id, name, tournament_type, tournament_host_club_id, start_date',
+      players: 'id, last_name, first_name, club_id, playstyle, is_archived',
+      matches: 'id, tournament_id, player1_id, player2_id, winner_id, match_date, best_of, match_detail_level, has_video, video_count, step1_complete, step2_complete',
+      match_videos: 'id, match_id, sequence_number, start_set_number, end_set_number',
+      sets: 'id, match_id, set_number, winner_id, has_video, set_first_server_id, player1_sets_before, player2_sets_before',
+      rallies: 'id, set_id, rally_index, video_id, server_id, winner_id, player1_score_before, player2_score_before, framework_confirmed, detail_complete, first_attack_index, point_ending',
+      shots: 'id, rally_id, video_id, shot_index, player_id, timestamp_start',
+      player_profiles: 'id, player_id',
+      player_skill_metrics: 'id, player_id, match_id, skill_key, period_type',
+    }).upgrade(async (tx) => {
+      await tx.table('shots').clear()
+      await tx.table('rallies').clear()
+
+      const sets = await tx.table('sets').toArray()
+      for (const set of sets) {
+        await tx.table('sets').update(set.id, {
+          is_tagged: false,
+          tagging_started_at: null,
+          tagging_completed_at: null,
+          tagging_phase: 'not_started',
+          phase1_last_rally: null,
+          phase1_total_rallies: null,
+          phase2_last_shot_index: null,
+          phase2_total_shots: null,
+          inference_complete: null,
+          inference_completed_at: null,
+        })
+      }
+
+      const matches = await tx.table('matches').toArray()
+      for (const match of matches) {
+        await tx.table('matches').update(match.id, {
+          step1_complete: false,
+          step2_complete: false,
+          match_detail_level: match.has_video ? 'sets' : 'result_only',
+        })
+      }
     })
   }
 }
@@ -141,7 +192,6 @@ export const db = new EdgeTTDatabase()
  */
 export async function initializeDatabase(): Promise<void> {
   try {
-    // Open the database
     await db.open()
     console.log('✅ EdgeTT Database initialized successfully')
   } catch (error) {
@@ -163,7 +213,6 @@ export async function clearAllData(): Promise<void> {
     db.sets,
     db.rallies,
     db.shots,
-    db.shot_inferences,
     db.player_profiles,
     db.player_skill_metrics,
   ], async () => {
@@ -175,7 +224,6 @@ export async function clearAllData(): Promise<void> {
     await db.sets.clear()
     await db.rallies.clear()
     await db.shots.clear()
-    await db.shot_inferences.clear()
     await db.player_profiles.clear()
     await db.player_skill_metrics.clear()
   })
@@ -195,7 +243,6 @@ export async function getDatabaseStats() {
     setCount,
     rallyCount,
     shotCount,
-    shotInferenceCount,
   ] = await Promise.all([
     db.clubs.count(),
     db.tournaments.count(),
@@ -205,9 +252,8 @@ export async function getDatabaseStats() {
     db.sets.count(),
     db.rallies.count(),
     db.shots.count(),
-    db.shot_inferences.count(),
   ])
-  
+
   return {
     clubs: clubCount,
     tournaments: tournamentCount,
@@ -217,7 +263,5 @@ export async function getDatabaseStats() {
     sets: setCount,
     rallies: rallyCount,
     shots: shotCount,
-    shotInferences: shotInferenceCount,
   }
 }
-

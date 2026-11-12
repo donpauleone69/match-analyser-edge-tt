@@ -6,6 +6,141 @@
 
 ## Change Log
 
+### 2026-11-11: FOS picker + shot Review + dashboard list (v3.37.0)
+
+**Change Type:** UI + data model + Match Review
+
+**What Changed:**
+- First attack box always shows **No first attack** (default) plus alternating gold/blue shot-number buttons
+- Per-shot **Review** row: Technical / Tactical. Technical forces wing + stroke (and Pivot) on that shot; stored as `shot_review_kind`
+- Match Review shows **Shots for review** list under Section A
+
+**Rationale:** Faster FOS marking without row-pick mode; capture later-coaching contacts during Pass 1.
+
+---
+
+### 2026-11-11: Under-video rally strip zoom (v3.36.1)
+
+**Change Type:** UI fix
+
+**What Changed:**
+- Rally progress strip under the video zooms to the tagged activity window (`rallyTimelineViewWindow`) instead of the full match duration
+- Short rallies (1–7s) on a long clip were rendering as ~0.4% ticks; they now paint as visible colored ranges with a 12px floor and ±1s pad
+
+**Rationale:** Full-video scale made every Pass 1 rally look like a single timestamp.
+
+---
+
+### 2026-11-11: Pass 1 Pivot, miss reasons, FOS click, Let on form (v3.36.0)
+
+**Change Type:** Data model + Pass 1 Focus UI
+
+**What Changed:**
+- **Pivot** pill next to BH/FH on every shot that shows wing. Stored as `shot_is_pivot`. On save, when wing is set, previous shot's `shot_placement` is written: same as wing if Pivot off, opposite if Pivot on
+- Miss reason options: Misread + Forced; **Tactical removed**. Legacy `tactical` values normalize to null on resume
+- Click shot number in the list or the on-video shot overlay (shot ≥ 2) marks FOS without needing Mark attack first
+- **Let** on the form chrome (and tapping) discards the open contacts / form rally and resumes from the serve — for realizing it's a let after you've already tapped
+
+**Rationale:** Pivot encodes previous placement without a placement pass; Forced/Misread match how miss causes are talked about; FOS and Let need to be reachable mid-flow.
+
+---
+
+### 2026-11-11: Pass 1 Focus tagger UI + routing (v3.35.0)
+
+**Change Type:** UI/UX + routing
+
+**What Changed:**
+- `Pass1FocusBlock` rewritten on the Rally Focus layout. Pills are driven only by `derivePass1ShotTagAllowList` (same allow-list as the save mapper): first attack = wing + stroke (Flick/Loop/Drive/Smash/Lob) + Safe; reply = wing + stroke (Block/Push/Chop/Loop/Drive/Smash/Lob) + Initiative; non-serve end shot = wing + stroke (full list; first attack keeps attack strokes + Safe); ball before attack = High; ending row = End + Winner/Lucky/In-Net/Long/Wide, plus miss-reason pills (Technical/Timing/Footwork/Positioning/Tactical) on error endings. No placement, depth, spin, Weak/Heavy, table contact, quality, or initiative on fos+2
+- `Pass1FocusComposer` (copy of Rally Focus flow: tapping → form → complete, video, delete last, server pill, score confirm) wired to `pass1FocusModel` / `persistPass1FocusRally`; `missReason` saved and resumed; set-not-found and complete-screen "Back to Match Review" go to `/matches/:matchId`
+- `TaggingUIComposer`: routes `mode=pass1focus` → `Pass1FocusComposer`, `mode=rallyfocus` → `RallyFocusComposer`. Missing/unknown/legacy modes and resume redirect to `pass1focus`. Serves / Tag Phase / Rally Timeline branches and imports removed from routing (files not deleted yet)
+- `SetSelectionModal`: default `taggingMode` is `pass1focus`; Tag Serves / Tag Phase Test / Rally Timeline buttons removed; one test button "Rally Focus (original)" → `mode=rallyfocus`. `MatchFormSection` opens `mode=pass1focus` after create
+- Rally Focus `PointEnding` now includes `error_wide` (type only, no pill) so resumed Pass 1 data compiles and round-trips
+
+**Rationale:** One source of truth for what a Pass 1 shot may carry, and a fast first-pass tagger that returns to Match Review.
+
+---
+
+### 2026-11-11: Match Review page — Section A cards A1 + A2 (v3.34.0)
+
+**Change Type:** New page / UI + pure analytics rule
+
+**What Changed:**
+- New route `/matches/:id` renders **Match Review** (replaces the Dashboard placeholder). Match list gets a **Review** button
+- Feature `features/match-review/`: `MatchReviewComposer` → `MatchStorySection` → `StatCompareCardBlock`; `LockedSectionBlock` shells for B Serve, C Receive, D My first attack, E When they attack, F How points finish; `useDeriveMatchStory` loads `matchDb.getCompleteMatchData`
+- Layout: Hero left, row label middle, Villain right. Card empty state: "Tag a set to fill this card"
+- **A1 — The score:** sets won, set scores, points won (n, %), points won on serve (n/served, %)
+- **A2 — How points ended:** errors (last hitter missed: net/long/wide, % of all points), winners (`point_ending === 'winner'`, % of all points), points from opponent error (% of own points won). `lucky` counts as neither an error nor a winner
+- New rule `rules/analytics/calculateMatchStory.ts` (+ test). Only `is_scoring` rallies count; `winner_id === null` = Villain won; anyone not the hero is on the Villain side. Last hitter comes from the last shot, falling back to ending + winner when a rally has no shots
+- `SetSelectionModal` gets an optional `taggingMode` prop (default `rallyfocus`). Match Review passes `pass1focus`
+- Tag / Resume on Match Review opens `SetSelectionModal` with `mode=pass1focus`. `TaggingUIComposer` routes `pass1focus` to `Pass1FocusComposer` (default) and keeps `rallyfocus` as a test path
+- **Pending:** `Pass1FocusComposer` is not wired into `TaggingUIComposer`. When it is, its End set / complete screen should return to `/matches/:matchId` instead of `/matches`
+
+**Rationale:** Match Review is the progressive dashboard entry point (see `chat_notes/progressive_dashboards_gap_table.md`, Section A). Calculations live in `rules/` so later cards reuse them.
+
+---
+
+### 2026-11-11: Rally Focus seek floor + timeline ranges (v3.33.0)
+
+**Change Type:** UI / navigation
+
+**What Changed:**
+- On-video **−10s / +10s** seek beside speed controls (same step as keyboard J/L)
+- Under-video strip shows **colored rally ranges** and **black dead time**; scrubbing and seeks clamp to the end of the last completed rally (cannot rewind into a prior rally)
+- **Last rally** jumps to that floor; clicking a rally segment seeks to its end
+- **Delete last** removes the last completed/saved rally (and shots), rolls score/progress back, then continues tagging
+- `VideoPlayer.seek` respects constrained playback bounds (optional `ignoreConstraints` for already-clamped sequential seeks)
+
+**Rationale:** Long video padding needs fast seek, and sequential tagging breaks if you scrub into earlier points. Ranges make live vs dead time obvious.
+
+---
+
+### 2026-11-11: Thin start tagging (v3.32.0)
+
+**Change Type:** Workflow + data model (nullable opponent)
+
+**What Changed:**
+- Create match requires only the focal player; opponent and tournament are optional. One set at 0–0; opens Rally Focus immediately
+- `player2_id` nullable on matches; Villain side stored as null on rally `server_id` / `receiver_id` / `winner_id` and shot `player_id` until linked
+- Rally Focus skips the pre-tagging setup screen (always 0–0, focal serving). Server pill re-anchors rotation forward only
+- Match list shows Villain, Tag without entering a result first, and a Details action to attach opponent/tournament later (`linkMatchOpponent` fills null FKs)
+- Complete screen asks if the counted score matches; `score_confirmed` on the set. A no does not rewrite rally or set scores
+- Mid-set clips and typed score audit remain a later plan
+
+**Rationale:** Real sessions start from a video and one player. Scores stay real set scores from 0–0 until a dedicated audit workflow exists.
+
+---
+
+### 2026-11-11: Shot tag alignment (v3.31.0)
+
+**Change Type:** Data model + Rally Focus UI + persistence
+
+**What Changed:**
+- Dexie **v5**: shot tags renamed to `shot_*`; `shot_depth` replaces length; `shot_contact` is `over_table` | `off_table`
+- Attribute toggles `shot_is_weak` / `shot_is_high` / `shot_is_heavy` (default false, never null)
+- First-attack `shot_quality` (`good` | `normal` | `poor` | null); dropped `strength`, `attackable`, Strong
+- Pure role allow-list (`deriveShotTagRole`) strips tags the shot's role may not keep on save — a shot cannot store weak and quality together
+- Rally Focus: serve/pre-offensive show Weak · High · Heavy as independent switches; attack shows Quality and Over table / Off table; reply loses Weak
+- Upgrade clears shots and rallies (same as v4)
+
+**Rationale:** One enum for strength could not combine high and heavy. Quality grades the opening attack; weak marks an easy ball earlier. Role-driven save keeps the database consistent with the pills.
+
+---
+
+### 2026-11-10: Rally Focus schema pivot (v3.30.0)
+
+**Change Type:** Data model + persistence + analytics
+
+**What Changed:**
+- Dexie **v4**: shots store Rally Focus tags (`spin`, `wing`, `stroke`, `length`, `strength`, `placement`, `table_contact`, `attackable`, `initiative`); rallies store `first_attack_index` and `point_ending`
+- Dropped `point_end_type`, the old shot columns, and the `shot_inferences` table; upgrade clears old point rows
+- Phase, service fault, and receive error are derived (`deriveShotPhase`, `derivePointEndClass`); winner includes lucky
+- Rally Focus **Save** writes each rally immediately and resumes from the set; primary Tag opens `mode=rallyfocus`
+- Data Viewer / field config / five analytics cards read the new fields (first-attack conversion; error shares by phase; no forced/unforced)
+
+**Rationale:** Align stored shape with what Rally Focus tags. Stop persisting derived labels and unused Phase 1/2 columns.
+
+---
+
 ### 2026-11-10: Rally Focus first-attack pick then lock (v3.29.38)
 
 **Change Type:** UI Test — navigation
@@ -6750,6 +6885,14 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v3.37.0 | 2026-11-11 | FOS number picker, shot Review technical/tactical, Match Review list |
+| v3.36.1 | 2026-11-11 | Under-video rally strip zooms to tagged window |
+| v3.36.0 | 2026-11-11 | Pass 1 Pivot + previous placement, miss Misread/Forced (drop Tactical), FOS click, Let on form |
+| v3.35.0 | 2026-11-11 | Pass 1 Focus tagger UI + routing; Safe attribute; initiative on end-reply |
+| v3.34.0 | 2026-11-11 | Match Review page: Section A cards A1 + A2, locked B–F shells, calculateMatchStory |
+| v3.31.0 | 2026-11-11 | Shot tag alignment: shot_* columns, quality + is_* toggles, role allow-list, Dexie v5 clear |
+| v3.33.0 | 2026-11-11 | Rally Focus seek floor, colored rally/dead-time timeline, ±10s overlay, Delete last |
+| v3.30.0 | 2026-11-10 | Rally Focus schema pivot: Dexie v4 shot/rally tags, per-rally Save, derived phase/end class, analytics readers |
 | v2.1.0 | 2025-12-06 | Initial persistence layer implementation |
 | v2.1.1 | 2025-12-06 | Critical bug fixes for resume functionality |
 | v2.1.2 | 2025-12-06 | Comprehensive persistence refinement with full logging |

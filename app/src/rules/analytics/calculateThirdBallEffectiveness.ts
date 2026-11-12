@@ -1,27 +1,27 @@
 /**
- * Calculate 3rd Ball Effectiveness Metrics
- * 
- * Pure calculation function - NO React, NO IO, NO side effects.
- * Computes 3rd ball success rate, winners, forced errors, and unforced errors from rally and shot data.
+ * First-Attack Effectiveness (formerly 3rd Ball)
+ *
+ * Conversion when the player's first_attack_index shot is theirs.
+ * Success = clean winner that ends on the attack shot.
+ * Lucky is tracked separately and is not a clean success.
  */
 
 import type { DBRally } from '@/data/entities/rallies/rally.types'
 import type { DBShot } from '@/data/entities/shots/shot.types'
+import { isErrorEnding } from '@/rules/derive/rally/derivePointEndClass'
 
 export interface ThirdBallEffectivenessMetrics {
-  // Primary metric
-  thirdBallSuccessRate: number // 0-1 (e.g., 0.35 = 35%)
+  thirdBallSuccessRate: number
   thirdBallSuccesses: number
   thirdBallOpportunities: number
-  
-  // Secondary metrics (breakdown of success)
-  thirdBallWinnerRate: number // 0-1
+
+  thirdBallWinnerRate: number
   thirdBallWinners: number
-  
-  thirdBallForcedErrorRate: number // 0-1
-  thirdBallForcedErrors: number
-  
-  thirdBallUnforcedErrorRate: number // 0-1
+
+  thirdBallLuckyRate: number
+  thirdBallLuckies: number
+
+  thirdBallUnforcedErrorRate: number
   thirdBallUnforcedErrors: number
 }
 
@@ -31,17 +31,19 @@ export interface ThirdBallEffectivenessInput {
   playerId: string
 }
 
-/**
- * Calculate 3rd ball effectiveness metrics for a player
- */
-export function calculateThirdBallEffectiveness(input: ThirdBallEffectivenessInput): ThirdBallEffectivenessMetrics {
+function lastShotIndex(shots: DBShot[], rallyId: string): number {
+  const rallyShots = shots.filter((s) => s.rally_id === rallyId)
+  if (rallyShots.length === 0) return 0
+  return Math.max(...rallyShots.map((s) => s.shot_index))
+}
+
+export function calculateThirdBallEffectiveness(
+  input: ThirdBallEffectivenessInput
+): ThirdBallEffectivenessMetrics {
   const { rallies, shots, playerId } = input
-  
-  // Filter to scoring rallies where player is server
-  const serveRallies = rallies.filter(r => 
-    r.is_scoring && r.server_id === playerId
-  )
-  
+
+  const serveRallies = rallies.filter((r) => r.is_scoring && r.server_id === playerId)
+
   if (serveRallies.length === 0) {
     return {
       thirdBallSuccessRate: 0,
@@ -49,148 +51,104 @@ export function calculateThirdBallEffectiveness(input: ThirdBallEffectivenessInp
       thirdBallOpportunities: 0,
       thirdBallWinnerRate: 0,
       thirdBallWinners: 0,
-      thirdBallForcedErrorRate: 0,
-      thirdBallForcedErrors: 0,
+      thirdBallLuckyRate: 0,
+      thirdBallLuckies: 0,
       thirdBallUnforcedErrorRate: 0,
       thirdBallUnforcedErrors: 0,
     }
   }
-  
-  // Group shots by rally
-  const shotsByRally = new Map<string, DBShot[]>()
-  for (const shot of shots) {
-    if (!shotsByRally.has(shot.rally_id)) {
-      shotsByRally.set(shot.rally_id, [])
-    }
-    shotsByRally.get(shot.rally_id)!.push(shot)
-  }
-  
+
   let thirdBallOpportunities = 0
   let thirdBallSuccesses = 0
   let thirdBallWinners = 0
-  let thirdBallForcedErrors = 0
+  let thirdBallLuckies = 0
   let thirdBallUnforcedErrors = 0
-  
+
   for (const rally of serveRallies) {
-    const rallyShots = shotsByRally.get(rally.id) || []
-    rallyShots.sort((a, b) => a.shot_index - b.shot_index)
-    
-    // Check if 3rd ball exists and is by this player
-    const shot3 = rallyShots.find(s => s.shot_index === 3 && s.player_id === playerId)
-    
-    if (!shot3) continue // No 3rd ball opportunity (rally ended before shot 3)
-    
+    if (rally.first_attack_index === null) continue
+
+    const attackShot = shots.find(
+      (s) => s.rally_id === rally.id && s.shot_index === rally.first_attack_index
+    )
+    if (!attackShot || attackShot.player_id !== playerId) continue
+
     thirdBallOpportunities++
-    
-    // 1. Check for 3rd ball unforced error
-    if (shot3.is_rally_end && shot3.rally_end_role === 'unforced_error') {
+    const endIndex = lastShotIndex(shots, rally.id)
+    const attackEndedPoint = rally.first_attack_index === endIndex
+
+    if (attackEndedPoint && isErrorEnding(rally.point_ending)) {
       thirdBallUnforcedErrors++
-      continue // Rally ended with UE, not a success
+      continue
     }
-    
-    // 2. Check for 3rd ball winner (clean winner on shot 3)
-    if (shot3.is_rally_end && shot3.rally_end_role === 'winner') {
+
+    if (attackEndedPoint && rally.point_ending === 'winner') {
       thirdBallWinners++
       thirdBallSuccesses++
       continue
     }
-    
-    // 3. Check for 3rd ball forced error (shot 4 by opponent is forced error)
-    const shot4 = rallyShots.find(s => s.shot_index === 4)
-    if (shot4 && shot4.player_id !== playerId && shot4.is_rally_end && shot4.rally_end_role === 'forced_error') {
-      thirdBallForcedErrors++
-      thirdBallSuccesses++
+
+    if (attackEndedPoint && rally.point_ending === 'lucky') {
+      thirdBallLuckies++
       continue
     }
-    
-    // Otherwise, 3rd ball did not lead to immediate success
   }
-  
-  // Calculate rates
-  const thirdBallSuccessRate = thirdBallOpportunities > 0 
-    ? thirdBallSuccesses / thirdBallOpportunities 
-    : 0
-  
-  const thirdBallWinnerRate = thirdBallOpportunities > 0
-    ? thirdBallWinners / thirdBallOpportunities
-    : 0
-  
-  const thirdBallForcedErrorRate = thirdBallOpportunities > 0
-    ? thirdBallForcedErrors / thirdBallOpportunities
-    : 0
-  
-  const thirdBallUnforcedErrorRate = thirdBallOpportunities > 0
-    ? thirdBallUnforcedErrors / thirdBallOpportunities
-    : 0
-  
+
+  const denom = thirdBallOpportunities
+
   return {
-    thirdBallSuccessRate,
+    thirdBallSuccessRate: denom > 0 ? thirdBallSuccesses / denom : 0,
     thirdBallSuccesses,
     thirdBallOpportunities,
-    thirdBallWinnerRate,
+    thirdBallWinnerRate: denom > 0 ? thirdBallWinners / denom : 0,
     thirdBallWinners,
-    thirdBallForcedErrorRate,
-    thirdBallForcedErrors,
-    thirdBallUnforcedErrorRate,
+    thirdBallLuckyRate: denom > 0 ? thirdBallLuckies / denom : 0,
+    thirdBallLuckies,
+    thirdBallUnforcedErrorRate: denom > 0 ? thirdBallUnforcedErrors / denom : 0,
     thirdBallUnforcedErrors,
   }
 }
 
-/**
- * Determine insight status based on 3rd ball success rate
- */
-export function getThirdBallEffectivenessStatus(successRate: number): 'good' | 'average' | 'poor' {
-  if (successRate >= 0.40) return 'good'
-  if (successRate >= 0.30) return 'average'
+export function getThirdBallEffectivenessStatus(
+  successRate: number
+): 'good' | 'average' | 'poor' {
+  if (successRate >= 0.4) return 'good'
+  if (successRate >= 0.3) return 'average'
   return 'poor'
 }
 
-/**
- * Generate insight text based on metrics
- */
 export function generateThirdBallInsight(metrics: ThirdBallEffectivenessMetrics): string {
   const successPct = Math.round(metrics.thirdBallSuccessRate * 100)
   const winnerPct = Math.round(metrics.thirdBallWinnerRate * 100)
-  const forcedPct = Math.round(metrics.thirdBallForcedErrorRate * 100)
+  const luckyPct = Math.round(metrics.thirdBallLuckyRate * 100)
   const uePct = Math.round(metrics.thirdBallUnforcedErrorRate * 100)
-  
+
   const status = getThirdBallEffectivenessStatus(metrics.thirdBallSuccessRate)
-  
+
   if (status === 'good') {
-    return `Your 3rd ball is dangerous: you convert ${successPct}% of chances, with ${winnerPct}% winners and ${forcedPct}% forced errors.`
+    return `Your first attack is dangerous: you convert ${successPct}% cleanly (${winnerPct}% winners; ${luckyPct}% lucky).`
   }
-  
+
   if (status === 'average') {
-    return `Your 3rd ball converts ${successPct}% of chances. Reducing unforced errors (${uePct}%) would quickly improve results.`
+    return `Your first attack converts ${successPct}% of chances. Reducing errors (${uePct}%) would quickly improve results.`
   }
-  
-  // Poor status
-  return `You convert only ${successPct}% of 3rd ball opportunities. Too many attacks end in unforced errors (${uePct}%).`
+
+  return `You convert only ${successPct}% of first-attack opportunities. Too many attacks end in errors (${uePct}%).`
 }
 
-/**
- * Generate coaching recommendation based on metrics
- */
-export function generateThirdBallRecommendation(metrics: ThirdBallEffectivenessMetrics): string {
-  const successRate = metrics.thirdBallSuccessRate
-  const ueRate = metrics.thirdBallUnforcedErrorRate
-  
-  // High unforced error rate is priority
-  if (ueRate > 0.25) {
-    return 'Work on safer 3rd ball spin and placement instead of maximum power.'
+export function generateThirdBallRecommendation(
+  metrics: ThirdBallEffectivenessMetrics
+): string {
+  if (metrics.thirdBallUnforcedErrorRate > 0.25) {
+    return 'Work on safer first-attack spin and placement instead of maximum power.'
   }
-  
-  // Low success but UE not huge - need better setup
-  if (successRate < 0.35 && ueRate < 0.20) {
+
+  if (metrics.thirdBallSuccessRate < 0.35 && metrics.thirdBallUnforcedErrorRate < 0.2) {
     return 'Focus on creating clearer opportunities (better serve + receive patterns).'
   }
-  
-  // Good success rate
-  if (successRate >= 0.40) {
-    return 'Your 3rd ball is a key strength—build more of your game plan around serving and attacking third ball.'
-  }
-  
-  // Default advice
-  return 'Balance aggression with consistency on 3rd ball attacks. Aim for 40%+ success rate.'
-}
 
+  if (metrics.thirdBallSuccessRate >= 0.4) {
+    return 'Your first attack is a key strength—build more of your game plan around serving and attacking.'
+  }
+
+  return 'Balance aggression with consistency on the first attack. Aim for 40%+ clean success.'
+}

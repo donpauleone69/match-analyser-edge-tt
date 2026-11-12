@@ -55,6 +55,9 @@ export interface DBSet {
   // Phase 3 (Inference) tracking
   inference_complete?: boolean | null
   inference_completed_at?: string | null  // ISO timestamp
+
+  // End-of-tagging score check (null = not asked yet)
+  score_confirmed?: boolean | null
 }
 
 export type NewSet = Omit<DBSet, 'id' | 'is_tagged' | 'tagging_started_at' | 'tagging_completed_at' | 'tagging_phase' | 'phase1_last_rally' | 'phase1_total_rallies' | 'phase2_last_shot_index' | 'phase2_total_shots'>

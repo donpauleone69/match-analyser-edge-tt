@@ -2,7 +2,7 @@
  * ReceivePerformanceCard
  * 
  * Analytics card for receive/return performance metrics.
- * Shows receive win rate, errors, forced errors conceded, and neutralisation rate.
+ * Shows receive win rate, return/early errors, and neutralisation (reach continuation).
  */
 
 import type { AnalyticsFilterModel } from '@/rules/analytics'
@@ -32,8 +32,8 @@ export function ReceivePerformanceCard({ filter }: ReceivePerformanceCardProps) 
         }}
         secondaryMetrics={[
           { value: '...', label: 'Return errors', description: 'of your returns are errors' },
-          { value: '...', label: 'Forced errors', description: 'of receive points end with you being forced into an error' },
-          { value: '...', label: 'Neutralised', description: 'of your rallies as the receiver survive past the opening (5+ shots)' },
+          { value: '...', label: 'Early errors', description: 'of receive points end with your own early error' },
+          { value: '...', label: 'Neutralised', description: 'of your rallies as the receiver reach continuation' },
         ]}
         chart={
           <div className="flex items-center justify-center h-full text-neutral-500 text-sm">
@@ -88,8 +88,8 @@ export function ReceivePerformanceCard({ filter }: ReceivePerformanceCardProps) 
         }}
         secondaryMetrics={[
           { value: 'N/A', label: 'Return errors', description: 'of your returns are errors' },
-          { value: 'N/A', label: 'Forced errors', description: 'of receive points end with you being forced into an error' },
-          { value: 'N/A', label: 'Neutralised', description: 'of your rallies as the receiver survive past the opening (5+ shots)' },
+          { value: 'N/A', label: 'Early errors', description: 'of receive points end with your own early error' },
+          { value: 'N/A', label: 'Neutralised', description: 'of your rallies as the receiver reach continuation' },
         ]}
         chart={
           <div className="flex items-center justify-center h-full text-neutral-500 text-sm">
@@ -107,7 +107,7 @@ export function ReceivePerformanceCard({ filter }: ReceivePerformanceCardProps) 
   const { metrics, status, insight, recommendation, footerText } = data
   const receiveWinPct = `${Math.round(metrics.receiveWinRate * 100)}%`
   const errorPct = `${Math.round(metrics.receiveUnforcedErrorRate * 100)}%`
-  const forcedPct = `${Math.round(metrics.forcedErrorsConcededRate * 100)}%`
+  const earlyPct = `${Math.round(metrics.earlyErrorRate * 100)}%`
   const neutralPct = `${Math.round(metrics.neutralisationRate * 100)}%`
   
   return (
@@ -128,14 +128,14 @@ export function ReceivePerformanceCard({ filter }: ReceivePerformanceCardProps) 
           description: 'of your returns are errors'
         },
         { 
-          value: forcedPct, 
-          label: 'Forced errors',
-          description: 'of receive points end with you being forced into an error'
+          value: earlyPct, 
+          label: 'Early errors',
+          description: 'of receive points end with your own early error'
         },
         { 
           value: neutralPct, 
           label: 'Neutralised',
-          description: 'of your rallies as the receiver survive past the opening (5+ shots)'
+          description: 'of your rallies as the receiver reach continuation'
         },
       ]}
       chart={

@@ -137,21 +137,22 @@ export async function deleteTaggingData(
         const shots = await db.shots.where('rally_id').equals(rallyId).toArray()
         
         for (const shot of shots) {
-          // Reset Phase 2 fields to null/false, keeping Phase 1 structure intact
+          // Rally Focus: clearing detail means wiping tagged attributes on the shot
           await db.shots.update(shot.id, {
-            // Clear Phase 2 detailed data
-            shot_origin: null,
-            shot_target: null,
+            shot_spin: null,
             shot_wing: null,
-            shot_length: shot.shot_index === 1 || shot.shot_index === 2 ? shot.shot_length : null, // Keep length for serve/receive from Phase 1 if any
-            serve_spin_family: null,
-            serve_type: null,
-            intent: null,
+            shot_stroke: null,
+            shot_placement: null,
+            shot_depth: null,
+            shot_contact: null,
+            shot_initiative: null,
             shot_quality: null,
-            intent_quality: null,
-            pressure_level: null,
-            // Reset tagging flag
-            is_tagged: false,
+            shot_is_weak: false,
+            shot_is_high: false,
+            shot_is_heavy: false,
+            shot_is_safe: false,
+            shot_is_pivot: false,
+            shot_review_kind: null,
           })
         }
         

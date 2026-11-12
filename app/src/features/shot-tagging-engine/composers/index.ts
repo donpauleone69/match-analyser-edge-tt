@@ -1,19 +1,7 @@
 /**
- * Composers — Orchestration components for three-phase tagging
+ * Composers — Orchestration components for tagging
  */
 
 export { TaggingUIComposer } from './TaggingUIComposer'
-export { Phase1TimestampComposer, type Phase1Rally, type Phase1Shot } from './Phase1TimestampComposer'
-export { Phase2DetailComposer } from './Phase2DetailComposer'
-export { Phase3InferenceComposer } from './Phase3InferenceComposer'
-export { ServeMarkingComposer } from './ServeMarkingComposer'
-export { TagPhaseComposer } from './TagPhaseComposer'
-export { RallyTimelineComposer } from './RallyTimelineComposer'
 export { RallyFocusComposer } from './RallyFocusComposer'
-
-
-
-
-
-
-
+export { Pass1FocusComposer } from './Pass1FocusComposer'

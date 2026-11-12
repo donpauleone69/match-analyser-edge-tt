@@ -8,6 +8,7 @@ import MatchesPage from './pages/Matches'
 import TournamentsPage from './pages/Tournaments'
 import PlayersPage from './pages/Players'
 import MatchCreatePage from './pages/MatchCreate'
+import MatchReviewPage from './pages/MatchReview'
 import { ShotTaggingEngine } from './pages/ShotTaggingEngine'
 import { Settings } from './pages/Settings'
 import { DataViewer } from './pages/DataViewer'
@@ -34,7 +35,7 @@ function App() {
           <Route path="/players" element={<PlayersPage />} />
           <Route path="/matches" element={<MatchesPage />} />
           <Route path="/matches/create" element={<MatchCreatePage />} />
-          <Route path="/matches/:id" element={<Dashboard />} /> {/* TODO: Match detail */}
+          <Route path="/matches/:id" element={<MatchReviewPage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />
           <Route path="/data-viewer" element={<DataViewer />} />
           <Route path="/data-viewer/audit" element={<DataViewerAudit />} />

@@ -2,7 +2,7 @@
  * ServePerformanceCard
  * 
  * Analytics card for serve performance metrics.
- * Shows serve win rate, service faults, 3rd ball win/error rates.
+ * Shows serve win rate, service faults, first-attack win/error rates.
  */
 
 import type { AnalyticsFilterModel } from '@/rules/analytics'
@@ -31,7 +31,8 @@ export function ServePerformanceCard({ filter }: ServePerformanceCardProps) {
         }}
         secondaryMetrics={[
           { value: '...', label: 'Service faults' },
-          { value: '...', label: '3rd ball wins' },
+          { value: '...', label: 'First-attack winners' },
+          { value: '...', label: 'First-attack errors' },
         ]}
         chart={
           <div className="flex items-center justify-center h-full text-neutral-500 text-sm">
@@ -86,7 +87,8 @@ export function ServePerformanceCard({ filter }: ServePerformanceCardProps) {
         }}
         secondaryMetrics={[
           { value: 'N/A', label: 'Service faults' },
-          { value: 'N/A', label: '3rd ball wins' },
+          { value: 'N/A', label: 'First-attack winners' },
+          { value: 'N/A', label: 'First-attack errors' },
         ]}
         chart={
           <div className="flex items-center justify-center h-full text-neutral-500 text-sm">
@@ -104,8 +106,8 @@ export function ServePerformanceCard({ filter }: ServePerformanceCardProps) {
   const { metrics, status, insight, recommendation, footerText } = data
   const serveWinPct = `${Math.round(metrics.serveWinRate * 100)}%`
   const faultPct = `${Math.round(metrics.serviceFaultRate * 100)}%`
-  const thirdBallWinPct = `${Math.round(metrics.thirdBallWinRate * 100)}%`
-  const thirdBallErrorPct = `${Math.round(metrics.thirdBallErrorRate * 100)}%`
+  const firstAttackWinPct = `${Math.round(metrics.firstAttackWinRate * 100)}%`
+  const firstAttackErrorPct = `${Math.round(metrics.firstAttackErrorRate * 100)}%`
   
   return (
     <BasicInsightCardTemplate
@@ -125,14 +127,14 @@ export function ServePerformanceCard({ filter }: ServePerformanceCardProps) {
           description: 'of your serves are faults'
         },
         { 
-          value: thirdBallWinPct, 
-          label: '3rd ball success',
-          description: 'of your 3rd ball attacks win the point immediately'
+          value: firstAttackWinPct, 
+          label: 'First-attack winners',
+          description: 'of your first attacks win the point cleanly'
         },
         { 
-          value: thirdBallErrorPct, 
-          label: '3rd ball errors',
-          description: 'of your 3rd ball attacks are unforced errors'
+          value: firstAttackErrorPct, 
+          label: 'First-attack errors',
+          description: 'of your first attacks end in an error'
         },
       ]}
       chart={

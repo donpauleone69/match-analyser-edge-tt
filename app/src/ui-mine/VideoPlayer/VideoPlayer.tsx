@@ -14,7 +14,7 @@ export interface VideoPlayerHandle {
   play: () => void
   pause: () => void
   togglePlay: () => void
-  seek: (time: number) => void
+  seek: (time: number, ignoreConstraints?: boolean) => void
   stepFrame: (direction: 'forward' | 'backward', ignoreConstraints?: boolean) => void
   getCurrentTime: () => number
 }
@@ -215,13 +215,17 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
     setCurrentTime(newTime)
   }, [setCurrentTime, constrainedPlayback])
 
-  const seek = useCallback((time: number) => {
+  const seek = useCallback((time: number, ignoreConstraints = false) => {
     const video = videoRef.current
-    if (video) {
-      video.currentTime = time
-      setCurrentTime(time)
+    if (!video) return
+    let next = time
+    if (!ignoreConstraints && constrainedPlayback?.enabled) {
+      const { startTime, endTime } = constrainedPlayback
+      next = Math.max(startTime, Math.min(endTime, next))
     }
-  }, [setCurrentTime])
+    video.currentTime = next
+    setCurrentTime(next)
+  }, [setCurrentTime, constrainedPlayback])
 
   const getCurrentTime = useCallback(() => {
     return videoRef.current?.currentTime || 0

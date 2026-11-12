@@ -18,6 +18,7 @@ import {
   type RallyPhase,
   type PointEnding,
   type ShotChoiceKey,
+  type ShotAttributeKey,
 } from '../composers/rallyFocusModel'
 
 export interface RallyFocusBlockProps {
@@ -29,7 +30,7 @@ export interface RallyFocusBlockProps {
   /** When true, rows from shot 2 are tappable to set the first attack. */
   fosPickMode?: boolean
   onToggleShotChoice: (n: number, key: ShotChoiceKey, value: string) => void
-  onToggleAttackable: (n: number) => void
+  onToggleAttribute: (n: number, key: ShotAttributeKey) => void
   onMarkFos: (at: number) => void
   onChangeFos: () => void
   onNoAttack: () => void
@@ -171,51 +172,34 @@ function ShotTypeRow({
   )
 }
 
-function StrengthPills({
+function AttributePills({
   n,
   shot,
-  options,
-  onToggleShotChoice,
+  onToggleAttribute,
   className = 'ml-auto',
 }: {
   n: number
   shot: NonNullable<RallyTimelineState['shots'][number]>
-  options: readonly ('Weak' | 'Strong' | 'High' | 'Heavy')[]
-  onToggleShotChoice: (n: number, key: ShotChoiceKey, value: string) => void
+  onToggleAttribute: (n: number, key: ShotAttributeKey) => void
   className?: string
 }) {
+  const options: { key: ShotAttributeKey; label: string }[] = [
+    { key: 'isWeak', label: 'Weak' },
+    { key: 'isHigh', label: 'High' },
+    { key: 'isHeavy', label: 'Heavy' },
+  ]
   return (
     <div className={cn('flex gap-1 flex-none items-center', className)}>
-      {options.map((v) => (
+      {options.map(({ key, label }) => (
         <TimelinePill
-          key={v}
+          key={key}
           kind="standing"
-          label={v}
-          selected={shot.strength === v}
-          onClick={() => onToggleShotChoice(n, 'strength', v)}
+          label={label}
+          selected={shot[key]}
+          onClick={() => onToggleAttribute(n, key)}
         />
       ))}
     </div>
-  )
-}
-
-function WeakPill({
-  selected,
-  onClick,
-  className,
-}: {
-  selected: boolean
-  onClick: () => void
-  className?: string
-}) {
-  return (
-    <TimelinePill
-      kind="standing"
-      label="Weak"
-      selected={selected}
-      onClick={onClick}
-      className={className}
-    />
   )
 }
 
@@ -223,12 +207,10 @@ function InitiativeRow({
   n,
   shot,
   onToggleShotChoice,
-  onToggleWeak,
 }: {
   n: number
   shot: NonNullable<RallyTimelineState['shots'][number]>
   onToggleShotChoice: (n: number, key: ShotChoiceKey, value: string) => void
-  onToggleWeak: () => void
 }) {
   return (
     <ChoiceRow label="Initiative">
@@ -241,9 +223,6 @@ function InitiativeRow({
           onClick={() => onToggleShotChoice(n, 'standing', v)}
         />
       ))}
-      <div className="flex gap-1 flex-none items-center ml-auto">
-        <WeakPill selected={shot.attackable} onClick={onToggleWeak} />
-      </div>
     </ChoiceRow>
   )
 }
@@ -255,7 +234,7 @@ export function RallyFocusBlock({
   activeShot = null,
   fosPickMode = false,
   onToggleShotChoice,
-  onToggleAttackable,
+  onToggleAttribute,
   onMarkFos,
   onChangeFos,
   onNoAttack,
@@ -359,8 +338,8 @@ export function RallyFocusBlock({
                           key={v}
                           kind="placement"
                           label={v}
-                          selected={shot.length === v}
-                          onClick={() => onToggleShotChoice(n, 'length', v)}
+                          selected={shot.depth === v}
+                          onClick={() => onToggleShotChoice(n, 'depth', v)}
                           className="min-w-[44px]"
                         />
                       ))}
@@ -380,11 +359,10 @@ export function RallyFocusBlock({
                         className="min-w-[44px]"
                       />
                     ))}
-                    <StrengthPills
+                    <AttributePills
                       n={n}
                       shot={shot}
-                      options={['Weak', 'High', 'Heavy']}
-                      onToggleShotChoice={onToggleShotChoice}
+                      onToggleAttribute={onToggleAttribute}
                     />
                   </ChoiceRow>
                 )}
@@ -403,11 +381,10 @@ export function RallyFocusBlock({
                         />
                       ))}
                     </div>
-                    <StrengthPills
+                    <AttributePills
                       n={n}
                       shot={shot}
-                      options={['Weak', 'High', 'Heavy']}
-                      onToggleShotChoice={onToggleShotChoice}
+                      onToggleAttribute={onToggleAttribute}
                     />
                   </ChoiceRow>
                 )}
@@ -422,19 +399,24 @@ export function RallyFocusBlock({
                 )}
 
                 {isAttack && (
-                  <div className="flex items-end gap-1 w-full min-w-0" aria-label="Contact relative to table">
+                  <div className="flex items-end gap-1 w-full min-w-0" aria-label="Contact">
                     <div className="min-w-0">
                       <div className="text-[8px] font-bold uppercase tracking-wide text-neutral-400 leading-none mb-px">
-                        Contact relative to table
+                        Contact
                       </div>
                       <div className="flex gap-1">
-                        {(['Over', 'Behind'] as const).map((v) => (
+                        {(
+                          [
+                            { value: 'Over' as const, label: 'Over table' },
+                            { value: 'Off' as const, label: 'Off table' },
+                          ] as const
+                        ).map(({ value, label }) => (
                           <TimelinePill
-                            key={v}
+                            key={value}
                             kind="placement"
-                            label={v}
-                            selected={shot.tableContact === v}
-                            onClick={() => onToggleShotChoice(n, 'tableContact', v)}
+                            label={label}
+                            selected={shot.tableContact === value}
+                            onClick={() => onToggleShotChoice(n, 'tableContact', value)}
                             className="min-w-[52px]"
                           />
                         ))}
@@ -442,15 +424,19 @@ export function RallyFocusBlock({
                     </div>
                     <div className="ml-auto">
                       <div className="text-[8px] font-bold uppercase tracking-wide text-neutral-400 leading-none mb-px text-right">
-                        Attributes
+                        Quality
                       </div>
-                      <StrengthPills
-                        n={n}
-                        shot={shot}
-                        options={['Weak', 'Strong']}
-                        onToggleShotChoice={onToggleShotChoice}
-                        className=""
-                      />
+                      <div className="flex gap-1 flex-none items-center">
+                        {(['Good', 'Normal', 'Poor'] as const).map((v) => (
+                          <TimelinePill
+                            key={v}
+                            kind="standing"
+                            label={v}
+                            selected={shot.quality === v}
+                            onClick={() => onToggleShotChoice(n, 'quality', v)}
+                          />
+                        ))}
+                      </div>
                     </div>
                   </div>
                 )}
@@ -460,7 +446,6 @@ export function RallyFocusBlock({
                     n={n}
                     shot={shot}
                     onToggleShotChoice={onToggleShotChoice}
-                    onToggleWeak={() => onToggleAttackable(n)}
                   />
                 )}
 

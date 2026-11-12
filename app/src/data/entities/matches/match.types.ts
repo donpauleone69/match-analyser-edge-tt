@@ -15,9 +15,9 @@ export interface DBMatch {
   round: MatchRound | null
   
   // Players
-  player1_id: string // FK (slug)
-  player2_id: string // FK (slug)
-  first_server_id: string // FK (slug)
+  player1_id: string // FK (slug) — focal player
+  player2_id: string | null // FK (slug) — opponent; null until linked ("Villain")
+  first_server_id: string // FK (slug) or placeholder
   
   // Match result (TOP-DOWN ENTRY)
   winner_id: string | null // FK (slug)

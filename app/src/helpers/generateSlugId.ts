@@ -71,12 +71,15 @@ export function generateShotId(rallyId: string, shotNumber: number): string {
 export function generateMatchId(
   player1FirstName: string,
   player1LastName: string,
-  player2FirstName: string,
-  player2LastName: string,
+  player2FirstName: string | null,
+  player2LastName: string | null,
   matchDate: Date
 ): string {
   const p1Short = shortenPlayerName(player1FirstName, player1LastName)
-  const p2Short = shortenPlayerName(player2FirstName, player2LastName)
+  const p2Short =
+    player2FirstName && player2LastName
+      ? shortenPlayerName(player2FirstName, player2LastName)
+      : 'villain'
   
   const year = matchDate.getFullYear()
   const month = String(matchDate.getMonth() + 1).padStart(2, '0')

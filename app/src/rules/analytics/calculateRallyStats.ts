@@ -1,20 +1,23 @@
+/**
+ * Rally statistics (Rally Focus)
+ *
+ * Rally-phase = last shot is in the continuation phase.
+ * Long rally = 6+ shots.
+ */
+
 import type { DBRally, DBShot } from '@/data'
+import { deriveShotPhase } from '@/rules/derive/shot/deriveShotPhase'
+import { isErrorEnding } from '@/rules/derive/rally/derivePointEndClass'
 
 export interface RallyStatsMetrics {
-  // Primary
-  rallyWinRate: number // Win rate in rally phase (4+ shots)
-  
-  // Secondary
-  longRallyWinRate: number // Win rate in 6+ shot rallies
-  rallyUnforcedErrorRate: number // UE rate in rally phase
-  rallyForcedErrorsCreatedRate: number // FE created rate in rally phase
-  avgRallyLength: number // Average shots per rally (all rallies)
-  avgRallyPhaseLength: number // Average shots per rally-phase rally (4+ shots)
-  
-  // Counts for insight generation
-  totalRallyPhaseRallies: number // Rallies with 4+ shots
-  totalLongRallies: number // Rallies with 6+ shots
-  totalRallies: number // All scoring rallies
+  rallyWinRate: number
+  longRallyWinRate: number
+  rallyUnforcedErrorRate: number
+  avgRallyLength: number
+  avgRallyPhaseLength: number
+  totalRallyPhaseRallies: number
+  totalLongRallies: number
+  totalRallies: number
 }
 
 export interface RallyStatsResult {
@@ -25,16 +28,11 @@ export interface RallyStatsResult {
   footerText: string
 }
 
-/**
- * Calculate rally statistics for a player
- * Rally phase = shots 4+ (after serve/receive/3rd ball)
- */
 export function calculateRallyStats(
   rallies: DBRally[],
   shots: DBShot[],
   playerId: string
 ): RallyStatsResult {
-  // Build map of rally ID -> max shot index
   const rallyMaxShots = new Map<string, number>()
   shots.forEach((shot) => {
     const current = rallyMaxShots.get(shot.rally_id) || 0
@@ -42,96 +40,73 @@ export function calculateRallyStats(
       rallyMaxShots.set(shot.rally_id, shot.shot_index)
     }
   })
-  
-  // Filter to rally-phase rallies (4+ shots)
+
   const rallyPhaseRallies = rallies.filter((r) => {
     const maxShots = rallyMaxShots.get(r.id) || 0
-    return maxShots >= 4
+    return deriveShotPhase(maxShots, r.first_attack_index) === 'continuation'
   })
-  
-  // Filter to long rallies (6+ shots)
-  const longRallies = rallies.filter((r) => {
-    const maxShots = rallyMaxShots.get(r.id) || 0
-    return maxShots >= 6
-  })
-  
-  // Calculate rally win rate
+
+  const longRallies = rallies.filter((r) => (rallyMaxShots.get(r.id) || 0) >= 6)
+
   const rallyWins = rallyPhaseRallies.filter((r) => r.winner_id === playerId).length
-  const rallyWinRate = rallyPhaseRallies.length > 0 
-    ? rallyWins / rallyPhaseRallies.length 
-    : 0
-  
-  // Calculate long rally win rate
+  const rallyWinRate =
+    rallyPhaseRallies.length > 0 ? rallyWins / rallyPhaseRallies.length : 0
+
   const longRallyWins = longRallies.filter((r) => r.winner_id === playerId).length
-  const longRallyWinRate = longRallies.length > 0
-    ? longRallyWins / longRallies.length
-    : 0
-  
-  // Rally unforced errors (shot_index >= 4, player UE)
-  const rallyPhaseShots = shots.filter((s) => s.shot_index >= 4)
-  const rallyUEs = rallyPhaseShots.filter(
-    (s) => s.player_id === playerId && s.is_rally_end && s.rally_end_role === 'unforced_error'
-  ).length
-  const rallyUnforcedErrorRate = rallyPhaseRallies.length > 0
-    ? rallyUEs / rallyPhaseRallies.length
-    : 0
-  
-  // Rally forced errors created (shot_index >= 4, opponent FE)
-  const rallyFEsCreated = rallyPhaseShots.filter(
-    (s) => s.player_id === playerId && s.is_rally_end && s.rally_end_role === 'forced_error'
-  ).length
-  const rallyForcedErrorsCreatedRate = rallyPhaseRallies.length > 0
-    ? rallyFEsCreated / rallyPhaseRallies.length
-    : 0
-  
-  // Average rally length (all rallies)
+  const longRallyWinRate =
+    longRallies.length > 0 ? longRallyWins / longRallies.length : 0
+
+  const rallyUEs = rallyPhaseRallies.filter((r) => {
+    if (!isErrorEnding(r.point_ending)) return false
+    const endIndex = rallyMaxShots.get(r.id) || 0
+    const endShot = shots.find((s) => s.rally_id === r.id && s.shot_index === endIndex)
+    return endShot?.player_id === playerId
+  }).length
+
+  const rallyUnforcedErrorRate =
+    rallyPhaseRallies.length > 0 ? rallyUEs / rallyPhaseRallies.length : 0
+
   const totalShots = Array.from(rallyMaxShots.values()).reduce((sum, max) => sum + max, 0)
-  const avgRallyLength = rallies.length > 0
-    ? totalShots / rallies.length
-    : 0
-  
-  // Average rally phase length (4+ shot rallies only)
-  const rallyPhaseShots_sum = rallyPhaseRallies.reduce((sum, r) => {
-    return sum + (rallyMaxShots.get(r.id) || 0)
-  }, 0)
-  const avgRallyPhaseLength = rallyPhaseRallies.length > 0
-    ? rallyPhaseShots_sum / rallyPhaseRallies.length
-    : 0
-  
-  // Determine status
+  const avgRallyLength = rallies.length > 0 ? totalShots / rallies.length : 0
+
+  const rallyPhaseShotsSum = rallyPhaseRallies.reduce(
+    (sum, r) => sum + (rallyMaxShots.get(r.id) || 0),
+    0
+  )
+  const avgRallyPhaseLength =
+    rallyPhaseRallies.length > 0 ? rallyPhaseShotsSum / rallyPhaseRallies.length : 0
+
   const status: 'good' | 'average' | 'poor' =
     rallyWinRate >= 0.55 ? 'good' : rallyWinRate >= 0.48 ? 'average' : 'poor'
-  
-  // Generate insight
+
   const insight = generateRallyInsight({
     rallyWinRate,
     longRallyWinRate,
     rallyUnforcedErrorRate,
-    rallyForcedErrorsCreatedRate,
-    totalRallyPhaseRallies: rallyPhaseRallies.length,
     totalLongRallies: longRallies.length,
-    avgRallyLength,
-    avgRallyPhaseLength,
   })
-  
-  // Generate recommendation
+
   const recommendation = generateRallyRecommendation({
     rallyWinRate,
     longRallyWinRate,
     rallyUnforcedErrorRate,
-    rallyForcedErrorsCreatedRate,
   })
-  
-  // Footer text
-  const matchCount = new Set(rallies.map((r) => r.match_id)).size
-  const footerText = `Based on ${matchCount} match${matchCount !== 1 ? 'es' : ''} (${rallyPhaseRallies.length} rally-phase points)`
-  
+
+  const matchCount = new Set(
+    rallies
+      .map((r) => r.set_id.split('-s')[0])
+      .filter(Boolean)
+  ).size
+
+  const footerText = `Based on ${matchCount || rallies.length} set${
+    (matchCount || rallies.length) !== 1 ? 's' : ''
+  } (${rallyPhaseRallies.length} continuation points)`
+
   return {
     metrics: {
       rallyWinRate,
       longRallyWinRate,
       rallyUnforcedErrorRate,
-      rallyForcedErrorsCreatedRate,
       avgRallyLength,
       avgRallyPhaseLength,
       totalRallyPhaseRallies: rallyPhaseRallies.length,
@@ -150,38 +125,32 @@ function generateRallyInsight(metrics: Partial<RallyStatsMetrics>): string {
     rallyWinRate = 0,
     longRallyWinRate = 0,
     rallyUnforcedErrorRate = 0,
-    rallyForcedErrorsCreatedRate = 0,
     totalLongRallies = 0,
   } = metrics
-  
+
   const rallyWinPct = Math.round(rallyWinRate * 100)
   const longRallyWinPct = Math.round(longRallyWinRate * 100)
   const ueRate = Math.round(rallyUnforcedErrorRate * 100)
-  
+
   if (rallyWinRate >= 0.55) {
-    if (totalLongRallies > 5) {
-      return `You dominate rally exchanges, winning ${rallyWinPct}% of rally-phase points. Long rallies (6+ shots) are won ${longRallyWinPct}% of the time.`
+    if ((totalLongRallies || 0) > 5) {
+      return `You dominate continuation exchanges, winning ${rallyWinPct}% of those points. Long rallies (6+ shots) are won ${longRallyWinPct}% of the time.`
     }
-    return `You win ${rallyWinPct}% of rally-phase points once the point develops. Your rally game is a clear strength.`
+    return `You win ${rallyWinPct}% of continuation points once the point develops. Your rally game is a clear strength.`
   }
-  
+
   if (rallyWinRate >= 0.48) {
     if (rallyUnforcedErrorRate > 0.15) {
-      return `You win ${rallyWinPct}% of rally-phase points. Unforced errors (${ueRate}%) are costing you more rally wins.`
+      return `You win ${rallyWinPct}% of continuation points. Unforced errors (${ueRate}%) are costing you more rally wins.`
     }
-    return `You win ${rallyWinPct}% of rally-phase points. Solid rally play with room to improve consistency.`
+    return `You win ${rallyWinPct}% of continuation points. Solid rally play with room to improve consistency.`
   }
-  
-  // Poor
+
   if (rallyUnforcedErrorRate > 0.15) {
-    return `You win only ${rallyWinPct}% of rally-phase points. High unforced error rate (${ueRate}%) is the main issue.`
+    return `You win only ${rallyWinPct}% of continuation points. High unforced error rate (${ueRate}%) is the main issue.`
   }
-  
-  if (rallyForcedErrorsCreatedRate < 0.10) {
-    return `You win only ${rallyWinPct}% of rally-phase points. You rarely force errors in rallies, suggesting a passive style.`
-  }
-  
-  return `You win ${rallyWinPct}% of rally-phase points. Rallies are your weakest phase of play.`
+
+  return `You win ${rallyWinPct}% of continuation points. Rallies are your weakest phase of play.`
 }
 
 function generateRallyRecommendation(metrics: Partial<RallyStatsMetrics>): string {
@@ -189,30 +158,19 @@ function generateRallyRecommendation(metrics: Partial<RallyStatsMetrics>): strin
     rallyWinRate = 0,
     longRallyWinRate = 0,
     rallyUnforcedErrorRate = 0,
-    rallyForcedErrorsCreatedRate = 0,
   } = metrics
-  
-  // High UE rate
+
   if (rallyUnforcedErrorRate > 0.15) {
     return 'Focus on rally consistency and footwork to cut unforced errors. Prioritize controlled placement over power.'
   }
-  
-  // Low long rally win rate
-  if (longRallyWinRate < 0.45 && rallyWinRate < 0.50) {
+
+  if (longRallyWinRate < 0.45 && rallyWinRate < 0.5) {
     return 'Train longer rally drills to improve stamina and stability in extended exchanges.'
   }
-  
-  // Low forced errors created
-  if (rallyForcedErrorsCreatedRate < 0.10) {
-    return 'Add more aggressive placement and variation to pressure opponents in rallies. Target weak zones.'
-  }
-  
-  // Good rally game
+
   if (rallyWinRate >= 0.55) {
-    return 'Your rally game is strong. Keep building patterns that get you into rally exchanges.'
+    return 'Your rally game is strong. Keep building patterns that get you into continuation exchanges.'
   }
-  
-  // Default
+
   return 'Work on rally consistency while adding more variety to create opportunities.'
 }
-

@@ -10,6 +10,8 @@
 
 This document describes the **actual implemented schema** in the Edge TT Match Analyser codebase. It is reverse-engineered from the TypeScript types in `app/src/data/entities/`.
 
+How the tables connect, and a looser video-first shape that is not built yet: [TableMap.md](TableMap.md).
+
 ### Architecture Context
 
 - **Current Storage:** IndexedDB via Dexie.js (local-first)
@@ -305,214 +307,132 @@ interface DBSet {
 
 ### 7. Rallies
 
-Represents a single rally (point) within a set.
+Represents a single rally (point) within a set. Written by Rally Focus on Save.
 
-**File:** `app/src/data/entities/rallies/rally.types.ts`
+**File:** pp/src/data/entities/rallies/rally.types.ts
 
-```typescript
+`	ypescript
+type PointEnding = 'winner' | 'lucky' | 'error_net' | 'error_long' | 'error_wide'
+type PointMissReason = 'technical' | 'timing' | 'footwork' | 'positioning' | 'misread' | 'forced'
+
 interface DBRally {
   id: string                        // Slug format: {set_id}-r{num}
   set_id: string                    // FK (slug)
   rally_index: number               // 1-based within set
-  
+
   // Video reference (MULTI-VIDEO)
-  video_id: string | null           // Which video segment is this rally in? (FK slug)
-  has_video_data: boolean           // False if score-only (no video coverage)
-  
+  video_id: string | null
+  has_video_data: boolean
+
   // Rally timing
-  timestamp_start: number | null    // First shot's timestamp_start
-  timestamp_end: number | null      // Last shot's timestamp_end  
-  end_of_point_time: number | null  // Timestamp WITHIN the video_id video (rally end) - LEGACY
-  
+  timestamp_start: number | null    // First shot contact
+  timestamp_end: number | null      // Last shot contact
+  end_of_point_time: number | null  // Legacy alias of timestamp_end
+
   // Participants
-  server_id: string                 // FK (slug)
-  receiver_id: string               // FK (slug)
-  
+  server_id: string
+  receiver_id: string
+
   // Outcome
-  is_scoring: boolean               // Did this rally result in a point?
-  winner_id: string | null          // FK (slug)
-  
+  is_scoring: boolean
+  winner_id: string | null          // Derived from point_ending + last shot player
+
   // Score progression (WITHIN SET)
   player1_score_before: number
   player2_score_before: number
   player1_score_after: number
   player2_score_after: number
-  
-  // Rally end details
-  point_end_type: 
-    | 'serviceFault' 
-    | 'receiveError' 
-    | 'forcedError' 
-    | 'unforcedError' 
-    | 'winnerShot' 
-    | null
-  
+
+  // Rally Focus end tags
+  first_attack_index: number | null // null = no attack in this rally
+  point_ending: PointEnding
+  point_miss_reason: PointMissReason | null // Pass 1 Focus; null until tagged after an error
+
   // Workflow
-  is_highlight: boolean             // User-marked highlight
-  framework_confirmed: boolean      // Phase 1 complete
-  detail_complete: boolean          // Phase 2 complete
-  
+  is_highlight: boolean
+  framework_confirmed: boolean
+  detail_complete: boolean
+
   // Manual corrections
   server_corrected: boolean
   score_corrected: boolean
   correction_notes: string | null
-  
-  // Stub rally flag (for pre-populated rallies from setup)
-  is_stub_rally: boolean            // True if created from top-down setup, not tagged yet
+
+  is_stub_rally: boolean
 }
-```
+`
 
 **Notes:**
-- **Stub rallies:** Pre-created from top-down score entry, awaiting tagging
-- **is_scoring:** False for service faults (no point awarded)
-- **Corrections:** User can manually fix server/score errors
-- `end_of_point_time` is LEGACY - use `timestamp_end` instead
+- **first_attack_index:** FOS stamp from Rally Focus; phase is derived from this + shot_index
+- **point_ending:** Tagged ending only (winner / lucky / error_net / error_long / error_wide)
+- **point_miss_reason:** Optional miss reason after an error ending; default null (Pass 1 Focus)
+- **Service fault / receive error:** Derived — last shot_index 1 + error → service fault; shot 2 + error → receive error
+- **winner_id:** winner/lucky → last-shot player; either error → opponent
+- **Removed:** point_end_type (forced/unforced/serviceFault/receiveError/winnerShot)
 
 ---
 
 ### 8. Shots
 
-Represents a single shot within a rally.
+Represents a single contact within a rally. Stores Rally Focus tags only.
 
 **File:** `app/src/data/entities/shots/shot.types.ts`
 
 ```typescript
-// Enums
-type ShotIntent = 'defensive' | 'neutral' | 'aggressive'
-type ShotResult = 'in_net' | 'missed_long' | 'missed_wide' | 'in_play' | 'fault'
-type ShotQuality = 'high' | 'average'
-type TablePosition = 'left' | 'mid' | 'right'
-type RallyEndRole = 'winner' | 'forced_error' | 'unforced_error' | 'none'
-type PressureLevel = 'low' | 'medium' | 'high'
-type IntentQuality = 'correct' | 'over_aggressive' | 'over_passive' | 'misread'
-type ServeSpinFamily = 'under' | 'top' | 'no_spin' | 'side'
-type ShotLength = 'short' | 'half_long' | 'long'
-type ServeType = 
-  | 'serve' 
-  | 'pendulum' 
-  | 'backhand' 
-  | 'reverse_tomahawk' 
-  | 'tomahawk' 
-  | 'hook' 
-  | 'lolipop'
-type ShotLabel = 'serve' | 'receive' | 'third_ball' | 'rally_shot'
-type ShotContactTiming = 'early' | 'peak' | 'late'
-type PlayerPosition = 'left' | 'middle' | 'right'
-type PlayerDistance = 'close' | 'mid' | 'far'
-type ShotSpeed = 'slow' | 'medium' | 'fast'
-type ShotArc = 'low' | 'medium' | 'high'
+type ShotSpin = 'under' | 'top' | 'side'
+type ShotWing = 'FH' | 'BH'
+type ShotStroke = 'flick' | 'loop' | 'drive' | 'smash' | 'lob' | 'block' | 'push' | 'chop'
+type ShotDepth = 'short' | 'half' | 'long'
+type ShotPlacement = 'BH' | 'middle' | 'FH'
+type ShotContact = 'over_table' | 'off_table'
+type ShotInitiative = 'behind' | 'level' | 'ahead'
+type ShotQuality = 'good' | 'normal' | 'poor'
 
 interface DBShot {
-  // ============================================================================
-  // IDENTITY & REFERENCES
-  // ============================================================================
-  
   id: string                        // Slug format: {rally_id}-sh{num}
-  rally_id: string                  // FK (slug)
-  video_id: string | null           // Which video segment is this shot in? (FK slug)
-  player_id: string                 // FK (slug)
-  
-  // ============================================================================
-  // POSITION & TIMING
-  // ============================================================================
-  
+  rally_id: string
+  video_id: string | null
+  player_id: string                 // Derived from server + shot_index, stored for filters
+
   shot_index: number                // 1-based within rally
-  timestamp_start: number           // Seconds into video_id video (SHOT CONTACT, not rally end)
-  timestamp_end: number | null      // Timestamp of next shot or rally end
-  
-  // ============================================================================
-  // SUBJECTIVE DATA (human judgment / interpretation)
-  // ============================================================================
-  
-  intent: ShotIntent | null
-  intent_quality: IntentQuality | null
-  pressure_level: PressureLevel | null
-  shot_quality: ShotQuality | null
-  
-  // Derived (computed from context)
-  rally_end_role: RallyEndRole
-  
-  // ============================================================================
-  // OBJECTIVE DATA (observable facts / deterministic derivation)
-  // ============================================================================
-  
-  serve_spin_family: ServeSpinFamily | null   // NULL for non-serves
-  serve_type: ServeType | null                // NULL for non-serves
-  shot_length: ShotLength | null              // NULL for rally shots beyond receive
-  shot_wing: 'FH' | 'BH' | null               // NULL for serves
-  shot_result: ShotResult                     // NOT NULL - defaults to 'in_play'
-  shot_origin: TablePosition | null           // Where player hits from
-  shot_target: TablePosition | null           // Intended target (even for errors)
-  shot_type: string | null                    // 'serve', 'fh_loop_vs_under', 'bh_flick', etc.
-  shot_contact_timing: ShotContactTiming | null
-  player_position: PlayerPosition | null
-  player_distance: PlayerDistance | null
-  shot_spin: string | null                    // 'heavy_topspin', 'topspin', 'no_spin', 'backspin', 'heavy_backspin'
-  shot_speed: ShotSpeed | null
-  shot_arc: ShotArc | null
-  
-  // Derived (computed from context)
-  shot_label: ShotLabel                       // serve, receive, third_ball, rally_shot
-  is_rally_end: boolean
-  is_third_ball_attack: boolean
-  is_receive_attack: boolean
-  
-  // ============================================================================
-  // WORKFLOW
-  // ============================================================================
-  
-  is_tagged: boolean
+  timestamp_start: number           // Contact time in video seconds
+
+  // Choices — null until selected (or when the role does not ask)
+  shot_spin: ShotSpin | null             // Serve only
+  shot_wing: ShotWing | null
+  shot_stroke: ShotStroke | null         // Attack and shots after it (push/chop for Pass 1 Focus)
+  shot_placement: ShotPlacement | null   // Serve and balls before the attack
+  shot_depth: ShotDepth | null           // Serve and balls before the attack
+  shot_contact: ShotContact | null       // First attack only
+  shot_initiative: ShotInitiative | null // Reply / next while point continues
+  shot_quality: ShotQuality | null       // First attack only (legacy Rally Focus)
+
+  // Attribute toggles — default false, never null
+  shot_is_weak: boolean
+  shot_is_high: boolean
+  shot_is_heavy: boolean
+  shot_is_safe: boolean                  // First attack only (Pass 1 Focus); default false
+  shot_is_pivot: boolean                 // Crossed wing (Pass 1 Focus); default false
+  shot_review_kind: 'technical' | 'tactical' | null  // Pass 1 Focus review flag
 }
 ```
 
 **Notes:**
-- **Subjective vs Objective:** Clear separation of human judgment vs observable facts
-- **shot_type:** String for extensibility (allows any shot type, not enum-constrained)
-- **shot_result:** Defaults to `in_play`, only set to error/fault when rally ends
-- **Derived fields:** `shot_label`, `rally_end_role`, `is_rally_end`, `is_third_ball_attack`, `is_receive_attack` are computed from context
-- **Timestamps:** `timestamp_start` is the shot contact moment, `timestamp_end` is the next shot or rally end
+- **Phase is never stored.** Derive with `deriveShotPhase(shot_index, first_attack_index)`.
+- **Role allow-list** (`deriveShotTagRole` / `allowListForRole`) strips tags the shot's role may not keep. Serve and pre-offensive may set the three switches; first attack may set quality and contact; later shots get neither attributes nor quality.
+- **shot_is_safe:** Pass 1 Focus first-attack toggle; Rally Focus keeps `shot_quality` and leaves this false.
+- UI standing maps to `shot_initiative` on save.
+- Do not store `timestamp_end`, `is_rally_end`, or `is_first_attack`.
 
-**Shot Classification Logic:**
-- `shot_label` determined by position in rally (1st shot = serve, 2nd = receive, 3rd = third_ball, 4+ = rally_shot)
-- `rally_end_role` computed from shot result + context (was it the last shot? Did it win/lose the point?)
+**Removed (Dexie v5 clears shots + rallies):**
+`spin`, `wing`, `stroke`, `length`, `strength`, `placement`, `table_contact`, `attackable`, `initiative`, plus earlier Phase 1/2 columns.
 
 ---
 
-### 9. Shot Inferences
+### 9. Shot Inferences — REMOVED
 
-Tracks which shot fields were inferred by AI/ML vs manually entered.
-
-**File:** `app/src/data/entities/shotInferences/shotInference.types.ts`
-
-```typescript
-interface DBShotInference {
-  id: string                    // Slug format: {shot_id}-{field_name}-{id4}
-  shot_id: string               // FK to shots (slug)
-  field_name: string            // e.g., 'player_position', 'shot_speed', 'shot_type'
-  inferred: boolean             // true = AI inferred, false = manually verified
-  confidence: number | null     // NULL for now, populate later with ML (0.0 - 1.0)
-  created_at: string            // ISO timestamp
-}
-```
-
-**Notes:**
-- **Sparse strategy:** Only create rows for fields that were inferred
-- **Absence of row = manually entered** (100% confidence)
-- **Future ML integration:** Confidence scores will be populated when ML models are trained
-
-**Trackable inference fields:**
-- `shot_type`
-- `shot_contact_timing`
-- `player_position`
-- `player_distance`
-- `shot_spin`
-- `shot_speed`
-- `shot_arc`
-- `is_third_ball_attack`
-- `is_receive_attack`
-
-**NOT typically inferred:**
-- Subjective fields: `intent`, `intent_quality`, `pressure_level` (human judgment)
+The shot_inferences table and entity module were dropped in Dexie **version 4**.
+Phase 3 never wrote it for Rally Focus; first attack and initiative are tagged directly.
 
 ---
 
@@ -545,7 +465,6 @@ Rallies
   └─> Shots (via rally_id)
 
 Shots
-  └─> ShotInferences (via shot_id)
 ```
 
 ---
@@ -561,20 +480,13 @@ Shots
 
 ### Bottom-Up Tagging (Video Analysis)
 
-#### Phase 1: Match Framework
-1. User marks timestamps for each shot contact
-2. System creates **Rallies** and **Shots** with timestamps
-3. System derives rally winners, scores, server alternation
+#### Rally Focus (primary)
+1. User tags contacts, first attack, shot pills, and point ending
+2. **Save** writes that rally + its shots in one transaction
+3. System derives phase, winner, scores, service fault / receive error class
+4. Analytics cards read the new fields (first-attack conversion, error-by-phase)
 
-#### Phase 2: Shot Detail Entry
-1. User reviews each shot one-by-one
-2. User answers questions: intent, quality, shot type, etc.
-3. System updates **Shots** with detailed attributes
-
-#### Phase 3: Inference & Analytics
-1. System runs inference engine on tagged shots
-2. System populates **ShotInferences** for derived fields
-3. System calculates analytics (serve %, error rates, etc.)
+Legacy Phase 1 / Phase 2 screens remain reachable for experiments but do not write the new shot columns.
 
 ### Validation & Reconciliation
 
@@ -622,11 +534,38 @@ CREATE INDEX idx_rallies_video ON rallies(video_id);
 CREATE INDEX idx_shots_rally ON shots(rally_id);
 CREATE INDEX idx_shots_player ON shots(player_id);
 CREATE INDEX idx_shots_video ON shots(video_id);
-CREATE INDEX idx_shots_intent ON shots(intent);
-CREATE INDEX idx_shots_result ON shots(shot_result);
+CREATE INDEX idx_shots_initiative ON shots(initiative);
+CREATE INDEX idx_shots_wing ON shots(wing);
 ```
 
 ---
+
+## Changelog
+
+### 2026-11-11 — Shot review flag (no Dexie bump)
+- `shot_review_kind`: `technical` | `tactical` | null. Technical review also stores wing + stroke even off the role allow-list
+
+### 2026-11-11 — Pass 1 Pivot + miss reasons (no Dexie bump)
+- Shot toggle `shot_is_pivot` (default false). With wing set, previous shot's `shot_placement` is inferred (same side if pivot off, opposite if on)
+- `point_miss_reason` is `technical` | `timing` | `footwork` | `positioning` | `misread` | `forced` | null (`tactical` removed)
+
+### 2026-11-11 — Pass 1 Focus additive fields (no Dexie bump)
+- `ShotStroke` adds `push` | `chop`
+- Shot toggle `shot_is_safe` (default false; first attack only for Pass 1 Focus)
+- `PointEnding` adds `error_wide`; rally `point_miss_reason` (`technical` | `timing` | `footwork` | `positioning` | `misread` | `forced` | null)
+- Rally Focus unchanged beyond writing defaults for the new fields
+
+### 2026-11-11 — Shot tag alignment (Dexie v5)
+- Renamed tags to `shot_*`; depth replaces length; contact is `over_table` / `off_table`
+- Attribute switches `shot_is_weak` / `shot_is_high` / `shot_is_heavy` (default false)
+- First-attack `shot_quality` (`good` | `normal` | `poor` | null); Strong / attackable / strength dropped
+- Role allow-list strips contradictory tags on save; upgrade clears shots and rallies
+
+### 2026-11-10 — Rally Focus schema pivot (Dexie v4)
+- Shots store Rally Focus tags (spin, wing, stroke, length, strength, placement, table_contact, attackable, initiative)
+- Rallies store first_attack_index and point_ending; drop point_end_type
+- Drop shot_inferences; clear old point rows on upgrade
+- Phase / service-fault / receive-error derived at read time
 
 ## Changelog
 

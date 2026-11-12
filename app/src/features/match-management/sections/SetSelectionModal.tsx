@@ -19,6 +19,8 @@ interface SetSelectionModalProps {
   player2Name: string
   player1Id: string
   player2Id: string
+  /** Tagger mode used by Start / Continue / Redo (default: pass1focus) */
+  taggingMode?: 'rallyfocus' | 'pass1focus'
   onClose: () => void
 }
 
@@ -29,6 +31,7 @@ export function SetSelectionModal({
   player2Name,
   player1Id,
   player2Id,
+  taggingMode = 'pass1focus',
   onClose,
 }: SetSelectionModalProps) {
   const navigate = useNavigate()
@@ -38,7 +41,7 @@ export function SetSelectionModal({
   const [setScoreForm, setSetScoreForm] = useState({ player1Score: 0, player2Score: 0 })
 
   const handleStartTagging = (setNumber: number) => {
-    navigate(`/matches/${matchId}/tag?set=${setNumber}`)
+    navigate(`/matches/${matchId}/tag?set=${setNumber}&mode=${taggingMode}`)
   }
 
   const handleRedoTagging = (setNumber: number, mode: 'full' | 'phase2_only' = 'full') => {
@@ -48,28 +51,11 @@ export function SetSelectionModal({
   }
 
   const confirmRedo = (setNumber: number) => {
-    if (redoMode === 'phase2_only') {
-      // Redo Phase 2 only - use phase2_only mode
-      navigate(`/matches/${matchId}/tag?set=${setNumber}&redo=phase2`)
-    } else {
-      // Full redo - use existing redo=true
-      navigate(`/matches/${matchId}/tag?set=${setNumber}&redo=true`)
-    }
+    navigate(`/matches/${matchId}/tag?set=${setNumber}&mode=${taggingMode}&redo=true`)
   }
 
-  const handleRunInference = async (set: DBSet) => {
-    try {
-      // Mark set as phase2_complete before navigating to Phase 3
-      await updateSet(set.id, {
-        tagging_phase: 'phase2_complete',
-      })
-      
-      // Navigate to Phase 3 inference view
-      navigate(`/matches/${matchId}/tag?set=${set.set_number}`)
-    } catch (error) {
-      console.error('Failed to start inference:', error)
-      alert('Failed to start inference. Please try again.')
-    }
+  const handleRunInference = async (_set: DBSet) => {
+    alert('Shot inference was removed. Use Rally Focus tagging instead.')
   }
 
   const handleEditSetScores = (setNumber: number, currentSet: DBSet) => {
@@ -323,13 +309,6 @@ export function SetSelectionModal({
                                 Tag Phase 1
                               </Button>
                               <Button
-                                onClick={() => navigate(`/matches/${matchId}/tag?set=${set.set_number}&mode=serves`)}
-                                variant="secondary"
-                                size="sm"
-                              >
-                                Tag Serves
-                              </Button>
-                              <Button
                                 onClick={() => handleEditSetScores(set.set_number, set)}
                                 variant="secondary"
                                 size="sm"
@@ -411,25 +390,11 @@ export function SetSelectionModal({
                             </>
                           )}
                           <Button
-                            onClick={() => navigate(`/matches/${matchId}/tag?set=${set.set_number}&mode=tagphase`)}
-                            variant="secondary"
-                            size="sm"
-                          >
-                            Tag Phase Test
-                          </Button>
-                          <Button
-                            onClick={() => navigate(`/matches/${matchId}/tag?set=${set.set_number}&mode=rallytimeline`)}
-                            variant="secondary"
-                            size="sm"
-                          >
-                            Rally Timeline
-                          </Button>
-                          <Button
                             onClick={() => navigate(`/matches/${matchId}/tag?set=${set.set_number}&mode=rallyfocus`)}
                             variant="secondary"
                             size="sm"
                           >
-                            Rally Focus
+                            Rally Focus (original)
                           </Button>
                         </div>
                       </div>

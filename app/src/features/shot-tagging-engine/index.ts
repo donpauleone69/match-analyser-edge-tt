@@ -1,36 +1,27 @@
 /**
- * Shot Tagging Engine
- * 
- * Sequential question-based interface for shot tagging.
- * One question at a time with auto-advance flow.
- * 
- * Architecture:
- * - layouts/ - PhaseLayoutTemplate for consistent 4-section layout
- * - sections/ - Reusable UI regions (video, status, rally list, user input)
- * - blocks/ - Presentational components (rally cards, shot items, controls)
- * - composers/ - Phase orchestrators (Phase1, Phase2, Phase3+)
+ * Shot Tagging Engine — Pass 1 Focus (default) and Rally Focus (test).
  */
 
 export { TaggingUIComposer } from './composers/TaggingUIComposer'
-export type { Phase1Rally } from './composers/Phase1TimestampComposer'
+export { Pass1FocusComposer } from './composers/Pass1FocusComposer'
+export { RallyFocusComposer } from './composers/RallyFocusComposer'
 
-// Exports for building custom phases
 export { PhaseLayoutTemplate, type PhaseLayoutTemplateProps } from './layouts'
-export { 
-  UserInputSection, 
-  VideoPlayerSection, 
-  StatusBarSection, 
+export {
+  UserInputSection,
+  VideoPlayerSection,
+  StatusBarSection,
   RallyListSection,
   type UserInputSectionProps,
   type VideoPlayerSectionProps,
   type StatusBarSectionProps,
-  type RallyListSectionProps
+  type RallyListSectionProps,
 } from './sections'
-export { 
-  RallyCard, 
-  ShotListItem, 
+export {
+  RallyCard,
+  ShotListItem,
   PlayerScoreDisplay,
   type RallyCardProps,
   type ShotListItemProps,
-  type PlayerScoreDisplayProps
+  type PlayerScoreDisplayProps,
 } from './blocks'

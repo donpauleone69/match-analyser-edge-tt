@@ -58,6 +58,8 @@ export function MatchListComposer() {
         matches={matches}
         isLoading={isLoading}
         onCreateNew={handleCreateNew}
+        players={players}
+        tournaments={tournaments}
         getPlayerName={getPlayerName}
         getTournamentName={getTournamentName}
         onRefresh={handleRefresh}

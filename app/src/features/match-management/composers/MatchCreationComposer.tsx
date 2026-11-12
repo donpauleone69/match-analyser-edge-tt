@@ -25,7 +25,7 @@ export function MatchCreationComposer() {
           Create Match
         </h1>
         <p className="text-neutral-400 mt-2 text-sm md:text-base">
-          Set up a new match between two players
+          Pick who you are tagging and start. Opponent can wait.
         </p>
       </div>
       

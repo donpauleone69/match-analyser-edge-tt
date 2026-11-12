@@ -1,8 +1,8 @@
 /**
- * ThirdBallCard
- * 
- * Analytics card for 3rd ball attack effectiveness metrics.
- * Shows 3rd ball success rate, winners, forced errors, and unforced errors.
+ * ThirdBallCard (First Attack)
+ *
+ * Server first-attack conversion: clean winners vs lucky vs attack errors.
+ * Forced-error term removed — Rally Focus does not tag forced vs unforced.
  */
 
 import type { AnalyticsFilterModel } from '@/rules/analytics'
@@ -21,26 +21,26 @@ export function ThirdBallCard({ filter }: ThirdBallCardProps) {
   if (loading) {
     return (
       <BasicInsightCardTemplate
-        title="3rd Ball Effectiveness"
+        title="First Attack"
         subtitle="How dangerous your first attack is"
         icon={<Zap className="h-5 w-5" />}
         primaryMetric={{
           value: '...',
-          label: '3rd Ball Success %',
-          description: '3rd Ball Won',
+          label: 'First Attack Success %',
+          description: 'First Attack Won',
           status: 'average',
         }}
         secondaryMetrics={[
-          { value: '...', label: 'Direct winners', description: 'of your 3rd ball attacks are unreturnable winners' },
-          { value: '...', label: 'Forced errors', description: 'of your 3rd ball attacks force opponent errors' },
-          { value: '...', label: 'Attack errors', description: 'of your 3rd ball attacks are unforced errors' },
+          { value: '...', label: 'Direct winners', description: 'of your first attacks are clean winners' },
+          { value: '...', label: 'Lucky', description: 'of your first attacks end as lucky points' },
+          { value: '...', label: 'Attack errors', description: 'of your first attacks end in an error' },
         ]}
         chart={
           <div className="flex items-center justify-center h-full text-neutral-500 text-sm">
             Loading...
           </div>
         }
-        insight="Loading 3rd ball effectiveness data..."
+        insight="Loading first-attack effectiveness data..."
         coaching=""
         footer="Loading..."
       />
@@ -51,13 +51,13 @@ export function ThirdBallCard({ filter }: ThirdBallCardProps) {
   if (error) {
     return (
       <BasicInsightCardTemplate
-        title="3rd Ball Effectiveness"
-        subtitle="How dangerous is your 3rd ball attack?"
+        title="First Attack"
+        subtitle="How dangerous is your first attack?"
         icon={<Zap className="h-5 w-5" />}
         primaryMetric={{
           value: 'Error',
-          label: '3rd Ball Success %',
-          description: '3rd Ball Won',
+          label: 'First Attack Success %',
+          description: 'First Attack Won',
           status: 'poor',
         }}
         secondaryMetrics={[]}
@@ -77,27 +77,27 @@ export function ThirdBallCard({ filter }: ThirdBallCardProps) {
   if (!data || data.metrics.thirdBallOpportunities === 0) {
     return (
       <BasicInsightCardTemplate
-        title="3rd Ball Effectiveness"
-        subtitle="How dangerous is your 3rd ball attack?"
+        title="First Attack"
+        subtitle="How dangerous is your first attack?"
         icon={<Zap className="h-5 w-5" />}
         primaryMetric={{
           value: 'N/A',
-          label: '3rd Ball Success %',
-          description: '3rd Ball Won',
+          label: 'First Attack Success %',
+          description: 'First Attack Won',
           status: 'average',
         }}
         secondaryMetrics={[
-          { value: 'N/A', label: 'Direct winners', description: 'of your 3rd ball attacks are unreturnable winners' },
-          { value: 'N/A', label: 'Forced errors', description: 'of your 3rd ball attacks force opponent errors' },
-          { value: 'N/A', label: 'Attack errors', description: 'of your 3rd ball attacks are unforced errors' },
+          { value: 'N/A', label: 'Direct winners', description: 'of your first attacks are clean winners' },
+          { value: 'N/A', label: 'Lucky', description: 'of your first attacks end as lucky points' },
+          { value: 'N/A', label: 'Attack errors', description: 'of your first attacks end in an error' },
         ]}
         chart={
           <div className="flex items-center justify-center h-full text-neutral-500 text-sm">
-            No 3rd ball data available
+            No first-attack data available
           </div>
         }
-        insight="No 3rd ball data available for the selected filters."
-        coaching="Adjust your filters or tag more matches to see 3rd ball effectiveness metrics."
+        insight="No first-attack data available for the selected filters."
+        coaching="Adjust your filters or tag more matches to see first-attack metrics."
         footer="No data"
       />
     )
@@ -107,40 +107,40 @@ export function ThirdBallCard({ filter }: ThirdBallCardProps) {
   const { metrics, status, insight, recommendation, footerText } = data
   const successPct = `${Math.round(metrics.thirdBallSuccessRate * 100)}%`
   const winnerPct = `${Math.round(metrics.thirdBallWinnerRate * 100)}%`
-  const forcedPct = `${Math.round(metrics.thirdBallForcedErrorRate * 100)}%`
+  const luckyPct = `${Math.round(metrics.thirdBallLuckyRate * 100)}%`
   const uePct = `${Math.round(metrics.thirdBallUnforcedErrorRate * 100)}%`
   
   return (
     <BasicInsightCardTemplate
-      title="3rd Ball Effectiveness"
-      subtitle="How dangerous is your 3rd ball attack?"
+      title="First Attack"
+      subtitle="How dangerous is your first attack?"
       icon={<Zap className="h-5 w-5" />}
       primaryMetric={{
         value: successPct,
-        label: '3rd Ball Success %',
-        description: '3rd Ball Won',
+        label: 'First Attack Success %',
+        description: 'First Attack Won',
         status,
       }}
       secondaryMetrics={[
         { 
           value: winnerPct, 
           label: 'Direct winners',
-          description: 'of your 3rd ball attacks are unreturnable winners'
+          description: 'of your first attacks are clean winners'
         },
         { 
-          value: forcedPct, 
-          label: 'Forced errors',
-          description: 'of your 3rd ball attacks force opponent errors'
+          value: luckyPct, 
+          label: 'Lucky',
+          description: 'of your first attacks end as lucky points'
         },
         { 
           value: uePct, 
           label: 'Attack errors',
-          description: 'of your 3rd ball attacks are unforced errors'
+          description: 'of your first attacks end in an error'
         },
       ]}
       chart={
         <div className="flex items-center justify-center h-full text-neutral-500 text-sm">
-          Chart placeholder: Success % by shot type
+          Chart placeholder: Success % by stroke
         </div>
       }
       insight={insight}
