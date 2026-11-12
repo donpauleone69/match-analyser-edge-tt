@@ -6,6 +6,21 @@
 
 ## Change Log
 
+### 2026-11-12: Shared video chrome + Pass 1 choice hug (v3.50.0)
+
+**Change Type:** UX — standardize match-video windows
+
+**What Changed:**
+- Pass 1 choice pills hug content again (wing / stroke / End / miss stay separate groups on one nowrap row); 12-slot FA/Rv rail still equal-width.
+- New shared `TransportCluster` + `VideoStageChrome` in `ui-mine`; Pass 1, Rally Focus, Rally Edit, Match Review modal, and Clips/reels all use the same seek / speed / play controls (overlay vs footer variants).
+- One speed ladder everywhere: `0.5 … 2×` (clips no longer cycles `0.25×`).
+- `VideoPlayer`: removed hardcoded “Shot View” badge; `allowVideoChange` gates Change; hotkeys scoped to the active player; playback speed resets on mount/unmount so clips slow-mo cannot leak into tagging.
+- Deleted unused `VideoControlsBar`, `PhaseLayoutTemplate`, SpeedControls / SpeedSettings kit, and dead section wrappers.
+
+**Rationale:** Less clutter and one control language across tagging, review, and clips.
+
+---
+
 ### 2026-11-12: Pass 1 density, video chrome, review shell (v3.49.0)
 
 **Change Type:** UX — tagging density + shared video chrome + library nav

@@ -1,10 +1,3 @@
 /**
- * Layout templates for tagging phases
+ * Tagging layouts — PhaseLayoutTemplate removed; composers use full-viewport stacks.
  */
-
-export { PhaseLayoutTemplate, type PhaseLayoutTemplateProps } from './PhaseLayoutTemplate'
-
-
-
-
-

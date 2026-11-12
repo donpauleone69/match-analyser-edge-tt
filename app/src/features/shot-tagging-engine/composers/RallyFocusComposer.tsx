@@ -10,8 +10,15 @@ import { useNavigate } from 'react-router-dom'
 import { cn } from '@/helpers/utils'
 import { RallyFocusBlock } from '../blocks'
 import { VideoPlayerSection } from '../sections'
-import { type VideoPlayerHandle, useVideoPlaybackStore } from '@/ui-mine/VideoPlayer'
-import { Button, Icon } from '@/ui-mine'
+import {
+  type VideoPlayerHandle,
+  useVideoPlaybackStore,
+  TransportCluster,
+  VideoStageChrome,
+  nudgePlaybackSpeed as nudgeSharedSpeed,
+  SEEK_STEP_SECONDS as SHARED_SEEK_STEP,
+} from '@/ui-mine/VideoPlayer'
+import { Button } from '@/ui-mine'
 import { calculateServer } from '@/rules'
 import { setDb } from '@/data'
 import { resolveSetVideo } from '@/data/services/videoAssetService'
@@ -34,10 +41,8 @@ import {
   clampSeekTime,
   CONTACT_IDLE_MS,
   LOOP_PAD_SECONDS,
-  PLAYBACK_SPEED_STEPS,
   CAPTURE_PLAYBACK_SPEED,
   NORMAL_PLAYBACK_SPEED,
-  SEEK_STEP_SECONDS,
   type RallyTimelineState,
   type PointEnding,
   type ShotChoiceKey,
@@ -433,14 +438,7 @@ export function RallyFocusComposer({
   }
 
   const nudgePlaybackSpeed = (direction: -1 | 1) => {
-    const steps = PLAYBACK_SPEED_STEPS
-    let idx = steps.findIndex((s) => s >= playbackSpeed - 0.001)
-    if (idx < 0) idx = steps.indexOf(1) >= 0 ? steps.indexOf(1) : 0
-    // If current is between steps, snap toward nearest then step
-    const exact = steps.findIndex((s) => Math.abs(s - playbackSpeed) < 0.001)
-    const from = exact >= 0 ? exact : idx
-    const next = Math.max(0, Math.min(steps.length - 1, from + direction))
-    setPlaybackSpeed(steps[next])
+    setPlaybackSpeed(nudgeSharedSpeed(playbackSpeed, direction))
   }
 
   const handleSeekBy = (deltaSeconds: number) => {
@@ -765,8 +763,6 @@ export function RallyFocusComposer({
     typeof overlayShot === 'number' && overlayShot > 0
       ? contactOverlayColor(overlayShot)
       : '#e5e7eb'
-  const speedLabel =
-    Number.isInteger(playbackSpeed) ? `${playbackSpeed}×` : `${playbackSpeed}×`
   return (
     <div
       className={cn(
@@ -774,15 +770,47 @@ export function RallyFocusComposer({
         className
       )}
     >
-      {/* Full-width 16:9 video */}
+      {/* Full-width 16:9 video — transport aligned with Pass 1 */}
       <div className="relative shrink-0 w-full bg-black overflow-hidden">
         <div className="relative w-full aspect-video">
-          <VideoPlayerSection
-            ref={videoPlayerRef}
-            videoUrl={videoUrl}
-            onVideoSelect={setVideoUrl}
-            constrainedPlayback={constrainedPlayback}
-          />
+          <VideoStageChrome
+            topLeft={
+              <>
+                <span className="rounded-md bg-black/70 px-2 py-1 text-[11px] font-bold tabular-nums text-white border border-white/20">
+                  {currentScore.player1}–{currentScore.player2}
+                </span>
+                <button
+                  type="button"
+                  title="Tap to switch server"
+                  aria-label={`Server ${serverName}. Tap to switch.`}
+                  onClick={handleToggleServer}
+                  className="tag-control tag-control-active max-w-[5.5rem] truncate bg-black/70 text-white border-white/25"
+                >
+                  Srv {serverName}
+                </button>
+              </>
+            }
+            bottomOverlay={
+              videoUrl ? (
+                <TransportCluster
+                  variant="overlay"
+                  isPlaying={isPlaying}
+                  playbackSpeed={playbackSpeed}
+                  seekStepSeconds={SHARED_SEEK_STEP}
+                  onTogglePlay={() => videoPlayerRef.current?.togglePlay()}
+                  onSeekBy={handleSeekBy}
+                  onNudgeSpeed={nudgePlaybackSpeed}
+                />
+              ) : null
+            }
+          >
+            <VideoPlayerSection
+              ref={videoPlayerRef}
+              videoUrl={videoUrl}
+              onVideoSelect={setVideoUrl}
+              constrainedPlayback={constrainedPlayback}
+            />
+          </VideoStageChrome>
           {showContactOverlay && typeof overlayShot === 'number' && (
             <div
               className={cn(
@@ -808,57 +836,6 @@ export function RallyFocusComposer({
                 {overlayShot}
               </span>
             </div>
-          )}
-          {videoUrl && (
-            <>
-              <div className="absolute bottom-3 left-3 z-30 flex items-center gap-1.5">
-                <button
-                  type="button"
-                  aria-label={`Rewind ${SEEK_STEP_SECONDS} seconds`}
-                  onClick={() => handleSeekBy(-SEEK_STEP_SECONDS)}
-                  className="h-10 w-10 rounded-full bg-black/70 text-white flex items-center justify-center border border-white/25"
-                >
-                  <Icon name="skip-back" className="w-5 h-5" />
-                </button>
-                <button
-                  type="button"
-                  aria-label={`Forward ${SEEK_STEP_SECONDS} seconds`}
-                  onClick={() => handleSeekBy(SEEK_STEP_SECONDS)}
-                  className="h-10 w-10 rounded-full bg-black/70 text-white flex items-center justify-center border border-white/25"
-                >
-                  <Icon name="skip-forward" className="w-5 h-5" />
-                </button>
-                <button
-                  type="button"
-                  aria-label="Slower"
-                  onClick={() => nudgePlaybackSpeed(-1)}
-                  disabled={playbackSpeed <= PLAYBACK_SPEED_STEPS[0]}
-                  className="h-10 w-10 rounded-full bg-black/70 text-white flex items-center justify-center border border-white/25 disabled:opacity-40"
-                >
-                  <Icon name="minus" className="w-5 h-5" />
-                </button>
-                <span className="min-w-[2.75rem] text-center text-[12px] font-bold text-white tabular-nums bg-black/70 rounded-md px-1.5 py-1 border border-white/20">
-                  {speedLabel}
-                </span>
-                <button
-                  type="button"
-                  aria-label="Faster"
-                  onClick={() => nudgePlaybackSpeed(1)}
-                  disabled={playbackSpeed >= PLAYBACK_SPEED_STEPS[PLAYBACK_SPEED_STEPS.length - 1]}
-                  className="h-10 w-10 rounded-full bg-black/70 text-white flex items-center justify-center border border-white/25 disabled:opacity-40"
-                >
-                  <Icon name="plus" className="w-5 h-5" />
-                </button>
-              </div>
-              <button
-                type="button"
-                aria-label={isPlaying ? 'Pause' : 'Play'}
-                onClick={() => videoPlayerRef.current?.togglePlay()}
-                className="absolute bottom-3 right-3 z-30 h-12 w-12 rounded-full bg-black/70 text-white flex items-center justify-center border border-white/25"
-              >
-                <Icon name={isPlaying ? 'pause' : 'play'} className="w-6 h-6" />
-              </button>
-            </>
           )}
         </div>
       </div>

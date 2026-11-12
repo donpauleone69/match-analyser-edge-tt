@@ -28,11 +28,25 @@ export { LandingZoneGrid, ZONE_LABELS, ZONE_SHORT_LABELS, type LandingZoneGridPr
 export { PositionGrid, POSITION_LABELS, POSITION_SHORT_LABELS, type PositionGridProps } from './PositionGrid'
 
 // Video components
-export { SpeedControls, TAGGING_SPEEDS, FF_SPEEDS, formatSpeed, type SpeedControlsProps } from './SpeedControls'
-export { VideoPlayer } from './VideoPlayer'
-export type { VideoPlayerHandle, ConstrainedPlayback } from './VideoPlayer'
-export { SpeedSettingsModal, type SpeedSettingsModalProps } from './SpeedSettingsModal'
-export { SpeedSettingsButton, type SpeedSettingsButtonProps } from './SpeedSettingsButton'
+export {
+  VideoPlayer,
+  TransportCluster,
+  VideoStageChrome,
+  MATCH_PLAYBACK_SPEED_STEPS,
+  DEFAULT_PLAYBACK_SPEED,
+  SEEK_STEP_SECONDS,
+  formatPlaybackSpeed,
+  nudgePlaybackSpeed,
+  canNudgePlaybackSpeed,
+  useVideoPlaybackStore,
+} from './VideoPlayer'
+export type {
+  VideoPlayerHandle,
+  ConstrainedPlayback,
+  TransportClusterProps,
+  TransportVariant,
+  VideoStageChromeProps,
+} from './VideoPlayer'
 
 // Table Tennis Buttons (for shot-tagging-engine)
 export * from './TableTennisButtons'

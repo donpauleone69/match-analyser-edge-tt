@@ -21,7 +21,6 @@ import {
   REPLY_STROKE_OPTIONS,
   END_STROKE_OPTIONS,
   WING_OPTIONS,
-  contactOverlayColor,
   phaseAt,
   visibleShotNumbers,
   playerForShot,
@@ -147,7 +146,7 @@ function ChoiceRow({ label, children }: { label: string; children: ReactNode }) 
         {label}
       </div>
       <div
-        className="flex items-center flex-nowrap w-full min-w-0"
+        className="flex items-center flex-nowrap min-w-0"
         style={{ gap: 'var(--control-gap)' }}
       >
         {children}
@@ -173,36 +172,46 @@ function ShotTypeRow({
 }) {
   return (
     <ChoiceRow label="Shot">
-      <div className="flex w-full min-w-0 flex-nowrap items-center" style={{ gap: 'var(--control-gap)' }}>
-        {[...WING_OPTIONS].reverse().map((v) => (
-          <TimelinePill
-            key={v}
-            kind="wing"
-            label={v}
-            selected={shot.wing === v}
-            onClick={() => onToggleShotChoice(n, 'wing', v)}
-            className="flex-1"
-          />
-        ))}
-        {showPivot && (
-          <TimelinePill
-            kind="wing"
-            label="Pivot"
-            selected={shot.isPivot}
-            onClick={() => onToggleAttribute(n, 'isPivot')}
-            className="flex-1"
-          />
-        )}
-        {strokes.map((v) => (
-          <TimelinePill
-            key={v}
-            kind="stroke"
-            label={v}
-            selected={shot.stroke === v}
-            onClick={() => onToggleShotChoice(n, 'stroke', v)}
-            className="flex-1"
-          />
-        ))}
+      <div
+        className="flex min-w-0 flex-nowrap items-center"
+        style={{ gap: 'var(--control-gap)' }}
+      >
+        <div
+          className="flex shrink-0 flex-nowrap items-center"
+          style={{ gap: 'var(--control-gap)' }}
+        >
+          {[...WING_OPTIONS].reverse().map((v) => (
+            <TimelinePill
+              key={v}
+              kind="wing"
+              label={v}
+              selected={shot.wing === v}
+              onClick={() => onToggleShotChoice(n, 'wing', v)}
+            />
+          ))}
+          {showPivot && (
+            <TimelinePill
+              kind="wing"
+              label="Pivot"
+              selected={shot.isPivot}
+              onClick={() => onToggleAttribute(n, 'isPivot')}
+            />
+          )}
+        </div>
+        <div
+          className="flex shrink-0 flex-nowrap items-center"
+          style={{ gap: 'var(--control-gap)' }}
+        >
+          {strokes.map((v) => (
+            <TimelinePill
+              key={v}
+              kind="stroke"
+              label={v}
+              selected={shot.stroke === v}
+              onClick={() => onToggleShotChoice(n, 'stroke', v)}
+            />
+          ))}
+        </div>
       </div>
     </ChoiceRow>
   )
@@ -420,7 +429,6 @@ export function Pass1FocusBlock({
                       label="End"
                       selected={isEnd}
                       onClick={() => onMarkEnd(n)}
-                      className="flex-1"
                     />
                     {isEnd &&
                       ENDING_OPTIONS.map(({ value, label }) => (
@@ -436,7 +444,6 @@ export function Pass1FocusBlock({
                           label={label}
                           selected={state.ending === value}
                           onClick={() => onToggleEnding(value)}
-                          className="flex-1"
                         />
                       ))}
                   </ChoiceRow>
@@ -451,7 +458,6 @@ export function Pass1FocusBlock({
                         label={label}
                         selected={state.missReason === value}
                         onClick={() => onToggleMissReason(value)}
-                        className="flex-1"
                       />
                     ))}
                   </ChoiceRow>

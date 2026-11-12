@@ -6,7 +6,17 @@
  */
 
 import { forwardRef } from 'react'
-import { Button, Icon, VideoPlayer, type VideoPlayerHandle } from '@/ui-mine'
+import {
+  Button,
+  Icon,
+  VideoPlayer,
+  TransportCluster,
+  VideoStageChrome,
+  type VideoPlayerHandle,
+  useVideoPlaybackStore,
+  nudgePlaybackSpeed,
+  SEEK_STEP_SECONDS,
+} from '@/ui-mine'
 import type { RallyRowModel } from '../models'
 
 export interface RallyPlayerBlockProps {
@@ -47,8 +57,18 @@ export const RallyPlayerBlock = forwardRef<VideoPlayerHandle, RallyPlayerBlockPr
     },
     ref
   ) => {
+    const playbackSpeed = useVideoPlaybackStore((s) => s.playbackSpeed)
+    const setPlaybackSpeed = useVideoPlaybackStore((s) => s.setPlaybackSpeed)
     const ctl =
       'h-10 min-w-10 px-3 rounded-md border border-neutral-600 text-neutral-100 flex items-center justify-center gap-1.5 text-sm hover:border-neutral-400 disabled:opacity-40 disabled:pointer-events-none'
+
+    const handleSeekBy = (deltaSeconds: number) => {
+      if (!ref || typeof ref === 'function') return
+      const player = ref.current
+      if (!player) return
+      player.seek(player.getCurrentTime() + deltaSeconds)
+    }
+
     return (
       <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-2 md:p-6" role="dialog" aria-label="Rally player">
         <div className="w-full max-w-4xl bg-bg-card border border-neutral-700 rounded-xl overflow-hidden shadow-2xl">
@@ -78,15 +98,18 @@ export const RallyPlayerBlock = forwardRef<VideoPlayerHandle, RallyPlayerBlockPr
           </div>
 
           <div className="relative w-full aspect-video bg-black">
-            <VideoPlayer
-              ref={ref}
-              videoSrc={videoUrl ?? undefined}
-              onVideoSelect={onVideoSelect}
-              showTimeOverlay={false}
-              constrainedPlayback={
-                loop ? { enabled: true, startTime: loop.start, endTime: loop.end, loopOnEnd: true } : undefined
-              }
-            />
+            <VideoStageChrome>
+              <VideoPlayer
+                ref={ref}
+                videoSrc={videoUrl ?? undefined}
+                onVideoSelect={onVideoSelect}
+                allowVideoChange={!videoUrl}
+                showTimeOverlay
+                constrainedPlayback={
+                  loop ? { enabled: true, startTime: loop.start, endTime: loop.end, loopOnEnd: true } : undefined
+                }
+              />
+            </VideoStageChrome>
             {!videoUrl && (
               <p className="absolute bottom-3 inset-x-0 text-center text-xs text-neutral-400 pointer-events-none">
                 Video for Set {rally.setNumber} isn’t on this device yet — load it once and it’s remembered.
@@ -103,15 +126,26 @@ export const RallyPlayerBlock = forwardRef<VideoPlayerHandle, RallyPlayerBlockPr
             <button type="button" className={ctl} onClick={onPrev} disabled={position === 0} aria-label="Previous rally">
               <Icon name="chevron-left" size="sm" />
             </button>
-            <button type="button" className={ctl} onClick={onTogglePlay} disabled={!videoUrl} aria-label={isPlaying ? 'Pause' : 'Play'}>
-              <Icon name={isPlaying ? 'pause' : 'play'} size="sm" />
-            </button>
-            <button type="button" className={ctl} onClick={onReplay} disabled={!videoUrl || !loop}>
-              <Icon name="rotate-ccw" size="sm" /> Replay
-            </button>
-            <button type="button" className={ctl} onClick={onNext} disabled={position >= total - 1} aria-label="Next rally">
-              <Icon name="chevron-right" size="sm" />
-            </button>
+            <TransportCluster
+              variant="footer"
+              isPlaying={isPlaying}
+              playbackSpeed={playbackSpeed}
+              disabled={!videoUrl}
+              seekStepSeconds={SEEK_STEP_SECONDS}
+              onTogglePlay={onTogglePlay}
+              onSeekBy={handleSeekBy}
+              onNudgeSpeed={(dir) => setPlaybackSpeed(nudgePlaybackSpeed(playbackSpeed, dir))}
+              trailing={
+                <>
+                  <button type="button" className={ctl} onClick={onReplay} disabled={!videoUrl || !loop}>
+                    <Icon name="rotate-ccw" size="sm" /> Replay
+                  </button>
+                  <button type="button" className={ctl} onClick={onNext} disabled={position >= total - 1} aria-label="Next rally">
+                    <Icon name="chevron-right" size="sm" />
+                  </button>
+                </>
+              }
+            />
             <p className="text-xs text-neutral-400 flex-1 min-w-[12rem] truncate">{rally.summary}</p>
             <Button size="sm" variant="secondary" onClick={onEdit}>
               <Icon name="edit" size="sm" /> Edit tags

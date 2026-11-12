@@ -11,16 +11,9 @@ export {
   updatePersistedPass1FocusRally,
 } from './composers/persistPass1FocusRally'
 
-export { PhaseLayoutTemplate, type PhaseLayoutTemplateProps } from './layouts'
 export {
-  UserInputSection,
   VideoPlayerSection,
-  StatusBarSection,
-  RallyListSection,
-  type UserInputSectionProps,
   type VideoPlayerSectionProps,
-  type StatusBarSectionProps,
-  type RallyListSectionProps,
 } from './sections'
 export {
   RallyCard,

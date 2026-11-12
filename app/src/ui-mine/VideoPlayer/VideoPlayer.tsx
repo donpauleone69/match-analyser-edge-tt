@@ -1,6 +1,15 @@
-import { useRef, useEffect, useCallback, useState, forwardRef, useImperativeHandle } from 'react'
+import {
+  useRef,
+  useEffect,
+  useCallback,
+  useState,
+  forwardRef,
+  useImperativeHandle,
+  useId,
+} from 'react'
 import { Upload } from 'lucide-react'
 import { useVideoPlaybackStore } from './videoPlaybackStore'
+import { DEFAULT_PLAYBACK_SPEED } from './playbackSpeeds'
 import { cn, formatTime } from '@/helpers/utils'
 
 export interface ConstrainedPlayback {
@@ -19,47 +28,45 @@ export interface VideoPlayerHandle {
   getCurrentTime: () => number
 }
 
-export interface TaggingModeControls {
-  enabled: boolean
-  currentSpeedMode: 'normal' | 'tag' | 'ff'
-  speedPresets: { tag: number; ff: number }
-  canNavigateBack: boolean
-  canNavigateForward: boolean
-  canDelete: boolean
-  onShotBack: () => void
-  onShotForward: () => void
-  onDelete: () => void
-  onFrameStepBack: () => void
-  onFrameStepForward: () => void
-  shotDescription?: string  // NEW: Display current shot info (e.g., "Shot 3/12 - FH Loop")
-}
-
 interface VideoPlayerProps {
   videoSrc?: string
   onVideoSelect?: (url: string) => void
+  /** When false, hide the Change file control even if a video is loaded. Default: true when onVideoSelect is set. */
+  allowVideoChange?: boolean
   constrainedPlayback?: ConstrainedPlayback
   onConstrainedEnd?: () => void
   showTimeOverlay?: boolean
-  taggingMode?: TaggingModeControls
-  shotDescription?: string  // NEW: For Phase 2 - persistent shot label
+  /** Optional label for constrained playback (e.g. "Loop"). Omit to hide the badge. */
+  constrainedBadgeLabel?: string | null
+  shotDescription?: string
+  /** Window hotkeys (Space/k, arrows, j/l, f). Only the last-activated instance responds. Default true. */
+  enableHotkeys?: boolean
 }
+
+/** Only one VideoPlayer should own window hotkeys at a time. */
+let activeHotkeyOwner: string | null = null
 
 export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
   videoSrc,
   onVideoSelect,
+  allowVideoChange,
   constrainedPlayback,
   onConstrainedEnd,
   showTimeOverlay = false,
-  taggingMode,
+  constrainedBadgeLabel = null,
   shotDescription,
+  enableHotkeys = true,
 }, ref) => {
+  const instanceId = useId()
   const videoRef = useRef<HTMLVideoElement>(null)
+  const rootRef = useRef<HTMLDivElement>(null)
   const [localVideoUrl, setLocalVideoUrl] = useState<string | null>(null)
   const [isProcessingFile, setIsProcessingFile] = useState(false)
-  
-  // Use either the provided src or local selection
+  const [hotkeysActive, setHotkeysActive] = useState(false)
+
   const effectiveVideoSrc = videoSrc || localVideoUrl
-  
+  const canChangeVideo = allowVideoChange ?? Boolean(onVideoSelect)
+
   const {
     currentTime,
     duration,
@@ -68,13 +75,44 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
     setCurrentTime,
     setDuration,
     setIsPlaying,
+    setPlaybackSpeed,
   } = useVideoPlaybackStore()
 
-  // Handle file selection
+  // Isolate speed per mount so clips slow-mo does not leak into tagging.
+  useEffect(() => {
+    setPlaybackSpeed(DEFAULT_PLAYBACK_SPEED)
+    return () => {
+      setPlaybackSpeed(DEFAULT_PLAYBACK_SPEED)
+      if (activeHotkeyOwner === instanceId) {
+        activeHotkeyOwner = null
+      }
+    }
+  }, [instanceId, setPlaybackSpeed])
+
+  const claimHotkeys = useCallback(() => {
+    if (!enableHotkeys) return
+    activeHotkeyOwner = instanceId
+    setHotkeysActive(true)
+  }, [enableHotkeys, instanceId])
+
+  useEffect(() => {
+    if (!enableHotkeys) {
+      setHotkeysActive(false)
+      return
+    }
+    // First mounted player claims hotkeys until another is activated.
+    if (activeHotkeyOwner == null) {
+      claimHotkeys()
+    }
+    const sync = () => setHotkeysActive(activeHotkeyOwner === instanceId)
+    sync()
+    const id = window.setInterval(sync, 250)
+    return () => window.clearInterval(id)
+  }, [claimHotkeys, enableHotkeys, instanceId])
+
   const handleFileSelect = async (file: File) => {
     setIsProcessingFile(true)
-    
-    // Tagger routes (/matches/:matchId/tag?set=N): keep the file on this device as the set's video
+
     try {
       const urlParams = new URLSearchParams(window.location.search)
       const matchId = window.location.pathname.split('/')[2]
@@ -85,17 +123,13 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
       }
     } catch (error) {
       console.error('Failed to save video on this device:', error)
-      // Don't block - video will still work from blob URL
     }
-    
-    // Create blob URL immediately - video element will trigger onLoadedMetadata when ready
+
     const url = URL.createObjectURL(file)
     setLocalVideoUrl(url)
     onVideoSelect?.(url)
-    // Processing state will be cleared by handleLoadedMetadata
   }
 
-  // Cleanup local URL on unmount
   useEffect(() => {
     return () => {
       if (localVideoUrl) {
@@ -104,23 +138,20 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
     }
   }, [localVideoUrl])
 
-  // Sync playback speed with video
   useEffect(() => {
     const video = videoRef.current
     if (!video) return
     video.playbackRate = playbackSpeed
   }, [playbackSpeed])
 
-  // Constrained playback: loop or pause at endTime
-  // When looping, seek without pausing first — pause()+play() flickers Play/Pause UI
   useEffect(() => {
     if (!constrainedPlayback?.enabled) return
-    
+
     const video = videoRef.current
     if (!video || !isPlaying) return
-    
+
     const { startTime, endTime, loopOnEnd } = constrainedPlayback
-    
+
     if (currentTime >= endTime) {
       if (loopOnEnd) {
         video.currentTime = startTime
@@ -134,7 +165,6 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
     }
   }, [currentTime, isPlaying, constrainedPlayback, onConstrainedEnd])
 
-  // Video event handlers
   const handleTimeUpdate = useCallback(() => {
     const video = videoRef.current
     if (video) {
@@ -146,9 +176,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
     const video = videoRef.current
     if (video) {
       setDuration(video.duration)
-      // Sync store with element so Play/Pause label is not stale after navigation
       setIsPlaying(!video.paused)
-      // Clear processing state when video is ready
       setIsProcessingFile(false)
     }
   }, [setDuration, setIsPlaying])
@@ -158,30 +186,28 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
       setIsPlaying(true)
     }
   }, [isPlaying, setIsPlaying])
-  
+
   const handlePause = useCallback(() => {
     if (isPlaying) {
       setIsPlaying(false)
     }
   }, [isPlaying, setIsPlaying])
-  
+
   const handleError = useCallback((e: React.SyntheticEvent<HTMLVideoElement>) => {
     console.error('Video error:', e.currentTarget.error)
   }, [])
 
-  // Control functions
   const togglePlay = useCallback(() => {
     const video = videoRef.current
     if (!video) return
-    
-    // If constrained and at/past end, seek to start first
+
     if (constrainedPlayback?.enabled && video.paused) {
       const { startTime, endTime } = constrainedPlayback
       if (video.currentTime >= endTime || video.currentTime < startTime) {
         video.currentTime = startTime
       }
     }
-    
+
     if (video.paused) {
       video.play().catch(console.error)
     } else {
@@ -192,21 +218,20 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
   const stepFrame = useCallback((direction: 'forward' | 'backward', ignoreConstraints = false) => {
     const video = videoRef.current
     if (!video) return
-    
+
     video.pause()
-    
+
     const frameTime = 1 / 30
     const step = direction === 'forward' ? frameTime : -frameTime
     let newTime = video.currentTime + step
-    
-    // Respect constrained bounds only if not ignoring and constrained mode is enabled
+
     if (!ignoreConstraints && constrainedPlayback?.enabled) {
       const { startTime, endTime } = constrainedPlayback
       newTime = Math.max(startTime, Math.min(endTime, newTime))
     } else {
       newTime = Math.max(0, newTime)
     }
-    
+
     video.currentTime = newTime
     setCurrentTime(newTime)
   }, [setCurrentTime, constrainedPlayback])
@@ -227,21 +252,21 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
     return videoRef.current?.currentTime || 0
   }, [])
 
-  // Expose methods via ref
   useImperativeHandle(ref, () => ({
     play: () => videoRef.current?.play().catch(console.error),
     pause: () => videoRef.current?.pause(),
     togglePlay,
     seek,
-    stepFrame: (direction: 'forward' | 'backward', ignoreConstraints?: boolean) => 
+    stepFrame: (direction: 'forward' | 'backward', ignoreConstraints?: boolean) =>
       stepFrame(direction, ignoreConstraints),
     getCurrentTime,
   }), [togglePlay, seek, stepFrame, getCurrentTime])
 
-  // Keyboard shortcuts
   useEffect(() => {
+    if (!enableHotkeys || !hotkeysActive) return
+
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't intercept if typing in input fields
+      if (activeHotkeyOwner !== instanceId) return
       const target = e.target as HTMLElement
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return
 
@@ -291,9 +316,17 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [togglePlay, stepFrame, seek, currentTime, duration])
+  }, [
+    enableHotkeys,
+    hotkeysActive,
+    instanceId,
+    togglePlay,
+    stepFrame,
+    seek,
+    currentTime,
+    duration,
+  ])
 
-  // Calculate progress bar positions for constrained mode
   const getProgressBarStyle = () => {
     if (!constrainedPlayback?.enabled || duration <= 0) {
       return {
@@ -301,13 +334,13 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
         width: duration > 0 ? `${(currentTime / duration) * 100}%` : '0%',
       }
     }
-    
+
     const { startTime, endTime } = constrainedPlayback
     const startPercent = (startTime / duration) * 100
     const endPercent = (endTime / duration) * 100
     const currentPercent = (currentTime / duration) * 100
     const progressPercent = Math.min(currentPercent, endPercent)
-    
+
     return {
       constrainedStart: startPercent,
       constrainedEnd: endPercent,
@@ -318,11 +351,11 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
   const progressStyle = getProgressBarStyle()
 
   return (
-    <div className={cn(
-      "relative bg-bg-app w-full h-full overflow-hidden",
-      // Removed aspect ratio classes - container should control sizing
-    )}>
-      {/* Video Element */}
+    <div
+      ref={rootRef}
+      className={cn('relative bg-bg-app w-full h-full overflow-hidden')}
+      onPointerDown={claimHotkeys}
+    >
       {effectiveVideoSrc ? (
         <video
           ref={videoRef}
@@ -345,16 +378,10 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
               </div>
               <p className="text-brand-primary text-lg mt-4 font-medium">Processing video...</p>
               <p className="text-neutral-400 text-sm max-w-xs mx-auto">
-                📱 iOS transcoding video to MP4...
-                <br />
-                <span className="text-neutral-500">This happens locally - no upload!</span>
-                <br />
-                <span className="text-brand-primary text-xs mt-2 inline-block">
-                  💡 Tip: Use "Choose File" instead of "Photo Library" for instant loading
-                </span>
+                iOS may transcode to MP4 locally — no upload.
               </p>
             </div>
-          ) : (
+          ) : canChangeVideo ? (
             <div className="text-center space-y-4">
               <label className="cursor-pointer block">
                 <input
@@ -373,14 +400,15 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
               </label>
               <p className="text-neutral-500 text-sm">Supports MP4, MOV, WebM</p>
               <p className="text-neutral-600 text-xs max-w-xs mx-auto mt-2">
-                🔒 Videos stay on your device
+                Videos stay on your device
               </p>
             </div>
+          ) : (
+            <div className="text-center text-neutral-400 text-sm px-4">No video loaded</div>
           )}
         </div>
       )}
 
-      {/* Time Overlay */}
       {showTimeOverlay && effectiveVideoSrc && (
         <div className="absolute top-4 left-4 px-3 py-1.5 rounded-lg bg-black/90 text-white font-mono text-sm">
           {formatTime(currentTime)}
@@ -392,21 +420,18 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
         </div>
       )}
 
-      {/* Constrained mode indicator */}
-      {constrainedPlayback?.enabled && effectiveVideoSrc && (
+      {constrainedBadgeLabel && constrainedPlayback?.enabled && effectiveVideoSrc && (
         <div className="absolute top-4 right-16 px-2 py-1 rounded bg-brand-primary text-white text-xs font-medium">
-          Shot View
+          {constrainedBadgeLabel}
         </div>
       )}
 
-      {/* Shot Description Overlay - NEW */}
-      {(shotDescription || taggingMode?.shotDescription) && effectiveVideoSrc && (
+      {shotDescription && effectiveVideoSrc && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 px-4 py-2 rounded-lg bg-black/95 border border-neutral-600 text-white text-sm font-medium shadow-lg">
-          {shotDescription || taggingMode?.shotDescription}
+          {shotDescription}
         </div>
       )}
 
-      {/* Progress Bar Overlay - Always at bottom of video */}
       {effectiveVideoSrc && (
         <div className="absolute bottom-0 left-0 right-0 px-2 pb-2">
           <div
@@ -416,18 +441,16 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
               const percent = (e.clientX - rect.left) / rect.width
               if (duration > 0) {
                 let targetTime = percent * duration
-                
-                // Constrain click to bounds if in constrained mode
+
                 if (constrainedPlayback?.enabled) {
                   const { startTime, endTime } = constrainedPlayback
                   targetTime = Math.max(startTime, Math.min(endTime, targetTime))
                 }
-                
+
                 seek(targetTime)
               }
             }}
           >
-            {/* Constrained region highlight */}
             {constrainedPlayback?.enabled && 'constrainedStart' in progressStyle && (
               <div
                 className="absolute top-0 bottom-0 bg-brand-primary/30 rounded-full"
@@ -437,16 +460,14 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
                 }}
               />
             )}
-            
-            {/* Progress indicator */}
+
             <div
               className="h-full bg-white rounded-full transition-all absolute top-0 left-0"
               style={{
                 width: duration > 0 ? `${(currentTime / duration) * 100}%` : '0%',
               }}
             />
-            
-            {/* Constrained bounds markers */}
+
             {constrainedPlayback?.enabled && 'constrainedStart' in progressStyle && (
               <>
                 <div
@@ -463,8 +484,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
         </div>
       )}
 
-      {/* Re-select video button */}
-      {effectiveVideoSrc && (
+      {effectiveVideoSrc && canChangeVideo && (
         <label className="absolute top-4 right-4 cursor-pointer z-10">
           <input
             type="file"

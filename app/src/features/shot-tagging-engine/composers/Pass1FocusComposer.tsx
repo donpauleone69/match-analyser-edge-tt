@@ -10,8 +10,15 @@ import { useNavigate } from 'react-router-dom'
 import { cn } from '@/helpers/utils'
 import { Pass1FocusBlock } from '../blocks'
 import { VideoPlayerSection } from '../sections'
-import { type VideoPlayerHandle, useVideoPlaybackStore } from '@/ui-mine/VideoPlayer'
-import { Button, Icon } from '@/ui-mine'
+import {
+  type VideoPlayerHandle,
+  useVideoPlaybackStore,
+  TransportCluster,
+  VideoStageChrome,
+  nudgePlaybackSpeed as nudgeSharedSpeed,
+  SEEK_STEP_SECONDS as SHARED_SEEK_STEP,
+} from '@/ui-mine/VideoPlayer'
+import { Button } from '@/ui-mine'
 import { calculateServer } from '@/rules'
 import { setDb } from '@/data'
 import { resolveSetVideo } from '@/data/services/videoAssetService'
@@ -37,10 +44,8 @@ import {
   clampSeekTime,
   CONTACT_IDLE_MS,
   LOOP_PAD_SECONDS,
-  PLAYBACK_SPEED_STEPS,
   CAPTURE_PLAYBACK_SPEED,
   NORMAL_PLAYBACK_SPEED,
-  SEEK_STEP_SECONDS,
   type RallyTimelineState,
   type PointEnding,
   type PointMissReason,
@@ -443,14 +448,7 @@ export function Pass1FocusComposer({
   }
 
   const nudgePlaybackSpeed = (direction: -1 | 1) => {
-    const steps = PLAYBACK_SPEED_STEPS
-    let idx = steps.findIndex((s) => s >= playbackSpeed - 0.001)
-    if (idx < 0) idx = steps.indexOf(1) >= 0 ? steps.indexOf(1) : 0
-    // If current is between steps, snap toward nearest then step
-    const exact = steps.findIndex((s) => Math.abs(s - playbackSpeed) < 0.001)
-    const from = exact >= 0 ? exact : idx
-    const next = Math.max(0, Math.min(steps.length - 1, from + direction))
-    setPlaybackSpeed(steps[next])
+    setPlaybackSpeed(nudgeSharedSpeed(playbackSpeed, direction))
   }
 
   const handleSeekBy = (deltaSeconds: number) => {
@@ -782,8 +780,6 @@ export function Pass1FocusComposer({
     typeof overlayShot === 'number' && overlayShot > 0
       ? contactOverlayColor(overlayShot)
       : 'var(--color-neutral-200)'
-  const speedLabel =
-    Number.isInteger(playbackSpeed) ? `${playbackSpeed}×` : `${playbackSpeed}×`
   return (
     <div
       className={cn(
@@ -803,12 +799,41 @@ export function Pass1FocusComposer({
             }
           }}
         >
-          <VideoPlayerSection
-            ref={videoPlayerRef}
-            videoUrl={videoUrl}
-            onVideoSelect={setVideoUrl}
-            constrainedPlayback={constrainedPlayback}
-          />
+          <VideoStageChrome
+            topLeft={
+              <>
+                <span className="rounded-md bg-black/70 px-2 py-1 text-[11px] font-bold tabular-nums text-white border border-white/20">
+                  {currentScore.player1}–{currentScore.player2}
+                </span>
+                <ServerPill
+                  serverId={openServerId}
+                  player1Name={player1Name}
+                  player2Name={player2Name}
+                  onToggle={handleToggleServer}
+                />
+              </>
+            }
+            bottomOverlay={
+              videoUrl ? (
+                <TransportCluster
+                  variant="overlay"
+                  isPlaying={isPlaying}
+                  playbackSpeed={playbackSpeed}
+                  seekStepSeconds={SHARED_SEEK_STEP}
+                  onTogglePlay={() => videoPlayerRef.current?.togglePlay()}
+                  onSeekBy={handleSeekBy}
+                  onNudgeSpeed={nudgePlaybackSpeed}
+                />
+              ) : null
+            }
+          >
+            <VideoPlayerSection
+              ref={videoPlayerRef}
+              videoUrl={videoUrl}
+              onVideoSelect={setVideoUrl}
+              constrainedPlayback={constrainedPlayback}
+            />
+          </VideoStageChrome>
           {showContactOverlay && typeof overlayShot === 'number' && (
             <div
               role={phase === 'form' && overlayShot >= 2 ? 'button' : undefined}
@@ -853,70 +878,6 @@ export function Pass1FocusComposer({
               >
                 {overlayShot}
               </span>
-            </div>
-          )}
-          {/* Shared video chrome: score/server on top; transport on bottom */}
-          <div className="absolute top-2 left-2 right-2 z-30 flex items-center gap-1.5 pointer-events-none">
-            <span className="pointer-events-auto rounded-md bg-black/70 px-2 py-1 text-[11px] font-bold tabular-nums text-white border border-white/20">
-              {currentScore.player1}–{currentScore.player2}
-            </span>
-            <div className="pointer-events-auto">
-              <ServerPill
-                serverId={openServerId}
-                player1Name={player1Name}
-                player2Name={player2Name}
-                onToggle={handleToggleServer}
-              />
-            </div>
-          </div>
-          {videoUrl && (
-            <div className="absolute bottom-2 left-2 right-2 z-30 flex items-center gap-1">
-              <button
-                type="button"
-                aria-label={`Rewind ${SEEK_STEP_SECONDS} seconds`}
-                onClick={() => handleSeekBy(-SEEK_STEP_SECONDS)}
-                className="tag-control h-8 w-8 px-0 bg-black/70 text-white border-white/25"
-              >
-                <Icon name="skip-back" className="w-4 h-4" />
-              </button>
-              <button
-                type="button"
-                aria-label={`Forward ${SEEK_STEP_SECONDS} seconds`}
-                onClick={() => handleSeekBy(SEEK_STEP_SECONDS)}
-                className="tag-control h-8 w-8 px-0 bg-black/70 text-white border-white/25"
-              >
-                <Icon name="skip-forward" className="w-4 h-4" />
-              </button>
-              <button
-                type="button"
-                aria-label="Slower"
-                onClick={() => nudgePlaybackSpeed(-1)}
-                disabled={playbackSpeed <= PLAYBACK_SPEED_STEPS[0]}
-                className="tag-control h-8 w-8 px-0 bg-black/70 text-white border-white/25 disabled:opacity-40"
-              >
-                <Icon name="minus" className="w-4 h-4" />
-              </button>
-              <span className="min-w-[2.25rem] text-center text-[11px] font-bold text-white tabular-nums bg-black/70 rounded-md px-1.5 py-1 border border-white/20">
-                {speedLabel}
-              </span>
-              <button
-                type="button"
-                aria-label="Faster"
-                onClick={() => nudgePlaybackSpeed(1)}
-                disabled={playbackSpeed >= PLAYBACK_SPEED_STEPS[PLAYBACK_SPEED_STEPS.length - 1]}
-                className="tag-control h-8 w-8 px-0 bg-black/70 text-white border-white/25 disabled:opacity-40"
-              >
-                <Icon name="plus" className="w-4 h-4" />
-              </button>
-              <div className="flex-1" />
-              <button
-                type="button"
-                aria-label={isPlaying ? 'Pause' : 'Play'}
-                onClick={() => videoPlayerRef.current?.togglePlay()}
-                className="tag-control h-8 min-w-8 px-2 bg-brand-primary text-on-accent border-brand-primary"
-              >
-                <Icon name={isPlaying ? 'pause' : 'play'} className="w-4 h-4" />
-              </button>
             </div>
           )}
         </div>

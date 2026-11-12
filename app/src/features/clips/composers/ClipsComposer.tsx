@@ -30,7 +30,7 @@ import { useDeriveClipLibrary } from '../derive/useDeriveClipLibrary'
 import { buildClipRows, formatSeconds } from '../derive/buildClipLibrary'
 import { ClipPresetListBlock } from '../blocks/ClipPresetListBlock'
 import { ClipQueueBlock } from '../blocks/ClipQueueBlock'
-import { ClipStageBlock, nextClipRate } from '../blocks/ClipStageBlock'
+import { ClipStageBlock } from '../blocks/ClipStageBlock'
 import { ReelListBlock } from '../blocks/ReelListBlock'
 import {
   backUpReel,
@@ -76,8 +76,6 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
   const cloudUser = useCloudStore((s) => s.user)
   const playerRef = useRef<VideoPlayerHandle>(null)
   const isPlaying = useVideoPlaybackStore((s) => s.isPlaying)
-  const playbackSpeed = useVideoPlaybackStore((s) => s.playbackSpeed)
-  const setPlaybackSpeed = useVideoPlaybackStore((s) => s.setPlaybackSpeed)
 
   const [index, setIndex] = useState(0)
   const [autoAdvance, setAutoAdvance] = useState(true)
@@ -337,8 +335,6 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
               isPlaying={isPlaying}
               autoAdvance={false}
               missingMessage=""
-              playbackRate={playbackSpeed}
-              onCyclePlaybackRate={() => setPlaybackSpeed(nextClipRate(playbackSpeed))}
               onClipEnd={() => undefined}
               onTogglePlay={() => playerRef.current?.togglePlay()}
               onReplay={() => {
@@ -367,8 +363,6 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
               missingMessage={missingMessage}
               playbackMode={shotBased ? playbackMode : null}
               onPlaybackModeChange={shotBased ? setPlaybackMode : undefined}
-              playbackRate={playbackSpeed}
-              onCyclePlaybackRate={() => setPlaybackSpeed(nextClipRate(playbackSpeed))}
               onVideoSelect={handleVideoSelect}
               onClipEnd={handleClipEnd}
               onTogglePlay={() => playerRef.current?.togglePlay()}

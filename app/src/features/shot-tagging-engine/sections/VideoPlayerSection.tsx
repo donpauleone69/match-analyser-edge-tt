@@ -1,13 +1,6 @@
 /**
- * VideoPlayerSection - Standardized video player wrapper for all phases
- * 
- * Wraps the VideoPlayer component with consistent configuration:
- * - Phase 1: Basic video display with progress bar
- * - Phase 2: Constrained playback (loops current shot preview) with shot description
- * - Phase 3: Standard playback
- * 
- * All phases get compact mode and time overlay by default.
- * Video controls are now separate (see VideoControlsBar component).
+ * VideoPlayerSection — thin wrapper around shared VideoPlayer for tagging composers.
+ * Transport chrome lives in TransportCluster / VideoStageChrome beside this section.
  */
 
 import { forwardRef } from 'react'
@@ -19,6 +12,8 @@ export interface VideoPlayerSectionProps {
   constrainedPlayback?: ConstrainedPlayback
   showTimeOverlay?: boolean
   shotDescription?: string
+  allowVideoChange?: boolean
+  constrainedBadgeLabel?: string | null
 }
 
 export const VideoPlayerSection = forwardRef<VideoPlayerHandle, VideoPlayerSectionProps>(
@@ -27,15 +22,19 @@ export const VideoPlayerSection = forwardRef<VideoPlayerHandle, VideoPlayerSecti
     onVideoSelect, 
     constrainedPlayback, 
     showTimeOverlay = true,
-    shotDescription 
+    shotDescription,
+    allowVideoChange = true,
+    constrainedBadgeLabel = null,
   }, ref) => {
     return (
       <VideoPlayer
         ref={ref}
         videoSrc={videoUrl || undefined}
         onVideoSelect={onVideoSelect}
+        allowVideoChange={allowVideoChange}
         showTimeOverlay={showTimeOverlay}
         constrainedPlayback={constrainedPlayback}
+        constrainedBadgeLabel={constrainedBadgeLabel}
         shotDescription={shotDescription}
       />
     )

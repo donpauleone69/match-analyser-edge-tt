@@ -10,7 +10,14 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { cn } from '@/helpers/utils'
 import { Button, Icon } from '@/ui-mine'
-import { type VideoPlayerHandle, useVideoPlaybackStore } from '@/ui-mine/VideoPlayer'
+import {
+  type VideoPlayerHandle,
+  useVideoPlaybackStore,
+  TransportCluster,
+  VideoStageChrome,
+  nudgePlaybackSpeed as nudgeSharedSpeed,
+  SEEK_STEP_SECONDS as SHARED_SEEK_STEP,
+} from '@/ui-mine/VideoPlayer'
 import { matchDb, setDb, usePlayerStore, type DBMatch } from '@/data'
 import { resolveSetVideo } from '@/data/services/videoAssetService'
 import { resolveOpponentId, resolveOpponentName } from '@/helpers/themSide'
@@ -66,6 +73,8 @@ export function RallyEditComposer() {
   const videoUrl = useVideoPlaybackStore((s) => s.videoUrl)
   const setVideoUrl = useVideoPlaybackStore((s) => s.setVideoUrl)
   const isPlaying = useVideoPlaybackStore((s) => s.isPlaying)
+  const playbackSpeed = useVideoPlaybackStore((s) => s.playbackSpeed)
+  const setPlaybackSpeed = useVideoPlaybackStore((s) => s.setPlaybackSpeed)
   const videoPlayerRef = useRef<VideoPlayerHandle>(null)
 
   const [match, setMatch] = useState<DBMatch | null>(null)
@@ -296,26 +305,37 @@ export function RallyEditComposer() {
   const pillBtn =
     'h-8 px-2.5 text-xs font-semibold rounded-md border border-neutral-600 text-neutral-200 hover:border-neutral-400 disabled:opacity-40 disabled:pointer-events-none'
 
+  const handleSeekBy = (deltaSeconds: number) => {
+    const t = videoPlayerRef.current?.getCurrentTime() ?? 0
+    videoPlayerRef.current?.seek(t + deltaSeconds)
+  }
+
   return (
     <div className="fixed inset-0 flex flex-col bg-bg-surface overflow-hidden">
       <div className="relative shrink-0 w-full bg-black max-h-[45dvh] flex justify-center">
         <div className="relative w-full max-w-4xl aspect-video max-h-[45dvh]">
-          <VideoPlayerSection
-            ref={videoPlayerRef}
-            videoUrl={videoUrl}
-            onVideoSelect={setVideoUrl}
-            constrainedPlayback={constrainedPlayback}
-          />
-          {videoUrl && (
-            <button
-              type="button"
-              aria-label={isPlaying ? 'Pause' : 'Play'}
-              onClick={() => videoPlayerRef.current?.togglePlay()}
-              className="absolute bottom-3 right-3 z-30 h-11 w-11 rounded-full bg-black/70 text-white flex items-center justify-center border border-white/25"
-            >
-              <Icon name={isPlaying ? 'pause' : 'play'} className="w-5 h-5" />
-            </button>
-          )}
+          <VideoStageChrome
+            bottomOverlay={
+              videoUrl ? (
+                <TransportCluster
+                  variant="overlay"
+                  isPlaying={isPlaying}
+                  playbackSpeed={playbackSpeed}
+                  seekStepSeconds={SHARED_SEEK_STEP}
+                  onTogglePlay={() => videoPlayerRef.current?.togglePlay()}
+                  onSeekBy={handleSeekBy}
+                  onNudgeSpeed={(dir) => setPlaybackSpeed(nudgeSharedSpeed(playbackSpeed, dir))}
+                />
+              ) : null
+            }
+          >
+            <VideoPlayerSection
+              ref={videoPlayerRef}
+              videoUrl={videoUrl}
+              onVideoSelect={setVideoUrl}
+              constrainedPlayback={constrainedPlayback}
+            />
+          </VideoStageChrome>
         </div>
       </div>
 
