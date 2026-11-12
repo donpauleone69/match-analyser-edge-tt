@@ -6,6 +6,20 @@
 
 ## Change Log
 
+### 2026-11-12: One library navigation model (v3.43.0)
+
+**Change Type:** Navigation / shell IA
+
+**What Changed:**
+- Shell nav is Library, Matches, Training, Clips, Account & data. Clubs, Players, Tournaments, Analytics, and Data viewer are removed from the user path (old URLs redirect to Library).
+- Home is labeled Library and surfaces a Training entry that is explicitly not a match. `/training` is a gated stub for Slice F.
+- Match create remains thin (opponent optional, no tournament ceremony). Optional-FK rule/tests document that review opens without tournament or linked opponent.
+- Account gate no longer treats `/matches/create` as a match id.
+
+**Rationale:** Navigation should follow library → match → review (Work on + clips), with Training as a separate practice section, not an admin menu of entities.
+
+---
+
 ### 2026-11-12: Account and focal-player scope (v3.42.0)
 
 **Change Type:** Authentication gate + account preference model + library scope
@@ -6962,6 +6976,8 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v3.43.0 | 2026-11-12 | Library nav: Matches + Training stub; remove Clubs/Players/Tournaments/Analytics/Data viewer from path |
+| v3.42.0 | 2026-11-12 | Account gate + focal-player scope for library/review/tagging |
 | v3.41.0 | 2026-11-12 | Shared match color tokens; Pass 1 player/role/result scanability; Review + Clips semantic alignment |
 | v3.40.0 | 2026-11-12 | Match Details context: date (video lastModified / manual), opponent player link+create, tournament+round; list Details → Review |
 | v3.40.0 | 2026-11-12 | Match Details context: date (video lastModified / manual), opponent player pick/create, tournament+round; create/list simplified |

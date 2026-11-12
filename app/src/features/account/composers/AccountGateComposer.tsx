@@ -15,7 +15,9 @@ export function AccountGateComposer({ children }: AccountGateComposerProps) {
   const navigate = useNavigate()
   const { configured, ready, user, profile } = useCloudStore()
   const [routeMatch, setRouteMatch] = useState<DBMatch | null | undefined>(undefined)
-  const matchId = location.pathname.match(/^\/matches\/([^/]+)/)?.[1] ?? null
+  const rawMatchSegment = location.pathname.match(/^\/matches\/([^/]+)/)?.[1] ?? null
+  const matchId =
+    rawMatchSegment && rawMatchSegment !== 'create' ? rawMatchSegment : null
   const scope = deriveAccountScope(profile, [])
 
   useEffect(() => {

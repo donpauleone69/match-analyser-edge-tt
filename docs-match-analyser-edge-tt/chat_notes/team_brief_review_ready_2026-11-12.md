@@ -309,17 +309,39 @@ The older menu outside tagging and last night’s review may be removed or repla
 - Creating and finding things follows that shape. The user is not sent through a ceremony of empty entities before they can tag.
 - Browser walk on all three viewports: open a match, tag, review, reach a clip, come back, without a wall of comparison cards or a detached admin page. The library has a Training entry that is visibly not a match. Slice F fills that entry.
 
-**UX bet.** _(before editing routes)_
+**Job confirmation (coordinator + scout).** Confirmed. Sidebar today: Home, Matches, Clips, Players, Tournaments, Clubs, Account & data + Analytics/Data viewer. Tagging + Match Review (summary/Work on/clips) stay. `tournament_id` and `player2_id` already optional on matches. Remove or archive shell destinations that are only old menu ceremony. Library gains a Training entry stub (not a match); F fills it. Keep AccountGate on library/review/tag. Slice E will add tournament/opponent/all scopes on the same review — C only needs match scope + honest optional links + Training stub. Auth browser walks may still be blocked by unresponsive Supabase (same as B); record that; do not invent a second login.
 
-**Test cases.** _(before code)_
-
-**Functional check.** Optional foreign keys stay optional. A test or a documented fixture shows a match with no tournament and an opponent that is only a label still opening review.
-
-**Touch.** Routes, app shell, match list, review entry. Remove pages the new flow replaces.
+**Touch.** `App.tsx` routes; `Sidebar` / shell; Home + match list entry; review entry unchanged in purpose; Training stub route/page under `features/training` (placeholder only); remove ungated admin pages from nav and routes when replaced; optional-FK fixture/test; brief “later” notes for federation/style/attributes.
 
 **Out of scope.** Building federation, style, and attribute products. Cross-match aggregation (Slice E). Video trim (Slice D). Replacing the Pass 1 tagger. The contents of Training (Slice F). Slice C only gives Training its own entry so it is not filed as a match.
 
-**Result / Critique.**
+**UX bet.** Sign in → Library (Home) lists the focal player’s matches and a Training entry that is clearly not a match. Open a match → same Match Review (Summary / Work on / Clips). From review, continue tagging on Pass 1, open a clip playlist, and return. New match asks only for opponent (optional) and goes straight to tagging — no tournament/club ceremony. Sidebar is only Library, Matches, Training, Clips, Account & data.
+
+**Test cases.**
+
+- **Functional:** a match with `tournament_id: null` and `player2_id: null` (opponent label only) is still considered openable for review; tournament/federation are not required.
+- **Functional:** Training is routed separately from `/matches` and is not classified as a match scope entry.
+- **Browser — Desktop 1440 × 900:** Library → open match → Review Summary → Work on → Clips → Tag → back. Expect no Clubs/Players/Tournaments/Analytics/Data viewer in the shell; Training visible and distinct.
+- **Browser — iPad 820 × 1180 / iPhone 390 × 844:** same path; shell/nav usable; tagging and review reachable.
+- **Browser fallback:** if account gate still blocks due to Supabase, verify shell/nav on the gate and that Training route is registered; record blocker.
+
+**Later (not built):** federation product; playing-style / attribute products; tournament and opponent as review scopes (Slice E).
+
+**Functional check.** Optional foreign keys stay optional. A test or a documented fixture shows a match with no tournament and an opponent that is only a label still opening review.
+
+**Result (builder — coordinator stepped in after Task builders aborted).**
+
+- Shell nav is Library · Matches · Training · Clips · Account & data. Clubs / Players / Tournaments / Analytics / Data viewer removed from the path (old URLs redirect to Library).
+- `/training` stub under `features/training` is gated and labeled “Not a match”; Home/Library surfaces Training as separate practice.
+- Optional-FK rule `canOpenMatchReview` + path helpers; Vitest 3/3. Account gate ignores `/matches/create` as a match id.
+- **Functional — PASS.**
+- **Browser — PARTIAL (Supabase still unresponsive):** Desktop/iPad/iPhone shell menu shows the five nav items including Training; `/training` reaches the account gate (not a match route); `/clubs` redirects to Library. Authenticated match → tag → review → clip walk blocked by the same account-service failure as Slice B.
+
+**Critique.**
+
+- **Keep:** Navigation matches the data story; tagging and review routes remain; Training is visibly not a match; optional links stay optional; old admin destinations are off the path.
+- **Change:** none for sign-off (full authenticated walk remains env-blocked, already recorded).
+- **Next:** Slice E scopes on this review; Slice F fills Training; restore live Supabase for end-to-end browser proof.
 
 ### D — Video stays linked, trimmable, archived, downloadable
 
@@ -401,6 +423,16 @@ The older menu outside tagging and last night’s review may be removed or repla
 - Tag `pre-team-brief-2026-11-12`: exists on that baseline commit
 - Excluded from baseline: `.env`, `tmp_patch_phase1.py`, `tmp_patch_phase2.py`
 
+## Session progress (coordinator live board)
+
+| Slice | Status | Commit / notes | Ownership lock |
+|--|--|--|--|
+| A | **Signed** | `992adaea8032d69ec14d654519f0501588b48252` — `slice A: readable shot list tokens` | clear |
+| B | **Built, awaiting critique** | Dirty tree on branch (account gate + focal scope). Vitest account scope 3/3. Browser post-sign-in blocked by cloud auth non-response; gate verified at three viewports. | lock while criticising / possible one rebuild — touch: `App.tsx`, `features/account/**`, `stores/cloudStore.ts`, `rules/derive/account/**`, home/match/clips scope derives, DataSchema + specAddendum |
+| C–F | Not started | — | clear |
+
+Regression gate before next build after B signs: run `themeTokens.test.ts` + `deriveAccountScope.test.ts`.
+
 ## Change list
 
 _(Coordinator, last. One row per signed commit. Deferred slices listed under the table with the reason and no hash.)_
@@ -414,17 +446,23 @@ _(Clicks, URL, what was removed from the old shell, what was deferred and why.)_
 ## Prompt to paste
 
 ```text
-You are the coordinator for Edge TT Match Analyser. Read and follow docs-match-analyser-edge-tt/chat_notes/team_brief_review_ready_2026-11-12.md. That file is the job. .cursorrules and DataSchema.md are the coding and data constraints.
+You are the coordinator for Edge TT Match Analyser. Read and follow docs-match-analyser-edge-tt/chat_notes/team_brief_review_ready_2026-11-12.md — that file is the job, including “How the team works” (structured multitask) and Session progress. .cursorrules and DataSchema.md are coding/data constraints (update them when the job requires it).
 
-Work on this PC, in this checkout, against http://localhost:5173/. One builder at a time. Do not multitask slices in parallel. Do not push and do not merge.
+Work on this PC, in this checkout, against http://localhost:5173/. Prefer Cursor multi mode. Do not push and do not merge.
 
-Before any feature edit: record HEAD in the brief, branch team/review-ready-2026-11-12, commit the already-accepted dirty review work as baseline: accepted review session 2026-11-12 (no .env, no tmp_patch scripts), then tag that commit pre-team-brief-2026-11-12.
+Resume — do not re-baseline. Branch team/review-ready-2026-11-12 is already created; baseline 540fb5b and tag pre-team-brief-2026-11-12 already exist; Slice A is signed at 992adae. Pick up at Slice B (implemented, dirty, awaiting critique / possible one rebuild), then C→F.
 
-For each slice A → F run the loop in the brief: think, plan, design (UX bet + test cases written first), implement, test (Vitest plus the same browser cases on desktop 1440×900, iPad 820×1180, and iPhone 390×844), critique with a fresh agent, repeat at most once. Then one commit for that signed slice only.
+Multitask rules (non-negotiable):
+- Exactly one builder may edit app code in this checkout at a time, unless two slices have disjoint Touch paths locked on both cards.
+- Parallelise freely: scouts; after code-freeze, Desktop 1440×900 / iPad 820×1180 / iPhone 390×844 browser agents; 1–2 fresh critique agents. Coordinator consolidates all returns into the slice card (one Result, one Keep/Change/Next). Critique agents should return text; coordinator writes the brief.
+- Before the next slice build, run the regression Vitest files for already-signed slices (Session progress). That is the toe-treading check.
+- Rebuild at most once per slice after critique Change. Then sign or defer. One commit per signed slice only (message starts with slice id). No .env, no tmp_patch_*.py. No --no-verify / force / reset / amend.
 
-You may choose the flow and the visual flavor inside a slice. You may remove or replace old shell pages and menus that are not the Pass 1 tagging screen and not last night’s review payoff (Work on, clips, player-voice summary). Keep the file structure and naming in .cursorrules. Stay on the current stack unless a slice cannot meet its done-when; record that before adding a dependency.
+Per slice loop: think → plan (touch + lock) → design (UX bet + tests on card first) → implement → code-freeze → Vitest + parallel browser walks → consolidate → parallel critiques → consolidate → one rebuild max → commit if signed.
 
-Training (slice F) is not a match. Shot-type posts are about ten clips compared across months. Combinations (prove with serve → open → drive) compare across time too. Do not file them under matches, tournaments, or opponents.
+You may choose flow and visual flavor inside a slice. You may remove or replace old shell pages/menus that are not Pass 1 tagging and not last night’s review payoff (Work on, clips, player-voice summary). Keep .cursorrules folder/naming. Stay on the current stack unless a slice cannot meet done-when; record that before adding a dependency.
 
-When A–F are each signed or deferred, fill the change list (hash, what the user will notice, how to revert that commit only, and how to return to the tag) and “Ready to look at”, then stop.
+Training (F) is not a match. Shot-type posts ≈ ten clips compared across months. Combinations (prove serve → open → drive) compare across time. Do not file training under matches, tournaments, or opponents.
+
+When A–F are each signed or deferred, fill Change list (hash, what the user will notice, how to revert that commit only, how to return to the tag) and Ready to look at, then stop.
 ```

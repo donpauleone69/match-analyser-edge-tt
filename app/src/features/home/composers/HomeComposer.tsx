@@ -53,23 +53,32 @@ export function HomeComposer() {
     <div className="max-w-4xl mx-auto p-4 md:p-6 space-y-5">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-neutral-50">Home</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-neutral-50">Library</h1>
+          <p className="text-sm text-neutral-400 mt-1">
+            Matches you review as this player. Training is separate practice, not a match.
+          </p>
           {home.totals.matches > 0 && (
-            <p className="text-sm text-neutral-400 mt-1">
+            <p className="text-sm text-neutral-500 mt-1">
               {home.totals.matches} matches · {home.totals.rallies} rallies tagged
             </p>
           )}
         </div>
-        <Button onClick={() => navigate('/matches/create')}>
-          <Icon name="plus" size="sm" /> New match
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="secondary" onClick={() => navigate('/training')}>
+            <Icon name="target" size="sm" /> Training
+          </Button>
+          <Button onClick={() => navigate('/matches/create')}>
+            <Icon name="plus" size="sm" /> New match
+          </Button>
+        </div>
       </header>
 
       {home.totals.matches === 0 ? (
         <section className="rounded-xl border border-dashed border-neutral-700 p-8 text-center space-y-3">
           <p className="text-neutral-200 font-medium">No matches yet</p>
           <p className="text-sm text-neutral-400">
-            Create a match, load the video and tap each contact. Review, insights and clips build from your tags.
+            Create a match (opponent optional, no tournament required), load the video and tap each contact.
+            Review, Work on and clips build from your tags.
           </p>
           <div className="flex justify-center gap-2">
             <Button onClick={() => navigate('/matches/create')}>

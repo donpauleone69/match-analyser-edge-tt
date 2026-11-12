@@ -17,7 +17,7 @@ export function AppShell() {
           {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
         </button>
         <span className="ml-3 text-xl font-bold text-brand-primary">
-          TT Tagger
+          Edge TT
         </span>
       </div>
 

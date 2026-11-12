@@ -1,21 +1,16 @@
 import { useEffect } from 'react'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AppShell } from './components/layout'
 import { db } from '@/data'
 import { HomePage } from './pages/Home'
-import { Clubs } from './pages/Clubs'
 import MatchesPage from './pages/Matches'
-import TournamentsPage from './pages/Tournaments'
-import PlayersPage from './pages/Players'
 import MatchCreatePage from './pages/MatchCreate'
 import MatchReviewPage from './pages/MatchReview'
 import { ShotTaggingEngine } from './pages/ShotTaggingEngine'
 import { RallyEdit } from './pages/RallyEdit'
 import { Settings } from './pages/Settings'
-import { DataViewer } from './pages/DataViewer'
-import { DataViewerAudit } from './pages/DataViewerAudit'
-import { AnalyticsPage } from './pages/Analytics'
 import { ClipsPage } from './pages/Clips'
+import { TrainingPage } from './pages/Training'
 import { useCloudStore } from './stores/cloudStore'
 import { AccountGateComposer } from '@/features/account'
 
@@ -34,20 +29,22 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Main app with sidebar */}
+        {/* Library shell: match review payoff + Training stub */}
         <Route element={<AppShell />}>
           <Route path="/" element={<AccountGateComposer><HomePage /></AccountGateComposer>} />
-          <Route path="/clubs" element={<Clubs />} />
-          <Route path="/tournaments" element={<TournamentsPage />} />
-          <Route path="/players" element={<PlayersPage />} />
           <Route path="/matches" element={<AccountGateComposer><MatchesPage /></AccountGateComposer>} />
           <Route path="/matches/create" element={<AccountGateComposer><MatchCreatePage /></AccountGateComposer>} />
           <Route path="/matches/:id" element={<AccountGateComposer><MatchReviewPage /></AccountGateComposer>} />
+          <Route path="/training" element={<AccountGateComposer><TrainingPage /></AccountGateComposer>} />
           <Route path="/clips" element={<AccountGateComposer><ClipsPage /></AccountGateComposer>} />
-          <Route path="/analytics" element={<AnalyticsPage />} />
-          <Route path="/data-viewer" element={<DataViewer />} />
-          <Route path="/data-viewer/audit" element={<DataViewerAudit />} />
           <Route path="/settings" element={<Settings />} />
+          {/* Old shell destinations removed from the path */}
+          <Route path="/clubs" element={<Navigate to="/" replace />} />
+          <Route path="/tournaments" element={<Navigate to="/" replace />} />
+          <Route path="/players" element={<Navigate to="/" replace />} />
+          <Route path="/analytics" element={<Navigate to="/" replace />} />
+          <Route path="/data-viewer" element={<Navigate to="/" replace />} />
+          <Route path="/data-viewer/audit" element={<Navigate to="/" replace />} />
         </Route>
         
         {/* Shot tagging engine - full-screen tagging interface */}
