@@ -127,11 +127,11 @@ function TimelinePill({
       )}
       style={
         selected
-          ? { backgroundColor: color, borderColor: color, color: 'var(--color-neutral-50)' }
+          ? { backgroundColor: color, borderColor: color, color: 'var(--color-neutral-950)' }
           : {
-              backgroundColor: 'transparent',
-              borderColor: 'var(--color-neutral-600)',
-              color: 'var(--color-neutral-300)',
+              backgroundColor: 'var(--color-pill-idle)',
+              borderColor: 'var(--color-pill-idle-border)',
+              color: 'var(--color-pill-idle-text)',
             }
       }
     >
@@ -696,25 +696,25 @@ function ShotRow({
             {roleLabel && (
               <span
                 className={cn(
-                  'inline-flex items-center h-[18px] px-1.5 rounded-full text-[9px] font-bold tracking-wide uppercase',
-                  roleTone === 'serve' && 'bg-shot-serve text-neutral-950',
-                  roleTone === 'receive' && 'bg-shot-receive text-neutral-950',
-                  roleTone === 'attack' && 'bg-shot-first-attack text-neutral-950',
-                  roleTone === 'winner' && 'bg-result-winner text-neutral-950',
-                  roleTone === 'error' && 'bg-result-error text-neutral-950',
-                  roleTone === 'air' && 'bg-result-air text-neutral-950'
+                  'inline-flex items-center h-[18px] px-1.5 rounded-full text-[9px] font-bold tracking-wide uppercase text-neutral-50',
+                  roleTone === 'serve' && 'bg-shot-serve',
+                  roleTone === 'receive' && 'bg-shot-receive',
+                  roleTone === 'attack' && 'bg-shot-first-attack',
+                  roleTone === 'winner' && 'bg-result-winner',
+                  roleTone === 'error' && 'bg-result-error',
+                  roleTone === 'air' && 'bg-result-air'
                 )}
               >
                 {roleLabel}
               </span>
             )}
             {isFos && roleTone !== 'attack' && (
-              <span className="inline-flex items-center h-[18px] px-1.5 rounded-full bg-shot-first-attack text-neutral-950 text-[9px] font-bold tracking-wide uppercase">
+              <span className="inline-flex items-center h-[18px] px-1.5 rounded-full bg-shot-first-attack text-neutral-50 text-[9px] font-bold tracking-wide uppercase">
                 FOS
               </span>
             )}
             {flagged && (
-              <span className="inline-flex items-center h-[18px] px-1.5 rounded-full bg-review text-neutral-950 text-[9px] font-bold tracking-wide uppercase">
+              <span className="inline-flex items-center h-[18px] px-1.5 rounded-full bg-review text-neutral-50 text-[9px] font-bold tracking-wide uppercase">
                 Review
               </span>
             )}

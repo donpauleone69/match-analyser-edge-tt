@@ -15,18 +15,20 @@
 
   /* ----------------------------------------
      NEUTRAL / GRAYSCALE
+     Light-base remap: low steps are ink (text), high steps are paper
+     (chrome). Existing text-neutral-50 / bg-neutral-800 classes stay readable.
      ---------------------------------------- */
-  --color-neutral-950: #0a0a0a;
-  --color-neutral-900: #171717;
-  --color-neutral-850: #1a1a1a;
-  --color-neutral-800: #252525;
-  --color-neutral-700: #333333;
-  --color-neutral-600: #525252;
-  --color-neutral-500: #737373;
-  --color-neutral-400: #9ca3af;
-  --color-neutral-300: #d1d5db;
-  --color-neutral-100: #f3f4f6;
-  --color-neutral-50: #fafafa;
+  --color-neutral-950: #f8fafc;
+  --color-neutral-900: #f1f5f9;
+  --color-neutral-850: #e8edf3;
+  --color-neutral-800: #e2e8f0;
+  --color-neutral-700: #cbd5e1;
+  --color-neutral-600: #94a3b8;
+  --color-neutral-500: #64748b;
+  --color-neutral-400: #475569;
+  --color-neutral-300: #334155;
+  --color-neutral-100: #1e293b;
+  --color-neutral-50: #0f172a;
 
   /* ----------------------------------------
      SEMANTIC COLORS
@@ -43,48 +45,53 @@
   /* ----------------------------------------
      MATCH / TAGGING SEMANTICS
      One palette shared by Pass 1, review, and clips.
+     Pastel fills are opaque (no see-through pills).
      ---------------------------------------- */
-  --color-shot-serve: #f4c15d;
-  --color-shot-serve-bg: rgb(244 193 93 / 0.16);
-  --color-shot-receive: #67b7e8;
-  --color-shot-receive-bg: rgb(103 183 232 / 0.16);
-  --color-shot-first-attack: #2dd4a8;
-  --color-shot-first-attack-bg: rgb(45 212 168 / 0.18);
-  --color-result-winner: #4ade80;
-  --color-result-winner-bg: rgb(74 222 128 / 0.16);
-  --color-result-error: #fb7185;
-  --color-result-error-bg: rgb(251 113 133 / 0.16);
-  --color-result-air: #c084fc;
-  --color-result-air-bg: rgb(192 132 252 / 0.18);
-  --color-contact-live: #7dd3fc;
-  --color-contact-selected: #f8fafc;
-  --color-contact-selected-bg: rgb(248 250 252 / 0.12);
-  --color-review: #fbbf24;
-  --color-review-bg: rgb(251 191 36 / 0.16);
+  --color-shot-serve: #f6d98a;
+  --color-shot-serve-bg: #fff3d1;
+  --color-shot-receive: #8ec8ef;
+  --color-shot-receive-bg: #dff0fb;
+  --color-shot-first-attack: #7ed9bf;
+  --color-shot-first-attack-bg: #d9f5ec;
+  --color-result-winner: #86e0a8;
+  --color-result-winner-bg: #ddf7e7;
+  --color-result-error: #f5a3b0;
+  --color-result-error-bg: #fde4e9;
+  --color-result-air: #cbb0f5;
+  --color-result-air-bg: #eee4fc;
+  --color-contact-live: #38bdf8;
+  --color-contact-selected: #334155;
+  --color-contact-selected-bg: #e2e8f0;
+  --color-review: #f0c66a;
+  --color-review-bg: #fff0cc;
+  --color-pill-idle: #eef2f7;
+  --color-pill-idle-border: #cbd5e1;
+  --color-pill-idle-text: #475569;
 
   /* ----------------------------------------
      SHOT TYPE COLORS
      ---------------------------------------- */
-  --color-shot-defensive: #3b82f6;
-  --color-shot-neutral: #6b7280;
-  --color-shot-aggressive: #f97316;
+  --color-shot-defensive: #7eb6f0;
+  --color-shot-neutral: #94a3b8;
+  --color-shot-aggressive: #f0a57a;
 
   /* ----------------------------------------
      PLAYER COLORS (for turn indication)
+     Pastel opaque row washes — not dark translucent overlays.
      ---------------------------------------- */
-  --color-player-1: #3b82f6;           /* info blue */
-  --color-player-1-bg: rgb(59 130 246 / 0.12);
-  --color-player-2: #f97316;           /* aggressive orange */
-  --color-player-2-bg: rgb(249 115 22 / 0.12);
+  --color-player-1: #5b9bd8;
+  --color-player-1-bg: #d9eaf8;
+  --color-player-2: #e8a06a;
+  --color-player-2-bg: #f8e4d4;
 
   /* ----------------------------------------
-     BACKGROUND LAYERS (Elevation)
+     BACKGROUND LAYERS (Elevation) — light tagging preference
      ---------------------------------------- */
-  --color-bg-app: #0a0a0a;
-  --color-bg-shell: #171717;
-  --color-bg-surface: #1a1a1a;
-  --color-bg-card: #252525;
-  --color-bg-elevated: #333333;
+  --color-bg-app: #f4f6f9;
+  --color-bg-shell: #eef1f5;
+  --color-bg-surface: #ffffff;
+  --color-bg-card: #f8fafc;
+  --color-bg-elevated: #e8edf3;
 
   /* ----------------------------------------
      TYPOGRAPHY - Font Families
@@ -141,10 +148,10 @@
   /* ----------------------------------------
      SHADOWS
      ---------------------------------------- */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
-  --shadow-glow: 0 0 20px rgba(20, 184, 166, 0.3);
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.08);
+  --shadow-md: 0 4px 6px rgba(15, 23, 42, 0.1);
+  --shadow-lg: 0 10px 15px rgba(15, 23, 42, 0.12);
+  --shadow-glow: 0 0 20px rgba(20, 184, 166, 0.2);
 
   /* ----------------------------------------
      ANIMATION

@@ -20,6 +20,7 @@ describe('shared match color tokens', () => {
       '--color-player-2',
       '--color-player-2-bg',
       '--color-shot-serve',
+      '--color-shot-serve-bg',
       '--color-shot-receive',
       '--color-shot-first-attack',
       '--color-result-winner',
@@ -28,11 +29,46 @@ describe('shared match color tokens', () => {
       '--color-contact-live',
       '--color-contact-selected',
       '--color-review',
+      '--color-pill-idle',
+      '--color-pill-idle-border',
+      '--color-pill-idle-text',
     ]
 
     for (const token of required) {
       expect(css, `missing ${token}`).toContain(`${token}:`)
     }
+  })
+
+  it('keeps player and role fill tokens opaque (no alpha rgba)', () => {
+    const opaqueTokens = [
+      '--color-player-1-bg',
+      '--color-player-2-bg',
+      '--color-shot-serve',
+      '--color-shot-serve-bg',
+      '--color-shot-receive',
+      '--color-shot-receive-bg',
+      '--color-shot-first-attack',
+      '--color-result-winner',
+      '--color-result-error',
+      '--color-result-air',
+      '--color-pill-idle',
+      '--color-contact-selected-bg',
+    ]
+
+    for (const token of opaqueTokens) {
+      const match = css.match(new RegExp(`${token}:\\s*([^;]+);`))
+      expect(match, `missing ${token}`).toBeTruthy()
+      const value = match?.[1] ?? ''
+      expect(value, `${token} must be opaque`).not.toMatch(/\/\s*0?\.\d+/)
+      expect(value, `${token} must be opaque`).not.toMatch(/\brgba?\([^)]+,\s*0?\.\d+\s*\)/)
+    }
+  })
+
+  it('prefers a light app surface for tagging readability', () => {
+    const app = css.match(/--color-bg-app:\s*([^;]+);/)?.[1]?.trim() ?? ''
+    expect(app.toLowerCase()).toMatch(/^#[ef]/i)
+    const ink = css.match(/--color-neutral-50:\s*([^;]+);/)?.[1]?.trim() ?? ''
+    expect(ink.toLowerCase()).toMatch(/^#[0-3]/i)
   })
 
   it('keeps Pass 1 paint free of raw hex colors', () => {

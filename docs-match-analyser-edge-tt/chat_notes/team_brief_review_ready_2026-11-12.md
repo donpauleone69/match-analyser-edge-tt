@@ -455,6 +455,32 @@ The older menu outside tagging and last night’s review may be removed or repla
 | E | Signed | `e85f4b8` |
 | F | Signed | `01f9797` |
 
+### Follow-up 2026-11-12 (session worker) — access + A′ + authenticated UAT
+
+**Auth / LAN approach shipped:** Local device session (not a second product). Gate unlocks via **Continue on this device** (persisted `edge-tt-local-device-session`, user id `local-device`) reusing `AccountProfile` + `deriveAccountScope`. Cloud Supabase sign-in remains when reachable; sign-in/sign-up fail fast (4s) instead of hanging on LAN loopback rewrite to `:54321`. Vite already `server.host: true`. Empty Dexie seeds `Local Player` and auto-links on continue.
+
+**Phone URL:** `http://192.168.3.175:5173/` (PC IPv4 this session; confirm with `ipconfig`) → Account required → **Continue on this device** → library unlocked. Same button on `http://localhost:5173/`. Note: LAN origin has its own IndexedDB — empty library until create/import; that is expected, not a hang.
+
+**A′ visuals:** Light `@theme` base + remapped neutrals for ink-on-paper; pastel opaque player/role fills; idle pills use opaque `pill-idle`. Token architecture kept; `themeTokens` extended (opaque + light-surface invariants).
+
+**Regression Vitest:** themeTokens 5/5; deriveAccountScope 3/3; filterMatchesByScope 5/5; compareTrainingPosts 4/4; deriveClips (incl. trim) 17/17; canOpenMatchReview 3/3.
+
+**UAT matrix (local-session authenticated):**
+
+| Slice | Desktop 1440×900 | iPad 820×1180 | iPhone 390×844 | Notes |
+|--|--|--|--|--|
+| Access / LAN | PASS | PASS (viewport) | PASS (viewport) | LAN IP proved Continue → Library (empty Dexie OK) |
+| B | PASS | PASS | PASS | Continue → coach switch → select P O; library scoped; no shot rewrite (Vitest) |
+| C | PASS | PASS | PASS | Library→match→Summary→Work on→Clips→Tag/edit-rally; nav Library·Matches·Training·Clips·Account; Training distinct |
+| D | PASS (UI) | PASS (quick) | PASS (quick) | Video attached; Archive/Trim/Download present; trim map Vitest; did not re-encode archive in UAT |
+| E | PASS | PASS | PASS | Scope control; `/review?scope=all` lists 1 match; clips filtered by scope |
+| F | PARTIAL | PARTIAL | PARTIAL | Training UI shot-type + serve-open-drive forms; file-picker post not automated; Vitest compare PASS |
+| Pass1 A′ | PASS | PASS | PASS | Light pastel rows; SERVE/RECEIVE/FIRST ATTACK/REVIEW badges; no horizontal overflow |
+
+**Critique (self):** Keep local session + fail-fast cloud + light pastel opaque tokens. Change: none blocking. Next: human posts ~10 training clips on phone; optional expose Supabase on LAN if cloud sync wanted off-box.
+
+**Ownership lock:** cleared after UAT.
+
 ## Change list
 
 | Commit | Slice | What the user will notice | How to drop only this |
@@ -466,8 +492,10 @@ The older menu outside tagging and last night’s review may be removed or repla
 | `e85f4b83f235f06eaa5950fdd7cfab5a7a8863c6` | E | Scope control: this match / tournament / opponent / all of mine; `/review` | `git revert e85f4b8` |
 | `9a43b76b3d49bbd2bd69bb061dcfb9d6b8e4b714` | D′ | Archive requires cloud backup; trim start/end in source seconds | `git revert 9a43b76` (before dropping D core if removing all of D) |
 | `01f9797c123eb460ed32909139101efc55de1f3d` | F | Training posts (shot type + combination) with month compare | `git revert 01f9797` |
+| `950ea70b43af689f729dedeb99c1fde3954033f2` | Access | Continue on this device unlocks library on localhost and LAN without hanging Supabase | `git revert 950ea70` |
+| _(pending A′)_ | A′ | Light pastel opaque tagging tokens | _(filled after commit)_ |
 
-Deferred: none (all A–F signed). Browser end-to-end after sign-in was blocked by unresponsive Supabase on this machine; gates and Vitest cover the models. Final regression 35/35.
+Deferred: none (all A–F signed). Follow-up access + A′ completed authenticated UAT (Training clip file-picker partial).
 
 Also state:
 
@@ -477,11 +505,12 @@ Also state:
 
 ## Ready to look at
 
-1. Open `http://localhost:5173/` on branch `team/review-ready-2026-11-12`.
-2. Sign in (Account required). If cloud auth is down, you will see the gate — fix Supabase session to walk further.
-3. After sign-in + player/coach setup: **Library** → open a match → Pass 1 colors → Review (Summary / Work on / Clips) → scope control → **Training** (not a match) → post/compare.
+1. Open `http://localhost:5173/` (or phone `http://<pc-ipv4>:5173/`) on branch `team/review-ready-2026-11-12`.
+2. Account required → click **Continue on this device** (or cloud sign-in if Supabase responds). Choose player/coach if prompted.
+3. **Library** → open a match → Pass 1 (light pastel / opaque pills) → Review (Summary / Work on / Clips) → scope control → **Training** (not a match) → post/compare.
 4. Removed from the shell path: Clubs, Players, Tournaments, Analytics, Data viewer (URLs redirect to Library).
 5. Tagging Pass 1 and last night’s review payoff (Work on, clips, player-voice summary) stay.
+6. Follow-up commits after A–F: local LAN access + A′ light pastel (see Change list).
 
 ---
 

@@ -6,6 +6,19 @@
 
 ## Change Log
 
+### 2026-11-12: Local device session + light pastel tagging (v3.47.0)
+
+**Change Type:** Auth access for LAN testing + theme tokens
+
+**What Changed:**
+- Added **Continue on this device** local session (`local-device` + `edge-tt-local-device-session`) that unlocks the account gate with the same `AccountProfile` / focal-player model. Cloud sign-in remains when Supabase responds; sign-in/sign-up time out instead of hanging.
+- Empty player lists can seed `Local Player` so phone/LAN first visits are not stuck.
+- Tagging / app `@theme` shifted to a light base with pastel opaque player and role fills; idle pills use opaque `pill-idle` tokens (no transparent see-through idle state). Extended `themeTokens` invariants.
+
+**Rationale:** Phone-on-LAN cannot reach Docker Supabase bound to loopback; testers asked to bypass cloud friction. Light pastel opaque paints make Pass 1 easier to scan than dark translucent washes.
+
+---
+
 ### 2026-11-12: Training posts compared over time (v3.46.0)
 
 **Change Type:** Training feature + schema
@@ -7017,6 +7030,7 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v3.47.0 | 2026-11-12 | Local device session for LAN; light pastel opaque tagging tokens |
 | v3.46.0 | 2026-11-12 | Training posts (shot type + combination) compared across months |
 | v3.45.0 | 2026-11-12 | Review scopes: match / tournament / opponent / all; scoped clips reuse |
 | v3.44.0 | 2026-11-12 | Trim/archive video assets with source-time map; clip Download via EDL |
