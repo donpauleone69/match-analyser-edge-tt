@@ -1,8 +1,9 @@
 /**
- * SimpleTaggingMatrixBlock — Phase 2.5 Pass 1 visual parity (MA-60).
+ * SimpleTaggingMatrixBlock — Phase 2.5 Pass 1 visual parity (MA-60) + MA-63 density.
  *
  * CNT columns + final RALLY column (None / ★). Row labels sit ABOVE each
  * matrix section (not sticky-left) so shot columns can scroll L→R freely.
+ * Shot # headers: number + colour/underline only (no FA/End captions).
  * Idle = pill-idle (Shot 1 Offensive non-pressed). Pressed + shot # + detail
  * use Pass 1 protocol colours. Rally|Shot lives on the video overlay (composer).
  */
@@ -195,7 +196,7 @@ function SectionLabel({
       type="button"
       onClick={onClick}
       className={cn(
-        'mb-0.5 text-left text-[8px] font-bold uppercase tracking-wide touch-manipulation',
+        'text-left text-[8px] font-bold uppercase tracking-wide leading-none touch-manipulation',
         active ? 'text-primary' : 'text-muted'
       )}
       aria-label={`${label} section`}
@@ -328,7 +329,7 @@ export function SimpleTaggingMatrixBlock({
     <div
       key={row.id}
       className={cn(
-        'space-y-0.5',
+        'space-y-px',
         activeRow === row.id && 'bg-white/[0.03] rounded-sm'
       )}
     >
@@ -397,14 +398,14 @@ export function SimpleTaggingMatrixBlock({
   return (
     <div className={cn('flex min-h-0 flex-1 flex-col', className)}>
       {/* Pinned matrix — section labels above; shot columns scroll L→R */}
-      <div className="shrink-0 px-1.5 pt-1 pb-1">
+      <div className="shrink-0 px-1.5 pt-0.5 pb-0.5">
         <div
           className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           role="group"
           aria-label="Simple tagging matrix"
         >
-          <div className="min-w-max space-y-1">
-            {/* Shot header L→R = Pass 1 shot rail colouring */}
+          <div className="min-w-max space-y-0.5">
+            {/* Shot header L→R = colour + live underline only (no FA/End captions) */}
             <div
               className="flex flex-nowrap items-end gap-[var(--control-gap)]"
               role="list"
@@ -429,7 +430,15 @@ export function SimpleTaggingMatrixBlock({
                       type="button"
                       aria-pressed={selected}
                       aria-current={active ? 'true' : undefined}
-                      title={`Select shot ${n}`}
+                      title={
+                        isFos && isEnd
+                          ? `Shot ${n} — first attack & end`
+                          : isFos
+                            ? `Shot ${n} — first attack`
+                            : isEnd
+                              ? `Shot ${n} — end`
+                              : `Select shot ${n}`
+                      }
                       onClick={() => handleSelectColumn(n)}
                       className={cn(
                         cellToggle,
@@ -463,19 +472,6 @@ export function SimpleTaggingMatrixBlock({
                       )}
                       aria-hidden
                     />
-                    <span
-                      className={cn(
-                        'min-h-[0.7rem] text-[7px] font-black uppercase leading-none tracking-wide',
-                        isFos || isEnd
-                          ? isFos
-                            ? 'text-shot-first-attack'
-                            : 'text-shot-end'
-                          : 'text-transparent'
-                      )}
-                      aria-hidden={!isFos && !isEnd}
-                    >
-                      {isFos && isEnd ? 'FA·E' : isFos ? 'FA' : isEnd ? 'End' : '·'}
-                    </span>
                   </div>
                 )
               })}
@@ -492,12 +488,6 @@ export function SimpleTaggingMatrixBlock({
                   aria-hidden
                 />
                 <span className="h-1 w-full shrink-0 bg-transparent" aria-hidden />
-                <span
-                  className="min-h-[0.7rem] text-[7px] font-black uppercase leading-none tracking-wide text-transparent"
-                  aria-hidden
-                >
-                  ·
-                </span>
               </div>
             </div>
 
@@ -505,13 +495,13 @@ export function SimpleTaggingMatrixBlock({
             <div
               role="group"
               aria-label="Offensive and End"
-              className="space-y-1"
+              className="space-y-0.5"
             >
               {LINEAR_ROWS.map((row) => renderRow(row))}
             </div>
 
             {/* Review apart — label above cells */}
-            <div role="group" aria-label="Review" className="pt-0.5">
+            <div role="group" aria-label="Review">
               {renderRow(REVIEW_ROW)}
             </div>
           </div>
