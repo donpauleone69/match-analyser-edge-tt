@@ -19,12 +19,13 @@ import {
   maybeApplyStoredVideoMatchDate,
   resolveSetVideo,
   retrieveAssetToDevice,
-  storeSetVideo,
+  storeSetVideoChecked,
   suggestedVideoMatchDate,
 } from '@/data/services/videoAssetService'
 import { videoAssetDb } from '@/data'
 import { exportTrimmedSetVideo } from '@/data/services/reelExportService'
 import { validateTrimWindow } from '@/rules/derive/clips/deriveClipEdl'
+import { findDuplicateMatches } from '@/rules/matchDuplicate'
 import { resolveOpponentId } from '@/helpers/themSide'
 import { downloadMatchBundle, pullMatch, pushMatch, uploadVideoAsset, type PushResult } from '@/data/cloud'
 
@@ -109,10 +110,22 @@ export async function saveSetVideoFromUrl(
   matchId: string,
   setNumber: number,
   pickedUrl: string
-): Promise<string> {
+): Promise<string | null> {
   const blob = await (await fetch(pickedUrl)).blob()
   const file = new File([blob], `${matchId}-${setNumber}.mp4`, { type: blob.type || 'video/mp4' })
-  await storeSetVideo(matchId, setNumber, file)
+  let result = await storeSetVideoChecked(matchId, setNumber, file)
+  if (result.status === 'duplicate') {
+    const first = result.hits[0]
+    const label = first
+      ? `${first.matchId}${first.setNumber != null ? ` set ${first.setNumber}` : ''}`
+      : 'another match'
+    const attachAnyway = window.confirm(
+      `This video looks like it’s already on ${label}.\n\nOK = attach here anyway\nCancel = don’t attach`
+    )
+    if (!attachAnyway) return null
+    result = await storeSetVideoChecked(matchId, setNumber, file, { force: true })
+  }
+  if (result.status !== 'stored') return null
   return URL.createObjectURL(file)
 }
 
@@ -184,11 +197,36 @@ export type MatchContextSaveInput = {
 /** Soft-fail save for Details context. Returns an error message or null. */
 export async function saveMatchContext(
   match: DBMatch,
-  input: MatchContextSaveInput
+  input: MatchContextSaveInput,
+  options: { forceDuplicate?: boolean } = {}
 ): Promise<string | null> {
   try {
     if (input.player2Id && input.player2Id === match.player1_id) {
       return 'Opponent must be different from you'
+    }
+
+    const tournamentId = input.tournamentId
+    const round = tournamentId && input.round ? input.round : null
+    const date = input.matchDate.trim()
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return 'Match date must be YYYY-MM-DD'
+    }
+
+    if (input.player2Id && !options.forceDuplicate) {
+      await useMatchStore.getState().load()
+      const hits = findDuplicateMatches(useMatchStore.getState().matches, {
+        player1Id: match.player1_id,
+        player2Id: input.player2Id,
+        tournamentId,
+        matchDate: date,
+      }, { excludeMatchId: match.id })
+      if (hits.length > 0) {
+        const sample = hits[0]?.id ?? 'another match'
+        const proceed = window.confirm(
+          `Another match already has this opponent, tournament, and date (${sample}).\n\nOK = save anyway\nCancel = keep editing`
+        )
+        if (!proceed) return 'Save cancelled — possible duplicate match'
+      }
     }
 
     const nextOpponent = input.player2Id
@@ -199,13 +237,6 @@ export async function saveMatchContext(
       } else {
         await useMatchStore.getState().update(match.id, { player2_id: null })
       }
-    }
-
-    const tournamentId = input.tournamentId
-    const round = tournamentId && input.round ? input.round : null
-    const date = input.matchDate.trim()
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-      return 'Match date must be YYYY-MM-DD'
     }
 
     const dateChanged = date !== match.match_date.slice(0, 10)
