@@ -6,6 +6,26 @@
 
 ## Change Log
 
+### 2026-11-13: MA-68 — Pass 1 Focus flow refine (v3.115.0)
+
+**Change Type:** UX refine — Pass 1 Focus tagging flow (Paul preferred path)
+
+**What Changed:**
+- Always-selected shot; after contacts last contact selected + End pre-marked; Shot loop on end.
+- Removed `Shot n · FA? · End n` status text. Quick-mark row: **End point** / **First attack** / **Review** / **★** (no ticks).
+- **First attack:** 1st tap marks selected as FOS; 2nd tap = **No first attack** (toggle). No separate No chip.
+- Detail panel = **selected shot only** (expand for all); compulsory top / optional below separator.
+- Sequencing: End+Result first → then full rally loop + arm FA; after FOS/No → SHOT + attributes.
+- Removed flag-kind picker; miss reason optional and only when Review is on.
+- Save gate unchanged for miss (already optional): contacts · End · Result · FOS/No.
+- Video: removed Simple|Pass1 overlay toggle; **Rally|Shot** small control in transport row.
+
+**Decision Rationale:** Paul MA-68 Pass 1 flow refine + FA 2nd-tap No + video chrome addenda.
+
+**Key Files:** `Pass1FocusBlock.tsx`; `Pass1FocusComposer.tsx`; `pass1FocusModel.ts`; `RallyEditComposer.tsx`.
+
+---
+
 ### 2026-11-13: MA-67 — Simple video overlay + chrome bar on Pass 1 (v3.114.0)
 
 **Change Type:** UX polish — Pass 1 Focus gets Simple overlay + Let/Discard/Save bar
