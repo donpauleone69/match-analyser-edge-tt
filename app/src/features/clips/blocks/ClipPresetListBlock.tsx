@@ -25,6 +25,7 @@ export function ClipPresetListBlock({ groups, activeKey, onSelect }: ClipPresetL
                 <button
                   key={p.key}
                   type="button"
+                  data-clip-preset-key={p.key}
                   onClick={() => onSelect(p)}
                   aria-pressed={active}
                   className={cn(

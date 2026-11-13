@@ -131,6 +131,7 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
   const [presetsOpen, setPresetsOpen] = useState(false)
   const blobUrls = useRef<string[]>([])
   const clipStartedAt = useRef(0)
+  const presetsPanelRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const urls = blobUrls.current
@@ -178,6 +179,23 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
     )
     if (i >= 0) setIndex(i)
   }, [activeKey, atParam, rows])
+
+  // Work on → Clips `?clip=` (and other deep links): expand phone Playlists so the
+  // active playlist key is visible (collapsed by default otherwise).
+  useEffect(() => {
+    if (!clipParam) return
+    setPresetsOpen(true)
+  }, [clipParam])
+
+  useEffect(() => {
+    if (!presetsOpen || !activeKey) return
+    const root = presetsPanelRef.current
+    if (!root) return
+    const el = root.querySelector<HTMLElement>(
+      `[data-clip-preset-key="${CSS.escape(activeKey)}"]`
+    )
+    el?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' })
+  }, [presetsOpen, activeKey, presets.length])
 
   const clearDeepLinkChrome = () => {
     const next = new URLSearchParams(searchParams)
@@ -574,7 +592,7 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
               <Icon name={presetsOpen ? 'chevron-up' : 'chevron-down'} size="sm" className="shrink-0 text-neutral-400" />
             </button>
             {presetsOpen && (
-              <div className="mt-2">
+              <div className="mt-2" ref={presetsPanelRef}>
                 <ClipPresetListBlock
                   groups={data.groups}
                   activeKey={reel ? null : activeKey}
