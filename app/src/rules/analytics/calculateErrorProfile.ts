@@ -9,6 +9,7 @@ import type { DBRally, DBShot } from '@/data'
 import { isErrorEnding } from '@/rules/derive/rally/derivePointEndClass'
 import { deriveShotPhase } from '@/rules/derive/shot/deriveShotPhase'
 import { derivePointEndClass } from '@/rules/derive/rally/derivePointEndClass'
+import { filterCompleteScoringRallies } from './isCompleteScoringRally'
 
 export interface ErrorProfileMetrics {
   unforcedErrorRate: number
@@ -45,7 +46,8 @@ export function calculateErrorProfile(
   playerId: string,
   opponentId?: string
 ): ErrorProfileResult {
-  const totalRallies = rallies.length
+  const complete = filterCompleteScoringRallies(rallies)
+  const totalRallies = complete.length
 
   if (totalRallies === 0) {
     return {
@@ -76,7 +78,7 @@ export function calculateErrorProfile(
   let rallyUEs = 0
   let opponentUEs = 0
 
-  for (const rally of rallies) {
+  for (const rally of complete) {
     if (!isErrorEnding(rally.point_ending)) continue
 
     const endIndex = lastShotIndex(shots, rally.id)

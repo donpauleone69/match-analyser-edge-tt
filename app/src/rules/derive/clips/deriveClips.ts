@@ -11,6 +11,7 @@
  */
 
 import type { DBMatch, DBRally, DBSet, DBShot, ShotReviewKind, ShotStroke, ShotWing } from '@/data'
+import { isCompleteScoringRally } from '@/rules/analytics/isCompleteScoringRally'
 import { isErrorEnding } from '@/rules/derive/rally/derivePointEndClass'
 
 export type ClipSide = 'hero' | 'villain'
@@ -231,7 +232,7 @@ export function deriveClips(
       shotsByRally.set(shot.rally_id, list)
     }
     const rallies = input.rallies
-      .filter((r) => r.is_scoring && setNumberById.has(r.set_id))
+      .filter((r) => isCompleteScoringRally(r) && setNumberById.has(r.set_id))
       .sort(
         (a, b) =>
           (setNumberById.get(a.set_id) ?? 0) - (setNumberById.get(b.set_id) ?? 0) ||

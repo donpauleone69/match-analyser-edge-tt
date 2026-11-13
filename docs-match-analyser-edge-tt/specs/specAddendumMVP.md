@@ -6,6 +6,20 @@
 
 ## Change Log
 
+### 2026-11-13: MA-26 — Incomplete points out of stats (v3.76.0)
+
+**Change Type:** Domain / analytics
+
+**What Changed:**
+- `isCompleteScoringRally` / `filterCompleteScoringRallies` — excludes lets, stubs, unconfirmed framework, missing ending.
+- Wired into Match/Attack/Serve-Receive story, serve/receive/3rd-ball metrics, error profile, rally stats, highlights, review shots, clips presets/derive, Match Review rally rows.
+
+**Decision Rationale:** Product goal 9 — incomplete points must not skew analysis.
+
+**Key Files:** `rules/analytics/isCompleteScoringRally.ts`; analytics calculators; `deriveClips.ts`; `buildMatchReview.ts`.
+
+---
+
 ### 2026-11-13: MA-25 — Video trim / archive + jump markers (v3.75.0)
 
 **Change Type:** UX / video lifecycle

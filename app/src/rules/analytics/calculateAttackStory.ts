@@ -5,7 +5,7 @@
  * - rallies.first_attack_index (FOS), server_id, winner_id, point_ending, point_miss_reason
  * - shots.shot_index, player_id, shot_wing, shot_stroke (first attack)
  *
- * - Only is_scoring rallies count.
+ * - Only complete scoring rallies count (lets / stubs / unfinished excluded).
  * - Anyone who is not the hero is on the Villain side (null id = unnamed Villain).
  * - The attacker is whoever hit the FOS shot (stored player_id, else server parity).
  * - The rally end is the last saved shot index.
@@ -15,6 +15,7 @@
 import type { DBRally, DBShot, PointMissReason } from '@/data'
 import { isErrorEnding } from '@/rules/derive/rally/derivePointEndClass'
 import { shareOf, type CountShare, type SidePair, type StorySide } from './calculateMatchStory'
+import { filterCompleteScoringRallies } from './isCompleteScoringRally'
 
 export interface AttackStoryInput {
   rallies: DBRally[]
@@ -128,7 +129,7 @@ export function calculateAttackStory(input: AttackStoryInput): AttackStoryResult
     byIndex.set(shot.shot_index, shot)
   }
 
-  const scoring = rallies.filter((r) => r.is_scoring)
+  const scoring = filterCompleteScoringRallies(rallies)
   const totalPoints = scoring.length
 
   const pointsWon = emptyIds()

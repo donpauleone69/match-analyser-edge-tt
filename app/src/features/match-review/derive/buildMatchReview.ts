@@ -27,6 +27,7 @@ import { calculateRallyHighlights } from '@/rules/analytics/calculateRallyHighli
 import { deriveCompareTone, type ComparePolarity } from '@/rules/analytics/deriveCompareTone'
 import { deriveSetTaggingStatus } from '@/rules/derive/set/deriveSetTaggingStatus'
 import { isErrorEnding } from '@/rules/derive/rally/derivePointEndClass'
+import { filterCompleteScoringRallies } from '@/rules/analytics/isCompleteScoringRally'
 import { matchDateSourceLabel, matchRoundLabel } from '@/rules/matchContext'
 import type {
   CompareCardModel,
@@ -638,8 +639,7 @@ export function buildRallyRows(data: CompleteMatchData, names: Names): RallyRowM
   const sideName = (playerId: string | null) =>
     playerId === names.heroId ? names.heroName : names.villainName
 
-  return data.rallies
-    .filter((r) => r.is_scoring)
+  return filterCompleteScoringRallies(data.rallies)
     .map((r: DBRally): RallyRowModel => {
       const shots = (shotsByRally.get(r.id) ?? []).sort((a, b) => a.shot_index - b.shot_index)
       const last = shots[shots.length - 1]

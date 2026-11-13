@@ -3,7 +3,7 @@
  *
  * Hero vs Villain comparison of the score and how points ended.
  *
- * - Only is_scoring rallies count.
+ * - Only complete scoring rallies count (lets / stubs / unfinished excluded).
  * - Rally winner_id null = Villain won (unnamed opponent).
  * - Anyone who is not the hero is on the Villain side.
  * - Errors = last hitter missed (error_net / error_long / error_wide). NOT lucky.
@@ -13,6 +13,7 @@
 
 import type { DBMatch, DBSet, DBRally, DBShot } from '@/data'
 import { isErrorEnding } from '@/rules/derive/rally/derivePointEndClass'
+import { filterCompleteScoringRallies } from './isCompleteScoringRally'
 
 export type StorySide = 'hero' | 'villain'
 
@@ -137,7 +138,7 @@ export function calculateMatchStory(input: MatchStoryInput): MatchStoryResult {
     }
   }
 
-  const scoring = rallies.filter((r) => r.is_scoring)
+  const scoring = filterCompleteScoringRallies(rallies)
   const totalPoints = scoring.length
 
   const pointsWon = emptyIds()

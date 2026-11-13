@@ -6,6 +6,7 @@ import type { DBRally } from '@/data/entities/rallies/rally.types'
 import type { DBShot } from '@/data/entities/shots/shot.types'
 import { derivePointEndClass, isErrorEnding } from '@/rules/derive/rally/derivePointEndClass'
 import { deriveShotPhase } from '@/rules/derive/shot/deriveShotPhase'
+import { filterCompleteScoringRallies } from './isCompleteScoringRally'
 
 export interface ReceivePerformanceMetrics {
   receiveWinRate: number
@@ -39,7 +40,7 @@ export function calculateReceivePerformance(
 ): ReceivePerformanceMetrics {
   const { rallies, shots, playerId } = input
 
-  const receiveRallies = rallies.filter((r) => r.is_scoring && r.receiver_id === playerId)
+  const receiveRallies = filterCompleteScoringRallies(rallies).filter((r) => r.receiver_id === playerId)
 
   if (receiveRallies.length === 0) {
     return {

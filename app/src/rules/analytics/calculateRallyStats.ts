@@ -8,6 +8,7 @@
 import type { DBRally, DBShot } from '@/data'
 import { deriveShotPhase } from '@/rules/derive/shot/deriveShotPhase'
 import { isErrorEnding } from '@/rules/derive/rally/derivePointEndClass'
+import { filterCompleteScoringRallies } from './isCompleteScoringRally'
 
 export interface RallyStatsMetrics {
   rallyWinRate: number
@@ -33,6 +34,7 @@ export function calculateRallyStats(
   shots: DBShot[],
   playerId: string
 ): RallyStatsResult {
+  const complete = filterCompleteScoringRallies(rallies)
   const rallyMaxShots = new Map<string, number>()
   shots.forEach((shot) => {
     const current = rallyMaxShots.get(shot.rally_id) || 0
@@ -41,12 +43,12 @@ export function calculateRallyStats(
     }
   })
 
-  const rallyPhaseRallies = rallies.filter((r) => {
+  const rallyPhaseRallies = complete.filter((r) => {
     const maxShots = rallyMaxShots.get(r.id) || 0
     return deriveShotPhase(maxShots, r.first_attack_index) === 'continuation'
   })
 
-  const longRallies = rallies.filter((r) => (rallyMaxShots.get(r.id) || 0) >= 6)
+  const longRallies = complete.filter((r) => (rallyMaxShots.get(r.id) || 0) >= 6)
 
   const rallyWins = rallyPhaseRallies.filter((r) => r.winner_id === playerId).length
   const rallyWinRate =
@@ -66,8 +68,8 @@ export function calculateRallyStats(
   const rallyUnforcedErrorRate =
     rallyPhaseRallies.length > 0 ? rallyUEs / rallyPhaseRallies.length : 0
 
-  const totalShots = Array.from(rallyMaxShots.values()).reduce((sum, max) => sum + max, 0)
-  const avgRallyLength = rallies.length > 0 ? totalShots / rallies.length : 0
+  const totalShots = complete.reduce((sum, r) => sum + (rallyMaxShots.get(r.id) || 0), 0)
+  const avgRallyLength = complete.length > 0 ? totalShots / complete.length : 0
 
   const rallyPhaseShotsSum = rallyPhaseRallies.reduce(
     (sum, r) => sum + (rallyMaxShots.get(r.id) || 0),
@@ -93,13 +95,13 @@ export function calculateRallyStats(
   })
 
   const matchCount = new Set(
-    rallies
+    complete
       .map((r) => r.set_id.split('-s')[0])
       .filter(Boolean)
   ).size
 
-  const footerText = `Based on ${matchCount || rallies.length} set${
-    (matchCount || rallies.length) !== 1 ? 's' : ''
+  const footerText = `Based on ${matchCount || complete.length} set${
+    (matchCount || complete.length) !== 1 ? 's' : ''
   } (${rallyPhaseRallies.length} continuation points)`
 
   return {
@@ -111,7 +113,7 @@ export function calculateRallyStats(
       avgRallyPhaseLength,
       totalRallyPhaseRallies: rallyPhaseRallies.length,
       totalLongRallies: longRallies.length,
-      totalRallies: rallies.length,
+      totalRallies: complete.length,
     },
     status,
     insight,
