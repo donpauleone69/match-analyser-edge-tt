@@ -25,10 +25,15 @@ export interface ContinueTaggingModel {
   /** Current set score hero–opponent */
   scoreLabel: string
   actionLabel: string
+  /** Why this match is outstanding */
+  kind: 'in_progress' | 'not_started'
+  detailLabel: string
 }
 
 export interface HomeModel {
   continueItems: ContinueTaggingModel[]
+  /** Matches that still need tagging work */
+  outstandingCount: number
   recent: HomeMatchModel[]
   totals: { matches: number; tagged: number; rallies: number }
 }

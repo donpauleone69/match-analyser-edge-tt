@@ -117,7 +117,7 @@ export function ScopeReviewComposer() {
     <div className="mx-auto max-w-5xl space-y-5 p-4 md:p-6">
       <header className="space-y-3">
         <Link to="/" className="inline-flex items-center gap-1 text-sm text-neutral-400 hover:text-neutral-100">
-          <Icon name="arrow-left" size="sm" /> Library
+          <Icon name="arrow-left" size="sm" /> Home
         </Link>
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>

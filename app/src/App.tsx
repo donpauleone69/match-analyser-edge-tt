@@ -30,7 +30,7 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Library shell: match review payoff + Training stub */}
+        {/* App shell: Home, Matches find, Training, Clips, Account */}
         <Route element={<AppShell />}>
           <Route path="/" element={<AccountGateComposer><HomePage /></AccountGateComposer>} />
           <Route path="/matches" element={<AccountGateComposer><MatchesPage /></AccountGateComposer>} />

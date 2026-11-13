@@ -6,6 +6,22 @@
 
 ## Change Log
 
+### 2026-11-13: Flow theme — IA + Home outstanding + Match find (v3.72.0)
+
+**Change Type:** UX / navigation / find
+
+**What Changed:**
+- Bottom nav + Home: **Library → Home**; purpose copy for continue / find / playlists. Dropped redundant Playlists + Training header CTAs (already in tabs).
+- Home **What's left**: outstanding count; continue includes in-progress **and** not-started (Start tagging); uses `deriveSetTaggingStatus`.
+- Matches: phone-first **Find** filters — opponent, tournament, match date from/to, date tagged from/to, sort (match date / date tagged / date added). URL query params. Rows show date tagged + Continue tagging when in progress. Tagging badges aligned with set phase.
+- Pure rule: `rules/matchList/filterSortMatches` (+ `deriveMatchTaggedAt`).
+
+**Decision Rationale:** Paul locked sprint focus MA-19–22 — IA/flow + resume + match find together. Recheck vs product-goals 4/5/8. No pattern cards; no edit/trim.
+
+**Key Files:** `AppShell.tsx`; `HomeComposer.tsx`; `buildHome.ts`; `MatchListComposer.tsx`; `MatchListFiltersBlock.tsx`; `MatchListSection.tsx`; `rules/matchList/*`.
+
+---
+
 ### 2026-11-13: MA-13/14 — Pass 1 More menu + Clips show-reel export (v3.71.0)
 
 **Change Type:** UX polish / verify
