@@ -1,0 +1,72 @@
+import { describe, expect, it } from 'vitest'
+import { timelineFromContacts } from './pass1FocusModel'
+import {
+  applyOffensiveToTimeline,
+  canSaveSimpleTagging,
+  fosFromOffensiveShots,
+  markEndSimple,
+  simpleSaveHint,
+  toggleNoAttackSimple,
+  toggleOffensiveShot,
+} from './simpleTaggingModel'
+
+describe('simpleTaggingModel', () => {
+  it('sets FOS to the first selected offensive shot', () => {
+    const base = timelineFromContacts([1, 2, 3, 4, 5])
+    const mid = toggleOffensiveShot(base, [], 4)
+    expect(mid.offensiveShots).toEqual([4])
+    expect(mid.timeline.fos).toBe(4)
+
+    const multi = toggleOffensiveShot(mid.timeline, mid.offensiveShots, 2)
+    expect(multi.offensiveShots).toEqual([2, 4])
+    expect(fosFromOffensiveShots(multi.offensiveShots)).toBe(2)
+    expect(multi.timeline.fos).toBe(2)
+  })
+
+  it('clears FOS when last offensive is removed', () => {
+    const base = timelineFromContacts([1, 2, 3])
+    const on = toggleOffensiveShot(base, [], 2)
+    const off = toggleOffensiveShot(on.timeline, on.offensiveShots, 2)
+    expect(off.offensiveShots).toEqual([])
+    expect(off.timeline.fos).toBeNull()
+    expect(off.timeline.noFirstAttack).toBe(false)
+  })
+
+  it('supports No attack toggle', () => {
+    const base = timelineFromContacts([1, 2, 3])
+    const withOff = toggleOffensiveShot(base, [], 2)
+    const none = toggleNoAttackSimple(withOff.timeline, withOff.offensiveShots)
+    expect(none.offensiveShots).toEqual([])
+    expect(none.timeline.noFirstAttack).toBe(true)
+    expect(none.timeline.fos).toBeNull()
+  })
+
+  it('requires miss reason on error endings', () => {
+    // timelineFromContacts pre-marks End at N — do not re-tap (would clear).
+    let state = applyOffensiveToTimeline(timelineFromContacts([1, 2, 3, 4, 5]), [3])
+    state = { ...state, ending: 'error_net', missReason: null }
+    expect(canSaveSimpleTagging(state, 'Hero')).toBe(false)
+    expect(simpleSaveHint(state)).toMatch(/miss reason/i)
+
+    state = { ...state, missReason: 'forced' }
+    expect(canSaveSimpleTagging(state, 'Hero')).toBe(true)
+    expect(simpleSaveHint(state)).toBeNull()
+  })
+
+  it('allows winner save without miss reason', () => {
+    let state = applyOffensiveToTimeline(timelineFromContacts([1, 2, 3]), [2])
+    state = { ...state, ending: 'winner', missReason: null }
+    expect(canSaveSimpleTagging(state, 'Hero')).toBe(true)
+  })
+
+  it('markEndSimple can move End and prune offensive past it', () => {
+    const base = applyOffensiveToTimeline(timelineFromContacts([1, 2, 3, 4, 5]), [2, 4])
+    // Clear pre-marked end first, then mark at 3.
+    const cleared = markEndSimple(base, [2, 4], 5)
+    expect(cleared.timeline.end).toBeNull()
+    const moved = markEndSimple(cleared.timeline, cleared.offensiveShots, 3)
+    expect(moved.timeline.end).toBe(3)
+    expect(moved.offensiveShots).toEqual([2])
+    expect(moved.timeline.fos).toBe(2)
+  })
+})

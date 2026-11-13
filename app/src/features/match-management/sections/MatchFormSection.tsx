@@ -93,7 +93,7 @@ export function MatchFormSection({ players, tournaments, focalPlayerId }: MatchF
       score_confirmed: null,
     })
 
-    navigate(`/matches/${newMatch.id}/tag?set=1&mode=pass1focus`)
+    navigate(`/matches/${newMatch.id}/tag?set=1`)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -139,7 +139,7 @@ export function MatchFormSection({ players, tournaments, focalPlayerId }: MatchF
       hit &&
       hit.tagging_mode != null &&
       (!hit.step1_complete || !hit.step2_complete)
-    navigate(incomplete ? `/matches/${id}/tag?set=1&mode=pass1focus` : `/matches/${id}`)
+    navigate(incomplete ? `/matches/${id}/tag?set=1` : `/matches/${id}`)
   }
 
   const opponentLabel = (id: string | null) => {

@@ -6,6 +6,24 @@
 
 ## Change Log
 
+### 2026-11-13: MA-54 — Simple tagging Phase 1 MVP (v3.103.0)
+
+**Change Type:** Feature — alternative Simple tagging mode (does not replace Pass 1)
+
+**What Changed:**
+- Entry: **Simple** vs **Pass 1** mode picker; remember last choice per device; mid-draft resume prefers the mode that has a draft.
+- One-phone-screen Simple composer: looping rally video + contacts + Offensive / End / ★ / Rev matrix; detail strip for ending + required miss-reason on errors; No attack; Save gate.
+- Offensive row is multi-select; **first selected = FOS**. Rally-level ★. Binary Review → `technical`. Loop pauses only while review detail focused.
+- Same `DBRally`/`DBShot` via strip + Pass 1 persist path (`mapSimpleTaggingToDb` strips optional Pass 1 tags). Completeness: contacts + FOS decided (or no-attack / serve-only) + End + ending (+ miss-reason when error).
+- Leave / Done / Keep-or-Discard draft parity with Pass 1 soft-exit. Re-open edit prefers saved mode (confirm to switch).
+- Clip windows unchanged (Phase 3 later).
+
+**Decision Rationale:** Paul §9 locked on MA-53 plan — ship Simple as A/B alternative for phone speed without removing Pass 1.
+
+**Key Files:** `TaggingUIComposer.tsx`; `SimpleTaggingComposer.tsx`; `simpleTaggingModel.ts`; `SimpleTaggingMatrixBlock.tsx`; `mapSimpleTaggingToDb.ts`; `taggingModePreference.ts`; `RallyEditComposer.tsx`; entry navigations (Home / Matches / Review).
+
+---
+
 ### 2026-11-13: MA-52 — Desktop Clips one Download (v3.102.0)
 
 **Change Type:** UX polish — Clips Download density (no epics)

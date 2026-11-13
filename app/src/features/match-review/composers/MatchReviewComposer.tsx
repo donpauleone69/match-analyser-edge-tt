@@ -243,7 +243,7 @@ export function MatchReviewComposer() {
     null
 
   const openTagger = (set: SetPanelModel) =>
-    navigate(`/matches/${matchId}/tag?set=${set.setNumber}&mode=pass1focus`)
+    navigate(`/matches/${matchId}/tag?set=${set.setNumber}`)
 
   const openEditor = (rally: RallyRowModel, opts?: { shotIndex?: number; from?: 'workon' | 'rallies' | 'clips' }) => {
     const q = new URLSearchParams({
@@ -252,6 +252,13 @@ export function MatchReviewComposer() {
     })
     if (opts?.shotIndex && opts.shotIndex > 0) q.set('shot', String(opts.shotIndex))
     if (opts?.from) q.set('from', opts.from)
+    // Prefer mode the rally was saved with (§9 9A); default Pass 1.
+    try {
+      const raw = localStorage.getItem(`edge-tt-rally-tagging-mode:v1:${rally.id}`)
+      if (raw === 'simple' || raw === 'pass1focus') q.set('mode', raw)
+    } catch {
+      // ignore
+    }
     navigate(`/matches/${matchId}/edit-rally?${q.toString()}`)
   }
 
@@ -297,7 +304,7 @@ export function MatchReviewComposer() {
       if (!ok) return
       try {
         await retagFromRally(rally.setId, rally.rallyIndex)
-        navigate(`/matches/${matchId}/tag?set=${rally.setNumber}&mode=pass1focus`)
+        navigate(`/matches/${matchId}/tag?set=${rally.setNumber}`)
       } catch (err) {
         console.error('[MatchReview] Re-tag failed:', err)
         alert('Could not reset the set from that rally')

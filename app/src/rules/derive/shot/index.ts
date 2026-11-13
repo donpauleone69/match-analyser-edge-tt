@@ -6,5 +6,6 @@
 
 export * from './deriveShotPhase'
 export * from './mapPass1FocusToDb'
+export * from './mapSimpleTaggingToDb'
 export * from './derivePass1ShotTagRole'
 export * from './derivePreviousPlacementFromWingPivot'

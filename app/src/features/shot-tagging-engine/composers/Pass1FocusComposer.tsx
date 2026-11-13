@@ -15,6 +15,7 @@ import {
   Pass1SetContextBlock,
   Pass1PointLedgerBlock,
   Pass1LeaveDraftChoiceBlock,
+  SimpleTaggingModePickerBlock,
   snapPass1ShotIntoView,
 } from '../blocks'
 import { VideoPlayerSection } from '../sections'
@@ -75,6 +76,7 @@ import {
   loadPass1FocusDraft,
   savePass1FocusDraft,
 } from './pass1FocusDraftStorage'
+import { saveLastTaggingMode, saveRallyTaggingMode } from '../helpers/taggingModePreference'
 import { encodeClipFilter } from '@/rules/derive/clips/deriveClips'
 import {
   betweenSetGapSeekS,
@@ -92,6 +94,8 @@ export interface Pass1FocusComposerProps {
   player1Name: string
   player2Name: string
   className?: string
+  /** Switch to Simple (caller confirms / navigates). */
+  onRequestModeChange?: (mode: 'simple' | 'pass1focus') => void
 }
 
 type WinnerId = 'player1' | 'player2'
@@ -128,6 +132,7 @@ export function Pass1FocusComposer({
   player1Name,
   player2Name,
   className,
+  onRequestModeChange,
 }: Pass1FocusComposerProps) {
   const navigate = useNavigate()
   const videoUrl = useVideoPlaybackStore((state) => state.videoUrl)
@@ -653,6 +658,8 @@ export function Pass1FocusComposer({
         isHighlight: openRally.isHighlight,
         timeline: openRally.timeline,
       })
+      saveRallyTaggingMode(persisted.rally.id, 'pass1focus')
+      saveLastTaggingMode('pass1focus')
 
       const savedEntry: CompletedRally = {
         dbRallyId: persisted.rally.id,
@@ -1080,6 +1087,27 @@ export function Pass1FocusComposer({
         {/* Score HUD sits under the empty video stage so it doesn't cover “Click to load”. */}
         {!videoUrl && (
           <div className="shrink-0 px-1.5 pt-1 flex justify-start">{scoreBadge}</div>
+        )}
+        {onRequestModeChange && (
+          <div className="shrink-0 flex items-center justify-between gap-2 border-b border-pill-idle-border px-1.5 py-1">
+            <SimpleTaggingModePickerBlock
+              mode="pass1focus"
+              onSelect={(mode) => {
+                if (mode === 'pass1focus') return
+                if (openRally || contactTimes.length > 0) {
+                  const ok = window.confirm(
+                    'Switch to Simple? Unsaved Pass 1 draft for this point stays in Pass 1 storage; Simple opens separately.'
+                  )
+                  if (!ok) return
+                }
+                onRequestModeChange(mode)
+              }}
+              disabled={phase === 'form' || contactTimes.length > 0}
+            />
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted">
+              Pass 1
+            </span>
+          </div>
         )}
         {phase === 'tapping' ? (
           <div className="relative flex flex-col flex-1 min-h-0">
