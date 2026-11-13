@@ -222,8 +222,8 @@ export function MatchReviewComposer() {
           {error ? 'Could not load match' : 'Match not found'}
         </h2>
         {error && <p className="text-sm text-neutral-400 mb-4">{error}</p>}
-        <Button variant="secondary" onClick={() => navigate('/matches')}>
-          Back to Matches
+        <Button variant="secondary" onClick={() => navigate('/')}>
+          Back to Home
         </Button>
       </Card>
     )
@@ -466,9 +466,9 @@ export function MatchReviewComposer() {
         <div className="flex items-center gap-2 min-w-0">
           <button
             type="button"
-            onClick={() => navigate('/matches')}
+            onClick={() => navigate('/')}
             className="tag-control shrink-0"
-            aria-label="Back to matches"
+            aria-label="Back to Home"
           >
             <Icon name="arrow-left" size="sm" />
           </button>

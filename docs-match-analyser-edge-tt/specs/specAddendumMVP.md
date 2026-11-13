@@ -6,6 +6,21 @@
 
 ## Change Log
 
+### 2026-11-13: MA-31 — Dual chrome: demote Matches nav (v3.81.0)
+
+**Change Type:** UX — IA / flow
+
+**What Changed:**
+- Bottom nav drops **Matches** tab (4 items: Home · Training · Clips · Account).
+- `/matches` remains as **Find matches** from Home; header Create removed (Home owns New match).
+- Match Review back → Home.
+
+**Decision Rationale:** Goal 4 — one catalog door; stop Home/Matches dual chrome.
+
+**Key Files:** `AppShell.tsx`; `MatchListComposer.tsx`; `MatchReviewComposer.tsx`.
+
+---
+
 ### 2026-11-13: MA-30 — Match-file export/import polish (v3.80.0)
 
 **Change Type:** UX — portable backup (persistence escape hatch)
@@ -7550,6 +7565,7 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v3.81.0 | 2026-11-13 | MA-31: demote Matches from bottom nav; Find matches from Home |
 | v3.80.0 | 2026-11-13 | MA-30: match-file Save/Import polish — Open match after import |
 | v3.79.0 | 2026-11-13 | MA-29: context polish — Home Add opponent + Summary Details nudge |
 | v3.78.0 | 2026-11-13 | MA-28: Pass 1 phone speed — video height cap, larger taps, safe-area |

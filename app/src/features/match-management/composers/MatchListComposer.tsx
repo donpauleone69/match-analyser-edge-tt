@@ -150,18 +150,15 @@ export function MatchListComposer() {
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-neutral-50 flex items-center gap-3">
             <Icon name="swords" size="lg" className="text-brand-primary" />
-            Matches
+            Find matches
           </h1>
           <p className="text-neutral-400 mt-2 text-sm md:text-base">
-            Find by opponent, tournament, match date, or date tagged. Open to review or continue
-            tagging.
+            Filter by opponent, tournament, match date, or date tagged. New match lives on Home.
           </p>
         </div>
-        {scopedMatches.length > 0 && (
-          <Button onClick={handleCreateNew}>
-            <Icon name="plus" size="sm" /> New match
-          </Button>
-        )}
+        <Button variant="secondary" onClick={() => navigate('/')}>
+          <Icon name="home" size="sm" /> Home
+        </Button>
       </div>
 
       {scopedMatches.length > 0 && (
