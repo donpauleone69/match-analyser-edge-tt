@@ -15,6 +15,10 @@ import {
   isoDateFromEpochMs,
   shouldApplyVideoMatchDate,
 } from '@/rules/matchContext'
+import {
+  findMatchesByVideoFingerprint,
+  type VideoFingerprintHit,
+} from '@/rules/matchDuplicate'
 
 export type VideoOrigin = 'device' | 'cloud'
 
@@ -143,14 +147,68 @@ export async function suggestedVideoMatchDate(matchId: string): Promise<string |
   }
 }
 
+export type StoreSetVideoOptions = {
+  /** Skip cross-match fingerprint warn (user chose Attach anyway). */
+  force?: boolean
+}
+
+export type StoreSetVideoResult =
+  | { status: 'stored'; asset: DBVideoAsset }
+  | { status: 'duplicate'; hits: VideoFingerprintHit[]; fingerprint: string }
+
+/** Cross-match fingerprint lookup (local library). */
+export async function findAssetsByFingerprint(fingerprint: string): Promise<DBVideoAsset[]> {
+  if (!fingerprint) return []
+  const all = await videoAssetDb.getAll()
+  return all.filter((a) => a.fingerprint === fingerprint)
+}
+
+/**
+ * Probe for cross-match fingerprint duplicates before storing.
+ * Same match+set reuse is not a duplicate. Null fingerprint → no hits.
+ */
+export async function checkSetVideoDuplicate(
+  matchId: string,
+  setNumber: number,
+  file: File
+): Promise<VideoFingerprintHit[]> {
+  const fingerprint = await fingerprintFile(file)
+  if (!fingerprint) return []
+  const existing = await videoAssetDb.getSetSource(matchId, setNumber)
+  if (existing?.fingerprint === fingerprint) return []
+  const assets = await videoAssetDb.getAll()
+  return findMatchesByVideoFingerprint(assets, fingerprint, { excludeMatchId: matchId })
+}
+
 /** Save a video picked for a set: write it to the device and register (or reuse) its asset. */
-export async function storeSetVideo(matchId: string, setNumber: number, file: File): Promise<DBVideoAsset> {
+export async function storeSetVideo(
+  matchId: string,
+  setNumber: number,
+  file: File,
+  options: StoreSetVideoOptions = {}
+): Promise<DBVideoAsset> {
   void requestPersistentStorage()
   const [fingerprint, meta] = await Promise.all([fingerprintFile(file), probeVideo(file)])
   const existing = await videoAssetDb.getSetSource(matchId, setNumber)
   const sameFile = existing && fingerprint && existing.fingerprint === fingerprint
   const lastModifiedMs =
     typeof file.lastModified === 'number' && file.lastModified > 0 ? file.lastModified : null
+
+  if (!sameFile && fingerprint && !options.force) {
+    const assets = await videoAssetDb.getAll()
+    const hits = findMatchesByVideoFingerprint(assets, fingerprint, { excludeMatchId: matchId })
+    if (hits.length > 0) {
+      const err = new Error('DUPLICATE_VIDEO_FINGERPRINT') as Error & {
+        code: 'DUPLICATE_VIDEO_FINGERPRINT'
+        hits: VideoFingerprintHit[]
+        fingerprint: string
+      }
+      err.code = 'DUPLICATE_VIDEO_FINGERPRINT'
+      err.hits = hits
+      err.fingerprint = fingerprint
+      throw err
+    }
+  }
 
   const asset = sameFile
     ? existing
@@ -185,6 +243,25 @@ export async function storeSetVideo(matchId: string, setNumber: number, file: Fi
   })
   await maybeApplyMatchDateFromVideo(matchId, lastModifiedMs ?? updated.file_last_modified_ms)
   return updated
+}
+
+/** Store with soft-confirm path: returns duplicate hits instead of throwing when not forced. */
+export async function storeSetVideoChecked(
+  matchId: string,
+  setNumber: number,
+  file: File,
+  options: StoreSetVideoOptions = {}
+): Promise<StoreSetVideoResult> {
+  try {
+    const asset = await storeSetVideo(matchId, setNumber, file, options)
+    return { status: 'stored', asset }
+  } catch (e) {
+    const err = e as { code?: string; hits?: VideoFingerprintHit[]; fingerprint?: string }
+    if (err?.code === 'DUPLICATE_VIDEO_FINGERPRINT' && err.hits && err.fingerprint) {
+      return { status: 'duplicate', hits: err.hits, fingerprint: err.fingerprint }
+    }
+    throw e
+  }
 }
 
 /**

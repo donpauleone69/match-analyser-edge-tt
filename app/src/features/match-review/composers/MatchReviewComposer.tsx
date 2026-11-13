@@ -388,6 +388,7 @@ export function MatchReviewComposer() {
     const setNumber = playerRally.setNumber
     try {
       const url = await saveSetVideoFromUrl(matchId, setNumber, pickedUrl)
+      if (!url) return
       setVideoUrls((v) => ({ ...v, [setNumber]: url }))
     } catch (err) {
       console.error('[MatchReview] Saving video failed:', err)

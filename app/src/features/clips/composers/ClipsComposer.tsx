@@ -264,6 +264,7 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
     if (!current || !sourceKey) return
     try {
       const url = await saveClipVideoFromUrl(current.clip.matchId, current.clip.setNumber, pickedUrl)
+      if (!url) return
       blobUrls.current.push(url)
       setVideos((v) => ({ ...v, [sourceKey]: { url, origin: 'device' } }))
     } catch {

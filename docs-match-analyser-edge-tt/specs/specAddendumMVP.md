@@ -6,6 +6,23 @@
 
 ## Change Log
 
+### 2026-11-13: MA-27 — No duplicate match tagging guard (v3.77.0)
+
+**Change Type:** UX / domain
+
+**What Changed:**
+- Pure `findDuplicateMatches` (same focal + opponent + tournament + calendar date; skip when opponent missing).
+- Pure `findMatchesByVideoFingerprint` (cross-match source fingerprint; skip training / null fp).
+- Create form: soft warn with **Open existing** / **Create anyway** when context matches.
+- Details context save: confirm if identity already exists on another match.
+- Video attach (`storeSetVideo` / Pass 1 / Review / Clips): warn before storing when fingerprint is on another match; **Attach anyway** via `force`.
+
+**Decision Rationale:** Product goal 10 — don’t retag the same match by accident; same-day doubles still allowed via override.
+
+**Key Files:** `rules/matchDuplicate/*`; `MatchFormSection.tsx`; `videoAssetService.ts`; `VideoPlayer.tsx`; `matchReviewActions.ts`; `clipActions.ts`.
+
+---
+
 ### 2026-11-13: MA-26 — Incomplete points out of stats (v3.76.0)
 
 **Change Type:** Domain / analytics
@@ -7486,6 +7503,10 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v3.77.0 | 2026-11-13 | MA-27: no-dupe match guard — context + video fingerprint soft warns with override |
+| v3.76.0 | 2026-11-13 | MA-26: incomplete/stub/unconfirmed points excluded from stats + clips |
+| v3.75.0 | 2026-11-13 | MA-25: video jump markers, guided trim, archive device copy |
+| v3.74.0 | 2026-11-13 | MA-24: edit/re-tag polish from Work on / Review / Clips |
 | v3.69.0 | 2026-11-13 | Dead UI: delete RallyFocus path + analytics/club/tournament/player feature UI; keep rules/analytics |
 | v3.68.0 | 2026-11-13 | Overnight UX: Done/Pause, Highlights→Clips, Work on playlist deep-links, Scope Review open playlists |
 | v3.67.0 | 2026-11-13 | Foundation: ScopeReview build fix; Architecture/Glossary rewrite; obsolete docs deleted |

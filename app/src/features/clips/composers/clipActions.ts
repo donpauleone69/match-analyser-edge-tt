@@ -9,7 +9,7 @@ import {
   getAssetFile,
   resolveAssetVideo,
   resolveSetVideo,
-  storeSetVideo,
+  storeSetVideoChecked,
   type ResolvedVideo,
 } from '@/data/services/videoAssetService'
 import { exportReel, planReel, type ReelExportProgress, type ReelPlan } from '@/data/services/reelExportService'
@@ -22,11 +22,27 @@ export async function loadClipVideo(matchId: string, setNumber: number): Promise
   return resolveSetVideo(matchId, setNumber)
 }
 
-/** Keep a video picked in the clip player as that set's video. */
-export async function saveClipVideoFromUrl(matchId: string, setNumber: number, pickedUrl: string): Promise<string> {
+/** Keep a video picked in the clip player as that set's video. Null if user cancels dupe warn. */
+export async function saveClipVideoFromUrl(
+  matchId: string,
+  setNumber: number,
+  pickedUrl: string
+): Promise<string | null> {
   const blob = await (await fetch(pickedUrl)).blob()
   const file = new File([blob], `${matchId}-${setNumber}.mp4`, { type: blob.type || 'video/mp4' })
-  await storeSetVideo(matchId, setNumber, file)
+  let result = await storeSetVideoChecked(matchId, setNumber, file)
+  if (result.status === 'duplicate') {
+    const first = result.hits[0]
+    const label = first
+      ? `${first.matchId}${first.setNumber != null ? ` set ${first.setNumber}` : ''}`
+      : 'another match'
+    const attachAnyway = window.confirm(
+      `This video looks like it’s already on ${label}.\n\nOK = attach here anyway\nCancel = don’t attach`
+    )
+    if (!attachAnyway) return null
+    result = await storeSetVideoChecked(matchId, setNumber, file, { force: true })
+  }
+  if (result.status !== 'stored') return null
   return URL.createObjectURL(file)
 }
 

@@ -121,8 +121,26 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
       const matchId = window.location.pathname.split('/')[2]
       const setNumber = Number(urlParams.get('set'))
       if (matchId && setNumber > 0) {
-        const { storeSetVideo } = await import('@/data/services/videoAssetService')
-        await storeSetVideo(matchId, setNumber, file)
+        const { storeSetVideoChecked } = await import('@/data/services/videoAssetService')
+        let result = await storeSetVideoChecked(matchId, setNumber, file)
+        if (result.status === 'duplicate') {
+          const first = result.hits[0]
+          const label = first
+            ? `${first.matchId}${first.setNumber != null ? ` set ${first.setNumber}` : ''}`
+            : 'another match'
+          const attachAnyway = window.confirm(
+            `This video looks like it’s already on ${label}.\n\nOK = attach here anyway\nCancel = don’t attach`
+          )
+          if (!attachAnyway) {
+            setIsProcessingFile(false)
+            return
+          }
+          result = await storeSetVideoChecked(matchId, setNumber, file, { force: true })
+        }
+        if (result.status !== 'stored') {
+          setIsProcessingFile(false)
+          return
+        }
       }
     } catch (error) {
       console.error('Failed to save video on this device:', error)
