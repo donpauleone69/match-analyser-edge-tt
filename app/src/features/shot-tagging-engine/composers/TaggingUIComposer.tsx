@@ -1,11 +1,11 @@
 /**
- * TaggingUIComposer — routes to Pass 1 Focus (default) or Rally Focus (test).
+ * TaggingUIComposer — loads the match and opens Pass 1 Focus.
+ * Legacy ?mode=rallyfocus redirects to pass1focus.
  */
 
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { cn } from '@/helpers/utils'
-import { RallyFocusComposer } from './RallyFocusComposer'
 import { Pass1FocusComposer } from './Pass1FocusComposer'
 import { Button } from '@/ui-mine'
 import { Card } from '@/ui-mine/Card'
@@ -32,8 +32,6 @@ export function TaggingUIComposer({ className }: TaggingUIComposerProps) {
   const urlSetNumber = searchParams.get('set')
   const taggingMode = searchParams.get('mode')
   const isPass1FocusMode = taggingMode === 'pass1focus'
-  const isRallyFocusMode = taggingMode === 'rallyfocus'
-  const isKnownMode = isPass1FocusMode || isRallyFocusMode
   const redoParam = searchParams.get('redo')
   const isRedo = redoParam === 'true' || redoParam === 'phase2'
 
@@ -72,15 +70,15 @@ export function TaggingUIComposer({ className }: TaggingUIComposerProps) {
     }
   }, [matchId])
 
-  // Default / unknown modes → Pass 1 Focus
+  // Always Pass 1 Focus (legacy rallyfocus / missing mode → rewrite URL)
   useEffect(() => {
     if (!matchId || !urlSetNumber) return
-    if (isKnownMode) return
+    if (isPass1FocusMode) return
     navigate(
       `/matches/${matchId}/tag?set=${urlSetNumber}&mode=pass1focus${isRedo ? '&redo=true' : ''}`,
       { replace: true }
     )
-  }, [matchId, urlSetNumber, isKnownMode, isRedo, navigate])
+  }, [matchId, urlSetNumber, isPass1FocusMode, isRedo, navigate])
 
   if (!ready) {
     return (
@@ -121,7 +119,7 @@ export function TaggingUIComposer({ className }: TaggingUIComposerProps) {
     )
   }
 
-  if (!isKnownMode) {
+  if (!isPass1FocusMode) {
     return (
       <div className={cn('h-dvh flex items-center justify-center bg-bg-surface', className)}>
         <Card className="p-8 max-w-lg text-center">
@@ -140,19 +138,16 @@ export function TaggingUIComposer({ className }: TaggingUIComposerProps) {
     ? players.find((p) => p.id === match.player2_id)
     : undefined
   const player2Name = resolveOpponentName(match.player2_id, player2Record?.first_name)
-  const altProps = {
-    matchId,
-    setNumber: parseInt(urlSetNumber, 10),
-    player1Id: match.player1_id,
-    player2Id: resolveOpponentId(match.player2_id),
-    player1Name,
-    player2Name,
-    className,
-  }
 
-  if (isRallyFocusMode) {
-    return <RallyFocusComposer {...altProps} />
-  }
-
-  return <Pass1FocusComposer {...altProps} />
+  return (
+    <Pass1FocusComposer
+      matchId={matchId}
+      setNumber={parseInt(urlSetNumber, 10)}
+      player1Id={match.player1_id}
+      player2Id={resolveOpponentId(match.player2_id)}
+      player1Name={player1Name}
+      player2Name={player2Name}
+      className={className}
+    />
+  )
 }

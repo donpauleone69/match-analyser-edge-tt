@@ -168,7 +168,13 @@ export function DetailsSection({
         </dl>
       </Card>
 
-      <Card className="p-4 md:p-5 border border-neutral-700">
+      <Card className="p-4 md:p-5 border border-neutral-700 space-y-3">
+        {(!review.context.player2Id || !review.context.tournamentId) && (
+          <p className="text-sm text-neutral-400">
+            Optional: add an opponent or tournament so Library and Clips can filter “vs player” / tournament later.
+            Nothing here is required to tag or review.
+          </p>
+        )}
         <MatchContextBlock
           heroName={review.heroName}
           dateSourceLabel={review.context.matchDateSourceLabel}

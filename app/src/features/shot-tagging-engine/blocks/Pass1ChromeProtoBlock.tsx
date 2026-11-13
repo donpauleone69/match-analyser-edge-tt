@@ -124,7 +124,7 @@ export interface Pass1SetContextBlockProps {
   onSelectLast: () => void
   onSelectNext: () => void
   onToggleHistory: () => void
-  /** Between points only — End set / Match review live on the form action row while a point is open. */
+  /** Between points only — Done finishes the set; Pause soft-leaves to Match Review. */
   canEndSet?: boolean
   onEndSet?: () => void
   onReviewMatch?: () => void
@@ -248,10 +248,10 @@ export function Pass1SetContextBlock({
               type="button"
               onClick={onEndSet}
               disabled={!canEndSet}
-              className="tag-control shrink-0"
-              title="End this set and confirm the score (session action, not the point end)"
+              className="tag-control tag-control-accent shrink-0"
+              title="Finish this set and open Match Review"
             >
-              End set
+              Done
             </button>
           )}
           {onReviewMatch && (
@@ -259,9 +259,9 @@ export function Pass1SetContextBlock({
               type="button"
               onClick={onReviewMatch}
               className="tag-control shrink-0"
-              title="Leave tagging and open match review (does not end the set)"
+              title="Pause tagging and open Match Review (set stays resumable)"
             >
-              Match review
+              Pause
             </button>
           )}
         </>

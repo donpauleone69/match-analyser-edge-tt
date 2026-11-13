@@ -67,6 +67,7 @@ import {
   loadResumedPass1FocusState,
   deleteLastPersistedPass1FocusRally,
 } from './persistPass1FocusRally'
+import { encodeClipFilter } from '@/rules/derive/clips/deriveClips'
 
 /** How far Redo rewinds when there are no contacts yet */
 const REDO_REWIND_SECONDS = 2
@@ -82,7 +83,7 @@ export interface Pass1FocusComposerProps {
 }
 
 type WinnerId = 'player1' | 'player2'
-type PhaseStep = 'setup' | 'tapping' | 'form' | 'complete'
+type PhaseStep = 'setup' | 'tapping' | 'form'
 
 interface OpenRally {
   serveTimestamp: number
@@ -151,8 +152,6 @@ export function Pass1FocusComposer({
   const [selectedShot, setSelectedShot] = useState<number | null>(null)
   /** Which point cube is outlined — past rally index, or 'next' (about to tag / open). */
   const [focusedRallyIndex, setFocusedRallyIndex] = useState<number | 'next'>('next')
-  /** null = not answered yet on the complete screen */
-  const [scoreConfirmed, setScoreConfirmed] = useState<boolean | null>(null)
   const [pointLedgerOpen, setPointLedgerOpen] = useState(false)
 
   const contactTimesRef = useRef(contactTimes)
@@ -251,10 +250,6 @@ export function Pass1FocusComposer({
             })
             await setDb.markTaggingStarted(target.id)
           }
-        }
-
-        if (typeof target.score_confirmed === 'boolean') {
-          setScoreConfirmed(target.score_confirmed)
         }
 
         const video = await resolveSetVideo(matchId, setNumber)
@@ -385,7 +380,7 @@ export function Pass1FocusComposer({
 
   /** Set who serves this rally; re-anchor first-server so later pills follow. */
   const handleSetServer = async (desired: WinnerId) => {
-    if (!setupComplete || phase === 'complete') return
+    if (!setupComplete) return
     if (openServerId === desired) return
     let nextFirst: 'player1' | 'player2' = setupNextServer
     for (const candidate of ['player1', 'player2'] as const) {
@@ -551,14 +546,20 @@ export function Pass1FocusComposer({
     }
   }
 
+  /** Done: finalize the set and go straight to Match Review (no score-confirm screen). */
   const handleEndSession = async () => {
     if (completed.length === 0 && !openRally) return
     if (!setId) return
+    if (openRally || contactTimes.length > 0) {
+      const ok = window.confirm(
+        'Discard the open rally and finish this set?'
+      )
+      if (!ok) return
+    }
     clearIdleTimer()
     setOpenRally(null)
     setContactTimes([])
     setPlaybackSpeed(NORMAL_PLAYBACK_SPEED)
-    setScoreConfirmed(null)
 
     try {
       await finalizePass1FocusSet({
@@ -575,18 +576,19 @@ export function Pass1FocusComposer({
       return
     }
 
-    setPhase('complete')
-  }
-
-  const handleScoreConfirm = async (matches: boolean) => {
-    if (!setId) return
-    setScoreConfirmed(matches)
-    try {
-      await setDb.update(setId, { score_confirmed: matches })
-    } catch (error) {
-      console.error('[Pass1Focus] Score confirm failed:', error)
-      alert('Failed to save score confirmation')
+    const hasReview = completed.some((r) =>
+      Object.values(r.timeline.shots).some((s) => s.reviewKind !== null)
+    )
+    const hasHighlight = completed.some((r) => r.isHighlight)
+    const params = new URLSearchParams()
+    if (hasReview) {
+      params.set('tab', 'workon')
+    } else if (hasHighlight) {
+      params.set('tab', 'clips')
+      params.set('clip', encodeClipFilter({ kind: 'highlights' }))
     }
+    const q = params.toString()
+    navigate(`/matches/${matchId}${q ? `?${q}` : ''}`)
   }
 
   const handleToggleShotChoice = (n: number, key: ShotChoiceKey, value: string) => {
@@ -772,62 +774,6 @@ export function Pass1FocusComposer({
 
   const handleToggleMissReason = (value: PointMissReason) => {
     patchTimeline((s) => toggleMissReason(s, value))
-  }
-
-  if (phase === 'complete') {
-    const withFos = completed.filter((r) => r.timeline.fos !== null).length
-    const avgShots =
-      completed.length > 0
-        ? (
-            completed.reduce((sum, r) => sum + r.timeline.shotCount, 0) / completed.length
-          ).toFixed(1)
-        : '0'
-    const scoreLabel = `${currentScore.player1}–${currentScore.player2}`
-
-    return (
-      <div className={cn('h-dvh flex items-center justify-center bg-bg-surface', className)}>
-        <div className="p-8 max-w-lg text-center bg-bg-card rounded-lg border border-neutral-700">
-          <h2 className="text-2xl font-bold text-neutral-50 mb-2">Pass 1 complete</h2>
-          <p className="text-neutral-400 mb-1">{completed.length} rallies saved</p>
-          <p className="text-neutral-500 text-sm mb-4">
-            Avg contacts {avgShots} · With FOS {withFos}
-          </p>
-          <p className="text-neutral-200 text-lg font-semibold mb-2">
-            Counted score {scoreLabel}
-          </p>
-          <p className="text-neutral-400 text-sm mb-3">
-            Does that match the scoreboard?
-          </p>
-          <div className="flex gap-3 justify-center mb-6">
-            <Button
-              variant={scoreConfirmed === true ? 'primary' : 'secondary'}
-              onClick={() => handleScoreConfirm(true)}
-            >
-              Yes
-            </Button>
-            <Button
-              variant={scoreConfirmed === false ? 'primary' : 'secondary'}
-              onClick={() => handleScoreConfirm(false)}
-            >
-              No
-            </Button>
-          </div>
-          {scoreConfirmed === false && (
-            <p className="text-warning text-xs mb-4">
-              Flagged. Stored point scores are unchanged.
-            </p>
-          )}
-          <div className="flex gap-3 justify-center">
-            <Button variant="secondary" onClick={() => navigate(`/matches/${matchId}?tab=clips`)}>
-              Watch clips
-            </Button>
-            <Button variant="primary" onClick={() => navigate(`/matches/${matchId}`)}>
-              Review match
-            </Button>
-          </div>
-        </div>
-      </div>
-    )
   }
 
   const tagBtn = 'tag-control'
@@ -1068,23 +1014,6 @@ export function Pass1FocusComposer({
                   title="Delete the last saved point (this open rally draft is kept)"
                 >
                   Delete last point
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void handleEndSession()}
-                  disabled={!canEndSet && !openRally}
-                  className={cn(tagBtn, 'shrink-0')}
-                  title="End this set and confirm the score (session action, not the point end)"
-                >
-                  End set
-                </button>
-                <button
-                  type="button"
-                  onClick={handleReviewMatch}
-                  className={cn(tagBtn, 'shrink-0')}
-                  title="Leave tagging and open match review (does not end the set; unsaved rally is lost)"
-                >
-                  Match review
                 </button>
               </div>
             </div>
