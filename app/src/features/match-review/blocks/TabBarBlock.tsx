@@ -29,6 +29,11 @@ export function TabBarBlock<T extends string>({ tabs, active, onChange }: TabBar
               type="button"
               role="tab"
               aria-selected={tab.id === active}
+              aria-label={
+                tab.id === 'rallies' && typeof tab.badge === 'number' && tab.badge > 0
+                  ? `${tab.label}, ${tab.badge} incomplete`
+                  : undefined
+              }
               onClick={() => onChange(tab.id)}
               className={cn(
                 'relative h-11 px-3 md:px-4 text-sm font-medium whitespace-nowrap transition-colors',
@@ -39,7 +44,14 @@ export function TabBarBlock<T extends string>({ tabs, active, onChange }: TabBar
             >
               {tab.label}
               {typeof tab.badge === 'number' && tab.badge > 0 && (
-                <span className="ml-1.5 rounded-full bg-neutral-700 px-1.5 py-0.5 text-[10px] font-semibold text-neutral-200">
+                <span
+                  className={cn(
+                    'ml-1.5 inline-flex min-w-[1.15rem] items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums',
+                    tab.id === 'rallies'
+                      ? 'bg-amber-600 text-neutral-950'
+                      : 'bg-neutral-700 text-neutral-200'
+                  )}
+                >
                   {tab.badge}
                 </span>
               )}

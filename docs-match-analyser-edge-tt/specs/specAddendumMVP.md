@@ -6,6 +6,20 @@
 
 ## Change Log
 
+### 2026-11-13: MA-43 — Between-set Gap jump + Rallies Incomplete badge (v3.93.0)
+
+**Change Type:** UX polish — Pass 1 multi-set jump + Rallies badge (no epics)
+
+**What Changed:**
+- Pass 1 set ≥2: **Gap** control seeks to previous set end (between-set gap) without leaving live next / Done.
+- Rallies tab shows Incomplete count badge when >0 (amber).
+
+**Decision Rationale:** MA-41/39/42 status follow-ups — navigate set gaps while tagging; surface incomplete count on the tab.
+
+**Key Files:** `Pass1FocusComposer.tsx`; `Pass1ChromeProtoBlock.tsx`; `MatchReviewComposer.tsx`; `TabBarBlock.tsx`.
+
+---
+
 ### 2026-11-13: MA-42 — Clips phone Download + Summary incomplete callout (v3.92.0)
 
 **Change Type:** UX polish — Clips density + Summary incomplete (no epics)

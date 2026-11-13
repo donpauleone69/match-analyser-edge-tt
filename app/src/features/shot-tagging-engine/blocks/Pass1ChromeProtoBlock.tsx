@@ -125,6 +125,9 @@ export interface Pass1SetContextBlockProps {
   onSelectNext: () => void
   /** Jump video to first tagged serve (skip intro / warm-up) */
   onJumpFirstServe?: () => void
+  /** Multi-set: jump to end of previous set (start of between-set gap). Seek-only. */
+  onJumpPrevSetEnd?: () => void
+  prevSetNumber?: number | null
   onToggleHistory: () => void
   /** Between points only — Done finishes the set; Pause soft-leaves to Match Review. */
   canEndSet?: boolean
@@ -147,6 +150,8 @@ export function Pass1SetContextBlock({
   onSelectLast,
   onSelectNext,
   onJumpFirstServe,
+  onJumpPrevSetEnd,
+  prevSetNumber = null,
   onToggleHistory,
   canEndSet = false,
   onEndSet,
@@ -162,6 +167,22 @@ export function Pass1SetContextBlock({
 
   return (
     <div className="shrink-0 flex min-h-10 items-center gap-1 border-t border-pill-idle-border bg-bg-card px-1.5 py-1">
+      {onJumpPrevSetEnd && !navigationLocked && (
+        <button
+          type="button"
+          onClick={onJumpPrevSetEnd}
+          className="tag-control shrink-0 gap-1"
+          title={
+            prevSetNumber
+              ? `Jump to end of set ${prevSetNumber} (start of between-set gap)`
+              : 'Jump to previous set end (between-set gap)'
+          }
+          aria-label="Jump to previous set end"
+        >
+          <Icon name="skip-forward" size="xs" />
+          <span>Gap</span>
+        </button>
+      )}
       {onJumpFirstServe && completed.length > 0 && !navigationLocked && (
         <button
           type="button"

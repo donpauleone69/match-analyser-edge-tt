@@ -410,12 +410,13 @@ export function MatchReviewComposer() {
         .sort((a, b) => a.setNumber - b.setNumber || a.rallyIndex - b.rallyIndex)
     : []
 
+  const incompleteCount = review.rallies.filter((r) => r.isIncomplete).length
   const tabs: TabItem<ReviewTab>[] = [
     { id: 'summary', label: 'Summary' },
     { id: 'details', label: 'Details' },
     { id: 'workon', label: 'Work on', badge: review.workOn.hero.total || undefined },
     { id: 'clips', label: 'Clips' },
-    { id: 'rallies', label: 'Rallies' },
+    { id: 'rallies', label: 'Rallies', badge: incompleteCount || undefined },
   ]
 
   const storageHandlers = {
