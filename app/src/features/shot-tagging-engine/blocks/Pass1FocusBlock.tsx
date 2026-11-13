@@ -169,7 +169,7 @@ function ChoiceRow({ label, children }: { label: string; children: ReactNode }) 
         {label}
       </div>
       <div
-        className="flex w-full min-w-0 items-center flex-nowrap"
+        className="flex w-full min-w-0 items-center flex-wrap"
         style={{ gap: 'var(--control-gap)' }}
       >
         {children}
@@ -196,11 +196,11 @@ function ShotTypeRow({
   return (
     <ChoiceRow label="Shot">
       <div
-        className="flex w-full min-w-0 items-start"
+        className="flex w-full min-w-0 flex-wrap items-start"
         style={{ gap: 'var(--control-gap)' }}
       >
         <div
-          className="flex shrink-0 flex-nowrap items-center"
+          className="flex shrink-0 flex-wrap items-center"
           style={{ gap: 'var(--control-gap)' }}
         >
           {[...WING_OPTIONS].reverse().map((v) => (
@@ -224,7 +224,7 @@ function ShotTypeRow({
           )}
         </div>
         <div
-          className="flex flex-1 min-w-0 flex-nowrap justify-end overflow-x-auto"
+          className="flex flex-1 min-w-0 flex-wrap justify-end"
           style={{ gap: 'var(--control-gap)' }}
         >
           {strokes.map((v) => (
@@ -571,50 +571,68 @@ export function Pass1FocusBlock({
           scrollable={scrollableShotRail}
         />
         {selected !== null && selectedShotData && (
-          <div
-            className="flex flex-wrap items-center justify-end gap-1"
-            aria-label={`Shot ${selected} tools`}
-          >
-            <span className="mr-auto text-[9px] font-bold uppercase tracking-wide text-muted">
-              Shot {selected}
-            </span>
-            {selected >= 2 && (
+          <div className="space-y-1" aria-label={`Shot ${selected} tools`}>
+            <div className="flex flex-wrap items-center justify-end gap-1">
+              <span className="mr-auto text-[9px] font-bold uppercase tracking-wide text-muted">
+                Shot {selected}
+                {typeof state.fos === 'number'
+                  ? ` · FA ${state.fos}`
+                  : state.noFirstAttack
+                    ? ' · No attack'
+                    : state.end === 1
+                      ? ''
+                      : ' · FA?'}
+                {typeof state.end === 'number' ? ` · End ${state.end}` : ' · End?'}
+              </span>
+              {selected >= 2 && (
+                <>
+                  <TimelinePill
+                    kind="fos"
+                    label={state.fos === selected ? 'First attack ✓' : 'First attack'}
+                    selected={state.fos === selected}
+                    title={
+                      state.fos === selected
+                        ? `Shot ${selected} is the first attack — tap to clear (undecided)`
+                        : `Mark shot ${selected} as the first attack of the point`
+                    }
+                    onClick={() => onMarkFos(selected)}
+                  />
+                  <TimelinePill
+                    kind="fos"
+                    label={state.noFirstAttack ? 'No attack ✓' : 'No attack'}
+                    selected={state.noFirstAttack}
+                    title={
+                      state.noFirstAttack
+                        ? 'No first attack marked — tap to clear (undecided)'
+                        : 'This point had no first attack'
+                    }
+                    onClick={() => onNoAttack()}
+                  />
+                </>
+              )}
               <TimelinePill
-                kind="fos"
-                label="First attack"
-                selected={state.fos === selected}
+                kind="end"
+                label={state.end === selected ? 'End point ✓' : 'End point'}
+                selected={state.end === selected}
                 title={
-                  state.fos === selected
-                    ? `Shot ${selected} is the first attack — tap to clear it (no attack)`
-                    : `Mark shot ${selected} as the first attack of the point`
+                  state.end === selected
+                    ? `Shot ${selected} ends the point — tap to un-mark the point end`
+                    : `Mark shot ${selected} as the last shot of the point, then choose the result on its row`
                 }
-                onClick={() =>
-                  state.fos === selected ? onNoAttack() : onMarkFos(selected)
-                }
+                onClick={() => onMarkEnd(selected)}
               />
-            )}
-            <TimelinePill
-              kind="end"
-              label="End point"
-              selected={state.end === selected}
-              title={
-                state.end === selected
-                  ? `Shot ${selected} ends the point — tap to un-mark the point end`
-                  : `Mark shot ${selected} as the last shot of the point, then choose the result on its row`
-              }
-              onClick={() => onMarkEnd(selected)}
-            />
-            <TimelinePill
-              kind="review"
-              label="Flag for review"
-              selected={selectedShotData.reviewKind !== null}
-              title={
-                selectedShotData.reviewKind !== null
-                  ? `Shot ${selected} is flagged for later review — tap to remove the flag`
-                  : `Flag shot ${selected} for later review (starts as Technical; refine the kind on its row)`
-              }
-              onClick={() => onToggleReviewFlag(selected)}
-            />
+              <TimelinePill
+                kind="review"
+                label="Flag for review"
+                selected={selectedShotData.reviewKind !== null}
+                title={
+                  selectedShotData.reviewKind !== null
+                    ? `Shot ${selected} is flagged for later review — tap to remove the flag`
+                    : `Flag shot ${selected} for later review (starts as Technical; refine the kind on its row)`
+                }
+                onClick={() => onToggleReviewFlag(selected)}
+              />
+            </div>
           </div>
         )}
       </div>

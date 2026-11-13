@@ -399,6 +399,8 @@ export async function loadResumedPass1FocusState(input: {
     const timeline: RallyTimelineState = {
       shotCount: end,
       fos: rally.first_attack_index,
+      // Saved rallies: null first_attack_index means explicit no attack (not undecided).
+      noFirstAttack: rally.first_attack_index === null,
       end,
       ending: rally.point_ending,
       missReason: normalizeMissReason(rally.point_miss_reason),

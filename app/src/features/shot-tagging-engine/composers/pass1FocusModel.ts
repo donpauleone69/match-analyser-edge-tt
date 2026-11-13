@@ -75,6 +75,11 @@ export type ShotMap = Record<number, ShotTags>
 export interface RallyTimelineState {
   shotCount: number
   fos: number | null
+  /**
+   * Explicit “no first attack” (distinct from undecided `fos === null`).
+   * Required for save when the point has 2+ shots.
+   */
+  noFirstAttack: boolean
   end: number | null
   ending: PointEnding | null
   /** Only meaningful when ending is an error. */
@@ -199,6 +204,7 @@ export function emptyRallyTimelineState(): RallyTimelineState {
   return {
     shotCount: 0,
     fos: null,
+    noFirstAttack: false,
     end: null,
     ending: null,
     missReason: null,
@@ -217,6 +223,7 @@ export function timelineFromContacts(times: number[]): RallyTimelineState {
   return {
     shotCount,
     fos: null,
+    noFirstAttack: false,
     end: shotCount > 0 ? shotCount : null,
     ending: null,
     missReason: null,
@@ -231,7 +238,12 @@ export function timelineFromContacts(times: number[]): RallyTimelineState {
  */
 export function ballBeforeAttack(state: RallyTimelineState): number | null {
   if (typeof state.fos === 'number' && state.fos > 1) return state.fos - 1
-  if (state.fos === null && typeof state.end === 'number' && state.end > 1) {
+  if (
+    state.noFirstAttack &&
+    state.fos === null &&
+    typeof state.end === 'number' &&
+    state.end > 1
+  ) {
     return state.end - 1
   }
   return null
@@ -527,8 +539,9 @@ export function getShotSummary(_n: number, shot: ShotTags): string {
 
 export function describeFos(state: RallyTimelineState): string {
   if (typeof state.fos === 'number') return `FOS shot ${state.fos}`
-  if (state.end === null) return 'FOS unmarked'
-  return 'No FOS'
+  if (state.noFirstAttack) return 'No attack'
+  if (state.end === null) return 'First attack?'
+  return 'First attack?'
 }
 
 export function describeEnd(end: number | null): string {
@@ -604,22 +617,30 @@ export function markFos(
   if (state.end === 1) return state
   if (at < 2 || at > state.shotCount) return state
   if (typeof state.end === 'number' && at > state.end) return state
-  const next = state.fos === at ? null : at
+  // Re-tap same shot clears to undecided (not “no attack”).
+  if (state.fos === at) {
+    return { ...state, fos: null, noFirstAttack: false, fosTimeSeconds: null }
+  }
   return {
     ...state,
-    fos: next,
-    fosTimeSeconds: next !== null ? videoTimeSeconds : null,
+    fos: at,
+    noFirstAttack: false,
+    fosTimeSeconds: videoTimeSeconds,
   }
 }
 
-/** Set first attack to a shot (radio), or clear with null. */
+/** Set first attack to a shot, or null with noFirstAttack when marking none. */
 export function setFos(
   state: RallyTimelineState,
   at: number | null,
   videoTimeSeconds: number | null = null
 ): RallyTimelineState {
   if (at === null) {
-    return { ...state, fos: null, fosTimeSeconds: null }
+    // Toggle: second tap on No attack returns to undecided.
+    if (state.noFirstAttack) {
+      return { ...state, fos: null, noFirstAttack: false, fosTimeSeconds: null }
+    }
+    return { ...state, fos: null, noFirstAttack: true, fosTimeSeconds: null }
   }
   if (state.end === 1) return state
   if (at < 2 || at > state.shotCount) return state
@@ -627,6 +648,7 @@ export function setFos(
   return {
     ...state,
     fos: at,
+    noFirstAttack: false,
     fosTimeSeconds: videoTimeSeconds,
   }
 }
@@ -652,6 +674,7 @@ export function nudgeFos(
   return {
     ...state,
     fos: next,
+    noFirstAttack: false,
     fosTimeSeconds: contact,
   }
 }
@@ -674,6 +697,7 @@ export function markEnd(state: RallyTimelineState, at: number): RallyTimelineSta
   const invalidFos =
     at === 1 || (typeof state.fos === 'number' && state.fos > at)
   const fos = invalidFos ? null : state.fos
+  const noFirstAttack = invalidFos ? false : state.noFirstAttack
 
   // Keep all contacts — End is a marker, not a truncate — so End can move forward later.
   const shots: ShotMap = { ...state.shots }
@@ -693,6 +717,7 @@ export function markEnd(state: RallyTimelineState, at: number): RallyTimelineSta
     ending: null,
     missReason: null,
     fos,
+    noFirstAttack,
     fosTimeSeconds: invalidFos ? null : state.fosTimeSeconds,
   }
 }
@@ -765,6 +790,13 @@ export function toggleShotReviewFlag(
   }
 }
 
+/** First attack decided: marked on a shot, explicit no-attack, or serve-only point. */
+export function isFosDecided(state: RallyTimelineState): boolean {
+  if (state.end === 1) return true
+  if (typeof state.fos === 'number') return true
+  return state.noFirstAttack
+}
+
 /** Ready to save a tagged rally into the session list. */
 export function canSaveRallyTimeline(
   state: RallyTimelineState,
@@ -772,7 +804,16 @@ export function canSaveRallyTimeline(
 ): boolean {
   if (state.end === null) return false
   if (!state.ending) return false
+  if (!isFosDecided(state)) return false
   return Boolean(winnerName)
+}
+
+/** Short hint for the sticky tool row when save is blocked. */
+export function pass1SaveHint(state: RallyTimelineState): string | null {
+  if (state.end === null) return 'Mark End point on the last shot'
+  if (!isFosDecided(state)) return 'Mark First attack on a shot, or No attack'
+  if (!state.ending) return 'Choose Winner / error on the end shot row'
+  return null
 }
 
 export function summarizeRallyLine(
