@@ -63,7 +63,7 @@ export function HomeComposer() {
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-neutral-50">Home</h1>
           <p className="text-sm text-neutral-400 mt-1">
-            Continue tagging, find matches, open playlists. Training is practice, not a match.
+            Continue tagging, find matches, open playlists.
           </p>
           {outstandingLabel ? (
             <p className="text-sm text-amber-300/90 mt-1">{outstandingLabel}</p>

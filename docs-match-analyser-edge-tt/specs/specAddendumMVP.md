@@ -6,6 +6,21 @@
 
 ## Change Log
 
+### 2026-11-13: MA-34 — Hide Training from bottom nav (v3.84.0)
+
+**Change Type:** UX — IA
+
+**What Changed:**
+- Bottom nav: **Home · Clips · Account** (Training removed).
+- Account card **Training (practice)** → `/training`; Training page clarifies Account entry + Home link.
+- Home subhead no longer mentions Training.
+
+**Decision Rationale:** Stub should not compete with match loop; keep route for later.
+
+**Key Files:** `AppShell.tsx`; `AccountComposer.tsx`; `TrainingLibraryComposer.tsx`; `HomeComposer.tsx`.
+
+---
+
 ### 2026-11-13: MA-33 — Review header Tag density (v3.83.0)
 
 **Change Type:** UX — flow polish
@@ -7594,6 +7609,7 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v3.84.0 | 2026-11-13 | MA-34: hide Training from bottom nav; Account entry |
 | v3.83.0 | 2026-11-13 | MA-33: Review header Tag-only density; drop Clips/Rallies badges |
 | v3.82.0 | 2026-11-13 | MA-32: Find-matches sync badges; cloud-only download copy |
 | v3.81.0 | 2026-11-13 | MA-31: demote Matches from bottom nav; Find matches from Home |

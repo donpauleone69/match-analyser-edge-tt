@@ -119,10 +119,15 @@ export function TrainingLibraryComposer() {
   return (
     <div className="mx-auto max-w-3xl space-y-5 p-4 md:p-6">
       <header className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-brand-primary">Not a match</p>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-brand-primary">Not a match</p>
+          <Button size="sm" variant="secondary" onClick={() => navigate('/')}>
+            <Icon name="home" size="sm" /> Home
+          </Button>
+        </div>
         <h1 className="text-2xl font-bold text-neutral-50 md:text-3xl">Training</h1>
         <p className="max-w-xl text-sm text-neutral-400">
-          About ten reps of one shot type, or a named combination (prove with serve → open → drive). Compare months.
+          Practice posts (shot type or combination) — separate from match tagging. Opened from Account.
           Never appears in match review or match scopes.
         </p>
       </header>

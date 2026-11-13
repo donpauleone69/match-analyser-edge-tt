@@ -1,11 +1,13 @@
 import { Outlet, NavLink } from 'react-router-dom'
-import { Home, Film, Cloud, Target } from 'lucide-react'
+import { Home, Film, Cloud } from 'lucide-react'
 import { cn } from '@/helpers/utils'
 
-/** Bottom nav — Find matches lives on Home (not a fifth tab). /matches route stays. */
+/**
+ * Bottom nav — Find matches from Home; Training is practice (Account link / /training),
+ * not a primary tab until the stub is a real product surface.
+ */
 const navItems = [
   { to: '/', icon: Home, label: 'Home', end: true },
-  { to: '/training', icon: Target, label: 'Training', end: false },
   { to: '/clips', icon: Film, label: 'Clips', end: false },
   { to: '/settings', icon: Cloud, label: 'Account', end: false },
 ]
