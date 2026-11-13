@@ -37,6 +37,7 @@ import {
   markFos,
   pass1SaveHint,
   setFos,
+  shotLoopWindow,
   shotNumberAtTime,
   toggleEnding,
   toggleMissReason,
@@ -226,13 +227,23 @@ export function RallyEditComposer() {
     return loopWindowFromContacts(contactTimes[0], contactTimes[contactTimes.length - 1], duration)
   }, [contactTimes])
 
-  const constrainedPlayback = useMemo(
+  const rallyConstrained = useMemo(
     () =>
       loop
         ? { enabled: true, startTime: loop.startTime, endTime: loop.endTime, loopOnEnd: true }
         : { enabled: false, startTime: 0, endTime: 0, loopOnEnd: true },
     [loop]
   )
+  const shotConstrained =
+    editMode === 'simple' &&
+    loopScope === 'shot' &&
+    draft &&
+    selectedShot !== null
+      ? shotLoopWindow(draft.timeline, selectedShot, rallyConstrained)
+      : null
+  const constrainedPlayback = shotConstrained
+    ? { ...rallyConstrained, ...shotConstrained }
+    : rallyConstrained
 
   // Jump to the rally (or the flagged shot) whenever the video / rally / shot deep-link changes
   useEffect(() => {
@@ -436,6 +447,29 @@ export function RallyEditComposer() {
       <div className="relative shrink-0 w-full bg-black max-h-[45dvh] flex justify-center">
         <div className="relative w-full max-w-4xl aspect-video max-h-[45dvh]">
           <VideoStageChrome
+            topLeft={
+              editMode === 'simple' && draft ? (
+                <button
+                  type="button"
+                  aria-pressed={true}
+                  aria-label={`Loop scope ${loopScope === 'rally' ? 'Rally' : 'Shot'}. Tap to cycle.`}
+                  onClick={() =>
+                    setLoopScope(loopScope === 'rally' ? 'shot' : 'rally')
+                  }
+                  className={cn(
+                    'tag-control tag-control-active h-7 min-w-[3.25rem] px-2 text-[10px] font-bold',
+                    'border-white/30 bg-black/70 text-white backdrop-blur-sm touch-manipulation'
+                  )}
+                  title={
+                    loopScope === 'rally'
+                      ? 'Loop the whole rally — tap for Shot'
+                      : 'Loop the current shot — tap for Rally'
+                  }
+                >
+                  {loopScope === 'rally' ? 'Rally' : 'Shot'}
+                </button>
+              ) : null
+            }
             bottomOverlay={
               videoUrl ? (
                 <TransportCluster
@@ -595,8 +629,6 @@ export function RallyEditComposer() {
             selectedShot={selectedShot}
             activeRow={activeMatrixRow}
             reviewDetailFocused={reviewDetailFocused}
-            loopScope={loopScope}
-            onLoopScopeChange={setLoopScope}
             onSelectShot={setSelectedShot}
             onToggleOffensive={(n) => {
               setSelectedShot(n)

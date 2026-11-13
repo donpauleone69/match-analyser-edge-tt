@@ -6,6 +6,25 @@
 
 ## Change Log
 
+### 2026-11-13: MA-60 — Simple ↔ Pass 1 visual/protocol parity (v3.109.0)
+
+**Change Type:** UX parity — Simple Phase 2.5 (Paul agreed checklist + row-label addendum)
+
+**What Changed:**
+- **Let** button before Discard on Simple form chrome (redo-contacts / no-score path).
+- Idle Off/End/Review (+ RALLY None/★ idle) = Shot 1 Offensive non-pressed (`.tag-control` / pill-idle).
+- Shot number headers L→R match Pass 1 rail (player pastel, FOS/end/review washes, `border-contact-selected`, FA/End captions).
+- Pressed matrix cells use Pass 1 protocol fills (FOS green, End, Review yellow); DetailPill map includes `review`.
+- **Rally|Shot** cycle moved off matrix → video overlay (`VideoStageChrome` topLeft).
+- Detail strip = Pass 1 sticky-tool colouring **and** function (First attack / No attack / End point / Flag for review + End wing/shot/result).
+- Matrix **row labels above each section** (not sticky-left) so shot columns can scroll L→R freely.
+
+**Decision Rationale:** Paul MA-60 parity checklist + addendum — Simple must read as the same tagging protocol as Pass 1 Focus, with denser phone matrix layout.
+
+**Key Files:** `SimpleTaggingMatrixBlock.tsx`; `SimpleTaggingComposer.tsx`; `RallyEditComposer.tsx`.
+
+---
+
 ### 2026-11-13: MA-59 — Simple matrix consistency + HUD align (v3.108.0)
 
 **Change Type:** UX consistency — Simple Phase 2.4 (Paul matrix/HUD notes after #43)
