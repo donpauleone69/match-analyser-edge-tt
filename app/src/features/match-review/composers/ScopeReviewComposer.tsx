@@ -80,6 +80,24 @@ export function ScopeReviewComposer() {
 
   const mine = focal ? matches.filter((m) => m.player1_id === focal) : []
 
+  const labelMatch = (m: { id: string; player2_id: string | null }) => {
+    const full = matches.find((row) => row.id === m.id)
+    const opp = m.player2_id
+      ? players.find((p) => p.id === m.player2_id)
+      : undefined
+    const vs = opp
+      ? `${opp.first_name} ${opp.last_name}`.trim() || opp.first_name
+      : 'Opponent'
+    const date = full?.match_date
+      ? new Date(full.match_date).toLocaleDateString(undefined, {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+        })
+      : null
+    return date ? `vs ${vs} · ${date}` : `vs ${vs}`
+  }
+
   return (
     <div className="mx-auto max-w-5xl space-y-5 p-4 md:p-6">
       <header className="space-y-3">
@@ -91,16 +109,23 @@ export function ScopeReviewComposer() {
             <p className="text-xs font-semibold uppercase tracking-wide text-brand-primary">Review scope</p>
             <h1 className="text-2xl font-bold text-neutral-50 md:text-3xl">{title}</h1>
             <p className="mt-1 text-sm text-neutral-400">
-              {scoped.length} match{scoped.length === 1 ? '' : 'es'} · same Work on + clips payoff
+              {scoped.length} match{scoped.length === 1 ? '' : 'es'} · Work on patterns + Clips playlists across them
             </p>
           </div>
-          <ScopeControlBlock
-            scope={scope}
-            matches={mine}
-            players={players}
-            tournaments={tournaments}
-            onChange={setScope}
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            <ScopeControlBlock
+              scope={scope}
+              matches={mine}
+              players={players}
+              tournaments={tournaments}
+              onChange={setScope}
+            />
+            {scoped.length > 0 && (
+              <Button size="sm" onClick={() => setTab('clips')}>
+                Open playlists
+              </Button>
+            )}
+          </div>
         </div>
       </header>
 
@@ -122,14 +147,20 @@ export function ScopeReviewComposer() {
         <Card className="space-y-3 p-5">
           <h2 className="text-lg font-semibold text-neutral-50">Work on (across this scope)</h2>
           <p className="text-sm text-neutral-400">
-            Open a match for the full Work on list with evidence, or use Clips for the combined playlist across the
-            scope.
+            Open a match for the full Work on list, or use Clips for the combined playlist across this scope.
           </p>
+          <Button size="sm" onClick={() => setTab('clips')}>
+            Open cross-match playlists
+          </Button>
           <ul className="space-y-2">
             {scoped.map((m) => (
               <li key={m.id}>
-                <Button variant="secondary" size="sm" onClick={() => navigate(`/matches/${m.id}?tab=workon`)}>
-                  Work on · {m.id}
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => navigate(`/matches/${m.id}?tab=workon`)}
+                >
+                  Work on · {labelMatch(m)}
                 </Button>
               </li>
             ))}
@@ -141,7 +172,9 @@ export function ScopeReviewComposer() {
           <ul className="divide-y divide-neutral-800">
             {scoped.map((m) => (
               <li key={m.id} className="flex flex-wrap items-center justify-between gap-2 py-3">
-                <span className="text-sm text-neutral-200">{m.id}</span>
+                <span className="text-sm text-neutral-200">
+                  {labelMatch(m)}
+                </span>
                 <div className="flex gap-2">
                   <Button size="sm" variant="secondary" onClick={() => navigate(`/matches/${m.id}`)}>
                     Review

@@ -23,6 +23,8 @@ export interface WorkOnSectionProps {
   onOpenEvidence: (evidence: EvidenceRef) => void
   onWatchItem: (item: ReviewItemModel, pattern: ReviewPatternModel) => void
   onEditItem: (item: ReviewItemModel) => void
+  onPlayPlaylist?: (pattern: ReviewPatternModel) => void
+  onOpenHighlights?: () => void
 }
 
 function PatternGroup({
@@ -31,12 +33,14 @@ function PatternGroup({
   patterns,
   onWatchItem,
   onEditItem,
+  onPlayPlaylist,
 }: {
   title: string
   hint: string
   patterns: ReviewPatternModel[]
   onWatchItem: WorkOnSectionProps['onWatchItem']
   onEditItem: WorkOnSectionProps['onEditItem']
+  onPlayPlaylist?: WorkOnSectionProps['onPlayPlaylist']
 }) {
   if (patterns.length === 0) return null
   const total = patterns.reduce((s, p) => s + p.count, 0)
@@ -56,6 +60,7 @@ function PatternGroup({
             defaultOpen={i === 0 && p.count > 1}
             onWatch={onWatchItem}
             onEdit={onEditItem}
+            onPlayPlaylist={onPlayPlaylist}
           />
         ))}
       </ul>
@@ -67,10 +72,12 @@ function SideCard({
   side,
   onWatchItem,
   onEditItem,
+  onPlayPlaylist,
 }: {
   side: ReviewSideModel
   onWatchItem: WorkOnSectionProps['onWatchItem']
   onEditItem: WorkOnSectionProps['onEditItem']
+  onPlayPlaylist?: WorkOnSectionProps['onPlayPlaylist']
 }) {
   return (
     <Card className="p-4 md:p-5 border border-neutral-700 space-y-4">
@@ -83,6 +90,7 @@ function SideCard({
         patterns={side.technical}
         onWatchItem={onWatchItem}
         onEditItem={onEditItem}
+        onPlayPlaylist={onPlayPlaylist}
       />
       <PatternGroup
         title="Tactical"
@@ -90,6 +98,7 @@ function SideCard({
         patterns={side.tactical}
         onWatchItem={onWatchItem}
         onEditItem={onEditItem}
+        onPlayPlaylist={onPlayPlaylist}
       />
     </Card>
   )
@@ -103,6 +112,8 @@ export function WorkOnSection({
   onOpenEvidence,
   onWatchItem,
   onEditItem,
+  onPlayPlaylist,
+  onOpenHighlights,
 }: WorkOnSectionProps) {
   const [showVillain, setShowVillain] = useState(false)
   const heroFocus = workOn.focus.filter((f) => f.side === 'hero')
@@ -130,17 +141,27 @@ export function WorkOnSection({
             {workOn.hero.total} of your shots flagged, no repeated pattern yet — see the list below.
           </p>
         )}
-        {workOn.heroErrors.rallyIds.length > 0 && (
-          <div className="mt-4">
+        <div className="mt-4 flex flex-wrap gap-2">
+          {workOn.heroErrors.rallyIds.length > 0 && (
             <Button size="sm" variant="secondary" onClick={() => onOpenEvidence(workOn.heroErrors)}>
               <Icon name="alert" size="sm" /> See all {workOn.heroErrors.rallyIds.length} of your errors
             </Button>
-          </div>
-        )}
+          )}
+          {onOpenHighlights && (
+            <Button size="sm" variant="secondary" onClick={onOpenHighlights}>
+              <Icon name="star" size="sm" /> Highlights show-reel
+            </Button>
+          )}
+        </div>
       </Card>
 
       {workOn.hero.total > 0 && (
-        <SideCard side={workOn.hero} onWatchItem={onWatchItem} onEditItem={onEditItem} />
+        <SideCard
+          side={workOn.hero}
+          onWatchItem={onWatchItem}
+          onEditItem={onEditItem}
+          onPlayPlaylist={onPlayPlaylist}
+        />
       )}
 
       {workOn.villain.total > 0 && (
@@ -153,7 +174,14 @@ export function WorkOnSection({
             <Icon name={showVillain ? 'chevron-up' : 'chevron-down'} size="sm" />
             {villainName}’s flagged shots ({workOn.villain.total}) — scouting
           </button>
-          {showVillain && <SideCard side={workOn.villain} onWatchItem={onWatchItem} onEditItem={onEditItem} />}
+          {showVillain && (
+            <SideCard
+              side={workOn.villain}
+              onWatchItem={onWatchItem}
+              onEditItem={onEditItem}
+              onPlayPlaylist={onPlayPlaylist}
+            />
+          )}
         </div>
       )}
 

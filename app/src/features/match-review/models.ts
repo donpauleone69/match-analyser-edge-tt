@@ -2,7 +2,7 @@
  * Match Review — view model types
  */
 
-import type { MatchRound } from '@/data'
+import type { MatchRound, ShotStroke, ShotWing } from '@/data'
 import type { SetTaggingStatus } from '@/rules/derive/set/deriveSetTaggingStatus'
 
 export type CellTone = 'good' | 'bad' | 'amber' | 'none'
@@ -110,6 +110,10 @@ export interface ReviewPatternModel {
   key: string
   title: string
   kindLabel: 'Technical' | 'Tactical'
+  /** Clip-filter fields for Work on → Clips deep links */
+  reviewKind: 'technical' | 'tactical'
+  wing: ShotWing | null
+  stroke: ShotStroke | null
   count: number
   items: ReviewItemModel[]
 }

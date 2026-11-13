@@ -6,6 +6,25 @@
 
 ## Change Log
 
+### 2026-11-13: Overnight UX — flow friction + playlists (v3.68.0)
+
+**Change Type:** UX / navigation / playlists
+
+**What Changed:**
+- Removed Pass 1 post-set score-confirmation screen; **Done** finalizes the set and navigates straight to Match Review (Work on / Highlights Clips / Summary based on tags).
+- Collapsed dual exit: set HUD **Done** (finalize) vs **Pause** (soft leave); dropped End set / Match review from the form action row.
+- Cut `?mode=rallyfocus` from the tagging path (always Pass 1 Focus).
+- Match Review tabs: dropped standalone Highlights tab; legacy `?tab=highlights` redirects to Clips Highlights show-reel (label stays “Highlight”).
+- Work on → **Playlist** deep-links into Clips review presets; Highlights show-reel CTA on Work on.
+- Scope Review: human match labels (vs opponent · date), one-tap Open playlists for cross-match Clips.
+- Details: optional opponent/tournament hint (still not required on create).
+
+**Decision Rationale:** Paul overnight mandate — less is more on check/confirm steps; playlists are the payoff; Highlight = enjoyment show-reel.
+
+**Key Files:** `Pass1FocusComposer.tsx`; `Pass1ChromeProtoBlock.tsx`; `TaggingUIComposer.tsx`; `MatchReviewComposer.tsx`; `WorkOnSection.tsx`; `ReviewPatternBlock.tsx`; `ScopeReviewComposer.tsx`; `DetailsSection.tsx`.
+
+---
+
 ### 2026-11-13: Foundation — build fix, SoT rewrite, obsolete docs deleted (v3.67.0)
 
 **Change Type:** Foundation / docs / unblock merge gate

@@ -701,6 +701,9 @@ function patternModel(
     key: p.key,
     title: formatShotType(p.wing, p.stroke),
     kindLabel: p.kind === 'technical' ? 'Technical' : 'Tactical',
+    reviewKind: p.kind,
+    wing: p.wing,
+    stroke: p.stroke,
     count: p.count,
     items: p.lines.map((l) => ({
       shotId: l.shotId,

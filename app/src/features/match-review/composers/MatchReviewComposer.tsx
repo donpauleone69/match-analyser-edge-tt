@@ -2,8 +2,9 @@
  * MatchReviewComposer — Match Review page (route: /matches/:id)
  *
  * First-person hub for a match (hero / player1):
- *   Summary · Details · Work on · Clips · Highlights · Rallies
+ *   Summary · Details · Work on · Clips · Rallies
  * Summary = narrative + story; Details = result, sets, storage.
+ * Highlights show-reel lives under Clips (preset kind: highlights).
  * Every number opens its evidence; every rally can be watched or edited.
  */
 
@@ -21,7 +22,7 @@ import { RallyPlayerBlock } from '../blocks/RallyPlayerBlock'
 import { SummarySection } from '../sections/SummarySection'
 import { DetailsSection } from '../sections/DetailsSection'
 import { WorkOnSection } from '../sections/WorkOnSection'
-import { HighlightsSection, type RallyActions } from '../sections/HighlightsSection'
+import { type RallyActions } from '../sections/HighlightsSection'
 import { RalliesSection, type RallyFilter } from '../sections/RalliesSection'
 import { ClipsComposer } from '@/features/clips'
 import { encodeClipFilter } from '@/rules/derive/clips/deriveClips'
@@ -51,11 +52,12 @@ import type { EvidenceRef, RallyRowModel, SetPanelModel } from '../models'
 import { ScopeControlBlock } from '../blocks/ScopeControlBlock'
 import type { ReviewScope } from '@/rules/reviewScope'
 
-type ReviewTab = 'summary' | 'details' | 'workon' | 'clips' | 'highlights' | 'rallies'
-const TABS: ReviewTab[] = ['summary', 'details', 'workon', 'clips', 'highlights', 'rallies']
+type ReviewTab = 'summary' | 'details' | 'workon' | 'clips' | 'rallies'
+const TABS: ReviewTab[] = ['summary', 'details', 'workon', 'clips', 'rallies']
 
 function resolveReviewTab(param: string | null): ReviewTab {
   if (param === 'overview') return 'summary' // legacy URL
+  if (param === 'highlights') return 'clips' // show-reel lives in Clips
   if (param && (TABS as string[]).includes(param)) return param as ReviewTab
   return 'summary'
 }
@@ -198,6 +200,15 @@ export function MatchReviewComposer() {
     }, 200)
     return () => clearTimeout(t)
   }, [playerVideoUrl, clipStart, playerRally?.id])
+
+  // Legacy ?tab=highlights → Clips Highlights show-reel preset (must stay above early returns)
+  useEffect(() => {
+    if (searchParams.get('tab') !== 'highlights') return
+    setParams({
+      tab: 'clips',
+      clip: encodeClipFilter({ kind: 'highlights' }),
+    })
+  }, [searchParams, setParams])
 
   if (isLoading) {
     return (
@@ -384,13 +395,9 @@ export function MatchReviewComposer() {
     { id: 'summary', label: 'Summary' },
     { id: 'details', label: 'Details' },
     { id: 'workon', label: 'Work on', badge: review.workOn.hero.total },
-    { id: 'clips', label: 'Clips' },
-    { id: 'highlights', label: 'Highlights', badge: review.highlights.flagged.length },
+    { id: 'clips', label: 'Clips', badge: review.highlights.flagged.length },
     { id: 'rallies', label: 'Rallies', badge: review.rallies.length },
   ]
-
-  const toRows = (ids: string[]) =>
-    ids.map((id) => rallyById.get(id)).filter((r): r is RallyRowModel => Boolean(r))
 
   const storageHandlers = {
     onSignIn: () => navigate('/settings'),
@@ -578,17 +585,29 @@ export function MatchReviewComposer() {
             const rally = rallyById.get(item.rallyId)
             if (rally) openEditor(rally)
           }}
+          onPlayPlaylist={(pattern) => {
+            setParams({
+              tab: 'clips',
+              clip: encodeClipFilter({
+                kind: 'review',
+                side: 'hero',
+                reviewKind: pattern.reviewKind,
+                ...(pattern.wing ? { wing: pattern.wing } : {}),
+                ...(pattern.stroke ? { stroke: pattern.stroke } : {}),
+              }),
+              clipTitle: `${pattern.title} · ${pattern.kindLabel}`,
+            })
+          }}
+          onOpenHighlights={() =>
+            setParams({
+              tab: 'clips',
+              clip: encodeClipFilter({ kind: 'highlights' }),
+              clipTitle: 'Highlights',
+            })
+          }
         />
       ) : tab === 'clips' ? (
         <ClipsComposer matchId={matchId} embedded />
-      ) : tab === 'highlights' ? (
-        <HighlightsSection
-          flagged={toRows(review.highlights.flagged)}
-          longest={toRows(review.highlights.longest)}
-          heroName={review.heroName}
-          multiSet={multiSet}
-          actions={rallyActions}
-        />
       ) : (
         <RalliesSection
           sets={review.sets}
