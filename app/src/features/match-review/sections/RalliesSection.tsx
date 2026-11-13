@@ -8,13 +8,21 @@ import { cn } from '@/helpers/utils'
 import { RallyRowBlock } from '../blocks/RallyRowBlock'
 import type { RallyActions, RallyRowModel, SetPanelModel } from '../models'
 
-export type RallyFilter = 'all' | 'won' | 'lost' | 'errors' | 'starred' | 'flagged'
+export type RallyFilter =
+  | 'all'
+  | 'won'
+  | 'lost'
+  | 'errors'
+  | 'starred'
+  | 'flagged'
+  | 'incomplete'
 
 const FILTERS: { id: RallyFilter; label: string }[] = [
   { id: 'all', label: 'All' },
   { id: 'won', label: 'Won' },
   { id: 'lost', label: 'Lost' },
   { id: 'errors', label: 'My errors' },
+  { id: 'incomplete', label: 'Incomplete' },
   { id: 'starred', label: '★ Starred' },
   { id: 'flagged', label: 'Flagged shots' },
 ]
@@ -22,11 +30,13 @@ const FILTERS: { id: RallyFilter; label: string }[] = [
 export function filterRallies(rallies: RallyRowModel[], filter: RallyFilter): RallyRowModel[] {
   switch (filter) {
     case 'won':
-      return rallies.filter((r) => r.heroWon)
+      return rallies.filter((r) => !r.isIncomplete && r.heroWon)
     case 'lost':
-      return rallies.filter((r) => !r.heroWon)
+      return rallies.filter((r) => !r.isIncomplete && !r.heroWon)
     case 'errors':
-      return rallies.filter((r) => r.isError && !r.heroWon)
+      return rallies.filter((r) => !r.isIncomplete && r.isError && !r.heroWon)
+    case 'incomplete':
+      return rallies.filter((r) => r.isIncomplete)
     case 'starred':
       return rallies.filter((r) => r.isHighlight)
     case 'flagged':

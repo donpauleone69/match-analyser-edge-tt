@@ -133,6 +133,13 @@ export const ATTACK_STROKE_OPTIONS: AttackStroke[] = [
   'Smash',
   'Lob',
 ]
+/** Phone-first attack set — Lob still available on wider layouts. */
+export const ATTACK_STROKE_OPTIONS_COMPACT: AttackStroke[] = [
+  'Flick',
+  'Loop',
+  'Drive',
+  'Smash',
+]
 export const REPLY_STROKE_OPTIONS: ReplyStroke[] = [
   'Block',
   'Push',
@@ -141,6 +148,14 @@ export const REPLY_STROKE_OPTIONS: ReplyStroke[] = [
   'Drive',
   'Smash',
   'Lob',
+]
+/** Phone reply set — drop Smash/Lob to reduce wrap density. */
+export const REPLY_STROKE_OPTIONS_COMPACT: ReplyStroke[] = [
+  'Block',
+  'Push',
+  'Chop',
+  'Loop',
+  'Drive',
 ]
 export const END_STROKE_OPTIONS: EndStroke[] = [
   'Flick',
@@ -151,6 +166,15 @@ export const END_STROKE_OPTIONS: EndStroke[] = [
   'Block',
   'Push',
   'Chop',
+]
+/** Phone end-shot set — essentials only. */
+export const END_STROKE_OPTIONS_COMPACT: EndStroke[] = [
+  'Flick',
+  'Loop',
+  'Drive',
+  'Smash',
+  'Block',
+  'Push',
 ]
 
 /** Default capture speed after the serve is tagged */

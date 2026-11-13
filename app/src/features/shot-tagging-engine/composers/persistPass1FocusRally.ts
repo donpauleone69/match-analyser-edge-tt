@@ -98,13 +98,10 @@ export async function persistPass1FocusRally(
 
   const summary = summarizeRallyLine(
     {
-      shotCount: input.timeline.shotCount,
-      fos: input.timeline.fos,
-      end: input.timeline.end,
+      ...input.timeline,
       ending: input.timeline.ending as PointEnding | null,
       missReason: savedRally.point_miss_reason,
       fosTimeSeconds: null,
-      shots: input.timeline.shots,
     },
     winnerName
   )

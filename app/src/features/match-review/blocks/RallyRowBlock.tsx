@@ -52,16 +52,28 @@ export function RallyRowBlock({
           <span className="font-mono text-xs text-neutral-400">
             {rally.scoreBefore} → <span className="text-neutral-200">{rally.scoreAfter}</span>
           </span>
-          <span
-            className={cn(
-              'text-[11px] font-semibold rounded px-1.5 py-0.5 border',
-              rally.heroWon
-                ? 'text-result-winner border-result-winner/70 bg-result-winner-bg'
-                : 'text-result-error border-result-error/70 bg-result-error-bg'
-            )}
-          >
-            {rally.heroWon ? `${heroName.split(' ')[0]} won` : `${rally.winnerName.split(' ')[0]} won`}
-          </span>
+          {!rally.isIncomplete && (
+            <span
+              className={cn(
+                'text-[11px] font-semibold rounded px-1.5 py-0.5 border',
+                rally.heroWon
+                  ? 'text-result-winner border-result-winner/70 bg-result-winner-bg'
+                  : 'text-result-error border-result-error/70 bg-result-error-bg'
+              )}
+            >
+              {rally.heroWon
+                ? `${heroName.split(' ')[0]} won`
+                : `${rally.winnerName.split(' ')[0]} won`}
+            </span>
+          )}
+          {rally.isIncomplete && (
+            <span
+              className="text-[10px] font-bold uppercase tracking-wide text-amber-200 border border-amber-500/60 bg-amber-950/40 rounded px-1"
+              title="Missing Pass 1 required tags — open Edit to finish"
+            >
+              Incomplete
+            </span>
+          )}
           {rally.isHighlight && <span className="text-review text-xs" aria-label="Highlight">★</span>}
           {rally.reviewCount > 0 && (
             <span className="text-[10px] font-bold uppercase tracking-wide text-review border border-review/50 rounded px-1">
