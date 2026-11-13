@@ -6,6 +6,20 @@
 
 ## Change Log
 
+### 2026-11-13: MA-65 — Simple detail card = Pass 1 ShotRow style (v3.112.0)
+
+**Change Type:** UX polish — Simple retheme to Pass 1 Focus card language
+
+**What Changed:**
+- Simple selected-shot detail panel uses Pass 1 `ShotRow` paint: opaque pastel wash by role/result, 3px left stripe, `#` + hitter + role/FOS/Flagged badges, compact summary, `border-contact-selected` ring.
+- DetailPill / ChoiceRow Shot·Result·Miss reason + sticky FA/End/Review tools unchanged (Simple IA kept: Off/End/Review matrix, RALLY None/★, Let/Discard, mute, Rally|Shot on video).
+
+**Decision Rationale:** Paul MA-65 — Pass 1 Focus screenshot is the colour/style guide for Simple; retheme visual only, don’t rip protocol.
+
+**Key Files:** `SimpleTaggingMatrixBlock.tsx`.
+
+---
+
 ### 2026-11-13: MA-64 — Mute + matrix spacing = detail rows (v3.111.0)
 
 **Change Type:** UX polish — shared mute + Simple matrix density
