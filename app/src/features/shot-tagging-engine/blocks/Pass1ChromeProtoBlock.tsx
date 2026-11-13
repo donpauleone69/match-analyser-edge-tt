@@ -161,7 +161,7 @@ export function Pass1SetContextBlock({
   const otherServerName = serverId === 'player1' ? player2Name : player1Name
 
   return (
-    <div className="shrink-0 flex min-h-9 items-center gap-1 border-t border-pill-idle-border bg-bg-card px-1.5 py-1">
+    <div className="shrink-0 flex min-h-10 items-center gap-1 border-t border-pill-idle-border bg-bg-card px-1.5 py-1">
       {onJumpFirstServe && completed.length > 0 && !navigationLocked && (
         <button
           type="button"
@@ -263,7 +263,7 @@ export function Pass1SetContextBlock({
               type="button"
               onClick={onEndSet}
               disabled={!canEndSet}
-              className="tag-control tag-control-accent shrink-0"
+              className="tag-control tag-control-accent shrink-0 min-h-9 px-3 touch-manipulation"
               title="Finish this set and open Match Review"
             >
               Done
@@ -273,7 +273,7 @@ export function Pass1SetContextBlock({
             <button
               type="button"
               onClick={onReviewMatch}
-              className="tag-control shrink-0"
+              className="tag-control shrink-0 min-h-9 px-3 touch-manipulation"
               title="Pause tagging and open Match Review (set stays resumable)"
             >
               Pause

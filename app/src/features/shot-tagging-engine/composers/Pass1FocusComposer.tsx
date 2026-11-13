@@ -879,13 +879,13 @@ export function Pass1FocusComposer({
   return (
     <div
       className={cn(
-        'fixed inset-0 flex flex-col bg-bg-surface overflow-hidden',
+        'fixed inset-0 flex flex-col bg-bg-surface overflow-hidden pb-[env(safe-area-inset-bottom,0px)]',
         className
       )}
     >
-      {/* Full-width 16:9 video */}
-      <div className="relative shrink-0 w-full bg-black overflow-hidden">
-        <div className="relative w-full aspect-video">
+      {/* Phone: cap video so Tap / form chrome own the lower viewport (goal 1 speed). */}
+      <div className="relative shrink-0 w-full bg-black overflow-hidden max-h-[42dvh] flex justify-center">
+        <div className="relative w-full aspect-video max-h-[42dvh]">
           <VideoStageChrome
             bottomOverlay={
               videoUrl ? (
@@ -899,6 +899,7 @@ export function Pass1FocusComposer({
                     onTogglePlay={() => videoPlayerRef.current?.togglePlay()}
                     onSeekBy={handleSeekBy}
                     onNudgeSpeed={nudgePlaybackSpeed}
+                    className="[&_button]:max-sm:h-10 [&_button]:max-sm:min-w-10 [&_button]:max-sm:w-10"
                   />
                 </div>
               ) : (
@@ -949,7 +950,7 @@ export function Pass1FocusComposer({
                   variant="primary"
                   onClick={handleTapContact}
                   disabled={!setReady || Boolean(previewRally)}
-                  className="flex-1 w-full min-h-0 !h-auto self-stretch text-2xl font-bold rounded-xl"
+                  className="flex-1 w-full min-h-[28dvh] !h-auto self-stretch text-2xl font-bold rounded-xl active:scale-[0.99] touch-manipulation"
                 >
                   {previewRally
                     ? 'Return to live to capture'
@@ -979,16 +980,16 @@ export function Pass1FocusComposer({
           <div className="relative flex flex-col flex-1 min-h-0">
             {setContextBar}
             {pointLedger}
-            {/* Tagging chrome — primary: Highlight + Save; Redo/Discard in More */}
-            <div className="shrink-0 border-t border-pill-idle-border bg-bg-card">
-              <div className="relative min-h-9 px-1.5 py-1 flex flex-wrap items-center justify-end gap-1 text-[length:var(--control-text)]">
+            {/* Tagging chrome — primary Save; Highlight; Redo/Discard in More */}
+            <div className="shrink-0 border-t border-pill-idle-border bg-bg-card pb-[max(0.25rem,env(safe-area-inset-bottom,0px))]">
+              <div className="relative min-h-11 px-1.5 py-1.5 flex flex-wrap items-center justify-end gap-1.5 text-[length:var(--control-text)]">
                 <div className="relative shrink-0">
                   <button
                     type="button"
                     aria-expanded={formMoreOpen}
                     aria-haspopup="menu"
                     onClick={() => setFormMoreOpen((o) => !o)}
-                    className={cn(tagBtn, 'shrink-0', formMoreOpen && 'tag-control-active')}
+                    className={cn(tagBtn, 'shrink-0 min-h-10 px-3 touch-manipulation', formMoreOpen && 'tag-control-active')}
                     title="More rally actions"
                   >
                     <Icon name="more-h" size="sm" />
@@ -1006,7 +1007,7 @@ export function Pass1FocusComposer({
                           setFormMoreOpen(false)
                           handleRedoRally()
                         }}
-                        className={cn(tagBtn, 'w-full justify-start')}
+                        className={cn(tagBtn, 'w-full justify-start min-h-10')}
                         title="Clear these contacts and re-tap this rally from just before the serve"
                       >
                         Redo contacts
@@ -1018,7 +1019,7 @@ export function Pass1FocusComposer({
                           setFormMoreOpen(false)
                           handleDiscardOpen()
                         }}
-                        className={cn(tagBtn, 'tag-control-danger w-full justify-start')}
+                        className={cn(tagBtn, 'tag-control-danger w-full justify-start min-h-10')}
                         title="Discard this rally draft without saving"
                       >
                         Discard rally
@@ -1032,7 +1033,7 @@ export function Pass1FocusComposer({
                   onClick={handleToggleHighlight}
                   className={cn(
                     tagBtn,
-                    'shrink-0',
+                    'shrink-0 min-h-10 px-3 touch-manipulation',
                     openRally?.isHighlight && 'bg-review border-review text-primary'
                   )}
                   title="Mark this whole rally as a highlight (show-reel)"
@@ -1043,10 +1044,14 @@ export function Pass1FocusComposer({
                   type="button"
                   onClick={handleSave}
                   disabled={!canSave || saving}
-                  className={cn(tagBtn, 'shrink-0', canSave && 'tag-control-active')}
+                  className={cn(
+                    tagBtn,
+                    'shrink-0 min-h-10 px-4 touch-manipulation font-bold',
+                    canSave ? 'tag-control-accent' : 'opacity-50'
+                  )}
                   title="Save this rally and move to the next point"
                 >
-                  Save rally
+                  {saving ? 'Saving…' : 'Save rally'}
                 </button>
               </div>
             </div>
