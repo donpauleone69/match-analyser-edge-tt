@@ -23,6 +23,8 @@ export interface Pass1SetHudBlockProps {
   player2Score: number
   serverId: PlayerSide
   serverName: string
+  /** Smaller H+W for Simple tagging video HUD (MA-58). */
+  compact?: boolean
 }
 
 /** Prototype: compact WTT-style 2-row scorebug (Name | Sets | Points) on the video HUD. */
@@ -36,6 +38,7 @@ export function Pass1SetHudBlock({
   player2Score,
   serverId,
   serverName,
+  compact = false,
 }: Pass1SetHudBlockProps) {
   const rows: Array<{
     side: PlayerSide
@@ -49,7 +52,12 @@ export function Pass1SetHudBlock({
 
   return (
     <div
-      className="inline-block min-w-[9rem] max-w-[12.5rem] overflow-hidden rounded-md border border-white/20 bg-black/80 text-white shadow-lg backdrop-blur-sm select-none"
+      className={cn(
+        'inline-block overflow-hidden rounded-md border border-white/20 bg-black/80 text-white shadow-lg backdrop-blur-sm select-none',
+        compact
+          ? 'min-w-[7rem] max-w-[9.25rem]'
+          : 'min-w-[9rem] max-w-[12.5rem]'
+      )}
       role="status"
       aria-label={`Set ${setNumber}: ${player1Name} ${player1Sets} sets ${player1Score} points, ${player2Name} ${player2Sets} sets ${player2Score} points. Serving: ${serverName}.`}
     >
@@ -60,11 +68,17 @@ export function Pass1SetHudBlock({
           return (
             <div
               key={row.side}
-              className="grid grid-cols-[minmax(0,1fr)_1.5rem_1.85rem] items-stretch text-[11px] leading-none"
+              className={cn(
+                'grid items-stretch leading-none',
+                compact
+                  ? 'grid-cols-[minmax(0,1fr)_1.25rem_1.5rem] text-[9px]'
+                  : 'grid-cols-[minmax(0,1fr)_1.5rem_1.85rem] text-[11px]'
+              )}
             >
               <div
                 className={cn(
-                  'flex min-w-0 items-center gap-1.5 border-l-2 px-1.5 py-1',
+                  'flex min-w-0 items-center border-l-2',
+                  compact ? 'gap-1 px-1 py-0.5' : 'gap-1.5 px-1.5 py-1',
                   isServing
                     ? isP1
                       ? 'border-player-1 bg-white/10 font-bold text-white'
@@ -75,7 +89,8 @@ export function Pass1SetHudBlock({
               >
                 <span
                   className={cn(
-                    'h-1.5 w-1.5 shrink-0 rounded-full',
+                    'shrink-0 rounded-full',
+                    compact ? 'h-1 w-1' : 'h-1.5 w-1.5',
                     isServing
                       ? isP1
                         ? 'bg-player-1'
@@ -94,7 +109,8 @@ export function Pass1SetHudBlock({
               </div>
               <div
                 className={cn(
-                  'flex items-center justify-center font-black tabular-nums text-[12px]',
+                  'flex items-center justify-center font-black tabular-nums',
+                  compact ? 'text-[10px]' : 'text-[12px]',
                   isServing ? 'text-white' : 'text-white/90'
                 )}
                 title={`${row.name} points: ${row.points}`}
