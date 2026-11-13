@@ -238,8 +238,15 @@ export function MatchReviewComposer() {
   const openTagger = (set: SetPanelModel) =>
     navigate(`/matches/${matchId}/tag?set=${set.setNumber}&mode=pass1focus`)
 
-  const openEditor = (rally: RallyRowModel) =>
-    navigate(`/matches/${matchId}/edit-rally?set=${rally.setNumber}&rally=${rally.rallyIndex}`)
+  const openEditor = (rally: RallyRowModel, opts?: { shotIndex?: number; from?: 'workon' | 'rallies' | 'clips' }) => {
+    const q = new URLSearchParams({
+      set: String(rally.setNumber),
+      rally: String(rally.rallyIndex),
+    })
+    if (opts?.shotIndex && opts.shotIndex > 0) q.set('shot', String(opts.shotIndex))
+    if (opts?.from) q.set('from', opts.from)
+    navigate(`/matches/${matchId}/edit-rally?${q.toString()}`)
+  }
 
   const openEvidence = (ref: EvidenceRef) =>
     setEvidence((cur) => (cur?.title === ref.title ? null : ref))
@@ -266,7 +273,7 @@ export function MatchReviewComposer() {
 
   const rallyActions: RallyActions = {
     onWatch: (rally, playlist, title) => watch(rally, playlist, title),
-    onEdit: openEditor,
+    onEdit: (rally) => openEditor(rally, { from: 'rallies' }),
     onToggleHighlight: toggleHighlight,
     onOpenInClips: (rallies, title) => {
       setParams({
@@ -501,9 +508,15 @@ export function MatchReviewComposer() {
       </header>
 
       {notice && (
-        <div className="flex items-start gap-3 rounded-lg border border-result-winner/60 bg-result-winner-bg px-4 py-3 text-sm text-result-winner">
+        <div
+          role="status"
+          className="flex items-start gap-3 rounded-lg border border-result-winner/60 bg-result-winner-bg px-4 py-3 text-sm text-result-winner sticky top-0 z-20"
+        >
           <Icon name="check" size="sm" className="mt-0.5 text-result-winner" />
-          <span className="flex-1">{notice}</span>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-result-winner">Fix saved</p>
+            <p className="text-result-winner/90 mt-0.5">{notice}</p>
+          </div>
           <button type="button" aria-label="Dismiss" onClick={() => setNotice(null)} className="text-result-winner hover:text-neutral-50">
             <Icon name="x" size="sm" />
           </button>
@@ -594,7 +607,7 @@ export function MatchReviewComposer() {
           }}
           onEditItem={(item) => {
             const rally = rallyById.get(item.rallyId)
-            if (rally) openEditor(rally)
+            if (rally) openEditor(rally, { shotIndex: item.shotIndex, from: 'workon' })
           }}
           onPlayPlaylist={(pattern) => {
             const side =

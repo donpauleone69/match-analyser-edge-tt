@@ -101,6 +101,8 @@ export interface RallyRowModel {
 export interface ReviewItemModel {
   shotId: string
   rallyId: string
+  /** 1-based shot index within the rally (Pass 1 / edit deep link) */
+  shotIndex: number
   label: string
   /** Contact time to start the clip from */
   seekTime: number

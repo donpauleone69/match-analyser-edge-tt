@@ -68,6 +68,9 @@ export function RallyEditComposer() {
   const navigate = useNavigate()
   const setNumber = Number(searchParams.get('set'))
   const rallyIndex = Number(searchParams.get('rally'))
+  const shotParam = Number(searchParams.get('shot'))
+  const fromParam = searchParams.get('from') // workon | rallies | clips
+  const focusShot = Number.isFinite(shotParam) && shotParam > 0 ? shotParam : null
 
   const { players, load: loadPlayers } = usePlayerStore()
   const videoUrl = useVideoPlaybackStore((s) => s.videoUrl)
@@ -194,15 +197,24 @@ export function RallyEditComposer() {
     [loop]
   )
 
-  // Jump to the rally whenever the video or the rally changes
+  // Jump to the rally (or the flagged shot) whenever the video / rally / shot deep-link changes
   useEffect(() => {
-    if (!videoUrl || !loop) return
+    if (!videoUrl || !loop || !draft) return
+    const contact = focusShot ? draft.timeline.shots[focusShot]?.contactTime : null
+    const seekTo =
+      typeof contact === 'number' && Number.isFinite(contact)
+        ? Math.max(loop.startTime, contact - 1.5)
+        : loop.startTime
+    if (focusShot) {
+      setSelectedShot(focusShot)
+      snapPass1ShotIntoView(focusShot)
+    }
     const t = setTimeout(() => {
-      videoPlayerRef.current?.seek(loop.startTime, true)
+      videoPlayerRef.current?.seek(seekTo, true)
       videoPlayerRef.current?.play()
     }, 150)
     return () => clearTimeout(t)
-  }, [videoUrl, loop])
+  }, [videoUrl, loop, draft, focusShot])
 
   useEffect(() => {
     if (!videoUrl) return
@@ -240,7 +252,11 @@ export function RallyEditComposer() {
 
   const backToReview = (notice?: string) => {
     useVideoPlaybackStore.getState().setVideoUrl(null)
-    navigate(`/matches/${matchId}?tab=rallies&s=${setNumber}`, {
+    const tab =
+      fromParam === 'workon' ? 'workon' : fromParam === 'clips' ? 'clips' : 'rallies'
+    const q = new URLSearchParams({ tab })
+    if (tab === 'rallies') q.set('s', String(setNumber))
+    navigate(`/matches/${matchId}?${q.toString()}`, {
       state: notice ? ({ notice } satisfies RallyEditNotice) : undefined,
     })
   }
@@ -250,7 +266,9 @@ export function RallyEditComposer() {
 
   const goToRally = (index: number) => {
     if (!confirmLeave()) return
-    navigate(`/matches/${matchId}/edit-rally?set=${setNumber}&rally=${index}`, { replace: true })
+    const q = new URLSearchParams({ set: String(setNumber), rally: String(index) })
+    if (fromParam) q.set('from', fromParam)
+    navigate(`/matches/${matchId}/edit-rally?${q.toString()}`, { replace: true })
   }
 
   const handleSave = async () => {
@@ -266,7 +284,11 @@ export function RallyEditComposer() {
         isHighlight: draft.isHighlight,
         timeline: draft.timeline,
       })
-      const parts = [`Set ${setNumber} · rally ${rallyIndex} saved.`]
+      const parts = [
+        focusShot
+          ? `Set ${setNumber} · rally ${rallyIndex} · shot ${focusShot} updated.`
+          : `Set ${setNumber} · rally ${rallyIndex} updated.`,
+      ]
       if (result.winnerChanged) {
         parts.push(
           `Winner changed — ${result.rescoredCount} later rall${result.rescoredCount === 1 ? 'y' : 'ies'} re-scored (set now ${result.finalScore.player1}–${result.finalScore.player2}).`
@@ -405,6 +427,7 @@ export function RallyEditComposer() {
           onClick={() => setDraft((d) => (d ? { ...d, isHighlight: !d.isHighlight } : d))}
           className={cn(
             pillBtn,
+            'hidden sm:inline-flex',
             draft.isHighlight
               ? 'bg-amber-500/90 text-neutral-950 border-amber-400'
               : 'text-amber-200/90 border-amber-700/60'
@@ -419,7 +442,7 @@ export function RallyEditComposer() {
             setDraft(original)
             setFosPickMode(false)
           }}
-          className={pillBtn}
+          className={cn(pillBtn, 'hidden sm:inline-flex')}
         >
           Reset
         </button>
@@ -429,15 +452,18 @@ export function RallyEditComposer() {
           disabled={!isDirty || !canSave || saving}
           className={cn(
             pillBtn,
-            'border-teal-600/60 text-teal-300',
+            'hidden sm:inline-flex border-teal-600/60 text-teal-300',
             isDirty && canSave && 'bg-teal-700/50 border-teal-500 text-teal-50'
           )}
         >
-          {saving ? 'Saving…' : 'Save rally'}
+          {saving ? 'Saving…' : 'Save fix'}
         </button>
       </div>
 
       <div className="shrink-0 px-3 py-1.5 text-[11px] bg-neutral-950 text-neutral-400 flex flex-wrap gap-x-3">
+        {focusShot && (
+          <span className="text-review font-semibold">Editing shot {focusShot} — fix tags, then Save fix.</span>
+        )}
         <span>
           Winner: <span className="text-neutral-100 font-semibold">{winnerName ?? '—'}</span>
         </span>
@@ -450,7 +476,7 @@ export function RallyEditComposer() {
         <span className="text-neutral-500">Contacts can’t be re-timed here — use the tagger for that.</span>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto">
+      <div className="flex-1 min-h-0 overflow-y-auto pb-20 sm:pb-0">
         <Pass1FocusBlock
           state={draft.timeline}
           players={playersPair}
@@ -492,6 +518,44 @@ export function RallyEditComposer() {
           }
           onToggleReviewFlag={(n: number) => patchTimeline((s) => toggleShotReviewFlag(s, n))}
         />
+      </div>
+
+      {/* Phone-first sticky save strip */}
+      <div className="sm:hidden fixed inset-x-0 bottom-0 z-40 border-t border-neutral-700 bg-bg-shell/95 px-3 py-2 backdrop-blur safe-area-pb">
+        <div className="mx-auto flex max-w-lg items-center gap-2">
+          <button
+            type="button"
+            aria-pressed={draft.isHighlight}
+            onClick={() => setDraft((d) => (d ? { ...d, isHighlight: !d.isHighlight } : d))}
+            className={cn(
+              'h-10 px-3 rounded-md text-sm font-semibold border',
+              draft.isHighlight
+                ? 'bg-amber-500/90 text-neutral-950 border-amber-400'
+                : 'border-neutral-600 text-amber-200'
+            )}
+          >
+            ★
+          </button>
+          <Button
+            variant="secondary"
+            className="flex-1"
+            disabled={!isDirty}
+            onClick={() => {
+              setDraft(original)
+              setFosPickMode(false)
+            }}
+          >
+            Reset
+          </Button>
+          <Button
+            className="flex-[1.4]"
+            onClick={handleSave}
+            disabled={!isDirty || !canSave || saving}
+          >
+            <Icon name={saving ? 'loader' : 'save'} size="sm" className={saving ? 'animate-spin' : undefined} />
+            {saving ? 'Saving…' : 'Save fix'}
+          </Button>
+        </div>
       </div>
     </div>
   )

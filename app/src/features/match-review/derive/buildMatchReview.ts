@@ -708,6 +708,7 @@ function patternModel(
     items: p.lines.map((l) => ({
       shotId: l.shotId,
       rallyId: l.rallyId,
+      shotIndex: l.shotIndex,
       label: `Set ${setNumberById.get(l.setId) ?? '?'} · rally ${l.rallyIndex} · shot ${l.shotIndex}`,
       seekTime: l.timestampStart,
     })),

@@ -6,6 +6,22 @@
 
 ## Change Log
 
+### 2026-11-13: MA-24 — Edit / re-tag polish (v3.74.0)
+
+**Change Type:** UX / accuracy
+
+**What Changed:**
+- Work on **Fix** opens `edit-rally?shot=&from=workon` — seeks/selects that shot on phone.
+- Sticky phone **Save fix** strip; desktop Save rename.
+- After save: sticky **Fix saved** banner on Review; returns to Work on / Clips / Rallies based on `from`.
+- Clips stage Edit passes `from=clips` + shot when known.
+
+**Decision Rationale:** Goal 11 edit/re-review; phone-first reopen + clear fix-saved. Trim/archive is MA-25.
+
+**Key Files:** `RallyEditComposer.tsx`; `MatchReviewComposer.tsx`; `ReviewPatternBlock.tsx`; `buildMatchReview.ts` (`shotIndex`).
+
+---
+
 ### 2026-11-13: MA-23 — Deepen Work on → Clips (v3.73.0)
 
 **Change Type:** UX / playlists
