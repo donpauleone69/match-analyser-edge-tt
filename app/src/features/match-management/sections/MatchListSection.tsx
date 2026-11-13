@@ -255,7 +255,7 @@ export function MatchListSection({
                   </Button>
                   {canStartTagging && (
                     <Button
-                      onClick={() => navigate(`/matches/${match.id}/tag?set=1&mode=pass1focus`)}
+                      onClick={() => navigate(`/matches/${match.id}/tag?set=1`)}
                       size="sm"
                       variant="secondary"
                     >
@@ -269,7 +269,7 @@ export function MatchListSection({
                           (s) => deriveSetTaggingStatus(s, 0) === 'in_progress'
                         )
                         const setNum = open?.set_number ?? 1
-                        navigate(`/matches/${match.id}/tag?set=${setNum}&mode=pass1focus`)
+                        navigate(`/matches/${match.id}/tag?set=${setNum}`)
                       }}
                       size="sm"
                       variant="secondary"

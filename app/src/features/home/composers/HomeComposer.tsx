@@ -128,7 +128,9 @@ export function HomeComposer() {
                         )
                         return
                       }
-                      navigate(`/matches/${i.matchId}/tag?set=${i.setNumber}&mode=pass1focus`)
+                      navigate(
+                        `/matches/${i.matchId}/tag?set=${i.setNumber}`
+                      )
                     }}
                   />
                 ))}

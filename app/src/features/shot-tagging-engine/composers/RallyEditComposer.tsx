@@ -21,7 +21,12 @@ import {
 import { matchDb, setDb, usePlayerStore, type DBMatch } from '@/data'
 import { resolveSetVideo } from '@/data/services/videoAssetService'
 import { resolveOpponentId, resolveOpponentName } from '@/helpers/themSide'
-import { Pass1FocusBlock, snapPass1ShotIntoView } from '../blocks'
+import {
+  Pass1FocusBlock,
+  SimpleTaggingMatrixBlock,
+  SimpleTaggingModePickerBlock,
+  snapPass1ShotIntoView,
+} from '../blocks'
 import { VideoPlayerSection } from '../sections'
 import {
   canSaveRallyTimeline,
@@ -39,6 +44,7 @@ import {
   toggleShotChoice,
   toggleShotReviewKind,
   toggleShotReviewFlag,
+  toPass1FocusMapperShot,
   type PointEnding,
   type PointMissReason,
   type RallyTimelineState,
@@ -46,6 +52,20 @@ import {
   type ShotChoiceKey,
   type ShotReviewKind,
 } from './pass1FocusModel'
+import {
+  canSaveSimpleTagging,
+  markEndSimple,
+  offensiveShotsFromTimeline,
+  simpleSaveHint,
+  toggleNoAttackSimple,
+  toggleOffensiveShot,
+  type SimpleMatrixRow,
+} from './simpleTaggingModel'
+import {
+  loadRallyTaggingMode,
+  saveRallyTaggingMode,
+  type SessionTaggingMode,
+} from '../helpers/taggingModePreference'
 import {
   loadResumedPass1FocusState,
   updatePersistedPass1FocusRally,
@@ -58,6 +78,7 @@ interface EditDraft {
   timeline: RallyTimelineState
   serverId: Side
   isHighlight: boolean
+  offensiveShots: number[]
 }
 
 export interface RallyEditNotice {
@@ -72,6 +93,7 @@ export function RallyEditComposer() {
   const rallyIndex = Number(searchParams.get('rally'))
   const shotParam = Number(searchParams.get('shot'))
   const fromParam = searchParams.get('from') // workon | rallies | clips
+  const modeParam = searchParams.get('mode')
   const focusShot = Number.isFinite(shotParam) && shotParam > 0 ? shotParam : null
 
   const { players, load: loadPlayers } = usePlayerStore()
@@ -92,6 +114,11 @@ export function RallyEditComposer() {
   const [fosPickMode, setFosPickMode] = useState(false)
   const [selectedShot, setSelectedShot] = useState<number | null>(null)
   const [liveTime, setLiveTime] = useState(0)
+  const [editMode, setEditMode] = useState<SessionTaggingMode>(
+    modeParam === 'simple' ? 'simple' : 'pass1focus'
+  )
+  const [activeMatrixRow, setActiveMatrixRow] = useState<SimpleMatrixRow | null>(null)
+  const [reviewDetailFocused, setReviewDetailFocused] = useState(false)
 
   useEffect(() => {
     if (typeof selectedShot !== 'number') return
@@ -157,10 +184,16 @@ export function RallyEditComposer() {
           timeline: rally.timeline,
           serverId: rally.serverId,
           isHighlight: rally.isHighlight,
+          offensiveShots: offensiveShotsFromTimeline(rally.timeline),
         }
         setOriginal(next)
         setDraft(next)
         setFosPickMode(false)
+        const savedMode =
+          modeParam === 'simple' || modeParam === 'pass1focus'
+            ? modeParam
+            : loadRallyTaggingMode(rally.dbRallyId) ?? 'pass1focus'
+        setEditMode(savedMode)
 
         const video = await resolveSetVideo(matchId, setNumber)
         if (active && video) setVideoUrl(video.url)
@@ -246,8 +279,17 @@ export function RallyEditComposer() {
       )
     : null
   const isDirty = JSON.stringify(draft) !== JSON.stringify(original)
-  const canSave = Boolean(draft && canSaveRallyTimeline(draft.timeline, winnerName))
-  const saveHint = draft ? pass1SaveHint(draft.timeline) : null
+  const canSave = Boolean(
+    draft &&
+      (editMode === 'simple'
+        ? canSaveSimpleTagging(draft.timeline, winnerName)
+        : canSaveRallyTimeline(draft.timeline, winnerName))
+  )
+  const saveHint = draft
+    ? editMode === 'simple'
+      ? simpleSaveHint(draft.timeline)
+      : pass1SaveHint(draft.timeline)
+    : null
   const winnerWillChange = Boolean(winnerName && originalWinner && winnerName !== originalWinner)
   // Incomplete rows may already look “complete” in the form but still need Save fix
   // to write framework_confirmed / ending back to the DB.
@@ -283,7 +325,19 @@ export function RallyEditComposer() {
     if (!confirmLeave()) return
     const q = new URLSearchParams({ set: String(setNumber), rally: String(index) })
     if (fromParam) q.set('from', fromParam)
+    q.set('mode', editMode)
     navigate(`/matches/${matchId}/edit-rally?${q.toString()}`, { replace: true })
+  }
+
+  const handleEditModeChange = (mode: SessionTaggingMode) => {
+    if (mode === editMode) return
+    const ok = window.confirm(
+      mode === 'simple'
+        ? 'Switch this edit to Simple? Pass 1-only tags stay in memory until Save; Simple UI hides them.'
+        : 'Switch this edit to Pass 1? You can add richer shot tags before Save.'
+    )
+    if (!ok) return
+    setEditMode(mode)
   }
 
   const handleSave = async () => {
@@ -292,6 +346,24 @@ export function RallyEditComposer() {
     setSaving(true)
     try {
       const wasIncomplete = current.isIncomplete
+      let timeline = draft.timeline
+      if (editMode === 'simple') {
+        const shots: RallyTimelineState['shots'] = {}
+        for (const [key, shot] of Object.entries(timeline.shots)) {
+          const mapped = toPass1FocusMapperShot(shot)
+          shots[Number(key)] = {
+            wing: null,
+            stroke: null,
+            standing: null,
+            isHigh: false,
+            isSafe: false,
+            isPivot: false,
+            reviewKind: mapped.reviewKind,
+            contactTime: mapped.contactTime,
+          }
+        }
+        timeline = { ...timeline, shots }
+      }
       const result = await updatePersistedPass1FocusRally({
         setId,
         rallyId: current.dbRallyId,
@@ -299,8 +371,9 @@ export function RallyEditComposer() {
         player1Id,
         player2Id,
         isHighlight: draft.isHighlight,
-        timeline: draft.timeline,
+        timeline,
       })
+      saveRallyTaggingMode(current.dbRallyId, editMode)
       const parts = [
         focusShot
           ? `Set ${setNumber} · rally ${rallyIndex} · shot ${focusShot} updated.`
@@ -393,6 +466,10 @@ export function RallyEditComposer() {
         >
           <Icon name="arrow-left" size="xs" /> Review
         </button>
+        <SimpleTaggingModePickerBlock
+          mode={editMode}
+          onSelect={handleEditModeChange}
+        />
         <button
           type="button"
           aria-label="Previous rally"
@@ -506,47 +583,110 @@ export function RallyEditComposer() {
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto pb-20 sm:pb-0">
-        <Pass1FocusBlock
-          state={draft.timeline}
-          players={playersPair}
-          server={serverName}
-          activeShot={activeShot}
-          selectedShot={selectedShot}
-          onSelectShot={setSelectedShot}
-          fosPickMode={fosPickMode}
-          onToggleShotChoice={(n: number, key: ShotChoiceKey, value: string) =>
-            patchTimeline((s) => toggleShotChoice(s, n, key, value))
-          }
-          onToggleAttribute={(n: number, key: ShotAttributeKey) =>
-            patchTimeline((s) => toggleShotAttribute(s, n, key))
-          }
-          onMarkFos={(at: number) => {
-            if (at < 2) return
-            setSelectedShot(at)
-            patchTimeline((s) => markFos(s, at, s.shots[at]?.contactTime ?? null))
-            setFosPickMode(false)
-            snapPass1ShotIntoView(at)
-          }}
-          onChangeFos={() => setFosPickMode(true)}
-          onNoAttack={() => {
-            patchTimeline((s) => setFos(s, null))
-            setFosPickMode(false)
-          }}
-          onCancelFosPick={() => setFosPickMode(false)}
-          onMarkEnd={(at: number) => {
-            setSelectedShot(at)
-            patchTimeline((s) => markEnd(s, at))
-            snapPass1ShotIntoView(at)
-          }}
-          onToggleEnding={(value: PointEnding) => patchTimeline((s) => toggleEnding(s, value))}
-          onToggleMissReason={(value: PointMissReason) =>
-            patchTimeline((s) => toggleMissReason(s, value))
-          }
-          onToggleReviewKind={(n: number, value: ShotReviewKind) =>
-            patchTimeline((s) => toggleShotReviewKind(s, n, value))
-          }
-          onToggleReviewFlag={(n: number) => patchTimeline((s) => toggleShotReviewFlag(s, n))}
-        />
+        {editMode === 'simple' ? (
+          <SimpleTaggingMatrixBlock
+            state={draft.timeline}
+            offensiveShots={draft.offensiveShots}
+            isHighlight={draft.isHighlight}
+            players={playersPair}
+            server={serverName}
+            selectedShot={selectedShot}
+            activeRow={activeMatrixRow}
+            reviewDetailFocused={reviewDetailFocused}
+            onSelectShot={setSelectedShot}
+            onToggleOffensive={(n) => {
+              setSelectedShot(n)
+              setDraft((d) => {
+                if (!d) return d
+                const next = toggleOffensiveShot(d.timeline, d.offensiveShots, n)
+                return {
+                  ...d,
+                  timeline: next.timeline,
+                  offensiveShots: next.offensiveShots,
+                }
+              })
+            }}
+            onNoAttack={() => {
+              setDraft((d) => {
+                if (!d) return d
+                const next = toggleNoAttackSimple(d.timeline, d.offensiveShots)
+                return {
+                  ...d,
+                  timeline: next.timeline,
+                  offensiveShots: next.offensiveShots,
+                }
+              })
+            }}
+            onMarkEnd={(n) => {
+              setSelectedShot(n)
+              setDraft((d) => {
+                if (!d) return d
+                const next = markEndSimple(d.timeline, d.offensiveShots, n)
+                return {
+                  ...d,
+                  timeline: next.timeline,
+                  offensiveShots: next.offensiveShots,
+                }
+              })
+            }}
+            onToggleHighlight={() =>
+              setDraft((d) => (d ? { ...d, isHighlight: !d.isHighlight } : d))
+            }
+            onToggleReview={(n) =>
+              patchTimeline((s) => toggleShotReviewFlag(s, n))
+            }
+            onToggleEnding={(value: PointEnding) =>
+              patchTimeline((s) => toggleEnding(s, value))
+            }
+            onToggleMissReason={(value: PointMissReason) =>
+              patchTimeline((s) => toggleMissReason(s, value))
+            }
+            onReviewDetailFocusChange={setReviewDetailFocused}
+            onSelectRow={setActiveMatrixRow}
+          />
+        ) : (
+          <Pass1FocusBlock
+            state={draft.timeline}
+            players={playersPair}
+            server={serverName}
+            activeShot={activeShot}
+            selectedShot={selectedShot}
+            onSelectShot={setSelectedShot}
+            fosPickMode={fosPickMode}
+            onToggleShotChoice={(n: number, key: ShotChoiceKey, value: string) =>
+              patchTimeline((s) => toggleShotChoice(s, n, key, value))
+            }
+            onToggleAttribute={(n: number, key: ShotAttributeKey) =>
+              patchTimeline((s) => toggleShotAttribute(s, n, key))
+            }
+            onMarkFos={(at: number) => {
+              if (at < 2) return
+              setSelectedShot(at)
+              patchTimeline((s) => markFos(s, at, s.shots[at]?.contactTime ?? null))
+              setFosPickMode(false)
+              snapPass1ShotIntoView(at)
+            }}
+            onChangeFos={() => setFosPickMode(true)}
+            onNoAttack={() => {
+              patchTimeline((s) => setFos(s, null))
+              setFosPickMode(false)
+            }}
+            onCancelFosPick={() => setFosPickMode(false)}
+            onMarkEnd={(at: number) => {
+              setSelectedShot(at)
+              patchTimeline((s) => markEnd(s, at))
+              snapPass1ShotIntoView(at)
+            }}
+            onToggleEnding={(value: PointEnding) => patchTimeline((s) => toggleEnding(s, value))}
+            onToggleMissReason={(value: PointMissReason) =>
+              patchTimeline((s) => toggleMissReason(s, value))
+            }
+            onToggleReviewKind={(n: number, value: ShotReviewKind) =>
+              patchTimeline((s) => toggleShotReviewKind(s, n, value))
+            }
+            onToggleReviewFlag={(n: number) => patchTimeline((s) => toggleShotReviewFlag(s, n))}
+          />
+        )}
       </div>
 
       {/* Phone-first sticky save strip */}

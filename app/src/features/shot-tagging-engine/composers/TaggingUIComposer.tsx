@@ -1,12 +1,13 @@
 /**
- * TaggingUIComposer — loads the match and opens Pass 1 Focus.
- * Missing/legacy `mode` query values rewrite to `pass1focus`.
+ * TaggingUIComposer — loads the match and opens Simple or Pass 1 Focus.
+ * Remembered last mode (device) when `mode` is missing; both stay available.
  */
 
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { cn } from '@/helpers/utils'
 import { Pass1FocusComposer } from './Pass1FocusComposer'
+import { SimpleTaggingComposer } from './SimpleTaggingComposer'
 import { Button } from '@/ui-mine'
 import { Card } from '@/ui-mine/Card'
 import { matchDb, usePlayerStore, type DBMatch } from '@/data'
@@ -14,9 +15,22 @@ import {
   resolveOpponentId,
   resolveOpponentName,
 } from '@/helpers/themSide'
+import {
+  loadLastTaggingMode,
+  saveLastTaggingMode,
+  type SessionTaggingMode,
+} from '../helpers/taggingModePreference'
+import { loadPass1FocusDraft } from './pass1FocusDraftStorage'
+import { loadSimpleTaggingDraft } from './simpleTaggingDraftStorage'
+import { setDb } from '@/data'
 
 export interface TaggingUIComposerProps {
   className?: string
+}
+
+function parseMode(raw: string | null): SessionTaggingMode | null {
+  if (raw === 'simple' || raw === 'pass1focus') return raw
+  return null
 }
 
 export function TaggingUIComposer({ className }: TaggingUIComposerProps) {
@@ -28,10 +42,10 @@ export function TaggingUIComposer({ className }: TaggingUIComposerProps) {
   const [match, setMatch] = useState<DBMatch | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [ready, setReady] = useState(false)
+  const [resolvedMode, setResolvedMode] = useState<SessionTaggingMode | null>(null)
 
   const urlSetNumber = searchParams.get('set')
-  const taggingMode = searchParams.get('mode')
-  const isPass1FocusMode = taggingMode === 'pass1focus'
+  const taggingMode = parseMode(searchParams.get('mode'))
   const redoParam = searchParams.get('redo')
   const isRedo = redoParam === 'true' || redoParam === 'phase2'
 
@@ -70,17 +84,73 @@ export function TaggingUIComposer({ className }: TaggingUIComposerProps) {
     }
   }, [matchId])
 
-  // Always Pass 1 Focus (missing/legacy mode → rewrite URL)
+  // Resolve mode: explicit URL → open draft for set → last device preference.
   useEffect(() => {
+    if (!matchId || !urlSetNumber) {
+      setResolvedMode(null)
+      return
+    }
+
+    let active = true
+    const setNum = parseInt(urlSetNumber, 10)
+
+    const apply = (mode: SessionTaggingMode) => {
+      if (!active) return
+      setResolvedMode(mode)
+      saveLastTaggingMode(mode)
+      if (taggingMode !== mode) {
+        navigate(
+          `/matches/${matchId}/tag?set=${setNum}&mode=${mode}${isRedo ? '&redo=true' : ''}`,
+          { replace: true }
+        )
+      }
+    }
+
+    if (taggingMode) {
+      apply(taggingMode)
+      return () => {
+        active = false
+      }
+    }
+
+    ;(async () => {
+      try {
+        const sets = await setDb.getByMatchId(matchId)
+        const target = sets.find((s) => s.set_number === setNum)
+        if (!active) return
+        if (target) {
+          const simpleDraft = loadSimpleTaggingDraft(target.id)
+          if (simpleDraft && simpleDraft.matchId === matchId) {
+            apply('simple')
+            return
+          }
+          const pass1Draft = loadPass1FocusDraft(target.id)
+          if (pass1Draft && pass1Draft.matchId === matchId) {
+            apply('pass1focus')
+            return
+          }
+        }
+        apply(loadLastTaggingMode())
+      } catch {
+        if (active) apply(loadLastTaggingMode())
+      }
+    })()
+
+    return () => {
+      active = false
+    }
+  }, [matchId, urlSetNumber, taggingMode, isRedo, navigate])
+
+  const switchMode = (mode: SessionTaggingMode) => {
     if (!matchId || !urlSetNumber) return
-    if (isPass1FocusMode) return
+    saveLastTaggingMode(mode)
     navigate(
-      `/matches/${matchId}/tag?set=${urlSetNumber}&mode=pass1focus${isRedo ? '&redo=true' : ''}`,
+      `/matches/${matchId}/tag?set=${urlSetNumber}&mode=${mode}${isRedo ? '&redo=true' : ''}`,
       { replace: true }
     )
-  }, [matchId, urlSetNumber, isPass1FocusMode, isRedo, navigate])
+  }
 
-  if (!ready) {
+  if (!ready || (matchId && urlSetNumber && !resolvedMode)) {
     return (
       <div className={cn('h-dvh flex items-center justify-center bg-bg-surface', className)}>
         <Card className="p-8 max-w-lg text-center">
@@ -119,19 +189,6 @@ export function TaggingUIComposer({ className }: TaggingUIComposerProps) {
     )
   }
 
-  if (!isPass1FocusMode) {
-    return (
-      <div className={cn('h-dvh flex items-center justify-center bg-bg-surface', className)}>
-        <Card className="p-8 max-w-lg text-center">
-          <h2 className="text-2xl font-bold text-neutral-50 mb-4">Opening Pass 1 Focus…</h2>
-          <div className="flex justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-primary" />
-          </div>
-        </Card>
-      </div>
-    )
-  }
-
   const player1Name =
     players.find((p) => p.id === match.player1_id)?.first_name || 'Hero'
   const player2Record = match.player2_id
@@ -139,15 +196,26 @@ export function TaggingUIComposer({ className }: TaggingUIComposerProps) {
     : undefined
   const player2Name = resolveOpponentName(match.player2_id, player2Record?.first_name)
 
+  const shared = {
+    matchId,
+    setNumber: parseInt(urlSetNumber, 10),
+    player1Id: match.player1_id,
+    player2Id: resolveOpponentId(match.player2_id),
+    player1Name,
+    player2Name,
+    className,
+  }
+
+  if (resolvedMode === 'simple') {
+    return (
+      <SimpleTaggingComposer
+        {...shared}
+        onRequestModeChange={switchMode}
+      />
+    )
+  }
+
   return (
-    <Pass1FocusComposer
-      matchId={matchId}
-      setNumber={parseInt(urlSetNumber, 10)}
-      player1Id={match.player1_id}
-      player2Id={resolveOpponentId(match.player2_id)}
-      player1Name={player1Name}
-      player2Name={player2Name}
-      className={className}
-    />
+    <Pass1FocusComposer {...shared} onRequestModeChange={switchMode} />
   )
 }
