@@ -1,10 +1,9 @@
 /**
- * SimpleTaggingMatrixBlock — Phase 2.1 matrix (Paul UX).
+ * SimpleTaggingMatrixBlock — Phase 2.2 polish (Paul UX).
  *
- * Pinned CNT-style columns + playhead underline. Rows: Offensive · End · Review
- * (grouped Offensive+End; Review apart). No-attack lives on the Offensive row.
- * Detail = Pass 1 look for FOS / End only; End includes wing + shot + ending.
- * Rally ★ lives on the Save-point row. Lighter cells; ghost-style End.
+ * Pinned CNT-style columns: framed shot numbers + green playhead underline.
+ * Rows: Offensive · End · Review. Rally|Shot toggle sits beside shot numbers.
+ * Detail = Pass 1 shot-entry look for FOS / End only.
  */
 
 import { useEffect, useState, type ReactNode } from 'react'
@@ -35,7 +34,7 @@ export interface SimpleTaggingMatrixBlockProps {
   offensiveShots: number[]
   players: [string, string]
   server: string
-  /** Playhead shot (CNT-style underline). */
+  /** Playhead shot (green underline). */
   activeShot?: number | null
   selectedShot: number | null
   activeRow: SimpleMatrixRow | null
@@ -325,14 +324,45 @@ export function SimpleTaggingMatrixBlock({
           aria-label="Simple tagging matrix"
         >
           <div className="min-w-max">
-            {/* Shot header (CNT layout, no CNT label) */}
+            {/* Shot header: Rally|Shot toggle + framed numbers + green playhead */}
             <div
               className="flex flex-nowrap items-stretch px-1 pt-0.5"
               style={{ gap: 'var(--control-gap)' }}
               role="list"
               aria-label="Shots in this rally"
             >
-              <div className="sticky left-0 z-10 w-[4.5rem] shrink-0 bg-bg-surface" aria-hidden />
+              <div className="sticky left-0 z-10 flex w-[4.5rem] shrink-0 items-center bg-bg-surface px-0.5">
+                <div
+                  className="inline-flex w-full overflow-hidden rounded-md border border-pill-idle-border"
+                  role="group"
+                  aria-label="Video loop scope"
+                >
+                  <button
+                    type="button"
+                    aria-pressed={loopScope === 'rally'}
+                    onClick={() => onLoopScopeChange('rally')}
+                    className={cn(
+                      'tag-control min-w-0 flex-1 rounded-none border-0 px-1 text-[9px]',
+                      loopScope === 'rally' && 'tag-control-active'
+                    )}
+                    title="Loop the whole rally"
+                  >
+                    Rally
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={loopScope === 'shot'}
+                    onClick={() => onLoopScopeChange('shot')}
+                    className={cn(
+                      'tag-control min-w-0 flex-1 rounded-none border-0 border-l border-pill-idle-border px-1 text-[9px]',
+                      loopScope === 'shot' && 'tag-control-active'
+                    )}
+                    title="Loop the current shot (or previous + End while tagging End)"
+                  >
+                    Shot
+                  </button>
+                </div>
+              </div>
               {shots.map((n) => {
                 const hitter = playerForShot(n, players, server)
                 const isPlayer1 = hitter === players[0]
@@ -343,10 +373,7 @@ export function SimpleTaggingMatrixBlock({
                 return (
                   <div
                     key={`h-${n}`}
-                    className={cn(
-                      'relative flex flex-col items-center gap-px',
-                      selected && 'rounded-md bg-brand-primary/15 ring-1 ring-brand-primary/50'
-                    )}
+                    className="relative flex flex-col items-center gap-px"
                     style={{ flex: '0 0 2rem' }}
                     role="listitem"
                   >
@@ -358,6 +385,7 @@ export function SimpleTaggingMatrixBlock({
                       onClick={() => handleSelectColumn(n)}
                       className={cn(
                         'relative w-full h-7 rounded font-black tabular-nums text-xs touch-manipulation',
+                        'border',
                         isPlayer1 ? 'bg-player-1-bg text-primary' : 'bg-player-2-bg text-primary',
                         isFos && 'bg-shot-first-attack-bg',
                         isEnd &&
@@ -369,12 +397,13 @@ export function SimpleTaggingMatrixBlock({
                                 ? 'bg-result-error-bg'
                                 : 'bg-shot-end-bg'),
                         selected
-                          ? 'border-2 border-contact-selected'
-                          : 'border border-transparent'
+                          ? 'border-contact-selected'
+                          : 'border-pill-idle-border/80'
                       )}
                     >
                       {n}
                     </button>
+                    {/* Green playhead underline only — no digit swell/glow */}
                     <span
                       className={cn(
                         'h-1 w-full rounded-sm shrink-0',
@@ -407,83 +436,24 @@ export function SimpleTaggingMatrixBlock({
             </div>
           </div>
         </div>
-
-        {/* Status + Rally/Shot loop control */}
-        <div className="flex flex-wrap items-center gap-1.5">
-          <div className="flex flex-wrap gap-1.5 text-[10px] font-semibold text-muted">
-            <span>
-              {fos
-                ? `FA ${fos}`
-                : state.noFirstAttack
-                  ? 'No attack'
-                  : state.end === 1
-                    ? 'Serve-only'
-                    : 'FA?'}
-            </span>
-            <span>·</span>
-            <span>{end ? `End ${end}` : 'End?'}</span>
-          </div>
-          <div className="flex-1" />
-          <div
-            className="inline-flex overflow-hidden rounded-md border border-pill-idle-border"
-            role="group"
-            aria-label="Video loop scope"
-          >
-            <button
-              type="button"
-              aria-pressed={loopScope === 'rally'}
-              onClick={() => onLoopScopeChange('rally')}
-              className={cn(
-                'tag-control rounded-none border-0 px-2',
-                loopScope === 'rally' && 'tag-control-active'
-              )}
-              title="Loop the whole rally"
-            >
-              Rally
-            </button>
-            <button
-              type="button"
-              aria-pressed={loopScope === 'shot'}
-              onClick={() => onLoopScopeChange('shot')}
-              className={cn(
-                'tag-control rounded-none border-0 border-l border-pill-idle-border px-2',
-                loopScope === 'shot' && 'tag-control-active'
-              )}
-              title="Loop the current shot (or previous + End while tagging End)"
-            >
-              Shot
-            </button>
-          </div>
-        </div>
       </div>
 
-      {/* Scrollable detail — Pass 1 look/logic for FOS + End only */}
+      {/* Scrollable detail — Pass 1 Focus shot-entry look for FOS + End */}
       <div className="min-h-0 flex-1 overflow-y-auto px-1.5 pb-2">
         {showDetail && selectedShot !== null && (
           <div
-            className="space-y-1.5 rounded-md border border-pill-idle-border/70 bg-bg-card/60 p-2"
+            className="space-y-1 border-t border-pill-idle-border/60 pt-1.5"
             aria-label={`Shot ${selectedShot} detail`}
           >
-            <div className="flex flex-wrap items-center justify-end gap-1">
+            <div
+              className="flex flex-wrap items-center justify-end gap-1"
+              aria-label={`Shot ${selectedShot} tools`}
+            >
               <span className="mr-auto text-[9px] font-bold uppercase tracking-wide text-muted">
                 Shot {selectedShot}
-                {fos
-                  ? ` · FA ${fos}`
-                  : state.noFirstAttack
-                    ? ' · No attack'
-                    : state.end === 1
-                      ? ''
-                      : ' · FA?'}
-                {end ? ` · End ${end}` : ' · End?'}
               </span>
-            </div>
-
-            {showFosDetail && (
-              <div
-                className="flex flex-wrap items-center gap-1"
-                style={{ gap: 'var(--control-gap)' }}
-              >
-                {selectedShot >= 2 && (
+              {showFosDetail && selectedShot >= 2 && (
+                <>
                   <DetailPill
                     kind="fos"
                     label={state.fos === selectedShot ? 'First attack ✓' : 'First attack'}
@@ -495,12 +465,20 @@ export function SimpleTaggingMatrixBlock({
                     }
                     onClick={() => onMarkFos(selectedShot)}
                   />
-                )}
-                <span className="text-[10px] text-muted self-center">
-                  Offensive row: first selected = FOS · No attack on row
-                </span>
-              </div>
-            )}
+                  <DetailPill
+                    kind="fos"
+                    label={state.noFirstAttack ? 'No attack ✓' : 'No attack'}
+                    selected={state.noFirstAttack}
+                    title={
+                      state.noFirstAttack
+                        ? 'No first attack marked — tap to clear (undecided)'
+                        : 'This point had no first attack'
+                    }
+                    onClick={() => onNoAttack()}
+                  />
+                </>
+              )}
+            </div>
 
             {showEndDetail && endShot && end !== null && (
               <>
