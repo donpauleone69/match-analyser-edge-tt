@@ -8,6 +8,7 @@
  */
 
 import type { DBRally, DBSet, DBShot } from '@/data'
+import { filterCompleteScoringRallies } from './isCompleteScoringRally'
 
 export interface HighlightRallyRef {
   rallyId: string
@@ -36,8 +37,7 @@ export function calculateRallyHighlights(input: {
     shotCount.set(shot.rally_id, Math.max(shotCount.get(shot.rally_id) ?? 0, shot.shot_index))
   }
 
-  const refs: HighlightRallyRef[] = rallies
-    .filter((r) => r.is_scoring)
+  const refs: HighlightRallyRef[] = filterCompleteScoringRallies(rallies)
     .map((r) => ({
       rallyId: r.id,
       setNumber: setNumberById.get(r.set_id) ?? 0,

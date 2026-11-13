@@ -11,6 +11,7 @@
  */
 
 import type { ShotReviewKind, ShotStroke, ShotWing } from '@/data'
+import { isCompleteScoringRally } from '@/rules/analytics/isCompleteScoringRally'
 import { deriveClips, encodeClipFilter, type ClipFilter, type ClipMatchInput } from './deriveClips'
 
 export type ClipPresetGroup = 'work-on' | 'highlights' | 'attack' | 'points'
@@ -49,7 +50,7 @@ export function formatClipShotType(wing: ShotWing | null | undefined, stroke: Sh
 function reviewPatterns(matches: ClipMatchInput[], kind: ShotReviewKind): ClipPreset[] {
   const counts = new Map<string, { wing: ShotWing | null; stroke: ShotStroke | null; count: number }>()
   for (const m of matches) {
-    const rallyIds = new Set(m.rallies.filter((r) => r.is_scoring).map((r) => r.id))
+    const rallyIds = new Set(m.rallies.filter(isCompleteScoringRally).map((r) => r.id))
     for (const s of m.shots) {
       if (s.shot_review_kind !== kind || s.player_id !== m.match.player1_id || !rallyIds.has(s.rally_id)) continue
       if (!s.shot_wing && !s.shot_stroke) continue

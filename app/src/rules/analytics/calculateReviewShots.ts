@@ -4,6 +4,7 @@
  */
 
 import type { DBRally, DBShot, ShotReviewKind } from '@/data'
+import { isCompleteScoringRally } from './isCompleteScoringRally'
 
 export interface ReviewShotLine {
   shotId: string
@@ -29,7 +30,7 @@ export function calculateReviewShots(input: {
     const kind = shot.shot_review_kind
     if (kind !== 'technical' && kind !== 'tactical') continue
     const rally = rallyById.get(shot.rally_id)
-    if (!rally) continue
+    if (!rally || !isCompleteScoringRally(rally)) continue
     lines.push({
       shotId: shot.id,
       rallyId: rally.id,

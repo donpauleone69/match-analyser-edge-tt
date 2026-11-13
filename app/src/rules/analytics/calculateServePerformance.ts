@@ -8,6 +8,7 @@
 import type { DBRally } from '@/data/entities/rallies/rally.types'
 import type { DBShot } from '@/data/entities/shots/shot.types'
 import { derivePointEndClass, isErrorEnding } from '@/rules/derive/rally/derivePointEndClass'
+import { filterCompleteScoringRallies } from './isCompleteScoringRally'
 
 export interface ServePerformanceMetrics {
   serveWinRate: number
@@ -40,7 +41,7 @@ function lastShotIndex(shots: DBShot[], rallyId: string): number {
 export function calculateServePerformance(input: ServePerformanceInput): ServePerformanceMetrics {
   const { rallies, shots, playerId } = input
 
-  const serveRallies = rallies.filter((r) => r.is_scoring && r.server_id === playerId)
+  const serveRallies = filterCompleteScoringRallies(rallies).filter((r) => r.server_id === playerId)
 
   if (serveRallies.length === 0) {
     return {

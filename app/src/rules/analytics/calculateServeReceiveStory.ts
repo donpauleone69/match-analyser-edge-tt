@@ -8,7 +8,7 @@
  * the server, Section C by the receiver — so B1+B2+B3 = 100% of a player's
  * serve points, and C splits the same points from the other side of the table.
  *
- * - Only is_scoring rallies with at least one tapped contact count.
+ * - Only complete scoring rallies with at least one tapped contact count.
  * - Shot 1 is the serve, shot 2 the return.
  * - The attacker is whoever hit the FOS shot (stored player_id, else parity).
  */
@@ -16,6 +16,7 @@
 import type { DBRally, DBShot, PointEnding } from '@/data'
 import { isErrorEnding } from '@/rules/derive/rally/derivePointEndClass'
 import { shareOf, type CountShare, type SidePair, type StorySide } from './calculateMatchStory'
+import { isCompleteScoringRally } from './isCompleteScoringRally'
 
 export type ServeOutcome =
   // Serve worked (B1)
@@ -131,7 +132,7 @@ export function calculateServeReceiveStory(input: ServeReceiveInput): ServeRecei
   const receivePoints: SidePair<string[]> = { hero: [], villain: [] }
 
   for (const rally of rallies) {
-    if (!rally.is_scoring) continue
+    if (!isCompleteScoringRally(rally)) continue
     const byIndex = shotsByRally.get(rally.id)
     if (!byIndex || byIndex.size === 0) continue
 
