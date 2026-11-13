@@ -465,7 +465,7 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
       onPrev={() => setIndex((i) => Math.max(0, i - 1))}
       onNext={() => setIndex((i) => Math.min(rows.length - 1, i + 1))}
       onToggleAutoAdvance={() => setAutoAdvance((a) => !a)}
-      // Download lives once: sticky bar (phone) / export strip (desktop) — not also on stage.
+      // Download lives once: export strip (desktop) / sticky bar (phone) — never on stage.
       onEdit={() => {
         const q = new URLSearchParams({
           set: String(current.clip.setNumber),
@@ -516,7 +516,7 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
         <div className="hidden md:flex flex-wrap gap-2">
           <Button size="sm" variant="secondary" onClick={handleDownloadClip} disabled={!current || downloadBusy}>
             <Icon name={downloadBusy ? 'loader' : 'download'} size="sm" className={downloadBusy ? 'animate-spin' : undefined} />
-            Download clip
+            Download
           </Button>
           <Button size="sm" variant="secondary" onClick={handleExport}>
             <Icon name="scissors" size="sm" /> Save as reel
