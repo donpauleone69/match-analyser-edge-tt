@@ -6,6 +6,20 @@
 
 ## Change Log
 
+### 2026-11-13: MA-33 — Review header Tag density (v3.83.0)
+
+**Change Type:** UX — flow polish
+
+**What Changed:**
+- Match Review sticky header: drop Playlists control; single primary **Tag** (or **Clips** when tagging complete).
+- Drop misleading Clips/Rallies tab badges (Work on keeps count).
+
+**Decision Rationale:** Phone sticky chrome should not compete with Tag.
+
+**Key Files:** `MatchReviewComposer.tsx`.
+
+---
+
 ### 2026-11-13: MA-32 — Sync status / backup UX (v3.82.0)
 
 **Change Type:** UX — persistence
@@ -7580,6 +7594,7 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v3.83.0 | 2026-11-13 | MA-33: Review header Tag-only density; drop Clips/Rallies badges |
 | v3.82.0 | 2026-11-13 | MA-32: Find-matches sync badges; cloud-only download copy |
 | v3.81.0 | 2026-11-13 | MA-31: demote Matches from bottom nav; Find matches from Home |
 | v3.80.0 | 2026-11-13 | MA-30: match-file Save/Import polish — Open match after import |

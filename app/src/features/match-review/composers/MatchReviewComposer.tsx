@@ -403,13 +403,12 @@ export function MatchReviewComposer() {
         .sort((a, b) => a.setNumber - b.setNumber || a.rallyIndex - b.rallyIndex)
     : []
 
-  const clipsCount = review.workOn.hero.total + review.highlights.flagged.length
   const tabs: TabItem<ReviewTab>[] = [
     { id: 'summary', label: 'Summary' },
     { id: 'details', label: 'Details' },
     { id: 'workon', label: 'Work on', badge: review.workOn.hero.total || undefined },
-    { id: 'clips', label: 'Clips', badge: clipsCount || undefined },
-    { id: 'rallies', label: 'Rallies', badge: review.rallies.length || undefined },
+    { id: 'clips', label: 'Clips' },
+    { id: 'rallies', label: 'Rallies' },
   ]
 
   const storageHandlers = {
@@ -488,20 +487,22 @@ export function MatchReviewComposer() {
               </span>
             </p>
           </div>
-          <Button
-            size="sm"
-            variant="secondary"
-            className="shrink-0"
-            onClick={() => navigate('/clips')}
-            title="Cross-match playlists"
-          >
-            <Icon name="film" size="sm" />
-            <span className="hidden sm:inline">Playlists</span>
-          </Button>
-          {nextSet && (
-            <Button size="sm" onClick={() => openTagger(nextSet)} className="shrink-0">
+          {/* Phone density: Tag only — Clips live in tabs + bottom nav */}
+          {nextSet ? (
+            <Button size="sm" onClick={() => openTagger(nextSet)} className="shrink-0 min-h-9 px-3">
               <Icon name="play" size="sm" />
               Tag
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              variant="secondary"
+              className="shrink-0 min-h-9 px-3"
+              onClick={() => setParams({ tab: 'clips', cat: null })}
+              title="Open this match’s Clips tab"
+            >
+              <Icon name="film" size="sm" />
+              Clips
             </Button>
           )}
         </div>
