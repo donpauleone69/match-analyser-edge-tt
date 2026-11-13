@@ -100,7 +100,7 @@ const STROKE_LABEL: Record<string, string> = {
 
 export function formatShotType(wing: string | null, stroke: string | null): string {
   const parts = [wing, stroke ? (STROKE_LABEL[stroke] ?? stroke) : null].filter(Boolean)
-  return parts.length > 0 ? parts.join(' ') : 'Shot type not tagged'
+  return parts.length > 0 ? parts.join(' ') : 'Flagged shot'
 }
 
 interface Names {

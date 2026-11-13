@@ -6,6 +6,21 @@
 
 ## Change Log
 
+### 2026-11-13: MA-38 — Clips playlist + download polish (v3.88.0)
+
+**Change Type:** UX polish — Clips / Work on (no epics, no new pattern cards)
+
+**What Changed:**
+- Phone smoke: Work on → Clips playlist → play → Download (flagged shot in-session).
+- Work on copy aligned to **Clips**; first pattern opens by default; empty-state clearer.
+- Rallies intro shortened on phone; clip fallback label **Flagged shot**; empty playlist back/hint; phone **Save as reel** + **Rally**/Shot toggle; pattern Clips `aria-label`.
+
+**Decision Rationale:** MA-37 follow-up — finish the insight → playlist → download path and soft density nits.
+
+**Key Files:** `WorkOnSection.tsx`; `ReviewPatternBlock.tsx`; `RalliesSection.tsx`; `ClipsComposer.tsx`; `ClipStageBlock.tsx`; `buildMatchReview.ts`; `deriveClipPresets.ts`.
+
+---
+
 ### 2026-11-13: MA-37 — Flow smoke + small UX nits (v3.87.0)
 
 **Change Type:** QA smoke + UX nits (no epics)

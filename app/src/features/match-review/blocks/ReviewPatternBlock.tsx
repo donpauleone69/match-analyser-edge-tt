@@ -53,6 +53,7 @@ export function ReviewPatternBlock({
             onClick={() => onPlayPlaylist(pattern)}
             className="h-7 shrink-0 px-2 rounded-md border border-review/50 bg-review-bg/40 text-xs text-review hover:border-review inline-flex items-center gap-1"
             title="Open this pattern as a Clips playlist"
+            aria-label={`Open ${pattern.title} in Clips`}
           >
             <Icon name="film" size="xs" /> Clips
           </button>

@@ -58,7 +58,7 @@ function PatternGroup({
           <ReviewPatternBlock
             key={p.key}
             pattern={p}
-            defaultOpen={i === 0 && p.count > 1}
+            defaultOpen={i === 0}
             onWatch={onWatchItem}
             onEdit={onEditItem}
             onPlayPlaylist={onPlayPlaylist}
@@ -131,16 +131,15 @@ export function WorkOnSection({
         <h2 className="text-lg font-semibold text-neutral-50">What to work on</h2>
         {workOn.total === 0 ? (
           <p className="mt-2 text-sm text-neutral-400">
-            No shots flagged yet. While tagging (or editing a rally), use the{' '}
-            <span className="text-neutral-200">Review</span> row (tag to view). Select a shot to set{' '}
-            <span className="text-neutral-200">Technical</span> or{' '}
-            <span className="text-neutral-200">Tactical</span>. Repeated patterns open as Clips
-            playlists here.
+            No shots flagged yet. In Pass 1, select a shot →{' '}
+            <span className="text-neutral-200">Flag for review</span>, then open{' '}
+            <span className="text-neutral-200">Clips</span> here to play, Download, or Save as reel.
           </p>
         ) : (
           <>
             <p className="mt-2 text-sm text-neutral-400">
-              Open a pattern in Clips to watch the playlist, then Download a clip or Save as reel.
+              Open <span className="text-neutral-200">Clips</span> on a row to play the playlist — then
+              Download one clip or Save as reel.
             </p>
             {heroFocus.length > 0 ? (
               <ul className="mt-3 flex flex-wrap gap-2">
@@ -155,7 +154,7 @@ export function WorkOnSection({
                           className="rounded-full border border-review/60 bg-review-bg px-3 py-1 text-sm text-review hover:border-review"
                           title="Open this pattern as a Clips playlist"
                         >
-                          {f.text} · Playlist
+                          {f.text} · Clips
                         </button>
                       ) : (
                         <span className="rounded-full border border-review/60 bg-review-bg px-3 py-1 text-sm text-review">
@@ -168,8 +167,9 @@ export function WorkOnSection({
               </ul>
             ) : (
               <p className="mt-2 text-sm text-neutral-400">
-                {workOn.hero.total} of your shots flagged, no repeated pattern yet — open each row’s
-                Playlist below.
+                {workOn.hero.total} flagged
+                {workOn.hero.total === 1 ? ' shot' : ' shots'} — tap{' '}
+                <span className="text-neutral-200">Clips</span> on a row below.
               </p>
             )}
           </>

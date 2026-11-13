@@ -458,7 +458,18 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
       }}
     />
   ) : (
-    <Card className="p-6 text-sm text-neutral-400">No clips in this playlist.</Card>
+    <Card className="p-6 text-sm text-neutral-400 space-y-3">
+      <p>No clips in this playlist.</p>
+      {embedded && fromParam === 'workon' ? (
+        <Button size="sm" variant="secondary" onClick={backFromWorkOn}>
+          <Icon name="arrow-left" size="sm" /> Back to Work on
+        </Button>
+      ) : (
+        <p className="text-xs text-neutral-500">
+          Pick another playlist on the left, or flag shots / star rallies while tagging.
+        </p>
+      )}
+    </Card>
   )
 
   const isHighlightReel = filter?.kind === 'highlights'
@@ -580,7 +591,7 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
             </Button>
             <Button size="sm" className="flex-1" onClick={handleExport} disabled={Boolean(exporting)}>
               <Icon name={exporting ? 'loader' : 'scissors'} size="sm" className={exporting ? 'animate-spin' : undefined} />
-              {exporting ? STAGE_LABEL[exporting.stage] : 'Save reel'}
+              {exporting ? STAGE_LABEL[exporting.stage] : 'Save as reel'}
             </Button>
           </div>
         </div>
