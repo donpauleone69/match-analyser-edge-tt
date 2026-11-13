@@ -5,6 +5,8 @@
  * Same DBRally/DBShot via Pass 1 persist path (End keeps wing/stroke; others stripped).
  * Phase 2.5 (MA-60): Pass 1 visual/protocol parity — Let before Discard;
  * FOS/End/Review colours; Rally|Shot on video; section labels above matrix.
+ * MA-66: Pass 1 video overlay (full SetHud + transport) + Pass1SetContextBlock
+ * chrome bar with Simple Let/Discard/Save trailing; matrix IA unchanged.
  */
 
 import { useState, useRef, useEffect, useMemo, type ReactNode } from 'react'
@@ -1107,7 +1109,6 @@ export function SimpleTaggingComposer({
       player2Score={currentScore.player2}
       serverId={openServerId}
       serverName={serverName}
-      compact
     />
   )
 
@@ -1139,6 +1140,7 @@ export function SimpleTaggingComposer({
     />
   )
   const canEndSet = completed.length > 0 && focusedRallyIndex === 'next'
+  const inForm = phase === 'form' && Boolean(openRally)
   const setContextBar = (
     <Pass1SetContextBlock
       completed={completed}
@@ -1161,71 +1163,45 @@ export function SimpleTaggingComposer({
       prevSetNumber={setNumber > 1 ? setNumber - 1 : null}
       onToggleHistory={() => setPointLedgerOpen((open) => !open)}
       canEndSet={canEndSet}
-      onEndSet={() => void handleEndSession()}
+      onEndSet={inForm ? undefined : () => void handleEndSession()}
+      showHistory={!inForm}
+      trailingActions={
+        inForm ? (
+          <>
+            <button
+              type="button"
+              onClick={handleLetRally}
+              className={cn(tagBtn, 'shrink-0 touch-manipulation')}
+              title="Let — clear contacts and re-tap this rally from just before the serve (no score)"
+            >
+              Let
+            </button>
+            <button
+              type="button"
+              onClick={handleDiscardOpen}
+              className={cn(tagBtn, 'tag-control-danger shrink-0 touch-manipulation')}
+              title="Discard this rally draft without saving"
+            >
+              Discard
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleSave()}
+              disabled={!canSave || saving}
+              className={cn(
+                tagBtn,
+                'shrink-0 touch-manipulation font-bold',
+                canSave ? 'tag-control-accent' : 'opacity-50'
+              )}
+              title="Save this rally and move to the next point"
+            >
+              {saving ? 'Saving…' : 'Save'}
+            </button>
+          </>
+        ) : undefined
+      }
     />
   )
-
-  const formChromeRow =
-    openRally && phase === 'form' ? (
-      <div className="shrink-0 flex min-h-10 items-center gap-1 border-t border-b border-pill-idle-border bg-bg-card px-1.5 py-1 text-[length:var(--control-text)]">
-        <button
-          type="button"
-          onClick={() =>
-            void handleSetServer(openServerId === 'player1' ? 'player2' : 'player1')
-          }
-          className={cn(
-            tagBtn,
-            'min-w-0 max-w-[6.75rem] shrink-0 gap-1 font-bold',
-            openServerId === 'player1'
-              ? 'bg-player-1-bg border-player-1 text-primary'
-              : 'bg-player-2-bg border-player-2 text-primary'
-          )}
-          title={`Rally server: ${serverName}. Tap to switch.`}
-          aria-label={`Rally server: ${serverName}. Tap to switch.`}
-        >
-          <span
-            className={cn(
-              'h-1.5 w-1.5 shrink-0 rounded-full',
-              openServerId === 'player1' ? 'bg-player-1' : 'bg-player-2'
-            )}
-            aria-hidden
-          />
-          <span className="truncate">Serve · {serverName}</span>
-        </button>
-        <span className="min-w-0 flex-1 truncate px-1 text-center text-[10px] font-semibold text-primary">
-          Point in progress
-        </span>
-        <button
-          type="button"
-          onClick={handleLetRally}
-          className={cn(tagBtn, 'shrink-0 touch-manipulation')}
-          title="Let — clear contacts and re-tap this rally from just before the serve (no score)"
-        >
-          Let
-        </button>
-        <button
-          type="button"
-          onClick={handleDiscardOpen}
-          className={cn(tagBtn, 'tag-control-danger shrink-0 touch-manipulation')}
-          title="Discard this rally draft without saving"
-        >
-          Discard
-        </button>
-        <button
-          type="button"
-          onClick={() => void handleSave()}
-          disabled={!canSave || saving}
-          className={cn(
-            tagBtn,
-            'shrink-0 touch-manipulation font-bold',
-            canSave ? 'tag-control-accent' : 'opacity-50'
-          )}
-          title="Save this rally and move to the next point"
-        >
-          {saving ? 'Saving…' : 'Save'}
-        </button>
-      </div>
-    ) : null
 
   return (
     <div
@@ -1269,11 +1245,11 @@ export function SimpleTaggingComposer({
                 className="border-white/25 bg-black/70 backdrop-blur-sm [&_button]:text-white/90 [&_button[aria-pressed=true]]:bg-brand-primary/40 [&_button[aria-pressed=true]]:text-white"
               />
             }
-            bottomOverlayClassName="!bottom-4"
+            bottomOverlayClassName="!bottom-2"
             bottomOverlay={
               videoUrl ? (
-                <div className="flex h-7 min-w-0 items-end justify-between gap-1.5">
-                  <div className="flex h-7 min-w-0 shrink items-end">{scoreBadge}</div>
+                <div className="flex min-w-0 items-end justify-between gap-1.5">
+                  <div className="min-w-0 shrink">{scoreBadge}</div>
                   <TransportCluster
                     variant="overlay"
                     overlayLayout="cluster"
@@ -1283,7 +1259,7 @@ export function SimpleTaggingComposer({
                     onTogglePlay={() => videoPlayerRef.current?.togglePlay()}
                     onSeekBy={handleSeekBy}
                     onNudgeSpeed={nudgePlaybackSpeed}
-                    className="h-7 shrink-0 gap-0.5 [&_button]:h-7 [&_button]:min-w-7 [&_button]:w-7 [&_span]:inline-flex [&_span]:h-7 [&_span]:min-w-7 [&_span]:items-center [&_span]:justify-center [&_span]:px-1 [&_span]:py-0 [&_span]:text-[10px]"
+                    className="shrink-0 gap-0.5 [&_button]:h-7 [&_button]:min-w-7 [&_button]:w-7 [&_span]:min-w-[1.75rem] [&_span]:px-1 [&_span]:py-0.5 [&_span]:text-[10px]"
                   />
                 </div>
               ) : null
@@ -1371,8 +1347,8 @@ export function SimpleTaggingComposer({
           </div>
         ) : (
           <div className="relative flex flex-col flex-1 min-h-0">
-            {/* One combined row: Serve·Hero + Let / Discard / Save */}
-            {formChromeRow}
+            {/* Pass 1 chrome bar + Simple Let / Discard / Save trailing */}
+            {setContextBar}
             {pointLedger}
             {openRally && (
               <SimpleTaggingMatrixBlock

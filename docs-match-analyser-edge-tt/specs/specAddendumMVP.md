@@ -6,6 +6,21 @@
 
 ## Change Log
 
+### 2026-11-13: MA-66 — Pass 1 video overlay + chrome bar on Simple (v3.113.0)
+
+**Change Type:** UX polish — Simple chrome parity with Pass 1 Focus
+
+**What Changed:**
+- Simple video stage uses Pass 1 **full** `Pass1SetHudBlock` (no compact) + Pass 1 transport overlay layout (`!bottom-2`, same cluster sizing).
+- Simple form chrome reuses `Pass1SetContextBlock` (Serve · player, Point in progress) with **Let / Discard / Save** via new `trailingActions` + `showHistory={false}`; matrix IA unchanged.
+- Between-points tapping still uses the same Pass 1 set bar (History · Done).
+
+**Decision Rationale:** Paul prefers Simple mode; wants Pass 1’s overlay + chrome bar look/layout on Simple without reinventing chrome.
+
+**Key Files:** `Pass1ChromeProtoBlock.tsx`; `SimpleTaggingComposer.tsx`; `VideoStageChrome.tsx`.
+
+---
+
 ### 2026-11-13: MA-65 — Simple detail card = Pass 1 ShotRow style (v3.112.0)
 
 **Change Type:** UX polish — Simple retheme to Pass 1 Focus card language

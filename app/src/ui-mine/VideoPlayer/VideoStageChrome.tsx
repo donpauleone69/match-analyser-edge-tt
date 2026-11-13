@@ -13,7 +13,7 @@ export interface VideoStageChromeProps {
   topLeft?: ReactNode
   topRight?: ReactNode
   bottomOverlay?: ReactNode
-  /** Override bottom overlay position (default clears mid-video; Simple uses lower near progress). */
+  /** Override bottom overlay position (default clears mid-video; Pass 1 / Simple use !bottom-2). */
   bottomOverlayClassName?: string
   className?: string
   onPointerDown?: MouseEventHandler<HTMLDivElement>
