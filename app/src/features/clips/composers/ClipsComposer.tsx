@@ -137,11 +137,15 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
 
   const presets = useMemo(() => data?.groups.flatMap((g) => g.presets) ?? [], [data])
   const clipParam = searchParams.get('clip')
+  const clipTitleParam = searchParams.get('clipTitle')
+  const fromParam = searchParams.get('from')
+  const atParam = searchParams.get('at')
   const filter = decodeClipFilter(clipParam) ?? presets[0]?.filter ?? null
   const activeKey = filter ? encodeClipFilter(filter) : null
   const playlistLabel =
     presets.find((p) => p.key === activeKey)?.label ??
-    (filter?.kind === 'rallies' ? (searchParams.get('clipTitle') ?? 'Selected rallies') : 'Clips')
+    clipTitleParam ??
+    (filter?.kind === 'rallies' ? 'Selected rallies' : 'Clips')
 
   const clips = useMemo(
     () => (data && filter ? deriveClips(data.inputs, filter) : []),
@@ -163,6 +167,33 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
     setIndex(0)
     setPlaybackMode('rally')
   }, [activeKey])
+
+  // Work on / Summary deep links can land on a specific shot or rally in the playlist.
+  useEffect(() => {
+    if (!atParam || rows.length === 0) return
+    const i = rows.findIndex(
+      (r) => r.clip.shotId === atParam || r.clip.rallyId === atParam || r.clip.id === atParam
+    )
+    if (i >= 0) setIndex(i)
+  }, [activeKey, atParam, rows])
+
+  const clearDeepLinkChrome = () => {
+    const next = new URLSearchParams(searchParams)
+    next.delete('from')
+    next.delete('at')
+    next.delete('clipTitle')
+    setSearchParams(next, { replace: true })
+  }
+
+  const backFromWorkOn = () => {
+    const next = new URLSearchParams(searchParams)
+    next.set('tab', 'workon')
+    next.delete('clip')
+    next.delete('clipTitle')
+    next.delete('from')
+    next.delete('at')
+    setSearchParams(next, { replace: true })
+  }
 
   const current = rows[Math.min(index, rows.length - 1)] ?? null
   const playWindow = current ? resolveClipPlaybackWindow(current.clip, effectiveMode) : null
@@ -203,6 +234,8 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
     const next = new URLSearchParams(searchParams)
     next.set('clip', preset.key)
     next.delete('clipTitle')
+    next.delete('from')
+    next.delete('at')
     setSearchParams(next, { replace: true })
   }
 
@@ -332,7 +365,7 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
     </header>
   )
 
-  if (presets.length === 0 && filter?.kind !== 'rallies') {
+  if (presets.length === 0 && filter?.kind !== 'rallies' && !clipParam) {
     return (
       <div className="space-y-6">
         {header}
@@ -459,6 +492,30 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
   return (
     <div className={`space-y-6 ${showExportBar ? 'pb-24 md:pb-6' : ''}`}>
       {header}
+
+      {embedded && fromParam === 'workon' && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-review/40 bg-review-bg/40 px-3 py-2">
+          <p className="text-sm text-neutral-200 min-w-0">
+            From Work on
+            {clipTitleParam ? (
+              <>
+                {' '}
+                · <span className="font-semibold">{clipTitleParam}</span>
+              </>
+            ) : null}
+          </p>
+          <div className="flex gap-2">
+            <Button size="sm" variant="secondary" onClick={backFromWorkOn}>
+              <Icon name="arrow-left" size="sm" /> Work on
+            </Button>
+            {(clipTitleParam || atParam) && (
+              <Button size="sm" variant="secondary" onClick={clearDeepLinkChrome}>
+                Stay in Clips
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
 
       {notice && (
         <div

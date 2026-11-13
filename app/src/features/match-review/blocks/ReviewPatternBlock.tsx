@@ -51,10 +51,10 @@ export function ReviewPatternBlock({
           <button
             type="button"
             onClick={() => onPlayPlaylist(pattern)}
-            className="h-7 shrink-0 px-2 rounded-md border border-neutral-700 text-xs text-neutral-200 hover:border-neutral-400 inline-flex items-center gap-1"
+            className="h-7 shrink-0 px-2 rounded-md border border-review/50 bg-review-bg/40 text-xs text-review hover:border-review inline-flex items-center gap-1"
             title="Open this pattern as a Clips playlist"
           >
-            <Icon name="play" size="xs" /> Playlist
+            <Icon name="film" size="xs" /> Clips
           </button>
         )}
       </div>
@@ -67,8 +67,9 @@ export function ReviewPatternBlock({
                 type="button"
                 onClick={() => onWatch(item, pattern)}
                 className="h-7 px-2 rounded-md border border-neutral-700 text-xs text-neutral-200 hover:border-neutral-400 inline-flex items-center gap-1"
+                title="Open the pattern playlist in Clips at this shot"
               >
-                <Icon name="play" size="xs" /> Watch
+                <Icon name="play" size="xs" /> In Clips
               </button>
               <button
                 type="button"

@@ -573,34 +573,64 @@ export function MatchReviewComposer() {
           activeEvidenceTitle={evidence?.title ?? null}
           onOpenEvidence={openEvidence}
           onWatchItem={(item, pattern) => {
-            const playlist = pattern.items
-              .map((i) => rallyById.get(i.rallyId))
-              .filter((r): r is RallyRowModel => Boolean(r))
-            const rally = rallyById.get(item.rallyId)
-            if (rally) watch(rally, playlist, `${pattern.title} · ${pattern.kindLabel}`, item.seekTime)
+            // Insight → playlist: open Clips on this pattern, landed on the shot.
+            const side =
+              [...review.workOn.hero.technical, ...review.workOn.hero.tactical].some((p) => p.key === pattern.key)
+                ? 'hero'
+                : 'villain'
+            setParams({
+              tab: 'clips',
+              clip: encodeClipFilter({
+                kind: 'review',
+                side,
+                reviewKind: pattern.reviewKind,
+                ...(pattern.wing ? { wing: pattern.wing } : {}),
+                ...(pattern.stroke ? { stroke: pattern.stroke } : {}),
+              }),
+              clipTitle: `${pattern.title} · ${pattern.kindLabel}`,
+              from: 'workon',
+              at: item.shotId,
+            })
           }}
           onEditItem={(item) => {
             const rally = rallyById.get(item.rallyId)
             if (rally) openEditor(rally)
           }}
           onPlayPlaylist={(pattern) => {
+            const side =
+              [...review.workOn.hero.technical, ...review.workOn.hero.tactical].some((p) => p.key === pattern.key)
+                ? 'hero'
+                : 'villain'
             setParams({
               tab: 'clips',
               clip: encodeClipFilter({
                 kind: 'review',
-                side: 'hero',
+                side,
                 reviewKind: pattern.reviewKind,
                 ...(pattern.wing ? { wing: pattern.wing } : {}),
                 ...(pattern.stroke ? { stroke: pattern.stroke } : {}),
               }),
               clipTitle: `${pattern.title} · ${pattern.kindLabel}`,
+              from: 'workon',
+              at: null,
             })
           }}
+          onOpenErrorsPlaylist={() =>
+            setParams({
+              tab: 'clips',
+              clip: encodeClipFilter({ kind: 'errors', side: 'hero' }),
+              clipTitle: `${review.heroName} · errors`,
+              from: 'workon',
+              at: null,
+            })
+          }
           onOpenHighlights={() =>
             setParams({
               tab: 'clips',
               clip: encodeClipFilter({ kind: 'highlights' }),
               clipTitle: 'Highlights',
+              from: 'workon',
+              at: null,
             })
           }
         />
