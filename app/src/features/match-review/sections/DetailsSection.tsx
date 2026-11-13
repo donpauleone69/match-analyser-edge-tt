@@ -4,7 +4,8 @@
  */
 
 import { useEffect, useState } from 'react'
-import { Card } from '@/ui-mine'
+import { Link } from 'react-router-dom'
+import { Card, Icon } from '@/ui-mine'
 import { cn } from '@/helpers/utils'
 import { SetsPanelSection } from './SetsPanelSection'
 import { MatchStorageBlock } from '../blocks/MatchStorageBlock'
@@ -174,6 +175,26 @@ export function DetailsSection({
             Optional: add an opponent or tournament so Clips scope (and Review scope) can filter “vs player” or by event.
             Nothing here is required to tag or review.
           </p>
+        )}
+        {(review.context.player2Id || review.context.tournamentId) && (
+          <div className="flex flex-wrap gap-2">
+            {review.context.player2Id && (
+              <Link
+                to={`/clips?scope=opponent&id=${encodeURIComponent(review.context.player2Id)}`}
+                className="inline-flex items-center gap-1 rounded-md border border-neutral-600 bg-bg-card px-3 py-2 text-sm text-neutral-100 hover:border-neutral-400"
+              >
+                <Icon name="film" size="sm" /> Clips vs opponent
+              </Link>
+            )}
+            {review.context.tournamentId && (
+              <Link
+                to={`/clips?scope=tournament&id=${encodeURIComponent(review.context.tournamentId)}`}
+                className="inline-flex items-center gap-1 rounded-md border border-neutral-600 bg-bg-card px-3 py-2 text-sm text-neutral-100 hover:border-neutral-400"
+              >
+                <Icon name="film" size="sm" /> Clips in tournament
+              </Link>
+            )}
+          </div>
         )}
         <MatchContextBlock
           heroName={review.heroName}
