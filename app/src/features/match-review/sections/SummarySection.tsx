@@ -18,6 +18,7 @@ export interface SummarySectionProps {
   onEditRally: (rally: RallyRowModel) => void
   onToggleHighlight: (rally: RallyRowModel) => void
   onOpenDetails?: () => void
+  onOpenIncomplete?: () => void
 }
 
 export function SummarySection(props: SummarySectionProps) {

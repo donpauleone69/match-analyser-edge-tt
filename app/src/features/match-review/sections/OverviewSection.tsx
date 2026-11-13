@@ -25,6 +25,8 @@ export interface OverviewSectionProps {
   onToggleHighlight: (rally: RallyRowModel) => void
   /** Soft context polish — open Details to add opponent / tournament. */
   onOpenDetails?: () => void
+  /** Soft incomplete polish — open Rallies Incomplete filter. */
+  onOpenIncomplete?: () => void
 }
 
 export function OverviewSection({
@@ -39,10 +41,12 @@ export function OverviewSection({
   onEditRally,
   onToggleHighlight,
   onOpenDetails,
+  onOpenIncomplete,
 }: OverviewSectionProps) {
   const rallyById = new Map(review.rallies.map((r) => [r.id, r]))
   const multiSet = review.sets.length > 1
   const activeSection = categoryId ? review.sections.find((s) => s.id === categoryId) ?? null : null
+  const incompleteCount = review.rallies.filter((r) => r.isIncomplete).length
   const needsOpponent = review.totalPoints > 0 && !review.context.player2Id
   const needsTournament =
     review.totalPoints > 0 && Boolean(review.context.player2Id) && !review.context.tournamentId
@@ -96,6 +100,23 @@ export function OverviewSection({
 
   return (
     <div className="space-y-8">
+      {incompleteCount > 0 && onOpenIncomplete && (
+        <button
+          type="button"
+          onClick={onOpenIncomplete}
+          className="w-full text-left rounded-lg border border-amber-800/50 bg-amber-950/20 px-4 py-3 hover:border-amber-600/60"
+        >
+          <p className="text-sm font-medium text-amber-100">
+            {incompleteCount === 1
+              ? '1 incomplete point is out of stats'
+              : `${incompleteCount} incomplete points are out of stats`}
+          </p>
+          <p className="text-xs text-amber-200/80 mt-0.5">
+            Open Rallies → Incomplete to Fix — still excluded from stats until complete.
+          </p>
+        </button>
+      )}
+
       {(needsOpponent || needsTournament) && onOpenDetails && (
         <button
           type="button"

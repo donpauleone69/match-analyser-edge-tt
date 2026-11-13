@@ -558,7 +558,9 @@ export function MatchReviewComposer() {
           onAddSet={handleAddSet}
           {...storageHandlers}
         />
-      ) : !review.hasPointData && tab !== 'rallies' ? (
+      ) : !review.hasPointData &&
+        review.rallies.length === 0 &&
+        tab !== 'rallies' ? (
         <Card className="p-8 text-center border border-dashed border-neutral-700">
           <h2 className="text-xl font-semibold text-neutral-50">Nothing tagged yet</h2>
           <p className="mt-2 text-sm text-neutral-400 max-w-md mx-auto">
@@ -591,6 +593,16 @@ export function MatchReviewComposer() {
           onEditRally={openEditor}
           onToggleHighlight={toggleHighlight}
           onOpenDetails={() => setParams({ tab: 'details', cat: null })}
+          onOpenIncomplete={() => {
+            const first =
+              review.rallies.find((r) => r.isIncomplete)?.setNumber ?? selectedSetNumber
+            setParams({
+              tab: 'rallies',
+              rf: 'incomplete',
+              s: String(first),
+              cat: null,
+            })
+          }}
         />
       ) : tab === 'workon' ? (
         <WorkOnSection

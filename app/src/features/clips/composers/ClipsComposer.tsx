@@ -127,6 +127,8 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
   const [busyReel, setBusyReel] = useState<string | null>(null)
   const [downloadBusy, setDownloadBusy] = useState(false)
   const [notice, setNotice] = useState<{ tone: 'good' | 'bad'; text: string } | null>(null)
+  /** Phone: presets collapsed under the player so Download/reel stay primary. */
+  const [presetsOpen, setPresetsOpen] = useState(false)
   const blobUrls = useRef<string[]>([])
   const clipStartedAt = useRef(0)
 
@@ -445,8 +447,7 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
       onPrev={() => setIndex((i) => Math.max(0, i - 1))}
       onNext={() => setIndex((i) => Math.min(rows.length - 1, i + 1))}
       onToggleAutoAdvance={() => setAutoAdvance((a) => !a)}
-      onDownload={handleDownloadClip}
-      downloadBusy={downloadBusy}
+      // Download lives once: sticky bar (phone) / export strip (desktop) — not also on stage.
       onEdit={() => {
         const q = new URLSearchParams({
           set: String(current.clip.setNumber),
@@ -481,8 +482,10 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
         </p>
         <p className="text-xs text-neutral-500">
           {isHighlightReel
-            ? `${rows.length} starred · show-reel · Download one or Save as reel for the phone`
-            : `${rows.length} clip${rows.length === 1 ? '' : 's'} · ${formatSeconds(edl.duration)} · Download one or Save as reel`}
+            ? `${rows.length} starred · show-reel`
+            : `${rows.length} clip${rows.length === 1 ? '' : 's'} · ${formatSeconds(edl.duration)}`}
+          <span className="md:hidden"> · use Download / Save as reel below</span>
+          <span className="hidden md:inline"> · Download one clip or Save as reel</span>
         </p>
       </div>
       {exporting ? (
@@ -549,10 +552,43 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
         </div>
       )}
 
-      {/* Mobile: player first. Desktop: presets aside. */}
-      <div className="grid gap-6 md:grid-cols-[17rem_minmax(0,1fr)]">
+      {/* Mobile: player first, presets collapsed. Desktop: presets aside. */}
+      <div className="grid gap-4 md:gap-6 md:grid-cols-[17rem_minmax(0,1fr)]">
         <aside className="order-2 md:order-1 md:sticky md:top-4 md:self-start md:max-h-[calc(100vh-6rem)] md:overflow-y-auto md:pr-1">
-          <ClipPresetListBlock groups={data.groups} activeKey={reel ? null : activeKey} onSelect={selectPreset} />
+          <div className="md:hidden">
+            <button
+              type="button"
+              aria-expanded={presetsOpen}
+              onClick={() => setPresetsOpen((o) => !o)}
+              className="flex w-full items-center justify-between gap-2 rounded-lg border border-neutral-700 bg-bg-card px-3 py-2.5 text-left text-sm text-neutral-100"
+            >
+              <span className="min-w-0 truncate">
+                <span className="text-neutral-500 font-medium">Playlists</span>
+                {!reel && playlistLabel ? (
+                  <>
+                    {' '}
+                    · <span className="font-semibold">{playlistLabel}</span>
+                  </>
+                ) : null}
+              </span>
+              <Icon name={presetsOpen ? 'chevron-up' : 'chevron-down'} size="sm" className="shrink-0 text-neutral-400" />
+            </button>
+            {presetsOpen && (
+              <div className="mt-2">
+                <ClipPresetListBlock
+                  groups={data.groups}
+                  activeKey={reel ? null : activeKey}
+                  onSelect={(preset) => {
+                    selectPreset(preset)
+                    setPresetsOpen(false)
+                  }}
+                />
+              </div>
+            )}
+          </div>
+          <div className="hidden md:block">
+            <ClipPresetListBlock groups={data.groups} activeKey={reel ? null : activeKey} onSelect={selectPreset} />
+          </div>
         </aside>
 
         <div className="order-1 md:order-2 space-y-4 min-w-0">
