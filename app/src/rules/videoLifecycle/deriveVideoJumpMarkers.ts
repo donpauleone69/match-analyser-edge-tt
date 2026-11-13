@@ -82,19 +82,31 @@ export function deriveVideoJumpMarkers(
   }
 
   const chips: MatchJumpMarkers['chips'] = []
-  for (const s of sets) {
+  for (let i = 0; i < sets.length; i++) {
+    const s = sets[i]!
     if (s.firstServeS !== null) {
       chips.push({
         key: `set-${s.setNumber}-first-serve`,
-        label: `Set ${s.setNumber} · first serve`,
+        label: sets.length === 1 ? 'First serve' : `Set ${s.setNumber} · first serve`,
         setNumber: s.setNumber,
         timeS: s.firstServeS,
       })
     }
-    if (s.lastActionS !== null && sets.length > 1) {
+    if (s.lastActionS !== null) {
       chips.push({
         key: `set-${s.setNumber}-end`,
-        label: `Set ${s.setNumber} · end`,
+        label: sets.length === 1 ? 'Set end' : `Set ${s.setNumber} · end`,
+        setNumber: s.setNumber,
+        timeS: s.lastActionS,
+      })
+    }
+    if (s.gapToNextSetS != null && s.gapToNextSetS >= 15 && s.lastActionS !== null) {
+      const next = sets[i + 1]
+      chips.push({
+        key: `set-${s.setNumber}-gap`,
+        label: next
+          ? `Gap → set ${next.setNumber}`
+          : `Gap after set ${s.setNumber}`,
         setNumber: s.setNumber,
         timeS: s.lastActionS,
       })
