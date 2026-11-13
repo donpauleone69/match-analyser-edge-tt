@@ -27,7 +27,7 @@ import {
   nudgePlaybackSpeed as nudgeSharedSpeed,
   SEEK_STEP_SECONDS as SHARED_SEEK_STEP,
 } from '@/ui-mine/VideoPlayer'
-import { Button, Icon } from '@/ui-mine'
+import { Button } from '@/ui-mine'
 import { calculateServer } from '@/rules'
 import { deriveMatchSetsBeforeSet } from '@/rules/derive/set/deriveMatchSetsBeforeSet'
 import { rallyDb, setDb } from '@/data'
@@ -170,7 +170,6 @@ export function Pass1FocusComposer({
   /** Which point cube is outlined — past rally index, or 'next' (about to tag / open). */
   const [focusedRallyIndex, setFocusedRallyIndex] = useState<number | 'next'>('next')
   const [pointLedgerOpen, setPointLedgerOpen] = useState(false)
-  const [formMoreOpen, setFormMoreOpen] = useState(false)
   /** Previous set’s last timed action — between-set gap jump on multi-set captures. */
   const [prevSetEndS, setPrevSetEndS] = useState<number | null>(null)
   /** Mid-rally Leave: Keep draft vs Discard choice. */
@@ -1170,7 +1169,7 @@ export function Pass1FocusComposer({
           <div className="relative flex flex-col flex-1 min-h-0">
             {setContextBar}
             {pointLedger}
-            {/* Tagging chrome — primary Save; Highlight; Redo/Discard in More */}
+            {/* Tagging chrome — Redo / Discard / Highlight / Save on one row (no More) */}
             <div className="shrink-0 border-t border-pill-idle-border bg-bg-card pb-[max(0.25rem,env(safe-area-inset-bottom,0px))]">
               {saveHint && !canSave && (
                 <p className="px-1.5 pt-1 text-[10px] font-semibold text-muted" role="status">
@@ -1178,50 +1177,22 @@ export function Pass1FocusComposer({
                 </p>
               )}
               <div className="relative min-h-11 px-1.5 py-1.5 flex flex-wrap items-center justify-end gap-1.5 text-[length:var(--control-text)]">
-                <div className="relative shrink-0">
-                  <button
-                    type="button"
-                    aria-expanded={formMoreOpen}
-                    aria-haspopup="menu"
-                    onClick={() => setFormMoreOpen((o) => !o)}
-                    className={cn(tagBtn, 'shrink-0 min-h-10 px-3 touch-manipulation', formMoreOpen && 'tag-control-active')}
-                    title="More rally actions"
-                  >
-                    <Icon name="more-h" size="sm" />
-                    More
-                  </button>
-                  {formMoreOpen && (
-                    <div
-                      role="menu"
-                      className="absolute bottom-full right-0 z-40 mb-1 min-w-[11rem] rounded-md border border-pill-idle-border bg-bg-card p-1 shadow-lg"
-                    >
-                      <button
-                        type="button"
-                        role="menuitem"
-                        onClick={() => {
-                          setFormMoreOpen(false)
-                          handleRedoRally()
-                        }}
-                        className={cn(tagBtn, 'w-full justify-start min-h-10')}
-                        title="Clear these contacts and re-tap this rally from just before the serve"
-                      >
-                        Redo contacts
-                      </button>
-                      <button
-                        type="button"
-                        role="menuitem"
-                        onClick={() => {
-                          setFormMoreOpen(false)
-                          handleDiscardOpen()
-                        }}
-                        className={cn(tagBtn, 'tag-control-danger w-full justify-start min-h-10')}
-                        title="Discard this rally draft without saving"
-                      >
-                        Discard rally
-                      </button>
-                    </div>
-                  )}
-                </div>
+                <button
+                  type="button"
+                  onClick={handleRedoRally}
+                  className={cn(tagBtn, 'shrink-0 min-h-10 px-3 touch-manipulation')}
+                  title="Clear these contacts and re-tap this rally from just before the serve"
+                >
+                  Redo contacts
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDiscardOpen}
+                  className={cn(tagBtn, 'tag-control-danger shrink-0 min-h-10 px-3 touch-manipulation')}
+                  title="Discard this rally draft without saving"
+                >
+                  Discard rally
+                </button>
                 <button
                   type="button"
                   aria-pressed={Boolean(openRally?.isHighlight)}

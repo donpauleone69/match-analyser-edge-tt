@@ -55,6 +55,7 @@ import {
 import {
   canSaveSimpleTagging,
   markEndSimple,
+  markFosSimple,
   offensiveShotsFromTimeline,
   simpleSaveHint,
   toggleNoAttackSimple,
@@ -587,9 +588,9 @@ export function RallyEditComposer() {
           <SimpleTaggingMatrixBlock
             state={draft.timeline}
             offensiveShots={draft.offensiveShots}
-            isHighlight={draft.isHighlight}
             players={playersPair}
             server={serverName}
+            activeShot={activeShot}
             selectedShot={selectedShot}
             activeRow={activeMatrixRow}
             reviewDetailFocused={reviewDetailFocused}
@@ -629,9 +630,18 @@ export function RallyEditComposer() {
                 }
               })
             }}
-            onToggleHighlight={() =>
-              setDraft((d) => (d ? { ...d, isHighlight: !d.isHighlight } : d))
-            }
+            onMarkFos={(n) => {
+              setSelectedShot(n)
+              setDraft((d) => {
+                if (!d) return d
+                const next = markFosSimple(d.timeline, d.offensiveShots, n)
+                return {
+                  ...d,
+                  timeline: next.timeline,
+                  offensiveShots: next.offensiveShots,
+                }
+              })
+            }}
             onToggleReview={(n) =>
               patchTimeline((s) => toggleShotReviewFlag(s, n))
             }

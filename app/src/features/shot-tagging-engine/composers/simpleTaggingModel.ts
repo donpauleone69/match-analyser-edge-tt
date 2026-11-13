@@ -1,8 +1,9 @@
 /**
- * Simple tagging Phase 1 — thin model on top of Pass 1 timeline.
+ * Simple tagging — thin model on top of Pass 1 timeline.
  *
  * Offensive row is multi-select; first selected (lowest index) = FOS.
  * Miss-reason required on error endings. Review binary → technical.
+ * Phase 2 matrix rows: Offensive · End · Review (★ on Save row).
  * Pure — no React / IO.
  */
 
@@ -16,7 +17,38 @@ import {
   type RallyTimelineState,
 } from './pass1FocusModel'
 
-export type SimpleMatrixRow = 'offensive' | 'end' | 'highlight' | 'review'
+export type SimpleMatrixRow = 'offensive' | 'end' | 'review'
+
+/**
+ * Pass 1 sticky “First attack” on a shot — Simple multi-select aware.
+ * Re-tap when already FOS → undecided. Otherwise make `at` the FOS
+ * (first in offensive list); keep other offensive marks after it.
+ */
+export function markFosSimple(
+  state: RallyTimelineState,
+  offensiveShots: number[],
+  at: number
+): { timeline: RallyTimelineState; offensiveShots: number[] } {
+  if (state.end === 1 || at < 2 || at > state.shotCount) {
+    return { timeline: state, offensiveShots }
+  }
+  if (typeof state.end === 'number' && at > state.end) {
+    return { timeline: state, offensiveShots }
+  }
+  if (state.fos === at) {
+    return {
+      timeline: applyOffensiveToTimeline(state, []),
+      offensiveShots: [],
+    }
+  }
+  // Keep later offensive marks; drop any before `at` so first selected = FOS.
+  const rest = normalizeOffensiveShots(offensiveShots).filter((n) => n > at)
+  const next = normalizeOffensiveShots([at, ...rest])
+  return {
+    timeline: applyOffensiveToTimeline(state, next),
+    offensiveShots: next,
+  }
+}
 
 /** Sorted unique offensive shot indices (≥ 2). First = FOS. */
 export function normalizeOffensiveShots(shots: number[]): number[] {
