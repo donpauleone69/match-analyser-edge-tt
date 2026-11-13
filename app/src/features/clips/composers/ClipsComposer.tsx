@@ -423,12 +423,17 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
     <Card className="p-6 text-sm text-neutral-400">No clips in this playlist.</Card>
   )
 
+  const isHighlightReel = filter?.kind === 'highlights'
   const exportStrip = showExportBar && (
     <div className="flex flex-wrap items-center gap-3 rounded-lg border border-neutral-700 bg-bg-card px-4 py-3">
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold text-neutral-100 truncate">{playlistLabel}</p>
+        <p className="text-sm font-semibold text-neutral-100 truncate">
+          {isHighlightReel ? `★ ${playlistLabel}` : playlistLabel}
+        </p>
         <p className="text-xs text-neutral-500">
-          {rows.length} clip{rows.length === 1 ? '' : 's'} · {formatSeconds(edl.duration)} of footage
+          {isHighlightReel
+            ? `${rows.length} starred · show-reel · Download one or Save as reel for the phone`
+            : `${rows.length} clip${rows.length === 1 ? '' : 's'} · ${formatSeconds(edl.duration)} · Download one or Save as reel`}
         </p>
       </div>
       {exporting ? (
@@ -438,7 +443,7 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
           {exporting.stage === 'cutting' && ` ${exporting.done + 1}/${exporting.total}`}
         </p>
       ) : (
-        <div className="flex flex-wrap gap-2">
+        <div className="hidden md:flex flex-wrap gap-2">
           <Button size="sm" variant="secondary" onClick={handleDownloadClip} disabled={!current || downloadBusy}>
             <Icon name={downloadBusy ? 'loader' : 'download'} size="sm" className={downloadBusy ? 'animate-spin' : undefined} />
             Download clip
@@ -495,6 +500,11 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
 
       {showExportBar && (
         <div className="fixed inset-x-0 bottom-14 z-30 border-t border-neutral-700 bg-bg-shell/95 px-3 py-2 backdrop-blur md:hidden">
+          <p className="mx-auto mb-1 max-w-lg truncate text-center text-[10px] text-neutral-400">
+            {isHighlightReel ? 'Highlight show-reel' : playlistLabel}
+            {' · '}
+            {rows.length} clip{rows.length === 1 ? '' : 's'}
+          </p>
           <div className="mx-auto flex max-w-lg items-center gap-2">
             <Button
               size="sm"

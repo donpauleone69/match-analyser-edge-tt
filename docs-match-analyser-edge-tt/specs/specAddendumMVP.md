@@ -6,6 +6,20 @@
 
 ## Change Log
 
+### 2026-11-13: MA-13/14 — Pass 1 More menu + Clips show-reel export (v3.71.0)
+
+**Change Type:** UX polish / verify
+
+**What Changed:**
+- Pass 1 form row: primary **★ Highlight** + **Save rally** only; **Redo contacts** / **Discard rally** under **More** overflow. Delete last remains on History ledger (locked while a point is open).
+- Clips: Highlights group labeled **Highlights · show-reel**; preset **★ Highlights**; export strip + phone sticky bar copy names Download / Save reel (and show-reel when on highlights).
+
+**Decision Rationale:** Tracker MA-13/MA-14 after PR #6 — finish less-is-more on the form row and make phone export + Highlight show-reel obvious. MA-15 (cross-match product choices) untouched.
+
+**Key Files:** `Pass1FocusComposer.tsx`; `ClipsComposer.tsx`; `buildClipLibrary.ts`; `deriveClipPresets.ts`.
+
+---
+
 ### 2026-11-13: Day UX — less-is-more flow + Clips scope/export (v3.70.0)
 
 **Change Type:** UX / navigation / playlists / metadata
