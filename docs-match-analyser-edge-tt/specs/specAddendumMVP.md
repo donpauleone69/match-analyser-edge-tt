@@ -6,6 +6,22 @@
 
 ## Change Log
 
+### 2026-11-13: MA-69 — Pass 1 labels + checklist polish (v3.116.0)
+
+**Change Type:** UX polish — Pass 1 Focus labels / checklist placement
+
+**What Changed:**
+- Checklist / phase instruction moved to a dedicated sticky space **above** the shot rail (always visible). Green when compulsory done + note that other input is optional / can Save.
+- Fixed Result click spawning an extra **SHOTS** label inside the detail card (removed fos-phase “Shots” caption).
+- Small section labels: **RALLY** above shot numbers; **QUICK TAGS** above the quick-mark row.
+- **Show all N shots** control moved **below** the selected-shot detail box.
+
+**Decision Rationale:** Paul MA-69 Pass 1 labels polish brief.
+
+**Key Files:** `Pass1FocusBlock.tsx`.
+
+---
+
 ### 2026-11-13: MA-68 — Pass 1 Focus flow refine (v3.115.0)
 
 **Change Type:** UX refine — Pass 1 Focus tagging flow (Paul preferred path)
