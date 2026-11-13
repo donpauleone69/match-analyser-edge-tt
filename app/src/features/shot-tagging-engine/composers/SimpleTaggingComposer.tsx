@@ -3,8 +3,8 @@
  *
  * Setup → tap contacts → 2s idle → matrix (Offensive/End/Review) while video loops.
  * Same DBRally/DBShot via Pass 1 persist path (End keeps wing/stroke; others stripped).
- * Phase 2.2: mode toggle over video; action row above matrix; framed shot
- * numbers + green underline; Rally|Shot beside shot numbers; transport fits phone.
+ * Phase 2.3 (MA-58): smaller score HUD; RALLY column (No Atk / Rally|Shot / Highlight);
+ * matrix grid; one Serve·Hero + Discard/Save row; no Redo/Leave on this screen.
  */
 
 import { useState, useRef, useEffect, useMemo, type ReactNode } from 'react'
@@ -15,7 +15,6 @@ import {
   Pass1SetHudBlock,
   Pass1SetContextBlock,
   Pass1PointLedgerBlock,
-  Pass1LeaveDraftChoiceBlock,
   SimpleTaggingMatrixBlock,
   SimpleTaggingModePickerBlock,
 } from '../blocks'
@@ -49,7 +48,6 @@ import {
   seekFloorFromCompleted,
   clampSeekTime,
   CONTACT_IDLE_MS,
-  LOOP_PAD_SECONDS,
   CAPTURE_PLAYBACK_SPEED,
   NORMAL_PLAYBACK_SPEED,
   toPass1FocusMapperShot,
@@ -93,9 +91,6 @@ import {
   betweenSetGapSeekS,
   shouldShowBetweenSetGapJump,
 } from '@/rules/videoLifecycle/deriveVideoJumpMarkers'
-
-/** How far Redo rewinds when there are no contacts yet */
-const REDO_REWIND_SECONDS = 2
 
 export interface SimpleTaggingComposerProps {
   matchId: string
@@ -224,11 +219,6 @@ export function SimpleTaggingComposer({
   const [liveTime, setLiveTime] = useState(0)
   /** Previous set’s last timed action — between-set gap jump on multi-set captures. */
   const [prevSetEndS, setPrevSetEndS] = useState<number | null>(null)
-  /** Mid-rally Leave: Keep draft vs Discard choice. */
-  const [leaveDraftChoiceOpen, setLeaveDraftChoiceOpen] = useState(false)
-  /** Skip autosave when Discarding so the draft is not rewritten before navigate. */
-  const skipDraftPersistRef = useRef(false)
-
   const contactTimesRef = useRef(contactTimes)
   contactTimesRef.current = contactTimes
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -411,7 +401,6 @@ export function SimpleTaggingComposer({
 
   // Persist in-progress point so reload can resume tagging.
   useEffect(() => {
-    if (skipDraftPersistRef.current) return
     if (!setId || !setReady) return
     if (phase !== 'tapping' && phase !== 'form') return
     saveSimpleTaggingDraft({
@@ -653,33 +642,6 @@ export function SimpleTaggingComposer({
     }
   }
 
-  /**
-   * Restart contact tapping for this rally (from form or mid-tap), or rewind if empty.
-   * This is also the let path: no score is recorded, and the replayed point is
-   * captured as the next taps — so there is no separate Let control.
-   */
-  const handleRedoRally = () => {
-    const seekSource =
-      openRally?.serveTimestamp ??
-      (contactTimes.length > 0 ? contactTimes[0] : null)
-
-    clearIdleTimer()
-    setOpenRally(null)
-    setContactTimes([])
-    setReviewDetailFocused(false)
-    setPhase('tapping')
-    if (setId) clearSimpleTaggingDraft(setId)
-    setPlaybackSpeed(NORMAL_PLAYBACK_SPEED)
-    applyTappingConstraints()
-
-    if (typeof seekSource === 'number') {
-      seekClamped(seekSource - LOOP_PAD_SECONDS)
-    } else {
-      seekClamped(readVideoTime() - REDO_REWIND_SECONDS)
-    }
-    videoPlayerRef.current?.play()
-  }
-
   const nudgePlaybackSpeed = (direction: -1 | 1) => {
     setPlaybackSpeed(nudgeSharedSpeed(playbackSpeed, direction))
   }
@@ -828,7 +790,7 @@ export function SimpleTaggingComposer({
     if (!setId) return
     if (openRally || contactTimes.length > 0) {
       const ok = window.confirm(
-        'Discard the open rally and finish this set with Done? This closes the set — use Leave if you only want to exit and resume later.'
+        'Discard the open rally and finish this set with Done? This closes the set.'
       )
       if (!ok) return
     }
@@ -1017,40 +979,6 @@ export function SimpleTaggingComposer({
     }
   }
 
-  /** Soft exit to Match Review without finalizing the set. */
-  const exitToMatchReview = () => {
-    clearIdleTimer()
-    setLeaveDraftChoiceOpen(false)
-    navigate(`/matches/${matchId}`)
-  }
-
-  /**
-   * Soft exit. Mid-rally: Keep draft vs Discard choice (both leave; Stay cancels).
-   * Between points with no open work: leave immediately.
-   */
-  const handleReviewMatch = () => {
-    if (openRally || contactTimes.length > 0) {
-      setLeaveDraftChoiceOpen(true)
-      return
-    }
-    exitToMatchReview()
-  }
-
-  const handleLeaveKeepDraft = () => {
-    // Autosaved draft stays — resume restores open taps/form.
-    exitToMatchReview()
-  }
-
-  const handleLeaveDiscardDraft = () => {
-    skipDraftPersistRef.current = true
-    if (setId) clearSimpleTaggingDraft(setId)
-    setOpenRally(null)
-    setContactTimes([])
-    setSelectedShot(null)
-    setReviewDetailFocused(false)
-    exitToMatchReview()
-  }
-
   const handleMarkEnd = (at: number) => {
     setSelectedShot(at)
     patchOpenRally((cur) => {
@@ -1147,6 +1075,7 @@ export function SimpleTaggingComposer({
       player2Score={currentScore.player2}
       serverId={openServerId}
       serverName={serverName}
+      compact
     />
   )
 
@@ -1201,9 +1130,62 @@ export function SimpleTaggingComposer({
       onToggleHistory={() => setPointLedgerOpen((open) => !open)}
       canEndSet={canEndSet}
       onEndSet={() => void handleEndSession()}
-      onReviewMatch={handleReviewMatch}
     />
   )
+
+  const formChromeRow =
+    openRally && phase === 'form' ? (
+      <div className="shrink-0 flex min-h-10 items-center gap-1 border-t border-b border-pill-idle-border bg-bg-card px-1.5 py-1 text-[length:var(--control-text)]">
+        <button
+          type="button"
+          onClick={() =>
+            void handleSetServer(openServerId === 'player1' ? 'player2' : 'player1')
+          }
+          className={cn(
+            tagBtn,
+            'min-w-0 max-w-[6.75rem] shrink-0 gap-1 font-bold',
+            openServerId === 'player1'
+              ? 'bg-player-1-bg border-player-1 text-primary'
+              : 'bg-player-2-bg border-player-2 text-primary'
+          )}
+          title={`Rally server: ${serverName}. Tap to switch.`}
+          aria-label={`Rally server: ${serverName}. Tap to switch.`}
+        >
+          <span
+            className={cn(
+              'h-1.5 w-1.5 shrink-0 rounded-full',
+              openServerId === 'player1' ? 'bg-player-1' : 'bg-player-2'
+            )}
+            aria-hidden
+          />
+          <span className="truncate">Serve · {serverName}</span>
+        </button>
+        <span className="min-w-0 flex-1 truncate px-1 text-center text-[10px] font-semibold text-primary">
+          Point in progress
+        </span>
+        <button
+          type="button"
+          onClick={handleDiscardOpen}
+          className={cn(tagBtn, 'tag-control-danger shrink-0 touch-manipulation')}
+          title="Discard this rally draft without saving"
+        >
+          Discard
+        </button>
+        <button
+          type="button"
+          onClick={() => void handleSave()}
+          disabled={!canSave || saving}
+          className={cn(
+            tagBtn,
+            'shrink-0 touch-manipulation font-bold',
+            canSave ? 'tag-control-accent' : 'opacity-50'
+          )}
+          title="Save this rally and move to the next point"
+        >
+          {saving ? 'Saving…' : 'Save'}
+        </button>
+      </div>
+    ) : null
 
   return (
     <div
@@ -1326,94 +1308,41 @@ export function SimpleTaggingComposer({
           </div>
         ) : (
           <div className="relative flex flex-col flex-1 min-h-0">
-            {setContextBar}
+            {/* One combined row: Serve·Hero + Discard/Save (Redo + Leave removed) */}
+            {formChromeRow}
             {pointLedger}
             {openRally && (
-              <>
-                {/* Action row: below Serve·Hero / point-in-progress, above matrix */}
-                <div className="shrink-0 border-b border-pill-idle-border bg-bg-card px-1.5 py-1.5 flex flex-wrap items-center gap-1.5 text-[length:var(--control-text)]">
-                  <button
-                    type="button"
-                    aria-pressed={Boolean(openRally.isHighlight)}
-                    onClick={handleToggleHighlight}
-                    className={cn(
-                      tagBtn,
-                      'shrink-0 touch-manipulation border-amber-600/70 text-amber-200',
-                      openRally.isHighlight &&
-                        'bg-amber-500 border-amber-400 text-neutral-950 font-bold'
-                    )}
-                    title="Mark this whole rally as a highlight (show-reel)"
-                  >
-                    ★ Highlight Rally
-                  </button>
-                  <div className="flex-1 min-w-[0.5rem]" aria-hidden />
-                  <button
-                    type="button"
-                    onClick={handleRedoRally}
-                    className={cn(tagBtn, 'shrink-0 touch-manipulation')}
-                    title="Clear these contacts and re-tap this rally from just before the serve"
-                  >
-                    Redo contacts
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleDiscardOpen}
-                    className={cn(tagBtn, 'tag-control-danger shrink-0 touch-manipulation')}
-                    title="Discard this rally draft without saving"
-                  >
-                    Discard rally
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void handleSave()}
-                    disabled={!canSave || saving}
-                    className={cn(
-                      tagBtn,
-                      'shrink-0 touch-manipulation font-bold',
-                      canSave ? 'tag-control-accent' : 'opacity-50'
-                    )}
-                    title="Save this rally and move to the next point"
-                  >
-                    {saving ? 'Saving…' : 'Save point'}
-                  </button>
-                </div>
-                <SimpleTaggingMatrixBlock
-                  className="min-h-0 flex-1 pb-[max(0.25rem,env(safe-area-inset-bottom,0px))]"
-                  state={timeline}
-                  offensiveShots={openRally.offensiveShots}
-                  players={players}
-                  server={serverName}
-                  activeShot={overlayShot}
-                  selectedShot={selectedShot}
-                  activeRow={activeMatrixRow}
-                  reviewDetailFocused={reviewDetailFocused}
-                  loopScope={loopScope}
-                  onLoopScopeChange={setLoopScope}
-                  onSelectShot={handleSelectShot}
-                  onToggleOffensive={handleToggleOffensive}
-                  onNoAttack={handleNoAttack}
-                  onMarkEnd={handleMarkEnd}
-                  onToggleReview={handleToggleReviewFlag}
-                  onToggleEnding={handleToggleEnding}
-                  onToggleMissReason={handleToggleMissReason}
-                  onToggleShotChoice={handleToggleShotChoice}
-                  onToggleAttribute={handleToggleAttribute}
-                  onReviewDetailFocusChange={setReviewDetailFocused}
-                  onSelectRow={setActiveMatrixRow}
-                  onMarkFos={handleMarkFos}
-                />
-              </>
+              <SimpleTaggingMatrixBlock
+                className="min-h-0 flex-1 pb-[max(0.25rem,env(safe-area-inset-bottom,0px))]"
+                state={timeline}
+                offensiveShots={openRally.offensiveShots}
+                players={players}
+                server={serverName}
+                activeShot={overlayShot}
+                selectedShot={selectedShot}
+                activeRow={activeMatrixRow}
+                reviewDetailFocused={reviewDetailFocused}
+                loopScope={loopScope}
+                onLoopScopeChange={setLoopScope}
+                onSelectShot={handleSelectShot}
+                onToggleOffensive={handleToggleOffensive}
+                onNoAttack={handleNoAttack}
+                onMarkEnd={handleMarkEnd}
+                onToggleReview={handleToggleReviewFlag}
+                onToggleEnding={handleToggleEnding}
+                onToggleMissReason={handleToggleMissReason}
+                onToggleShotChoice={handleToggleShotChoice}
+                onToggleAttribute={handleToggleAttribute}
+                onReviewDetailFocusChange={setReviewDetailFocused}
+                onSelectRow={setActiveMatrixRow}
+                onMarkFos={handleMarkFos}
+                isHighlight={openRally.isHighlight}
+                onToggleHighlight={handleToggleHighlight}
+              />
             )}
           </div>
         )}
       </div>
-
-      <Pass1LeaveDraftChoiceBlock
-        open={leaveDraftChoiceOpen}
-        onKeepDraft={handleLeaveKeepDraft}
-        onDiscard={handleLeaveDiscardDraft}
-        onCancel={() => setLeaveDraftChoiceOpen(false)}
-      />
     </div>
   )
 }

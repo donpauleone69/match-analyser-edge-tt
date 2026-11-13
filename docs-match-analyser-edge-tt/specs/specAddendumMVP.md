@@ -6,6 +6,24 @@
 
 ## Change Log
 
+### 2026-11-13: MA-58 — Simple tagging Phase 2.3 layout (v3.107.0)
+
+**Change Type:** UX layout — Simple Phase 2.3 (Paul layout notes after #42)
+
+**What Changed:**
+- Score HUD **smaller** (compact H+W); transport cluster bottoms stay **aligned** with score box.
+- Shot matrix wrapped in a **grid/frame**; selected cells show a **subtle outline** (not dots-only).
+- Final column is **RALLY** (not numbered): **No Attack** under it; **Rally|Shot** toggle in that column; **Highlight** on the Review row of that column.
+- Removed **Redo contacts** (same intent as Discard) and **Leave** from Simple screen.
+- Combined Serve·Hero / point-in-progress + Discard/Save into **one** tighter row above the matrix.
+- Detail under matrix kept as Pass 1 shot-entry look (First attack / No attack + End wing/shot/result).
+
+**Decision Rationale:** Paul Phase 2.3 layout — denser chrome, clearer matrix buttons, RALLY column owns rally-level controls.
+
+**Key Files:** `SimpleTaggingMatrixBlock.tsx`; `SimpleTaggingComposer.tsx`; `Pass1ChromeProtoBlock.tsx` (`Pass1SetHudBlock` compact).
+
+---
+
 ### 2026-11-13: MA-57 — Simple tagging Phase 2.2 polish (v3.106.0)
 
 **Change Type:** UX polish — Simple Phase 2.2 (Paul annotated screenshots after #41)
