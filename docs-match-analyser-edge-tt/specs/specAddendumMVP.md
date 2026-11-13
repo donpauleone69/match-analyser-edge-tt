@@ -6,6 +6,20 @@
 
 ## Change Log
 
+### 2026-11-13: MA-48 — Pass 1 mid-rally Leave with confirm (v3.98.0)
+
+**Change Type:** UX polish — Leave reachable mid-point (no epics)
+
+**What Changed:**
+- Pass 1 **Leave** stays visible while a point is in progress (`navigationLocked`); confirm then soft-exits; open-point **draft kept** (same localStorage recovery as reload).
+- **Done** remains between-points only so mandatory Save / finish-set path is unchanged.
+
+**Decision Rationale:** MA-46 status — soft-exit must be reachable mid-rally without offering Done while the form is open.
+
+**Key Files:** `Pass1ChromeProtoBlock.tsx`; `Pass1FocusComposer.tsx`; `Pass1FocusBlock.tsx`.
+
+---
+
 ### 2026-11-13: MA-47 — Checked-in @390 Playwright smoke script (v3.97.0)
 
 **Change Type:** Engineering — reusable tip-of-main smoke (no product epics; CI not mandatory)

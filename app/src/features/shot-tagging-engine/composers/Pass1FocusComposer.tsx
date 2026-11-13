@@ -878,15 +878,20 @@ export function Pass1FocusComposer({
     }
   }
 
-  /** Soft exit to Match Review without finalizing the set (Resume still works). */
+  /**
+   * Soft exit to Match Review without finalizing the set.
+   * Mid-rally: confirm, keep localStorage draft (same as reload recovery), then leave.
+   * Does not clear draft — Resume restores open taps/form.
+   */
   const handleReviewMatch = () => {
     if (openRally || contactTimes.length > 0) {
       const ok = window.confirm(
-        'Leave without finishing this set? Unsaved rally progress will be lost. You can resume later — this does not finish the set.'
+        'Leave without finishing this set? Your open point is kept as a draft so you can resume later. This does not finish the set.'
       )
       if (!ok) return
     }
     clearIdleTimer()
+    // Draft stays in localStorage (autosave) — do not clearPass1FocusDraft here.
     navigate(`/matches/${matchId}`)
   }
 
