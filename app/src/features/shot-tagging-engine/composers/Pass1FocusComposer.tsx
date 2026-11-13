@@ -679,7 +679,7 @@ export function Pass1FocusComposer({
     if (!setId) return
     if (openRally || contactTimes.length > 0) {
       const ok = window.confirm(
-        'Discard the open rally and finish this set?'
+        'Discard the open rally and finish this set with Done? This closes the set — use Leave if you only want to exit and resume later.'
       )
       if (!ok) return
     }
@@ -882,7 +882,7 @@ export function Pass1FocusComposer({
   const handleReviewMatch = () => {
     if (openRally || contactTimes.length > 0) {
       const ok = window.confirm(
-        'Leave tagging? Unsaved rally progress will be lost.'
+        'Leave without finishing this set? Unsaved rally progress will be lost. You can resume later — this does not finish the set.'
       )
       if (!ok) return
     }

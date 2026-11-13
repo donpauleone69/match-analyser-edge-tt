@@ -6,6 +6,20 @@
 
 ## Change Log
 
+### 2026-11-13: MA-46 — Pass 1 Leave vs Done copy polish (v3.96.0)
+
+**Change Type:** UX polish — Leave / Done discoverability (no epics)
+
+**What Changed:**
+- Pass 1 set bar: distinct aria/titles for **Done** (finish set) vs **Leave** (soft exit, resume later; not video Pause); sr-only hint; disabled Done explains need for ≥1 point.
+- Confirm copy when discarding an open rally distinguishes Done (finish set) vs Leave (exit and resume).
+
+**Decision Rationale:** MA-44/45 status — avoid Leave ↔ Pause / Done confusion without changing exit behavior.
+
+**Key Files:** `Pass1ChromeProtoBlock.tsx`; `Pass1FocusComposer.tsx`; `Pass1FocusBlock.tsx`.
+
+---
+
 ### 2026-11-13: MA-45 — Incomplete badge deep-link + Gap ≥15s + Summary Fix copy (v3.95.0)
 
 **Change Type:** UX polish — MA-44 status follow-ups (no epics)
