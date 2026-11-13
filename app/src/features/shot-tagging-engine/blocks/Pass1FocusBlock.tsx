@@ -1,11 +1,11 @@
 /**
  * Pass 1 Focus — shot pills for first-pass capture (Match Review aesthetic).
  *
- * MA-68/69 flow: always-selected shot; End pre-marked on last contact; checklist
- * above the shot rail (green when compulsory done); RALLY + QUICK TAGS section
- * labels; quick-mark row (End / First attack / Review / ★); detail = selected
- * only with “Show all N” below; End→Result then rally loop + FA; First attack
- * 2nd tap = No; no flag-kind; miss reason optional when Review is on.
+ * MA-70 staged flow: info box drives contacts → end details → select FA /
+ * No attack → FA details → optional/save. Sticky top is always info + RALLY
+ * rail (no quick-tag row). Optional Review/★/attrs live in selected-shot
+ * detail after compulsory. FA rail paint only after FA is chosen. End uses a
+ * clear blue accent (not muted grey). Explicit No attack in select-FA stage.
  *
  * Rally guide rail: width max(10, contacts+2). Server is set per rally, not on the rail.
  * Tap a shot → select it and snap that list row under the sticky rail.
@@ -36,7 +36,9 @@ import {
   playerForShot,
   getShotSummary,
   isErrorEnding,
-  derivePass1FormPhase,
+  derivePass1Stage,
+  pass1StageInfo,
+  type Pass1Stage,
   type RallyTimelineState,
   type RallyPhase,
   type PointEnding,
@@ -66,11 +68,9 @@ export interface Pass1FocusBlockProps {
   server: string
   /** Shot whose contact the loop is currently on (rail underline). */
   activeShot?: number | null
-  /** Shot selected for sticky FA/End/Review tools + optional tags. Always set in form. */
+  /** Shot selected for detail entry. Always set in form. */
   selectedShot?: number | null
   onSelectShot?: (n: number) => void
-  /** Armed after End Result — First attack is the next quick action. */
-  fosPickMode?: boolean
   onToggleShotChoice: (n: number, key: ShotChoiceKey, value: string) => void
   onToggleAttribute: (n: number, key: ShotAttributeKey) => void
   onMarkFos: (at: number) => void
@@ -81,7 +81,7 @@ export interface Pass1FocusBlockProps {
   onToggleEnding: (value: PointEnding) => void
   onToggleMissReason: (value: PointMissReason) => void
   onToggleReviewFlag: (n: number) => void
-  /** Rally-level highlight (★) — in the quick-mark row (MA-68). */
+  /** Rally-level highlight (★) — optional detail only after compulsory (MA-70). */
   isHighlight?: boolean
   onToggleHighlight?: () => void
   scrollableShotRail?: boolean
@@ -203,14 +203,10 @@ function ChoiceRow({ label, children }: { label: string; children: ReactNode }) 
   )
 }
 
-/** Sticky checklist above the shot rail — always visible; green when compulsory done. */
-function Pass1Checklist({ formPhase }: { formPhase: ReturnType<typeof derivePass1FormPhase> }) {
-  const ready = formPhase === 'detail'
-  const text = ready
-    ? 'Compulsory done — other input is optional · you can Save'
-    : formPhase === 'fos'
-      ? 'Mark first attack — select a shot, or tap First attack again for No'
-      : 'Enter end shot details'
+/** Sticky info box above the shot rail — always shows the current MA-70 stage. */
+function Pass1StageInfoBox({ stage }: { stage: Pass1Stage }) {
+  const { text, tone } = pass1StageInfo(stage)
+  const ready = tone === 'ready'
   return (
     <div
       className={cn(
@@ -221,6 +217,7 @@ function Pass1Checklist({ formPhase }: { formPhase: ReturnType<typeof derivePass
       )}
       role="status"
       aria-live="polite"
+      data-pass1-stage={stage}
     >
       {text}
     </div>
@@ -409,39 +406,54 @@ function ShotTagging({
   n,
   state,
   isSelected,
-  formPhase,
+  stage,
   onToggleShotChoice,
   onToggleAttribute,
   onToggleEnding,
   onToggleMissReason,
+  onToggleReviewFlag,
+  onMarkEnd,
+  onMarkFos,
+  onNoAttack,
+  isHighlight = false,
+  onToggleHighlight,
   compactStrokes = false,
 }: {
   n: number
   state: RallyTimelineState
   isSelected: boolean
-  formPhase: ReturnType<typeof derivePass1FormPhase>
+  stage: Pass1Stage
   onToggleShotChoice: (n: number, key: ShotChoiceKey, value: string) => void
   onToggleAttribute: (n: number, key: ShotAttributeKey) => void
   onToggleEnding: (value: PointEnding) => void
   onToggleMissReason: (value: PointMissReason) => void
+  onToggleReviewFlag: (n: number) => void
+  onMarkEnd: (at: number) => void
+  onMarkFos: (at: number) => void
+  onNoAttack: () => void
+  isHighlight?: boolean
+  onToggleHighlight?: () => void
   compactStrokes?: boolean
 }) {
   const shot = state.shots[n]
   if (!shot) return null
 
   const isEnd = state.end === n
+  const isFos = state.fos === n
   const allow = derivePass1ShotTagAllowList(n, state.fos, state.end)
   const role = derivePass1ShotTagRole(n, state.fos, state.end)
   const reviewed = shot.reviewKind !== null
-  const fosPhase = formPhase === 'fos'
+  const optionalOpen = stage === 'optional'
+  const endPhase = stage === 'end_details'
+  const faDetailPhase = stage === 'fa_details'
 
   const compact = Boolean(compactStrokes)
   const strokes: readonly string[] =
-    role === 'first_attack' || (fosPhase && n >= 2)
+    role === 'first_attack' || (faDetailPhase && isFos)
       ? compact
         ? ATTACK_STROKE_OPTIONS_COMPACT
         : ATTACK_STROKE_OPTIONS
-      : role === 'end_shot'
+      : role === 'end_shot' || (endPhase && isEnd)
         ? compact
           ? END_STROKE_OPTIONS_COMPACT
           : END_STROKE_OPTIONS
@@ -449,25 +461,28 @@ function ShotTagging({
           ? REPLY_STROKE_OPTIONS_COMPACT
           : REPLY_STROKE_OPTIONS
 
-  // FA phase: show SHOT row so player can tag wing/stroke while picking FA.
-  // No-attack is First attack quick 2nd tap (not a SHOT chip).
+  // Compulsory shot type: end details on End; FA details on the FA shot.
   const showShotType =
     isSelected &&
-    ((fosPhase && n >= 2) ||
-      (allow.shot_wing && allow.shot_stroke) ||
-      (isEnd && formPhase === 'end'))
+    ((endPhase && isEnd) ||
+      (faDetailPhase && isFos) ||
+      (optionalOpen && allow.shot_wing && allow.shot_stroke))
+
+  const showResult = isSelected && isEnd && (endPhase || optionalOpen || faDetailPhase)
 
   const showAttrs =
     isSelected &&
-    formPhase === 'detail' &&
+    optionalOpen &&
     (allow.shot_is_high || allow.shot_is_safe || allow.shot_initiative)
 
   const showMiss =
-    isSelected && reviewed && isEnd && isErrorEnding(state.ending)
+    isSelected && optionalOpen && reviewed && isEnd && isErrorEnding(state.ending)
+
+  const showOptionalMarks = isSelected && optionalOpen
 
   const compulsory = (
     <>
-      {isEnd && (
+      {showResult && (
         <ChoiceRow label="Result">
           {ENDING_OPTIONS.map(({ value, label }) => (
             <TimelinePill
@@ -501,6 +516,84 @@ function ShotTagging({
 
   const optional = (
     <>
+      {showOptionalMarks && (
+        <ChoiceRow label="Optional">
+          <TimelinePill
+            kind="end"
+            label="End point"
+            selected={state.end === n}
+            title={
+              state.end === n
+                ? `Shot ${n} ends the point — tap to un-mark`
+                : `Mark shot ${n} as the last shot of the point`
+            }
+            onClick={() => onMarkEnd(n)}
+          />
+          {n >= 2 && state.end !== 1 && (
+            <TimelinePill
+              kind="fos"
+              label="First attack"
+              selected={state.fos === n}
+              title={
+                state.fos === n
+                  ? `Shot ${n} is First attack — tap to clear`
+                  : `Mark shot ${n} as First attack`
+              }
+              onClick={() => onMarkFos(n)}
+            />
+          )}
+          {n >= 2 && state.end !== 1 && (
+            <TimelinePill
+              kind="fos"
+              label="No attack"
+              selected={state.noFirstAttack}
+              title={
+                state.noFirstAttack
+                  ? 'No attack — tap to clear'
+                  : 'This point had no first attack'
+              }
+              onClick={onNoAttack}
+            />
+          )}
+          <TimelinePill
+            kind="review"
+            label="Review"
+            selected={reviewed}
+            title={
+              reviewed
+                ? `Shot ${n} flagged — tap to clear`
+                : `Flag shot ${n} for later review`
+            }
+            onClick={() => onToggleReviewFlag(n)}
+          />
+          {onToggleHighlight && (
+            <button
+              type="button"
+              aria-pressed={isHighlight}
+              onClick={(e) => {
+                e.stopPropagation()
+                onToggleHighlight()
+              }}
+              className={cn(
+                'inline-flex flex-none items-center justify-center',
+                'h-[var(--control-height)] min-w-[var(--control-height)] whitespace-nowrap rounded-[var(--control-radius)] border',
+                'px-[var(--control-px)] text-[length:var(--control-text)] font-bold cursor-pointer touch-manipulation',
+                isHighlight
+                  ? 'bg-warning border-warning text-neutral-950'
+                  : 'bg-bg-elevated border-pill-idle-border text-warning'
+              )}
+              title={
+                isHighlight
+                  ? 'Highlight on — tap to clear'
+                  : 'Mark this rally as a highlight (show-reel)'
+              }
+              aria-label={isHighlight ? 'Highlight on — tap to clear' : 'Highlight rally'}
+            >
+              ★
+            </button>
+          )}
+        </ChoiceRow>
+      )}
       {showAttrs && allow.shot_is_high && (
         <ChoiceRow label="Ball">
           <TimelinePill
@@ -524,20 +617,6 @@ function ShotTagging({
       {showAttrs && allow.shot_initiative && (
         <InitiativeRow n={n} shot={shot} onToggleShotChoice={onToggleShotChoice} />
       )}
-      {formPhase === 'detail' &&
-        isSelected &&
-        allow.shot_wing &&
-        allow.shot_stroke &&
-        !showShotType && (
-          <ShotTypeRow
-            n={n}
-            shot={shot}
-            strokes={strokes}
-            showPivot={allow.shot_is_pivot}
-            onToggleShotChoice={onToggleShotChoice}
-            onToggleAttribute={onToggleAttribute}
-          />
-        )}
       {showMiss && (
         <ChoiceRow label="Miss reason">
           {MISS_REASON_OPTIONS.map(({ value, label }) => (
@@ -554,19 +633,15 @@ function ShotTagging({
     </>
   )
 
-  const hasOptional =
-    showAttrs ||
-    showMiss ||
-    (formPhase === 'detail' &&
-      isSelected &&
-      allow.shot_wing &&
-      allow.shot_stroke &&
-      !showShotType)
+  const hasOptional = showOptionalMarks || showAttrs || showMiss
 
   if (!isSelected) {
     // Collapsed / non-selected rows stay summary-only (expand to edit).
     return null
   }
+
+  // select_fa: rail picks FA; detail shows No attack only (below, via parent).
+  if (stage === 'select_fa') return null
 
   return (
     <>
@@ -588,7 +663,6 @@ export function Pass1FocusBlock({
   activeShot = null,
   selectedShot = null,
   onSelectShot,
-  fosPickMode = false,
   onToggleShotChoice,
   onToggleAttribute,
   onMarkFos,
@@ -596,6 +670,7 @@ export function Pass1FocusBlock({
   onToggleEnding,
   onToggleMissReason,
   onToggleReviewFlag,
+  onNoAttack,
   isHighlight = false,
   onToggleHighlight,
   scrollableShotRail = false,
@@ -603,40 +678,27 @@ export function Pass1FocusBlock({
 }: Pass1FocusBlockProps) {
   const compactStrokes = useCompactPass1Strokes()
   const [shotsExpanded, setShotsExpanded] = useState(false)
-  const formPhase = derivePass1FormPhase(state)
+  const stage = derivePass1Stage(state, { inForm: true, hasContacts: true })
   const visible = visibleShotNumbers(state.shotCount, state.end)
   const selected =
     typeof selectedShot === 'number' && state.shots[selectedShot] ? selectedShot : null
-  const selectedShotData = selected !== null ? state.shots[selected] : null
   const detailShots = shotsExpanded
     ? visible
     : selected !== null
       ? visible.filter((n) => n === selected)
       : visible.slice(0, 1)
 
-  const faSelected =
-    selected !== null && (state.fos === selected || state.noFirstAttack || fosPickMode)
-  const faTitle =
-    selected === null
-      ? 'Select a shot, then mark First attack'
-      : state.noFirstAttack
-        ? 'No first attack — tap to clear and mark the selected shot'
-        : state.fos === selected
-          ? `Shot ${selected} is First attack — tap again for No first attack`
-          : typeof state.fos === 'number'
-            ? `Mark shot ${selected} as First attack (moves from shot ${state.fos})`
-            : `Mark shot ${selected} as the first attack — tap again for No`
-
   return (
     <section
       className={cn('bg-bg-card text-primary min-w-0 w-full px-1.5 py-1', className)}
       aria-label="Pass 1 focus"
     >
+      {/* Top half shape is stable across stages: info box + RALLY rail only. */}
       <div
         data-pass1-sticky
         className="sticky top-0 z-10 -mx-1.5 px-1.5 pt-0.5 pb-1 mb-1 bg-bg-card/95 backdrop-blur-sm border-b border-pill-idle-border space-y-1"
       >
-        <Pass1Checklist formPhase={formPhase} />
+        <Pass1StageInfoBox stage={stage} />
         <Pass1ShotMarkRail
           state={state}
           players={players}
@@ -646,73 +708,27 @@ export function Pass1FocusBlock({
           onSelectShot={onSelectShot}
           scrollable={scrollableShotRail}
         />
-        {selected !== null && selectedShotData && (
-          <div className="space-y-0.5">
-            <SectionLabel label="Quick tags" />
-            <div
-              className="flex flex-wrap items-center gap-1"
-              aria-label={`Shot ${selected} quick marks`}
-              style={{ gap: 'var(--control-gap)' }}
-            >
+      </div>
+      <div className="flex flex-col gap-1">
+        {stage === 'select_fa' && (
+          <div
+            className="rounded-md border border-pill-idle-border bg-bg-elevated/50 px-1.5 py-1.5 space-y-1"
+            aria-label="Select first attack"
+          >
+            <p className="text-[10px] font-semibold text-primary">
+              Tap a shot on the rail to mark First attack, or choose No attack.
+            </p>
+            <div className="flex flex-wrap items-center" style={{ gap: 'var(--control-gap)' }}>
               <TimelinePill
-                kind="end"
-                label="End point"
-                selected={state.end === selected}
-                title={
-                  state.end === selected
-                    ? `Shot ${selected} ends the point — tap to un-mark`
-                    : `Mark shot ${selected} as the last shot of the point`
-                }
-                onClick={() => onMarkEnd(selected)}
+                kind="fos"
+                label="No attack"
+                selected={state.noFirstAttack}
+                title="This point had no first attack"
+                onClick={onNoAttack}
               />
-              {selected >= 2 && state.end !== 1 && (
-                <TimelinePill
-                  kind="fos"
-                  label="First attack"
-                  selected={faSelected}
-                  title={faTitle}
-                  onClick={() => onMarkFos(selected)}
-                />
-              )}
-              <TimelinePill
-                kind="review"
-                label="Review"
-                selected={selectedShotData.reviewKind !== null}
-                title={
-                  selectedShotData.reviewKind !== null
-                    ? `Shot ${selected} flagged — tap to clear`
-                    : `Flag shot ${selected} for later review`
-                }
-                onClick={() => onToggleReviewFlag(selected)}
-              />
-              {onToggleHighlight && (
-                <button
-                  type="button"
-                  aria-pressed={isHighlight}
-                  onClick={onToggleHighlight}
-                  className={cn(
-                    'inline-flex flex-none items-center justify-center',
-                    'h-[var(--control-height)] min-w-[var(--control-height)] whitespace-nowrap rounded-[var(--control-radius)] border',
-                    'px-[var(--control-px)] text-[length:var(--control-text)] font-bold cursor-pointer touch-manipulation',
-                    isHighlight
-                      ? 'bg-warning border-warning text-neutral-950'
-                      : 'bg-bg-elevated border-pill-idle-border text-warning'
-                  )}
-                  title={
-                    isHighlight
-                      ? 'Highlight on — tap to clear'
-                      : 'Mark this rally as a highlight (show-reel)'
-                  }
-                  aria-label={isHighlight ? 'Highlight on — tap to clear' : 'Highlight rally'}
-                >
-                  ★
-                </button>
-              )}
             </div>
           </div>
         )}
-      </div>
-      <div className="flex flex-col gap-1">
         {detailShots.map((n) => {
           const shot = state.shots[n]
           if (!shot) return null
@@ -764,18 +780,24 @@ export function Pass1FocusBlock({
                   n={n}
                   state={state}
                   isSelected={isSelected}
-                  formPhase={formPhase}
+                  stage={stage}
                   onToggleShotChoice={onToggleShotChoice}
                   onToggleAttribute={onToggleAttribute}
                   onToggleEnding={onToggleEnding}
                   onToggleMissReason={onToggleMissReason}
+                  onToggleReviewFlag={onToggleReviewFlag}
+                  onMarkEnd={onMarkEnd}
+                  onMarkFos={onMarkFos}
+                  onNoAttack={onNoAttack}
+                  isHighlight={isHighlight}
+                  onToggleHighlight={onToggleHighlight}
                   compactStrokes={compactStrokes}
                 />
               </ShotRow>
             </div>
           )
         })}
-        {visible.length > 1 && (
+        {visible.length > 1 && stage !== 'select_fa' && (
           <button
             type="button"
             className="self-start text-[10px] font-semibold text-muted underline-offset-2 hover:underline"

@@ -6,6 +6,23 @@
 
 ## Change Log
 
+### 2026-11-13: MA-70 — Pass 1 staged explicit flow (v3.117.0)
+
+**Change Type:** UX — Pass 1 Focus explicit stage machine
+
+**What Changed:**
+- Info box drives stages: **Click rally contacts** → **Enter End shot details** → **Select first attack** → **Enter First attack** → **Add additional details if you want** (green / save-ready).
+- Sticky top half is always **info + RALLY rail** (no QUICK TAGS row). Optional Review / ★ / High / Safe / End·FA corrections live in selected-shot detail after compulsory.
+- Select FA: tap rail shot ≥2 to mark FA; explicit **No attack** control (replaces FA 2nd-tap = No). FA rail paint only after FA is chosen.
+- End accent + selected ring: clear blue (not muted grey).
+- Save gates unchanged: End · Ending · FOS decided · winner.
+
+**Decision Rationale:** Paul MA-70 Pass 1 staged explicit flow brief.
+
+**Key Files:** `pass1FocusModel.ts`, `Pass1FocusBlock.tsx`, `Pass1FocusComposer.tsx`, `RallyEditComposer.tsx`, `index.css`.
+
+---
+
 ### 2026-11-13: MA-69 — Pass 1 labels + checklist polish (v3.116.0)
 
 **Change Type:** UX polish — Pass 1 Focus labels / checklist placement
