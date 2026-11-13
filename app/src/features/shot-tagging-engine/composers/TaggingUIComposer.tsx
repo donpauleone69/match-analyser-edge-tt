@@ -1,6 +1,6 @@
 /**
  * TaggingUIComposer — loads the match and opens Pass 1 Focus.
- * Legacy ?mode=rallyfocus redirects to pass1focus.
+ * Missing/legacy `mode` query values rewrite to `pass1focus`.
  */
 
 import { useEffect, useState } from 'react'
@@ -70,7 +70,7 @@ export function TaggingUIComposer({ className }: TaggingUIComposerProps) {
     }
   }, [matchId])
 
-  // Always Pass 1 Focus (legacy rallyfocus / missing mode → rewrite URL)
+  // Always Pass 1 Focus (missing/legacy mode → rewrite URL)
   useEffect(() => {
     if (!matchId || !urlSetNumber) return
     if (isPass1FocusMode) return

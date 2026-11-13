@@ -6,6 +6,24 @@
 
 ## Change Log
 
+### 2026-11-13: Dead UI cleanup — RallyFocus + redirected shells (v3.69.0)
+
+**Change Type:** Dead code delete (no UX redesign)
+
+**What Changed:**
+- Deleted unreachable Rally Focus tagging path: `RallyFocusComposer`, `RallyFocusBlock`, `persistRallyFocusRally`, `rallyFocusModel` (+ seek test), and `mapRallyFocusToDb` (+ test).
+- Tagging entry remains Pass 1 Focus only; legacy/missing `mode` still rewrites to `pass1focus`.
+- Deleted redirect-only shell feature UI: `features/analytics`, `club-management`, `player-management`, `tournament-management`, and pages `Analytics` / `Clubs` / `Players` / `Tournaments`.
+- Removed analytics-only ui-mine helpers (`FilterBar`, `BasicInsightCardTemplate`).
+- **Kept** `rules/analytics` (Match Review story / serve-receive / attack / highlights).
+- Old `/analytics`, `/clubs`, `/tournaments`, `/players` routes still `Navigate` → `/` (no break).
+
+**Decision Rationale:** Day-continuation item 5 — strip unreachable UI debt without touching live Pass 1 → Review → Clips flows.
+
+**Key Files:** `TaggingUIComposer.tsx`; `shot-tagging-engine` composers/blocks indexes; `App.tsx` redirects retained; `pages/index.ts`; `ui-mine/index.ts`; `rules/derive/shot/index.ts`.
+
+---
+
 ### 2026-11-13: Overnight UX — flow friction + playlists (v3.68.0)
 
 **Change Type:** UX / navigation / playlists
@@ -7358,6 +7376,9 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v3.69.0 | 2026-11-13 | Dead UI: delete RallyFocus path + analytics/club/tournament/player feature UI; keep rules/analytics |
+| v3.68.0 | 2026-11-13 | Overnight UX: Done/Pause, Highlights→Clips, Work on playlist deep-links, Scope Review open playlists |
+| v3.67.0 | 2026-11-13 | Foundation: ScopeReview build fix; Architecture/Glossary rewrite; obsolete docs deleted |
 | v3.66.0 | 2026-11-13 | Pass 1: remove classic/legacy chrome; single scorebug + set-context + ledger chrome |
 | v3.65.0 | 2026-11-13 | Pass 1: bake 300 ms click-latency into stored contact times at tap; shot loops/seek use stored times as-is (no playback preroll) |
 | v3.64.0 | 2026-11-13 | Pass 1: actual/displayed speed fidelity; selected-shot loops; sticky FA/End point/Flag tools; WTT scorebug; rally server switch; Hero presentation naming |

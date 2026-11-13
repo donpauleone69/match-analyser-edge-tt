@@ -1,10 +1,9 @@
 /**
- * Shot Tagging Engine — Pass 1 Focus (default) and Rally Focus (test).
+ * Shot Tagging Engine — Pass 1 Focus.
  */
 
 export { TaggingUIComposer } from './composers/TaggingUIComposer'
 export { Pass1FocusComposer } from './composers/Pass1FocusComposer'
-export { RallyFocusComposer } from './composers/RallyFocusComposer'
 export { RallyEditComposer, type RallyEditNotice } from './composers/RallyEditComposer'
 export {
   setPersistedRallyHighlight,
