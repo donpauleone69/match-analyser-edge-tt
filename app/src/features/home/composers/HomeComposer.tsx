@@ -89,6 +89,9 @@ export function HomeComposer() {
             <Button onClick={() => navigate('/matches/create')}>
               <Icon name="plus" size="sm" /> Create your first match
             </Button>
+            <Button variant="secondary" onClick={() => navigate('/settings')}>
+              <Icon name="file-up" size="sm" /> Import match file
+            </Button>
             {cloudConfigured && (
               <Button variant="secondary" onClick={() => navigate('/settings')}>
                 <Icon name="cloud-download" size="sm" /> Restore from cloud
@@ -173,15 +176,21 @@ export function HomeComposer() {
             </Panel>
           )}
 
-          {cloudConfigured && !cloudUser && (
-            <p className="text-sm text-neutral-400 flex items-center gap-2 flex-wrap">
-              <Icon name="cloud-off" size="sm" />
-              Matches are saved on this device only.
-              <Link to="/settings" className="text-brand-primary hover:underline">
-                Sign in to back up
-              </Link>
-            </p>
-          )}
+          <p className="text-sm text-neutral-400 flex items-center gap-2 flex-wrap">
+            <Icon name="hard-drive" size="sm" />
+            Matches live on this device.
+            <Link to="/settings" className="text-brand-primary hover:underline">
+              Import a match file
+            </Link>
+            {cloudConfigured && !cloudUser && (
+              <>
+                <span className="text-neutral-600">·</span>
+                <Link to="/settings" className="text-brand-primary hover:underline">
+                  Sign in to back up
+                </Link>
+              </>
+            )}
+          </p>
         </>
       )}
     </div>

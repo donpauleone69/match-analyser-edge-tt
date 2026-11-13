@@ -452,7 +452,11 @@ export function MatchReviewComposer() {
       runStorage(`retrieve-${assetId}`, async () => retrieveSetVideo(assetId)),
     onTrimVideo: (assetId: string, setNumber: number, sourceStart: number, sourceEnd: number) =>
       runStorage(`trim-${assetId}`, async () => trimSetVideo(assetId, setNumber, sourceStart, sourceEnd)),
-    onSaveFile: () => runStorage('file', async () => (await saveMatchFile(matchId), null)),
+    onSaveFile: () =>
+      runStorage('file', async () => {
+        await saveMatchFile(matchId)
+        return 'Match file downloaded (tags + metadata). Videos stay on this device or cloud — re-link by asset id on import.'
+      }),
   }
 
   return (

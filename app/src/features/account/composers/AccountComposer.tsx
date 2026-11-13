@@ -3,6 +3,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Button, Card, Icon } from '@/ui-mine'
 import { useCloudStore } from '@/stores/cloudStore'
 import { useMatchStore, usePlayerStore } from '@/data'
@@ -12,6 +13,7 @@ import { formatFileSize } from '@/helpers/videoFileHelpers'
 import { SignInFormBlock } from '../blocks/SignInFormBlock'
 
 export function AccountComposer() {
+  const navigate = useNavigate()
   const {
     configured,
     ready,
@@ -34,7 +36,11 @@ export function AccountComposer() {
   const { players, load: loadPlayers } = usePlayerStore()
   const createPlayer = usePlayerStore((s) => s.create)
   const [storage, setStorage] = useState<{ usage: number; quota: number; persisted: boolean } | null>(null)
-  const [fileNotice, setFileNotice] = useState<{ tone: 'good' | 'bad'; text: string } | null>(null)
+  const [fileNotice, setFileNotice] = useState<{
+    tone: 'good' | 'bad'
+    text: string
+    matchId?: string
+  } | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -71,9 +77,14 @@ export function AccountComposer() {
     if (!file) return
     setFileNotice(null)
     try {
-      const { title } = await importMatchBundleFile(file)
+      const { title, bundle } = await importMatchBundleFile(file)
       await loadMatches()
-      setFileNotice({ tone: 'good', text: `Imported ${title}.` })
+      const matchId = bundle.match.id
+      setFileNotice({
+        tone: 'good',
+        text: `Imported ${title}. Videos are not in the file — attach or restore them on Details if missing.`,
+        matchId,
+      })
     } catch (err) {
       setFileNotice({ tone: 'bad', text: err instanceof Error ? err.message : 'Import failed' })
     } finally {
@@ -269,10 +280,22 @@ export function AccountComposer() {
           <Button variant="secondary" onClick={() => fileRef.current?.click()}>
             <Icon name="file-up" size="sm" /> Import a match file
           </Button>
-          <span className="text-xs text-neutral-500">Restore a match saved with “Save match file” into this account’s device library.</span>
+          <span className="text-xs text-neutral-500">
+            Zero-infra backup: restore a JSON saved from Match Review → Details → Save match file.
+            Works without cloud; videos re-link by asset id when present on this device.
+          </span>
         </div>
         {fileNotice && (
-          <p className={fileNotice.tone === 'good' ? 'text-sm text-emerald-400' : 'text-sm text-rose-400'}>{fileNotice.text}</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className={fileNotice.tone === 'good' ? 'text-sm text-emerald-400' : 'text-sm text-rose-400'}>
+              {fileNotice.text}
+            </p>
+            {fileNotice.tone === 'good' && fileNotice.matchId && (
+              <Button size="sm" onClick={() => navigate(`/matches/${fileNotice.matchId}`)}>
+                Open match
+              </Button>
+            )}
+          </div>
         )}
       </Card>
     </div>
