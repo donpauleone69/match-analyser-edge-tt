@@ -96,7 +96,7 @@ export function deriveClipPresets(matches: ClipMatchInput[], names: ClipPresetNa
     ...reviewPatterns(matches, 'technical'),
     make('work-on', `${you} · all tactical review`, { kind: 'review', side: 'hero', reviewKind: 'tactical' }),
     ...reviewPatterns(matches, 'tactical'),
-    make('highlights', 'Highlights', { kind: 'highlights' }),
+    make('highlights', '★ Highlights', { kind: 'highlights' }),
     make('attack', `${you} · opening attacks`, { kind: 'opening', side: 'hero' }),
     make('attack', `${you} · opening attacks lost`, { kind: 'opening', side: 'hero', outcome: 'lost' }),
     make('attack', `${them} · opening attacks`, { kind: 'opening', side: 'villain' }),

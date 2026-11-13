@@ -9,7 +9,7 @@ import type { ClipPresetGroupModel, ClipRowModel } from '../models'
 
 const GROUP_LABEL: Record<ClipPresetGroup, string> = {
   'work-on': 'Work on',
-  highlights: 'Highlights',
+  highlights: 'Highlights · show-reel',
   attack: 'Opening attacks',
   points: 'Points',
 }
