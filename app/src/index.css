@@ -79,12 +79,13 @@
   --color-result-error-bg: #fde4e9;
   --color-result-air: #cbb0f5;
   --color-result-air-bg: #eee4fc;
-  /* End marker — must stay lighter than ink so selected End is never black-on-black */
-  --color-shot-end: #b7c4d4;
-  --color-shot-end-bg: #e8eef5;
+  /* End marker — clear blue accent (not muted grey; distinct from FA green) */
+  --color-shot-end: #4a7ab5;
+  --color-shot-end-bg: #d4e4f5;
   --color-contact-live: #38bdf8;
-  --color-contact-selected: #334155;
-  --color-contact-selected-bg: #e2e8f0;
+  /* Selected shot ring — ink blue, not slate grey */
+  --color-contact-selected: #2563eb;
+  --color-contact-selected-bg: #dbeafe;
   --color-review: #f0c66a;
   --color-review-bg: #fff0cc;
   --color-pill-idle: #eef2f7;

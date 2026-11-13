@@ -31,6 +31,7 @@ import { VideoPlayerSection } from '../sections'
 import {
   canSaveRallyTimeline,
   contactTimesFromTimeline,
+  derivePass1Stage,
   inferWinnerName,
   loopWindowFromContacts,
   markEnd,
@@ -111,7 +112,6 @@ export function RallyEditComposer() {
   const [draft, setDraft] = useState<EditDraft | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
-  const [fosPickMode, setFosPickMode] = useState(false)
   const [selectedShot, setSelectedShot] = useState<number | null>(null)
   const [liveTime, setLiveTime] = useState(0)
   const [editMode, setEditMode] = useState<SessionTaggingMode>(
@@ -189,7 +189,6 @@ export function RallyEditComposer() {
         }
         setOriginal(next)
         setDraft(next)
-        setFosPickMode(false)
         const savedMode =
           modeParam === 'simple' || modeParam === 'pass1focus'
             ? modeParam
@@ -570,7 +569,6 @@ export function RallyEditComposer() {
           disabled={!isDirty}
           onClick={() => {
             setDraft(original)
-            setFosPickMode(false)
           }}
           className={cn(pillBtn, 'hidden sm:inline-flex')}
         >
@@ -700,8 +698,22 @@ export function RallyEditComposer() {
             server={serverName}
             activeShot={activeShot}
             selectedShot={selectedShot}
-            onSelectShot={setSelectedShot}
-            fosPickMode={fosPickMode}
+            onSelectShot={(n) => {
+              const stage = derivePass1Stage(draft.timeline, {
+                inForm: true,
+                hasContacts: true,
+              })
+              if (stage === 'select_fa' && n >= 2 && draft.timeline.end !== 1) {
+                const contact = draft.timeline.shots[n]?.contactTime ?? null
+                patchTimeline((s) =>
+                  markFos({ ...s, noFirstAttack: false, fos: null }, n, contact)
+                )
+                setSelectedShot(n)
+                snapPass1ShotIntoView(n)
+                return
+              }
+              setSelectedShot(n)
+            }}
             onToggleShotChoice={(n: number, key: ShotChoiceKey, value: string) =>
               patchTimeline((s) => toggleShotChoice(s, n, key, value))
             }
@@ -711,28 +723,19 @@ export function RallyEditComposer() {
             onMarkFos={(at: number) => {
               if (at < 2) return
               setSelectedShot(at)
-              // MA-68: 1st tap marks FOS; 2nd tap on same shot → No first attack
+              // MA-70: mark / clear FA; No attack is a separate control
               patchTimeline((s) => {
                 const contact = s.shots[at]?.contactTime ?? null
-                if (s.noFirstAttack) {
-                  return markFos(
-                    { ...s, noFirstAttack: false, fos: null },
-                    at,
-                    contact
-                  )
-                }
-                if (s.fos === at) return setFos(s, null)
-                return markFos(s, at, contact)
+                if (s.fos === at) return markFos(s, at, contact)
+                return markFos({ ...s, noFirstAttack: false, fos: null }, at, contact)
               })
-              setFosPickMode(false)
               snapPass1ShotIntoView(at)
             }}
-            onChangeFos={() => setFosPickMode(true)}
+            onChangeFos={() => {}}
             onNoAttack={() => {
               patchTimeline((s) => setFos(s, null))
-              setFosPickMode(false)
             }}
-            onCancelFosPick={() => setFosPickMode(false)}
+            onCancelFosPick={() => {}}
             onMarkEnd={(at: number) => {
               setSelectedShot(at)
               patchTimeline((s) => markEnd(s, at))
@@ -743,6 +746,10 @@ export function RallyEditComposer() {
               patchTimeline((s) => toggleMissReason(s, value))
             }
             onToggleReviewFlag={(n: number) => patchTimeline((s) => toggleShotReviewFlag(s, n))}
+            isHighlight={draft.isHighlight}
+            onToggleHighlight={() =>
+              setDraft((d) => (d ? { ...d, isHighlight: !d.isHighlight } : d))
+            }
           />
         )}
       </div>
@@ -769,7 +776,6 @@ export function RallyEditComposer() {
             disabled={!isDirty}
             onClick={() => {
               setDraft(original)
-              setFosPickMode(false)
             }}
           >
             Reset
