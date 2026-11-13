@@ -6,6 +6,21 @@
 
 ## Change Log
 
+### 2026-11-13: MA-41 — Video trim/archive + jump markers polish (v3.91.0)
+
+**Change Type:** UX polish — trim/archive + jump markers (no FFmpeg rebuild)
+
+**What Changed:**
+- Pass 1 **1st** jump seeks without leaving live next (Done stays enabled); label always visible on phone.
+- Jump markers fold into Details **Video & backup** (first serve / set end / gap chips); single-set shows Set end.
+- Trim/Archive phone density: shorter buttons, visible archive-locked hint, play-window empty hint, Save trim.
+
+**Decision Rationale:** Goal 7 polish only — navigate dead air and trim/archive entry points without a new pipeline epic.
+
+**Key Files:** `Pass1FocusComposer.tsx`; `Pass1ChromeProtoBlock.tsx`; `deriveVideoJumpMarkers.ts`; `MatchStorageBlock.tsx`; `DetailsSection.tsx`.
+
+---
+
 ### 2026-11-13: MA-40 — Match Find + optional context polish (v3.90.0)
 
 **Change Type:** UX polish — Find matches + optional context (no epics)

@@ -243,41 +243,17 @@ export function DetailsSection({
         />
       </section>
 
-      {jumpMarkers.chips.length > 0 && (
-        <section className="space-y-2">
-          <h2 className="text-lg font-semibold text-neutral-50">Jump markers</h2>
-          <p className="text-sm text-neutral-400">
-            Source times for first serve and set ends — use while trimming or when scrubbing the set video.
-          </p>
-          <ul className="flex flex-wrap gap-2">
-            {jumpMarkers.chips.map((chip) => (
-              <li key={chip.key}>
-                <span className="inline-flex items-center gap-1.5 rounded-md border border-neutral-600 bg-bg-card px-3 py-2 text-sm text-neutral-100">
-                  <Icon name="target" size="sm" className="text-brand-primary" />
-                  {chip.label}
-                  <span className="font-mono text-neutral-400">
-                    {Math.floor(chip.timeS / 60)}:
-                    {Math.floor(chip.timeS % 60)
-                      .toString()
-                      .padStart(2, '0')}
-                  </span>
-                </span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
       {storage && (
         <section className="space-y-2">
-          <h2 className="text-lg font-semibold text-neutral-50">Storage &amp; backup</h2>
+          <h2 className="text-lg font-semibold text-neutral-50">Video &amp; backup</h2>
           <p className="text-sm text-neutral-400">
-            Guided trim cuts intro/gaps using play windows. Archive removes the device original after cloud
-            backup. Tags stay on source-video time.
+            Jump markers (first serve / set end / gaps), trim dead air, or archive the device copy after
+            cloud backup.
           </p>
           <MatchStorageBlock
             storage={storage}
             setMarkers={jumpMarkers.sets}
+            jumpChips={jumpMarkers.chips}
             signedIn={signedIn}
             cloudAvailable={cloudAvailable}
             busy={busy}

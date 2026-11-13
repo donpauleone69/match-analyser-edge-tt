@@ -11,7 +11,8 @@ describe('deriveVideoJumpMarkers', () => {
     expect(m.sets[0]?.lastActionS).toBe(110)
     expect(m.sets[0]?.suggestedTrimStartS).toBe(88)
     expect(m.sets[0]?.suggestedTrimEndS).toBe(113)
-    expect(m.chips.some((c) => c.label.includes('first serve'))).toBe(true)
+    expect(m.chips.some((c) => c.label === 'First serve')).toBe(true)
+    expect(m.chips.some((c) => c.label === 'Set end')).toBe(true)
   })
 
   it('computes gap between sets', () => {
@@ -21,6 +22,7 @@ describe('deriveVideoJumpMarkers', () => {
     ])
     expect(m.sets[0]?.gapToNextSetS).toBe(60)
     expect(m.chips.some((c) => c.label.includes('Set 1 · end'))).toBe(true)
+    expect(m.chips.some((c) => c.label.includes('Gap → set 2'))).toBe(true)
   })
 
   it('ignores untimed rallies', () => {

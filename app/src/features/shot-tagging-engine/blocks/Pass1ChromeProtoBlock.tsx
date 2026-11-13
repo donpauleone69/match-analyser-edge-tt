@@ -171,7 +171,7 @@ export function Pass1SetContextBlock({
           aria-label="Jump to first serve"
         >
           <Icon name="skip-forward" size="xs" />
-          <span className="hidden xs:inline sm:inline">1st</span>
+          <span>1st</span>
         </button>
       )}
       {canToggleServer && onToggleServer ? (

@@ -549,9 +549,8 @@ export function Pass1FocusComposer({
 
   const handleJumpToFirstServe = () => {
     if (completed.length === 0) return
-    const first = completed[0]
-    setFocusedRallyIndex(first.rallyIndex)
-    seekClamped(first.serveTimestamp)
+    // Seek only — stay on live “next” so Done / tapping stay available.
+    seekClamped(completed[0].serveTimestamp)
     if (!isPlaying) {
       videoPlayerRef.current?.play()
     }
