@@ -317,12 +317,12 @@ export function Pass1SetContextBlock({
               className="tag-control shrink-0 min-h-9 px-3 touch-manipulation"
               title={
                 navigationLocked
-                  ? 'Leave — soft exit mid-rally (confirm; draft kept; resume later; not Pause)'
+                  ? 'Leave — soft exit mid-rally (Keep draft or Discard; not Pause)'
                   : 'Leave — soft exit to Match Review (resume later; does not finish set; not video Pause)'
               }
               aria-label={
                 navigationLocked
-                  ? 'Leave tagging mid-rally — confirm, draft kept, does not finish set'
+                  ? 'Leave tagging mid-rally — Keep draft or Discard'
                   : 'Leave tagging — resume later, does not finish set'
               }
             >
