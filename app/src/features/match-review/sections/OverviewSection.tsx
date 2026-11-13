@@ -23,6 +23,8 @@ export interface OverviewSectionProps {
   onWatchRally: (rally: RallyRowModel, playlist: RallyRowModel[], title: string) => void
   onEditRally: (rally: RallyRowModel) => void
   onToggleHighlight: (rally: RallyRowModel) => void
+  /** Soft context polish — open Details to add opponent / tournament. */
+  onOpenDetails?: () => void
 }
 
 export function OverviewSection({
@@ -36,10 +38,14 @@ export function OverviewSection({
   onWatchRally,
   onEditRally,
   onToggleHighlight,
+  onOpenDetails,
 }: OverviewSectionProps) {
   const rallyById = new Map(review.rallies.map((r) => [r.id, r]))
   const multiSet = review.sets.length > 1
   const activeSection = categoryId ? review.sections.find((s) => s.id === categoryId) ?? null : null
+  const needsOpponent = review.totalPoints > 0 && !review.context.player2Id
+  const needsTournament =
+    review.totalPoints > 0 && Boolean(review.context.player2Id) && !review.context.tournamentId
 
   if (activeSection) {
     const playlist = buildCategoryPlaylist(activeSection, rallyById)
@@ -90,6 +96,23 @@ export function OverviewSection({
 
   return (
     <div className="space-y-8">
+      {(needsOpponent || needsTournament) && onOpenDetails && (
+        <button
+          type="button"
+          onClick={onOpenDetails}
+          className="w-full text-left rounded-lg border border-neutral-700 bg-neutral-900/50 px-4 py-3 hover:border-neutral-500"
+        >
+          <p className="text-sm font-medium text-neutral-100">
+            {needsOpponent ? 'Add an opponent (optional)' : 'Add a tournament (optional)'}
+          </p>
+          <p className="text-xs text-neutral-400 mt-0.5">
+            {needsOpponent
+              ? 'Opens Details — unlocks Clips “vs player” filters. Never required to tag.'
+              : 'Opens Details — unlocks event filters in Clips / Review scope.'}
+          </p>
+        </button>
+      )}
+
       <TakeawaysBlock takeaways={review.takeaways} onOpenEvidence={onOpenEvidence} />
 
       {review.hasPointData && (

@@ -17,6 +17,7 @@ export interface SummarySectionProps {
   onWatchRally: (rally: RallyRowModel, playlist: RallyRowModel[], title: string) => void
   onEditRally: (rally: RallyRowModel) => void
   onToggleHighlight: (rally: RallyRowModel) => void
+  onOpenDetails?: () => void
 }
 
 export function SummarySection(props: SummarySectionProps) {

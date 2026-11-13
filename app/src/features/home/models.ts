@@ -30,10 +30,23 @@ export interface ContinueTaggingModel {
   detailLabel: string
 }
 
+/** Soft outstanding: tagged (or started) but missing optional context (goal 2). */
+export interface ContextPolishModel {
+  matchId: string
+  title: string
+  dateLabel: string
+  /** What's missing — opponent always when null; tournament only when opponent already set */
+  missing: 'opponent' | 'tournament'
+  detailLabel: string
+  actionLabel: string
+}
+
 export interface HomeModel {
   continueItems: ContinueTaggingModel[]
   /** Matches that still need tagging work */
   outstandingCount: number
+  /** Soft: add optional opponent/tournament so Clips/Review can filter */
+  contextItems: ContextPolishModel[]
   recent: HomeMatchModel[]
   totals: { matches: number; tagged: number; rallies: number }
 }

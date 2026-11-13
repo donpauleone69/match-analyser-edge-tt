@@ -9,6 +9,7 @@ import { useDeriveClipLibrary } from '@/features/clips'
 import { useCloudStore } from '@/stores/cloudStore'
 import { useDeriveHome } from '../derive/useDeriveHome'
 import { ContinueTaggingBlock } from '../blocks/ContinueTaggingBlock'
+import { ContextPolishBlock } from '../blocks/ContextPolishBlock'
 import { HomeMatchRowBlock } from '../blocks/HomeMatchRowBlock'
 import { ClipShortcutsBlock, type ClipShortcut } from '../blocks/ClipShortcutsBlock'
 
@@ -43,6 +44,7 @@ export function HomeComposer() {
   )
 
   const openMatch = (matchId: string) => navigate(`/matches/${matchId}`)
+  const openDetails = (matchId: string) => navigate(`/matches/${matchId}?tab=details`)
 
   if (isLoading || !home) {
     return <p className="p-6 text-neutral-400">Loading…</p>
@@ -116,6 +118,23 @@ export function HomeComposer() {
                     onContinue={(i) =>
                       navigate(`/matches/${i.matchId}/tag?set=${i.setNumber}&mode=pass1focus`)
                     }
+                  />
+                ))}
+              </div>
+            </Panel>
+          )}
+
+          {home.contextItems.length > 0 && (
+            <Panel title="Add context (optional)">
+              <p className="text-xs text-neutral-500 -mt-1">
+                Opponent and tournament unlock Clips filters. Never required to tag.
+              </p>
+              <div className="space-y-2">
+                {home.contextItems.map((item) => (
+                  <ContextPolishBlock
+                    key={`${item.matchId}-${item.missing}`}
+                    item={item}
+                    onOpenDetails={openDetails}
                   />
                 ))}
               </div>

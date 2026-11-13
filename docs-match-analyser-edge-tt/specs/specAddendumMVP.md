@@ -6,6 +6,21 @@
 
 ## Change Log
 
+### 2026-11-13: MA-29 — Context polish (v3.79.0)
+
+**Change Type:** UX — optional match context (goal 2)
+
+**What Changed:**
+- Home `contextItems`: tagged matches missing opponent → **Add context (optional)** panel → Details.
+- Match Review Summary: soft banner when opponent (or tournament after opponent) missing → Details tab.
+- Still never required to create/tag.
+
+**Decision Rationale:** Add context when there is any; filters need opponent/tournament; keep create thin.
+
+**Key Files:** `buildHome.ts`; `ContextPolishBlock.tsx`; `HomeComposer.tsx`; `OverviewSection.tsx`.
+
+---
+
 ### 2026-11-13: MA-28 — Pass 1 phone speed chrome (v3.78.0)
 
 **Change Type:** UX — Pass 1 chrome (phone)
@@ -7519,6 +7534,7 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v3.79.0 | 2026-11-13 | MA-29: context polish — Home Add opponent + Summary Details nudge |
 | v3.78.0 | 2026-11-13 | MA-28: Pass 1 phone speed — video height cap, larger taps, safe-area |
 | v3.77.0 | 2026-11-13 | MA-27: no-dupe match guard — context + video fingerprint soft warns with override |
 | v3.76.0 | 2026-11-13 | MA-26: incomplete/stub/unconfirmed points excluded from stats + clips |
