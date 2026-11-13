@@ -6,6 +6,24 @@
 
 ## Change Log
 
+### 2026-11-13: Day UX — less-is-more flow + Clips scope/export (v3.70.0)
+
+**Change Type:** UX / navigation / playlists / metadata
+
+**What Changed:**
+- Pass 1 form row: removed **Delete last point**; lives on History ledger only (Redo / Discard / Highlight / Save remain).
+- Clips: phone player-first layout; sticky **Download** + **Save reel** bar; empty-state export copy; `navigator.share` when available; standalone `/clips?scope=&id=` tournament/opponent filter via ScopeControl.
+- Scope Review: default tab = Clips; dropped stub Work-on dual CTAs; Matches tab lists scoped matches for per-match Work on / Review.
+- Match Review: ScopeControl out of sticky header (Playlists shortcut instead); Clips badge = work-on + highlights; Rallies **Open in Clips** instead of modal Play these; deleted unused HighlightsSection (RallyActions → models).
+- Home: **Playlists** → `/clips` (one cross-match door); Matches list Create demoted to header/empty only.
+- Create match: optional tournament select; lucide → ui-mine Icon; Cancel → Library.
+
+**Decision Rationale:** Day continuation after overnight PR #4 — finish less-is-more across the loop and make playlist export + cross-match scope obvious on phone.
+
+**Key Files:** `Pass1FocusComposer.tsx`; `Pass1ChromeProtoBlock.tsx`; `ClipsComposer.tsx`; `clipActions.ts`; `ScopeReviewComposer.tsx`; `MatchReviewComposer.tsx`; `RalliesSection.tsx`; `HomeComposer.tsx`; `MatchFormSection.tsx`; `MatchCreationComposer.tsx`; `MatchListComposer.tsx`.
+
+---
+
 ### 2026-11-13: Dead UI cleanup — RallyFocus + redirected shells (v3.69.0)
 
 **Change Type:** Dead code delete (no UX redesign)

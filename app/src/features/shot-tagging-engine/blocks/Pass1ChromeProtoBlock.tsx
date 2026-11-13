@@ -281,6 +281,9 @@ export interface Pass1PointLedgerBlockProps {
   onClose: () => void
   onSelectCompleted: (rallyIndex: number) => void
   onSelectNext: () => void
+  /** Rare undo — lives in History, not on the crowded form row. */
+  onDeleteLast?: () => void
+  canDeleteLast?: boolean
 }
 
 /**
@@ -298,6 +301,8 @@ export function Pass1PointLedgerBlock({
   onClose,
   onSelectCompleted,
   onSelectNext,
+  onDeleteLast,
+  canDeleteLast = false,
 }: Pass1PointLedgerBlockProps) {
   if (!open) return null
 
@@ -319,6 +324,17 @@ export function Pass1PointLedgerBlock({
             <p className="text-[9px] text-muted">Winner, score after, and server</p>
           </div>
           <div className="flex-1" />
+          {onDeleteLast && (
+            <button
+              type="button"
+              onClick={onDeleteLast}
+              disabled={!canDeleteLast}
+              className="tag-control tag-control-danger shrink-0"
+              title="Delete the last saved point"
+            >
+              Delete last
+            </button>
+          )}
           <button type="button" onClick={onClose} className="tag-control">
             Close
           </button>

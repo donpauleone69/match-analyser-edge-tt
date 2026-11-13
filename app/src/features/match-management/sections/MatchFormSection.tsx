@@ -1,7 +1,7 @@
 /**
- * MatchFormSection - Thin start: focal player required, opponent optional.
- * Tournament / date / round live under Match Review → Details.
- * Creates one set at 0–0 and opens Rally Focus tagging.
+ * MatchFormSection - Thin start: focal player required, opponent / tournament optional.
+ * Date / round live under Match Review → Details.
+ * Creates one set at 0–0 and opens Pass 1 Focus tagging.
  */
 
 import { useEffect, useState } from 'react'
@@ -18,7 +18,7 @@ interface MatchFormSectionProps {
   focalPlayerId: string | null
 }
 
-export function MatchFormSection({ players, focalPlayerId }: MatchFormSectionProps) {
+export function MatchFormSection({ players, tournaments, focalPlayerId }: MatchFormSectionProps) {
   const navigate = useNavigate()
   const { create: createMatch } = useMatchStore()
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -26,6 +26,7 @@ export function MatchFormSection({ players, focalPlayerId }: MatchFormSectionPro
   const [formData, setFormData] = useState({
     player1_id: focalPlayerId ?? '',
     player2_id: '',
+    tournament_id: '',
   })
 
   useEffect(() => {
@@ -54,11 +55,12 @@ export function MatchFormSection({ players, focalPlayerId }: MatchFormSectionPro
     try {
       const matchDate = new Date().toISOString().split('T')[0]
       const player2Id = formData.player2_id || null
+      const tournamentId = formData.tournament_id || null
 
       const newMatch = await createMatch({
         player1_id: formData.player1_id,
         player2_id: player2Id,
-        tournament_id: null,
+        tournament_id: tournamentId,
         round: null,
         match_date: matchDate,
         match_date_source: null,
@@ -112,7 +114,7 @@ export function MatchFormSection({ players, focalPlayerId }: MatchFormSectionPro
     <div className="bg-bg-card border border-neutral-700 rounded-lg p-4 md:p-6">
       <form onSubmit={handleSubmit} className="space-y-4">
         <p className="text-sm text-neutral-400">
-          Choose who you are tagging. Opponent can wait — date, tournament and round are edited under Match Review → Details.
+          Choose who you are tagging. Opponent and tournament are optional — add them now or later under Details so Clips can filter by them.
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -145,7 +147,7 @@ export function MatchFormSection({ players, focalPlayerId }: MatchFormSectionPro
               onChange={(e) => setFormData({ ...formData, player2_id: e.target.value })}
               className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-md text-neutral-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
             >
-              <option value="">Villain (add later in Details)</option>
+              <option value="">Add later in Details</option>
               {players.map((player) => (
                 <option
                   key={player.id}
@@ -157,6 +159,27 @@ export function MatchFormSection({ players, focalPlayerId }: MatchFormSectionPro
               ))}
             </select>
           </div>
+
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-neutral-300 mb-2">
+              Tournament
+            </label>
+            <select
+              value={formData.tournament_id}
+              onChange={(e) => setFormData({ ...formData, tournament_id: e.target.value })}
+              className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-md text-neutral-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
+            >
+              <option value="">None (optional)</option>
+              {tournaments.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-neutral-500">
+              Create a new tournament from Match Review → Details if it isn’t listed.
+            </p>
+          </div>
         </div>
 
         <div className="flex gap-3 pt-2">
@@ -166,7 +189,7 @@ export function MatchFormSection({ players, focalPlayerId }: MatchFormSectionPro
           <Button
             type="button"
             variant="secondary"
-            onClick={() => navigate('/matches')}
+            onClick={() => navigate('/')}
             disabled={isSubmitting}
           >
             Cancel

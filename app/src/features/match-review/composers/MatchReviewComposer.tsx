@@ -22,7 +22,7 @@ import { RallyPlayerBlock } from '../blocks/RallyPlayerBlock'
 import { SummarySection } from '../sections/SummarySection'
 import { DetailsSection } from '../sections/DetailsSection'
 import { WorkOnSection } from '../sections/WorkOnSection'
-import { type RallyActions } from '../sections/HighlightsSection'
+import type { RallyActions } from '../models'
 import { RalliesSection, type RallyFilter } from '../sections/RalliesSection'
 import { ClipsComposer } from '@/features/clips'
 import { encodeClipFilter } from '@/rules/derive/clips/deriveClips'
@@ -49,9 +49,6 @@ import { useDeriveMatchStorage } from '../derive/useDeriveMatchStorage'
 import { useCloudStore } from '@/stores/cloudStore'
 import { useMatchStore, usePlayerStore, useTournamentStore, type MatchRound } from '@/data'
 import type { EvidenceRef, RallyRowModel, SetPanelModel } from '../models'
-import { ScopeControlBlock } from '../blocks/ScopeControlBlock'
-import type { ReviewScope } from '@/rules/reviewScope'
-
 type ReviewTab = 'summary' | 'details' | 'workon' | 'clips' | 'rallies'
 const TABS: ReviewTab[] = ['summary', 'details', 'workon', 'clips', 'rallies']
 
@@ -80,7 +77,7 @@ export function MatchReviewComposer() {
   const { data, review, isLoading, notFound, error, refresh } = useDeriveMatchReview(matchId)
   const { players } = usePlayerStore()
   const { tournaments, load: loadTournaments } = useTournamentStore()
-  const { matches, load: loadMatches } = useMatchStore()
+  const { load: loadMatches } = useMatchStore()
 
   const tab = resolveReviewTab(searchParams.get('tab'))
   const categoryId = searchParams.get('cat')
@@ -271,6 +268,13 @@ export function MatchReviewComposer() {
     onWatch: (rally, playlist, title) => watch(rally, playlist, title),
     onEdit: openEditor,
     onToggleHighlight: toggleHighlight,
+    onOpenInClips: (rallies, title) => {
+      setParams({
+        tab: 'clips',
+        clip: encodeClipFilter({ kind: 'rallies', rallyIds: rallies.map((r) => r.id) }),
+        clipTitle: title,
+      })
+    },
     onRetagFrom: async (rally) => {
       const later = (review?.rallies.filter((r) => r.setId === rally.setId && r.rallyIndex > rally.rallyIndex).length ?? 0)
       const what = later > 0 ? `rally ${rally.rallyIndex} and the ${later} after it` : `rally ${rally.rallyIndex}`
@@ -391,12 +395,13 @@ export function MatchReviewComposer() {
         .sort((a, b) => a.setNumber - b.setNumber || a.rallyIndex - b.rallyIndex)
     : []
 
+  const clipsCount = review.workOn.hero.total + review.highlights.flagged.length
   const tabs: TabItem<ReviewTab>[] = [
     { id: 'summary', label: 'Summary' },
     { id: 'details', label: 'Details' },
-    { id: 'workon', label: 'Work on', badge: review.workOn.hero.total },
-    { id: 'clips', label: 'Clips', badge: review.highlights.flagged.length },
-    { id: 'rallies', label: 'Rallies', badge: review.rallies.length },
+    { id: 'workon', label: 'Work on', badge: review.workOn.hero.total || undefined },
+    { id: 'clips', label: 'Clips', badge: clipsCount || undefined },
+    { id: 'rallies', label: 'Rallies', badge: review.rallies.length || undefined },
   ]
 
   const storageHandlers = {
@@ -471,27 +476,20 @@ export function MatchReviewComposer() {
               </span>
             </p>
           </div>
-          <ScopeControlBlock
-            scope={{ kind: 'match', id: matchId ?? null }}
-            matches={matches.filter((m) => data && m.player1_id === data.match.player1_id)}
-            players={players}
-            tournaments={tournaments}
-            currentMatchId={matchId}
-            onChange={(next: ReviewScope) => {
-              if (next.kind === 'match' && next.id) {
-                navigate(`/matches/${next.id}`)
-                return
-              }
-              const p = new URLSearchParams()
-              p.set('scope', next.kind)
-              if (next.id) p.set('id', next.id)
-              navigate(`/review?${p.toString()}`)
-            }}
-          />
+          <Button
+            size="sm"
+            variant="secondary"
+            className="shrink-0"
+            onClick={() => navigate('/clips')}
+            title="Cross-match playlists"
+          >
+            <Icon name="film" size="sm" />
+            <span className="hidden sm:inline">Playlists</span>
+          </Button>
           {nextSet && (
             <Button size="sm" onClick={() => openTagger(nextSet)} className="shrink-0">
               <Icon name="play" size="sm" />
-              {nextSet.status === 'in_progress' ? 'Tag' : 'Tag'}
+              Tag
             </Button>
           )}
         </div>

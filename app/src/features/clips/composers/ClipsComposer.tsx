@@ -3,6 +3,7 @@
  *
  * Routes: /clips (every tagged match) and the Clips tab of Match Review
  * (one match). `?clip=<filter key>` picks the playlist.
+ * Standalone `/clips?scope=&id=` filters by tournament / opponent / all.
  *
  * Plays a playlist straight from the source videos (no file is made), moving
  * clip to clip. "Save as reel" cuts the playlist into one small MP4 that can be
@@ -15,6 +16,13 @@ import { Button, Card, Icon, type VideoPlayerHandle } from '@/ui-mine'
 import { useVideoPlaybackStore } from '@/ui-mine/VideoPlayer'
 import { formatFileSize } from '@/helpers/videoFileHelpers'
 import { useCloudStore } from '@/stores/cloudStore'
+import { useMatchStore, usePlayerStore, useTournamentStore } from '@/data'
+import { deriveAccountScope } from '@/rules/derive/account/deriveAccountScope'
+import {
+  filterMatchesByScope,
+  type ReviewScope,
+  type ReviewScopeKind,
+} from '@/rules/reviewScope'
 import {
   applyClipPlaybackMode,
   decodeClipFilter,
@@ -32,6 +40,7 @@ import { ClipPresetListBlock } from '../blocks/ClipPresetListBlock'
 import { ClipQueueBlock } from '../blocks/ClipQueueBlock'
 import { ClipStageBlock } from '../blocks/ClipStageBlock'
 import { ReelListBlock } from '../blocks/ReelListBlock'
+import { ScopeControlBlock } from '@/features/match-review/blocks/ScopeControlBlock'
 import {
   backUpReel,
   checkReel,
@@ -61,6 +70,14 @@ const STAGE_LABEL: Record<ReelExportProgress['stage'], string> = {
   saving: 'Saving reel',
 }
 
+function parseScope(params: URLSearchParams): ReviewScope {
+  const kind = (params.get('scope') as ReviewScopeKind | null) ?? 'all'
+  if (kind === 'match' || kind === 'tournament' || kind === 'opponent' || kind === 'all') {
+    return { kind, id: params.get('id') }
+  }
+  return { kind: 'all', id: null }
+}
+
 export interface ClipsComposerProps {
   /** One match (Match Review tab) or null for every match */
   matchId?: string | null
@@ -72,8 +89,31 @@ export interface ClipsComposerProps {
 export function ClipsComposer({ matchId = null, matchIds = null, embedded = false }: ClipsComposerProps) {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
-  const { data, isLoading, error, refresh } = useDeriveClipLibrary(matchId, matchIds)
+  const profile = useCloudStore((s) => s.profile)
   const cloudUser = useCloudStore((s) => s.user)
+  const focal = deriveAccountScope(profile, []).focalPlayerId
+  const { matches, load: loadMatches } = useMatchStore()
+  const { players, load: loadPlayers } = usePlayerStore()
+  const { tournaments, load: loadTournaments } = useTournamentStore()
+
+  const standalone = !embedded && !matchId
+  const urlScope = parseScope(searchParams)
+
+  useEffect(() => {
+    if (!standalone) return
+    loadMatches()
+    loadPlayers()
+    loadTournaments()
+  }, [standalone, loadMatches, loadPlayers, loadTournaments])
+
+  const scopedMatchIds = useMemo(() => {
+    if (matchIds) return matchIds
+    if (!standalone || !focal) return null
+    if (urlScope.kind === 'all') return null
+    return filterMatchesByScope(matches, urlScope, focal).map((m) => m.id)
+  }, [matchIds, standalone, focal, matches, urlScope])
+
+  const { data, isLoading, error, refresh } = useDeriveClipLibrary(matchId, scopedMatchIds)
   const playerRef = useRef<VideoPlayerHandle>(null)
   const isPlaying = useVideoPlaybackStore((s) => s.isPlaying)
 
@@ -166,6 +206,14 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
     setSearchParams(next, { replace: true })
   }
 
+  const setScope = (next: ReviewScope) => {
+    const p = new URLSearchParams(searchParams)
+    p.set('scope', next.kind)
+    if (next.id) p.set('id', next.id)
+    else p.delete('id')
+    setSearchParams(p, { replace: true })
+  }
+
   useEffect(() => {
     clipStartedAt.current = Date.now()
   }, [current?.clip.id])
@@ -200,7 +248,7 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
     setNotice(null)
     try {
       await downloadClipFile(clipForDownload)
-      setNotice({ tone: 'good', text: 'Clip downloaded. Tags still use source-video time.' })
+      setNotice({ tone: 'good', text: 'Clip saved to this device (or shared). Tags still use source-video time.' })
       refresh()
     } catch (err) {
       console.error('[Clips] Clip download failed:', err)
@@ -223,7 +271,7 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
     setExporting({ stage: 'loading', done: 0, total: edl.segments.length })
     try {
       const asset = await saveReel({ matchId: reelMatchId, label: playlistLabel, edl, onProgress: setExporting })
-      setNotice({ tone: 'good', text: `Saved “${playlistLabel}” — ${formatFileSize(asset.size_bytes)}.` })
+      setNotice({ tone: 'good', text: `Saved “${playlistLabel}” — ${formatFileSize(asset.size_bytes)}. Open it below, then Save to device.` })
       refresh()
     } catch (err) {
       console.error('[Clips] Reel export failed:', err)
@@ -261,12 +309,26 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
   if (error) return <p className="text-result-error">{error}</p>
   if (!data) return null
 
+  const mine = focal ? matches.filter((m) => m.player1_id === focal) : []
+  const showExportBar = !reel && rows.length > 0
+
   const header = !embedded && (
-    <header>
-      <h1 className="text-2xl md:text-3xl font-bold text-neutral-50">Clips</h1>
-      <p className="mt-1 text-sm text-neutral-400">
-        Playlists from every tagged match — what to work on, highlights and opening attacks.
-      </p>
+    <header className="space-y-3">
+      <div>
+        <h1 className="text-2xl md:text-3xl font-bold text-neutral-50">Clips</h1>
+        <p className="mt-1 text-sm text-neutral-400">
+          Play a playlist, then Download one clip or Save as reel for the whole list.
+        </p>
+      </div>
+      {standalone && (
+        <ScopeControlBlock
+          scope={urlScope}
+          matches={mine}
+          players={players}
+          tournaments={tournaments}
+          onChange={setScope}
+        />
+      )}
     </header>
   )
 
@@ -278,10 +340,11 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
           <h2 className="text-lg font-semibold text-neutral-50">No clips yet</h2>
           <p className="mt-2 text-sm text-neutral-400 max-w-md mx-auto">
             Tag a set with Pass 1 — star highlights and flag shots for review — and your playlists appear here.
+            Then Download (one clip) or Save as reel (whole playlist) to keep them on your phone.
           </p>
           {!embedded && (
-            <Button className="mt-4" onClick={() => navigate('/matches')}>
-              <Icon name="swords" size="sm" /> Go to matches
+            <Button className="mt-4" onClick={() => navigate('/matches/create')}>
+              <Icon name="plus" size="sm" /> New match
             </Button>
           )}
         </Card>
@@ -294,8 +357,102 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
     ? `Set ${current.clip.setNumber} video isn’t on this device${cloudUser ? ' or in your cloud backup' : ''} — load it once and it’s remembered.`
     : ''
 
+  const stage = activeReel ? (
+    <ClipStageBlock
+      ref={playerRef}
+      heading="Saved reel"
+      title={activeReel.label}
+      subtitle=""
+      position={0}
+      total={1}
+      videoUrl={activeReel.url}
+      videoOrigin={activeReel.origin}
+      videoLoading={false}
+      window={null}
+      isPlaying={isPlaying}
+      autoAdvance={false}
+      missingMessage=""
+      onClipEnd={() => undefined}
+      onTogglePlay={() => playerRef.current?.togglePlay()}
+      onReplay={() => {
+        playerRef.current?.seek(0, true)
+        playerRef.current?.play()
+      }}
+      onPrev={() => undefined}
+      onNext={() => undefined}
+      onToggleAutoAdvance={() => undefined}
+      onClose={() => setReel(null)}
+    />
+  ) : current && playWindow ? (
+    <ClipStageBlock
+      ref={playerRef}
+      heading={playlistLabel}
+      title={current.title}
+      subtitle={current.subtitle}
+      position={index}
+      total={rows.length}
+      videoUrl={videoUrl}
+      videoOrigin={clipVideo?.origin ?? null}
+      videoLoading={slot === 'loading'}
+      window={playWindow}
+      isPlaying={isPlaying}
+      autoAdvance={autoAdvance}
+      missingMessage={missingMessage}
+      playbackMode={shotBased ? playbackMode : null}
+      onPlaybackModeChange={shotBased ? setPlaybackMode : undefined}
+      onVideoSelect={handleVideoSelect}
+      onClipEnd={handleClipEnd}
+      onTogglePlay={() => playerRef.current?.togglePlay()}
+      onReplay={() => {
+        clipStartedAt.current = Date.now()
+        playerRef.current?.seek(playWindow.start, true)
+        playerRef.current?.play()
+      }}
+      onPrev={() => setIndex((i) => Math.max(0, i - 1))}
+      onNext={() => setIndex((i) => Math.min(rows.length - 1, i + 1))}
+      onToggleAutoAdvance={() => setAutoAdvance((a) => !a)}
+      onDownload={handleDownloadClip}
+      downloadBusy={downloadBusy}
+      onEdit={() =>
+        navigate(
+          `/matches/${current.clip.matchId}/edit-rally?set=${current.clip.setNumber}&rally=${current.clip.rallyIndex}`
+        )
+      }
+    />
+  ) : (
+    <Card className="p-6 text-sm text-neutral-400">No clips in this playlist.</Card>
+  )
+
+  const exportStrip = showExportBar && (
+    <div className="flex flex-wrap items-center gap-3 rounded-lg border border-neutral-700 bg-bg-card px-4 py-3">
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold text-neutral-100 truncate">{playlistLabel}</p>
+        <p className="text-xs text-neutral-500">
+          {rows.length} clip{rows.length === 1 ? '' : 's'} · {formatSeconds(edl.duration)} of footage
+        </p>
+      </div>
+      {exporting ? (
+        <p className="flex items-center gap-2 text-sm text-neutral-300">
+          <Icon name="loader" size="sm" className="animate-spin" />
+          {STAGE_LABEL[exporting.stage]}
+          {exporting.stage === 'cutting' && ` ${exporting.done + 1}/${exporting.total}`}
+        </p>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" variant="secondary" onClick={handleDownloadClip} disabled={!current || downloadBusy}>
+            <Icon name={downloadBusy ? 'loader' : 'download'} size="sm" className={downloadBusy ? 'animate-spin' : undefined} />
+            Download clip
+          </Button>
+          <Button size="sm" variant="secondary" onClick={handleExport}>
+            <Icon name="scissors" size="sm" /> Save as reel
+          </Button>
+        </div>
+      )}
+    </div>
+  )
+
   return (
-    <div className="space-y-6">
+    <div className={`space-y-6 ${showExportBar ? 'pb-24 md:pb-6' : ''}`}>
       {header}
 
       {notice && (
@@ -314,102 +471,16 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
         </div>
       )}
 
+      {/* Mobile: player first. Desktop: presets aside. */}
       <div className="grid gap-6 md:grid-cols-[17rem_minmax(0,1fr)]">
-        <aside className="md:sticky md:top-4 md:self-start md:max-h-[calc(100vh-6rem)] md:overflow-y-auto md:pr-1">
+        <aside className="order-2 md:order-1 md:sticky md:top-4 md:self-start md:max-h-[calc(100vh-6rem)] md:overflow-y-auto md:pr-1">
           <ClipPresetListBlock groups={data.groups} activeKey={reel ? null : activeKey} onSelect={selectPreset} />
         </aside>
 
-        <div className="space-y-4 min-w-0">
-          {activeReel ? (
-            <ClipStageBlock
-              ref={playerRef}
-              heading="Saved reel"
-              title={activeReel.label}
-              subtitle=""
-              position={0}
-              total={1}
-              videoUrl={activeReel.url}
-              videoOrigin={activeReel.origin}
-              videoLoading={false}
-              window={null}
-              isPlaying={isPlaying}
-              autoAdvance={false}
-              missingMessage=""
-              onClipEnd={() => undefined}
-              onTogglePlay={() => playerRef.current?.togglePlay()}
-              onReplay={() => {
-                playerRef.current?.seek(0, true)
-                playerRef.current?.play()
-              }}
-              onPrev={() => undefined}
-              onNext={() => undefined}
-              onToggleAutoAdvance={() => undefined}
-              onClose={() => setReel(null)}
-            />
-          ) : current && playWindow ? (
-            <ClipStageBlock
-              ref={playerRef}
-              heading={playlistLabel}
-              title={current.title}
-              subtitle={current.subtitle}
-              position={index}
-              total={rows.length}
-              videoUrl={videoUrl}
-              videoOrigin={clipVideo?.origin ?? null}
-              videoLoading={slot === 'loading'}
-              window={playWindow}
-              isPlaying={isPlaying}
-              autoAdvance={autoAdvance}
-              missingMessage={missingMessage}
-              playbackMode={shotBased ? playbackMode : null}
-              onPlaybackModeChange={shotBased ? setPlaybackMode : undefined}
-              onVideoSelect={handleVideoSelect}
-              onClipEnd={handleClipEnd}
-              onTogglePlay={() => playerRef.current?.togglePlay()}
-              onReplay={() => {
-                clipStartedAt.current = Date.now()
-                playerRef.current?.seek(playWindow.start, true)
-                playerRef.current?.play()
-              }}
-              onPrev={() => setIndex((i) => Math.max(0, i - 1))}
-              onNext={() => setIndex((i) => Math.min(rows.length - 1, i + 1))}
-              onToggleAutoAdvance={() => setAutoAdvance((a) => !a)}
-              onDownload={handleDownloadClip}
-              downloadBusy={downloadBusy}
-              onEdit={() =>
-                navigate(
-                  `/matches/${current.clip.matchId}/edit-rally?set=${current.clip.setNumber}&rally=${current.clip.rallyIndex}`
-                )
-              }
-            />
-          ) : (
-            <Card className="p-6 text-sm text-neutral-400">No clips in this playlist.</Card>
-          )}
-
-          {!activeReel && rows.length > 0 && (
-            <div className="flex flex-wrap items-center gap-3 rounded-lg border border-neutral-700 bg-bg-card px-4 py-3">
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-neutral-100 truncate">{playlistLabel}</p>
-                <p className="text-xs text-neutral-500">
-                  {rows.length} clip{rows.length === 1 ? '' : 's'} · {formatSeconds(edl.duration)} of footage
-                </p>
-              </div>
-              {exporting ? (
-                <p className="flex items-center gap-2 text-sm text-neutral-300">
-                  <Icon name="loader" size="sm" className="animate-spin" />
-                  {STAGE_LABEL[exporting.stage]}
-                  {exporting.stage === 'cutting' && ` ${exporting.done + 1}/${exporting.total}`}
-                </p>
-              ) : (
-                <Button size="sm" variant="secondary" onClick={handleExport}>
-                  <Icon name="scissors" size="sm" /> Save as reel
-                </Button>
-              )}
-            </div>
-          )}
-
+        <div className="order-1 md:order-2 space-y-4 min-w-0">
+          {stage}
+          {exportStrip}
           {!activeReel && rows.length > 0 && <ClipQueueBlock rows={rows} activeIndex={index} onSelect={setIndex} />}
-
           <ReelListBlock
             reels={data.reels}
             activeAssetId={activeReel?.assetId ?? null}
@@ -421,6 +492,27 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
           />
         </div>
       </div>
+
+      {showExportBar && (
+        <div className="fixed inset-x-0 bottom-14 z-30 border-t border-neutral-700 bg-bg-shell/95 px-3 py-2 backdrop-blur md:hidden">
+          <div className="mx-auto flex max-w-lg items-center gap-2">
+            <Button
+              size="sm"
+              variant="secondary"
+              className="flex-1"
+              onClick={handleDownloadClip}
+              disabled={!current || downloadBusy || Boolean(exporting)}
+            >
+              <Icon name={downloadBusy ? 'loader' : 'download'} size="sm" className={downloadBusy ? 'animate-spin' : undefined} />
+              Download
+            </Button>
+            <Button size="sm" className="flex-1" onClick={handleExport} disabled={Boolean(exporting)}>
+              <Icon name={exporting ? 'loader' : 'scissors'} size="sm" className={exporting ? 'animate-spin' : undefined} />
+              {exporting ? STAGE_LABEL[exporting.stage] : 'Save reel'}
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

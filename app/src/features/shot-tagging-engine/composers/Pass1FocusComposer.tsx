@@ -834,6 +834,10 @@ export function Pass1FocusComposer({
         handleSelectNextRally()
         setPointLedgerOpen(false)
       }}
+      canDeleteLast={completed.length > 0 && focusedRallyIndex === 'next'}
+      onDeleteLast={() => {
+        void handleDeleteLastRally()
+      }}
     />
   )
   const canEndSet = completed.length > 0 && focusedRallyIndex === 'next'
@@ -1005,15 +1009,6 @@ export function Pass1FocusComposer({
                   title="Save this rally and move to the next point"
                 >
                   Save rally
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void handleDeleteLastRally()}
-                  disabled={completed.length === 0}
-                  className={cn(tagBtn, 'tag-control-danger shrink-0')}
-                  title="Delete the last saved point (this open rally draft is kept)"
-                >
-                  Delete last point
                 </button>
               </div>
             </div>
