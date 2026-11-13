@@ -518,6 +518,17 @@ export function MatchReviewComposer() {
           tabs={tabs}
           active={tab}
           onChange={(id) => setParams({ tab: id === 'summary' ? null : id, cat: null })}
+          onBadgeClick={(id) => {
+            if (id !== 'rallies' || incompleteCount <= 0) return
+            const first =
+              review.rallies.find((r) => r.isIncomplete)?.setNumber ?? selectedSetNumber
+            setParams({
+              tab: 'rallies',
+              rf: 'incomplete',
+              s: String(first),
+              cat: null,
+            })
+          }}
         />
       </header>
 

@@ -75,6 +75,7 @@ import {
   savePass1FocusDraft,
 } from './pass1FocusDraftStorage'
 import { encodeClipFilter } from '@/rules/derive/clips/deriveClips'
+import { shouldShowBetweenSetGapJump } from '@/rules/videoLifecycle/deriveVideoJumpMarkers'
 
 /** How far Redo rewinds when there are no contacts yet */
 const REDO_REWIND_SECONDS = 2
@@ -585,6 +586,12 @@ export function Pass1FocusComposer({
     }
   }
 
+  /** Show Gap only when prev end known and gap unknown or ≥ threshold (Details markers). */
+  const showBetweenSetGapJump = shouldShowBetweenSetGapJump(
+    prevSetEndS,
+    completed[0]?.serveTimestamp
+  )
+
   const handleDiscardOpen = () => {
     if (!openRally) return
     const endAt = openRally.endTimestamp
@@ -978,7 +985,7 @@ export function Pass1FocusComposer({
       onSelectLast={handleJumpToLastRallyEnd}
       onSelectNext={handleSelectNextRally}
       onJumpFirstServe={handleJumpToFirstServe}
-      onJumpPrevSetEnd={prevSetEndS != null ? handleJumpPrevSetEnd : undefined}
+      onJumpPrevSetEnd={showBetweenSetGapJump ? handleJumpPrevSetEnd : undefined}
       prevSetNumber={setNumber > 1 ? setNumber - 1 : null}
       onToggleHistory={() => setPointLedgerOpen((open) => !open)}
       canEndSet={canEndSet}

@@ -38,6 +38,20 @@ export interface MatchJumpMarkers {
   }>
 }
 
+/** Hide Gap jump / marker when between-set dead air is shorter than this. */
+export const BETWEEN_SET_GAP_JUMP_MIN_S = 15
+
+/** Pass 1 Gap control: show when prev end known and gap unknown or ≥ threshold. */
+export function shouldShowBetweenSetGapJump(
+  prevSetEndS: number | null,
+  firstServeS: number | null | undefined,
+  minGapS: number = BETWEEN_SET_GAP_JUMP_MIN_S
+): boolean {
+  if (prevSetEndS == null) return false
+  if (typeof firstServeS !== 'number' || !Number.isFinite(firstServeS)) return true
+  return firstServeS - prevSetEndS >= minGapS
+}
+
 const TRIM_LEAD_S = 2
 const TRIM_TAIL_S = 3
 
@@ -100,7 +114,11 @@ export function deriveVideoJumpMarkers(
         timeS: s.lastActionS,
       })
     }
-    if (s.gapToNextSetS != null && s.gapToNextSetS >= 15 && s.lastActionS !== null) {
+    if (
+      s.gapToNextSetS != null &&
+      s.gapToNextSetS >= BETWEEN_SET_GAP_JUMP_MIN_S &&
+      s.lastActionS !== null
+    ) {
       const next = sets[i + 1]
       chips.push({
         key: `set-${s.setNumber}-gap`,
