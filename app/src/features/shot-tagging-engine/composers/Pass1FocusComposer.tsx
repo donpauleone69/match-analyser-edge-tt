@@ -28,7 +28,7 @@ import {
 import { Button, Icon } from '@/ui-mine'
 import { calculateServer } from '@/rules'
 import { deriveMatchSetsBeforeSet } from '@/rules/derive/set/deriveMatchSetsBeforeSet'
-import { setDb } from '@/data'
+import { rallyDb, setDb } from '@/data'
 import { resolveSetVideo } from '@/data/services/videoAssetService'
 import {
   emptyRallyTimelineState,
@@ -161,6 +161,8 @@ export function Pass1FocusComposer({
   const [focusedRallyIndex, setFocusedRallyIndex] = useState<number | 'next'>('next')
   const [pointLedgerOpen, setPointLedgerOpen] = useState(false)
   const [formMoreOpen, setFormMoreOpen] = useState(false)
+  /** Previous set’s last timed action — between-set gap jump on multi-set captures. */
+  const [prevSetEndS, setPrevSetEndS] = useState<number | null>(null)
 
   const contactTimesRef = useRef(contactTimes)
   contactTimesRef.current = contactTimes
@@ -221,6 +223,23 @@ export function Pass1FocusComposer({
         setSetId(target.id)
         setSetReady(true)
         setMatchSets(deriveMatchSetsBeforeSet(sets, setNumber, player1Id))
+
+        if (setNumber > 1) {
+          const prev = sets.find((s) => s.set_number === setNumber - 1)
+          if (prev) {
+            const prevRallies = (await rallyDb.getBySetId(prev.id)).sort(
+              (a, b) => a.rally_index - b.rally_index
+            )
+            const lastTimed = [...prevRallies]
+              .reverse()
+              .find((r) => typeof r.timestamp_end === 'number' && Number.isFinite(r.timestamp_end))
+            setPrevSetEndS(lastTimed?.timestamp_end ?? null)
+          } else {
+            setPrevSetEndS(null)
+          }
+        } else {
+          setPrevSetEndS(null)
+        }
 
         const resumed = await loadResumedPass1FocusState({
           setId: target.id,
@@ -551,6 +570,16 @@ export function Pass1FocusComposer({
     if (completed.length === 0) return
     // Seek only — stay on live “next” so Done / tapping stay available.
     seekClamped(completed[0].serveTimestamp)
+    if (!isPlaying) {
+      videoPlayerRef.current?.play()
+    }
+  }
+
+  /** Multi-set: seek to end of previous set (start of between-set gap). Seek-only. */
+  const handleJumpPrevSetEnd = () => {
+    if (prevSetEndS == null) return
+    setCurrentTime(prevSetEndS)
+    videoPlayerRef.current?.seek(prevSetEndS, true)
     if (!isPlaying) {
       videoPlayerRef.current?.play()
     }
@@ -949,6 +978,8 @@ export function Pass1FocusComposer({
       onSelectLast={handleJumpToLastRallyEnd}
       onSelectNext={handleSelectNextRally}
       onJumpFirstServe={handleJumpToFirstServe}
+      onJumpPrevSetEnd={prevSetEndS != null ? handleJumpPrevSetEnd : undefined}
+      prevSetNumber={setNumber > 1 ? setNumber - 1 : null}
       onToggleHistory={() => setPointLedgerOpen((open) => !open)}
       canEndSet={canEndSet}
       onEndSet={() => void handleEndSession()}
