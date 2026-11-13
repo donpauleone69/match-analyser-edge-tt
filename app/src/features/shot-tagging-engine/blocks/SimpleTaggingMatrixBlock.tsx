@@ -1,8 +1,8 @@
 /**
- * SimpleTaggingMatrixBlock — Phase 2.3 layout (MA-58).
+ * SimpleTaggingMatrixBlock — Phase 2.4 consistency (MA-59).
  *
- * CNT columns + final RALLY column (No Attack / Rally|Shot / Highlight).
- * Grid frame around rows+columns; selected cells get a subtle outline.
+ * CNT columns + final RALLY column (None / cycle Rally|Shot / ★).
+ * Cells alone form the grid (no outer frame); idle/selected = square tag-control.
  * Detail = Pass 1 shot-entry look for FOS / End.
  */
 
@@ -67,9 +67,14 @@ const LINEAR_ROWS: { id: SimpleMatrixRow; label: string; short: string }[] = [
 
 const REVIEW_ROW = { id: 'review' as const, label: 'Review', short: 'Review' }
 
-const COL_W = '2rem'
-const RALLY_W = '3.35rem'
+/** Same square footprint for shot cells and RALLY toggles (matches DetailPill height). */
+const CELL = 'var(--control-height)'
+const COL_W = CELL
+const RALLY_W = CELL
 const LABEL_W = '4.25rem'
+
+const cellToggle =
+  'tag-control h-[var(--control-height)] w-[var(--control-height)] shrink-0 px-0 touch-manipulation'
 
 const PILL_COLOR = {
   fos: 'var(--color-shot-first-attack)',
@@ -226,7 +231,7 @@ export function SimpleTaggingMatrixBlock({
   const renderShotCell = (
     row: SimpleMatrixRow,
     n: number,
-    opts?: { ghost?: boolean }
+    _opts?: { ghost?: boolean }
   ) => {
     const on =
       row === 'offensive'
@@ -241,17 +246,18 @@ export function SimpleTaggingMatrixBlock({
       <div
         key={`${row}-${n}`}
         className={cn(
-          'flex items-center justify-center border-l border-pill-idle-border/50',
-          columnSelected && 'bg-brand-primary/10'
+          'flex items-center justify-center',
+          columnSelected && 'rounded-[var(--control-radius)] bg-brand-primary/10'
         )}
-        style={{ flex: `0 0 ${COL_W}`, width: COL_W }}
+        style={{ flex: `0 0 ${COL_W}`, width: COL_W, height: CELL }}
       >
         <button
           type="button"
           disabled={disabled}
           onClick={() => handleCell(row, n)}
           className={cn(
-            'flex h-7 w-7 items-center justify-center text-[11px] font-bold touch-manipulation rounded-md border',
+            cellToggle,
+            'text-[11px] font-bold',
             disabled && 'opacity-30',
             on
               ? row === 'review'
@@ -259,10 +265,8 @@ export function SimpleTaggingMatrixBlock({
                 : row === 'end'
                   ? 'border-[color:var(--color-shot-end)] bg-shot-end-bg text-primary'
                   : 'border-brand-primary bg-brand-primary/25 text-neutral-50'
-              : opts?.ghost
-                ? 'border-dashed border-pill-idle-border/60 bg-transparent text-muted'
-                : 'border-pill-idle-border/55 bg-transparent text-muted',
-            // Selected column: subtle outline so empty cells still read as buttons
+              : null,
+            // Selected column: subtle outline so idle cells still read as toggles
             columnSelected &&
               !on &&
               'outline outline-1 outline-offset-0 outline-brand-primary/45'
@@ -271,7 +275,7 @@ export function SimpleTaggingMatrixBlock({
           aria-label={`${row} shot ${n}${isFosCell ? ', first offensive' : ''}`}
           title={isFosCell ? 'First offensive shot (FOS)' : `${row} · ${n}`}
         >
-          {on ? (isFosCell ? 'F' : '■') : '·'}
+          {on ? (isFosCell ? 'F' : '■') : ''}
         </button>
       </div>
     )
@@ -284,14 +288,14 @@ export function SimpleTaggingMatrixBlock({
     <div
       key={row.id}
       className={cn(
-        'flex flex-nowrap items-stretch',
-        opts?.borderTop && 'border-t border-pill-idle-border/60',
+        'flex flex-nowrap items-center gap-[var(--control-gap)]',
+        opts?.borderTop && 'pt-0.5',
         activeRow === row.id && 'bg-white/[0.03]'
       )}
     >
       <div
-        className="sticky left-0 z-10 flex shrink-0 items-center border-r border-pill-idle-border/60 bg-bg-surface px-1"
-        style={{ width: LABEL_W, flex: `0 0 ${LABEL_W}` }}
+        className="sticky left-0 z-10 flex shrink-0 items-center bg-bg-surface px-1"
+        style={{ width: LABEL_W, flex: `0 0 ${LABEL_W}`, height: CELL }}
       >
         <button
           type="button"
@@ -305,10 +309,10 @@ export function SimpleTaggingMatrixBlock({
 
       {shots.map((n) => renderShotCell(row.id, n, { ghost: opts?.ghost }))}
 
-      {/* Final RALLY column cell */}
+      {/* Final RALLY column — same square toggle form as shot cells */}
       <div
-        className="flex items-center justify-center border-l border-pill-idle-border/70 bg-bg-card/30 px-0.5"
-        style={{ flex: `0 0 ${RALLY_W}`, width: RALLY_W }}
+        className="flex items-center justify-center"
+        style={{ flex: `0 0 ${RALLY_W}`, width: RALLY_W, height: CELL }}
       >
         {row.id === 'offensive' && state.end !== 1 ? (
           <button
@@ -319,10 +323,10 @@ export function SimpleTaggingMatrixBlock({
               onNoAttack()
             }}
             className={cn(
-              'w-full rounded border px-0.5 py-1 text-[8px] font-bold leading-tight touch-manipulation',
-              state.noFirstAttack
-                ? 'border-[color:var(--color-shot-first-attack)] bg-[color:var(--color-shot-first-attack)]/30 text-neutral-50'
-                : 'border-pill-idle-border/70 bg-transparent text-muted'
+              cellToggle,
+              'text-[9px] font-bold',
+              state.noFirstAttack &&
+                'border-[color:var(--color-shot-first-attack)] bg-[color:var(--color-shot-first-attack)]/30 text-neutral-50'
             )}
             title={
               state.noFirstAttack
@@ -330,7 +334,7 @@ export function SimpleTaggingMatrixBlock({
                 : 'No attack this point'
             }
           >
-            {state.noFirstAttack ? 'No Atk ✓' : 'No Attack'}
+            None
           </button>
         ) : row.id === 'review' && onToggleHighlight ? (
           <button
@@ -338,19 +342,22 @@ export function SimpleTaggingMatrixBlock({
             aria-pressed={isHighlight}
             onClick={onToggleHighlight}
             className={cn(
-              'w-full rounded border px-0.5 py-1 text-[8px] font-bold leading-tight touch-manipulation',
+              cellToggle,
+              'text-[12px] font-bold',
               isHighlight
                 ? 'border-amber-400 bg-amber-500 text-neutral-950'
-                : 'border-amber-600/50 bg-transparent text-amber-200/90'
+                : 'border-amber-600/70 text-amber-200'
             )}
             title="Mark this whole rally as a highlight (show-reel)"
+            aria-label={isHighlight ? 'Highlight on' : 'Highlight off'}
           >
-            {isHighlight ? '★ On' : '★ Highlight'}
+            ★
           </button>
         ) : (
-          <span className="text-[9px] text-muted/50" aria-hidden>
-            —
-          </span>
+          <span
+            className="inline-block h-[var(--control-height)] w-[var(--control-height)]"
+            aria-hidden
+          />
         )}
       </div>
     </div>
@@ -358,24 +365,22 @@ export function SimpleTaggingMatrixBlock({
 
   return (
     <div className={cn('flex min-h-0 flex-1 flex-col', className)}>
-      {/* Pinned matrix — does not scroll away */}
+      {/* Pinned matrix — cells alone form the grid (no outer frame) */}
       <div className="shrink-0 px-1.5 pt-1 pb-1">
         <div
           className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           role="group"
           aria-label="Simple tagging matrix"
         >
-          <div
-            className="min-w-max overflow-hidden rounded-md border border-pill-idle-border/80 bg-bg-card/25"
-          >
-            {/* Shot header: numbers + RALLY column (toggle) */}
+          <div className="min-w-max space-y-0.5">
+            {/* Shot header: numbers + RALLY cycle (no column title) */}
             <div
-              className="flex flex-nowrap items-stretch border-b border-pill-idle-border/70 bg-bg-surface/80"
+              className="flex flex-nowrap items-end gap-[var(--control-gap)]"
               role="list"
               aria-label="Shots in this rally"
             >
               <div
-                className="sticky left-0 z-10 flex shrink-0 items-end border-r border-pill-idle-border/60 bg-bg-surface px-1 pb-1.5 pt-1"
+                className="sticky left-0 z-10 flex shrink-0 items-end bg-bg-surface px-1 pb-1"
                 style={{ width: LABEL_W, flex: `0 0 ${LABEL_W}` }}
               >
                 <span className="text-[8px] font-bold uppercase tracking-wide text-muted">
@@ -393,8 +398,8 @@ export function SimpleTaggingMatrixBlock({
                   <div
                     key={`h-${n}`}
                     className={cn(
-                      'relative flex flex-col items-center gap-px border-l border-pill-idle-border/50 px-0.5 pt-1',
-                      selected && 'bg-brand-primary/10'
+                      'relative flex flex-col items-center gap-px',
+                      selected && 'rounded-[var(--control-radius)] bg-brand-primary/10'
                     )}
                     style={{ flex: `0 0 ${COL_W}`, width: COL_W }}
                     role="listitem"
@@ -406,8 +411,8 @@ export function SimpleTaggingMatrixBlock({
                       title={`Select shot ${n}`}
                       onClick={() => handleSelectColumn(n)}
                       className={cn(
-                        'relative h-6 w-full rounded font-black tabular-nums text-[11px] touch-manipulation',
-                        'border',
+                        cellToggle,
+                        'relative font-black tabular-nums text-[11px]',
                         isPlayer1 ? 'bg-player-1-bg text-primary' : 'bg-player-2-bg text-primary',
                         isFos && 'bg-shot-first-attack-bg',
                         isEnd &&
@@ -418,16 +423,14 @@ export function SimpleTaggingMatrixBlock({
                               : state.ending
                                 ? 'bg-result-error-bg'
                                 : 'bg-shot-end-bg'),
-                        selected
-                          ? 'border-contact-selected'
-                          : 'border-pill-idle-border/80'
+                        selected && 'outline outline-1 outline-offset-0 outline-brand-primary/45'
                       )}
                     >
                       {n}
                     </button>
                     <span
                       className={cn(
-                        'mb-0.5 h-1 w-full rounded-sm shrink-0',
+                        'h-1 w-full rounded-sm shrink-0',
                         active ? 'bg-contact-live' : 'bg-transparent'
                       )}
                       aria-hidden
@@ -436,54 +439,37 @@ export function SimpleTaggingMatrixBlock({
                 )
               })}
 
-              {/* RALLY column header — not numbered */}
+              {/* RALLY column: single cycle Rally ↔ Shot (same square toggle) */}
               <div
-                className="flex flex-col items-stretch justify-end gap-0.5 border-l border-pill-idle-border/70 bg-bg-card/40 px-0.5 pb-1 pt-1"
+                className="flex flex-col items-center justify-end gap-px pb-0"
                 style={{ flex: `0 0 ${RALLY_W}`, width: RALLY_W }}
                 role="listitem"
               >
-                <span className="text-center text-[8px] font-black uppercase tracking-wide text-neutral-200">
-                  Rally
-                </span>
-                <div
-                  className="inline-flex w-full overflow-hidden rounded border border-pill-idle-border"
-                  role="group"
-                  aria-label="Video loop scope"
+                <button
+                  type="button"
+                  aria-pressed={true}
+                  aria-label={`Loop scope ${loopScope === 'rally' ? 'Rally' : 'Shot'}. Tap to cycle.`}
+                  onClick={() =>
+                    onLoopScopeChange(loopScope === 'rally' ? 'shot' : 'rally')
+                  }
+                  className={cn(
+                    cellToggle,
+                    'tag-control-active text-[8px] font-bold'
+                  )}
+                  title={
+                    loopScope === 'rally'
+                      ? 'Loop the whole rally — tap for Shot'
+                      : 'Loop the current shot — tap for Rally'
+                  }
                 >
-                  <button
-                    type="button"
-                    aria-pressed={loopScope === 'rally'}
-                    onClick={() => onLoopScopeChange('rally')}
-                    className={cn(
-                      'min-w-0 flex-1 px-0.5 py-0.5 text-[8px] font-semibold touch-manipulation',
-                      loopScope === 'rally'
-                        ? 'bg-brand-primary/35 text-neutral-50'
-                        : 'bg-transparent text-muted'
-                    )}
-                    title="Loop the whole rally"
-                  >
-                    Rally
-                  </button>
-                  <button
-                    type="button"
-                    aria-pressed={loopScope === 'shot'}
-                    onClick={() => onLoopScopeChange('shot')}
-                    className={cn(
-                      'min-w-0 flex-1 border-l border-pill-idle-border px-0.5 py-0.5 text-[8px] font-semibold touch-manipulation',
-                      loopScope === 'shot'
-                        ? 'bg-brand-primary/35 text-neutral-50'
-                        : 'bg-transparent text-muted'
-                    )}
-                    title="Loop the current shot (or previous + End while tagging End)"
-                  >
-                    Shot
-                  </button>
-                </div>
+                  {loopScope === 'rally' ? 'Rally' : 'Shot'}
+                </button>
+                <span className="h-1 w-full shrink-0 bg-transparent" aria-hidden />
               </div>
             </div>
 
             {/* Offensive + End grouped */}
-            <div role="group" aria-label="Offensive and End">
+            <div role="group" aria-label="Offensive and End" className="space-y-0.5">
               {LINEAR_ROWS.map((row, i) =>
                 renderRow(row, {
                   ghost: row.id === 'end',
@@ -492,8 +478,8 @@ export function SimpleTaggingMatrixBlock({
               )}
             </div>
 
-            {/* Review apart but still inside the grid frame */}
-            <div role="group" aria-label="Review">
+            {/* Review apart — cells alone create the grid */}
+            <div role="group" aria-label="Review" className="pt-0.5">
               {renderRow(REVIEW_ROW, { borderTop: true })}
             </div>
           </div>

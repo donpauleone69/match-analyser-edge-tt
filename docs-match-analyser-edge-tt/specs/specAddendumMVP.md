@@ -6,6 +6,22 @@
 
 ## Change Log
 
+### 2026-11-13: MA-59 — Simple matrix consistency + HUD align (v3.108.0)
+
+**Change Type:** UX consistency — Simple Phase 2.4 (Paul matrix/HUD notes after #43)
+
+**What Changed:**
+- Idle Offensive / End / Review cells use the same square **`.tag-control` / DetailPill** idle fill+border (not transparent dots); selected keeps pressed/outline language.
+- Removed the **outer matrix grid frame** — button array alone forms the grid.
+- **RALLY** column: no title; same square size as shot cells; **None** (no-attack); single **cycle** Rally|Shot button; **★** highlight — all same toggle form.
+- Video **score + transport**: shared `h-7` container + `items-end`; compact score forced to control height; speed badge same height as chips.
+
+**Decision Rationale:** Paul Phase 2.4 — matrix cells match shot-detail toggles; RALLY controls consistent; HUD baseline flush for real.
+
+**Key Files:** `SimpleTaggingMatrixBlock.tsx`; `SimpleTaggingComposer.tsx`; `Pass1ChromeProtoBlock.tsx` (`Pass1SetHudBlock` compact); `TransportCluster.tsx`.
+
+---
+
 ### 2026-11-13: MA-58 — Simple tagging Phase 2.3 layout (v3.107.0)
 
 **Change Type:** UX layout — Simple Phase 2.3 (Paul layout notes after #42)
