@@ -120,6 +120,7 @@ export function RallyEditComposer() {
   )
   const [activeMatrixRow, setActiveMatrixRow] = useState<SimpleMatrixRow | null>(null)
   const [reviewDetailFocused, setReviewDetailFocused] = useState(false)
+  const [loopScope, setLoopScope] = useState<'rally' | 'shot'>('rally')
 
   useEffect(() => {
     if (typeof selectedShot !== 'number') return
@@ -594,6 +595,8 @@ export function RallyEditComposer() {
             selectedShot={selectedShot}
             activeRow={activeMatrixRow}
             reviewDetailFocused={reviewDetailFocused}
+            loopScope={loopScope}
+            onLoopScopeChange={setLoopScope}
             onSelectShot={setSelectedShot}
             onToggleOffensive={(n) => {
               setSelectedShot(n)
@@ -650,6 +653,12 @@ export function RallyEditComposer() {
             }
             onToggleMissReason={(value: PointMissReason) =>
               patchTimeline((s) => toggleMissReason(s, value))
+            }
+            onToggleShotChoice={(n, key, value) =>
+              patchTimeline((s) => toggleShotChoice(s, n, key, value))
+            }
+            onToggleAttribute={(n, key) =>
+              patchTimeline((s) => toggleShotAttribute(s, n, key))
             }
             onReviewDetailFocusChange={setReviewDetailFocused}
             onSelectRow={setActiveMatrixRow}

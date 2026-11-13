@@ -1,8 +1,9 @@
 /**
  * Map Simple tagging timeline → NewRally + NewShot[].
  *
- * Same DB shape as Pass 1; optional Pass 1 tags (wing/stroke/standing/high/
- * safe/pivot) are forced empty. Review kind and contact times pass through.
+ * Same DB shape as Pass 1. Optional Pass 1 tags are stripped on non-end shots.
+ * End shot (end > 1) keeps wing / stroke / pivot (Phase 2.1 End detail).
+ * Review kind and contact times pass through.
  * Pure — no React, no IO.
  */
 
@@ -32,17 +33,34 @@ function stripOptionalPass1Tags(shot: Pass1FocusShotTags): Pass1FocusShotTags {
   }
 }
 
+/** Keep wing / stroke / pivot on the End shot when End > 1. */
 function toSimpleTimeline(
   timeline: Pass1FocusTimelineInput
 ): Pass1FocusTimelineInput {
+  const end =
+    typeof timeline.end === 'number' && timeline.end > 1 ? timeline.end : null
   const shots: Pass1FocusTimelineInput['shots'] = {}
   for (const [key, shot] of Object.entries(timeline.shots)) {
-    shots[Number(key)] = stripOptionalPass1Tags(shot)
+    const n = Number(key)
+    if (end !== null && n === end) {
+      shots[n] = {
+        wing: shot.wing ?? null,
+        stroke: shot.stroke ?? null,
+        standing: null,
+        isHigh: false,
+        isSafe: false,
+        isPivot: Boolean(shot.isPivot),
+        reviewKind: shot.reviewKind ?? null,
+        contactTime: shot.contactTime,
+      }
+    } else {
+      shots[n] = stripOptionalPass1Tags(shot)
+    }
   }
   return { ...timeline, shots }
 }
 
-/** Thin wrapper: strip optional Pass 1 tags, then reuse Pass 1 mapper. */
+/** Thin wrapper: strip optional tags (keep End wing/shot), then Pass 1 mapper. */
 export function mapSimpleTaggingRallyToDb(
   input: MapSimpleTaggingInput
 ): MapSimpleTaggingResult {

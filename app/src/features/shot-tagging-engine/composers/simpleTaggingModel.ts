@@ -2,8 +2,8 @@
  * Simple tagging — thin model on top of Pass 1 timeline.
  *
  * Offensive row is multi-select; first selected (lowest index) = FOS.
- * Miss-reason required on error endings. Review binary → technical.
- * Phase 2 matrix rows: Offensive · End · Review (★ on Save row).
+ * Miss-reason required on error endings. End shot (end > 1) needs wing + stroke.
+ * Review binary → technical. Phase 2.1: Offensive · End · Review (★ on Save row).
  * Pure — no React / IO.
  */
 
@@ -177,14 +177,28 @@ export function offensiveShotsFromTimeline(
 }
 
 /**
- * Simple save gate: Pass 1 completeness + miss-reason required on errors.
+ * End shot fully tagged for Simple: ending (+ miss-reason on errors) and,
+ * when End > 1, Pass 1 wing + stroke on that contact.
+ */
+export function isEndShotFullyTagged(state: RallyTimelineState): boolean {
+  if (typeof state.end !== 'number') return false
+  if (!state.ending) return false
+  if (isErrorEnding(state.ending) && !state.missReason) return false
+  if (state.end === 1) return true
+  const shot = state.shots[state.end]
+  if (!shot?.wing || !shot?.stroke) return false
+  return true
+}
+
+/**
+ * Simple save gate: Pass 1 completeness + miss-reason on errors + end wing/shot.
  */
 export function canSaveSimpleTagging(
   state: RallyTimelineState,
   winnerName: string | null
 ): boolean {
   if (!canSaveRallyTimeline(state, winnerName)) return false
-  if (isErrorEnding(state.ending) && !state.missReason) return false
+  if (!isEndShotFullyTagged(state)) return false
   return true
 }
 
@@ -194,6 +208,11 @@ export function simpleSaveHint(state: RallyTimelineState): string | null {
   if (!state.ending) return 'Choose ending under End'
   if (isErrorEnding(state.ending) && !state.missReason) {
     return 'Pick miss reason for the error'
+  }
+  if (typeof state.end === 'number' && state.end > 1) {
+    const shot = state.shots[state.end]
+    if (!shot?.wing) return 'Pick wing on End shot'
+    if (!shot?.stroke) return 'Pick shot type on End'
   }
   return null
 }

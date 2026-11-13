@@ -28,6 +28,11 @@ export interface TransportClusterProps {
   onTogglePlay: () => void
   onSeekBy?: (deltaSeconds: number) => void
   onNudgeSpeed?: (direction: -1 | 1) => void
+  /**
+   * Overlay only: `spread` (default) puts play on the right with a spacer;
+   * `cluster` keeps seek/speed/play together (e.g. HUD with score on the left).
+   */
+  overlayLayout?: 'spread' | 'cluster'
   /** Extra controls after the core cluster (e.g. Replay, playlist next). */
   trailing?: ReactNode
   className?: string
@@ -44,6 +49,7 @@ export function TransportCluster({
   onTogglePlay,
   onSeekBy,
   onNudgeSpeed,
+  overlayLayout = 'spread',
   trailing,
   className,
 }: TransportClusterProps) {
@@ -109,7 +115,7 @@ export function TransportCluster({
         </>
       )}
 
-      {overlay && <div className="flex-1" />}
+      {overlay && overlayLayout === 'spread' && <div className="flex-1" />}
 
       <button
         type="button"

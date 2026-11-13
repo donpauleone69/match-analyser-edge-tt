@@ -42,7 +42,7 @@ describe('simpleTaggingModel', () => {
     expect(none.timeline.fos).toBeNull()
   })
 
-  it('requires miss reason on error endings', () => {
+  it('requires miss reason on error endings and End wing/shot', () => {
     // timelineFromContacts pre-marks End at N — do not re-tap (would clear).
     let state = applyOffensiveToTimeline(timelineFromContacts([1, 2, 3, 4, 5]), [3])
     state = { ...state, ending: 'error_net', missReason: null }
@@ -50,12 +50,36 @@ describe('simpleTaggingModel', () => {
     expect(simpleSaveHint(state)).toMatch(/miss reason/i)
 
     state = { ...state, missReason: 'forced' }
+    expect(canSaveSimpleTagging(state, 'Hero')).toBe(false)
+    expect(simpleSaveHint(state)).toMatch(/wing/i)
+
+    state = {
+      ...state,
+      shots: {
+        ...state.shots,
+        5: { ...state.shots[5], wing: 'FH', stroke: 'Block' },
+      },
+    }
     expect(canSaveSimpleTagging(state, 'Hero')).toBe(true)
     expect(simpleSaveHint(state)).toBeNull()
   })
 
-  it('allows winner save without miss reason', () => {
+  it('allows winner save without miss reason once End wing/shot set', () => {
     let state = applyOffensiveToTimeline(timelineFromContacts([1, 2, 3]), [2])
+    state = {
+      ...state,
+      ending: 'winner',
+      missReason: null,
+      shots: {
+        ...state.shots,
+        3: { ...state.shots[3], wing: 'BH', stroke: 'Push' },
+      },
+    }
+    expect(canSaveSimpleTagging(state, 'Hero')).toBe(true)
+  })
+
+  it('serve-only End does not require wing/shot', () => {
+    let state = timelineFromContacts([1])
     state = { ...state, ending: 'winner', missReason: null }
     expect(canSaveSimpleTagging(state, 'Hero')).toBe(true)
   })

@@ -2,8 +2,9 @@
  * SimpleTaggingComposer — phone-first Simple tagging (alternative to Pass 1).
  *
  * Setup → tap contacts → 2s idle → matrix (Offensive/End/Review) while video loops.
- * Same DBRally/DBShot via Pass 1 persist path (optional tags stripped).
- * Phase 2: CNT-style columns + underline; ★ on Save row; More flattened.
+ * Same DBRally/DBShot via Pass 1 persist path (End keeps wing/stroke; others stripped).
+ * Phase 2.1: pinned matrix; No-attack on Offensive row; End auto + wing/shot;
+ * Rally|Shot loop; gold ★ left; score HUD bottom-left.
  */
 
 import { useState, useRef, useEffect, useMemo, type ReactNode } from 'react'
@@ -34,9 +35,12 @@ import { rallyDb, setDb } from '@/data'
 import { resolveSetVideo } from '@/data/services/videoAssetService'
 import {
   emptyRallyTimelineState,
+  endReasoningLoopWindow,
   inferWinnerName,
   toggleEnding,
   toggleMissReason,
+  toggleShotAttribute,
+  toggleShotChoice,
   toggleShotReviewFlag,
   timelineFromContacts,
   loopWindowFromContacts,
@@ -54,6 +58,8 @@ import {
   type RallyTimelineState,
   type PointEnding,
   type PointMissReason,
+  type ShotAttributeKey,
+  type ShotChoiceKey,
 } from './pass1FocusModel'
 import {
   persistPass1FocusRally,
@@ -68,6 +74,7 @@ import {
 } from './simpleTaggingDraftStorage'
 import {
   canSaveSimpleTagging,
+  isEndShotFullyTagged,
   markEndSimple,
   markFosSimple,
   offensiveShotsFromTimeline,
@@ -76,6 +83,7 @@ import {
   toggleOffensiveShot,
   type SimpleMatrixRow,
 } from './simpleTaggingModel'
+import type { SimpleLoopScope } from '../blocks/SimpleTaggingMatrixBlock'
 import {
   saveLastTaggingMode,
   saveRallyTaggingMode,
@@ -113,20 +121,36 @@ interface OpenRally {
   offensiveShots: number[]
 }
 
-/** Strip optional Pass 1 tags before shared persist (mapper also strips). */
+/** Strip optional Pass 1 tags before shared persist; keep End wing/stroke/pivot. */
 function stripForSimplePersist(timeline: RallyTimelineState): RallyTimelineState {
+  const end =
+    typeof timeline.end === 'number' && timeline.end > 1 ? timeline.end : null
   const shots: RallyTimelineState['shots'] = {}
   for (const [key, shot] of Object.entries(timeline.shots)) {
+    const n = Number(key)
     const mapped = toPass1FocusMapperShot(shot)
-    shots[Number(key)] = {
-      wing: null,
-      stroke: null,
-      standing: null,
-      isHigh: false,
-      isSafe: false,
-      isPivot: false,
-      reviewKind: mapped.reviewKind,
-      contactTime: mapped.contactTime,
+    if (end !== null && n === end) {
+      shots[n] = {
+        wing: mapped.wing,
+        stroke: mapped.stroke,
+        standing: null,
+        isHigh: false,
+        isSafe: false,
+        isPivot: mapped.isPivot,
+        reviewKind: mapped.reviewKind,
+        contactTime: mapped.contactTime,
+      }
+    } else {
+      shots[n] = {
+        wing: null,
+        stroke: null,
+        standing: null,
+        isHigh: false,
+        isSafe: false,
+        isPivot: false,
+        reviewKind: mapped.reviewKind,
+        contactTime: mapped.contactTime,
+      }
     }
   }
   return { ...timeline, shots }
@@ -190,6 +214,8 @@ export function SimpleTaggingComposer({
   const [activeMatrixRow, setActiveMatrixRow] = useState<SimpleMatrixRow | null>(
     null
   )
+  /** Explicit Rally vs Shot loop; End-reasoning may auto-narrow to Shot. */
+  const [loopScope, setLoopScope] = useState<SimpleLoopScope>('rally')
   /** Pause rally loop only while review detail is focused (§9 8A). */
   const [reviewDetailFocused, setReviewDetailFocused] = useState(false)
   /** Which point cube is outlined — past rally index, or 'next' (about to tag / open). */
@@ -326,15 +352,30 @@ export function SimpleTaggingComposer({
             const { serveTimestamp, endTimestamp } = draft.openRally
             const dur = useVideoPlaybackStore.getState().duration
             const loop = loopWindowFromContacts(serveTimestamp, endTimestamp, dur)
-            setOpenRally({
+            const restored = {
               ...draft.openRally,
               offensiveShots:
                 draft.openRally.offensiveShots.length > 0
                   ? draft.openRally.offensiveShots
                   : offensiveShotsFromTimeline(draft.openRally.timeline),
-            })
+            }
+            setOpenRally(restored)
             setContactTimes([])
-            setSelectedShot(draft.selectedShot)
+            const endN =
+              typeof restored.timeline.end === 'number'
+                ? restored.timeline.end
+                : null
+            const selected =
+              draft.selectedShot ?? endN
+            setSelectedShot(selected)
+            setActiveMatrixRow(
+              selected !== null && selected === endN ? 'end' : null
+            )
+            setLoopScope(
+              endN !== null && !isEndShotFullyTagged(restored.timeline)
+                ? 'shot'
+                : 'rally'
+            )
             setReviewDetailFocused(draft.reviewDetailFocused)
             setFocusedRallyIndex('next')
             setPhase('form')
@@ -479,7 +520,8 @@ export function SimpleTaggingComposer({
     setOpenRally((cur) => (cur ? updater(cur) : cur))
   }
 
-  // Loop pauses only while review detail is focused (§9 8A).
+  // Base rally loop window; pause only while review detail is focused (§9 8A).
+  // Narrow Shot / End windows are applied via activePlayback overlay below.
   useEffect(() => {
     if (phase !== 'form' || !openRally) return
     const dur = useVideoPlaybackStore.getState().duration
@@ -502,6 +544,21 @@ export function SimpleTaggingComposer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, reviewDetailFocused, openRally?.serveTimestamp, openRally?.endTimestamp])
 
+  // When End becomes fully tagged, return to full rally loop (user can still pick Shot).
+  const endFullyTagged = openRally
+    ? isEndShotFullyTagged(openRally.timeline)
+    : false
+  useEffect(() => {
+    if (phase !== 'form' || !openRally) return
+    if (endFullyTagged && loopScope === 'shot') {
+      // Only auto-flip when we were in End-reasoning narrow mode.
+      if (activeMatrixRow === 'end' || selectedShot === openRally.timeline.end) {
+        setLoopScope('rally')
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, endFullyTagged])
+
   const finalizeContacts = (times: number[]) => {
     if (times.length === 0) return
     clearIdleTimer()
@@ -509,26 +566,35 @@ export function SimpleTaggingComposer({
     const endTimestamp = times[times.length - 1]
     const duration = useVideoPlaybackStore.getState().duration
     const loop = loopWindowFromContacts(serveTimestamp, endTimestamp, duration)
+    const timeline = timelineFromContacts(times)
+    const endN = timeline.end
     setOpenRally({
       serveTimestamp,
       endTimestamp,
-      timeline: timelineFromContacts(times),
+      timeline,
       isHighlight: false,
       offensiveShots: [],
     })
     setContactTimes([])
-    setSelectedShot(null)
-    setActiveMatrixRow(null)
+    // End auto-selected as last contact; open End detail immediately.
+    setSelectedShot(endN)
+    setActiveMatrixRow('end')
+    setLoopScope('shot')
     setReviewDetailFocused(false)
     setFocusedRallyIndex('next')
     setPhase('form')
+    const endLoop =
+      typeof endN === 'number'
+        ? endReasoningLoopWindow(timeline, loop)
+        : null
     setConstrainedPlayback({
       enabled: true,
       startTime: loop.startTime,
       endTime: loop.endTime,
       loopOnEnd: true,
     })
-    videoPlayerRef.current?.seek(loop.startTime)
+    const seekTo = endLoop?.startTime ?? loop.startTime
+    videoPlayerRef.current?.seek(seekTo)
     videoPlayerRef.current?.play()
   }
 
@@ -1009,6 +1075,24 @@ export function SimpleTaggingComposer({
     }))
   }
 
+  const handleToggleShotChoice = (
+    n: number,
+    key: ShotChoiceKey,
+    value: string
+  ) => {
+    patchOpenRally((cur) => ({
+      ...cur,
+      timeline: toggleShotChoice(cur.timeline, n, key, value),
+    }))
+  }
+
+  const handleToggleAttribute = (n: number, key: ShotAttributeKey) => {
+    patchOpenRally((cur) => ({
+      ...cur,
+      timeline: toggleShotAttribute(cur.timeline, n, key),
+    }))
+  }
+
   const handleModeSwitch = (mode: SessionTaggingMode) => {
     if (mode === 'simple') return
     if (openRally || contactTimes.length > 0) {
@@ -1031,9 +1115,20 @@ export function SimpleTaggingComposer({
       : phase === 'form'
         ? shotNumberAtTime(formContactTimes, liveTime)
         : null
+  const endReasoningNarrow =
+    phase === 'form' &&
+    openRally &&
+    typeof openRally.timeline.end === 'number' &&
+    !isEndShotFullyTagged(openRally.timeline) &&
+    (selectedShot === openRally.timeline.end || activeMatrixRow === 'end')
+
   const selectedShotLoop =
-    phase === 'form' && openRally && selectedShot !== null
-      ? shotLoopWindow(openRally.timeline, selectedShot, constrainedPlayback)
+    phase === 'form' && openRally && loopScope === 'shot'
+      ? endReasoningNarrow
+        ? endReasoningLoopWindow(openRally.timeline, constrainedPlayback)
+        : selectedShot !== null
+          ? shotLoopWindow(openRally.timeline, selectedShot, constrainedPlayback)
+          : null
       : null
   const activePlayback = selectedShotLoop
     ? { ...constrainedPlayback, ...selectedShotLoop }
@@ -1123,19 +1218,21 @@ export function SimpleTaggingComposer({
       <div className="relative shrink-0 w-full bg-black overflow-hidden max-h-[42dvh] flex justify-center">
         <div className="relative w-full aspect-video max-h-[42dvh]">
           <VideoStageChrome
+            bottomOverlayClassName="!bottom-2"
             bottomOverlay={
               videoUrl ? (
-                <div className="flex flex-col gap-1">
-                  <div className="flex justify-start">{scoreBadge}</div>
+                <div className="flex items-end justify-between gap-2">
+                  <div className="shrink-0">{scoreBadge}</div>
                   <TransportCluster
                     variant="overlay"
+                    overlayLayout="cluster"
                     isPlaying={isPlaying}
                     playbackSpeed={playbackSpeed}
                     seekStepSeconds={SHARED_SEEK_STEP}
                     onTogglePlay={() => videoPlayerRef.current?.togglePlay()}
                     onSeekBy={handleSeekBy}
                     onNudgeSpeed={nudgePlaybackSpeed}
-                    className="[&_button]:max-sm:h-10 [&_button]:max-sm:min-w-10 [&_button]:max-sm:w-10"
+                    className="shrink-0 [&_button]:max-sm:h-9 [&_button]:max-sm:min-w-9 [&_button]:max-sm:w-9"
                   />
                 </div>
               ) : null
@@ -1228,17 +1325,59 @@ export function SimpleTaggingComposer({
           <div className="relative flex flex-col flex-1 min-h-0">
             {setContextBar}
             {pointLedger}
+            {openRally && (
+              <SimpleTaggingMatrixBlock
+                className="min-h-0 flex-1"
+                state={timeline}
+                offensiveShots={openRally.offensiveShots}
+                players={players}
+                server={serverName}
+                activeShot={overlayShot}
+                selectedShot={selectedShot}
+                activeRow={activeMatrixRow}
+                reviewDetailFocused={reviewDetailFocused}
+                loopScope={loopScope}
+                onLoopScopeChange={setLoopScope}
+                onSelectShot={handleSelectShot}
+                onToggleOffensive={handleToggleOffensive}
+                onNoAttack={handleNoAttack}
+                onMarkEnd={handleMarkEnd}
+                onToggleReview={handleToggleReviewFlag}
+                onToggleEnding={handleToggleEnding}
+                onToggleMissReason={handleToggleMissReason}
+                onToggleShotChoice={handleToggleShotChoice}
+                onToggleAttribute={handleToggleAttribute}
+                onReviewDetailFocusChange={setReviewDetailFocused}
+                onSelectRow={setActiveMatrixRow}
+                onMarkFos={handleMarkFos}
+              />
+            )}
             <div className="shrink-0 border-t border-pill-idle-border bg-bg-card pb-[max(0.25rem,env(safe-area-inset-bottom,0px))]">
               {saveHint && !canSave && (
                 <p className="px-1.5 pt-1 text-[10px] font-semibold text-muted" role="status">
                   {saveHint}
                 </p>
               )}
-              <div className="relative min-h-11 px-1.5 py-1.5 flex flex-wrap items-center justify-end gap-1.5 text-[length:var(--control-text)]">
+              <div className="relative px-1.5 py-1.5 flex flex-wrap items-center gap-1.5 text-[length:var(--control-text)]">
+                <button
+                  type="button"
+                  aria-pressed={Boolean(openRally?.isHighlight)}
+                  onClick={handleToggleHighlight}
+                  className={cn(
+                    tagBtn,
+                    'shrink-0 touch-manipulation border-amber-600/70 text-amber-200',
+                    openRally?.isHighlight &&
+                      'bg-amber-500 border-amber-400 text-neutral-950 font-bold'
+                  )}
+                  title="Mark this whole rally as a highlight (show-reel)"
+                >
+                  ★ Highlight Rally
+                </button>
+                <div className="flex-1 min-w-[0.5rem]" aria-hidden />
                 <button
                   type="button"
                   onClick={handleRedoRally}
-                  className={cn(tagBtn, 'shrink-0 min-h-10 px-3 touch-manipulation')}
+                  className={cn(tagBtn, 'shrink-0 touch-manipulation')}
                   title="Clear these contacts and re-tap this rally from just before the serve"
                 >
                   Redo contacts
@@ -1246,23 +1385,10 @@ export function SimpleTaggingComposer({
                 <button
                   type="button"
                   onClick={handleDiscardOpen}
-                  className={cn(tagBtn, 'tag-control-danger shrink-0 min-h-10 px-3 touch-manipulation')}
+                  className={cn(tagBtn, 'tag-control-danger shrink-0 touch-manipulation')}
                   title="Discard this rally draft without saving"
                 >
                   Discard rally
-                </button>
-                <button
-                  type="button"
-                  aria-pressed={Boolean(openRally?.isHighlight)}
-                  onClick={handleToggleHighlight}
-                  className={cn(
-                    tagBtn,
-                    'shrink-0 min-h-10 px-3 touch-manipulation',
-                    openRally?.isHighlight && 'bg-review border-review text-primary'
-                  )}
-                  title="Mark this whole rally as a highlight (show-reel)"
-                >
-                  ★ Highlight
                 </button>
                 <button
                   type="button"
@@ -1270,7 +1396,7 @@ export function SimpleTaggingComposer({
                   disabled={!canSave || saving}
                   className={cn(
                     tagBtn,
-                    'shrink-0 min-h-10 px-4 touch-manipulation font-bold',
+                    'shrink-0 touch-manipulation font-bold',
                     canSave ? 'tag-control-accent' : 'opacity-50'
                   )}
                   title="Save this rally and move to the next point"
@@ -1278,31 +1404,6 @@ export function SimpleTaggingComposer({
                   {saving ? 'Saving…' : 'Save point'}
                 </button>
               </div>
-            </div>
-
-            <div className="flex-1 min-h-0 overflow-y-auto">
-              {openRally && (
-                <SimpleTaggingMatrixBlock
-                  state={timeline}
-                  offensiveShots={openRally.offensiveShots}
-                  players={players}
-                  server={serverName}
-                  activeShot={overlayShot}
-                  selectedShot={selectedShot}
-                  activeRow={activeMatrixRow}
-                  reviewDetailFocused={reviewDetailFocused}
-                  onSelectShot={handleSelectShot}
-                  onToggleOffensive={handleToggleOffensive}
-                  onNoAttack={handleNoAttack}
-                  onMarkEnd={handleMarkEnd}
-                  onToggleReview={handleToggleReviewFlag}
-                  onToggleEnding={handleToggleEnding}
-                  onToggleMissReason={handleToggleMissReason}
-                  onReviewDetailFocusChange={setReviewDetailFocused}
-                  onSelectRow={setActiveMatrixRow}
-                  onMarkFos={handleMarkFos}
-                />
-              )}
             </div>
           </div>
         )}
