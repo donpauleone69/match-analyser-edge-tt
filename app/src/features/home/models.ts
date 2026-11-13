@@ -26,7 +26,7 @@ export interface ContinueTaggingModel {
   scoreLabel: string
   actionLabel: string
   /** Why this match is outstanding */
-  kind: 'in_progress' | 'not_started'
+  kind: 'in_progress' | 'not_started' | 'fix_incomplete'
   detailLabel: string
 }
 

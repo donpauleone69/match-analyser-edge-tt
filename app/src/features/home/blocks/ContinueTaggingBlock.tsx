@@ -1,5 +1,5 @@
 /**
- * ContinueTaggingBlock — a match left to tag (in progress or not started).
+ * ContinueTaggingBlock — a match left to tag or finish incomplete points.
  */
 
 import { Button, Icon } from '@/ui-mine'
@@ -13,9 +13,11 @@ export interface ContinueTaggingBlockProps {
 
 export function ContinueTaggingBlock({ item, onContinue, onReview }: ContinueTaggingBlockProps) {
   const tone =
-    item.kind === 'in_progress'
+    item.kind === 'fix_incomplete' || item.kind === 'in_progress'
       ? 'border-amber-800/50 bg-amber-950/20'
       : 'border-neutral-700 bg-neutral-900/40'
+  const showScore = item.kind === 'in_progress' || item.kind === 'fix_incomplete'
+  const actionIcon = item.kind === 'fix_incomplete' ? 'edit' : 'play'
 
   return (
     <div className={`flex flex-wrap items-center gap-3 rounded-lg border px-4 py-3 ${tone}`}>
@@ -23,7 +25,7 @@ export function ContinueTaggingBlock({ item, onContinue, onReview }: ContinueTag
         <p className="text-sm font-semibold text-neutral-100 truncate">{item.title}</p>
         <p className="text-xs text-neutral-400 mt-0.5">
           {item.detailLabel}
-          {item.kind === 'in_progress' && (
+          {showScore && (
             <>
               {' '}
               · <span className="font-mono">{item.scoreLabel}</span>
@@ -35,7 +37,7 @@ export function ContinueTaggingBlock({ item, onContinue, onReview }: ContinueTag
         Review
       </Button>
       <Button size="sm" onClick={() => onContinue(item)}>
-        <Icon name="play" size="sm" /> {item.actionLabel}
+        <Icon name={actionIcon} size="sm" /> {item.actionLabel}
       </Button>
     </div>
   )

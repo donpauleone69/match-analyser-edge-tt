@@ -17,6 +17,8 @@ export interface HomeMatchInput {
   sets: DBSet[]
   /** set id → rallies tagged */
   rallyCounts: Map<string, number>
+  /** Scoring non-stub rallies missing Pass 1 completeness (ending / framework). */
+  incompleteRallyCount?: number
 }
 
 const RECENT_LIMIT = 5
@@ -34,7 +36,7 @@ export function buildHome(inputs: HomeMatchInput[], nameOf: (playerId: string | 
     (b.match.created_at ?? '').localeCompare(a.match.created_at ?? '')
   )
 
-  for (const { match, sets, rallyCounts } of sorted) {
+  for (const { match, sets, rallyCounts, incompleteRallyCount = 0 } of sorted) {
     const hero = match.player1_id
     const title = `${nameOf(hero)} vs ${nameOf(match.player2_id)}`
     const ordered = [...sets].sort((a, b) => a.set_number - b.set_number)
@@ -84,35 +86,63 @@ export function buildHome(inputs: HomeMatchInput[], nameOf: (playerId: string | 
       })
     }
 
-    if (status === 'tagged') continue
+    // Tagged (or still open) matches with incomplete Pass 1 points → Fix path.
+    if (incompleteRallyCount > 0) {
+      const setForFix =
+        ordered.find((_, i) => statuses[i] === 'in_progress') ??
+        ordered.find((_, i) => statuses[i] === 'tagged') ??
+        ordered[0]
+      if (setForFix) {
+        outstanding.push({
+          matchId: match.id,
+          title,
+          setNumber: setForFix.set_number,
+          ralliesTagged: tagged,
+          scoreLabel: `${setForFix.player1_score_final}–${setForFix.player2_score_final}`,
+          actionLabel: 'Fix incomplete',
+          kind: 'fix_incomplete',
+          detailLabel: `${incompleteRallyCount} incomplete ${
+            incompleteRallyCount === 1 ? 'point' : 'points'
+          } · Rallies → Incomplete`,
+          matchDate: match.match_date ?? '',
+          createdAt: match.created_at ?? '',
+        })
+      }
+    }
 
-    const openInProgress = ordered.findIndex((_, i) => statuses[i] === 'in_progress')
-    const openNotStarted = ordered.findIndex((_, i) => statuses[i] === 'not_started')
-    const open = openInProgress >= 0 ? openInProgress : openNotStarted
-    if (open < 0) continue
-
-    const set = ordered[open]
-    const count = rallyCounts.get(set.id) ?? 0
-    const kind = statuses[open] === 'in_progress' ? 'in_progress' : 'not_started'
-    outstanding.push({
-      matchId: match.id,
-      title,
-      setNumber: set.set_number,
-      ralliesTagged: count,
-      scoreLabel: `${set.player1_score_final}–${set.player2_score_final}`,
-      actionLabel: kind === 'in_progress' && count > 0 ? 'Continue tagging' : 'Start tagging',
-      kind,
-      detailLabel:
-        kind === 'in_progress'
-          ? `Set ${set.set_number} · ${count === 1 ? '1 rally' : `${count} rallies`} tagged`
-          : `Set ${set.set_number} · not tagged yet`,
-      matchDate: match.match_date ?? '',
-      createdAt: match.created_at ?? '',
-    })
+    if (status !== 'tagged') {
+      const openInProgress = ordered.findIndex((_, i) => statuses[i] === 'in_progress')
+      const openNotStarted = ordered.findIndex((_, i) => statuses[i] === 'not_started')
+      const open = openInProgress >= 0 ? openInProgress : openNotStarted
+      if (open >= 0) {
+        const set = ordered[open]
+        const count = rallyCounts.get(set.id) ?? 0
+        const kind = statuses[open] === 'in_progress' ? 'in_progress' : 'not_started'
+        // Prefer a single What's left card — fix_incomplete already covers this match.
+        if (incompleteRallyCount === 0) {
+          outstanding.push({
+            matchId: match.id,
+            title,
+            setNumber: set.set_number,
+            ralliesTagged: count,
+            scoreLabel: `${set.player1_score_final}–${set.player2_score_final}`,
+            actionLabel: kind === 'in_progress' && count > 0 ? 'Continue tagging' : 'Start tagging',
+            kind,
+            detailLabel:
+              kind === 'in_progress'
+                ? `Set ${set.set_number} · ${count === 1 ? '1 rally' : `${count} rallies`} tagged`
+                : `Set ${set.set_number} · not tagged yet`,
+            matchDate: match.match_date ?? '',
+            createdAt: match.created_at ?? '',
+          })
+        }
+      }
+    }
   }
 
   outstanding.sort((a, b) => {
-    const pri = (k: ContinueTaggingModel['kind']) => (k === 'in_progress' ? 0 : 1)
+    const pri = (k: ContinueTaggingModel['kind']) =>
+      k === 'fix_incomplete' ? 0 : k === 'in_progress' ? 1 : 2
     return (
       pri(a.kind) - pri(b.kind) ||
       b.matchDate.localeCompare(a.matchDate) ||

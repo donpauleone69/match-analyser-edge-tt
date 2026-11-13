@@ -113,6 +113,35 @@ describe('buildHome outstanding', () => {
     expect(home.recent[0].status).toBe('tagged')
   })
 
+  it('surfaces tagged matches with incomplete points as Fix incomplete', () => {
+    const home = buildHome(
+      [
+        {
+          match: match({ id: 'm-fix', step1_complete: true, step2_complete: true }),
+          sets: [
+            set({
+              id: 'm-fix-s1',
+              match_id: 'm-fix',
+              set_number: 1,
+              is_tagged: true,
+              tagging_phase: 'phase2_complete',
+              player1_score_final: 11,
+              player2_score_final: 7,
+            }),
+          ],
+          rallyCounts: new Map([['m-fix-s1', 18]]),
+          incompleteRallyCount: 2,
+        },
+      ],
+      (id) => (id === 'hero' ? 'Paul' : id === 'opp' ? 'Alex' : 'Them')
+    )
+    expect(home.outstandingCount).toBe(1)
+    expect(home.continueItems[0].kind).toBe('fix_incomplete')
+    expect(home.continueItems[0].actionLabel).toBe('Fix incomplete')
+    expect(home.continueItems[0].detailLabel).toContain('2 incomplete')
+    expect(home.recent[0].status).toBe('tagged')
+  })
+
   it('surfaces tagged matches missing opponent as context polish', () => {
     const home = buildHome(
       [

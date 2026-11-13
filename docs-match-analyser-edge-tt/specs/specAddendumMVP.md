@@ -6,6 +6,22 @@
 
 ## Change Log
 
+### 2026-11-13: MA-39 — Incomplete → Fix re-tag polish (v3.89.0)
+
+**Change Type:** UX polish — Incomplete Fix path (no epics)
+
+**What Changed:**
+- Home **What’s left** surfaces tagged matches with incomplete Pass 1 points as **Fix incomplete** → Match Review `?tab=rallies&rf=incomplete`.
+- Edit resume: incomplete rows keep FA **undecided** (null FA ≠ No attack); complete rows still treat null FA as No attack.
+- Rally Edit: incomplete banner + Save fix enabled when mandatory fields are satisfied (even if form already looked complete); return to Incomplete filter with badge-cleared notice.
+- Rallies: Incomplete empty copy; Edit affordance emphasized for incomplete rows; `rf` URL sync.
+
+**Decision Rationale:** Close the Incomplete → Edit → Save fix loop and make Home resume land on the right filter.
+
+**Key Files:** `buildHome.ts`; `useDeriveHome.ts`; `ContinueTaggingBlock.tsx`; `HomeComposer.tsx`; `persistPass1FocusRally.ts`; `RallyEditComposer.tsx`; `MatchReviewComposer.tsx`; `RalliesSection.tsx`; `RallyRowBlock.tsx`.
+
+---
+
 ### 2026-11-13: MA-38 — Clips playlist + download polish (v3.88.0)
 
 **Change Type:** UX polish — Clips / Work on (no epics, no new pattern cards)

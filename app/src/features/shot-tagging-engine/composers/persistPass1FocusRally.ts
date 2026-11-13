@@ -264,6 +264,8 @@ export interface ResumedCompletedRally {
   winnerName: string
   summary: string
   isHighlight: boolean
+  /** Missing Pass 1 mandatory completeness — Edit → Save fix clears it. */
+  isIncomplete: boolean
   timeline: RallyTimelineState
   player1ScoreAfter: number
   player2ScoreAfter: number
@@ -393,11 +395,13 @@ export async function loadResumedPass1FocusState(input: {
     }
 
     const end = rallyShots.length
+    // Complete rows: null FA = explicit no attack. Incomplete rows: null FA = undecided.
+    const complete =
+      rally.framework_confirmed !== false && rally.point_ending != null
     const timeline: RallyTimelineState = {
       shotCount: end,
       fos: rally.first_attack_index,
-      // Saved rallies: null first_attack_index means explicit no attack (not undecided).
-      noFirstAttack: rally.first_attack_index === null,
+      noFirstAttack: rally.first_attack_index === null && complete,
       end,
       ending: rally.point_ending,
       missReason: normalizeMissReason(rally.point_miss_reason),
@@ -426,6 +430,7 @@ export async function loadResumedPass1FocusState(input: {
         winnerId === 'player1' ? input.player1Name : input.player2Name
       ),
       isHighlight: rally.is_highlight,
+      isIncomplete: !complete,
       timeline,
       player1ScoreAfter: rally.player1_score_after,
       player2ScoreAfter: rally.player2_score_after,

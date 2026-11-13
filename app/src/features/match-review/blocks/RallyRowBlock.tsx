@@ -96,10 +96,21 @@ export function RallyRowBlock({
       </button>
       <button
         type="button"
-        aria-label={`Edit rally ${rally.rallyIndex}`}
-        title="Edit this rally's tags"
+        aria-label={
+          rally.isIncomplete
+            ? `Fix incomplete rally ${rally.rallyIndex}`
+            : `Edit rally ${rally.rallyIndex}`
+        }
+        title={
+          rally.isIncomplete
+            ? 'Fix incomplete — set FA, End, and ending, then Save fix'
+            : "Edit this rally's tags"
+        }
         onClick={() => onEdit(rally)}
-        className={iconBtn}
+        className={cn(
+          iconBtn,
+          rally.isIncomplete && 'border-amber-600/70 text-amber-200 hover:border-amber-400'
+        )}
       >
         <Icon name="edit" size="sm" />
       </button>
