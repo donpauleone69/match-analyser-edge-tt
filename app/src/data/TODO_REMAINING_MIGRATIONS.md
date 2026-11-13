@@ -4,15 +4,7 @@
 
 These files still import from `@/database/` or `@/stores/` and need updating:
 
-### Tournament Management
-- `app/src/features/tournament-management/composers/TournamentManagementComposer.tsx`
-- `app/src/features/tournament-management/sections/TournamentFormSection.tsx`
-- `app/src/features/tournament-management/sections/TournamentListSection.tsx`
 
-### Player Management
-- `app/src/features/player-management/composers/PlayerManagementComposer.tsx`
-- `app/src/features/player-management/sections/PlayerFormSection.tsx`
-- `app/src/features/player-management/sections/PlayerListSection.tsx`
 
 ### Match Management
 - `app/src/features/match-management/sections/MatchListSection.tsx`

@@ -1,13 +1,8 @@
 export { HomePage } from './Home'
-export { Clubs } from './Clubs'
 export { default as MatchesPage } from './Matches'
-export { default as TournamentsPage } from './Tournaments'
-export { default as PlayersPage } from './Players'
 export { default as MatchCreatePage } from './MatchCreate'
 export { default as MatchReviewPage } from './MatchReview'
 export { ShotTaggingEngine } from './ShotTaggingEngine'
 export { Settings } from './Settings'
 export { DataViewer } from './DataViewer'
 export { DataViewerAudit } from './DataViewerAudit'
-export { AnalyticsPage } from './Analytics'
-
