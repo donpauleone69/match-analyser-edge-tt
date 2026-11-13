@@ -75,8 +75,9 @@ export function ReviewPatternBlock({
                 type="button"
                 onClick={() => onEdit(item)}
                 className="h-7 px-2 rounded-md border border-neutral-700 text-xs text-neutral-200 hover:border-neutral-400 inline-flex items-center gap-1"
+                title="Reopen this shot to fix tags"
               >
-                <Icon name="edit" size="xs" /> Edit
+                <Icon name="edit" size="xs" /> Fix
               </button>
             </li>
           ))}

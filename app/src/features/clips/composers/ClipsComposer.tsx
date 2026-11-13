@@ -446,11 +446,15 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
       onToggleAutoAdvance={() => setAutoAdvance((a) => !a)}
       onDownload={handleDownloadClip}
       downloadBusy={downloadBusy}
-      onEdit={() =>
-        navigate(
-          `/matches/${current.clip.matchId}/edit-rally?set=${current.clip.setNumber}&rally=${current.clip.rallyIndex}`
-        )
-      }
+      onEdit={() => {
+        const q = new URLSearchParams({
+          set: String(current.clip.setNumber),
+          rally: String(current.clip.rallyIndex),
+          from: 'clips',
+        })
+        if (current.clip.shotIndex != null) q.set('shot', String(current.clip.shotIndex))
+        navigate(`/matches/${current.clip.matchId}/edit-rally?${q.toString()}`)
+      }}
     />
   ) : (
     <Card className="p-6 text-sm text-neutral-400">No clips in this playlist.</Card>
