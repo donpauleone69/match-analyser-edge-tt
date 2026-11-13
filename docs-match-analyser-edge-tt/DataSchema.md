@@ -1,8 +1,8 @@
 # Data Schema – Edge TT Match Analyser
 
-> **Version:** 3.2 (Current Implementation)
-> **Last Updated:** 2026-11-12  
-> **Status:** ✅ Single Source of Truth
+> **Version:** 3.3 (Current Implementation)
+> **Last Updated:** 2026-11-13  
+> **Status:** ✅ Single Source of Truth for entities
 
 ---
 
@@ -10,25 +10,24 @@
 
 This document describes the **actual implemented schema** in the Edge TT Match Analyser codebase. It is reverse-engineered from the TypeScript types in `app/src/data/entities/`.
 
-How the tables connect, and a looser video-first shape that is not built yet: [TableMap.md](TableMap.md).
+How the tables connect: [TableMap.md](TableMap.md). Product loop & folders: [Architecture.md](Architecture.md).
 
 ### Architecture Context
 
-- **Current Storage:** IndexedDB via Dexie.js (local-first)
+- **Current Storage:** IndexedDB via Dexie.js (local-first source of truth)
+- **Video bytes:** OPFS via `video_assets` (not session-only blob URLs)
 - **ID Strategy:** Human-readable slugs (e.g., `john-doe-a1b2`, `match-xyz-s1-r3`)
-- **Future Migration:** Designed to be compatible with Supabase/PostgreSQL
-- **Timestamps:** ISO 8601 strings (for serialization compatibility)
+- **Cloud:** Optional Supabase mirror/bundles exist in code; not required for local loop
+- **Timestamps:** ISO 8601 strings on entities; shot/rally times are **source-video seconds**
 
 ### Key Design Principles
 
-1. **Local-First:** All data persists in browser storage
+1. **Local-First:** Dexie holds match data; OPFS holds device video copies
 2. **Slug-Based IDs:** Human-readable, debuggable identifiers
-3. **Multi-Video Support:** Matches can have multiple video segments
-4. **Three-Phase Workflow:**
-   - Phase 1: Timestamp tagging (match framework)
-   - Phase 2: Shot detail entry
-   - Phase 3: Inference/analytics
-5. **Top-Down + Bottom-Up:** Match results entered top-down, verified by tagging bottom-up
+3. **Pass 1 tagging:** Contacts + first attack / end / flags feed Review and Clips
+4. **Derived clips:** Playlists/EDLs are computed from tags — not stored clip rows
+5. **Inference retired:** `shot_inferences` table already dropped; do not reintroduce
+6. **Top-Down + Bottom-Up:** Optional pre-entered scores; tagging remains source of truth
 
 ---
 

@@ -6,6 +6,23 @@
 
 ## Change Log
 
+### 2026-11-13: Foundation — build fix, SoT rewrite, obsolete docs deleted (v3.67.0)
+
+**Change Type:** Foundation / docs / unblock merge gate
+
+**What Changed:**
+- Fixed `ScopeReviewComposer` active tab Button `variant` (`default` → `primary`) so `npm run build` passes.
+- Rewrote `Architecture.md` and `Glossary.md` to Pass 1 → Match Review → Clips product truth; inference retired.
+- Updated `.cursorrules` domain context + SoT table (removed deleted MVP roadmap pointers); React 19; build gate notes `--legacy-peer-deps`.
+- Light-corrected `DataSchema.md` overview (dropped three-phase / inference principles).
+- Deleted obsolete docs: Shot_Tagging_Engine_Spec, MVP_Current_And_Roadmap, Next_MVP_Steps, LocalVideoHandling, shotTaggingContext, VideoPlayer_* summaries, `analytics/` guides, progressive-dashboard chat notes.
+
+**Decision Rationale:** Overnight foundation — green build, canonical docs for agents, prune contradictions before UX/playlist work.
+
+**Key Files:** `ScopeReviewComposer.tsx`; `Architecture.md`; `Glossary.md`; `.cursorrules`; `DataSchema.md`.
+
+---
+
 ### 2026-11-13: Classic / legacy Pass 1 chrome removed (v3.66.0)
 
 **Change Type:** UX cleanup — Pass 1 Focus chrome

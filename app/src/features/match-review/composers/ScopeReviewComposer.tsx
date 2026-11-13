@@ -106,7 +106,7 @@ export function ScopeReviewComposer() {
 
       <div className="flex flex-wrap gap-2">
         {(['summary', 'workon', 'clips'] as const).map((t) => (
-          <Button key={t} variant={tab === t ? 'default' : 'secondary'} size="sm" onClick={() => setTab(t)}>
+          <Button key={t} variant={tab === t ? 'primary' : 'secondary'} size="sm" onClick={() => setTab(t)}>
             {t === 'workon' ? 'Work on' : t === 'clips' ? 'Clips' : 'Summary'}
           </Button>
         ))}

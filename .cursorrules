@@ -5,7 +5,7 @@
 - **Project Name:** Edge TT Match Analyser
 - **NOT** the same as "Edge TT" (club session management app) — these are separate projects
 - **Purpose:** Table tennis match video tagging and analysis tool
-- **Stack:** Vite + React 18 + TypeScript + Zustand + Tailwind CSS
+- **Stack:** Vite + React 19 + TypeScript + Zustand + Dexie + Tailwind CSS
 
 ---
 
@@ -120,20 +120,20 @@ app/src/
 
 ## Testing (MVP)
 
-- No formal tests required for MVP
-- Manual testing in browser is sufficient
-- Keep `rules/` functions pure (easy to test later when stable)
+- Merge gate: `cd app && npm install --legacy-peer-deps && npm run build`
+- Lint is not a gate
+- Manual / browser smoke for flows; keep `rules/` pure for later tests
 
 ---
 
 ## Domain Context
 
-- Two-part tagging workflow:
-  - Part 1: Match Framework — mark contacts and rally boundaries
-  - Part 2: Rally Detail — review timestamps, answer shot questions
-- Tagging modes: Essential (4 questions/shot) vs Full (5+ questions/shot)
-- Local-first with Zustand — future Supabase migration planned
-- Video is local file (blob URL), not uploaded to server
+- Core loop: Home → **Pass 1** tag → Match Review (Summary / Work on) → **Clips** playlists → optional fix tags
+- Playlists of tagged shots/rallies are the product payoff; dashboards/numbers are secondary
+- Highlight = show-reel (keep the “Highlight” label)
+- Inference engine is retired — do not revive
+- Local-first: Dexie + OPFS `video_assets`; cloud sync is optional/out of overnight scope
+- Video times are source-video seconds; clips are derived EDLs, not stored clip rows
 
 ---
 
@@ -144,6 +144,4 @@ app/src/
 | Architecture | `docs-match-analyser-edge-tt/Architecture.md` |
 | Data Schema | `docs-match-analyser-edge-tt/DataSchema.md` |
 | Glossary | `docs-match-analyser-edge-tt/Glossary.md` |
-| Current Spec & Roadmap | `docs-match-analyser-edge-tt/specs/MVP_Current_And_Roadmap.md` |
 | Changelog | `docs-match-analyser-edge-tt/specs/specAddendumMVP.md` |
-
