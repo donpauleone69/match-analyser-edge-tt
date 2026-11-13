@@ -112,7 +112,8 @@ export function OverviewSection({
               : `${incompleteCount} incomplete points are out of stats`}
           </p>
           <p className="text-xs text-amber-200/80 mt-0.5">
-            Open Rallies → Incomplete to Fix — still excluded from stats until complete.
+            Fix incomplete — opens Rallies Incomplete (same as What’s left). Still out of
+            stats until complete.
           </p>
         </button>
       )}

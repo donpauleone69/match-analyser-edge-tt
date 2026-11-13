@@ -6,6 +6,21 @@
 
 ## Change Log
 
+### 2026-11-13: MA-45 — Incomplete badge deep-link + Gap ≥15s + Summary Fix copy (v3.95.0)
+
+**Change Type:** UX polish — MA-44 status follow-ups (no epics)
+
+**What Changed:**
+- Rallies Incomplete badge click → `?tab=rallies&rf=incomplete` (same deep-link as What’s left / Summary callout).
+- Pass 1 **Gap** hidden once current-set first serve is known and between-set gap &lt; 15s (shared `BETWEEN_SET_GAP_JUMP_MIN_S` with Details jump markers).
+- Summary incomplete callout copy clarifies one-tap Fix incomplete (handler already deep-linked).
+
+**Decision Rationale:** Close MA-44 status items that were cheap and path-aligned; keep Gap useful before first serve when dead air is unknown.
+
+**Key Files:** `TabBarBlock.tsx`; `MatchReviewComposer.tsx`; `Pass1FocusComposer.tsx`; `deriveVideoJumpMarkers.ts`; `OverviewSection.tsx`.
+
+---
+
 ### 2026-11-13: MA-44 — Tip-of-main regression smoke + Pass 1 Leave label (v3.94.0)
 
 **Change Type:** Regression smoke after polish wave #21–#29 + tiny chrome nit (no epics)

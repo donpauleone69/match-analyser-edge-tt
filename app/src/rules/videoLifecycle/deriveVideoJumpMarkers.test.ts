@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { deriveVideoJumpMarkers } from './deriveVideoJumpMarkers'
+import {
+  deriveVideoJumpMarkers,
+  shouldShowBetweenSetGapJump,
+} from './deriveVideoJumpMarkers'
 
 describe('deriveVideoJumpMarkers', () => {
   it('suggests trim from first serve to last action with lead/tail', () => {
@@ -25,11 +28,32 @@ describe('deriveVideoJumpMarkers', () => {
     expect(m.chips.some((c) => c.label.includes('Gap → set 2'))).toBe(true)
   })
 
+  it('hides Gap chip when between-set gap is under threshold', () => {
+    const m = deriveVideoJumpMarkers([
+      { setNumber: 1, rallyIndex: 1, loop: { start: 10, end: 20 } },
+      { setNumber: 2, rallyIndex: 1, loop: { start: 28, end: 35 } },
+    ])
+    expect(m.sets[0]?.gapToNextSetS).toBe(8)
+    expect(m.chips.some((c) => c.label.includes('Gap'))).toBe(false)
+  })
+
   it('ignores untimed rallies', () => {
     const m = deriveVideoJumpMarkers([
       { setNumber: 1, rallyIndex: 1, loop: null },
       { setNumber: 1, rallyIndex: 2, loop: { start: 40, end: 50 } },
     ])
     expect(m.sets[0]?.firstServeS).toBe(40)
+  })
+})
+
+describe('shouldShowBetweenSetGapJump', () => {
+  it('hides when first serve is within 15s of previous set end', () => {
+    expect(shouldShowBetweenSetGapJump(100, 108)).toBe(false)
+    expect(shouldShowBetweenSetGapJump(100, 115)).toBe(true)
+  })
+
+  it('shows when gap unknown or previous end missing', () => {
+    expect(shouldShowBetweenSetGapJump(100, null)).toBe(true)
+    expect(shouldShowBetweenSetGapJump(null, 120)).toBe(false)
   })
 })

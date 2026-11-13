@@ -14,9 +14,16 @@ export interface TabBarBlockProps<T extends string> {
   tabs: TabItem<T>[]
   active: T
   onChange: (id: T) => void
+  /** Clicking the count badge (e.g. Incomplete) — does not replace tab label click. */
+  onBadgeClick?: (id: T) => void
 }
 
-export function TabBarBlock<T extends string>({ tabs, active, onChange }: TabBarBlockProps<T>) {
+export function TabBarBlock<T extends string>({
+  tabs,
+  active,
+  onChange,
+  onBadgeClick,
+}: TabBarBlockProps<T>) {
   return (
     <nav
       className="sticky top-0 z-20 -mx-4 md:-mx-6 px-4 md:px-6 bg-bg-surface/95 backdrop-blur border-b border-neutral-800"
@@ -45,11 +52,26 @@ export function TabBarBlock<T extends string>({ tabs, active, onChange }: TabBar
               {tab.label}
               {typeof tab.badge === 'number' && tab.badge > 0 && (
                 <span
+                  role={onBadgeClick ? 'link' : undefined}
+                  title={
+                    tab.id === 'rallies' && onBadgeClick
+                      ? 'Open Incomplete filter'
+                      : undefined
+                  }
+                  onClick={
+                    onBadgeClick
+                      ? (e) => {
+                          e.stopPropagation()
+                          onBadgeClick(tab.id)
+                        }
+                      : undefined
+                  }
                   className={cn(
                     'ml-1.5 inline-flex min-w-[1.15rem] items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums',
                     tab.id === 'rallies'
                       ? 'bg-amber-600 text-neutral-950'
-                      : 'bg-neutral-700 text-neutral-200'
+                      : 'bg-neutral-700 text-neutral-200',
+                    onBadgeClick && 'cursor-pointer hover:opacity-90'
                   )}
                 >
                   {tab.badge}
