@@ -11,6 +11,7 @@ export interface VideoPlayerSectionProps {
   onVideoSelect: (url: string) => void
   constrainedPlayback?: ConstrainedPlayback
   showTimeOverlay?: boolean
+  showProgressBar?: boolean
   shotDescription?: string
   allowVideoChange?: boolean
   constrainedBadgeLabel?: string | null
@@ -21,7 +22,8 @@ export const VideoPlayerSection = forwardRef<VideoPlayerHandle, VideoPlayerSecti
     videoUrl, 
     onVideoSelect, 
     constrainedPlayback, 
-    showTimeOverlay = true,
+    showTimeOverlay = false,
+    showProgressBar = true,
     shotDescription,
     allowVideoChange = true,
     constrainedBadgeLabel = null,
@@ -33,6 +35,7 @@ export const VideoPlayerSection = forwardRef<VideoPlayerHandle, VideoPlayerSecti
         onVideoSelect={onVideoSelect}
         allowVideoChange={allowVideoChange}
         showTimeOverlay={showTimeOverlay}
+        showProgressBar={showProgressBar}
         constrainedPlayback={constrainedPlayback}
         constrainedBadgeLabel={constrainedBadgeLabel}
         shotDescription={shotDescription}

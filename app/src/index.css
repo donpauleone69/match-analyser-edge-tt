@@ -44,11 +44,11 @@
   /* ----------------------------------------
      CONTROL CHROME (tagging buttons = app standard)
      ---------------------------------------- */
-  --control-height: 1.375rem; /* 22px — iPhone wing+stroke single row */
-  --control-px: 0.2rem;
-  --control-text: 0.5625rem; /* 9px */
+  --control-height: 1.625rem; /* 26px — readable wing/stroke pills, still one row */
+  --control-px: 0.35rem;
+  --control-text: 0.625rem; /* 10px */
   --control-radius: 0.25rem;
-  --control-gap: 0.125rem;
+  --control-gap: 0.2rem;
 
   /* ----------------------------------------
      SEMANTIC COLORS

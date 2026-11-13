@@ -79,7 +79,7 @@ async function ensureSeedPlayer(): Promise<string> {
   const existing = await playerDb.getAll()
   if (existing.length > 0) return existing[0].id
   const created = await playerDb.create({
-    first_name: 'Local',
+    first_name: 'Hero',
     last_name: 'Player',
     handedness: 'right',
     playstyle: null,
@@ -89,7 +89,23 @@ async function ensureSeedPlayer(): Promise<string> {
   return created.id
 }
 
+/** Preserve the seeded player's durable id while retiring its old display name. */
+async function migrateLegacyHeroDisplayName(): Promise<void> {
+  try {
+    const players = await playerDb.getAll()
+    const legacySeeds = players.filter(
+      (player) => player.first_name === 'Local' && player.last_name === 'Player'
+    )
+    await Promise.all(
+      legacySeeds.map((player) => playerDb.update(player.id, { first_name: 'Hero' }))
+    )
+  } catch (error) {
+    console.warn('Could not update the legacy Hero display name:', error)
+  }
+}
+
 async function ensureLocalProfileReady(userId: string): Promise<AccountProfile> {
+  await migrateLegacyHeroDisplayName()
   const current = readProfile(userId)
   if (current?.role === 'player' && current.linkedPlayerId) return current
   if (current?.role === 'coach' && current.selectedFocalPlayerId) return current

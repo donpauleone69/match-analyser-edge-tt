@@ -5,10 +5,17 @@
  * Each Save writes the rally + shots to IndexedDB.
  */
 
-import { useState, useRef, useEffect, useMemo } from 'react'
+import { useState, useRef, useEffect, useMemo, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { cn } from '@/helpers/utils'
-import { Pass1FocusBlock } from '../blocks'
+import {
+  Pass1FocusBlock,
+  Pass1ShotMarkRail,
+  Pass1SetHudBlock,
+  Pass1SetContextBlock,
+  Pass1PointLedgerBlock,
+  snapPass1ShotIntoView,
+} from '../blocks'
 import { VideoPlayerSection } from '../sections'
 import {
   type VideoPlayerHandle,
@@ -20,6 +27,7 @@ import {
 } from '@/ui-mine/VideoPlayer'
 import { Button } from '@/ui-mine'
 import { calculateServer } from '@/rules'
+import { deriveMatchSetsBeforeSet } from '@/rules/derive/set/deriveMatchSetsBeforeSet'
 import { setDb } from '@/data'
 import { resolveSetVideo } from '@/data/services/videoAssetService'
 import {
@@ -37,10 +45,10 @@ import {
   timelineFromContacts,
   contactTimesFromTimeline,
   shotNumberAtTime,
-  contactOverlayColor,
   loopWindowFromContacts,
+  shotLoopWindow,
+  captureContactTime,
   seekFloorFromCompleted,
-  rallyTimelineViewWindow,
   clampSeekTime,
   CONTACT_IDLE_MS,
   LOOP_PAD_SECONDS,
@@ -123,13 +131,13 @@ export function Pass1FocusComposer({
   const [setupComplete, setSetupComplete] = useState(false)
   const [setupNextServer, setSetupNextServer] = useState<'player1' | 'player2'>('player1')
   const [currentScore, setCurrentScore] = useState({ player1: 0, player2: 0 })
+  const [matchSets, setMatchSets] = useState({ player1: 0, player2: 0 })
   const [saving, setSaving] = useState(false)
 
   const [phase, setPhase] = useState<PhaseStep>('setup')
   const [contactTimes, setContactTimes] = useState<number[]>([])
   const [openRally, setOpenRally] = useState<OpenRally | null>(null)
   const [completed, setCompleted] = useState<CompletedRally[]>([])
-  const [priorsOpen, setPriorsOpen] = useState(false)
   const [constrainedPlayback, setConstrainedPlayback] = useState({
     enabled: false,
     startTime: 0,
@@ -141,8 +149,11 @@ export function Pass1FocusComposer({
   /** When true, shot rows from 2 onward pick the first attack. */
   const [fosPickMode, setFosPickMode] = useState(false)
   const [selectedShot, setSelectedShot] = useState<number | null>(null)
+  /** Which point cube is outlined — past rally index, or 'next' (about to tag / open). */
+  const [focusedRallyIndex, setFocusedRallyIndex] = useState<number | 'next'>('next')
   /** null = not answered yet on the complete screen */
   const [scoreConfirmed, setScoreConfirmed] = useState<boolean | null>(null)
+  const [pointLedgerOpen, setPointLedgerOpen] = useState(false)
 
   const contactTimesRef = useRef(contactTimes)
   contactTimesRef.current = contactTimes
@@ -152,8 +163,6 @@ export function Pass1FocusComposer({
   const readVideoTime = () =>
     videoPlayerRef.current?.getCurrentTime() ??
     useVideoPlaybackStore.getState().currentTime
-
-  const minSeek = useMemo(() => seekFloorFromCompleted(completed), [completed])
 
   /** While tapping, constrain seek to [last rally end, duration]. */
   const applyTappingConstraints = (rallies: CompletedRally[] = completed) => {
@@ -204,6 +213,7 @@ export function Pass1FocusComposer({
         }
         setSetId(target.id)
         setSetReady(true)
+        setMatchSets(deriveMatchSetsBeforeSet(sets, setNumber, player1Id))
 
         const resumed = await loadResumedPass1FocusState({
           setId: target.id,
@@ -311,11 +321,14 @@ export function Pass1FocusComposer({
   const timeline = openRally?.timeline ?? emptyRallyTimelineState()
 
   useEffect(() => {
-    if (phase !== 'form' || typeof timeline.fos !== 'number') return
-    document
-      .querySelector(`[data-rally-shot="${timeline.fos}"]`)
-      ?.scrollIntoView({ block: 'nearest' })
-  }, [phase, timeline.fos])
+    if (phase !== 'form') return
+    const n =
+      selectedShot ??
+      (typeof timeline.end === 'number' ? timeline.end : null) ??
+      (typeof timeline.fos === 'number' ? timeline.fos : null)
+    if (typeof n !== 'number') return
+    snapPass1ShotIntoView(n)
+  }, [phase, selectedShot, timeline.fos, timeline.end])
 
   const winnerName = inferWinnerName(
     timeline.end,
@@ -346,6 +359,8 @@ export function Pass1FocusComposer({
     })
     setContactTimes([])
     setFosPickMode(true)
+    setSelectedShot(null)
+    setFocusedRallyIndex('next')
     setPhase('form')
     setConstrainedPlayback({
       enabled: true,
@@ -368,10 +383,10 @@ export function Pass1FocusComposer({
     }, CONTACT_IDLE_MS)
   }
 
-  /** One tap: this side serves here; re-anchor first-server so later pills follow. */
-  const handleToggleServer = async () => {
+  /** Set who serves this rally; re-anchor first-server so later pills follow. */
+  const handleSetServer = async (desired: WinnerId) => {
     if (!setupComplete || phase === 'complete') return
-    const desired: WinnerId = openServerId === 'player1' ? 'player2' : 'player1'
+    if (openServerId === desired) return
     let nextFirst: 'player1' | 'player2' = setupNextServer
     for (const candidate of ['player1', 'player2'] as const) {
       const result = calculateServer({
@@ -398,7 +413,13 @@ export function Pass1FocusComposer({
     const t = readVideoTime()
     setCurrentTime(t)
     const isServeTap = contactTimes.length === 0
-    setContactTimes((prev) => [...prev, t])
+    // Bake click-latency into the stored contact so playback uses true times as-is.
+    const floor =
+      contactTimes.length > 0
+        ? contactTimes[contactTimes.length - 1]
+        : seekFloorFromCompleted(completed)
+    const stored = captureContactTime(t, floor)
+    setContactTimes((prev) => [...prev, stored])
     if (isServeTap) {
       setPlaybackSpeed(CAPTURE_PLAYBACK_SPEED)
     }
@@ -408,25 +429,11 @@ export function Pass1FocusComposer({
     }
   }
 
-  /** Discard taps / open form rally as a let (no score). Resume from serve. */
-  const handleLet = () => {
-    clearIdleTimer()
-    const first =
-      openRally?.serveTimestamp ??
-      (contactTimes.length > 0 ? contactTimes[0] : null)
-    setContactTimes([])
-    setOpenRally(null)
-    setFosPickMode(false)
-    setPhase('tapping')
-    setPlaybackSpeed(NORMAL_PLAYBACK_SPEED)
-    applyTappingConstraints()
-    if (typeof first === 'number') {
-      seekClamped(first)
-    }
-    videoPlayerRef.current?.play()
-  }
-
-  /** Restart contact tapping for this rally (from form or mid-tap), or rewind if empty. */
+  /**
+   * Restart contact tapping for this rally (from form or mid-tap), or rewind if empty.
+   * This is also the let path: no score is recorded, and the replayed point is
+   * captured as the next taps — so there is no separate Let control.
+   */
   const handleRedoRally = () => {
     const seekSource =
       openRally?.serveTimestamp ??
@@ -457,7 +464,9 @@ export function Pass1FocusComposer({
 
   const handleJumpToLastRallyEnd = () => {
     if (completed.length === 0) return
-    seekClamped(minSeek)
+    const last = completed[completed.length - 1]
+    setFocusedRallyIndex(last.rallyIndex)
+    seekClamped(last.serveTimestamp)
     if (!isPlaying) {
       videoPlayerRef.current?.play()
     }
@@ -468,6 +477,7 @@ export function Pass1FocusComposer({
     const endAt = openRally.endTimestamp
     setOpenRally(null)
     setContactTimes([])
+    setFocusedRallyIndex('next')
     setPhase('tapping')
     setPlaybackSpeed(NORMAL_PLAYBACK_SPEED)
     applyTappingConstraints()
@@ -527,6 +537,7 @@ export function Pass1FocusComposer({
 
       setOpenRally(null)
       setContactTimes([])
+      setFocusedRallyIndex('next')
       setPhase('tapping')
       applyTappingConstraints(nextCompleted)
       setPlaybackSpeed(NORMAL_PLAYBACK_SPEED)
@@ -586,24 +597,42 @@ export function Pass1FocusComposer({
     patchTimeline((s) => toggleShotAttribute(s, n, key))
   }
 
+  /** Seek to shot `n`'s loop start and play; the selected-shot loop then keeps cycling. */
+  const playFromShot = (n: number) => {
+    if (!openRally || phase !== 'form') return
+    const shotLoop = shotLoopWindow(openRally.timeline, n, constrainedPlayback)
+    if (!shotLoop) return
+    const target = shotLoop.startTime
+    setCurrentTime(target)
+    // ignoreConstraints: the player still holds the previous shot's window until re-render.
+    videoPlayerRef.current?.seek(target, true)
+    videoPlayerRef.current?.play()
+  }
+
+  /** Rail or list row tap: select, snap the row under the rail, and replay from that shot. */
+  const handleSelectShot = (n: number) => {
+    setSelectedShot(n)
+    playFromShot(n)
+    requestAnimationFrame(() => snapPass1ShotIntoView(n))
+  }
+
   const handleMarkFos = (at: number) => {
     if (!openRally || phase !== 'form') return
     if (at < 2) return
+    setSelectedShot(at)
     const contact = openRally.timeline.shots[at]?.contactTime ?? null
-    // Radio select from the FOS picker / shot number / video click.
     patchTimeline((s) => setFos(s, at, contact))
     setFosPickMode(false)
-    if (typeof contact === 'number') {
-      setCurrentTime(contact)
-      videoPlayerRef.current?.seek(contact)
-    }
+    playFromShot(at)
   }
 
   const handleChangeFos = () => {
+    setSelectedShot(null)
     setFosPickMode(true)
   }
 
   const handleNoAttack = () => {
+    setSelectedShot(null)
     patchTimeline((s) => setFos(s, null))
     setFosPickMode(false)
   }
@@ -637,21 +666,36 @@ export function Pass1FocusComposer({
     }
   }
 
-  /** Timeline click on a completed rally → its end (seek floor for that rally). */
-  const handleSeekToRallyEnd = (endTimestamp: number) => {
-    seekClamped(endTimestamp)
+  /** Point-cube: jump to a completed rally's serve and outline it. */
+  const handleSelectCompletedRally = (rally: CompletedRally) => {
+    setFocusedRallyIndex(rally.rallyIndex)
+    seekClamped(rally.serveTimestamp)
     if (!isPlaying) {
       videoPlayerRef.current?.play()
     }
   }
 
-  const handleTimelineScrub = (t: number) => {
-    seekClamped(t)
+  /** Point-cube: return focus to the next / open point. */
+  const handleSelectNextRally = () => {
+    setFocusedRallyIndex('next')
+    if (phase === 'tapping') {
+      applyTappingConstraints()
+      seekClamped(seekFloorFromCompleted(completed))
+    } else if (openRally) {
+      setSelectedShot(null)
+      const { startTime, endTime } = constrainedPlayback
+      const target = Math.max(startTime, Math.min(endTime, openRally.serveTimestamp))
+      setCurrentTime(target)
+      videoPlayerRef.current?.seek(target, true)
+    }
+    if (!isPlaying) {
+      videoPlayerRef.current?.play()
+    }
   }
 
   const handleDeleteLastRally = async () => {
-    if (phase !== 'tapping' || completed.length === 0) return
-    if (contactTimes.length > 0) {
+    if (completed.length === 0 || focusedRallyIndex !== 'next') return
+    if (phase === 'tapping' && contactTimes.length > 0) {
       const ok = window.confirm(
         'Discard current taps and delete the last completed rally?'
       )
@@ -659,6 +703,12 @@ export function Pass1FocusComposer({
       clearIdleTimer()
       setContactTimes([])
       setPlaybackSpeed(NORMAL_PLAYBACK_SPEED)
+    }
+    if (phase === 'form' && openRally) {
+      const ok = window.confirm(
+        'Delete the last completed rally? The open rally draft is kept.'
+      )
+      if (!ok) return
     }
 
     const last = completed[completed.length - 1]
@@ -680,15 +730,18 @@ export function Pass1FocusComposer({
       }
       setCompleted(nextCompleted)
       setCurrentScore(rolledScore)
-      applyTappingConstraints(nextCompleted)
-      seekClamped(
-        nextCompleted.length > 0
-          ? nextCompleted[nextCompleted.length - 1].endTimestamp
-          : 0,
-        nextCompleted
-      )
-      if (!isPlaying) {
-        videoPlayerRef.current?.play()
+      setFocusedRallyIndex('next')
+      if (phase === 'tapping') {
+        applyTappingConstraints(nextCompleted)
+        seekClamped(
+          nextCompleted.length > 0
+            ? nextCompleted[nextCompleted.length - 1].endTimestamp
+            : 0,
+          nextCompleted
+        )
+        if (!isPlaying) {
+          videoPlayerRef.current?.play()
+        }
       }
     } catch (error) {
       console.error('[Pass1Focus] Delete last failed:', error)
@@ -696,7 +749,20 @@ export function Pass1FocusComposer({
     }
   }
 
+  /** Soft exit to Match Review without finalizing the set (Resume still works). */
+  const handleReviewMatch = () => {
+    if (openRally || contactTimes.length > 0) {
+      const ok = window.confirm(
+        'Leave tagging? Unsaved rally progress will be lost.'
+      )
+      if (!ok) return
+    }
+    clearIdleTimer()
+    navigate(`/matches/${matchId}`)
+  }
+
   const handleMarkEnd = (at: number) => {
+    setSelectedShot(at)
     patchTimeline((s) => markEnd(s, at))
   }
 
@@ -775,11 +841,79 @@ export function Pass1FocusComposer({
       : phase === 'form'
         ? shotNumberAtTime(formContactTimes, liveTime)
         : null
-  const showContactOverlay = phase === 'tapping' || phase === 'form'
-  const overlayColor =
-    typeof overlayShot === 'number' && overlayShot > 0
-      ? contactOverlayColor(overlayShot)
-      : 'var(--color-neutral-200)'
+  const selectedShotLoop =
+    phase === 'form' && openRally && selectedShot !== null
+      ? shotLoopWindow(openRally.timeline, selectedShot, constrainedPlayback)
+      : null
+  const activePlayback = selectedShotLoop
+    ? { ...constrainedPlayback, ...selectedShotLoop }
+    : constrainedPlayback
+  const previewRally =
+    focusedRallyIndex !== 'next'
+      ? completed.find((rally) => rally.rallyIndex === focusedRallyIndex) ?? null
+      : null
+
+  const scoreBadge = (
+    <Pass1SetHudBlock
+      setNumber={setNumber}
+      player1Name={player1Name}
+      player2Name={player2Name}
+      player1Sets={matchSets.player1}
+      player2Sets={matchSets.player2}
+      player1Score={currentScore.player1}
+      player2Score={currentScore.player2}
+      serverId={openServerId}
+      serverName={serverName}
+    />
+  )
+
+  const pointLedger = (
+    <Pass1PointLedgerBlock
+      open={pointLedgerOpen}
+      completed={completed}
+      player1Name={player1Name}
+      player2Name={player2Name}
+      nextServerId={openServerId}
+      focusedRallyIndex={focusedRallyIndex}
+      nextIsOpen={phase === 'form' || contactTimes.length > 0}
+      onClose={() => setPointLedgerOpen(false)}
+      onSelectCompleted={(rallyIndex) => {
+        const rally = completed.find((item) => item.rallyIndex === rallyIndex)
+        if (rally) {
+          handleSelectCompletedRally(rally)
+          setPointLedgerOpen(false)
+        }
+      }}
+      onSelectNext={() => {
+        handleSelectNextRally()
+        setPointLedgerOpen(false)
+      }}
+    />
+  )
+  const canEndSet = completed.length > 0 && focusedRallyIndex === 'next'
+  const setContextBar = (
+    <Pass1SetContextBlock
+      completed={completed}
+      player1Name={player1Name}
+      player2Name={player2Name}
+      serverId={previewRally?.serverId ?? openServerId}
+      serverName={previewRally?.serverName ?? serverName}
+      focusedRallyIndex={focusedRallyIndex}
+      historyOpen={pointLedgerOpen}
+      navigationLocked={phase === 'form' || contactTimes.length > 0}
+      canToggleServer={focusedRallyIndex === 'next'}
+      onToggleServer={() =>
+        void handleSetServer(openServerId === 'player1' ? 'player2' : 'player1')
+      }
+      onSelectLast={handleJumpToLastRallyEnd}
+      onSelectNext={handleSelectNextRally}
+      onToggleHistory={() => setPointLedgerOpen((open) => !open)}
+      canEndSet={canEndSet}
+      onEndSet={() => void handleEndSession()}
+      onReviewMatch={handleReviewMatch}
+    />
+  )
+
   return (
     <div
       className={cn(
@@ -789,195 +923,120 @@ export function Pass1FocusComposer({
     >
       {/* Full-width 16:9 video */}
       <div className="relative shrink-0 w-full bg-black overflow-hidden">
-        <div
-          className="relative w-full aspect-video"
-          onClick={(e) => {
-            if (phase !== 'form') return
-            if ((e.target as HTMLElement).closest('button')) return
-            if (typeof overlayShot === 'number' && overlayShot >= 2) {
-              handleMarkFos(overlayShot)
-            }
-          }}
-        >
+        <div className="relative w-full aspect-video">
           <VideoStageChrome
-            topLeft={
-              <>
-                <span className="rounded-md bg-black/70 px-2 py-1 text-[11px] font-bold tabular-nums text-white border border-white/20">
-                  {currentScore.player1}–{currentScore.player2}
-                </span>
-                <ServerPill
-                  serverId={openServerId}
-                  player1Name={player1Name}
-                  player2Name={player2Name}
-                  onToggle={handleToggleServer}
-                />
-              </>
-            }
             bottomOverlay={
               videoUrl ? (
-                <TransportCluster
-                  variant="overlay"
-                  isPlaying={isPlaying}
-                  playbackSpeed={playbackSpeed}
-                  seekStepSeconds={SHARED_SEEK_STEP}
-                  onTogglePlay={() => videoPlayerRef.current?.togglePlay()}
-                  onSeekBy={handleSeekBy}
-                  onNudgeSpeed={nudgePlaybackSpeed}
-                />
-              ) : null
+                <div className="flex flex-col gap-1">
+                  <div className="flex justify-start">{scoreBadge}</div>
+                  <TransportCluster
+                    variant="overlay"
+                    isPlaying={isPlaying}
+                    playbackSpeed={playbackSpeed}
+                    seekStepSeconds={SHARED_SEEK_STEP}
+                    onTogglePlay={() => videoPlayerRef.current?.togglePlay()}
+                    onSeekBy={handleSeekBy}
+                    onNudgeSpeed={nudgePlaybackSpeed}
+                  />
+                </div>
+              ) : (
+                <div className="flex justify-start">{scoreBadge}</div>
+              )
             }
           >
             <VideoPlayerSection
               ref={videoPlayerRef}
               videoUrl={videoUrl}
               onVideoSelect={setVideoUrl}
-              constrainedPlayback={constrainedPlayback}
+              constrainedPlayback={activePlayback}
+              showProgressBar
             />
           </VideoStageChrome>
-          {showContactOverlay && typeof overlayShot === 'number' && (
-            <div
-              role={phase === 'form' && overlayShot >= 2 ? 'button' : undefined}
-              tabIndex={phase === 'form' && overlayShot >= 2 ? 0 : undefined}
-              onClick={() => {
-                if (phase === 'form' && overlayShot >= 2) handleMarkFos(overlayShot)
-              }}
-              onKeyDown={(e) => {
-                if (
-                  phase === 'form' &&
-                  overlayShot >= 2 &&
-                  (e.key === 'Enter' || e.key === ' ')
-                ) {
-                  e.preventDefault()
-                  handleMarkFos(overlayShot)
-                }
-              }}
-              className={cn(
-                'absolute z-20 flex flex-col items-center rounded-xl bg-neutral-950/90 shadow-lg border border-white/10',
-                phase === 'form'
-                  ? 'top-14 right-2 px-2.5 py-1.5'
-                  : 'top-1/2 right-3 -translate-y-1/2 px-3 py-2.5',
-                phase === 'form' &&
-                  overlayShot >= 2 &&
-                  'cursor-pointer hover:border-shot-first-attack'
-              )}
-              aria-live="polite"
-              aria-label={
-                phase === 'form'
-                  ? overlayShot >= 2
-                    ? `Mark shot ${overlayShot} as first attack`
-                    : `Shot ${overlayShot}`
-                  : `${overlayShot} contacts`
-              }
-            >
-              <span
-                className={cn(
-                  'font-black leading-none text-center tabular-nums select-none',
-                  phase === 'form' ? 'text-[40px]' : 'text-[56px] sm:text-[64px]'
-                )}
-                style={{ color: overlayColor }}
-              >
-                {overlayShot}
-              </span>
-            </div>
-          )}
         </div>
       </div>
 
-      {phase === 'tapping' && typeof duration === 'number' && duration > 0 && (
-        <RallyProgressTimeline
-          duration={duration}
-          liveTime={liveTime}
-          completed={completed}
-          contactTimes={contactTimes}
-          minSeek={minSeek}
-          onSeekRallyEnd={handleSeekToRallyEnd}
-          onScrub={handleTimelineScrub}
-        />
-      )}
-
       <div className="flex-1 min-h-0 flex flex-col bg-bg-surface">
         {phase === 'tapping' ? (
-          <div className="flex flex-col flex-1 min-h-0">
+          <div className="relative flex flex-col flex-1 min-h-0">
+            {setContextBar}
+            {pointLedger}
             <TaggingSessionBar
-              completed={completed}
-              priorsOpen={priorsOpen}
-              onTogglePriors={() => setPriorsOpen((o) => !o)}
-              onEnd={handleEndSession}
-              canEnd={completed.length > 0}
-              onJumpLast={handleJumpToLastRallyEnd}
-              onDeleteLast={handleDeleteLastRally}
-              tagBtn={tagBtn}
+              captureRail={
+                <Pass1ShotMarkRail
+                  state={
+                    previewRally
+                      ? previewRally.timeline
+                      : { ...timelineFromContacts(contactTimes), end: null }
+                  }
+                  players={players}
+                  server={previewRally?.serverName ?? serverName}
+                  activeShot={previewRally ? null : contactTimes.length > 0 ? contactTimes.length : null}
+                  onSelectShot={(n) => {
+                    const t = previewRally
+                      ? previewRally.timeline.shots[n]?.contactTime
+                      : contactTimes[n - 1]
+                    if (typeof t === 'number') seekClamped(t)
+                  }}
+                  scrollable
+                />
+              }
             />
             <div className="flex-1 min-h-0 flex flex-col gap-2 p-2">
-              <Button
-                variant="primary"
-                onClick={handleTapContact}
-                disabled={!setReady}
-                className="flex-1 w-full min-h-0 !h-auto self-stretch text-2xl font-bold rounded-xl"
-              >
-                Tap contact
-              </Button>
-              <div className="shrink-0 grid grid-cols-3 gap-2">
+              <div className="relative flex-1 min-h-0 flex flex-col">
                 <Button
-                  variant="secondary"
-                  onClick={handleLet}
-                  disabled={contactCount === 0}
-                  className="w-full h-11 text-sm font-semibold"
+                  variant="primary"
+                  onClick={handleTapContact}
+                  disabled={!setReady || Boolean(previewRally)}
+                  className="flex-1 w-full min-h-0 !h-auto self-stretch text-2xl font-bold rounded-xl"
                 >
-                  Let
+                  {previewRally
+                    ? 'Return to live to capture'
+                    : 'Tap contact'}
                 </Button>
-                <Button
-                  variant="secondary"
-                  onClick={handleUndoLastContact}
-                  disabled={contactCount === 0}
-                  className="w-full h-11 text-sm font-semibold"
-                >
-                  Undo last
-                </Button>
-                <Button
-                  variant="secondary"
-                  onClick={handleRedoRally}
-                  className="w-full h-11 text-sm font-semibold"
-                >
-                  Redo
-                </Button>
+                {contactCount > 0 && !previewRally && (
+                  <button
+                    type="button"
+                    onClick={handleUndoLastContact}
+                    className="absolute bottom-2 right-2 rounded-md border border-white/25 bg-black/45 px-2 py-1 text-[11px] font-semibold text-white/90 backdrop-blur-sm"
+                    title="Drop the last contact tap"
+                  >
+                    Undo tap
+                  </button>
+                )}
               </div>
               <p className="shrink-0 text-[11px] text-muted text-center pb-1">
-                {contactCount === 0
-                  ? 'Tap each bat contact · first tap is the serve · Undo last drops one tap'
-                  : `${contactCount} contact${contactCount === 1 ? '' : 's'} · auto-finishes after 2s idle`}
+                {previewRally
+                  ? 'Viewing a past point · Live → in the set bar to capture'
+                  : contactCount === 0
+                    ? 'Tap each bat contact · first tap is the serve · auto-finishes after 2s idle'
+                    : `${contactCount} contact${contactCount === 1 ? '' : 's'} · auto-finishes after 2s idle`}
               </p>
             </div>
           </div>
         ) : (
-          <div className="flex flex-col flex-1 min-h-0">
-            {/* Tagging chrome — compact; seek/speed/play are on the video overlay */}
+          <div className="relative flex flex-col flex-1 min-h-0">
+            {setContextBar}
+            {pointLedger}
+            {/* Tagging chrome — seek/speed/play on video; session actions on form row */}
             <div className="shrink-0 border-t border-pill-idle-border bg-bg-card">
-              <div className="min-h-9 px-1.5 py-1 flex items-center gap-1 text-[length:var(--control-text)]">
+              {/* Rally/session row only. Shot-level First attack / End point /
+                  Flag for review live in the sticky selected-shot tools. */}
+              <div className="min-h-9 px-1.5 py-1 flex flex-wrap items-center justify-end gap-1 text-[length:var(--control-text)]">
                 <button
                   type="button"
-                  onClick={() => completed.length > 0 && setPriorsOpen((o) => !o)}
+                  onClick={handleRedoRally}
                   className={cn(tagBtn, 'shrink-0')}
+                  title="Clear these contacts and re-tap this rally from just before the serve — also for a let: no score is recorded and the replay is captured as new taps"
                 >
-                  {completed.length}
-                  {completed.length > 0 && (
-                    <span className="ml-0.5 text-muted">{priorsOpen ? '▾' : '▸'}</span>
-                  )}
-                </button>
-                <div className="flex-1" />
-                <button type="button" onClick={handleLet} className={cn(tagBtn, 'shrink-0')} title="Let">
-                  Let
+                  Redo contacts
                 </button>
                 <button
                   type="button"
                   onClick={handleDiscardOpen}
                   className={cn(tagBtn, 'tag-control-danger shrink-0')}
-                  title="Discard open rally"
+                  title="Discard this rally draft without saving and move past its last contact (do not re-tap it)"
                 >
-                  Disc
-                </button>
-                <button type="button" onClick={handleRedoRally} className={cn(tagBtn, 'shrink-0')} title="Redo">
-                  Redo
+                  Discard rally
                 </button>
                 <button
                   type="button"
@@ -988,46 +1047,56 @@ export function Pass1FocusComposer({
                     'shrink-0',
                     openRally?.isHighlight && 'bg-review border-review text-primary'
                   )}
-                  title="Highlight"
+                  title="Mark this whole rally as a highlight"
                 >
-                  ★
+                  ★ Highlight
                 </button>
                 <button
                   type="button"
                   onClick={handleSave}
                   disabled={!canSave || saving}
                   className={cn(tagBtn, 'shrink-0', canSave && 'tag-control-active')}
-                  title="Save rally"
+                  title="Save this rally and move to the next point"
                 >
-                  Save
+                  Save rally
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleDeleteLastRally()}
+                  disabled={completed.length === 0}
+                  className={cn(tagBtn, 'tag-control-danger shrink-0')}
+                  title="Delete the last saved point (this open rally draft is kept)"
+                >
+                  Delete last point
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleEndSession()}
+                  disabled={!canEndSet && !openRally}
+                  className={cn(tagBtn, 'shrink-0')}
+                  title="End this set and confirm the score (session action, not the point end)"
+                >
+                  End set
+                </button>
+                <button
+                  type="button"
+                  onClick={handleReviewMatch}
+                  className={cn(tagBtn, 'shrink-0')}
+                  title="Leave tagging and open match review (does not end the set; unsaved rally is lost)"
+                >
+                  Match review
                 </button>
               </div>
-
-              {priorsOpen && completed.length > 0 && (
-                <div className="px-2 pb-1.5 max-h-16 overflow-y-auto space-y-0.5 border-t border-pill-idle-border">
-                  {completed.map((r) => (
-                    <div key={r.rallyIndex} className="text-[10px] text-muted leading-snug">
-                      <span className="text-muted">R{r.rallyIndex}</span>
-                      {r.isHighlight && (
-                        <span className="ml-1 text-review" title="Highlight">
-                          ★
-                        </span>
-                      )}{' '}
-                      {r.summary}
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
 
-            <div className="flex-1 min-h-0 overflow-y-auto">
+            <div data-pass1-scroller className="flex-1 min-h-0 overflow-y-auto">
               <Pass1FocusBlock
                 state={timeline}
                 players={players}
                 server={serverName}
                 activeShot={overlayShot}
                 selectedShot={selectedShot}
-                onSelectShot={setSelectedShot}
+                onSelectShot={handleSelectShot}
                 fosPickMode={fosPickMode}
                 onToggleShotChoice={handleToggleShotChoice}
                 onToggleAttribute={handleToggleAttribute}
@@ -1040,6 +1109,7 @@ export function Pass1FocusComposer({
                 onToggleMissReason={handleToggleMissReason}
                 onToggleReviewKind={handleToggleReviewKind}
                 onToggleReviewFlag={handleToggleReviewFlag}
+                scrollableShotRail
               />
             </div>
           </div>
@@ -1049,216 +1119,11 @@ export function Pass1FocusComposer({
   )
 }
 
-function ServerPill({
-  serverId,
-  player1Name,
-  player2Name,
-  onToggle,
-}: {
-  serverId: WinnerId
-  player1Name: string
-  player2Name: string
-  onToggle: () => void
-}) {
-  const label = serverId === 'player1' ? player1Name : player2Name
-  return (
-    <button
-      type="button"
-      aria-label={`Server ${label}. Tap to switch.`}
-      title="Tap to switch server"
-      onClick={onToggle}
-      className={cn('tag-control tag-control-active max-w-[5.5rem] truncate')}
-    >
-      Srv {label}
-    </button>
-  )
-}
-
-function TaggingSessionBar({
-  completed,
-  priorsOpen,
-  onTogglePriors,
-  onEnd,
-  canEnd,
-  onJumpLast,
-  onDeleteLast,
-  tagBtn,
-}: {
-  completed: CompletedRally[]
-  priorsOpen: boolean
-  onTogglePriors: () => void
-  onEnd: () => void
-  canEnd: boolean
-  onJumpLast: () => void
-  onDeleteLast: () => void
-  tagBtn: string
-}) {
+/** Contact-phase chrome: shot rail under the set context bar. */
+function TaggingSessionBar({ captureRail }: { captureRail: ReactNode }) {
   return (
     <div className="shrink-0 border-t border-pill-idle-border bg-bg-card">
-      <div className="min-h-9 px-1.5 py-1 flex items-center gap-1 text-[length:var(--control-text)]">
-        <button
-          type="button"
-          disabled={completed.length === 0}
-          onClick={onTogglePriors}
-          className={cn(tagBtn, 'shrink-0')}
-        >
-          {completed.length}
-          {completed.length > 0 && <span className="ml-0.5 text-muted">{priorsOpen ? '▾' : '▸'}</span>}
-        </button>
-        <div className="flex-1" />
-        <button
-          type="button"
-          onClick={onJumpLast}
-          disabled={completed.length === 0}
-          className={tagBtn}
-          title="Jump to end of last completed rally"
-        >
-          Last
-        </button>
-        <button
-          type="button"
-          onClick={onDeleteLast}
-          disabled={completed.length === 0}
-          className={cn(tagBtn, 'tag-control-danger')}
-          title="Delete last completed rally"
-        >
-          Del
-        </button>
-        <button type="button" onClick={onEnd} disabled={!canEnd} className={tagBtn}>
-          End
-        </button>
-      </div>
-      {priorsOpen && completed.length > 0 && (
-        <div className="px-2 pb-1.5 max-h-16 overflow-y-auto space-y-0.5 border-t border-pill-idle-border">
-          {completed.map((r) => (
-            <div key={r.rallyIndex} className="text-[10px] text-muted leading-snug">
-              <span className="text-muted">R{r.rallyIndex}</span>
-              {r.isHighlight && (
-                <span className="ml-1 text-review" title="Highlight">
-                  ★
-                </span>
-              )}{' '}
-              {r.summary}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
-function RallyProgressTimeline({
-  duration,
-  liveTime,
-  completed,
-  contactTimes,
-  minSeek,
-  onSeekRallyEnd,
-  onScrub,
-}: {
-  duration: number
-  liveTime: number
-  completed: CompletedRally[]
-  contactTimes: number[]
-  minSeek: number
-  onSeekRallyEnd: (endTimestamp: number) => void
-  onScrub: (t: number) => void
-}) {
-  const trackRef = useRef<HTMLDivElement>(null)
-  // Zoom to tagged activity so short rallies paint as ranges, not ticks.
-  const { viewStart, viewEnd } = rallyTimelineViewWindow({
-    duration,
-    liveTime,
-    completed,
-    contactTimes,
-  })
-  const span = Math.max(0.001, viewEnd - viewStart)
-  const pct = (t: number) =>
-    `${Math.min(100, Math.max(0, ((t - viewStart) / span) * 100))}%`
-  const rangeStyle = (start: number, end: number) => {
-    const left = Math.min(100, Math.max(0, ((start - viewStart) / span) * 100))
-    const rawW = ((Math.max(end, start) - start) / span) * 100
-    const width = Math.min(100 - left, Math.max(0, rawW))
-    return {
-      left: `${left}%`,
-      // Pixel floor keeps 1–2s rallies readable on dense clusters.
-      width: `max(12px, ${width}%)`,
-    }
-  }
-
-  const timeFromClientX = (clientX: number) => {
-    const el = trackRef.current
-    if (!el || span <= 0) return minSeek
-    const rect = el.getBoundingClientRect()
-    const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width))
-    return clampSeekTime(viewStart + ratio * span, minSeek, duration)
-  }
-
-  return (
-    <div
-      className="shrink-0 h-9 px-2 bg-neutral-950 border-t border-neutral-800 flex items-center"
-      aria-label="Rally timeline"
-    >
-      <div
-        ref={trackRef}
-        role="slider"
-        aria-valuemin={viewStart}
-        aria-valuemax={viewEnd}
-        aria-valuenow={liveTime}
-        tabIndex={0}
-        className="relative w-full h-4 rounded-sm bg-black cursor-pointer touch-none overflow-hidden"
-        onClick={(e) => onScrub(timeFromClientX(e.clientX))}
-        onKeyDown={(e) => {
-          if (e.key === 'ArrowLeft') {
-            e.preventDefault()
-            onScrub(liveTime - 1)
-          } else if (e.key === 'ArrowRight') {
-            e.preventDefault()
-            onScrub(liveTime + 1)
-          }
-        }}
-      >
-        {completed.map((r) => {
-          const rawStart = Math.min(r.serveTimestamp, r.endTimestamp)
-          const rawEnd = Math.max(r.serveTimestamp, r.endTimestamp)
-          // Slight pad so contact-to-contact spans read as a filled rally block.
-          const start = Math.max(viewStart, rawStart - LOOP_PAD_SECONDS)
-          const end = Math.min(viewEnd, rawEnd + LOOP_PAD_SECONDS)
-          const fill = r.isHighlight
-            ? 'var(--color-review)'
-            : 'var(--color-shot-serve)'
-          return (
-            <button
-              key={r.rallyIndex}
-              type="button"
-              title={`Rally ${r.rallyIndex} · jump to end`}
-              aria-label={`Jump to end of rally ${r.rallyIndex}`}
-              onClick={(e) => {
-                e.stopPropagation()
-                onSeekRallyEnd(r.endTimestamp)
-              }}
-              className="absolute top-0 bottom-0 rounded-[1px] border border-black/25 hover:brightness-110"
-              style={{
-                ...rangeStyle(start, end),
-                backgroundColor: fill,
-              }}
-            />
-          )
-        })}
-        {contactTimes.map((t, i) => (
-          <span
-            key={`c-${i}-${t}`}
-            className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-contact-live pointer-events-none z-10"
-            style={{ left: pct(t) }}
-            aria-hidden
-          />
-        ))}
-        <span
-          className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 w-0.5 h-5 rounded-full bg-white pointer-events-none z-20"
-          style={{ left: pct(liveTime) }}
-          aria-hidden
-        />
-      </div>
+      <div className="px-1.5 pb-0.5">{captureRail}</div>
     </div>
   )
 }

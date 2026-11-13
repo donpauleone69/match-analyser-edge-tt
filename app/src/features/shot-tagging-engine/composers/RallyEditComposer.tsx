@@ -21,7 +21,7 @@ import {
 import { matchDb, setDb, usePlayerStore, type DBMatch } from '@/data'
 import { resolveSetVideo } from '@/data/services/videoAssetService'
 import { resolveOpponentId, resolveOpponentName } from '@/helpers/themSide'
-import { Pass1FocusBlock } from '../blocks'
+import { Pass1FocusBlock, snapPass1ShotIntoView } from '../blocks'
 import { VideoPlayerSection } from '../sections'
 import {
   canSaveRallyTimeline,
@@ -89,6 +89,11 @@ export function RallyEditComposer() {
   const [liveTime, setLiveTime] = useState(0)
 
   useEffect(() => {
+    if (typeof selectedShot !== 'number') return
+    snapPass1ShotIntoView(selectedShot)
+  }, [selectedShot])
+
+  useEffect(() => {
     loadPlayers()
   }, [loadPlayers])
 
@@ -111,8 +116,8 @@ export function RallyEditComposer() {
   }, [matchId])
 
   const player1Name = match
-    ? players.find((p) => p.id === match.player1_id)?.first_name || 'Player 1'
-    : 'Player 1'
+    ? players.find((p) => p.id === match.player1_id)?.first_name || 'Hero'
+    : 'Hero'
   const player2Name = match
     ? resolveOpponentName(
         match.player2_id,
@@ -462,8 +467,10 @@ export function RallyEditComposer() {
           }
           onMarkFos={(at: number) => {
             if (at < 2) return
+            setSelectedShot(at)
             patchTimeline((s) => setFos(s, at, s.shots[at]?.contactTime ?? null))
             setFosPickMode(false)
+            snapPass1ShotIntoView(at)
           }}
           onChangeFos={() => setFosPickMode(true)}
           onNoAttack={() => {
@@ -471,7 +478,11 @@ export function RallyEditComposer() {
             setFosPickMode(false)
           }}
           onCancelFosPick={() => setFosPickMode(false)}
-          onMarkEnd={(at: number) => patchTimeline((s) => markEnd(s, at))}
+          onMarkEnd={(at: number) => {
+            setSelectedShot(at)
+            patchTimeline((s) => markEnd(s, at))
+            snapPass1ShotIntoView(at)
+          }}
           onToggleEnding={(value: PointEnding) => patchTimeline((s) => toggleEnding(s, value))}
           onToggleMissReason={(value: PointMissReason) =>
             patchTimeline((s) => toggleMissReason(s, value))

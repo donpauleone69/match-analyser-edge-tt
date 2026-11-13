@@ -36,7 +36,7 @@ export function VideoStageChrome({
         </div>
       )}
       {bottomOverlay && (
-        <div className="absolute bottom-2 left-2 right-2 z-30 pointer-events-none">
+        <div className="absolute bottom-6 left-2 right-2 z-30 pointer-events-none">
           <div className="pointer-events-auto">{bottomOverlay}</div>
         </div>
       )}

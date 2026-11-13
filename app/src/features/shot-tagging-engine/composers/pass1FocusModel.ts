@@ -256,6 +256,24 @@ export function visibleShotNumbers(shotCount: number, end: number | null): numbe
   return Array.from({ length: last }, (_, i) => i + 1)
 }
 
+/** Shot-rail width: at least 10, and always two spare slots past the last contact. */
+export function railSlotCount(shotCount: number): number {
+  return Math.max(10, Math.max(0, shotCount) + 2)
+}
+
+export type RailSlotKind = 'in_play' | 'after_end' | 'unused'
+
+/** How a rail slot relates to contacts and End (for grey / tap rules). */
+export function railSlotKind(
+  n: number,
+  shotCount: number,
+  end: number | null
+): RailSlotKind {
+  if (n < 1 || n > shotCount) return 'unused'
+  if (typeof end === 'number' && n > end) return 'after_end'
+  return 'in_play'
+}
+
 /** Contact times 1..shotCount from a timeline (skips missing). */
 export function contactTimesFromTimeline(state: RallyTimelineState): number[] {
   const times: number[] = []
@@ -298,6 +316,59 @@ export function loopWindowFromContacts(
   if (endTime <= startTime) {
     endTime = startTime + 0.1
   }
+  return { startTime, endTime }
+}
+
+/**
+ * Human click → perceived contact latency (seconds).
+ * Subtracted once when recording a tap so stored times are true contacts;
+ * playback / shot loops use those stored times as-is (no second lead-in).
+ * Distinct from {@link LOOP_PAD_SECONDS} (whole-rally loop padding).
+ */
+export const CONTACT_LATENCY_BUFFER_SECONDS = 0.3
+
+/**
+ * Estimate true contact time from a tap on the video clock.
+ * `floorSeconds` is 0, the prior contact, or the last completed rally end —
+ * never store a contact before that floor.
+ */
+export function captureContactTime(
+  videoTimeSeconds: number,
+  floorSeconds = 0
+): number {
+  return Math.max(floorSeconds, videoTimeSeconds - CONTACT_LATENCY_BUFFER_SECONDS)
+}
+
+/** Where to resume the rally loop when a shot is selected (never before the loop start). */
+export function shotPlaybackStart(contactTime: number, loopStartTime: number): number {
+  return Math.max(loopStartTime, contactTime)
+}
+
+/** Shortest selected-shot loop, so near-identical contact taps still play. */
+export const MIN_SHOT_LOOP_SECONDS = 0.1
+
+/**
+ * Loop window for a selected shot, inside the whole-rally loop:
+ * [contact(n), contact(n+1)]; the last contact runs to the rally loop end.
+ * Null when shot `n` has no contact time (caller keeps the rally loop).
+ * Click-latency compensation is already in stored contact times at capture.
+ */
+export function shotLoopWindow(
+  state: RallyTimelineState,
+  n: number,
+  rallyLoop: { startTime: number; endTime: number }
+): { startTime: number; endTime: number } | null {
+  const contact = state.shots[n]?.contactTime
+  if (typeof contact !== 'number') return null
+  const { startTime: loopStart, endTime: loopEnd } = rallyLoop
+  const startTime = Math.min(loopEnd, shotPlaybackStart(contact, loopStart))
+  const next = state.shots[n + 1]?.contactTime
+  let endTime =
+    typeof next === 'number' ? Math.min(loopEnd, next) : loopEnd
+  if (endTime - startTime < MIN_SHOT_LOOP_SECONDS) {
+    endTime = Math.min(loopEnd, startTime + MIN_SHOT_LOOP_SECONDS)
+  }
+  if (endTime <= startTime) return null
   return { startTime, endTime }
 }
 
@@ -426,16 +497,14 @@ function formatContactTime(t: number | null): string | null {
   return `${m}:${s.toFixed(1).padStart(4, '0')}`
 }
 
-export function getShotSummary(n: number, shot: ShotTags): string {
+/**
+ * Compact header details for a shot (role badge already shows Serve / Receive / …).
+ * Phase-tagged fields first, then contact time.
+ */
+export function getShotSummary(_n: number, shot: ShotTags): string {
   const fields = [
-    n === 1 ? 'Serve' : null,
     shot.wing,
     shot.isPivot ? 'Pivot' : null,
-    shot.reviewKind === 'technical'
-      ? 'Review · Technical'
-      : shot.reviewKind === 'tactical'
-        ? 'Review · Tactical'
-        : null,
     shot.stroke,
     shot.isHigh ? 'High' : null,
     shot.isSafe ? 'Safe' : null,
@@ -446,6 +515,11 @@ export function getShotSummary(n: number, shot: ShotTags): string {
         : shot.standing === 'ahead'
           ? 'Ahead'
           : null,
+    shot.reviewKind === 'technical'
+      ? 'Tech review'
+      : shot.reviewKind === 'tactical'
+        ? 'Tact review'
+        : null,
     formatContactTime(shot.contactTime),
   ]
   return fields.filter(Boolean).join(' · ') || '—'
@@ -601,20 +675,19 @@ export function markEnd(state: RallyTimelineState, at: number): RallyTimelineSta
     at === 1 || (typeof state.fos === 'number' && state.fos > at)
   const fos = invalidFos ? null : state.fos
 
-  const shots: ShotMap = {}
+  // Keep all contacts — End is a marker, not a truncate — so End can move forward later.
+  const shots: ShotMap = { ...state.shots }
   for (let i = 1; i <= at; i++) {
-    const shot = state.shots[i]
+    const shot = shots[i]
     if (!shot) continue
     const allow = derivePass1ShotTagAllowList(i, fos, at)
-    shots[i] =
-      shot.standing !== null && !allow.shot_initiative
-        ? { ...shot, standing: null }
-        : shot
+    if (shot.standing !== null && !allow.shot_initiative) {
+      shots[i] = { ...shot, standing: null }
+    }
   }
 
   return {
     ...state,
-    shotCount: at,
     shots,
     end: at,
     ending: null,

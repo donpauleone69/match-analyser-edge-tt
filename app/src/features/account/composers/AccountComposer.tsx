@@ -47,7 +47,7 @@ export function AccountComposer() {
     const list = usePlayerStore.getState().players
     if (list.length > 0) return list
     const created = await createPlayer({
-      first_name: 'Local',
+      first_name: 'Hero',
       last_name: 'Player',
       handedness: 'right',
       playstyle: null,
@@ -208,7 +208,7 @@ export function AccountComposer() {
                         void ensurePlayerList()
                       }}
                     >
-                      Create Local Player
+                      Create Hero Player
                     </Button>
                   )}
                   <div className="flex flex-wrap items-center justify-between gap-2">

@@ -36,6 +36,8 @@ interface VideoPlayerProps {
   constrainedPlayback?: ConstrainedPlayback
   onConstrainedEnd?: () => void
   showTimeOverlay?: boolean
+  /** Scrub bar under the frame. Off when a shot timeline owns seeking (Pass 1). Default true. */
+  showProgressBar?: boolean
   /** Optional label for constrained playback (e.g. "Loop"). Omit to hide the badge. */
   constrainedBadgeLabel?: string | null
   shotDescription?: string
@@ -53,6 +55,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
   constrainedPlayback,
   onConstrainedEnd,
   showTimeOverlay = false,
+  showProgressBar = true,
   constrainedBadgeLabel = null,
   shotDescription,
   enableHotkeys = true,
@@ -138,11 +141,19 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
     }
   }, [localVideoUrl])
 
-  useEffect(() => {
+  // A media load resets playbackRate to defaultPlaybackRate, and the <video> can mount after
+  // the speed was set — re-apply on src change, loadedmetadata, and any foreign ratechange.
+  const applyStoreSpeed = useCallback(() => {
     const video = videoRef.current
     if (!video) return
-    video.playbackRate = playbackSpeed
-  }, [playbackSpeed])
+    const speed = useVideoPlaybackStore.getState().playbackSpeed
+    if (video.defaultPlaybackRate !== speed) video.defaultPlaybackRate = speed
+    if (video.playbackRate !== speed) video.playbackRate = speed
+  }, [])
+
+  useEffect(() => {
+    applyStoreSpeed()
+  }, [playbackSpeed, effectiveVideoSrc, applyStoreSpeed])
 
   useEffect(() => {
     if (!constrainedPlayback?.enabled) return
@@ -178,8 +189,9 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
       setDuration(video.duration)
       setIsPlaying(!video.paused)
       setIsProcessingFile(false)
+      applyStoreSpeed()
     }
-  }, [setDuration, setIsPlaying])
+  }, [setDuration, setIsPlaying, applyStoreSpeed])
 
   const handlePlay = useCallback(() => {
     if (!isPlaying) {
@@ -363,6 +375,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
           className="w-full h-full object-contain"
           onTimeUpdate={handleTimeUpdate}
           onLoadedMetadata={handleLoadedMetadata}
+          onRateChange={applyStoreSpeed}
           onPlay={handlePlay}
           onPause={handlePause}
           onError={handleError}
@@ -432,10 +445,10 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
         </div>
       )}
 
-      {effectiveVideoSrc && (
-        <div className="absolute bottom-0 left-0 right-0 px-2 pb-2">
+      {effectiveVideoSrc && showProgressBar && (
+        <div className="absolute bottom-0 left-0 right-0 px-2 pb-1.5 z-20">
           <div
-            className="h-2 bg-black/60 rounded-full cursor-pointer relative"
+            className="h-1 bg-black/50 rounded-full cursor-pointer relative"
             onClick={(e) => {
               const rect = e.currentTarget.getBoundingClientRect()
               const percent = (e.clientX - rect.left) / rect.width

@@ -1,12 +1,18 @@
 /**
  * Pass 1 Focus — shot pills for first-pass capture (Match Review aesthetic).
  *
- * Allow-list from `derivePass1ShotTagAllowList`. First attack + review flags
- * share one 12-slot rail. Technical/Tactical optional when a shot is selected.
- * Live contact outlined.
+ * Rally guide rail: width max(10, contacts+2). Server is set per rally, not on the rail.
+ * Tap a shot → select it and snap that list row under the sticky rail (no duplicate card).
+ * Rows wear opaque pastels: hitter colour by default, serve / first attack / result override.
+ * Shot-level First attack / End point / Flag for review live ONLY in the sticky
+ * selected-shot tools (one tap, always visible, same on mobile/desktop).
+ * Row-inline controls keep only the follow-ups that belong to that shot
+ * (ending type once it is the end, review kind once flagged); rail cells stay
+ * display/selection only. Session End set / Match review never live here.
+ * Live = rail underline; selected = rail border. List keeps allow-list tagging.
  */
 
-import { useState, type ReactNode } from 'react'
+import { type ReactNode } from 'react'
 import { cn } from '@/helpers/utils'
 import {
   derivePass1ShotTagAllowList,
@@ -23,6 +29,8 @@ import {
   WING_OPTIONS,
   phaseAt,
   visibleShotNumbers,
+  railSlotCount,
+  railSlotKind,
   playerForShot,
   getShotSummary,
   isErrorEnding,
@@ -39,12 +47,12 @@ export interface Pass1FocusBlockProps {
   state: RallyTimelineState
   players: [string, string]
   server: string
-  /** Shot whose contact the loop is currently on (outlined). */
+  /** Shot whose contact the loop is currently on (rail underline). */
   activeShot?: number | null
-  /** Shot selected for optional tags / review kind. */
+  /** Shot selected for sticky FA/End/Review tools + optional tags / review kind. */
   selectedShot?: number | null
   onSelectShot?: (n: number) => void
-  /** @deprecated First attack is only set from the dedicated row. */
+  /** @deprecated First attack is only set from the selected-shot tools. */
   fosPickMode?: boolean
   onToggleShotChoice: (n: number, key: ShotChoiceKey, value: string) => void
   onToggleAttribute: (n: number, key: ShotAttributeKey) => void
@@ -57,6 +65,7 @@ export interface Pass1FocusBlockProps {
   onToggleMissReason: (value: PointMissReason) => void
   onToggleReviewKind: (n: number, value: ShotReviewKind) => void
   onToggleReviewFlag: (n: number) => void
+  scrollableShotRail?: boolean
   className?: string
 }
 
@@ -83,7 +92,18 @@ const PILL_COLOR: Record<PillKind, string> = {
   review: 'var(--color-review)',
 }
 
-const PLAYER_ROW = { odd: 'bg-player-1-bg', even: 'bg-player-2-bg' }
+/**
+ * Row washes are always opaque pastels (never card/elevated greys on the card surface).
+ * Default = hitter's player pastel, matching the shot rail; role/result rows override.
+ */
+const PLAYER_ROW_BG = { p1: 'bg-player-1-bg', p2: 'bg-player-2-bg' }
+const SERVE_ROW_BG = 'bg-shot-serve-bg'
+const FOS_ROW_BG = 'bg-shot-first-attack-bg'
+const RESULT_ROW_BG = {
+  winner: 'bg-result-winner-bg',
+  error: 'bg-result-error-bg',
+  air: 'bg-result-air-bg',
+}
 const SERVE_STRIPE = 'var(--color-shot-serve)'
 
 const PHASE_GROUP: Record<RallyPhase, string> = {
@@ -101,24 +121,27 @@ function TimelinePill({
   onClick,
   kind,
   className,
+  title,
 }: {
   label: string
   selected: boolean
   onClick: () => void
   kind: PillKind
   className?: string
+  title?: string
 }) {
   const color = PILL_COLOR[kind]
   return (
     <button
       type="button"
       aria-pressed={selected}
+      title={title}
       onClick={(e) => {
         e.stopPropagation()
         onClick()
       }}
       className={cn(
-        'inline-flex items-center justify-center min-w-0',
+        'inline-flex flex-none items-center justify-center',
         'h-[var(--control-height)] whitespace-nowrap rounded-[var(--control-radius)] border',
         'px-[var(--control-px)] text-[length:var(--control-text)] font-semibold cursor-pointer',
         'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-500',
@@ -146,7 +169,7 @@ function ChoiceRow({ label, children }: { label: string; children: ReactNode }) 
         {label}
       </div>
       <div
-        className="flex items-center flex-nowrap min-w-0"
+        className="flex w-full min-w-0 items-center flex-nowrap"
         style={{ gap: 'var(--control-gap)' }}
       >
         {children}
@@ -173,7 +196,7 @@ function ShotTypeRow({
   return (
     <ChoiceRow label="Shot">
       <div
-        className="flex min-w-0 flex-nowrap items-center"
+        className="flex w-full min-w-0 items-start"
         style={{ gap: 'var(--control-gap)' }}
       >
         <div
@@ -187,6 +210,7 @@ function ShotTypeRow({
               label={v}
               selected={shot.wing === v}
               onClick={() => onToggleShotChoice(n, 'wing', v)}
+              className="min-w-[1.75rem]"
             />
           ))}
           {showPivot && (
@@ -195,11 +219,12 @@ function ShotTypeRow({
               label="Pivot"
               selected={shot.isPivot}
               onClick={() => onToggleAttribute(n, 'isPivot')}
+              className="min-w-[2.25rem]"
             />
           )}
         </div>
         <div
-          className="flex shrink-0 flex-nowrap items-center"
+          className="flex flex-1 min-w-0 flex-nowrap justify-end overflow-x-auto"
           style={{ gap: 'var(--control-gap)' }}
         >
           {strokes.map((v) => (
@@ -209,6 +234,7 @@ function ShotTypeRow({
               label={v}
               selected={shot.stroke === v}
               onClick={() => onToggleShotChoice(n, 'stroke', v)}
+              className="min-w-[2.25rem]"
             />
           ))}
         </div>
@@ -241,6 +267,267 @@ function InitiativeRow({
   )
 }
 
+type ShotVisual = {
+  rowBg: string
+  stripeColor: string
+  roleLabel: string | null
+  roleTone: 'serve' | 'receive' | 'attack' | 'winner' | 'error' | 'air'
+}
+
+function deriveShotVisual(
+  n: number,
+  state: RallyTimelineState,
+  players: [string, string],
+  server: string
+): ShotVisual {
+  const isServe = n === 1
+  const isEnd = state.end === n
+  const role = derivePass1ShotTagRole(n, state.fos, state.end)
+  const phase = phaseAt(n, state)
+  const isPre = !isServe && (phase === 'opening' || phase === 'ball')
+  const resultKey: keyof typeof RESULT_ROW_BG =
+    state.ending === 'winner' || state.ending === 'lucky'
+      ? 'winner'
+      : state.ending === 'error_air'
+        ? 'air'
+        : 'error'
+  const rowBg =
+    isEnd && state.ending
+      ? RESULT_ROW_BG[resultKey]
+      : isServe
+        ? SERVE_ROW_BG
+        : role === 'first_attack'
+          ? FOS_ROW_BG
+          : playerForShot(n, players, server) === players[0]
+            ? PLAYER_ROW_BG.p1
+            : PLAYER_ROW_BG.p2
+  const resultStripe =
+    state.ending === 'winner' || state.ending === 'lucky'
+      ? 'var(--color-result-winner)'
+      : state.ending === 'error_air'
+        ? 'var(--color-result-air)'
+        : 'var(--color-result-error)'
+  const stripeColor = isServe
+    ? SERVE_STRIPE
+    : isEnd && state.ending
+      ? resultStripe
+      : role === 'first_attack'
+        ? 'var(--color-shot-first-attack)'
+        : n === 2 || role === 'reply'
+          ? 'var(--color-shot-receive)'
+          : isPre
+            ? PHASE_META.ball.stripe
+            : PHASE_META[phase].stripe
+
+  const roleLabel =
+    isEnd && state.ending
+      ? state.ending === 'winner'
+        ? 'Winner'
+        : state.ending === 'lucky'
+          ? 'Lucky'
+          : state.ending === 'error_air'
+            ? 'Air'
+            : 'Error'
+      : isServe
+        ? 'Serve'
+        : role === 'first_attack'
+          ? 'First attack'
+          : n === 2
+            ? 'Receive'
+            : role === 'reply'
+              ? 'Reply'
+              : role === 'ball_before_attack'
+                ? 'Ball'
+                : null
+
+  const roleTone: ShotVisual['roleTone'] =
+    isEnd && state.ending
+      ? state.ending === 'winner' || state.ending === 'lucky'
+        ? 'winner'
+        : state.ending === 'error_air'
+          ? 'air'
+          : 'error'
+      : isServe
+        ? 'serve'
+        : role === 'first_attack'
+          ? 'attack'
+          : 'receive'
+
+  return { rowBg, stripeColor, roleLabel, roleTone }
+}
+
+function ShotTagging({
+  n,
+  state,
+  isSelected,
+  onToggleShotChoice,
+  onToggleAttribute,
+  onToggleEnding,
+  onToggleMissReason,
+  onToggleReviewKind,
+}: {
+  n: number
+  state: RallyTimelineState
+  isSelected: boolean
+  onToggleShotChoice: (n: number, key: ShotChoiceKey, value: string) => void
+  onToggleAttribute: (n: number, key: ShotAttributeKey) => void
+  onToggleEnding: (value: PointEnding) => void
+  onToggleMissReason: (value: PointMissReason) => void
+  onToggleReviewKind: (n: number, value: ShotReviewKind) => void
+}) {
+  const shot = state.shots[n]
+  if (!shot) return null
+
+  const isEnd = state.end === n
+  const allow = derivePass1ShotTagAllowList(n, state.fos, state.end)
+  const role = derivePass1ShotTagRole(n, state.fos, state.end)
+  const forceTechnical = shot.reviewKind === 'technical'
+  const showShotType =
+    ((allow.shot_wing && allow.shot_stroke) || forceTechnical) &&
+    (isSelected || allow.shot_wing || allow.shot_stroke || forceTechnical)
+
+  const strokes: readonly string[] =
+    role === 'first_attack'
+      ? ATTACK_STROKE_OPTIONS
+      : role === 'end_shot'
+        ? END_STROKE_OPTIONS
+        : REPLY_STROKE_OPTIONS
+
+  const showOptional =
+    isSelected &&
+    (allow.shot_is_high ||
+      allow.shot_is_safe ||
+      allow.shot_initiative ||
+      showShotType ||
+      shot.reviewKind !== null)
+
+  return (
+    <>
+      {/* Always-visible role tags when allow-list requires them (first attack / end) */}
+      {!isSelected && allow.shot_wing && allow.shot_stroke && (
+        <ShotTypeRow
+          n={n}
+          shot={shot}
+          strokes={strokes}
+          showPivot={allow.shot_is_pivot}
+          onToggleShotChoice={onToggleShotChoice}
+          onToggleAttribute={onToggleAttribute}
+        />
+      )}
+      {!isSelected && allow.shot_is_high && (
+        <ChoiceRow label="Ball">
+          <TimelinePill
+            kind="standing"
+            label="High"
+            selected={shot.isHigh}
+            onClick={() => onToggleAttribute(n, 'isHigh')}
+          />
+        </ChoiceRow>
+      )}
+      {!isSelected && allow.shot_is_safe && (
+        <ChoiceRow label="Attribute">
+          <TimelinePill
+            kind="standing"
+            label="Safe"
+            selected={shot.isSafe}
+            onClick={() => onToggleAttribute(n, 'isSafe')}
+          />
+        </ChoiceRow>
+      )}
+      {!isSelected && allow.shot_initiative && (
+        <InitiativeRow n={n} shot={shot} onToggleShotChoice={onToggleShotChoice} />
+      )}
+
+      {/* End itself is marked only in the sticky selected-shot tools; the
+          row keeps just the ending type for the shot that already is the end. */}
+      {isEnd && (
+        <ChoiceRow label="Result">
+          {ENDING_OPTIONS.map(({ value, label }) => (
+              <TimelinePill
+                key={value}
+                kind={
+                  value === 'winner' || value === 'lucky'
+                    ? 'winner'
+                    : value === 'error_air'
+                      ? 'air'
+                      : 'error'
+                }
+                label={label}
+                selected={state.ending === value}
+                onClick={() => onToggleEnding(value)}
+              />
+            ))}
+        </ChoiceRow>
+      )}
+
+      {isEnd && isErrorEnding(state.ending) && (
+        <ChoiceRow label="Miss reason">
+          {MISS_REASON_OPTIONS.map(({ value, label }) => (
+            <TimelinePill
+              key={value}
+              kind="standing"
+              label={label}
+              selected={state.missReason === value}
+              onClick={() => onToggleMissReason(value)}
+            />
+          ))}
+        </ChoiceRow>
+      )}
+
+      {showOptional && (
+        <>
+          {allow.shot_is_high && (
+            <ChoiceRow label="Ball">
+              <TimelinePill
+                kind="standing"
+                label="High"
+                selected={shot.isHigh}
+                onClick={() => onToggleAttribute(n, 'isHigh')}
+              />
+            </ChoiceRow>
+          )}
+          {showShotType && (
+            <ShotTypeRow
+              n={n}
+              shot={shot}
+              strokes={forceTechnical && !allow.shot_stroke ? END_STROKE_OPTIONS : strokes}
+              showPivot={allow.shot_is_pivot || forceTechnical}
+              onToggleShotChoice={onToggleShotChoice}
+              onToggleAttribute={onToggleAttribute}
+            />
+          )}
+          {allow.shot_is_safe && (
+            <ChoiceRow label="Attribute">
+              <TimelinePill
+                kind="standing"
+                label="Safe"
+                selected={shot.isSafe}
+                onClick={() => onToggleAttribute(n, 'isSafe')}
+              />
+            </ChoiceRow>
+          )}
+          {allow.shot_initiative && (
+            <InitiativeRow n={n} shot={shot} onToggleShotChoice={onToggleShotChoice} />
+          )}
+          <ChoiceRow label="Flag kind">
+            <div className="flex flex-1 min-w-0 flex-wrap gap-1">
+              {REVIEW_KIND_OPTIONS.map(({ value, label }) => (
+                <TimelinePill
+                  key={value}
+                  kind="review"
+                  label={label}
+                  selected={shot.reviewKind === value}
+                  onClick={() => onToggleReviewKind(n, value)}
+                />
+              ))}
+            </div>
+          </ChoiceRow>
+        </>
+      )}
+    </>
+  )
+}
+
 export function Pass1FocusBlock({
   state,
   players,
@@ -251,87 +538,106 @@ export function Pass1FocusBlock({
   onToggleShotChoice,
   onToggleAttribute,
   onMarkFos,
-  onChangeFos: _onChangeFos,
   onNoAttack,
-  onCancelFosPick: _onCancelFosPick,
   onMarkEnd,
   onToggleEnding,
   onToggleMissReason,
   onToggleReviewKind,
   onToggleReviewFlag,
+  scrollableShotRail = false,
   className,
 }: Pass1FocusBlockProps) {
   const visible = visibleShotNumbers(state.shotCount, state.end)
+  const selected =
+    typeof selectedShot === 'number' && state.shots[selectedShot] ? selectedShot : null
+  const selectedShotData = selected !== null ? state.shots[selected] : null
 
   return (
     <section
-      className={cn('bg-bg-card text-primary min-w-0 w-full px-1.5 py-1 border-t border-pill-idle-border', className)}
+      className={cn('bg-bg-card text-primary min-w-0 w-full px-1.5 py-1', className)}
       aria-label="Pass 1 focus"
     >
-      <ShotMarkRail
-        state={state}
-        selectedShot={selectedShot}
-        onSelectShot={onSelectShot}
-        onMarkFos={onMarkFos}
-        onNoAttack={onNoAttack}
-        onToggleReviewFlag={onToggleReviewFlag}
-      />
+      <div
+        data-pass1-sticky
+        className="sticky top-0 z-10 -mx-1.5 px-1.5 pt-0.5 pb-1 mb-1 bg-bg-card/95 backdrop-blur-sm border-b border-pill-idle-border space-y-1"
+      >
+        <Pass1ShotMarkRail
+          state={state}
+          players={players}
+          server={server}
+          activeShot={activeShot}
+          selectedShot={selectedShot}
+          onSelectShot={onSelectShot}
+          scrollable={scrollableShotRail}
+        />
+        {selected !== null && selectedShotData && (
+          <div
+            className="flex flex-wrap items-center justify-end gap-1"
+            aria-label={`Shot ${selected} tools`}
+          >
+            <span className="mr-auto text-[9px] font-bold uppercase tracking-wide text-muted">
+              Shot {selected}
+            </span>
+            {selected >= 2 && (
+              <TimelinePill
+                kind="fos"
+                label="First attack"
+                selected={state.fos === selected}
+                title={
+                  state.fos === selected
+                    ? `Shot ${selected} is the first attack — tap to clear it (no attack)`
+                    : `Mark shot ${selected} as the first attack of the point`
+                }
+                onClick={() =>
+                  state.fos === selected ? onNoAttack() : onMarkFos(selected)
+                }
+              />
+            )}
+            <TimelinePill
+              kind="end"
+              label="End point"
+              selected={state.end === selected}
+              title={
+                state.end === selected
+                  ? `Shot ${selected} ends the point — tap to un-mark the point end`
+                  : `Mark shot ${selected} as the last shot of the point, then choose the result on its row`
+              }
+              onClick={() => onMarkEnd(selected)}
+            />
+            <TimelinePill
+              kind="review"
+              label="Flag for review"
+              selected={selectedShotData.reviewKind !== null}
+              title={
+                selectedShotData.reviewKind !== null
+                  ? `Shot ${selected} is flagged for later review — tap to remove the flag`
+                  : `Flag shot ${selected} for later review (starts as Technical; refine the kind on its row)`
+              }
+              onClick={() => onToggleReviewFlag(selected)}
+            />
+          </div>
+        )}
+      </div>
       <div className="flex flex-col gap-1">
         {visible.map((n) => {
           const shot = state.shots[n]
           if (!shot) return null
           const isServe = n === 1
-          const isEnd = state.end === n
-          const allow = derivePass1ShotTagAllowList(n, state.fos, state.end)
-          const role = derivePass1ShotTagRole(n, state.fos, state.end)
-          const forceTechnical = shot.reviewKind === 'technical'
           const isSelected = selectedShot === n
-          const showShotType =
-            ((allow.shot_wing && allow.shot_stroke) || forceTechnical) &&
-            (isSelected || allow.shot_wing || allow.shot_stroke || forceTechnical)
+          const visual = deriveShotVisual(n, state, players, server)
 
           const phase = phaseAt(n, state)
           const prior = n > 1 ? phaseAt(n - 1, state) : null
           const phaseName = isServe ? 'SERVE' : PHASE_GROUP[phase]
           const priorName = prior ? (n - 1 === 1 ? 'SERVE' : PHASE_GROUP[prior]) : null
-          const isPre = !isServe && (phase === 'opening' || phase === 'ball')
-          const rowBg = n % 2 === 0 ? PLAYER_ROW.even : PLAYER_ROW.odd
-          const resultStripe =
-            state.ending === 'winner' || state.ending === 'lucky'
-              ? 'var(--color-result-winner)'
-              : state.ending === 'error_air'
-                ? 'var(--color-result-air)'
-                : 'var(--color-result-error)'
-          const stripeColor = isServe
-            ? SERVE_STRIPE
-            : isEnd && state.ending
-              ? resultStripe
-              : role === 'first_attack'
-                ? 'var(--color-shot-first-attack)'
-                : n === 2 || role === 'reply'
-                  ? 'var(--color-shot-receive)'
-                  : isPre
-                    ? PHASE_META.ball.stripe
-                    : PHASE_META[phase].stripe
           const showPhaseMark = n === 1 || phaseName !== priorName
 
-          const strokes: readonly string[] =
-            role === 'first_attack'
-              ? ATTACK_STROKE_OPTIONS
-              : role === 'end_shot'
-                ? END_STROKE_OPTIONS
-                : REPLY_STROKE_OPTIONS
-
-          const showOptional =
-            isSelected &&
-            (allow.shot_is_high ||
-              allow.shot_is_safe ||
-              allow.shot_initiative ||
-              showShotType ||
-              shot.reviewKind !== null)
-
           return (
-            <div key={n}>
+            <div
+              key={n}
+              data-rally-shot-wrap={n}
+              className="scroll-mt-[var(--pass1-sticky-offset,4rem)]"
+            >
               {showPhaseMark && (
                 <div
                   className="flex gap-1.5 items-center mt-1 mb-0.5 first:mt-0 text-[9px] font-bold text-muted tracking-wide"
@@ -339,7 +645,7 @@ export function Pass1FocusBlock({
                 >
                   <span
                     className="flex-none w-1.5 h-[2px] rounded-full"
-                    style={{ background: stripeColor }}
+                    style={{ background: visual.stripeColor }}
                   />
                   <span>{phaseName}</span>
                   <span className="flex-1 min-w-2 h-px bg-neutral-700" />
@@ -350,282 +656,146 @@ export function Pass1FocusBlock({
                 n={n}
                 players={players}
                 server={server}
-                rowBg={rowBg}
-                stripeColor={stripeColor}
-                active={activeShot === n}
+                rowBg={visual.rowBg}
+                stripeColor={visual.stripeColor}
                 selected={isSelected}
                 isFos={state.fos === n}
-                roleLabel={
-                  isEnd && state.ending
-                    ? state.ending === 'winner' || state.ending === 'lucky'
-                      ? 'Winner'
-                      : state.ending === 'error_air'
-                        ? 'Air'
-                        : 'Error'
-                    : isServe
-                      ? 'Serve'
-                      : role === 'first_attack'
-                        ? 'First attack'
-                        : n === 2 || role === 'reply'
-                          ? 'Receive'
-                          : null
-                }
-                roleTone={
-                  isEnd && state.ending
-                    ? state.ending === 'winner' || state.ending === 'lucky'
-                      ? 'winner'
-                      : state.ending === 'error_air'
-                        ? 'air'
-                        : 'error'
-                    : isServe
-                      ? 'serve'
-                      : role === 'first_attack'
-                        ? 'attack'
-                        : 'receive'
-                }
+                roleLabel={visual.roleLabel}
+                roleTone={visual.roleTone}
                 flagged={shot.reviewKind !== null}
                 summary={getShotSummary(n, shot)}
                 onSelect={() => onSelectShot?.(n)}
               >
-                {/* Always-visible role tags when allow-list requires them (first attack / end) */}
-                {!isSelected && (allow.shot_wing && allow.shot_stroke) && (
-                  <ShotTypeRow
-                    n={n}
-                    shot={shot}
-                    strokes={strokes}
-                    showPivot={allow.shot_is_pivot}
-                    onToggleShotChoice={onToggleShotChoice}
-                    onToggleAttribute={onToggleAttribute}
-                  />
-                )}
-                {!isSelected && allow.shot_is_high && (
-                  <ChoiceRow label="Ball">
-                    <TimelinePill
-                      kind="standing"
-                      label="High"
-                      selected={shot.isHigh}
-                      onClick={() => onToggleAttribute(n, 'isHigh')}
-                    />
-                  </ChoiceRow>
-                )}
-                {!isSelected && allow.shot_is_safe && (
-                  <ChoiceRow label="Attribute">
-                    <TimelinePill
-                      kind="standing"
-                      label="Safe"
-                      selected={shot.isSafe}
-                      onClick={() => onToggleAttribute(n, 'isSafe')}
-                    />
-                  </ChoiceRow>
-                )}
-                {!isSelected && allow.shot_initiative && (
-                  <InitiativeRow n={n} shot={shot} onToggleShotChoice={onToggleShotChoice} />
-                )}
-
-                {(state.end === null || isEnd) && (
-                  <ChoiceRow label="Result">
-                    <TimelinePill
-                      kind="end"
-                      label="End"
-                      selected={isEnd}
-                      onClick={() => onMarkEnd(n)}
-                    />
-                    {isEnd &&
-                      ENDING_OPTIONS.map(({ value, label }) => (
-                        <TimelinePill
-                          key={value}
-                          kind={
-                            value === 'winner' || value === 'lucky'
-                              ? 'winner'
-                              : value === 'error_air'
-                                ? 'air'
-                                : 'error'
-                          }
-                          label={label}
-                          selected={state.ending === value}
-                          onClick={() => onToggleEnding(value)}
-                        />
-                      ))}
-                  </ChoiceRow>
-                )}
-
-                {isEnd && isErrorEnding(state.ending) && (
-                  <ChoiceRow label="Miss reason">
-                    {MISS_REASON_OPTIONS.map(({ value, label }) => (
-                      <TimelinePill
-                        key={value}
-                        kind="standing"
-                        label={label}
-                        selected={state.missReason === value}
-                        onClick={() => onToggleMissReason(value)}
-                      />
-                    ))}
-                  </ChoiceRow>
-                )}
-
-                {showOptional && (
-                  <>
-                    {allow.shot_is_high && (
-                      <ChoiceRow label="Ball">
-                        <TimelinePill
-                          kind="standing"
-                          label="High"
-                          selected={shot.isHigh}
-                          onClick={() => onToggleAttribute(n, 'isHigh')}
-                        />
-                      </ChoiceRow>
-                    )}
-                    {showShotType && (
-                      <ShotTypeRow
-                        n={n}
-                        shot={shot}
-                        strokes={
-                          forceTechnical && !allow.shot_stroke ? END_STROKE_OPTIONS : strokes
-                        }
-                        showPivot={allow.shot_is_pivot || forceTechnical}
-                        onToggleShotChoice={onToggleShotChoice}
-                        onToggleAttribute={onToggleAttribute}
-                      />
-                    )}
-                    {allow.shot_is_safe && (
-                      <ChoiceRow label="Attribute">
-                        <TimelinePill
-                          kind="standing"
-                          label="Safe"
-                          selected={shot.isSafe}
-                          onClick={() => onToggleAttribute(n, 'isSafe')}
-                        />
-                      </ChoiceRow>
-                    )}
-                    {allow.shot_initiative && (
-                      <InitiativeRow n={n} shot={shot} onToggleShotChoice={onToggleShotChoice} />
-                    )}
-                    <ChoiceRow label="Review kind">
-                      <div className="flex flex-1 min-w-0 flex-wrap gap-1">
-                        {REVIEW_KIND_OPTIONS.map(({ value, label }) => (
-                          <TimelinePill
-                            key={value}
-                            kind="review"
-                            label={label}
-                            selected={shot.reviewKind === value}
-                            onClick={() => onToggleReviewKind(n, value)}
-                          />
-                        ))}
-                      </div>
-                    </ChoiceRow>
-                  </>
-                )}
+                <ShotTagging
+                  n={n}
+                  state={state}
+                  isSelected={isSelected}
+                  onToggleShotChoice={onToggleShotChoice}
+                  onToggleAttribute={onToggleAttribute}
+                  onToggleEnding={onToggleEnding}
+                  onToggleMissReason={onToggleMissReason}
+                  onToggleReviewKind={onToggleReviewKind}
+                />
               </ShotRow>
             </div>
           )
         })}
       </div>
+      {/* Runway so the last shot can scroll up under the sticky rail; sized by snapPass1ShotIntoView. */}
+      <div data-pass1-tail aria-hidden className="shrink-0" />
     </section>
   )
 }
 
-const SHOT_RAIL_SLOTS = 12
-
-function ShotMarkRail({
+/** Shared shot-number rail (form sticky + contact-tap chrome). */
+export function Pass1ShotMarkRail({
   state,
+  players,
+  server,
+  activeShot,
   selectedShot,
   onSelectShot,
-  onMarkFos,
-  onNoAttack,
-  onToggleReviewFlag,
+  scrollable = false,
 }: {
   state: RallyTimelineState
+  players: [string, string]
+  server: string
+  activeShot?: number | null
   selectedShot?: number | null
   onSelectShot?: (n: number) => void
-  onMarkFos: (at: number) => void
-  onNoAttack: () => void
-  onToggleReviewFlag: (n: number) => void
+  scrollable?: boolean
 }) {
-  const [mode, setMode] = useState<'fa' | 'review'>('fa')
-  const hasFos = typeof state.fos === 'number'
-  const maxShot = Math.max(state.shotCount, state.end ?? 0, 1)
+  const slotCount = scrollable
+    ? Math.max(1, state.shotCount + 1)
+    : railSlotCount(state.shotCount)
+  const slots = Array.from({ length: slotCount }, (_, i) => i + 1)
+  const endResultBg = !state.ending
+    ? null
+    : state.ending === 'winner' || state.ending === 'lucky'
+      ? RESULT_ROW_BG.winner
+      : state.ending === 'error_air'
+        ? RESULT_ROW_BG.air
+        : RESULT_ROW_BG.error
 
   return (
-    <div
-      className="mb-1.5 rounded-md border border-pill-idle-border bg-bg-card px-1.5 py-1"
-      role="group"
-      aria-label="First attack and review marks"
-    >
-      <div className="flex items-center gap-1 mb-1">
-        <p className="text-[9px] font-bold tracking-wide text-primary shrink-0">Shots</p>
-        <button
-          type="button"
-          aria-pressed={mode === 'fa'}
-          onClick={() => setMode('fa')}
-          className={cn('tag-control', mode === 'fa' && 'tag-control-active')}
-        >
-          FA
-        </button>
-        <button
-          type="button"
-          aria-pressed={mode === 'review'}
-          onClick={() => setMode('review')}
-          className={cn('tag-control', mode === 'review' && 'bg-review border-review text-primary')}
-        >
-          Rv
-        </button>
-        <button
-          type="button"
-          aria-pressed={!hasFos}
-          onClick={onNoAttack}
-          className={cn(
-            'tag-control',
-            !hasFos ? 'bg-shot-first-attack border-shot-first-attack text-primary' : undefined
-          )}
-        >
-          No FA
-        </button>
-        <span className="text-[9px] text-primary truncate ml-auto">
-          {mode === 'fa' ? 'Tap 2+ = first attack' : 'Tap = tag to view'}
-        </span>
-      </div>
-      <div className="flex w-full min-w-0 flex-nowrap" style={{ gap: 'var(--control-gap)' }}>
-        {Array.from({ length: SHOT_RAIL_SLOTS }, (_, i) => {
-          const n = i + 1
-          const inRally = n <= maxShot
+    <div className="space-y-0.5" role="group" aria-label="Rally shot guide">
+      <div
+        className={cn(
+          'flex w-full min-w-0 flex-nowrap items-stretch',
+          scrollable && 'overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
+        )}
+        style={{ gap: 'var(--control-gap)' }}
+        role="list"
+        aria-label="Shots in this rally"
+      >
+        {slots.map((n) => {
+          const kind = railSlotKind(n, state.shotCount, state.end)
+          const grey = kind === 'unused'
+          const dimmed = kind === 'after_end'
+          const hitter = kind === 'unused' ? null : playerForShot(n, players, server)
+          const isPlayer1 = hitter === players[0]
           const isFos = state.fos === n
+          const isEnd = state.end === n
           const flagged = Boolean(state.shots[n]?.reviewKind)
+          const active = activeShot === n
           const selected = selectedShot === n
-          const disabled = !inRally
+          const canTap = kind !== 'unused'
+
           return (
-            <button
+            <div
               key={n}
-              type="button"
-              disabled={disabled}
-              aria-pressed={isFos || flagged || selected}
-              title={
-                disabled
-                  ? `Shot ${n} not in this rally`
-                  : mode === 'fa'
-                    ? `First attack on shot ${n}`
-                    : flagged
-                      ? `Clear review on shot ${n}`
-                      : `Mark shot ${n} for review`
-              }
-              onClick={() => {
-                if (disabled) return
-                onSelectShot?.(n)
-                if (mode === 'fa') {
-                  if (n >= 2) onMarkFos(n)
-                } else {
-                  onToggleReviewFlag(n)
-                }
-              }}
-              className={cn(
-                'tag-control flex-1 min-w-0 font-black tabular-nums px-0',
-                disabled && 'opacity-30',
-                selected && 'ring-1 ring-contact-live',
-                isFos && 'bg-shot-first-attack border-shot-first-attack',
-                flagged && !isFos && 'bg-review border-review'
-              )}
+              className="relative min-w-0 flex flex-col items-center gap-px"
+              style={{ flex: scrollable ? '0 0 2rem' : '1 1 0' }}
+              role="listitem"
             >
-              {n}
-            </button>
+              <button
+                type="button"
+                disabled={!canTap}
+                aria-pressed={selected}
+                aria-current={active ? 'true' : undefined}
+                title={!canTap ? `Shot ${n} — no contact yet` : `Select shot ${n}`}
+                onClick={() => {
+                  if (!canTap) return
+                  onSelectShot?.(n)
+                }}
+                className={cn(
+                  'relative w-full h-7 rounded font-black tabular-nums text-xs',
+                  grey
+                    ? 'bg-bg-elevated text-muted opacity-40 border border-transparent'
+                    : isPlayer1
+                      ? 'bg-player-1-bg text-primary'
+                      : 'bg-player-2-bg text-primary',
+                  dimmed && 'opacity-45',
+                  isFos && !grey && 'bg-shot-first-attack-bg',
+                  isEnd && !grey && (endResultBg ?? 'bg-shot-end-bg'),
+                  flagged && !isFos && !isEnd && !grey && 'bg-review-bg',
+                  selected
+                    ? 'border-2 border-contact-selected'
+                    : 'border border-transparent',
+                  !canTap && 'cursor-default'
+                )}
+              >
+                {n}
+                {(isFos || isEnd || flagged) && (
+                  <span
+                    className={cn(
+                      'absolute top-0.5 right-0.5 h-1 w-1 rounded-full',
+                      isFos && 'bg-shot-first-attack',
+                      isEnd && !isFos && 'bg-shot-end',
+                      flagged && !isFos && !isEnd && 'bg-review'
+                    )}
+                    aria-hidden
+                  />
+                )}
+              </button>
+              <span
+                className={cn(
+                  'h-1 w-full max-w-none rounded-sm shrink-0',
+                  active ? 'bg-contact-live' : 'bg-transparent'
+                )}
+                aria-hidden
+              />
+            </div>
           )
         })}
       </div>
@@ -639,7 +809,6 @@ function ShotRow({
   server,
   rowBg,
   stripeColor,
-  active,
   selected,
   isFos,
   roleLabel,
@@ -654,7 +823,6 @@ function ShotRow({
   server: string
   rowBg: string
   stripeColor: string
-  active: boolean
   selected: boolean
   isFos: boolean
   roleLabel: string | null
@@ -670,7 +838,7 @@ function ShotRow({
       role="button"
       tabIndex={0}
       aria-pressed={selected}
-      aria-label={`Shot ${n}${active ? ', live contact' : ''}`}
+      aria-label={`Shot ${n}`}
       onClick={onSelect}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -681,9 +849,7 @@ function ShotRow({
       className={cn(
         'flex items-stretch gap-1.5 rounded-md px-1.5 py-1 min-w-0 w-full cursor-pointer border border-transparent',
         rowBg,
-        active && 'outline outline-2 outline-contact-live outline-offset-0',
-        selected && !active && 'border-contact-selected bg-contact-selected-bg',
-        selected && active && 'ring-2 ring-contact-selected'
+        selected && 'border-2 border-contact-selected shadow-[inset_0_0_0_1px_var(--color-contact-selected)]'
       )}
     >
       <div
@@ -718,7 +884,7 @@ function ShotRow({
             )}
             {flagged && (
               <span className="inline-flex items-center h-[18px] px-1.5 rounded-full bg-review text-neutral-50 text-[9px] font-bold tracking-wide uppercase">
-                Review
+                Flagged
               </span>
             )}
           </div>
@@ -733,4 +899,28 @@ function ShotRow({
       </div>
     </div>
   )
+}
+
+/**
+ * Snap the list shot under the sticky rail (after select / FA / End).
+ * The tail runway is sized from the LAST visible shot (not the selected one), so it
+ * stays stable between selections and is exactly enough for the last shot to reach the snap line.
+ */
+export function snapPass1ShotIntoView(n: number) {
+  const sticky = document.querySelector<HTMLElement>('[data-pass1-sticky]')
+  const wrap = document.querySelector<HTMLElement>(`[data-rally-shot-wrap="${n}"]`)
+  if (!wrap) return
+  const stickyOffset = sticky ? Math.ceil(sticky.offsetHeight) + 4 : 0
+  wrap.style.setProperty('--pass1-sticky-offset', `${stickyOffset}px`)
+
+  const scroller = wrap.closest<HTMLElement>('[data-pass1-scroller]')
+  const tail = scroller?.querySelector<HTMLElement>('[data-pass1-tail]')
+  const wraps = scroller?.querySelectorAll<HTMLElement>('[data-rally-shot-wrap]')
+  const last = wraps && wraps.length > 0 ? wraps[wraps.length - 1] : null
+  if (scroller && tail && last) {
+    const runway = scroller.clientHeight - stickyOffset - last.offsetHeight
+    tail.style.height = `${Math.max(0, Math.ceil(runway))}px`
+  }
+
+  wrap.scrollIntoView({ block: 'start', behavior: 'smooth' })
 }

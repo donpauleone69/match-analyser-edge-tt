@@ -135,7 +135,7 @@ export function TaggingUIComposer({ className }: TaggingUIComposerProps) {
   }
 
   const player1Name =
-    players.find((p) => p.id === match.player1_id)?.first_name || 'Player 1'
+    players.find((p) => p.id === match.player1_id)?.first_name || 'Hero'
   const player2Record = match.player2_id
     ? players.find((p) => p.id === match.player2_id)
     : undefined

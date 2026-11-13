@@ -19,6 +19,7 @@ import {
   ChevronUp,
   ArrowLeft,
   ArrowRight,
+  ArrowLeftRight,
   Home,
   
   // Actions
@@ -105,6 +106,7 @@ const icons = {
   'chevron-up': ChevronUp,
   'arrow-left': ArrowLeft,
   'arrow-right': ArrowRight,
+  switch: ArrowLeftRight,
   home: Home,
   
   // Actions

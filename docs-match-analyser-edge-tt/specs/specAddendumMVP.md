@@ -6,6 +6,255 @@
 
 ## Change Log
 
+### 2026-11-13: Classic / legacy Pass 1 chrome removed (v3.66.0)
+
+**Change Type:** UX cleanup — Pass 1 Focus chrome
+
+**What Changed:**
+- Removed the dual-chrome switch: no more **Classic chrome** / **Default chrome** control on the video, no `?chrome=legacy` (or `chrome=proto`) query handling, and no `chromeVariant` prop plumbing through `TaggingUIComposer` → `Pass1FocusComposer`.
+- Deleted the legacy rally-cube strip path (`RallyCubesStrip` and its serve-group helpers) that only served classic chrome.
+- The former proto composition (WTT scorebug, set-context bar, point ledger, scrollable shot rails) is now the **only** Pass 1 tagging chrome.
+
+**Decision Rationale:** Proto proved out as the product UI. Keeping a parallel classic path and switch increased maintenance cost and confused the tagging surface; a single chrome path is clearer and safer to iterate on.
+
+**Key Files:** `TaggingUIComposer.tsx`; `Pass1FocusComposer.tsx`.
+
+---
+
+### 2026-11-13: Pass 1 click-latency buffer at capture (v3.65.0)
+
+**Change Type:** Playback fidelity / data model — Pass 1 Focus contact timestamps
+
+**What Changed:**
+- **Latency buffer moves to capture.** The ~300 ms human-click compensation (`CONTACT_LATENCY_BUFFER_SECONDS`, formerly playback `SHOT_PREROLL_SECONDS`) is subtracted when recording a contact tap: `stored = max(floor, videoTime − 0.300s)`, where `floor` is the previous contact in the rally or the last completed rally's end (else 0). Finalize copies those times into the timeline unchanged.
+- **Playback uses stored times as-is.** Selected-shot loops and seek-from-shot (`shotLoopWindow` / `shotPlaybackStart` / `playFromShot`) no longer subtract a second lead-in. Window is `[contact(n), contact(n+1)]` clamped to the whole-rally loop; the last shot still ends at the rally loop end; near-identical contacts keep the 0.100s minimum window.
+- **Whole-rally pad unchanged.** `LOOP_PAD_SECONDS` (1s before serve / after last contact) remains a separate playback pad and is not part of click-latency compensation.
+- **No historical migration.** Already-saved rallies keep their prior tap-clock timestamps (no blind DB rewrite). New taps going forward store latency-adjusted times. Old data therefore loses the former playback-only 300 ms preroll unless re-tagged.
+
+**Decision Rationale:** Applying the buffer twice (once at play and once if also at capture) would double-compensate. Baking it into stored contacts makes analysis, FA stamps, overlays, and shot loops share one true contact clock. Flooring against the prior contact / last rally end preserves monotonic times and seek constraints.
+
+**Verification:** Focused shot-loop + capture helpers tests; Pass 1 form select/loop uses raw stored contacts.
+
+**Key Files:** `pass1FocusModel.ts`; `Pass1FocusComposer.tsx`; `pass1FocusModel.shotLoop.test.ts`.
+
+---
+
+### 2026-11-13: Pass 1 shot loops, contextual tools, WTT scorebug, Hero identity (v3.64.0)
+
+**Change Type:** UX + playback fidelity — Pass 1 Focus (default proto; shared behavior kept safe for classic)
+
+**What Changed:**
+- **Displayed speed is now the real video speed.** `VideoPlayer` applies the shared store speed to both `playbackRate` and `defaultPlaybackRate` on speed/source changes, `loadedmetadata`, and any foreign `ratechange`. This closes the load-order gap where TransportCluster could still show slow motion while a newly loaded/mounted `<video>` had reset to 1×.
+- **A selected shot owns the loop.** While a Pass 1 form shot is selected, constrained playback uses:
+  - `start = max(rallyStart, contact[n] − 0.300s)`;
+  - `end = min(rallyEnd, contact[n+1] − 0.300s)`;
+  - the final shot ends at `rallyEnd`;
+  - near-identical contacts get a minimum 0.100s window inside the rally bounds.
+  Selecting seeks to this start and plays. Clearing First attack / choosing No attack, returning live, discarding, redoing, saving, or advancing removes stale shot focus and restores the whole-rally loop.
+- **Selected-shot tools are one sticky contextual row.** After selecting a numbered shot, the sticky rail owns **First attack · End point · Flag for review**. Long-press was rejected as undiscoverable; per-row duplication was rejected as noisy; actionable rail badges were rejected because numbered cells must remain shot selection. Rows retain only follow-up choices (ending type and review kind).
+- **The action row now names session scope.** Removed redundant **Let** (same behavior as redoing contacts) and the duplicate inline End marker. Clarified labels/tooltips to **Redo contacts · Discard rally · ★ Highlight · Save rally · Delete last point · End set · Match review**. A let uses Redo contacts and records no point.
+- **Server correction is explicit and rally-level.** The default set-context bar has a player-tinted **Serve · Name ⇄** button in live tapping/form context. It re-anchors this rally's server; completed-point preview is read-only (**Served · Name**). It never appears as a per-shot action.
+- **WTT scorebug.** The default on-video score tab is two rows, each `Name | Sets | Points`. The Sets column has a distinct fill and separators. The serving row gets a player-colour edge/dot and subtle emphasis; correction stays in the safer context bar, not on the video overlay. Sets are derived from decided sets before the current set.
+- **User-facing Local → Hero.** New seeded focal players are **Hero Player**, account setup says **Create Hero Player**, and focal-player fallbacks say **Hero**. The exact legacy seed display name **Local Player** is upgraded to **Hero Player** while preserving its durable player ID and all references. Other persisted player names are untouched. Technical local-device/session language, storage keys, DB IDs, local-first copy, and the tournament type **Local Tournament** remain unchanged.
+
+**Decision Rationale:** Sticky selected-shot tools match the existing select-and-snap workflow, stay available while the list scrolls, and preserve one-tap discoverability on touch and desktop. Separating **End point / Flag for review** from **End set / Match review** removes the previous same-label ambiguity. Score and serve remain set/rally context; numbered cells remain shots.
+
+**Verification:**
+- Browser, default proto: 0.75× chip matched `video.playbackRate` and `defaultPlaybackRate`; a simulated browser rate reset was corrected back to 0.75×.
+- Browser loop fixture (contacts 130 / 131 / 132): shot 2 stayed in approximately `[130.7, 131.7)`; final shot used `[131.7, 133]`; clearing FA focus left the former shot window while remaining in the whole-rally `[129, 133]` loop.
+- Browser: WTT scorebug, rally server switch (including switch-back), sticky tools, clarified action row, 384 px layout, and `?chrome=legacy` spot-check passed. Test drafts were discarded.
+- Focused tests: 17/17 passed (shot loops, timeline, sets-before-current derivation). Production Vite bundle passed. Full suite remains 212/214 because of two pre-existing assertions (`calculateServer` 9–9 and playback-speed unknown-rate snapping). Full TypeScript build remains blocked by the pre-existing `ScopeReviewComposer` Button variant error.
+
+**Key Files:** `VideoPlayer.tsx`; `Pass1FocusComposer.tsx`; `pass1FocusModel.ts`; `pass1FocusModel.shotLoop.test.ts`; `Pass1FocusBlock.tsx`; `Pass1ChromeProtoBlock.tsx`; `deriveMatchSetsBeforeSet.ts`; `AccountComposer.tsx`; `cloudStore.ts`.
+
+---
+
+### 2026-11-13: Pass 1 pastel shot cards, shot-select replay, scroll runway (v3.63.0)
+
+**Change Type:** UX — Pass 1 form (shared `Pass1FocusBlock`, proto + classic)
+
+**What Changed:**
+- **Pastel shot cards restored.** The phase-wash table had fallen back to `bg-bg-card` / `bg-bg-elevated` for even rows and opening/after phases, which put white or grey cards on the white card surface. Row washes are now always opaque pastels:
+  - default: hitter's player pastel (`player-1-bg` / `player-2-bg`), the same colour as that shot's rail slot;
+  - overrides: serve → `shot-serve-bg`, first attack → `shot-first-attack-bg`, end shot with an ending → `result-{winner|error|air}-bg`.
+  - Phase is still shown by the left stripe and phase headers. The rail End slot also takes the result pastel once an ending is chosen (grey `shot-end-bg` only until then).
+- **Tap a shot → replay from it.** Selecting a shot (rail slot or list row) selects it, snaps the row under the sticky rail, and seeks to **contact − 300 ms** (`SHOT_PREROLL_SECONDS`, never before the loop start) and plays. The constrained rally loop is unchanged, so playback carries on to the loop end and cycles. **First attack** uses the same `playFromShot` path; before this it seeked exactly to the contact with no lead-in.
+- **Scroll-to-shot works for the last shots.** A tail runway (`[data-pass1-tail]`) sits after the list, sized in `snapPass1ShotIntoView` as `scroller height − sticky offset − last visible shot height`. Any shot can now reach the snap line, including the last one, and the existing `scroll-margin-top` still handles the offset under the sticky rail.
+- Selection resets when a new rally opens (stale shot N from the previous rally no longer carries over).
+- **Proto score HUD moved to the bottom of the video,** above the transport and next to the set bar / rally markers. Classic already had it there. Implements the in-app annotation "put the real time score on the video … move it down so it's near the rally markers".
+
+**Rationale (scroll):** Three options were considered: a fixed bottom padding, a padding that tracks the selected row, and a runway sized from the last row. Fixed padding (e.g. `60dvh`) is either too short on tall screens or wastes space on short ones. A padding that tracks the selected row changes size on every tap, which makes the list jump. Sizing the runway from the **last** row gives the minimum space that lets every shot reach the snap line, and it stays stable between selections. This is the familiar "scroll past end" pattern from editors, and it keeps a single snap mechanism (`scrollIntoView` + `scroll-margin`) rather than pinning a duplicate card.
+
+**Rationale (pre-roll):** 300 ms shows the stroke's preparation, not just the contact frame. Clamping to the loop start keeps the serve-pad loop intact.
+
+---
+
+### 2026-11-13: Pass 1 tap chrome strip; form owns session actions (v3.62.0)
+
+**Change Type:** UX — Pass 1 contact vs form chrome
+
+**What Changed:**
+- **Tap / contact phase** is tap-only: removed **Last**, **Del**, **End** from the session bar, and removed the **Let / Undo last / Redo** row under the tap button. Shot rail (+ classic cubes) remain; hint text stays.
+- Mistap recovery on tap is a single subtle **Undo tap** control on the tap button (only while contacts > 0). Full rally discard / redo live on the form.
+- **Form phase** action row (one coherent strip): **Let · Disc · Redo · ★ · Save · Del · End · Review**.
+  - **Del** — delete last completed rally (open draft kept; confirm).
+  - **End** — finalize set → complete / score-confirm screen.
+  - **Review** — soft exit to Match Review (`/matches/:matchId`) without finalizing; confirm if unsaved taps/draft.
+- **Proto between points:** **End** and **Review** also sit on the set context bar when navigation is unlocked (after Save, before the next tap), so finishing a set does not require re-entering the form.
+- **Classic idle tap:** slim **Del / End / Review** row when there are no open contacts (proto uses set context instead).
+
+**Rationale:** Idle auto-advance makes set/session chrome on the tap pad redundant; the tap surface should only capture contacts. Session and recovery actions belong with the form (and set exit between points).
+
+---
+
+### 2026-11-13: Pass 1 proto chrome is the default (v3.61.0)
+
+**Change Type:** UX — Pass 1 chrome default
+
+**What Changed:**
+- Made the scorebug + set-context + ledger composition the default Pass 1 chrome (no query param required).
+- Kept the prior rally-cube strip reachable via `?chrome=legacy` or a discreet **Classic chrome** control; **Default chrome** returns to the new default and clears the param.
+- Removed **Try new chrome** as the primary CTA; `chrome=proto` is no longer required (still treated as proto if present).
+
+**Rationale:** User preference after the prototype trial — the proto composition should be the primary experience without opt-in friction, while the classic path stays available briefly so we do not burn the bridge.
+
+---
+
+### 2026-11-12: Pass 1 alternative scorebug + ledger prototype (v3.60.0)
+
+**Change Type:** UX prototype — additive Pass 1 chrome
+
+**What Changed:**
+- Added an opt-in `chrome=proto` Pass 1 composition; the current rally-cube chrome remains the default and both variants have a visible switch.
+- Prototype set state uses a compact on-video scorebug plus a one-row under-video context (`server`, latest point, history count).
+- Replaced the persistent point strip in the prototype with an overlay score ledger that scales vertically, seeks to past points, closes after selection, and exposes an explicit `Viewing a–b · Live →` recovery state.
+- Past-point preview loads the saved rally's actual contacts/server into a read-only rail and disables live mutation controls; history navigation is locked while an unsaved point is in the form, preventing video/form mismatch.
+- Prototype shot rails keep minimum-width numbered contact cells and scroll horizontally instead of compressing long rallies.
+- Recorded four-model ideation, critique, rejected alternatives, decision, plan, and open risks in `pass1_tagging_chrome_ideation_brief_2026-11-12.md`.
+
+**Rationale:** Sets and rallies need different visual languages. The prototype tests score/serve as set context, numbers as shot context, progressive disclosure for 30+ point history, and one-tap recovery without deleting the current implementation.
+
+---
+
+### 2026-11-12: Serve on cubes; hide tagging timebox (v3.59.0)
+
+**Change Type:** UX — Pass 1 serve + video chrome
+
+**What Changed:**
+- Tagging `VideoPlayerSection` defaults `showTimeOverlay` off (no `0:04 / …` box on Pass 1).
+- Removed server toggle from the shot rail; serve is labelled above consecutive same-server point runs (tap label on the current/next run to switch).
+- Point cubes are winner-colour only with rally numbers — no dual stripe/fill.
+
+**Rationale:** Server is a rally property; shot rail is for contacts. Timebox fought the bottom score badge.
+
+---
+
+### 2026-11-12: Pass 1 cubes clean + score/contact overlay trim (v3.58.0)
+
+**Change Type:** UX — Pass 1 chrome
+
+**What Changed:**
+- Point cubes are colour-only (server stripe + winner fill); no per-cube `a–b`, no stagger, hidden scrollbar.
+- Live score badge moves to the bottom of the video (above transport), next to the scrub / near the cube strip.
+- Removed the large on-video contact counter; shot rail remains the contact affordance.
+
+**Rationale:** Score once (on video); cubes only encode sequence of serve/winner; less clutter on the picture.
+
+---
+
+### 2026-11-12: Pass 1 set-path cubes (server / winner / score) (v3.57.0)
+
+**Change Type:** UX — Pass 1 score timeline
+
+**What Changed:**
+- Each point cube encodes **server** (top colour stripe), **winner** (fill + slight vertical stagger), and **score after** (`a–b`).
+- Dashed **next** cube outlines the point about to tag / open; solid outline marks a selected past point (tap seeks to that serve).
+- Strip scrolls and densifies past ~14 points (deuce sets); shared on tap and form chrome.
+- Video score badge shows both names, live `a–b`, and a serve colour dot (server name underlined).
+
+**Rationale:** One glanceable set path toward a unified tagging surface — cubes + shot rail carry sequence, not a thick scrub.
+
+---
+
+### 2026-11-12: Pass 1 rally cubes + thin video scrub (v3.56.0)
+
+**Change Type:** UX — Pass 1 timeline / score
+
+**What Changed:**
+- Replaced thick `RallyProgressTimeline` with `RallyCubesStrip`: one cube per completed point, coloured by winner (`player-1-bg` / `player-2-bg`), showing that player's score after the point; tap seeks to rally end.
+- Restored thin in-video scrub (`showProgressBar`); transport overlay sits at `bottom-5` so controls clear the progress bar.
+- Tap chrome stacks cubes → shot rail → Last/Del/End.
+
+**Rationale:** Cubes double as score tracker and point timeline; scrub belongs on the video, not a second thick bar.
+
+---
+
+### 2026-11-12: Pass 1 capture rail on tap screen (v3.55.0)
+
+**Change Type:** UX — consolidate contact tap + form
+
+**What Changed:**
+- Contact-tap chrome uses the same `Pass1ShotMarkRail` as the form: slots light up as contacts are pressed; last contact is underlined; tap a filled slot to seek.
+- Removed the tap-screen **N ▸** priors expander from that bar (Last / Del / End stay).
+
+**Rationale:** One shot-number language across both screens — first step toward merging tap and tag.
+
+---
+
+### 2026-11-12: Pass 1 selected row + phase washes (v3.54.0)
+
+**Change Type:** UX — Pass 1 shot list
+
+**What Changed:**
+- Selected shot keeps its phase/player wash — selection is a dark border only (removed grey `bg-contact-selected-bg` overlay that looked like a veil).
+- Restored phase-tinted row backgrounds (serve / pre-offensive / first attack / reply / continuation) using theme tokens.
+- Shot header summary drops redundant “Serve”; shows wing · stroke · attributes · review · time. Role badges add Ball / Reply where useful.
+
+**Rationale:** Selection must read as focus, not disabled; phase colour again makes the rally scannable.
+
+---
+
+### 2026-11-12: Pass 1 chrome denser + larger pills (v3.53.0)
+
+**Change Type:** UX — Pass 1 density
+
+**What Changed:**
+- Sticky rail is two rows max: server + shot numbers on one row; FA/End/Review on the second when a shot is selected (dropped hint line).
+- Removed redundant video **Srv** pill and form **N ▸** priors toggle (server lives on the rail).
+- Hide video scrub bar in Pass 1 (`showProgressBar={false}`) — shot timeline owns seeking feel.
+- Control tokens taller (26px / 10px) with min widths on BH/FH and stroke pills so choices are less cramped.
+
+**Rationale:** Less chrome, one server control, readable taps without a third sticky row.
+
+---
+
+### 2026-11-12: Pass 1 snap selected shot (no sticky duplicate) (v3.52.0)
+
+**Change Type:** UX — Pass 1 tagging rail
+
+**What Changed:**
+- Removed the sticky duplicate shot card under the rail.
+- Tapping a shot number selects it and snaps that list row up under the sticky rail (`scroll-margin` + measured sticky height).
+- Sticky tools keep First attack / End / Review for the selected shot; tagging stays only in the list row.
+
+**Rationale:** One shot card — the list — not a copy floating above it.
+
+---
+
+### 2026-11-12: Pass 1 select-first shot panel (v3.51.0)
+
+**Change Type:** UX — Pass 1 tagging rail
+
+**What Changed:**
+- Shot guide rail is select-only: tap a contact → sticky focus under the rail (same shot row + allow-list tagging as the list) with First attack / End / Review tools above it.
+- List keeps required allow-list tagging per shot (wing–stroke, high/safe/initiative, End/result, optional review kind when selected).
+- Selected rail cell uses a border (no top dot); live contact stays a rail underline only (list rows have no live underline).
+- Server toggle remains above slot 1; Mark-mode FA/Rv rail tools removed.
+
+**Rationale:** Select-first keeps FA/End/Review with the focused shot while the list still shows the tags each role needs.
+
+---
+
 ### 2026-11-12: Shared video chrome + Pass 1 choice hug (v3.50.0)
 
 **Change Type:** UX — standardize match-video windows
@@ -7073,6 +7322,23 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v3.66.0 | 2026-11-13 | Pass 1: remove classic/legacy chrome; single scorebug + set-context + ledger chrome |
+| v3.65.0 | 2026-11-13 | Pass 1: bake 300 ms click-latency into stored contact times at tap; shot loops/seek use stored times as-is (no playback preroll) |
+| v3.64.0 | 2026-11-13 | Pass 1: actual/displayed speed fidelity; selected-shot loops; sticky FA/End point/Flag tools; WTT scorebug; rally server switch; Hero presentation naming |
+| v3.63.0 | 2026-11-13 | Pass 1: pastel shot cards (hitter/role/result), shot-select replays from contact −300 ms, last-shot scroll runway, proto HUD at video bottom |
+| v3.62.0 | 2026-11-13 | Pass 1: strip tap chrome; form owns Let/Disc/Redo/★/Save/Del/End/Review; proto set-bar End/Review between points |
+| v3.61.0 | 2026-11-13 | Pass 1 proto chrome is the default; classic via `?chrome=legacy` |
+| v3.60.0 | 2026-11-12 | Pass 1 opt-in scorebug + ledger prototype (`chrome=proto`) |
+| v3.59.0 | 2026-11-12 | Pass 1: serve labels above point pairs; winner-only numbered cubes; hide tagging timebox |
+| v3.58.0 | 2026-11-12 | Pass 1: colour-only cubes; score badge bottom-of-video; drop on-video contact counter |
+| v3.57.0 | 2026-11-12 | Pass 1 set-path cubes: server stripe, winner fill/stagger, a–b score, next outline; richer video score |
+| v3.56.0 | 2026-11-12 | Pass 1: rally cubes (winner colour + score) replace thick timeline; thin video scrub + lifted transport |
+| v3.55.0 | 2026-11-12 | Pass 1: shot rail on contact-tap screen; populate as contacts pressed |
+| v3.54.0 | 2026-11-12 | Pass 1: selected border only (no grey veil); phase row washes + cleaner summaries |
+| v3.53.0 | 2026-11-12 | Pass 1 denser sticky (2 rows); drop Srv pill + N▸; hide scrub; larger choice pills |
+| v3.52.0 | 2026-11-12 | Pass 1: snap list shot under rail; remove sticky duplicate card |
+| v3.51.0 | 2026-11-12 | Pass 1 select-first sticky focus panel under rail |
+| v3.50.0 | 2026-11-12 | Shared video chrome; Pass 1 choice pills hug content |
 | v3.49.0 | 2026-11-12 | Pass 1 single-row pills + 12-slot FA/Rv rail; video chrome; bottom nav |
 | v3.48.0 | 2026-11-12 | Two text roles + control density tokens; compact Pass 1 chrome |
 | v3.47.0 | 2026-11-12 | Local device session for LAN; light pastel opaque tagging tokens |
