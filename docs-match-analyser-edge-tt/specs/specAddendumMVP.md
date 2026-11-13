@@ -6,6 +6,20 @@
 
 ## Change Log
 
+### 2026-11-13: MA-64 — Mute + matrix spacing = detail rows (v3.111.0)
+
+**Change Type:** UX polish — shared mute + Simple matrix density
+
+**What Changed:**
+- **Mute** on shared `TransportCluster` (store-backed `isMuted`, synced on `VideoPlayer`) — Simple, Pass 1, Rally edit, Clips, and Review footers all get the same mute chip.
+- Simple matrix Offensive / End / Review vertical gaps + shot-detail ChoiceRow stack use `--control-gap` (same token as DetailPill / Result / Miss reason rows).
+
+**Decision Rationale:** Paul MA-64 — mute on video transport; matrix section air must match detail pill spacing theme, not looser matrix-only gaps.
+
+**Key Files:** `TransportCluster.tsx`; `VideoPlayer.tsx`; `videoPlaybackStore.ts`; `SimpleTaggingMatrixBlock.tsx`.
+
+---
+
 ### 2026-11-13: MA-63 — Simple matrix density + HUD lift (v3.110.0)
 
 **Change Type:** UX polish — Simple matrix density (Paul screenshots)

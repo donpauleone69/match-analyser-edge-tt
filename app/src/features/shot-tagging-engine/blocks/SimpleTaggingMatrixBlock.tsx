@@ -1,11 +1,12 @@
 /**
- * SimpleTaggingMatrixBlock — Phase 2.5 Pass 1 visual parity (MA-60) + MA-63 density.
+ * SimpleTaggingMatrixBlock — Phase 2.5 Pass 1 visual parity (MA-60) + MA-63/64 density.
  *
  * CNT columns + final RALLY column (None / ★). Row labels sit ABOVE each
  * matrix section (not sticky-left) so shot columns can scroll L→R freely.
  * Shot # headers: number + colour/underline only (no FA/End captions).
  * Idle = pill-idle (Shot 1 Offensive non-pressed). Pressed + shot # + detail
  * use Pass 1 protocol colours. Rally|Shot lives on the video overlay (composer).
+ * Offensive/End/Review vertical gaps use `--control-gap` (same as DetailPill rows).
  */
 
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
@@ -329,6 +330,7 @@ export function SimpleTaggingMatrixBlock({
     <div
       key={row.id}
       className={cn(
+        // Label→cells: same tight mb as ChoiceRow (`mb-px`); section↔section uses `--control-gap`
         'space-y-px',
         activeRow === row.id && 'bg-white/[0.03] rounded-sm'
       )}
@@ -404,7 +406,10 @@ export function SimpleTaggingMatrixBlock({
           role="group"
           aria-label="Simple tagging matrix"
         >
-          <div className="min-w-max space-y-0.5">
+          <div
+            className="min-w-max flex flex-col"
+            style={{ gap: 'var(--control-gap)' }}
+          >
             {/* Shot header L→R = colour + live underline only (no FA/End captions) */}
             <div
               className="flex flex-nowrap items-end gap-[var(--control-gap)]"
@@ -491,11 +496,12 @@ export function SimpleTaggingMatrixBlock({
               </div>
             </div>
 
-            {/* Offensive + End grouped — each row label above its cells */}
+            {/* Offensive + End + Review — vertical gap = DetailPill `--control-gap` */}
             <div
               role="group"
               aria-label="Offensive and End"
-              className="space-y-0.5"
+              className="flex flex-col"
+              style={{ gap: 'var(--control-gap)' }}
             >
               {LINEAR_ROWS.map((row) => renderRow(row))}
             </div>
@@ -512,7 +518,8 @@ export function SimpleTaggingMatrixBlock({
       <div className="min-h-0 flex-1 overflow-y-auto px-1.5 pb-2">
         {showDetail && selectedShot !== null && selectedShotData && (
           <div
-            className="space-y-1.5 rounded-md border border-pill-idle-border/70 bg-bg-card/40 p-2"
+            className="flex flex-col rounded-md border border-pill-idle-border/70 bg-bg-card/40 p-2"
+            style={{ gap: 'var(--control-gap)' }}
             aria-label={`Shot ${selectedShot} detail`}
           >
             <div

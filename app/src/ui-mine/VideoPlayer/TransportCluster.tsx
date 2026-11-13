@@ -1,9 +1,12 @@
 /**
- * TransportCluster — shared rewind / speed / play controls for match video.
+ * TransportCluster — shared rewind / speed / mute / play controls for match video.
  *
  * Variants:
- * - overlay: compact chips on the video (Pass 1 style)
+ * - overlay: compact chips on the video (Pass 1 / Simple style)
  * - footer: bordered buttons under the video (review / clips)
+ *
+ * Mute reads/writes videoPlaybackStore so Simple + Pass 1 + footer stages
+ * share one control without per-composer wiring.
  */
 
 import type { ReactNode } from 'react'
@@ -14,6 +17,7 @@ import {
   canNudgePlaybackSpeed,
   formatPlaybackSpeed,
 } from './playbackSpeeds'
+import { useVideoPlaybackStore } from './videoPlaybackStore'
 
 export type TransportVariant = 'overlay' | 'footer'
 
@@ -24,13 +28,15 @@ export interface TransportClusterProps {
   disabled?: boolean
   showSeek?: boolean
   showSpeed?: boolean
+  /** Mute toggle (default true). Uses shared playback store. */
+  showMute?: boolean
   seekStepSeconds?: number
   onTogglePlay: () => void
   onSeekBy?: (deltaSeconds: number) => void
   onNudgeSpeed?: (direction: -1 | 1) => void
   /**
    * Overlay only: `spread` (default) puts play on the right with a spacer;
-   * `cluster` keeps seek/speed/play together (e.g. HUD with score on the left).
+   * `cluster` keeps seek/speed/mute/play together (e.g. HUD with score on the left).
    */
   overlayLayout?: 'spread' | 'cluster'
   /** Extra controls after the core cluster (e.g. Replay, playlist next). */
@@ -45,6 +51,7 @@ export function TransportCluster({
   disabled = false,
   showSeek = true,
   showSpeed = true,
+  showMute = true,
   seekStepSeconds = SEEK_STEP_SECONDS,
   onTogglePlay,
   onSeekBy,
@@ -53,6 +60,8 @@ export function TransportCluster({
   trailing,
   className,
 }: TransportClusterProps) {
+  const isMuted = useVideoPlaybackStore((s) => s.isMuted)
+  const toggleMuted = useVideoPlaybackStore((s) => s.toggleMuted)
   const overlay = variant === 'overlay'
   const btn = overlay
     ? 'tag-control h-8 w-8 px-0 bg-black/70 text-white border-white/25 disabled:opacity-40'
@@ -113,6 +122,19 @@ export function TransportCluster({
             <Icon name="plus" size="sm" />
           </button>
         </>
+      )}
+
+      {showMute && (
+        <button
+          type="button"
+          aria-label={isMuted ? 'Unmute' : 'Mute'}
+          aria-pressed={isMuted}
+          disabled={disabled}
+          onClick={toggleMuted}
+          className={btn}
+        >
+          <Icon name={isMuted ? 'volume-off' : 'volume-on'} size="sm" />
+        </button>
       )}
 
       {overlay && overlayLayout === 'spread' && <div className="flex-1" />}

@@ -18,7 +18,9 @@ interface VideoPlaybackState {
   playbackSpeed: number
   videoUrl: string | null
   currentSpeedMode: 'normal' | 'tag' | 'ff'
-  
+  /** Mute preference (persisted). */
+  isMuted: boolean
+
   // Speed mode presets (persisted - user preferences)
   speedPresets: {
     normal: number
@@ -32,6 +34,8 @@ interface VideoPlaybackState {
   setIsPlaying: (playing: boolean) => void
   setPlaybackSpeed: (speed: number) => void
   setVideoUrl: (url: string | null) => void
+  setMuted: (muted: boolean) => void
+  toggleMuted: () => void
   setSpeedMode: (mode: 'normal' | 'tag' | 'ff') => void
   setSpeedPresets: (presets: { normal?: number; tag?: number; ff?: number }) => void
   reset: () => void
@@ -43,6 +47,7 @@ const initialState = {
   isPlaying: false,
   playbackSpeed: 1.0,
   videoUrl: null,
+  isMuted: false,
   speedPresets: {
     normal: 1.0,
     tag: 0.5,
@@ -61,6 +66,8 @@ export const useVideoPlaybackStore = create<VideoPlaybackState>()(
       setIsPlaying: (playing) => set({ isPlaying: playing }),
       setPlaybackSpeed: (speed) => set({ playbackSpeed: speed }),
       setVideoUrl: (url) => set({ videoUrl: url }),
+      setMuted: (muted) => set({ isMuted: muted }),
+      toggleMuted: () => set({ isMuted: !get().isMuted }),
       setSpeedMode: (mode) => {
         const { speedPresets } = get()
         const speed = speedPresets[mode]
@@ -75,9 +82,10 @@ export const useVideoPlaybackStore = create<VideoPlaybackState>()(
     }),
     {
       name: 'video-playback-storage',
-      // Only persist speed presets (user preferences), not transient video state
+      // Persist mute + speed presets (user preferences), not transient video state
       partialize: (state) => ({
         speedPresets: state.speedPresets,
+        isMuted: state.isMuted,
       }),
     }
   )
