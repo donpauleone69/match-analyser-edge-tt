@@ -6,6 +6,22 @@
 
 ## Change Log
 
+### 2026-11-13: MA-28 — Pass 1 phone speed chrome (v3.78.0)
+
+**Change Type:** UX — Pass 1 chrome (phone)
+
+**What Changed:**
+- Cap Pass 1 video at `42dvh` so Tap contact / form own the lower viewport.
+- Larger transport + Done/Pause/Save touch targets; `touch-manipulation`.
+- Safe-area bottom padding on Pass 1 shell and form action row.
+- Tap contact `min-h-[28dvh]`; Save uses accent when ready.
+
+**Decision Rationale:** Goals 1/4 — throughput on phone after prior less-is-more chrome (Done/Pause, slim form). No schema change.
+
+**Key Files:** `Pass1FocusComposer.tsx`; `Pass1ChromeProtoBlock.tsx`.
+
+---
+
 ### 2026-11-13: MA-27 — No duplicate match tagging guard (v3.77.0)
 
 **Change Type:** UX / domain
@@ -7503,6 +7519,7 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v3.78.0 | 2026-11-13 | MA-28: Pass 1 phone speed — video height cap, larger taps, safe-area |
 | v3.77.0 | 2026-11-13 | MA-27: no-dupe match guard — context + video fingerprint soft warns with override |
 | v3.76.0 | 2026-11-13 | MA-26: incomplete/stub/unconfirmed points excluded from stats + clips |
 | v3.75.0 | 2026-11-13 | MA-25: video jump markers, guided trim, archive device copy |
