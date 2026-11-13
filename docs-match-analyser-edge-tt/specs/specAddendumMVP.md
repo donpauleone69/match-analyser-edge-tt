@@ -6,6 +6,22 @@
 
 ## Change Log
 
+### 2026-11-13: MA-23 — Deepen Work on → Clips (v3.73.0)
+
+**Change Type:** UX / playlists
+
+**What Changed:**
+- Work on focus chips open the matching **Clips** playlist (no new pattern cards).
+- Pattern row CTA → **Clips**; per-shot **In Clips** lands on that shot (`?at=`).
+- **Errors playlist** primary CTA (errors filter); List errors keeps evidence drawer.
+- Embedded Clips shows **From Work on** chrome with back to Work on; `clipTitle` labels review/errors deep links when no preset label.
+
+**Decision Rationale:** Roadmap MA-23 — insights → playlists; 9–9 illustrative only; no new pattern-card feature.
+
+**Key Files:** `WorkOnSection.tsx`; `ReviewPatternBlock.tsx`; `MatchReviewComposer.tsx`; `ClipsComposer.tsx`.
+
+---
+
 ### 2026-11-13: Flow theme — IA + Home outstanding + Match find (v3.72.0)
 
 **Change Type:** UX / navigation / find

@@ -1,6 +1,6 @@
 /**
  * WorkOnSection — "what to work on": shots flagged for review, grouped by
- * technical vs tactical and by wing + stroke, plus why points were missed.
+ * technical vs tactical and by wing + stroke. Every pattern opens a Clips playlist.
  */
 
 import { useState } from 'react'
@@ -25,6 +25,7 @@ export interface WorkOnSectionProps {
   onEditItem: (item: ReviewItemModel) => void
   onPlayPlaylist?: (pattern: ReviewPatternModel) => void
   onOpenHighlights?: () => void
+  onOpenErrorsPlaylist?: () => void
 }
 
 function PatternGroup({
@@ -114,9 +115,15 @@ export function WorkOnSection({
   onEditItem,
   onPlayPlaylist,
   onOpenHighlights,
+  onOpenErrorsPlaylist,
 }: WorkOnSectionProps) {
   const [showVillain, setShowVillain] = useState(false)
   const heroFocus = workOn.focus.filter((f) => f.side === 'hero')
+  const patternByKey = new Map(
+    [...workOn.hero.technical, ...workOn.hero.tactical, ...workOn.villain.technical, ...workOn.villain.tactical].map(
+      (p) => [p.key, p]
+    )
+  )
 
   return (
     <div className="space-y-6">
@@ -124,27 +131,58 @@ export function WorkOnSection({
         <h2 className="text-lg font-semibold text-neutral-50">What to work on</h2>
         {workOn.total === 0 ? (
           <p className="mt-2 text-sm text-neutral-400">
-            No shots flagged yet. While tagging (or editing a rally), use the <span className="text-neutral-200">Review</span> row
-            (tag to view). Select a shot to set <span className="text-neutral-200">Technical</span> or{' '}
-            <span className="text-neutral-200">Tactical</span>. Repeated patterns show up here.
+            No shots flagged yet. While tagging (or editing a rally), use the{' '}
+            <span className="text-neutral-200">Review</span> row (tag to view). Select a shot to set{' '}
+            <span className="text-neutral-200">Technical</span> or{' '}
+            <span className="text-neutral-200">Tactical</span>. Repeated patterns open as Clips
+            playlists here.
           </p>
-        ) : heroFocus.length > 0 ? (
-          <ul className="mt-3 flex flex-wrap gap-2">
-            {heroFocus.map((f) => (
-              <li key={f.key} className="rounded-full border border-review/60 bg-review-bg px-3 py-1 text-sm text-review">
-                {f.text}
-              </li>
-            ))}
-          </ul>
         ) : (
-          <p className="mt-2 text-sm text-neutral-400">
-            {workOn.hero.total} of your shots flagged, no repeated pattern yet — see the list below.
-          </p>
+          <>
+            <p className="mt-2 text-sm text-neutral-400">
+              Open a pattern in Clips to watch the playlist, then Download a clip or Save as reel.
+            </p>
+            {heroFocus.length > 0 ? (
+              <ul className="mt-3 flex flex-wrap gap-2">
+                {heroFocus.map((f) => {
+                  const pattern = patternByKey.get(f.key)
+                  return (
+                    <li key={f.key}>
+                      {pattern && onPlayPlaylist ? (
+                        <button
+                          type="button"
+                          onClick={() => onPlayPlaylist(pattern)}
+                          className="rounded-full border border-review/60 bg-review-bg px-3 py-1 text-sm text-review hover:border-review"
+                          title="Open this pattern as a Clips playlist"
+                        >
+                          {f.text} · Playlist
+                        </button>
+                      ) : (
+                        <span className="rounded-full border border-review/60 bg-review-bg px-3 py-1 text-sm text-review">
+                          {f.text}
+                        </span>
+                      )}
+                    </li>
+                  )
+                })}
+              </ul>
+            ) : (
+              <p className="mt-2 text-sm text-neutral-400">
+                {workOn.hero.total} of your shots flagged, no repeated pattern yet — open each row’s
+                Playlist below.
+              </p>
+            )}
+          </>
         )}
         <div className="mt-4 flex flex-wrap gap-2">
+          {workOn.heroErrors.rallyIds.length > 0 && onOpenErrorsPlaylist && (
+            <Button size="sm" onClick={onOpenErrorsPlaylist}>
+              <Icon name="film" size="sm" /> Errors playlist ({workOn.heroErrors.rallyIds.length})
+            </Button>
+          )}
           {workOn.heroErrors.rallyIds.length > 0 && (
             <Button size="sm" variant="secondary" onClick={() => onOpenEvidence(workOn.heroErrors)}>
-              <Icon name="alert" size="sm" /> See all {workOn.heroErrors.rallyIds.length} of your errors
+              <Icon name="list-video" size="sm" /> List errors
             </Button>
           )}
           {onOpenHighlights && (
