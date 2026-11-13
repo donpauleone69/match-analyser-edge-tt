@@ -106,8 +106,10 @@ export function MatchListSection({
       <Card className="p-8 text-center space-y-3">
         {emptyBecauseFilter ? (
           <>
-            <p className="text-neutral-400">No matches match these filters</p>
-            <p className="text-sm text-neutral-500">Clear filters or widen the date range.</p>
+            <p className="text-neutral-200 font-medium">Nothing matches these filters</p>
+            <p className="text-sm text-neutral-500">
+              Try another opponent or tournament, or widen match / tagged dates.
+            </p>
             {onClearFilters && (
               <Button variant="secondary" onClick={onClearFilters}>
                 Clear filters
@@ -116,12 +118,15 @@ export function MatchListSection({
           </>
         ) : (
           <>
-            <p className="text-neutral-400">No matches yet</p>
+            <p className="text-neutral-200 font-medium">No matches to find yet</p>
             <p className="text-sm text-neutral-500">
-              Create a match from Home, or restore one with Account → Import a match file.
+              Create one from Home (opponent optional), or import a match file from Account.
             </p>
             <div className="flex flex-wrap justify-center gap-2">
               <Button onClick={onCreateNew}>New match</Button>
+              <Button variant="secondary" onClick={() => navigate('/')}>
+                Back to Home
+              </Button>
               <Button variant="secondary" onClick={() => navigate('/settings')}>
                 Import match file
               </Button>
@@ -203,16 +208,15 @@ export function MatchListSection({
                     )}
                   </div>
 
-                  <div className="space-y-1 text-sm text-neutral-400">
+                  <div className="space-y-0.5 text-sm text-neutral-400">
                     {match.winner_id ? (
                       <>
                         <p>
-                          <span className="font-medium text-neutral-300">Winner:</span>{' '}
                           <span className="text-green-400 font-semibold">
                             {getPlayerName(match.winner_id)}
                           </span>
-                          <span className="ml-2">
-                            ({match.player1_sets_final}-{match.player2_sets_final})
+                          <span className="ml-1.5 text-neutral-500">
+                            {match.player1_sets_final}–{match.player2_sets_final}
                           </span>
                         </p>
                         {(() => {
@@ -222,9 +226,9 @@ export function MatchListSection({
                           if (setsWithScores.length === 0) return null
                           return (
                             <p className="text-xs text-neutral-500">
-                              <span className="font-medium text-neutral-400">Set scores:</span>{' '}
+                              Sets{' '}
                               {setsWithScores
-                                .map((s) => `${s.player1_score_final}-${s.player2_score_final}`)
+                                .map((s) => `${s.player1_score_final}–${s.player2_score_final}`)
                                 .join(', ')}
                             </p>
                           )
@@ -232,27 +236,16 @@ export function MatchListSection({
                       </>
                     ) : (
                       <p>
-                        <span className="font-medium text-neutral-300">Score:</span>{' '}
-                        {match.player1_sets_final} - {match.player2_sets_final}
+                        Score {match.player1_sets_final}–{match.player2_sets_final}
                       </p>
                     )}
-                    <p>
-                      <span className="font-medium text-neutral-300">Match date:</span>{' '}
-                      {new Date(match.match_date).toLocaleDateString()}
+                    <p className="text-xs text-neutral-500">
+                      Match {new Date(match.match_date).toLocaleDateString()}
+                      {taggedLabel ? ` · Tagged ${taggedLabel}` : ''}
+                      {tournamentName
+                        ? ` · ${tournamentName}${match.round ? ` (${match.round.replace('_', ' ')})` : ''}`
+                        : ''}
                     </p>
-                    {taggedLabel && (
-                      <p>
-                        <span className="font-medium text-neutral-300">Date tagged:</span>{' '}
-                        {taggedLabel}
-                      </p>
-                    )}
-                    {tournamentName && (
-                      <p>
-                        <span className="font-medium text-neutral-300">Tournament:</span>{' '}
-                        {tournamentName}
-                        {match.round && ` (${match.round.replace('_', ' ')})`}
-                      </p>
-                    )}
                   </div>
                 </div>
 

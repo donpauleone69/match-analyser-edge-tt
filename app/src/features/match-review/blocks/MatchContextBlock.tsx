@@ -61,10 +61,9 @@ export function MatchContextBlock({
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-lg font-semibold text-neutral-50">Match context</h2>
+        <h2 className="text-lg font-semibold text-neutral-50">Optional context</h2>
         <p className="text-sm text-neutral-400 mt-1">
-          Who you played, when, and where — so later you can find all matches vs this opponent or
-          review a tournament.
+          Opponent and tournament help Find and Clips later. Nothing here is required to tag.
         </p>
       </div>
 

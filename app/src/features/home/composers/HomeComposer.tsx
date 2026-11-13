@@ -89,6 +89,9 @@ export function HomeComposer() {
             <Button onClick={() => navigate('/matches/create')}>
               <Icon name="plus" size="sm" /> Create your first match
             </Button>
+            <Button variant="secondary" onClick={() => navigate('/matches')}>
+              <Icon name="search" size="sm" /> Find matches
+            </Button>
             <Button variant="secondary" onClick={() => navigate('/settings')}>
               <Icon name="file-up" size="sm" /> Import match file
             </Button>
@@ -136,7 +139,7 @@ export function HomeComposer() {
           {home.contextItems.length > 0 && (
             <Panel title="Add context (optional)">
               <p className="text-xs text-neutral-500 -mt-1">
-                Opponent and tournament unlock Clips filters. Never required to tag.
+                Name an opponent or tournament when you want Clips filters. Skip anytime.
               </p>
               <div className="space-y-2">
                 {home.contextItems.map((item) => (

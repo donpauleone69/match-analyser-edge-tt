@@ -182,12 +182,6 @@ export function DetailsSection({
       </Card>
 
       <Card className="p-4 md:p-5 border border-neutral-700 space-y-3">
-        {(!review.context.player2Id || !review.context.tournamentId) && (
-          <p className="text-sm text-neutral-400">
-            Optional: add an opponent or tournament so Clips scope (and Review scope) can filter “vs player” or by event.
-            Nothing here is required to tag or review.
-          </p>
-        )}
         {(review.context.player2Id || review.context.tournamentId) && (
           <div className="flex flex-wrap gap-2">
             {review.context.player2Id && (
