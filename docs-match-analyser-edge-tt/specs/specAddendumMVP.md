@@ -6,6 +6,20 @@
 
 ## Change Log
 
+### 2026-11-13: MA-51 — Clips auto-expand Playlists on `?clip=` deep-link (v3.101.0)
+
+**Change Type:** UX polish — phone Clips playlist discoverability (no epics)
+
+**What Changed:**
+- When Clips opens with `?clip=` (e.g. Work on → playlist), phone **Playlists** auto-expands and scrolls the active preset into view.
+- Default collapsed Playlists behaviour unchanged when there is no `clip` param.
+
+**Decision Rationale:** Work on deep-links were landing on a collapsed Playlists section so the active key was easy to miss.
+
+**Key Files:** `ClipsComposer.tsx`; `ClipPresetListBlock.tsx`.
+
+---
+
 ### 2026-11-13: MA-50 — Pass 1 Gap pre-contact estimated seek (v3.100.0)
 
 **Change Type:** UX polish — Gap seek before first serve (no epics)
