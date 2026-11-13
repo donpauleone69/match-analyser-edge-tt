@@ -6,6 +6,23 @@
 
 ## Change Log
 
+### 2026-11-13: MA-71 — Pass 1 logic + layout correction (v3.118.0)
+
+**Change Type:** UX — Pass 1 Focus stage gates, rail, loops, optional chrome
+
+**What Changed:**
+- Stages: contacts → **end reason (Result)** → **End Wing/Stroke** (shot locked to End) → select FA / **No Attack** (last rail cell, strong red) → FA Wing/Stroke → optional (green).
+- Single info box above Rally for all direction copy; stray select-FA instruction box removed.
+- Leave End only when Result + Wing + Stroke (serve-only: Result alone). FA details gated; No Attack skips FA details; undo No Attack / Change FA in optional returns to select_fa.
+- Post-compulsory: full **rally** loop; shot tap → from-that-shot-to-rally-end; **Rally|Shot toggle hidden**; **mute by default on shot loops**. FA details = FA shot loop only.
+- Optional: Pass 1 allow-list attrs by phase (High / Safe / Initiative / wing·stroke) + Review/★ only — **no** fake End/FA/No attack/Review/★ checklist row. Result stays durable on End shot.
+
+**Decision Rationale:** Paul MA-71 answers (2026-11-13) + bug list vs #53.
+
+**Key Files:** `pass1FocusModel.ts`, `Pass1FocusBlock.tsx`, `Pass1FocusComposer.tsx`.
+
+---
+
 ### 2026-11-13: MA-70 — Pass 1 staged explicit flow (v3.117.0)
 
 **Change Type:** UX — Pass 1 Focus explicit stage machine
