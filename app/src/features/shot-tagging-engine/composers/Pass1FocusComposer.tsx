@@ -76,7 +76,10 @@ import {
   savePass1FocusDraft,
 } from './pass1FocusDraftStorage'
 import { encodeClipFilter } from '@/rules/derive/clips/deriveClips'
-import { shouldShowBetweenSetGapJump } from '@/rules/videoLifecycle/deriveVideoJumpMarkers'
+import {
+  betweenSetGapSeekS,
+  shouldShowBetweenSetGapJump,
+} from '@/rules/videoLifecycle/deriveVideoJumpMarkers'
 
 /** How far Redo rewinds when there are no contacts yet */
 const REDO_REWIND_SECONDS = 2
@@ -582,21 +585,32 @@ export function Pass1FocusComposer({
     }
   }
 
-  /** Multi-set: seek to end of previous set (start of between-set gap). Seek-only. */
+  /**
+   * Multi-set Gap: seek-only (live-next / Done unchanged).
+   * No first serve yet → prevEnd + lead (estimated dead-air / start).
+   * After contacts with gap ≥15s → previous set end.
+   */
   const handleJumpPrevSetEnd = () => {
-    if (prevSetEndS == null) return
-    setCurrentTime(prevSetEndS)
-    videoPlayerRef.current?.seek(prevSetEndS, true)
+    const firstServeS = completed[0]?.serveTimestamp
+    const dur = useVideoPlaybackStore.getState().duration
+    const target = betweenSetGapSeekS(prevSetEndS, firstServeS, dur)
+    if (target == null) return
+    setCurrentTime(target)
+    videoPlayerRef.current?.seek(target, true)
     if (!isPlaying) {
       videoPlayerRef.current?.play()
     }
   }
 
   /** Show Gap only when prev end known and gap unknown or ≥ threshold (Details markers). */
+  const firstServeSForGap = completed[0]?.serveTimestamp
   const showBetweenSetGapJump = shouldShowBetweenSetGapJump(
     prevSetEndS,
-    completed[0]?.serveTimestamp
+    firstServeSForGap
   )
+  const gapJumpIsEstimate =
+    showBetweenSetGapJump &&
+    !(typeof firstServeSForGap === 'number' && Number.isFinite(firstServeSForGap))
 
   const handleDiscardOpen = () => {
     if (!openRally) return
@@ -1013,6 +1027,7 @@ export function Pass1FocusComposer({
       onSelectNext={handleSelectNextRally}
       onJumpFirstServe={handleJumpToFirstServe}
       onJumpPrevSetEnd={showBetweenSetGapJump ? handleJumpPrevSetEnd : undefined}
+      gapJumpIsEstimate={gapJumpIsEstimate}
       prevSetNumber={setNumber > 1 ? setNumber - 1 : null}
       onToggleHistory={() => setPointLedgerOpen((open) => !open)}
       canEndSet={canEndSet}

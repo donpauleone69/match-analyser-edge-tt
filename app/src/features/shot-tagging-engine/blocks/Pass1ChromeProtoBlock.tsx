@@ -125,8 +125,10 @@ export interface Pass1SetContextBlockProps {
   onSelectNext: () => void
   /** Jump video to first tagged serve (skip intro / warm-up) */
   onJumpFirstServe?: () => void
-  /** Multi-set: jump to end of previous set (start of between-set gap). Seek-only. */
+  /** Multi-set: jump into between-set gap (or estimated start). Seek-only. */
   onJumpPrevSetEnd?: () => void
+  /** True when Gap seeks with pre-contact estimate (no first serve yet). */
+  gapJumpIsEstimate?: boolean
   prevSetNumber?: number | null
   onToggleHistory: () => void
   /**
@@ -155,6 +157,7 @@ export function Pass1SetContextBlock({
   onSelectNext,
   onJumpFirstServe,
   onJumpPrevSetEnd,
+  gapJumpIsEstimate = false,
   prevSetNumber = null,
   onToggleHistory,
   canEndSet = false,
@@ -179,11 +182,19 @@ export function Pass1SetContextBlock({
           onClick={onJumpPrevSetEnd}
           className="tag-control shrink-0 gap-1"
           title={
-            prevSetNumber
-              ? `Jump to end of set ${prevSetNumber} (start of between-set gap)`
-              : 'Jump to previous set end (between-set gap)'
+            gapJumpIsEstimate
+              ? prevSetNumber
+                ? `Jump toward estimated set start (dead air after set ${prevSetNumber})`
+                : 'Jump toward estimated set start (between-set dead air)'
+              : prevSetNumber
+                ? `Jump to end of set ${prevSetNumber} (start of between-set gap)`
+                : 'Jump to previous set end (between-set gap)'
           }
-          aria-label="Jump to previous set end"
+          aria-label={
+            gapJumpIsEstimate
+              ? 'Jump toward estimated set start in between-set gap'
+              : 'Jump to previous set end'
+          }
         >
           <Icon name="skip-forward" size="xs" />
           <span>Gap</span>
