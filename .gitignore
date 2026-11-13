@@ -74,3 +74,5 @@ docs-match-analyser-edge-tt/chat_notes/**/*.jpeg
 # Keep design mockups and intentional images
 !docs-match-analyser-edge-tt/designs/**/*.png
 !docs-match-analyser-edge-tt/designs/**/*.jpg
+# Local Playwright smoke output (MA-47)
+app/smoke-artifacts/

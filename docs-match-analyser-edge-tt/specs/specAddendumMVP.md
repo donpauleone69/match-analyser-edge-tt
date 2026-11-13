@@ -6,6 +6,21 @@
 
 ## Change Log
 
+### 2026-11-13: MA-47 — Checked-in @390 Playwright smoke script (v3.97.0)
+
+**Change Type:** Engineering — reusable tip-of-main smoke (no product epics; CI not mandatory)
+
+**What Changed:**
+- `app/scripts/smoke-regression-390.mjs` + `npm run smoke:390` (playwright-core) covering the MA-44 phone path.
+- Docs: `app/scripts/README-smoke.md` — run with `public/fixtures/smoke-set.mp4` against a local Vite/preview server.
+- `playwright-core` added as a devDependency. Mandatory CI not wired.
+
+**Decision Rationale:** MA-44/45 status — durable local smoke without inventing a CI epic.
+
+**Key Files:** `app/scripts/smoke-regression-390.mjs`; `app/scripts/README-smoke.md`; `app/package.json`.
+
+---
+
 ### 2026-11-13: MA-46 — Pass 1 Leave vs Done copy polish (v3.96.0)
 
 **Change Type:** UX polish — Leave / Done discoverability (no epics)
