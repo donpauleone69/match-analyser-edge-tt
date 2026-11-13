@@ -5,6 +5,7 @@ import {
   canSaveSimpleTagging,
   fosFromOffensiveShots,
   markEndSimple,
+  markFosSimple,
   simpleSaveHint,
   toggleNoAttackSimple,
   toggleOffensiveShot,
@@ -68,5 +69,17 @@ describe('simpleTaggingModel', () => {
     expect(moved.timeline.end).toBe(3)
     expect(moved.offensiveShots).toEqual([2])
     expect(moved.timeline.fos).toBe(2)
+  })
+
+  it('markFosSimple sets FOS and clears earlier offensive marks', () => {
+    const base = applyOffensiveToTimeline(timelineFromContacts([1, 2, 3, 4, 5]), [2, 4])
+    const moved = markFosSimple(base, [2, 4], 3)
+    expect(moved.offensiveShots).toEqual([3, 4])
+    expect(moved.timeline.fos).toBe(3)
+
+    const cleared = markFosSimple(moved.timeline, moved.offensiveShots, 3)
+    expect(cleared.offensiveShots).toEqual([])
+    expect(cleared.timeline.fos).toBeNull()
+    expect(cleared.timeline.noFirstAttack).toBe(false)
   })
 })

@@ -1,8 +1,9 @@
 /**
  * SimpleTaggingComposer — phone-first Simple tagging (alternative to Pass 1).
  *
- * Setup → tap contacts → 2s idle → matrix (Offensive/End/★/Rev) while video loops.
+ * Setup → tap contacts → 2s idle → matrix (Offensive/End/Review) while video loops.
  * Same DBRally/DBShot via Pass 1 persist path (optional tags stripped).
+ * Phase 2: CNT-style columns + underline; ★ on Save row; More flattened.
  */
 
 import { useState, useRef, useEffect, useMemo, type ReactNode } from 'react'
@@ -26,7 +27,7 @@ import {
   nudgePlaybackSpeed as nudgeSharedSpeed,
   SEEK_STEP_SECONDS as SHARED_SEEK_STEP,
 } from '@/ui-mine/VideoPlayer'
-import { Button, Icon } from '@/ui-mine'
+import { Button } from '@/ui-mine'
 import { calculateServer } from '@/rules'
 import { deriveMatchSetsBeforeSet } from '@/rules/derive/set/deriveMatchSetsBeforeSet'
 import { rallyDb, setDb } from '@/data'
@@ -48,6 +49,8 @@ import {
   CAPTURE_PLAYBACK_SPEED,
   NORMAL_PLAYBACK_SPEED,
   toPass1FocusMapperShot,
+  contactTimesFromTimeline,
+  shotNumberAtTime,
   type RallyTimelineState,
   type PointEnding,
   type PointMissReason,
@@ -66,6 +69,7 @@ import {
 import {
   canSaveSimpleTagging,
   markEndSimple,
+  markFosSimple,
   offensiveShotsFromTimeline,
   simpleSaveHint,
   toggleNoAttackSimple,
@@ -191,7 +195,8 @@ export function SimpleTaggingComposer({
   /** Which point cube is outlined — past rally index, or 'next' (about to tag / open). */
   const [focusedRallyIndex, setFocusedRallyIndex] = useState<number | 'next'>('next')
   const [pointLedgerOpen, setPointLedgerOpen] = useState(false)
-  const [formMoreOpen, setFormMoreOpen] = useState(false)
+  /** Live element time for form playhead underline (avoids timeupdate lag). */
+  const [liveTime, setLiveTime] = useState(0)
   /** Previous set’s last timed action — between-set gap jump on multi-set captures. */
   const [prevSetEndS, setPrevSetEndS] = useState<number | null>(null)
   /** Mid-rally Leave: Keep draft vs Discard choice. */
@@ -415,6 +420,19 @@ export function SimpleTaggingComposer({
       loopOnEnd: true,
     })
   }, [phase, openServeTs, openEndTs, duration])
+
+  // Sample live video time for playhead underline under matrix columns.
+  useEffect(() => {
+    if (phase !== 'form' && phase !== 'tapping') return
+    let rafId = 0
+    const tick = () => {
+      setLiveTime(readVideoTime())
+      rafId = requestAnimationFrame(tick)
+    }
+    rafId = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(rafId)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase])
 
   const getPlayerName = (id: WinnerId) =>
     id === 'player1' ? player1Name : player2Name
@@ -812,6 +830,15 @@ export function SimpleTaggingComposer({
     playFromShot(at)
   }
 
+  const handleMarkFos = (at: number) => {
+    setSelectedShot(at)
+    patchOpenRally((cur) => {
+      const next = markFosSimple(cur.timeline, cur.offensiveShots, at)
+      return { ...cur, timeline: next.timeline, offensiveShots: next.offensiveShots }
+    })
+    playFromShot(at)
+  }
+
   const handleNoAttack = () => {
     patchOpenRally((cur) => {
       const next = toggleNoAttackSimple(cur.timeline, cur.offensiveShots)
@@ -996,6 +1023,14 @@ export function SimpleTaggingComposer({
   const tagBtn = 'tag-control'
 
   const contactCount = contactTimes.length
+  const formContactTimes =
+    phase === 'form' && openRally ? contactTimesFromTimeline(openRally.timeline) : []
+  const overlayShot =
+    phase === 'tapping'
+      ? contactCount
+      : phase === 'form'
+        ? shotNumberAtTime(formContactTimes, liveTime)
+        : null
   const selectedShotLoop =
     phase === 'form' && openRally && selectedShot !== null
       ? shotLoopWindow(openRally.timeline, selectedShot, constrainedPlayback)
@@ -1200,50 +1235,35 @@ export function SimpleTaggingComposer({
                 </p>
               )}
               <div className="relative min-h-11 px-1.5 py-1.5 flex flex-wrap items-center justify-end gap-1.5 text-[length:var(--control-text)]">
-                <div className="relative shrink-0">
-                  <button
-                    type="button"
-                    aria-expanded={formMoreOpen}
-                    aria-haspopup="menu"
-                    onClick={() => setFormMoreOpen((o) => !o)}
-                    className={cn(tagBtn, 'shrink-0 min-h-10 px-3 touch-manipulation', formMoreOpen && 'tag-control-active')}
-                    title="More rally actions"
-                  >
-                    <Icon name="more-h" size="sm" />
-                    More
-                  </button>
-                  {formMoreOpen && (
-                    <div
-                      role="menu"
-                      className="absolute bottom-full right-0 z-40 mb-1 min-w-[11rem] rounded-md border border-pill-idle-border bg-bg-card p-1 shadow-lg"
-                    >
-                      <button
-                        type="button"
-                        role="menuitem"
-                        onClick={() => {
-                          setFormMoreOpen(false)
-                          handleRedoRally()
-                        }}
-                        className={cn(tagBtn, 'w-full justify-start min-h-10')}
-                        title="Clear these contacts and re-tap this rally from just before the serve"
-                      >
-                        Redo contacts
-                      </button>
-                      <button
-                        type="button"
-                        role="menuitem"
-                        onClick={() => {
-                          setFormMoreOpen(false)
-                          handleDiscardOpen()
-                        }}
-                        className={cn(tagBtn, 'tag-control-danger w-full justify-start min-h-10')}
-                        title="Discard this rally draft without saving"
-                      >
-                        Discard rally
-                      </button>
-                    </div>
+                <button
+                  type="button"
+                  onClick={handleRedoRally}
+                  className={cn(tagBtn, 'shrink-0 min-h-10 px-3 touch-manipulation')}
+                  title="Clear these contacts and re-tap this rally from just before the serve"
+                >
+                  Redo contacts
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDiscardOpen}
+                  className={cn(tagBtn, 'tag-control-danger shrink-0 min-h-10 px-3 touch-manipulation')}
+                  title="Discard this rally draft without saving"
+                >
+                  Discard rally
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={Boolean(openRally?.isHighlight)}
+                  onClick={handleToggleHighlight}
+                  className={cn(
+                    tagBtn,
+                    'shrink-0 min-h-10 px-3 touch-manipulation',
+                    openRally?.isHighlight && 'bg-review border-review text-primary'
                   )}
-                </div>
+                  title="Mark this whole rally as a highlight (show-reel)"
+                >
+                  ★ Highlight
+                </button>
                 <button
                   type="button"
                   onClick={() => void handleSave()}
@@ -1265,9 +1285,9 @@ export function SimpleTaggingComposer({
                 <SimpleTaggingMatrixBlock
                   state={timeline}
                   offensiveShots={openRally.offensiveShots}
-                  isHighlight={openRally.isHighlight}
                   players={players}
                   server={serverName}
+                  activeShot={overlayShot}
                   selectedShot={selectedShot}
                   activeRow={activeMatrixRow}
                   reviewDetailFocused={reviewDetailFocused}
@@ -1275,12 +1295,12 @@ export function SimpleTaggingComposer({
                   onToggleOffensive={handleToggleOffensive}
                   onNoAttack={handleNoAttack}
                   onMarkEnd={handleMarkEnd}
-                  onToggleHighlight={handleToggleHighlight}
                   onToggleReview={handleToggleReviewFlag}
                   onToggleEnding={handleToggleEnding}
                   onToggleMissReason={handleToggleMissReason}
                   onReviewDetailFocusChange={setReviewDetailFocused}
                   onSelectRow={setActiveMatrixRow}
+                  onMarkFos={handleMarkFos}
                 />
               )}
             </div>

@@ -6,6 +6,23 @@
 
 ## Change Log
 
+### 2026-11-13: MA-55 — Simple tagging matrix UX refine (v3.104.0)
+
+**Change Type:** UX refine — Simple Phase 2 matrix (Paul review #11); Pass 1 chrome parity for More
+
+**What Changed:**
+- Simple matrix sits where CNT was: Pass 1–style shot columns + playhead underline; **no CNT label row**.
+- Matrix rows only: **Offensive Shots · End · Review** (dropped ★ row). Rally **★ Highlight** on the **Save point** action row.
+- Removed **More…** — Redo contacts / Discard rally are on the Save/action row in **Simple and Pass 1**.
+- Detail strip = Pass 1 look/logic for **FOS + End** only; selecting a matrix column highlights it and drives that detail when the column is FOS or End (ending/miss chips on End; First attack / No attack on FOS).
+- Same DB / completeness; Simple remains an alternative to Pass 1. Clip windows still Phase 3.
+
+**Decision Rationale:** Paul Phase 2 review — fewer clicks, CNT-aligned matrix, highlight next to Save, Pass 1–familiar FOS/End detail without replacing Pass 1.
+
+**Key Files:** `SimpleTaggingMatrixBlock.tsx`; `SimpleTaggingComposer.tsx`; `Pass1FocusComposer.tsx`; `simpleTaggingModel.ts`.
+
+---
+
 ### 2026-11-13: MA-54 — Simple tagging Phase 1 MVP (v3.103.0)
 
 **Change Type:** Feature — alternative Simple tagging mode (does not replace Pass 1)
