@@ -6,6 +6,21 @@
 
 ## Change Log
 
+### 2026-11-13: MA-63 — Simple matrix density + HUD lift (v3.110.0)
+
+**Change Type:** UX polish — Simple matrix density (Paul screenshots)
+
+**What Changed:**
+- Shot # headers: **number + colour/underline only** — removed FA/End text captions under numbers (End mark stays on End row).
+- Matrix vertical spacing tightened (section/row/label/cell gaps) for phone density.
+- Simple `VideoStageChrome` score+transport overlay lifted (`!bottom-2` → `!bottom-4`) so HUD clears the progress bar.
+
+**Decision Rationale:** Paul MA-63 annotated screenshots — reclaim vertical space; captions redundant with End-row mark + header washes.
+
+**Key Files:** `SimpleTaggingMatrixBlock.tsx`; `SimpleTaggingComposer.tsx`.
+
+---
+
 ### 2026-11-13: MA-60 — Simple ↔ Pass 1 visual/protocol parity (v3.109.0)
 
 **Change Type:** UX parity — Simple Phase 2.5 (Paul agreed checklist + row-label addendum)

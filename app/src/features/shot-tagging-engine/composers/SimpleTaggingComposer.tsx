@@ -1269,7 +1269,7 @@ export function SimpleTaggingComposer({
                 className="border-white/25 bg-black/70 backdrop-blur-sm [&_button]:text-white/90 [&_button[aria-pressed=true]]:bg-brand-primary/40 [&_button[aria-pressed=true]]:text-white"
               />
             }
-            bottomOverlayClassName="!bottom-2"
+            bottomOverlayClassName="!bottom-4"
             bottomOverlay={
               videoUrl ? (
                 <div className="flex h-7 min-w-0 items-end justify-between gap-1.5">
