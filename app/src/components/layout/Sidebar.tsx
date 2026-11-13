@@ -9,11 +9,11 @@ import {
 import { cn } from '@/helpers/utils'
 
 const navItems = [
-  { to: '/', icon: Home, label: 'Library' },
+  { to: '/', icon: Home, label: 'Home' },
   { to: '/matches', icon: Swords, label: 'Matches' },
   { to: '/training', icon: Target, label: 'Training' },
   { to: '/clips', icon: Film, label: 'Clips' },
-  { to: '/settings', icon: Cloud, label: 'Account & data' },
+  { to: '/settings', icon: Cloud, label: 'Account' },
 ]
 
 interface SidebarProps {
