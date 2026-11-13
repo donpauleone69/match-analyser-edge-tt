@@ -2,10 +2,15 @@ import { describe, it, expect } from 'vitest'
 import {
   RALLY_TIMELINE_MIN_WINDOW_SECONDS,
   RALLY_TIMELINE_PAD_SECONDS,
+  canSaveRallyTimeline,
+  isFosDecided,
   markEnd,
+  markFos,
+  pass1SaveHint,
   railSlotCount,
   railSlotKind,
   rallyTimelineViewWindow,
+  setFos,
   timelineFromContacts,
 } from './pass1FocusModel'
 
@@ -83,5 +88,53 @@ describe('rallyTimelineViewWindow', () => {
     })
     expect(win.viewStart).toBeGreaterThanOrEqual(0)
     expect(win.viewEnd).toBe(230)
+  })
+})
+
+describe('first attack mandatory (MA-35)', () => {
+  it('treats fos null as undecided until noFirstAttack or a shot mark', () => {
+    // timelineFromContacts pre-marks End at N
+    const base = timelineFromContacts([1, 2, 3, 4])
+    expect(base.end).toBe(4)
+    expect(base.noFirstAttack).toBe(false)
+    expect(isFosDecided(base)).toBe(false)
+    expect(canSaveRallyTimeline(base, 'Ada')).toBe(false)
+    expect(pass1SaveHint(base)).toMatch(/First attack|No attack/)
+
+    const marked = markFos(base, 3, 3)
+    expect(marked.fos).toBe(3)
+    expect(marked.noFirstAttack).toBe(false)
+    expect(isFosDecided(marked)).toBe(true)
+
+    const cleared = markFos(marked, 3, 3)
+    expect(cleared.fos).toBeNull()
+    expect(cleared.noFirstAttack).toBe(false)
+    expect(isFosDecided(cleared)).toBe(false)
+
+    const none = setFos(cleared, null)
+    expect(none.fos).toBeNull()
+    expect(none.noFirstAttack).toBe(true)
+    expect(isFosDecided(none)).toBe(true)
+
+    const withEnding = { ...none, ending: 'winner' as const }
+    expect(canSaveRallyTimeline(withEnding, 'Ada')).toBe(true)
+    expect(pass1SaveHint(withEnding)).toBeNull()
+  })
+
+  it('serve-only end does not require first attack', () => {
+    const serve = timelineFromContacts([1])
+    expect(serve.end).toBe(1)
+    expect(isFosDecided(serve)).toBe(true)
+    const ready = { ...serve, ending: 'error_long' as const }
+    expect(canSaveRallyTimeline(ready, 'Ada')).toBe(true)
+  })
+
+  it('toggling No attack returns to undecided', () => {
+    const base = timelineFromContacts([1, 2, 3])
+    const none = setFos(base, null)
+    expect(none.noFirstAttack).toBe(true)
+    const again = setFos(none, null)
+    expect(again.noFirstAttack).toBe(false)
+    expect(isFosDecided(again)).toBe(false)
   })
 })

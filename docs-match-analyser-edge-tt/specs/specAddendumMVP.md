@@ -6,6 +6,22 @@
 
 ## Change Log
 
+### 2026-11-13: MA-35 — Pass 1 mandatory FOS/end + phone wrap (v3.85.0)
+
+**Change Type:** UX / domain — Pass 1 completeness
+
+**What Changed:**
+- **Mandatory minimum to save:** End marked, point ending (winner/error), and First attack **decided** — either a shot index or explicit **No attack**. Serve-only points (`end === 1`) skip First attack.
+- **`noFirstAttack` flag** on `RallyTimelineState` so `fos === null` means undecided (not “no attack”). Re-tap First attack → undecided; sticky **No attack** toggles the flag. Resume maps saved `first_attack_index === null` → `noFirstAttack: true`.
+- **Affordance:** Sticky selected-shot tools show FA/End status; pills use ✓ when active; chrome shows a short save hint when Save is blocked.
+- **Phone:** Shot choice rows wrap instead of truncating / horizontal-scrolling.
+
+**Decision Rationale:** review-notes Pass 1 items — keep incomplete rallies out of review/cards; clearer FA/End state; phone tagging usable.
+
+**Key Files:** `pass1FocusModel.ts`; `Pass1FocusBlock.tsx`; `Pass1FocusComposer.tsx`; `RallyEditComposer.tsx`; `persistPass1FocusRally.ts`.
+
+---
+
 ### 2026-11-13: MA-34 — Hide Training from bottom nav (v3.84.0)
 
 **Change Type:** UX — IA

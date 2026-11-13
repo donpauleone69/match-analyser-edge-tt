@@ -29,6 +29,8 @@ import {
   inferWinnerName,
   loopWindowFromContacts,
   markEnd,
+  markFos,
+  pass1SaveHint,
   setFos,
   shotNumberAtTime,
   toggleEnding,
@@ -245,6 +247,7 @@ export function RallyEditComposer() {
     : null
   const isDirty = JSON.stringify(draft) !== JSON.stringify(original)
   const canSave = Boolean(draft && canSaveRallyTimeline(draft.timeline, winnerName))
+  const saveHint = draft ? pass1SaveHint(draft.timeline) : null
   const winnerWillChange = Boolean(winnerName && originalWinner && winnerName !== originalWinner)
 
   const patchTimeline = (fn: (s: RallyTimelineState) => RallyTimelineState) =>
@@ -474,6 +477,11 @@ export function RallyEditComposer() {
         )}
         {!videoUrl && <span>Load the set video above to watch this rally while editing.</span>}
         <span className="text-neutral-500">Contacts can’t be re-timed here — use the tagger for that.</span>
+        {saveHint && !canSave && (
+          <span className="text-amber-300/90 font-semibold" role="status">
+            {saveHint}
+          </span>
+        )}
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto pb-20 sm:pb-0">
@@ -494,7 +502,7 @@ export function RallyEditComposer() {
           onMarkFos={(at: number) => {
             if (at < 2) return
             setSelectedShot(at)
-            patchTimeline((s) => setFos(s, at, s.shots[at]?.contactTime ?? null))
+            patchTimeline((s) => markFos(s, at, s.shots[at]?.contactTime ?? null))
             setFosPickMode(false)
             snapPass1ShotIntoView(at)
           }}

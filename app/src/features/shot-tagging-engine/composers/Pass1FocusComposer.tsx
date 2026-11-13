@@ -33,9 +33,11 @@ import { resolveSetVideo } from '@/data/services/videoAssetService'
 import {
   emptyRallyTimelineState,
   canSaveRallyTimeline,
+  pass1SaveHint,
   inferWinnerName,
   toggleShotChoice,
   toggleShotAttribute,
+  markFos,
   setFos,
   markEnd,
   toggleEnding,
@@ -332,6 +334,7 @@ export function Pass1FocusComposer({
     players,
     serverName
   )
+  const saveHint = openRally ? pass1SaveHint(timeline) : null
   const canSave = openRally
     ? canSaveRallyTimeline(timeline, winnerName)
     : false
@@ -634,7 +637,7 @@ export function Pass1FocusComposer({
     if (at < 2) return
     setSelectedShot(at)
     const contact = openRally.timeline.shots[at]?.contactTime ?? null
-    patchTimeline((s) => setFos(s, at, contact))
+    patchTimeline((s) => markFos(s, at, contact))
     setFosPickMode(false)
     playFromShot(at)
   }
@@ -645,7 +648,6 @@ export function Pass1FocusComposer({
   }
 
   const handleNoAttack = () => {
-    setSelectedShot(null)
     patchTimeline((s) => setFos(s, null))
     setFosPickMode(false)
   }
@@ -982,6 +984,11 @@ export function Pass1FocusComposer({
             {pointLedger}
             {/* Tagging chrome — primary Save; Highlight; Redo/Discard in More */}
             <div className="shrink-0 border-t border-pill-idle-border bg-bg-card pb-[max(0.25rem,env(safe-area-inset-bottom,0px))]">
+              {saveHint && !canSave && (
+                <p className="px-1.5 pt-1 text-[10px] font-semibold text-muted" role="status">
+                  {saveHint}
+                </p>
+              )}
               <div className="relative min-h-11 px-1.5 py-1.5 flex flex-wrap items-center justify-end gap-1.5 text-[length:var(--control-text)]">
                 <div className="relative shrink-0">
                   <button
