@@ -41,6 +41,12 @@ export interface MatchJumpMarkers {
 /** Hide Gap jump / marker when between-set dead air is shorter than this. */
 export const BETWEEN_SET_GAP_JUMP_MIN_S = 15
 
+/**
+ * Before any current-set first-serve contact: skip this many seconds past the
+ * previous set end into dead air toward a useful estimated start of play.
+ */
+export const BETWEEN_SET_GAP_PRE_CONTACT_LEAD_S = 10
+
 /** Pass 1 Gap control: show when prev end known and gap unknown or ≥ threshold. */
 export function shouldShowBetweenSetGapJump(
   prevSetEndS: number | null,
@@ -50,6 +56,36 @@ export function shouldShowBetweenSetGapJump(
   if (prevSetEndS == null) return false
   if (typeof firstServeS !== 'number' || !Number.isFinite(firstServeS)) return true
   return firstServeS - prevSetEndS >= minGapS
+}
+
+/**
+ * Seek target for Pass 1 Gap (seek-only; does not change live-next / Done).
+ * - No first serve yet: prevEnd + pre-contact lead (dead air → estimated start).
+ * - First serve known and gap ≥ min: previous set end (start of known gap).
+ * - Otherwise null (control should be hidden).
+ */
+export function betweenSetGapSeekS(
+  prevSetEndS: number | null,
+  firstServeS: number | null | undefined,
+  durationS?: number | null,
+  opts?: { minGapS?: number; preContactLeadS?: number }
+): number | null {
+  if (prevSetEndS == null || !Number.isFinite(prevSetEndS)) return null
+  const minGap = opts?.minGapS ?? BETWEEN_SET_GAP_JUMP_MIN_S
+  const lead = opts?.preContactLeadS ?? BETWEEN_SET_GAP_PRE_CONTACT_LEAD_S
+
+  let target: number
+  if (typeof firstServeS === 'number' && Number.isFinite(firstServeS)) {
+    if (firstServeS - prevSetEndS < minGap) return null
+    target = prevSetEndS
+  } else {
+    target = prevSetEndS + lead
+  }
+
+  if (typeof durationS === 'number' && Number.isFinite(durationS) && durationS > 0) {
+    target = Math.min(target, Math.max(0, durationS - 0.05))
+  }
+  return Math.max(0, target)
 }
 
 const TRIM_LEAD_S = 2

@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
+  BETWEEN_SET_GAP_PRE_CONTACT_LEAD_S,
+  betweenSetGapSeekS,
   deriveVideoJumpMarkers,
   shouldShowBetweenSetGapJump,
 } from './deriveVideoJumpMarkers'
@@ -55,5 +57,21 @@ describe('shouldShowBetweenSetGapJump', () => {
   it('shows when gap unknown or previous end missing', () => {
     expect(shouldShowBetweenSetGapJump(100, null)).toBe(true)
     expect(shouldShowBetweenSetGapJump(null, 120)).toBe(false)
+  })
+})
+
+describe('betweenSetGapSeekS', () => {
+  it('estimates into dead air when no first-serve contact yet', () => {
+    expect(betweenSetGapSeekS(100, null)).toBe(100 + BETWEEN_SET_GAP_PRE_CONTACT_LEAD_S)
+    expect(betweenSetGapSeekS(100, undefined, 105)).toBe(104.95)
+  })
+
+  it('seeks to previous set end when known gap is ≥ threshold', () => {
+    expect(betweenSetGapSeekS(100, 120)).toBe(100)
+    expect(betweenSetGapSeekS(100, 108)).toBe(null)
+  })
+
+  it('returns null without previous set end', () => {
+    expect(betweenSetGapSeekS(null, null)).toBe(null)
   })
 })

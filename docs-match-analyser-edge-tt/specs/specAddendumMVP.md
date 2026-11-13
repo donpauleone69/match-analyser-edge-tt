@@ -6,6 +6,21 @@
 
 ## Change Log
 
+### 2026-11-13: MA-50 — Pass 1 Gap pre-contact estimated seek (v3.100.0)
+
+**Change Type:** UX polish — Gap seek before first serve (no epics)
+
+**What Changed:**
+- Pass 1 **Gap** with no current-set first-serve contact: seek to `prevSetEnd + 10s` (clamped) — estimated dead-air / start. Seek-only; live-next / Done unchanged.
+- After contacts: keep existing behaviour — Gap only when gap ≥15s, seek to previous set end.
+- Shared pure helper `betweenSetGapSeekS` (+ vitest).
+
+**Decision Rationale:** MA-45/49 status — Gap should be useful before the first contact of a multi-set video.
+
+**Key Files:** `deriveVideoJumpMarkers.ts`; `Pass1FocusComposer.tsx`; `Pass1ChromeProtoBlock.tsx`.
+
+---
+
 ### 2026-11-13: MA-49 — Leave mid-rally Keep draft vs Discard (v3.99.0)
 
 **Change Type:** UX polish — Leave draft choice (no epics)
