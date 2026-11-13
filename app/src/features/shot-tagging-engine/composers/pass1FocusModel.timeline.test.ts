@@ -4,6 +4,7 @@ import {
   RALLY_TIMELINE_PAD_SECONDS,
   canSaveRallyTimeline,
   derivePass1Stage,
+  isEndAttrsComplete,
   isFaAttrsComplete,
   isFosDecided,
   markEnd,
@@ -14,6 +15,8 @@ import {
   railSlotKind,
   rallyTimelineViewWindow,
   setFos,
+  shotLoopWindow,
+  shotToRallyEndLoopWindow,
   toggleShotChoice,
   timelineFromContacts,
 } from './pass1FocusModel'
@@ -95,30 +98,44 @@ describe('rallyTimelineViewWindow', () => {
   })
 })
 
-describe('first attack mandatory (MA-35 / MA-68 / MA-70)', () => {
-  it('treats fos null as undecided until noFirstAttack or a shot mark', () => {
-    // timelineFromContacts pre-marks End at N
+describe('first attack mandatory (MA-35 / MA-68 / MA-71)', () => {
+  function withEndAttrs(state: ReturnType<typeof timelineFromContacts>) {
+    const end = state.end!
+    return toggleShotChoice(
+      toggleShotChoice({ ...state, ending: 'winner' as const }, end, 'wing', 'FH'),
+      end,
+      'stroke',
+      'Loop'
+    )
+  }
+
+  it('gates End Result then Wing/Stroke before select FA', () => {
     const base = timelineFromContacts([1, 2, 3, 4])
     expect(base.end).toBe(4)
     expect(base.noFirstAttack).toBe(false)
     expect(isFosDecided(base)).toBe(false)
     expect(canSaveRallyTimeline(base, 'Ada')).toBe(false)
-    // End phase first: Result before FA (MA-68 / MA-70 sequencing)
     expect(pass1SaveHint(base)).toMatch(/Winner|error|end shot/i)
     expect(derivePass1Stage(base)).toBe('end_details')
 
     const withEndingOnly = { ...base, ending: 'winner' as const }
+    expect(isEndAttrsComplete(withEndingOnly)).toBe(false)
+    expect(derivePass1Stage(withEndingOnly)).toBe('end_shot')
+    expect(pass1StageInfo('end_shot').text).toMatch(/Wing and Stroke/i)
+    expect(pass1SaveHint(withEndingOnly)).toMatch(/Wing and Stroke/i)
     expect(canSaveRallyTimeline(withEndingOnly, 'Ada')).toBe(false)
-    expect(pass1SaveHint(withEndingOnly)).toMatch(/first attack|No attack/i)
-    expect(derivePass1Stage(withEndingOnly)).toBe('select_fa')
-    expect(pass1StageInfo('select_fa').text).toBe('Select first attack')
 
-    const marked = markFos(withEndingOnly, 3, 3)
+    const endReady = withEndAttrs(base)
+    expect(isEndAttrsComplete(endReady)).toBe(true)
+    expect(derivePass1Stage(endReady)).toBe('select_fa')
+    expect(pass1StageInfo('select_fa').text).toMatch(/No Attack/i)
+    expect(pass1SaveHint(endReady)).toMatch(/first attack|No attack/i)
+
+    const marked = markFos(endReady, 3, 3)
     expect(marked.fos).toBe(3)
     expect(marked.noFirstAttack).toBe(false)
     expect(isFosDecided(marked)).toBe(true)
     expect(canSaveRallyTimeline(marked, 'Ada')).toBe(true)
-    // FA chosen but wing/stroke missing → FA details (rail may paint FA now)
     expect(derivePass1Stage(marked)).toBe('fa_details')
     expect(isFaAttrsComplete(marked)).toBe(false)
 
@@ -142,18 +159,24 @@ describe('first attack mandatory (MA-35 / MA-68 / MA-70)', () => {
     expect(none.fos).toBeNull()
     expect(none.noFirstAttack).toBe(true)
     expect(isFosDecided(none)).toBe(true)
-    // No attack skips FA details → optional
     expect(derivePass1Stage(none)).toBe('optional')
 
     expect(canSaveRallyTimeline(none, 'Ada')).toBe(true)
     expect(pass1SaveHint(none)).toBeNull()
+
+    // Undo No attack in optional → back through select FA
+    const undone = setFos(none, null)
+    expect(undone.noFirstAttack).toBe(false)
+    expect(isFosDecided(undone)).toBe(false)
+    expect(derivePass1Stage(undone)).toBe('select_fa')
   })
 
-  it('serve-only end does not require first attack', () => {
+  it('serve-only end does not require first attack or end wing/stroke', () => {
     const serve = timelineFromContacts([1])
     expect(serve.end).toBe(1)
     expect(isFosDecided(serve)).toBe(true)
     const ready = { ...serve, ending: 'error_long' as const }
+    expect(isEndAttrsComplete(ready)).toBe(true)
     expect(canSaveRallyTimeline(ready, 'Ada')).toBe(true)
     expect(derivePass1Stage(ready)).toBe('optional')
   })
@@ -172,6 +195,19 @@ describe('first attack mandatory (MA-35 / MA-68 / MA-70)', () => {
       derivePass1Stage(timelineFromContacts([]), { inForm: false, hasContacts: false })
     ).toBe('contacts')
     expect(pass1StageInfo('contacts').text).toBe('Click rally contacts')
-    expect(pass1StageInfo('end_details').text).toBe('Enter End shot details')
+    expect(pass1StageInfo('end_details').text).toMatch(/end reason|Result/i)
+  })
+
+  it('shotToRallyEndLoopWindow runs from shot start to rally end', () => {
+    const state = timelineFromContacts([10, 12, 14, 16])
+    const rally = { startTime: 9, endTime: 17 }
+    const win = shotToRallyEndLoopWindow(state, 2, rally)
+    expect(win).not.toBeNull()
+    expect(win!.endTime).toBe(17)
+    expect(win!.startTime).toBeLessThanOrEqual(12)
+    expect(win!.startTime).toBeGreaterThanOrEqual(rally.startTime)
+    // Spans past the next contact (unlike isolated shot loop).
+    const isolated = shotLoopWindow(state, 2, rally)
+    expect(win!.endTime).toBeGreaterThan(isolated!.endTime)
   })
 })

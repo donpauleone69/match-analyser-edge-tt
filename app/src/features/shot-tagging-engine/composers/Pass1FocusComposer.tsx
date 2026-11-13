@@ -4,10 +4,10 @@
  * Setup → tap contacts → 2s idle finalize → timeline while video loops.
  * Each Save writes the rally + shots to IndexedDB.
  * MA-67: Simple video overlay + Let/Discard/Save chrome.
- * MA-70: staged info-box flow — contacts → end details → select FA /
- * No attack → FA details → optional/save. Sticky = info + RALLY rail;
- * optional tags in shot detail; explicit No attack; FA rail paint only
- * after FA is chosen.
+ * MA-71: staged info-box flow — contacts → end Result → end Wing/Stroke
+ * (locked) → select FA / No Attack on rail → FA details → optional/save.
+ * Single info above Rally; post-compulsory rally / from-shot-to-end loops;
+ * mute on shot loops; no Rally|Shot toggle.
  */
 
 import { useState, useRef, useEffect, useMemo, type ReactNode } from 'react'
@@ -45,6 +45,7 @@ import {
   toggleShotAttribute,
   markFos,
   setFos,
+  clearFosDecision,
   markEnd,
   toggleEnding,
   toggleMissReason,
@@ -54,10 +55,13 @@ import {
   shotNumberAtTime,
   loopWindowFromContacts,
   shotLoopWindow,
+  shotToRallyEndLoopWindow,
   captureContactTime,
   seekFloorFromCompleted,
   clampSeekTime,
   isFosDecided,
+  isEndAttrsComplete,
+  isPass1EndLockedStage,
   derivePass1Stage,
   CONTACT_IDLE_MS,
   LOOP_PAD_SECONDS,
@@ -169,9 +173,13 @@ export function Pass1FocusComposer({
   })
   /** Live element time for form overlay (avoids timeupdate lag). */
   const [liveTime, setLiveTime] = useState(0)
-  /** Explicit Rally vs Shot loop; End phase defaults Shot; after Result → Rally. */
-  const [loopScope, setLoopScope] = useState<'rally' | 'shot'>('shot')
+  /**
+   * Form loop (MA-71): rally | isolated shot (end/FA details) | from-shot-to-end (optional).
+   * Rally|Shot toggle removed.
+   */
+  const [formLoop, setFormLoop] = useState<'rally' | 'shot' | 'from_shot'>('shot')
   const [selectedShot, setSelectedShot] = useState<number | null>(null)
+  const setMuted = useVideoPlaybackStore((s) => s.setMuted)
   /** Which point cube is outlined — past rally index, or 'next' (about to tag / open). */
   const [focusedRallyIndex, setFocusedRallyIndex] = useState<number | 'next'>('next')
   const [pointLedgerOpen, setPointLedgerOpen] = useState(false)
@@ -320,7 +328,13 @@ export function Pass1FocusComposer({
             setOpenRally(draft.openRally)
             setContactTimes([])
             setSelectedShot(restoredSelected)
-            setLoopScope(stage === 'end_details' ? 'shot' : 'rally')
+            setFormLoop(
+              stage === 'end_details' || stage === 'end_shot' || stage === 'fa_details'
+                ? 'shot'
+                : stage === 'optional'
+                  ? 'rally'
+                  : 'rally'
+            )
             setFocusedRallyIndex('next')
             setPhase('form')
             setConstrainedPlayback({
@@ -498,7 +512,8 @@ export function Pass1FocusComposer({
       isHighlight: false,
     })
     setContactTimes([])
-    setLoopScope('shot')
+    setFormLoop('shot')
+    setMuted(true)
     setSelectedShot(lastShot)
     setFocusedRallyIndex('next')
     setPhase('form')
@@ -781,7 +796,37 @@ export function Pass1FocusComposer({
   }
 
   const handleToggleShotChoice = (n: number, key: ShotChoiceKey, value: string) => {
-    patchTimeline((s) => toggleShotChoice(s, n, key, value))
+    if (!openRally) {
+      patchTimeline((s) => toggleShotChoice(s, n, key, value))
+      return
+    }
+    const prevStage = derivePass1Stage(openRally.timeline, {
+      inForm: true,
+      hasContacts: true,
+    })
+    const next = toggleShotChoice(openRally.timeline, n, key, value)
+    patchTimeline(() => next)
+    const nextStage = derivePass1Stage(next, { inForm: true, hasContacts: true })
+    // End Wing/Stroke complete → select_fa: rally loop.
+    if (prevStage === 'end_shot' && nextStage === 'select_fa') {
+      setFormLoop('rally')
+      setMuted(false)
+      const { startTime } = constrainedPlayback
+      setCurrentTime(startTime)
+      videoPlayerRef.current?.seek(startTime, true)
+      videoPlayerRef.current?.play()
+    }
+    // FA Wing/Stroke complete → optional: rally loop.
+    if (prevStage === 'fa_details' && nextStage === 'optional') {
+      setFormLoop('rally')
+      setMuted(false)
+    }
+    // Entering FA details after FA mark already sets shot loop; keep muted shot loop while editing.
+    if (nextStage === 'fa_details') {
+      setFormLoop('shot')
+      setMuted(true)
+      if (typeof next.fos === 'number') setSelectedShot(next.fos)
+    }
   }
 
   const handleToggleAttribute = (n: number, key: ShotAttributeKey) => {
@@ -802,7 +847,9 @@ export function Pass1FocusComposer({
 
   /**
    * Rail or list row tap: select + replay.
-   * In select_fa stage, tapping shot ≥2 marks First attack (paints FA only then).
+   * End stages: locked to End shot.
+   * select_fa: tap ≥2 marks / reassigns FA → FA details shot loop.
+   * optional: from-that-shot-to-rally-end + mute.
    */
   const handleSelectShot = (n: number) => {
     if (!openRally || phase !== 'form') {
@@ -813,23 +860,35 @@ export function Pass1FocusComposer({
       inForm: true,
       hasContacts: true,
     })
+    if (isPass1EndLockedStage(stage)) {
+      const end = openRally.timeline.end
+      if (typeof end === 'number') setSelectedShot(end)
+      return
+    }
     if (stage === 'select_fa' && n >= 2 && openRally.timeline.end !== 1) {
       const contact = openRally.timeline.shots[n]?.contactTime ?? null
       patchTimeline((s) => markFos({ ...s, noFirstAttack: false, fos: null }, n, contact))
       setSelectedShot(n)
-      setLoopScope('shot')
+      setFormLoop('shot')
+      setMuted(true)
       playFromShot(n)
       requestAnimationFrame(() => snapPass1ShotIntoView(n))
       return
     }
     setSelectedShot(n)
+    if (stage === 'optional') {
+      setFormLoop('from_shot')
+      setMuted(true)
+    } else if (stage === 'fa_details') {
+      setFormLoop('shot')
+      setMuted(true)
+    }
     playFromShot(n)
     requestAnimationFrame(() => snapPass1ShotIntoView(n))
   }
 
   /**
-   * Mark / move First attack on a shot (optional-stage corrections).
-   * No attack is a separate control — not a second tap on First attack.
+   * Mark / move First attack (rare — select_fa uses rail; optional uses Change).
    */
   const handleMarkFos = (at: number) => {
     if (!openRally || phase !== 'form') return
@@ -838,14 +897,14 @@ export function Pass1FocusComposer({
     setSelectedShot(at)
     const contact = openRally.timeline.shots[at]?.contactTime ?? null
     if (openRally.timeline.fos === at) {
-      // Re-tap clears to undecided (not No attack).
       patchTimeline((s) => markFos(s, at, contact))
       return
     }
     patchTimeline((s) =>
       markFos({ ...s, noFirstAttack: false, fos: null }, at, contact)
     )
-    setLoopScope('shot')
+    setFormLoop('shot')
+    setMuted(true)
     playFromShot(at)
   }
 
@@ -854,7 +913,27 @@ export function Pass1FocusComposer({
   }
 
   const handleNoAttack = () => {
-    patchTimeline((s) => setFos(s, null))
+    if (!openRally) {
+      patchTimeline((s) => setFos(s, null))
+      return
+    }
+    const next = setFos(openRally.timeline, null)
+    patchTimeline(() => next)
+    const nextStage = derivePass1Stage(next, { inForm: true, hasContacts: true })
+    if (nextStage === 'optional') {
+      setFormLoop('rally')
+      setMuted(false)
+    } else if (nextStage === 'select_fa') {
+      // Undo No attack from optional
+      setFormLoop('rally')
+      setMuted(false)
+    }
+  }
+
+  const handleClearFosDecision = () => {
+    patchTimeline((s) => clearFosDecision(s))
+    setFormLoop('rally')
+    setMuted(false)
   }
 
   const handleCancelFosPick = () => {
@@ -1000,7 +1079,8 @@ export function Pass1FocusComposer({
 
   const handleMarkEnd = (at: number) => {
     setSelectedShot(at)
-    setLoopScope('shot')
+    setFormLoop('shot')
+    setMuted(true)
     patchTimeline((s) => markEnd(s, at))
   }
 
@@ -1008,18 +1088,23 @@ export function Pass1FocusComposer({
     if (!openRally) return
     const next = toggleEnding(openRally.timeline, value)
     patchTimeline(() => next)
-    // After Result entered → full rally loop; select_fa stage (unless serve-only / already decided).
-    if (next.ending && !isFosDecided(next)) {
-      setLoopScope('rally')
+    // Stay on End shot loop through Result → Wing/Stroke (end_shot).
+    // Rally loop only once End attrs complete and we enter select_fa / optional.
+    if (typeof next.end === 'number') setSelectedShot(next.end)
+    if (next.ending && isEndAttrsComplete(next) && !isFosDecided(next)) {
+      setFormLoop('rally')
+      setMuted(false)
       const { startTime } = constrainedPlayback
       setCurrentTime(startTime)
       videoPlayerRef.current?.seek(startTime, true)
       videoPlayerRef.current?.play()
-    } else if (!next.ending) {
-      setLoopScope('shot')
-    } else if (next.ending && isFosDecided(next)) {
-      // Serve-only / already decided → optional; keep shot loop on end.
-      setLoopScope('shot')
+    } else if (next.ending && isEndAttrsComplete(next) && isFosDecided(next)) {
+      // Serve-only / already decided → optional → rally loop.
+      setFormLoop('rally')
+      setMuted(false)
+    } else {
+      setFormLoop('shot')
+      setMuted(true)
     }
   }
 
@@ -1039,11 +1124,16 @@ export function Pass1FocusComposer({
         ? shotNumberAtTime(formContactTimes, liveTime)
         : null
   const selectedShotLoop =
-    phase === 'form' &&
-    openRally &&
-    loopScope === 'shot' &&
-    selectedShot !== null
-      ? shotLoopWindow(openRally.timeline, selectedShot, constrainedPlayback)
+    phase === 'form' && openRally && selectedShot !== null
+      ? formLoop === 'shot'
+        ? shotLoopWindow(openRally.timeline, selectedShot, constrainedPlayback)
+        : formLoop === 'from_shot'
+          ? shotToRallyEndLoopWindow(
+              openRally.timeline,
+              selectedShot,
+              constrainedPlayback
+            )
+          : null
       : null
   const activePlayback = selectedShotLoop
     ? { ...constrainedPlayback, ...selectedShotLoop }
@@ -1214,29 +1304,7 @@ export function Pass1FocusComposer({
                     onTogglePlay={() => videoPlayerRef.current?.togglePlay()}
                     onSeekBy={handleSeekBy}
                     onNudgeSpeed={nudgePlaybackSpeed}
-                    trailing={
-                      phase === 'form' && openRally ? (
-                        <button
-                          type="button"
-                          aria-pressed={true}
-                          aria-label={`Loop scope ${loopScope === 'rally' ? 'Rally' : 'Shot'}. Tap to cycle.`}
-                          onClick={() =>
-                            setLoopScope(loopScope === 'rally' ? 'shot' : 'rally')
-                          }
-                          className={cn(
-                            'tag-control h-7 min-w-[2.75rem] px-1.5 text-[9px] font-bold',
-                            'bg-black/70 text-white border-white/25 touch-manipulation'
-                          )}
-                          title={
-                            loopScope === 'rally'
-                              ? 'Loop the whole rally — tap for Shot'
-                              : 'Loop the current shot — tap for Rally'
-                          }
-                        >
-                          {loopScope === 'rally' ? 'Rally' : 'Shot'}
-                        </button>
-                      ) : undefined
-                    }
+                    trailing={undefined}
                     className="h-7 shrink-0 gap-0.5 [&_button]:h-7 [&_button]:min-w-7 [&_button]:w-7 [&_span]:inline-flex [&_span]:h-7 [&_span]:min-w-7 [&_span]:items-center [&_span]:justify-center [&_span]:px-1 [&_span]:py-0 [&_span]:text-[10px]"
                   />
                 </div>
@@ -1355,6 +1423,7 @@ export function Pass1FocusComposer({
                 onMarkFos={handleMarkFos}
                 onChangeFos={handleChangeFos}
                 onNoAttack={handleNoAttack}
+                onClearFosDecision={handleClearFosDecision}
                 onCancelFosPick={handleCancelFosPick}
                 onMarkEnd={handleMarkEnd}
                 onToggleEnding={handleToggleEnding}

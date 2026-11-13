@@ -409,6 +409,22 @@ export function shotLoopWindow(
 }
 
 /**
+ * MA-71: loop from shot `n` through the end of the rally window
+ * (not an isolated single-shot loop).
+ */
+export function shotToRallyEndLoopWindow(
+  state: RallyTimelineState,
+  n: number,
+  rallyLoop: { startTime: number; endTime: number }
+): { startTime: number; endTime: number } | null {
+  const startWin = shotLoopWindow(state, n, rallyLoop)
+  if (!startWin) return null
+  const { endTime } = rallyLoop
+  if (endTime <= startWin.startTime) return null
+  return { startTime: startWin.startTime, endTime }
+}
+
+/**
  * End-reasoning loop: previous contact + end contact (through end of that window).
  * Serve-only End=1 → just the end/serve shot.
  */
@@ -671,6 +687,14 @@ export function markFos(
   }
 }
 
+/**
+ * Clear FA / No-attack decision back to undecided (optional undo → select_fa).
+ * Distinct from setFos(null), which toggles No attack.
+ */
+export function clearFosDecision(state: RallyTimelineState): RallyTimelineState {
+  return { ...state, fos: null, noFirstAttack: false, fosTimeSeconds: null }
+}
+
 /** Set first attack to a shot, or null with noFirstAttack when marking none. */
 export function setFos(
   state: RallyTimelineState,
@@ -851,14 +875,16 @@ export function canSaveRallyTimeline(
 }
 
 /**
- * MA-70 staged Pass 1 flow (explicit info-box sequence).
+ * MA-71 staged Pass 1 flow (explicit info-box sequence).
  *
- * contacts → end details → select FA / No attack → FA details → optional/save.
+ * contacts → end Result → end Wing/Stroke → select FA / No attack →
+ * FA details → optional/save.
  * `Pass1FormPhase` kept as a coarse alias for older call sites.
  */
 export type Pass1Stage =
   | 'contacts'
   | 'end_details'
+  | 'end_shot'
   | 'select_fa'
   | 'fa_details'
   | 'optional'
@@ -874,6 +900,22 @@ export function isFaAttrsComplete(state: RallyTimelineState): boolean {
 }
 
 /**
+ * End shot Result + Wing + Stroke (Paul MA-71).
+ * Serve-only (`end === 1`): Result alone — Pass 1 allow-list has no wing/stroke on serve.
+ */
+export function isEndAttrsComplete(state: RallyTimelineState): boolean {
+  if (typeof state.end !== 'number' || !state.ending) return false
+  if (state.end === 1) return true
+  const shot = state.shots[state.end]
+  return Boolean(shot?.wing && shot?.stroke)
+}
+
+/** True while End stages lock selection to the End shot. */
+export function isPass1EndLockedStage(stage: Pass1Stage): boolean {
+  return stage === 'end_details' || stage === 'end_shot'
+}
+
+/**
  * Derive the current Pass 1 stage from timeline state.
  * Pass `hasContacts` false (or omit while still tapping) for the contacts stage.
  */
@@ -885,6 +927,7 @@ export function derivePass1Stage(
   const hasContacts = opts?.hasContacts ?? state.shotCount > 0
   if (!inForm || !hasContacts || state.shotCount <= 0) return 'contacts'
   if (state.end === null || !state.ending) return 'end_details'
+  if (!isEndAttrsComplete(state)) return 'end_shot'
   if (!isFosDecided(state)) return 'select_fa'
   // No attack / serve-only → skip FA detail entry.
   if (state.noFirstAttack || state.end === 1) return 'optional'
@@ -892,7 +935,7 @@ export function derivePass1Stage(
   return 'optional'
 }
 
-/** Info-box copy for the current stage (MA-70). */
+/** Info-box copy for the current stage (single surface above Rally). */
 export function pass1StageInfo(stage: Pass1Stage): {
   text: string
   tone: 'neutral' | 'ready'
@@ -901,11 +944,16 @@ export function pass1StageInfo(stage: Pass1Stage): {
     case 'contacts':
       return { text: 'Click rally contacts', tone: 'neutral' }
     case 'end_details':
-      return { text: 'Enter End shot details', tone: 'neutral' }
+      return { text: 'Enter end reason (Result)', tone: 'neutral' }
+    case 'end_shot':
+      return { text: 'Enter End shot Wing and Stroke', tone: 'neutral' }
     case 'select_fa':
-      return { text: 'Select first attack', tone: 'neutral' }
+      return {
+        text: 'Tap a shot for first attack, or No Attack',
+        tone: 'neutral',
+      }
     case 'fa_details':
-      return { text: 'Enter First attack', tone: 'neutral' }
+      return { text: 'Enter First attack Wing and Stroke', tone: 'neutral' }
     case 'optional':
       return {
         text: 'Add additional details if you want',
@@ -917,7 +965,13 @@ export function pass1StageInfo(stage: Pass1Stage): {
 /** Coarse phase for loops / legacy: end → fos → detail. */
 export function derivePass1FormPhase(state: RallyTimelineState): Pass1FormPhase {
   const stage = derivePass1Stage(state, { inForm: true, hasContacts: true })
-  if (stage === 'end_details' || stage === 'contacts') return 'end'
+  if (
+    stage === 'end_details' ||
+    stage === 'end_shot' ||
+    stage === 'contacts'
+  ) {
+    return 'end'
+  }
   if (stage === 'select_fa') return 'fos'
   return 'detail'
 }
@@ -926,7 +980,16 @@ export function derivePass1FormPhase(state: RallyTimelineState): Pass1FormPhase 
 export function pass1SaveHint(state: RallyTimelineState): string | null {
   if (state.end === null) return 'Mark End point on the last shot'
   if (!state.ending) return 'Choose Winner / error on the end shot row'
+  if (!isEndAttrsComplete(state)) return 'Enter Wing and Stroke on the end shot'
   if (!isFosDecided(state)) return 'Select first attack on the rail, or No attack'
+  if (
+    typeof state.fos === 'number' &&
+    !state.noFirstAttack &&
+    state.end !== 1 &&
+    !isFaAttrsComplete(state)
+  ) {
+    return 'Enter First attack Wing and Stroke'
+  }
   return null
 }
 
