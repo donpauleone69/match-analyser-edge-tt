@@ -255,6 +255,22 @@ export function AccountComposer() {
 
       <Card className="p-6 space-y-3">
         <div className="flex items-center gap-3">
+          <Icon name="target" size="lg" className="text-neutral-400" />
+          <div className="min-w-0 flex-1">
+            <h2 className="text-xl font-semibold text-neutral-50">Training (practice)</h2>
+            <p className="text-sm text-neutral-400">
+              Shot-type and combo posts — not match tagging. Hidden from the main tabs until it grows into a
+              full product surface.
+            </p>
+          </div>
+          <Button variant="secondary" size="sm" onClick={() => navigate('/training')}>
+            Open Training
+          </Button>
+        </div>
+      </Card>
+
+      <Card className="p-6 space-y-3">
+        <div className="flex items-center gap-3">
           <Icon name="hard-drive" size="lg" className="text-neutral-400" />
           <div>
             <h2 className="text-xl font-semibold text-neutral-50">This device</h2>
