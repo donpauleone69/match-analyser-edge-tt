@@ -129,7 +129,7 @@ export interface Pass1SetContextBlockProps {
   onJumpPrevSetEnd?: () => void
   prevSetNumber?: number | null
   onToggleHistory: () => void
-  /** Between points only — Done finishes the set; Pause soft-leaves to Match Review. */
+  /** Between points only — Done finishes the set; Leave soft-exits to Match Review. */
   canEndSet?: boolean
   onEndSet?: () => void
   onReviewMatch?: () => void
@@ -295,9 +295,10 @@ export function Pass1SetContextBlock({
               type="button"
               onClick={onReviewMatch}
               className="tag-control shrink-0 min-h-9 px-3 touch-manipulation"
-              title="Pause tagging and open Match Review (set stays resumable)"
+              title="Leave tagging and open Match Review (set stays resumable)"
+              aria-label="Leave to Match Review"
             >
-              Pause
+              Leave
             </button>
           )}
         </>

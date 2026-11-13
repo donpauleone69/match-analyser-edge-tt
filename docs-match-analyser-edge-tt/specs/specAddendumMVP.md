@@ -6,6 +6,20 @@
 
 ## Change Log
 
+### 2026-11-13: MA-44 — Tip-of-main regression smoke + Pass 1 Leave label (v3.94.0)
+
+**Change Type:** Regression smoke after polish wave #21–#29 + tiny chrome nit (no epics)
+
+**What Changed:**
+- Tip-of-main @390 Playwright regression covering Home What’s left → Find → Tag (FA/End, Flag, 1st/Gap) → Done → Summary incomplete → Work on → Clips Download → Rallies Incomplete → Fix incomplete → Details markers/Trim → Account/Training: **22/22 PASS**.
+- Pass 1 soft-exit control renamed **Pause → Leave** (`aria-label` Leave to Match Review) so it no longer clashes with transport Pause.
+
+**Decision Rationale:** Close the polish wave with a full path smoke; dual Pause labels were a shippable selector/UX nit only.
+
+**Key Files:** `Pass1ChromeProtoBlock.tsx`; `Pass1FocusBlock.tsx`.
+
+---
+
 ### 2026-11-13: MA-43 — Between-set Gap jump + Rallies Incomplete badge (v3.93.0)
 
 **Change Type:** UX polish — Pass 1 multi-set jump + Rallies badge (no epics)
