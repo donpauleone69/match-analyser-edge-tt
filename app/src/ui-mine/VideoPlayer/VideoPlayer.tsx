@@ -75,6 +75,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
     duration,
     isPlaying,
     playbackSpeed,
+    isMuted,
     setCurrentTime,
     setDuration,
     setIsPlaying,
@@ -172,6 +173,13 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
   useEffect(() => {
     applyStoreSpeed()
   }, [playbackSpeed, effectiveVideoSrc, applyStoreSpeed])
+
+  // Keep <video>.muted in sync with store (TransportCluster mute toggle).
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video) return
+    if (video.muted !== isMuted) video.muted = isMuted
+  }, [isMuted, effectiveVideoSrc])
 
   useEffect(() => {
     if (!constrainedPlayback?.enabled) return
@@ -391,6 +399,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
           ref={videoRef}
           src={effectiveVideoSrc}
           className="w-full h-full object-contain"
+          muted={isMuted}
           onTimeUpdate={handleTimeUpdate}
           onLoadedMetadata={handleLoadedMetadata}
           onRateChange={applyStoreSpeed}
