@@ -3,9 +3,10 @@
  *
  * Setup → tap contacts → 2s idle finalize → timeline while video loops.
  * Each Save writes the rally + shots to IndexedDB.
- * MA-67: Simple video overlay (compact HUD + !bottom-4 transport) + Simple
- * form chrome (Serve · player | Point in progress | Let | Discard | Save).
- * Pass 1 tagging IA unchanged; Let = redo contacts.
+ * MA-67: Simple video overlay + Let/Discard/Save chrome.
+ * MA-68: always-selected End; quick-mark End/FA/Review/★; FA 2nd tap = No;
+ * selected-only detail; End→Result then rally loop + FA; Rally|Shot in
+ * transport; no Simple|Pass1 overlay toggle; miss optional with Review.
  */
 
 import { useState, useRef, useEffect, useMemo, type ReactNode } from 'react'
@@ -18,7 +19,6 @@ import {
   Pass1SetContextBlock,
   Pass1PointLedgerBlock,
   Pass1LeaveDraftChoiceBlock,
-  SimpleTaggingModePickerBlock,
   snapPass1ShotIntoView,
 } from '../blocks'
 import { VideoPlayerSection } from '../sections'
@@ -47,7 +47,6 @@ import {
   markEnd,
   toggleEnding,
   toggleMissReason,
-  toggleShotReviewKind,
   toggleShotReviewFlag,
   timelineFromContacts,
   contactTimesFromTimeline,
@@ -57,6 +56,8 @@ import {
   captureContactTime,
   seekFloorFromCompleted,
   clampSeekTime,
+  isFosDecided,
+  derivePass1FormPhase,
   CONTACT_IDLE_MS,
   LOOP_PAD_SECONDS,
   CAPTURE_PLAYBACK_SPEED,
@@ -66,7 +67,6 @@ import {
   type PointMissReason,
   type ShotChoiceKey,
   type ShotAttributeKey,
-  type ShotReviewKind,
 } from './pass1FocusModel'
 import {
   persistPass1FocusRally,
@@ -135,8 +135,9 @@ export function Pass1FocusComposer({
   player1Name,
   player2Name,
   className,
-  onRequestModeChange,
+  onRequestModeChange: _onRequestModeChange,
 }: Pass1FocusComposerProps) {
+  void _onRequestModeChange
   const navigate = useNavigate()
   const videoUrl = useVideoPlaybackStore((state) => state.videoUrl)
   const setVideoUrl = useVideoPlaybackStore((state) => state.setVideoUrl)
@@ -167,8 +168,10 @@ export function Pass1FocusComposer({
   })
   /** Live element time for form overlay (avoids timeupdate lag). */
   const [liveTime, setLiveTime] = useState(0)
-  /** When true, shot rows from 2 onward pick the first attack. */
+  /** Armed after End Result — First attack is the next quick action. */
   const [fosPickMode, setFosPickMode] = useState(false)
+  /** Explicit Rally vs Shot loop; End phase defaults Shot; after Result → Rally. */
+  const [loopScope, setLoopScope] = useState<'rally' | 'shot'>('shot')
   const [selectedShot, setSelectedShot] = useState<number | null>(null)
   /** Which point cube is outlined — past rally index, or 'next' (about to tag / open). */
   const [focusedRallyIndex, setFocusedRallyIndex] = useState<number | 'next'>('next')
@@ -299,13 +302,22 @@ export function Pass1FocusComposer({
         const draft = loadPass1FocusDraft(target.id)
         if (draft && draft.matchId === matchId && draft.setNumber === setNumber) {
           if (draft.phase === 'form' && draft.openRally) {
-            const { serveTimestamp, endTimestamp } = draft.openRally
+            const { serveTimestamp, endTimestamp, timeline: draftTimeline } =
+              draft.openRally
             const dur = useVideoPlaybackStore.getState().duration
             const loop = loopWindowFromContacts(serveTimestamp, endTimestamp, dur)
+            const endN =
+              typeof draftTimeline.end === 'number'
+                ? draftTimeline.end
+                : draftTimeline.shotCount
+            const restoredSelected =
+              draft.selectedShot ?? (endN > 0 ? endN : null)
+            const formPhase = derivePass1FormPhase(draftTimeline)
             setOpenRally(draft.openRally)
             setContactTimes([])
-            setSelectedShot(draft.selectedShot)
-            setFosPickMode(false)
+            setSelectedShot(restoredSelected)
+            setFosPickMode(formPhase === 'fos')
+            setLoopScope(formPhase === 'end' ? 'shot' : 'rally')
             setFocusedRallyIndex('next')
             setPhase('form')
             setConstrainedPlayback({
@@ -429,6 +441,19 @@ export function Pass1FocusComposer({
 
   const timeline = openRally?.timeline ?? emptyRallyTimelineState()
 
+  // Always keep a shot selected in form (default = End / last contact).
+  useEffect(() => {
+    if (phase !== 'form' || !openRally) return
+    if (typeof selectedShot === 'number' && openRally.timeline.shots[selectedShot]) {
+      return
+    }
+    const endN = openRally.timeline.end
+    const fallback =
+      (typeof endN === 'number' ? endN : null) ??
+      (openRally.timeline.shotCount > 0 ? openRally.timeline.shotCount : null)
+    if (typeof fallback === 'number') setSelectedShot(fallback)
+  }, [phase, openRally, selectedShot])
+
   useEffect(() => {
     if (phase !== 'form') return
     const n =
@@ -459,8 +484,10 @@ export function Pass1FocusComposer({
     clearIdleTimer()
     const serveTimestamp = times[0]
     const endTimestamp = times[times.length - 1]
+    const lastShot = times.length
     const duration = useVideoPlaybackStore.getState().duration
     const loop = loopWindowFromContacts(serveTimestamp, endTimestamp, duration)
+    // End already pre-marked at N in timelineFromContacts; select last + Shot loop.
     setOpenRally({
       serveTimestamp,
       endTimestamp,
@@ -468,8 +495,9 @@ export function Pass1FocusComposer({
       isHighlight: false,
     })
     setContactTimes([])
-    setFosPickMode(true)
-    setSelectedShot(null)
+    setFosPickMode(false)
+    setLoopScope('shot')
+    setSelectedShot(lastShot)
     setFocusedRallyIndex('next')
     setPhase('form')
     setConstrainedPlayback({
@@ -478,8 +506,11 @@ export function Pass1FocusComposer({
       endTime: loop.endTime,
       loopOnEnd: true,
     })
-    videoPlayerRef.current?.seek(loop.startTime)
+    // Shot loop starts on the end contact once selectedShot drives activePlayback.
+    const endContact = times[times.length - 1]
+    videoPlayerRef.current?.seek(Math.max(loop.startTime, endContact - LOOP_PAD_SECONDS))
     videoPlayerRef.current?.play()
+    requestAnimationFrame(() => snapPass1ShotIntoView(lastShot))
   }
 
   const scheduleIdleFinalize = () => {
@@ -774,18 +805,39 @@ export function Pass1FocusComposer({
     requestAnimationFrame(() => snapPass1ShotIntoView(n))
   }
 
+  /**
+   * First attack quick (MA-68 Paul):
+   * 1st tap on selected shot → mark FOS; 2nd tap (same shot already FOS) → No;
+   * when No is on → tap clears No and marks selected. Moving FA: select another
+   * shot and tap once.
+   */
   const handleMarkFos = (at: number) => {
     if (!openRally || phase !== 'form') return
     if (at < 2) return
+    if (openRally.timeline.end === 1) return
     setSelectedShot(at)
     const contact = openRally.timeline.shots[at]?.contactTime ?? null
+    const { fos, noFirstAttack } = openRally.timeline
+    if (noFirstAttack) {
+      patchTimeline((s) => markFos({ ...s, noFirstAttack: false, fos: null }, at, contact))
+      setFosPickMode(false)
+      setLoopScope('shot')
+      playFromShot(at)
+      return
+    }
+    if (fos === at) {
+      // Second tap → explicit No first attack
+      patchTimeline((s) => setFos(s, null))
+      setFosPickMode(false)
+      return
+    }
     patchTimeline((s) => markFos(s, at, contact))
     setFosPickMode(false)
+    setLoopScope('shot')
     playFromShot(at)
   }
 
   const handleChangeFos = () => {
-    setSelectedShot(null)
     setFosPickMode(true)
   }
 
@@ -796,10 +848,6 @@ export function Pass1FocusComposer({
 
   const handleCancelFosPick = () => {
     setFosPickMode(false)
-  }
-
-  const handleToggleReviewKind = (n: number, value: ShotReviewKind) => {
-    patchTimeline((s) => toggleShotReviewKind(s, n, value))
   }
 
   const handleToggleReviewFlag = (n: number) => {
@@ -941,11 +989,26 @@ export function Pass1FocusComposer({
 
   const handleMarkEnd = (at: number) => {
     setSelectedShot(at)
+    setLoopScope('shot')
     patchTimeline((s) => markEnd(s, at))
   }
 
   const handleToggleEnding = (value: PointEnding) => {
-    patchTimeline((s) => toggleEnding(s, value))
+    if (!openRally) return
+    const next = toggleEnding(openRally.timeline, value)
+    patchTimeline(() => next)
+    // After Result entered → full rally loop + arm First attack (unless serve-only / already decided).
+    if (next.ending && !isFosDecided(next)) {
+      setFosPickMode(true)
+      setLoopScope('rally')
+      const { startTime } = constrainedPlayback
+      setCurrentTime(startTime)
+      videoPlayerRef.current?.seek(startTime, true)
+      videoPlayerRef.current?.play()
+    } else if (!next.ending) {
+      setFosPickMode(false)
+      setLoopScope('shot')
+    }
   }
 
   const handleToggleMissReason = (value: PointMissReason) => {
@@ -964,7 +1027,10 @@ export function Pass1FocusComposer({
         ? shotNumberAtTime(formContactTimes, liveTime)
         : null
   const selectedShotLoop =
-    phase === 'form' && openRally && selectedShot !== null
+    phase === 'form' &&
+    openRally &&
+    loopScope === 'shot' &&
+    selectedShot !== null
       ? shotLoopWindow(openRally.timeline, selectedShot, constrainedPlayback)
       : null
   const activePlayback = selectedShotLoop
@@ -1122,25 +1188,6 @@ export function Pass1FocusComposer({
       <div className="relative shrink-0 w-full bg-black overflow-hidden max-h-[42dvh] flex justify-center">
         <div className="relative w-full aspect-video max-h-[42dvh]">
           <VideoStageChrome
-            topRight={
-              onRequestModeChange ? (
-                <SimpleTaggingModePickerBlock
-                  mode="pass1focus"
-                  onSelect={(mode) => {
-                    if (mode === 'pass1focus') return
-                    if (openRally || contactTimes.length > 0) {
-                      const ok = window.confirm(
-                        'Switch to Simple? Unsaved Pass 1 draft for this point stays in Pass 1 storage; Simple opens separately.'
-                      )
-                      if (!ok) return
-                    }
-                    onRequestModeChange(mode)
-                  }}
-                  disabled={phase === 'form' || contactTimes.length > 0}
-                  className="border-white/25 bg-black/70 backdrop-blur-sm [&_button]:text-white/90 [&_button[aria-pressed=true]]:bg-brand-primary/40 [&_button[aria-pressed=true]]:text-white"
-                />
-              ) : undefined
-            }
             bottomOverlayClassName="!bottom-4"
             bottomOverlay={
               videoUrl ? (
@@ -1155,6 +1202,29 @@ export function Pass1FocusComposer({
                     onTogglePlay={() => videoPlayerRef.current?.togglePlay()}
                     onSeekBy={handleSeekBy}
                     onNudgeSpeed={nudgePlaybackSpeed}
+                    trailing={
+                      phase === 'form' && openRally ? (
+                        <button
+                          type="button"
+                          aria-pressed={true}
+                          aria-label={`Loop scope ${loopScope === 'rally' ? 'Rally' : 'Shot'}. Tap to cycle.`}
+                          onClick={() =>
+                            setLoopScope(loopScope === 'rally' ? 'shot' : 'rally')
+                          }
+                          className={cn(
+                            'tag-control h-7 min-w-[2.75rem] px-1.5 text-[9px] font-bold',
+                            'bg-black/70 text-white border-white/25 touch-manipulation'
+                          )}
+                          title={
+                            loopScope === 'rally'
+                              ? 'Loop the whole rally — tap for Shot'
+                              : 'Loop the current shot — tap for Rally'
+                          }
+                        >
+                          {loopScope === 'rally' ? 'Rally' : 'Shot'}
+                        </button>
+                      ) : undefined
+                    }
                     className="h-7 shrink-0 gap-0.5 [&_button]:h-7 [&_button]:min-w-7 [&_button]:w-7 [&_span]:inline-flex [&_span]:h-7 [&_span]:min-w-7 [&_span]:items-center [&_span]:justify-center [&_span]:px-1 [&_span]:py-0 [&_span]:text-[10px]"
                   />
                 </div>
@@ -1175,24 +1245,8 @@ export function Pass1FocusComposer({
       <div className="flex-1 min-h-0 flex flex-col bg-bg-surface">
         {/* Score HUD sits under the empty video stage so it doesn't cover “Click to load”. */}
         {!videoUrl && (
-          <div className="shrink-0 px-1.5 pt-1 flex items-center justify-between gap-2">
+          <div className="shrink-0 px-1.5 pt-1 flex items-center gap-2">
             {scoreBadge}
-            {onRequestModeChange && (
-              <SimpleTaggingModePickerBlock
-                mode="pass1focus"
-                onSelect={(mode) => {
-                  if (mode === 'pass1focus') return
-                  if (openRally || contactTimes.length > 0) {
-                    const ok = window.confirm(
-                      'Switch to Simple? Unsaved Pass 1 draft for this point stays in Pass 1 storage; Simple opens separately.'
-                    )
-                    if (!ok) return
-                  }
-                  onRequestModeChange(mode)
-                }}
-                disabled={phase === 'form' || contactTimes.length > 0}
-              />
-            )}
           </div>
         )}
         {phase === 'tapping' ? (
@@ -1278,7 +1332,6 @@ export function Pass1FocusComposer({
                 onMarkEnd={handleMarkEnd}
                 onToggleEnding={handleToggleEnding}
                 onToggleMissReason={handleToggleMissReason}
-                onToggleReviewKind={handleToggleReviewKind}
                 onToggleReviewFlag={handleToggleReviewFlag}
                 isHighlight={Boolean(openRally?.isHighlight)}
                 onToggleHighlight={handleToggleHighlight}

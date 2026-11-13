@@ -850,11 +850,23 @@ export function canSaveRallyTimeline(
   return Boolean(winnerName)
 }
 
+/**
+ * Form sequencing after contacts (MA-68):
+ * end → enter Result; fos → mark first attack / No; detail → fill remaining.
+ */
+export type Pass1FormPhase = 'end' | 'fos' | 'detail'
+
+export function derivePass1FormPhase(state: RallyTimelineState): Pass1FormPhase {
+  if (state.end === null || !state.ending) return 'end'
+  if (!isFosDecided(state)) return 'fos'
+  return 'detail'
+}
+
 /** Short hint for the sticky tool row when save is blocked. */
 export function pass1SaveHint(state: RallyTimelineState): string | null {
   if (state.end === null) return 'Mark End point on the last shot'
-  if (!isFosDecided(state)) return 'Mark First attack on a shot, or No attack'
   if (!state.ending) return 'Choose Winner / error on the end shot row'
+  if (!isFosDecided(state)) return 'Mark First attack on a shot, or No'
   return null
 }
 

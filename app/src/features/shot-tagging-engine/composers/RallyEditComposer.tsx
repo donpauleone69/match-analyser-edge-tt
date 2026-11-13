@@ -43,7 +43,6 @@ import {
   toggleMissReason,
   toggleShotAttribute,
   toggleShotChoice,
-  toggleShotReviewKind,
   toggleShotReviewFlag,
   toPass1FocusMapperShot,
   type PointEnding,
@@ -51,7 +50,6 @@ import {
   type RallyTimelineState,
   type ShotAttributeKey,
   type ShotChoiceKey,
-  type ShotReviewKind,
 } from './pass1FocusModel'
 import {
   canSaveSimpleTagging,
@@ -713,7 +711,19 @@ export function RallyEditComposer() {
             onMarkFos={(at: number) => {
               if (at < 2) return
               setSelectedShot(at)
-              patchTimeline((s) => markFos(s, at, s.shots[at]?.contactTime ?? null))
+              // MA-68: 1st tap marks FOS; 2nd tap on same shot → No first attack
+              patchTimeline((s) => {
+                const contact = s.shots[at]?.contactTime ?? null
+                if (s.noFirstAttack) {
+                  return markFos(
+                    { ...s, noFirstAttack: false, fos: null },
+                    at,
+                    contact
+                  )
+                }
+                if (s.fos === at) return setFos(s, null)
+                return markFos(s, at, contact)
+              })
               setFosPickMode(false)
               snapPass1ShotIntoView(at)
             }}
@@ -731,9 +741,6 @@ export function RallyEditComposer() {
             onToggleEnding={(value: PointEnding) => patchTimeline((s) => toggleEnding(s, value))}
             onToggleMissReason={(value: PointMissReason) =>
               patchTimeline((s) => toggleMissReason(s, value))
-            }
-            onToggleReviewKind={(n: number, value: ShotReviewKind) =>
-              patchTimeline((s) => toggleShotReviewKind(s, n, value))
             }
             onToggleReviewFlag={(n: number) => patchTimeline((s) => toggleShotReviewFlag(s, n))}
           />

@@ -91,7 +91,7 @@ describe('rallyTimelineViewWindow', () => {
   })
 })
 
-describe('first attack mandatory (MA-35)', () => {
+describe('first attack mandatory (MA-35 / MA-68)', () => {
   it('treats fos null as undecided until noFirstAttack or a shot mark', () => {
     // timelineFromContacts pre-marks End at N
     const base = timelineFromContacts([1, 2, 3, 4])
@@ -99,12 +99,18 @@ describe('first attack mandatory (MA-35)', () => {
     expect(base.noFirstAttack).toBe(false)
     expect(isFosDecided(base)).toBe(false)
     expect(canSaveRallyTimeline(base, 'Ada')).toBe(false)
-    expect(pass1SaveHint(base)).toMatch(/First attack|No attack/)
+    // End phase first: Result before FA (MA-68 sequencing)
+    expect(pass1SaveHint(base)).toMatch(/Winner|error|end shot/i)
 
-    const marked = markFos(base, 3, 3)
+    const withEndingOnly = { ...base, ending: 'winner' as const }
+    expect(canSaveRallyTimeline(withEndingOnly, 'Ada')).toBe(false)
+    expect(pass1SaveHint(withEndingOnly)).toMatch(/First attack|No/)
+
+    const marked = markFos(withEndingOnly, 3, 3)
     expect(marked.fos).toBe(3)
     expect(marked.noFirstAttack).toBe(false)
     expect(isFosDecided(marked)).toBe(true)
+    expect(canSaveRallyTimeline(marked, 'Ada')).toBe(true)
 
     const cleared = markFos(marked, 3, 3)
     expect(cleared.fos).toBeNull()
@@ -116,9 +122,8 @@ describe('first attack mandatory (MA-35)', () => {
     expect(none.noFirstAttack).toBe(true)
     expect(isFosDecided(none)).toBe(true)
 
-    const withEnding = { ...none, ending: 'winner' as const }
-    expect(canSaveRallyTimeline(withEnding, 'Ada')).toBe(true)
-    expect(pass1SaveHint(withEnding)).toBeNull()
+    expect(canSaveRallyTimeline(none, 'Ada')).toBe(true)
+    expect(pass1SaveHint(none)).toBeNull()
   })
 
   it('serve-only end does not require first attack', () => {
