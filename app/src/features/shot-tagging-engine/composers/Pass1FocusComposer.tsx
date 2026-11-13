@@ -468,6 +468,16 @@ export function Pass1FocusComposer({
     }
   }
 
+  const handleJumpToFirstServe = () => {
+    if (completed.length === 0) return
+    const first = completed[0]
+    setFocusedRallyIndex(first.rallyIndex)
+    seekClamped(first.serveTimestamp)
+    if (!isPlaying) {
+      videoPlayerRef.current?.play()
+    }
+  }
+
   const handleDiscardOpen = () => {
     if (!openRally) return
     const endAt = openRally.endTimestamp
@@ -858,6 +868,7 @@ export function Pass1FocusComposer({
       }
       onSelectLast={handleJumpToLastRallyEnd}
       onSelectNext={handleSelectNextRally}
+      onJumpFirstServe={handleJumpToFirstServe}
       onToggleHistory={() => setPointLedgerOpen((open) => !open)}
       canEndSet={canEndSet}
       onEndSet={() => void handleEndSession()}

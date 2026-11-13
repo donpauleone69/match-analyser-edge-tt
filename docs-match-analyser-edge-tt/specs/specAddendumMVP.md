@@ -6,6 +6,22 @@
 
 ## Change Log
 
+### 2026-11-13: MA-25 — Video trim / archive + jump markers (v3.75.0)
+
+**Change Type:** UX / video lifecycle
+
+**What Changed:**
+- Pure `deriveVideoJumpMarkers` — first serve, set end, gap, suggested trim window.
+- Details: Jump markers chips; Storage **Trim dead air** with **Use play window**; validate + warn if cutting into play; archive confirm (cloud required).
+- Pass 1: **1st** jump to first tagged serve (skip intro).
+- Trim success copy nudges back up → archive device copy.
+
+**Decision Rationale:** Goal 7 tournament capture — jump past dead air, guided trim, safe archive. Tags stay source-time.
+
+**Key Files:** `rules/videoLifecycle/*`; `MatchStorageBlock.tsx`; `DetailsSection.tsx`; `Pass1ChromeProtoBlock.tsx`; `Pass1FocusComposer.tsx`.
+
+---
+
 ### 2026-11-13: MA-24 — Edit / re-tag polish (v3.74.0)
 
 **Change Type:** UX / accuracy

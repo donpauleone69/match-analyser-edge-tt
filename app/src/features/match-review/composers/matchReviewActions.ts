@@ -93,7 +93,7 @@ export async function trimSetVideo(
     sourceStart: check.sourceStart,
     sourceEnd: check.sourceEnd,
   })
-  return `Trimmed set ${setNumber} saved (${Math.round(check.sourceStart)}–${Math.round(check.sourceEnd)}s). Contacts stay on source-video seconds.`
+  return `Trimmed set ${setNumber} saved (${Math.round(check.sourceStart)}–${Math.round(check.sourceEnd)}s). Contacts stay on source-video seconds. Back up, then Archive device copy to free space.`
 }
 
 /** Device copy first, then the cloud copy. */

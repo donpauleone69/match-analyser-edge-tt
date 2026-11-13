@@ -123,6 +123,8 @@ export interface Pass1SetContextBlockProps {
   onToggleServer?: () => void
   onSelectLast: () => void
   onSelectNext: () => void
+  /** Jump video to first tagged serve (skip intro / warm-up) */
+  onJumpFirstServe?: () => void
   onToggleHistory: () => void
   /** Between points only — Done finishes the set; Pause soft-leaves to Match Review. */
   canEndSet?: boolean
@@ -144,6 +146,7 @@ export function Pass1SetContextBlock({
   onToggleServer,
   onSelectLast,
   onSelectNext,
+  onJumpFirstServe,
   onToggleHistory,
   canEndSet = false,
   onEndSet,
@@ -159,6 +162,18 @@ export function Pass1SetContextBlock({
 
   return (
     <div className="shrink-0 flex min-h-9 items-center gap-1 border-t border-pill-idle-border bg-bg-card px-1.5 py-1">
+      {onJumpFirstServe && completed.length > 0 && !navigationLocked && (
+        <button
+          type="button"
+          onClick={onJumpFirstServe}
+          className="tag-control shrink-0 gap-1"
+          title="Jump to first serve (skip intro / warm-up)"
+          aria-label="Jump to first serve"
+        >
+          <Icon name="skip-forward" size="xs" />
+          <span className="hidden xs:inline sm:inline">1st</span>
+        </button>
+      )}
       {canToggleServer && onToggleServer ? (
         <button
           type="button"
