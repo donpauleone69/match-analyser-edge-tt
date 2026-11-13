@@ -6,6 +6,26 @@
 
 ## Change Log
 
+### 2026-11-13: MA-57 — Simple tagging Phase 2.2 polish (v3.106.0)
+
+**Change Type:** UX polish — Simple Phase 2.2 (Paul annotated screenshots after #41)
+
+**What Changed:**
+- Shot number cells: **frames on all**; green playhead **underline only** (no digit swell/ring).
+- Removed meaningless `FA? · End n` status chip from the matrix chrome.
+- Removed Simple|Pass 1 bordered mode bar; mode toggle sits as a **compact overlay on the video** (A/B chrome).
+- Transport cluster **bottom-aligned** with score HUD; buttons shrunk/gap tightened to fit ~390px video width.
+- Detail under matrix matches Pass 1 Focus shot-entry tools (First attack / No attack + End wing/shot/result).
+- Deleted “Mark Offensive (first = FOS) or No attack” footer hint.
+- ★ Highlight / Redo / Discard / Save row moved **above the matrix**, below Serve·Hero / point-in-progress.
+- **Rally | Shot** proper toggle placed next to shot numbers in the matrix header (shows active loop scope).
+
+**Decision Rationale:** Paul Phase 2.2 screenshot polish — less chrome, clearer playhead, Pass 1–familiar detail, phone transport fit.
+
+**Key Files:** `SimpleTaggingMatrixBlock.tsx`; `SimpleTaggingComposer.tsx`; `Pass1FocusComposer.tsx`.
+
+---
+
 ### 2026-11-13: MA-56 — Simple tagging Phase 2.1 UX (v3.105.0)
 
 **Change Type:** UX refine — Simple Phase 2.1 (Paul follow-up after #40)

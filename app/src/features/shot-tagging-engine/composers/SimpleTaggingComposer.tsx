@@ -3,8 +3,8 @@
  *
  * Setup → tap contacts → 2s idle → matrix (Offensive/End/Review) while video loops.
  * Same DBRally/DBShot via Pass 1 persist path (End keeps wing/stroke; others stripped).
- * Phase 2.1: pinned matrix; No-attack on Offensive row; End auto + wing/shot;
- * Rally|Shot loop; gold ★ left; score HUD bottom-left.
+ * Phase 2.2: mode toggle over video; action row above matrix; framed shot
+ * numbers + green underline; Rally|Shot beside shot numbers; transport fits phone.
  */
 
 import { useState, useRef, useEffect, useMemo, type ReactNode } from 'react'
@@ -78,7 +78,6 @@ import {
   markEndSimple,
   markFosSimple,
   offensiveShotsFromTimeline,
-  simpleSaveHint,
   toggleNoAttackSimple,
   toggleOffensiveShot,
   type SimpleMatrixRow,
@@ -509,7 +508,6 @@ export function SimpleTaggingComposer({
     players,
     serverName
   )
-  const saveHint = openRally ? simpleSaveHint(timeline) : null
   const canSave = openRally
     ? canSaveSimpleTagging(timeline, winnerName)
     : false
@@ -1218,11 +1216,19 @@ export function SimpleTaggingComposer({
       <div className="relative shrink-0 w-full bg-black overflow-hidden max-h-[42dvh] flex justify-center">
         <div className="relative w-full aspect-video max-h-[42dvh]">
           <VideoStageChrome
+            topRight={
+              <SimpleTaggingModePickerBlock
+                mode="simple"
+                onSelect={handleModeSwitch}
+                disabled={phase === 'form' || contactTimes.length > 0}
+                className="border-white/25 bg-black/70 backdrop-blur-sm [&_button]:text-white/90 [&_button[aria-pressed=true]]:bg-brand-primary/40 [&_button[aria-pressed=true]]:text-white"
+              />
+            }
             bottomOverlayClassName="!bottom-2"
             bottomOverlay={
               videoUrl ? (
-                <div className="flex items-end justify-between gap-2">
-                  <div className="shrink-0">{scoreBadge}</div>
+                <div className="flex min-w-0 items-end justify-between gap-1.5">
+                  <div className="min-w-0 shrink">{scoreBadge}</div>
                   <TransportCluster
                     variant="overlay"
                     overlayLayout="cluster"
@@ -1232,7 +1238,7 @@ export function SimpleTaggingComposer({
                     onTogglePlay={() => videoPlayerRef.current?.togglePlay()}
                     onSeekBy={handleSeekBy}
                     onNudgeSpeed={nudgePlaybackSpeed}
-                    className="shrink-0 [&_button]:max-sm:h-9 [&_button]:max-sm:min-w-9 [&_button]:max-sm:w-9"
+                    className="shrink-0 gap-0.5 [&_button]:h-7 [&_button]:min-w-7 [&_button]:w-7 [&_span]:min-w-[1.75rem] [&_span]:px-1 [&_span]:py-0.5 [&_span]:text-[10px]"
                   />
                 </div>
               ) : null
@@ -1252,18 +1258,15 @@ export function SimpleTaggingComposer({
       <div className="flex-1 min-h-0 flex flex-col bg-bg-surface">
         {/* Score HUD sits under the empty video stage so it doesn't cover “Click to load”. */}
         {!videoUrl && (
-          <div className="shrink-0 px-1.5 pt-1 flex justify-start">{scoreBadge}</div>
+          <div className="shrink-0 px-1.5 pt-1 flex items-center justify-between gap-2">
+            {scoreBadge}
+            <SimpleTaggingModePickerBlock
+              mode="simple"
+              onSelect={handleModeSwitch}
+              disabled={phase === 'form' || contactTimes.length > 0}
+            />
+          </div>
         )}
-        <div className="shrink-0 flex items-center justify-between gap-2 border-b border-pill-idle-border px-1.5 py-1">
-          <SimpleTaggingModePickerBlock
-            mode="simple"
-            onSelect={handleModeSwitch}
-            disabled={phase === 'form' || contactTimes.length > 0}
-          />
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-muted">
-            Simple
-          </span>
-        </div>
         {phase === 'tapping' ? (
           <div className="relative flex flex-col flex-1 min-h-0">
             {setContextBar}
@@ -1326,85 +1329,81 @@ export function SimpleTaggingComposer({
             {setContextBar}
             {pointLedger}
             {openRally && (
-              <SimpleTaggingMatrixBlock
-                className="min-h-0 flex-1"
-                state={timeline}
-                offensiveShots={openRally.offensiveShots}
-                players={players}
-                server={serverName}
-                activeShot={overlayShot}
-                selectedShot={selectedShot}
-                activeRow={activeMatrixRow}
-                reviewDetailFocused={reviewDetailFocused}
-                loopScope={loopScope}
-                onLoopScopeChange={setLoopScope}
-                onSelectShot={handleSelectShot}
-                onToggleOffensive={handleToggleOffensive}
-                onNoAttack={handleNoAttack}
-                onMarkEnd={handleMarkEnd}
-                onToggleReview={handleToggleReviewFlag}
-                onToggleEnding={handleToggleEnding}
-                onToggleMissReason={handleToggleMissReason}
-                onToggleShotChoice={handleToggleShotChoice}
-                onToggleAttribute={handleToggleAttribute}
-                onReviewDetailFocusChange={setReviewDetailFocused}
-                onSelectRow={setActiveMatrixRow}
-                onMarkFos={handleMarkFos}
-              />
+              <>
+                {/* Action row: below Serve·Hero / point-in-progress, above matrix */}
+                <div className="shrink-0 border-b border-pill-idle-border bg-bg-card px-1.5 py-1.5 flex flex-wrap items-center gap-1.5 text-[length:var(--control-text)]">
+                  <button
+                    type="button"
+                    aria-pressed={Boolean(openRally.isHighlight)}
+                    onClick={handleToggleHighlight}
+                    className={cn(
+                      tagBtn,
+                      'shrink-0 touch-manipulation border-amber-600/70 text-amber-200',
+                      openRally.isHighlight &&
+                        'bg-amber-500 border-amber-400 text-neutral-950 font-bold'
+                    )}
+                    title="Mark this whole rally as a highlight (show-reel)"
+                  >
+                    ★ Highlight Rally
+                  </button>
+                  <div className="flex-1 min-w-[0.5rem]" aria-hidden />
+                  <button
+                    type="button"
+                    onClick={handleRedoRally}
+                    className={cn(tagBtn, 'shrink-0 touch-manipulation')}
+                    title="Clear these contacts and re-tap this rally from just before the serve"
+                  >
+                    Redo contacts
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDiscardOpen}
+                    className={cn(tagBtn, 'tag-control-danger shrink-0 touch-manipulation')}
+                    title="Discard this rally draft without saving"
+                  >
+                    Discard rally
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleSave()}
+                    disabled={!canSave || saving}
+                    className={cn(
+                      tagBtn,
+                      'shrink-0 touch-manipulation font-bold',
+                      canSave ? 'tag-control-accent' : 'opacity-50'
+                    )}
+                    title="Save this rally and move to the next point"
+                  >
+                    {saving ? 'Saving…' : 'Save point'}
+                  </button>
+                </div>
+                <SimpleTaggingMatrixBlock
+                  className="min-h-0 flex-1 pb-[max(0.25rem,env(safe-area-inset-bottom,0px))]"
+                  state={timeline}
+                  offensiveShots={openRally.offensiveShots}
+                  players={players}
+                  server={serverName}
+                  activeShot={overlayShot}
+                  selectedShot={selectedShot}
+                  activeRow={activeMatrixRow}
+                  reviewDetailFocused={reviewDetailFocused}
+                  loopScope={loopScope}
+                  onLoopScopeChange={setLoopScope}
+                  onSelectShot={handleSelectShot}
+                  onToggleOffensive={handleToggleOffensive}
+                  onNoAttack={handleNoAttack}
+                  onMarkEnd={handleMarkEnd}
+                  onToggleReview={handleToggleReviewFlag}
+                  onToggleEnding={handleToggleEnding}
+                  onToggleMissReason={handleToggleMissReason}
+                  onToggleShotChoice={handleToggleShotChoice}
+                  onToggleAttribute={handleToggleAttribute}
+                  onReviewDetailFocusChange={setReviewDetailFocused}
+                  onSelectRow={setActiveMatrixRow}
+                  onMarkFos={handleMarkFos}
+                />
+              </>
             )}
-            <div className="shrink-0 border-t border-pill-idle-border bg-bg-card pb-[max(0.25rem,env(safe-area-inset-bottom,0px))]">
-              {saveHint && !canSave && (
-                <p className="px-1.5 pt-1 text-[10px] font-semibold text-muted" role="status">
-                  {saveHint}
-                </p>
-              )}
-              <div className="relative px-1.5 py-1.5 flex flex-wrap items-center gap-1.5 text-[length:var(--control-text)]">
-                <button
-                  type="button"
-                  aria-pressed={Boolean(openRally?.isHighlight)}
-                  onClick={handleToggleHighlight}
-                  className={cn(
-                    tagBtn,
-                    'shrink-0 touch-manipulation border-amber-600/70 text-amber-200',
-                    openRally?.isHighlight &&
-                      'bg-amber-500 border-amber-400 text-neutral-950 font-bold'
-                  )}
-                  title="Mark this whole rally as a highlight (show-reel)"
-                >
-                  ★ Highlight Rally
-                </button>
-                <div className="flex-1 min-w-[0.5rem]" aria-hidden />
-                <button
-                  type="button"
-                  onClick={handleRedoRally}
-                  className={cn(tagBtn, 'shrink-0 touch-manipulation')}
-                  title="Clear these contacts and re-tap this rally from just before the serve"
-                >
-                  Redo contacts
-                </button>
-                <button
-                  type="button"
-                  onClick={handleDiscardOpen}
-                  className={cn(tagBtn, 'tag-control-danger shrink-0 touch-manipulation')}
-                  title="Discard this rally draft without saving"
-                >
-                  Discard rally
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void handleSave()}
-                  disabled={!canSave || saving}
-                  className={cn(
-                    tagBtn,
-                    'shrink-0 touch-manipulation font-bold',
-                    canSave ? 'tag-control-accent' : 'opacity-50'
-                  )}
-                  title="Save this rally and move to the next point"
-                >
-                  {saving ? 'Saving…' : 'Save point'}
-                </button>
-              </div>
-            </div>
           </div>
         )}
       </div>

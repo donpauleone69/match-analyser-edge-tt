@@ -1053,19 +1053,40 @@ export function Pass1FocusComposer({
       <div className="relative shrink-0 w-full bg-black overflow-hidden max-h-[42dvh] flex justify-center">
         <div className="relative w-full aspect-video max-h-[42dvh]">
           <VideoStageChrome
+            topRight={
+              onRequestModeChange ? (
+                <SimpleTaggingModePickerBlock
+                  mode="pass1focus"
+                  onSelect={(mode) => {
+                    if (mode === 'pass1focus') return
+                    if (openRally || contactTimes.length > 0) {
+                      const ok = window.confirm(
+                        'Switch to Simple? Unsaved Pass 1 draft for this point stays in Pass 1 storage; Simple opens separately.'
+                      )
+                      if (!ok) return
+                    }
+                    onRequestModeChange(mode)
+                  }}
+                  disabled={phase === 'form' || contactTimes.length > 0}
+                  className="border-white/25 bg-black/70 backdrop-blur-sm [&_button]:text-white/90 [&_button[aria-pressed=true]]:bg-brand-primary/40 [&_button[aria-pressed=true]]:text-white"
+                />
+              ) : undefined
+            }
+            bottomOverlayClassName="!bottom-2"
             bottomOverlay={
               videoUrl ? (
-                <div className="flex flex-col gap-1">
-                  <div className="flex justify-start">{scoreBadge}</div>
+                <div className="flex min-w-0 items-end justify-between gap-1.5">
+                  <div className="min-w-0 shrink">{scoreBadge}</div>
                   <TransportCluster
                     variant="overlay"
+                    overlayLayout="cluster"
                     isPlaying={isPlaying}
                     playbackSpeed={playbackSpeed}
                     seekStepSeconds={SHARED_SEEK_STEP}
                     onTogglePlay={() => videoPlayerRef.current?.togglePlay()}
                     onSeekBy={handleSeekBy}
                     onNudgeSpeed={nudgePlaybackSpeed}
-                    className="[&_button]:max-sm:h-10 [&_button]:max-sm:min-w-10 [&_button]:max-sm:w-10"
+                    className="shrink-0 gap-0.5 [&_button]:h-7 [&_button]:min-w-7 [&_button]:w-7 [&_span]:min-w-[1.75rem] [&_span]:px-1 [&_span]:py-0.5 [&_span]:text-[10px]"
                   />
                 </div>
               ) : null
@@ -1085,27 +1106,24 @@ export function Pass1FocusComposer({
       <div className="flex-1 min-h-0 flex flex-col bg-bg-surface">
         {/* Score HUD sits under the empty video stage so it doesn't cover “Click to load”. */}
         {!videoUrl && (
-          <div className="shrink-0 px-1.5 pt-1 flex justify-start">{scoreBadge}</div>
-        )}
-        {onRequestModeChange && (
-          <div className="shrink-0 flex items-center justify-between gap-2 border-b border-pill-idle-border px-1.5 py-1">
-            <SimpleTaggingModePickerBlock
-              mode="pass1focus"
-              onSelect={(mode) => {
-                if (mode === 'pass1focus') return
-                if (openRally || contactTimes.length > 0) {
-                  const ok = window.confirm(
-                    'Switch to Simple? Unsaved Pass 1 draft for this point stays in Pass 1 storage; Simple opens separately.'
-                  )
-                  if (!ok) return
-                }
-                onRequestModeChange(mode)
-              }}
-              disabled={phase === 'form' || contactTimes.length > 0}
-            />
-            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted">
-              Pass 1
-            </span>
+          <div className="shrink-0 px-1.5 pt-1 flex items-center justify-between gap-2">
+            {scoreBadge}
+            {onRequestModeChange && (
+              <SimpleTaggingModePickerBlock
+                mode="pass1focus"
+                onSelect={(mode) => {
+                  if (mode === 'pass1focus') return
+                  if (openRally || contactTimes.length > 0) {
+                    const ok = window.confirm(
+                      'Switch to Simple? Unsaved Pass 1 draft for this point stays in Pass 1 storage; Simple opens separately.'
+                    )
+                    if (!ok) return
+                  }
+                  onRequestModeChange(mode)
+                }}
+                disabled={phase === 'form' || contactTimes.length > 0}
+              />
+            )}
           </div>
         )}
         {phase === 'tapping' ? (
