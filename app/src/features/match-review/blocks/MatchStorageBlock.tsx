@@ -281,14 +281,25 @@ export function MatchStorageBlock({
                     variant="secondary"
                     onClick={() => onRetrieveVideo(v.assetId)}
                     disabled={busy !== null}
+                    title="Download cloud video so tagging/review works offline on this device"
                   >
                     <Icon
                       name={busy === `retrieve-${v.assetId}` ? 'loader' : 'cloud-download'}
                       size="sm"
                       className={spin(`retrieve-${v.assetId}`)}
                     />
-                    Retrieve to device
+                    Download to device
                   </Button>
+                )}
+                {v.availability === 'cloud' && (
+                  <p className="w-full text-[11px] text-amber-200/90">
+                    Cloud-only — plays via signed URL while online. Download to tag offline.
+                  </p>
+                )}
+                {v.availability === 'missing' && (
+                  <p className="w-full text-[11px] text-rose-300/90">
+                    Video missing on this device and cloud. Re-attach a file or restore from backup.
+                  </p>
                 )}
               </div>
 

@@ -11,11 +11,15 @@ import { MatchResultEntryModal } from './MatchResultEntryModal'
 import { THEM_SIDE_LABEL } from '@/helpers/themSide'
 import { deriveSetTaggingStatus } from '@/rules/derive/set/deriveSetTaggingStatus'
 import { toCalendarDate } from '@/rules/matchList'
+import type { LocalSyncStatus } from '@/data/cloud'
 
 interface MatchListSectionProps {
   matches: DBMatch[]
   matchSets: Record<string, DBSet[]>
   taggedAtByMatch: Record<string, string | null>
+  /** Per-match cloud sync when signed in / cloud configured */
+  syncByMatch?: Record<string, LocalSyncStatus>
+  showSyncBadges?: boolean
   isLoading: boolean
   emptyBecauseFilter?: boolean
   onCreateNew: () => void
@@ -48,6 +52,8 @@ export function MatchListSection({
   matches,
   matchSets,
   taggedAtByMatch,
+  syncByMatch = {},
+  showSyncBadges = false,
   isLoading,
   emptyBecauseFilter = false,
   onCreateNew,
@@ -169,6 +175,30 @@ export function MatchListSection({
                     {!match.player2_id && (
                       <span className="px-2 py-0.5 text-xs bg-neutral-800 text-neutral-400 rounded">
                         Opponent open
+                      </span>
+                    )}
+                    {showSyncBadges && syncByMatch[match.id] === 'never' && (
+                      <span
+                        className="px-2 py-0.5 text-xs bg-neutral-800 text-neutral-400 rounded"
+                        title="Not backed up to cloud yet"
+                      >
+                        Not backed up
+                      </span>
+                    )}
+                    {showSyncBadges && syncByMatch[match.id] === 'changed' && (
+                      <span
+                        className="px-2 py-0.5 text-xs bg-amber-900/50 text-amber-300 rounded"
+                        title="Local tags changed since last cloud backup"
+                      >
+                        Backup stale
+                      </span>
+                    )}
+                    {showSyncBadges && syncByMatch[match.id] === 'synced' && (
+                      <span
+                        className="px-2 py-0.5 text-xs bg-emerald-950/60 text-emerald-400 rounded"
+                        title="Match tags match last cloud backup"
+                      >
+                        Backed up
                       </span>
                     )}
                   </div>

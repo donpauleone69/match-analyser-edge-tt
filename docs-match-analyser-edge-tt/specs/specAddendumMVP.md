@@ -6,6 +6,21 @@
 
 ## Change Log
 
+### 2026-11-13: MA-32 — Sync status / backup UX (v3.82.0)
+
+**Change Type:** UX — persistence
+
+**What Changed:**
+- Find matches: per-match **Backed up / Backup stale / Not backed up** when signed in.
+- Details Storage: cloud-only / missing video copy; **Download to device** label for retrieve.
+- Account: short sync policy copy (tags vs opt-in videos; match file fallback).
+
+**Decision Rationale:** persistence-next-sprint — finish sync-status + cloud-only play/download UX.
+
+**Key Files:** `MatchListComposer.tsx`; `MatchListSection.tsx`; `MatchStorageBlock.tsx`; `AccountComposer.tsx`.
+
+---
+
 ### 2026-11-13: MA-31 — Dual chrome: demote Matches nav (v3.81.0)
 
 **Change Type:** UX — IA / flow
@@ -7565,6 +7580,7 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v3.82.0 | 2026-11-13 | MA-32: Find-matches sync badges; cloud-only download copy |
 | v3.81.0 | 2026-11-13 | MA-31: demote Matches from bottom nav; Find matches from Home |
 | v3.80.0 | 2026-11-13 | MA-30: match-file Save/Import polish — Open match after import |
 | v3.79.0 | 2026-11-13 | MA-29: context polish — Home Add opponent + Summary Details nudge |
