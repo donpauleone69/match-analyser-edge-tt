@@ -1,12 +1,13 @@
 /**
- * SimpleTaggingMatrixBlock — Phase 2.4 consistency (MA-59).
+ * SimpleTaggingMatrixBlock — Phase 2.5 Pass 1 visual parity (MA-60).
  *
- * CNT columns + final RALLY column (None / cycle Rally|Shot / ★).
- * Cells alone form the grid (no outer frame); idle/selected = square tag-control.
- * Detail = Pass 1 shot-entry look for FOS / End.
+ * CNT columns + final RALLY column (None / ★). Row labels sit ABOVE each
+ * matrix section (not sticky-left) so shot columns can scroll L→R freely.
+ * Idle = pill-idle (Shot 1 Offensive non-pressed). Pressed + shot # + detail
+ * use Pass 1 protocol colours. Rally|Shot lives on the video overlay (composer).
  */
 
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
 import { cn } from '@/helpers/utils'
 import {
   ENDING_OPTIONS,
@@ -27,6 +28,7 @@ import {
   type SimpleMatrixRow,
 } from '../composers/simpleTaggingModel'
 
+/** Kept for composer/edit loop-scope state (control lives on video overlay). */
 export type SimpleLoopScope = 'rally' | 'shot'
 
 export interface SimpleTaggingMatrixBlockProps {
@@ -39,8 +41,6 @@ export interface SimpleTaggingMatrixBlockProps {
   selectedShot: number | null
   activeRow: SimpleMatrixRow | null
   reviewDetailFocused: boolean
-  loopScope: SimpleLoopScope
-  onLoopScopeChange: (scope: SimpleLoopScope) => void
   onSelectShot: (n: number) => void
   onToggleOffensive: (n: number) => void
   onNoAttack: () => void
@@ -71,12 +71,23 @@ const REVIEW_ROW = { id: 'review' as const, label: 'Review', short: 'Review' }
 const CELL = 'var(--control-height)'
 const COL_W = CELL
 const RALLY_W = CELL
-const LABEL_W = '4.25rem'
 
 const cellToggle =
   'tag-control h-[var(--control-height)] w-[var(--control-height)] shrink-0 px-0 touch-manipulation'
 
-const PILL_COLOR = {
+type PillKind =
+  | 'fos'
+  | 'end'
+  | 'winner'
+  | 'error'
+  | 'air'
+  | 'standing'
+  | 'wing'
+  | 'stroke'
+  | 'review'
+
+/** Pass 1 TimelinePill colour map — shared by detail strip + pressed matrix cells. */
+const PILL_COLOR: Record<PillKind, string> = {
   fos: 'var(--color-shot-first-attack)',
   end: 'var(--color-shot-end)',
   winner: 'var(--color-result-winner)',
@@ -85,6 +96,13 @@ const PILL_COLOR = {
   standing: 'var(--color-shot-serve)',
   wing: 'var(--color-player-1)',
   stroke: 'var(--color-shot-aggressive)',
+  review: 'var(--color-review)',
+}
+
+const RESULT_HEADER_BG = {
+  winner: 'bg-result-winner-bg',
+  error: 'bg-result-error-bg',
+  air: 'bg-result-air-bg',
 } as const
 
 function useCompactPass1Strokes(): boolean {
@@ -114,7 +132,7 @@ function DetailPill({
   label: string
   selected: boolean
   onClick: () => void
-  kind: keyof typeof PILL_COLOR
+  kind: PillKind
   title?: string
   className?: string
 }) {
@@ -163,6 +181,30 @@ function ChoiceRow({ label, children }: { label: string; children: ReactNode }) 
   )
 }
 
+function SectionLabel({
+  label,
+  active,
+  onClick,
+}: {
+  label: string
+  active?: boolean
+  onClick?: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'mb-0.5 text-left text-[8px] font-bold uppercase tracking-wide touch-manipulation',
+        active ? 'text-primary' : 'text-muted'
+      )}
+      aria-label={`${label} section`}
+    >
+      {label}
+    </button>
+  )
+}
+
 export function SimpleTaggingMatrixBlock({
   state,
   offensiveShots,
@@ -172,8 +214,6 @@ export function SimpleTaggingMatrixBlock({
   selectedShot,
   activeRow,
   reviewDetailFocused,
-  loopScope,
-  onLoopScopeChange,
   onSelectShot,
   onToggleOffensive,
   onNoAttack,
@@ -197,9 +237,19 @@ export function SimpleTaggingMatrixBlock({
   const fos = typeof state.fos === 'number' ? state.fos : null
   const end = typeof state.end === 'number' ? state.end : null
   const endShot = end !== null ? state.shots[end] : null
+  const selectedShotData =
+    selectedShot !== null ? state.shots[selectedShot] ?? null : null
   const endStrokes = compactStrokes
     ? END_STROKE_OPTIONS_COMPACT
     : END_STROKE_OPTIONS
+
+  const endResultBg = !state.ending
+    ? null
+    : state.ending === 'winner' || state.ending === 'lucky'
+      ? RESULT_HEADER_BG.winner
+      : state.ending === 'error_air'
+        ? RESULT_HEADER_BG.air
+        : RESULT_HEADER_BG.error
 
   const handleCell = (row: SimpleMatrixRow, n: number) => {
     onSelectShot(n)
@@ -216,23 +266,19 @@ export function SimpleTaggingMatrixBlock({
     onSelectShot(n)
   }
 
-  // Detail only for FOS / End (Pass 1 look); column select highlights always.
-  const showFosDetail =
-    selectedShot !== null &&
-    state.end !== 1 &&
-    (selectedShot === fos ||
-      (activeRow === 'offensive' && selectedShot >= 2) ||
-      (state.noFirstAttack && activeRow === 'offensive'))
-
+  // Detail strip: Pass 1 sticky-tool function whenever a shot is selected.
+  const showDetail = selectedShot !== null && selectedShotData !== null
+  const showFosTools =
+    selectedShot !== null && selectedShot >= 2 && state.end !== 1
   const showEndDetail = selectedShot !== null && selectedShot === end
 
-  const showDetail = showFosDetail || showEndDetail
+  const pressedStyle = (kind: PillKind): CSSProperties => ({
+    backgroundColor: PILL_COLOR[kind],
+    borderColor: PILL_COLOR[kind],
+    color: 'var(--color-text)',
+  })
 
-  const renderShotCell = (
-    row: SimpleMatrixRow,
-    n: number,
-    _opts?: { ghost?: boolean }
-  ) => {
+  const renderShotCell = (row: SimpleMatrixRow, n: number) => {
     const on =
       row === 'offensive'
         ? offensiveSet.has(n)
@@ -242,13 +288,12 @@ export function SimpleTaggingMatrixBlock({
     const isFosCell = row === 'offensive' && fos === n
     const disabled = row === 'offensive' && (n < 2 || state.end === 1)
     const columnSelected = selectedShot === n
+    const pressedKind: PillKind =
+      row === 'review' ? 'review' : row === 'end' ? 'end' : 'fos'
     return (
       <div
         key={`${row}-${n}`}
-        className={cn(
-          'flex items-center justify-center',
-          columnSelected && 'rounded-[var(--control-radius)] bg-brand-primary/10'
-        )}
+        className="flex items-center justify-center"
         style={{ flex: `0 0 ${COL_W}`, width: COL_W, height: CELL }}
       >
         <button
@@ -259,18 +304,12 @@ export function SimpleTaggingMatrixBlock({
             cellToggle,
             'text-[11px] font-bold',
             disabled && 'opacity-30',
-            on
-              ? row === 'review'
-                ? 'border-review bg-review/30 text-neutral-50'
-                : row === 'end'
-                  ? 'border-[color:var(--color-shot-end)] bg-shot-end-bg text-primary'
-                  : 'border-brand-primary bg-brand-primary/25 text-neutral-50'
-              : null,
-            // Selected column: subtle outline so idle cells still read as toggles
+            // Selected idle cell: Pass 1 contact-selected border (not brand teal)
             columnSelected &&
               !on &&
-              'outline outline-1 outline-offset-0 outline-brand-primary/45'
+              'border-2 border-contact-selected'
           )}
+          style={on ? pressedStyle(pressedKind) : undefined}
           aria-pressed={on}
           aria-label={`${row} shot ${n}${isFosCell ? ', first offensive' : ''}`}
           title={isFosCell ? 'First offensive shot (FOS)' : `${row} · ${n}`}
@@ -281,126 +320,108 @@ export function SimpleTaggingMatrixBlock({
     )
   }
 
-  const renderRow = (
-    row: { id: SimpleMatrixRow; label: string; short: string },
-    opts?: { ghost?: boolean; borderTop?: boolean }
-  ) => (
+  const renderRow = (row: {
+    id: SimpleMatrixRow
+    label: string
+    short: string
+  }) => (
     <div
       key={row.id}
       className={cn(
-        'flex flex-nowrap items-center gap-[var(--control-gap)]',
-        opts?.borderTop && 'pt-0.5',
-        activeRow === row.id && 'bg-white/[0.03]'
+        'space-y-0.5',
+        activeRow === row.id && 'bg-white/[0.03] rounded-sm'
       )}
     >
+      {/* Row label ABOVE cells — not sticky-left (frees L→R scroll width) */}
+      <SectionLabel
+        label={row.short}
+        active={activeRow === row.id}
+        onClick={() => onSelectRow(row.id)}
+      />
       <div
-        className="sticky left-0 z-10 flex shrink-0 items-center bg-bg-surface px-1"
-        style={{ width: LABEL_W, flex: `0 0 ${LABEL_W}`, height: CELL }}
+        className="flex flex-nowrap items-center gap-[var(--control-gap)]"
       >
-        <button
-          type="button"
-          className="text-left text-[10px] font-semibold leading-tight text-neutral-300 touch-manipulation"
-          onClick={() => onSelectRow(row.id)}
-          aria-label={`${row.label} row`}
+        {shots.map((n) => renderShotCell(row.id, n))}
+
+        {/* Final RALLY column — same square toggle form as shot cells */}
+        <div
+          className="flex items-center justify-center"
+          style={{ flex: `0 0 ${RALLY_W}`, width: RALLY_W, height: CELL }}
         >
-          {row.short}
-        </button>
-      </div>
-
-      {shots.map((n) => renderShotCell(row.id, n, { ghost: opts?.ghost }))}
-
-      {/* Final RALLY column — same square toggle form as shot cells */}
-      <div
-        className="flex items-center justify-center"
-        style={{ flex: `0 0 ${RALLY_W}`, width: RALLY_W, height: CELL }}
-      >
-        {row.id === 'offensive' && state.end !== 1 ? (
-          <button
-            type="button"
-            aria-pressed={state.noFirstAttack}
-            onClick={() => {
-              onSelectRow('offensive')
-              onNoAttack()
-            }}
-            className={cn(
-              cellToggle,
-              'text-[9px] font-bold',
-              state.noFirstAttack &&
-                'border-[color:var(--color-shot-first-attack)] bg-[color:var(--color-shot-first-attack)]/30 text-neutral-50'
-            )}
-            title={
-              state.noFirstAttack
-                ? 'No first attack — tap to clear (undecided)'
-                : 'No attack this point'
-            }
-          >
-            None
-          </button>
-        ) : row.id === 'review' && onToggleHighlight ? (
-          <button
-            type="button"
-            aria-pressed={isHighlight}
-            onClick={onToggleHighlight}
-            className={cn(
-              cellToggle,
-              'text-[12px] font-bold',
-              isHighlight
-                ? 'border-amber-400 bg-amber-500 text-neutral-950'
-                : 'border-amber-600/70 text-amber-200'
-            )}
-            title="Mark this whole rally as a highlight (show-reel)"
-            aria-label={isHighlight ? 'Highlight on' : 'Highlight off'}
-          >
-            ★
-          </button>
-        ) : (
-          <span
-            className="inline-block h-[var(--control-height)] w-[var(--control-height)]"
-            aria-hidden
-          />
-        )}
+          {row.id === 'offensive' && state.end !== 1 ? (
+            <button
+              type="button"
+              aria-pressed={state.noFirstAttack}
+              onClick={() => {
+                onSelectRow('offensive')
+                onNoAttack()
+              }}
+              className={cn(cellToggle, 'text-[9px] font-bold')}
+              style={state.noFirstAttack ? pressedStyle('fos') : undefined}
+              title={
+                state.noFirstAttack
+                  ? 'No first attack — tap to clear (undecided)'
+                  : 'No attack this point'
+              }
+            >
+              None
+            </button>
+          ) : row.id === 'review' && onToggleHighlight ? (
+            <button
+              type="button"
+              aria-pressed={isHighlight}
+              onClick={onToggleHighlight}
+              className={cn(
+                cellToggle,
+                'text-[12px] font-bold',
+                // Pressed ★ keeps Pass 1 highlight amber; idle = pill-idle (canonical)
+                isHighlight &&
+                  'border-amber-400 bg-amber-500 text-neutral-950'
+              )}
+              title="Mark this whole rally as a highlight (show-reel)"
+              aria-label={isHighlight ? 'Highlight on' : 'Highlight off'}
+            >
+              ★
+            </button>
+          ) : (
+            <span
+              className="inline-block h-[var(--control-height)] w-[var(--control-height)]"
+              aria-hidden
+            />
+          )}
+        </div>
       </div>
     </div>
   )
 
   return (
     <div className={cn('flex min-h-0 flex-1 flex-col', className)}>
-      {/* Pinned matrix — cells alone form the grid (no outer frame) */}
+      {/* Pinned matrix — section labels above; shot columns scroll L→R */}
       <div className="shrink-0 px-1.5 pt-1 pb-1">
         <div
           className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           role="group"
           aria-label="Simple tagging matrix"
         >
-          <div className="min-w-max space-y-0.5">
-            {/* Shot header: numbers + RALLY cycle (no column title) */}
+          <div className="min-w-max space-y-1">
+            {/* Shot header L→R = Pass 1 shot rail colouring */}
             <div
               className="flex flex-nowrap items-end gap-[var(--control-gap)]"
               role="list"
               aria-label="Shots in this rally"
             >
-              <div
-                className="sticky left-0 z-10 flex shrink-0 items-end bg-bg-surface px-1 pb-1"
-                style={{ width: LABEL_W, flex: `0 0 ${LABEL_W}` }}
-              >
-                <span className="text-[8px] font-bold uppercase tracking-wide text-muted">
-                  Shot
-                </span>
-              </div>
               {shots.map((n) => {
                 const hitter = playerForShot(n, players, server)
                 const isPlayer1 = hitter === players[0]
                 const isFos = fos === n
                 const isEnd = end === n
+                const flagged = Boolean(state.shots[n]?.reviewKind)
                 const active = activeShot === n
                 const selected = selectedShot === n
                 return (
                   <div
                     key={`h-${n}`}
-                    className={cn(
-                      'relative flex flex-col items-center gap-px',
-                      selected && 'rounded-[var(--control-radius)] bg-brand-primary/10'
-                    )}
+                    className="relative flex flex-col items-center gap-px"
                     style={{ flex: `0 0 ${COL_W}`, width: COL_W }}
                     role="listitem"
                   >
@@ -413,20 +434,27 @@ export function SimpleTaggingMatrixBlock({
                       className={cn(
                         cellToggle,
                         'relative font-black tabular-nums text-[11px]',
-                        isPlayer1 ? 'bg-player-1-bg text-primary' : 'bg-player-2-bg text-primary',
+                        isPlayer1
+                          ? 'bg-player-1-bg text-primary'
+                          : 'bg-player-2-bg text-primary',
                         isFos && 'bg-shot-first-attack-bg',
-                        isEnd &&
-                          (state.ending === 'winner' || state.ending === 'lucky'
-                            ? 'bg-result-winner-bg'
-                            : state.ending === 'error_air'
-                              ? 'bg-result-air-bg'
-                              : state.ending
-                                ? 'bg-result-error-bg'
-                                : 'bg-shot-end-bg'),
-                        selected && 'outline outline-1 outline-offset-0 outline-brand-primary/45'
+                        isEnd && (endResultBg ?? 'bg-shot-end-bg'),
+                        flagged &&
+                          !isFos &&
+                          !isEnd &&
+                          'bg-review-bg',
+                        selected
+                          ? 'border-2 border-contact-selected'
+                          : 'border border-transparent'
                       )}
                     >
                       {n}
+                      {flagged && !isFos && !isEnd && (
+                        <span
+                          className="absolute top-0.5 right-0.5 h-1 w-1 rounded-full bg-review"
+                          aria-hidden
+                        />
+                      )}
                     </button>
                     <span
                       className={cn(
@@ -435,60 +463,64 @@ export function SimpleTaggingMatrixBlock({
                       )}
                       aria-hidden
                     />
+                    <span
+                      className={cn(
+                        'min-h-[0.7rem] text-[7px] font-black uppercase leading-none tracking-wide',
+                        isFos || isEnd
+                          ? isFos
+                            ? 'text-shot-first-attack'
+                            : 'text-shot-end'
+                          : 'text-transparent'
+                      )}
+                      aria-hidden={!isFos && !isEnd}
+                    >
+                      {isFos && isEnd ? 'FA·E' : isFos ? 'FA' : isEnd ? 'End' : '·'}
+                    </span>
                   </div>
                 )
               })}
 
-              {/* RALLY column: single cycle Rally ↔ Shot (same square toggle) */}
+              {/* RALLY column spacer (cycle moved to video overlay) */}
               <div
-                className="flex flex-col items-center justify-end gap-px pb-0"
+                className="flex flex-col items-center justify-end gap-px"
                 style={{ flex: `0 0 ${RALLY_W}`, width: RALLY_W }}
                 role="listitem"
+                aria-label="Rally column"
               >
-                <button
-                  type="button"
-                  aria-pressed={true}
-                  aria-label={`Loop scope ${loopScope === 'rally' ? 'Rally' : 'Shot'}. Tap to cycle.`}
-                  onClick={() =>
-                    onLoopScopeChange(loopScope === 'rally' ? 'shot' : 'rally')
-                  }
-                  className={cn(
-                    cellToggle,
-                    'tag-control-active text-[8px] font-bold'
-                  )}
-                  title={
-                    loopScope === 'rally'
-                      ? 'Loop the whole rally — tap for Shot'
-                      : 'Loop the current shot — tap for Rally'
-                  }
-                >
-                  {loopScope === 'rally' ? 'Rally' : 'Shot'}
-                </button>
+                <span
+                  className="inline-block h-[var(--control-height)] w-[var(--control-height)]"
+                  aria-hidden
+                />
                 <span className="h-1 w-full shrink-0 bg-transparent" aria-hidden />
+                <span
+                  className="min-h-[0.7rem] text-[7px] font-black uppercase leading-none tracking-wide text-transparent"
+                  aria-hidden
+                >
+                  ·
+                </span>
               </div>
             </div>
 
-            {/* Offensive + End grouped */}
-            <div role="group" aria-label="Offensive and End" className="space-y-0.5">
-              {LINEAR_ROWS.map((row, i) =>
-                renderRow(row, {
-                  ghost: row.id === 'end',
-                  borderTop: i > 0,
-                })
-              )}
+            {/* Offensive + End grouped — each row label above its cells */}
+            <div
+              role="group"
+              aria-label="Offensive and End"
+              className="space-y-1"
+            >
+              {LINEAR_ROWS.map((row) => renderRow(row))}
             </div>
 
-            {/* Review apart — cells alone create the grid */}
+            {/* Review apart — label above cells */}
             <div role="group" aria-label="Review" className="pt-0.5">
-              {renderRow(REVIEW_ROW, { borderTop: true })}
+              {renderRow(REVIEW_ROW)}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Scrollable detail — Pass 1 Focus shot-entry look for FOS + End */}
+      {/* Scrollable detail — Pass 1 colouring + sticky-tool function */}
       <div className="min-h-0 flex-1 overflow-y-auto px-1.5 pb-2">
-        {showDetail && selectedShot !== null && (
+        {showDetail && selectedShot !== null && selectedShotData && (
           <div
             className="space-y-1.5 rounded-md border border-pill-idle-border/70 bg-bg-card/40 p-2"
             aria-label={`Shot ${selectedShot} detail`}
@@ -499,8 +531,16 @@ export function SimpleTaggingMatrixBlock({
             >
               <span className="mr-auto text-[9px] font-bold uppercase tracking-wide text-muted">
                 Shot {selectedShot}
+                {typeof state.fos === 'number'
+                  ? ` · FA ${state.fos}`
+                  : state.noFirstAttack
+                    ? ' · No attack'
+                    : state.end === 1
+                      ? ''
+                      : ' · FA?'}
+                {typeof state.end === 'number' ? ` · End ${state.end}` : ' · End?'}
               </span>
-              {showFosDetail && selectedShot >= 2 && (
+              {showFosTools && (
                 <>
                   <DetailPill
                     kind="fos"
@@ -526,6 +566,35 @@ export function SimpleTaggingMatrixBlock({
                   />
                 </>
               )}
+              <DetailPill
+                kind="end"
+                label={state.end === selectedShot ? 'End point ✓' : 'End point'}
+                selected={state.end === selectedShot}
+                title={
+                  state.end === selectedShot
+                    ? `Shot ${selectedShot} ends the point — tap to un-mark the point end`
+                    : `Mark shot ${selectedShot} as the last shot of the point`
+                }
+                onClick={() => {
+                  onSelectRow('end')
+                  onMarkEnd(selectedShot)
+                }}
+              />
+              <DetailPill
+                kind="review"
+                label="Flag for review"
+                selected={selectedShotData.reviewKind !== null}
+                title={
+                  selectedShotData.reviewKind !== null
+                    ? `Shot ${selectedShot} is flagged for later review — tap to remove the flag`
+                    : `Flag shot ${selectedShot} for later review`
+                }
+                onClick={() => {
+                  onSelectRow('review')
+                  onToggleReview(selectedShot)
+                  onReviewDetailFocusChange(true)
+                }}
+              />
             </div>
 
             {showEndDetail && endShot && end !== null && (
@@ -618,10 +687,10 @@ export function SimpleTaggingMatrixBlock({
               </>
             )}
 
-            {state.shots[selectedShot]?.reviewKind != null && (
+            {selectedShotData.reviewKind != null && (
               <div
                 className={cn(
-                  'mt-0.5 rounded border border-review/40 bg-review/10 p-2',
+                  'mt-0.5 rounded border border-review/40 bg-review-bg p-2',
                   reviewDetailFocused && 'ring-1 ring-review'
                 )}
                 onFocus={() => onReviewDetailFocusChange(true)}
@@ -634,7 +703,7 @@ export function SimpleTaggingMatrixBlock({
                 role="group"
                 aria-label="Review detail"
               >
-                <p className="text-[11px] text-neutral-200">
+                <p className="text-[11px] text-primary">
                   Review flagged → technical. Loop pauses while this detail is focused.
                 </p>
               </div>

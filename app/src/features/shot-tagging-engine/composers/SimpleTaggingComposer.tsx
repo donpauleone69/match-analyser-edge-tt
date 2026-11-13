@@ -3,8 +3,8 @@
  *
  * Setup → tap contacts → 2s idle → matrix (Offensive/End/Review) while video loops.
  * Same DBRally/DBShot via Pass 1 persist path (End keeps wing/stroke; others stripped).
- * Phase 2.4 (MA-59): score+transport shared h-7 baseline; RALLY None/cycle/★;
- * square tag-control cells; no outer matrix frame.
+ * Phase 2.5 (MA-60): Pass 1 visual/protocol parity — Let before Discard;
+ * FOS/End/Review colours; Rally|Shot on video; section labels above matrix.
  */
 
 import { useState, useRef, useEffect, useMemo, type ReactNode } from 'react'
@@ -48,6 +48,7 @@ import {
   seekFloorFromCompleted,
   clampSeekTime,
   CONTACT_IDLE_MS,
+  LOOP_PAD_SECONDS,
   CAPTURE_PLAYBACK_SPEED,
   NORMAL_PLAYBACK_SPEED,
   toPass1FocusMapperShot,
@@ -696,6 +697,37 @@ export function SimpleTaggingComposer({
     showBetweenSetGapJump &&
     !(typeof firstServeSForGap === 'number' && Number.isFinite(firstServeSForGap))
 
+  /**
+   * Let / redo contacts: clear this point's taps and re-capture from just
+   * before the serve. No score recorded — same path as Pass 1 Redo contacts.
+   */
+  const handleLetRally = () => {
+    if (!openRally && contactTimes.length === 0) return
+    const seekSource =
+      openRally?.serveTimestamp ??
+      (contactTimes.length > 0 ? contactTimes[0] : null)
+
+    clearIdleTimer()
+    setOpenRally(null)
+    setContactTimes([])
+    setReviewDetailFocused(false)
+    setSelectedShot(null)
+    setActiveMatrixRow(null)
+    setLoopScope('rally')
+    setFocusedRallyIndex('next')
+    setPhase('tapping')
+    if (setId) clearSimpleTaggingDraft(setId)
+    setPlaybackSpeed(NORMAL_PLAYBACK_SPEED)
+    applyTappingConstraints()
+
+    if (typeof seekSource === 'number') {
+      seekClamped(seekSource - LOOP_PAD_SECONDS)
+    } else {
+      seekClamped(readVideoTime() - 2)
+    }
+    videoPlayerRef.current?.play()
+  }
+
   const handleDiscardOpen = () => {
     if (!openRally) return
     const endAt = openRally.endTimestamp
@@ -1165,6 +1197,14 @@ export function SimpleTaggingComposer({
         </span>
         <button
           type="button"
+          onClick={handleLetRally}
+          className={cn(tagBtn, 'shrink-0 touch-manipulation')}
+          title="Let — clear contacts and re-tap this rally from just before the serve (no score)"
+        >
+          Let
+        </button>
+        <button
+          type="button"
           onClick={handleDiscardOpen}
           className={cn(tagBtn, 'tag-control-danger shrink-0 touch-manipulation')}
           title="Discard this rally draft without saving"
@@ -1198,6 +1238,29 @@ export function SimpleTaggingComposer({
       <div className="relative shrink-0 w-full bg-black overflow-hidden max-h-[42dvh] flex justify-center">
         <div className="relative w-full aspect-video max-h-[42dvh]">
           <VideoStageChrome
+            topLeft={
+              phase === 'form' && openRally ? (
+                <button
+                  type="button"
+                  aria-pressed={true}
+                  aria-label={`Loop scope ${loopScope === 'rally' ? 'Rally' : 'Shot'}. Tap to cycle.`}
+                  onClick={() =>
+                    setLoopScope(loopScope === 'rally' ? 'shot' : 'rally')
+                  }
+                  className={cn(
+                    'tag-control tag-control-active h-7 min-w-[3.25rem] px-2 text-[10px] font-bold',
+                    'border-white/30 bg-black/70 text-white backdrop-blur-sm touch-manipulation'
+                  )}
+                  title={
+                    loopScope === 'rally'
+                      ? 'Loop the whole rally — tap for Shot'
+                      : 'Loop the current shot — tap for Rally'
+                  }
+                >
+                  {loopScope === 'rally' ? 'Rally' : 'Shot'}
+                </button>
+              ) : null
+            }
             topRight={
               <SimpleTaggingModePickerBlock
                 mode="simple"
@@ -1308,7 +1371,7 @@ export function SimpleTaggingComposer({
           </div>
         ) : (
           <div className="relative flex flex-col flex-1 min-h-0">
-            {/* One combined row: Serve·Hero + Discard/Save (Redo + Leave removed) */}
+            {/* One combined row: Serve·Hero + Let / Discard / Save */}
             {formChromeRow}
             {pointLedger}
             {openRally && (
@@ -1322,8 +1385,6 @@ export function SimpleTaggingComposer({
                 selectedShot={selectedShot}
                 activeRow={activeMatrixRow}
                 reviewDetailFocused={reviewDetailFocused}
-                loopScope={loopScope}
-                onLoopScopeChange={setLoopScope}
                 onSelectShot={handleSelectShot}
                 onToggleOffensive={handleToggleOffensive}
                 onNoAttack={handleNoAttack}
