@@ -14,6 +14,7 @@ import {
   Pass1SetHudBlock,
   Pass1SetContextBlock,
   Pass1PointLedgerBlock,
+  Pass1LeaveDraftChoiceBlock,
   snapPass1ShotIntoView,
 } from '../blocks'
 import { VideoPlayerSection } from '../sections'
@@ -164,6 +165,10 @@ export function Pass1FocusComposer({
   const [formMoreOpen, setFormMoreOpen] = useState(false)
   /** Previous set’s last timed action — between-set gap jump on multi-set captures. */
   const [prevSetEndS, setPrevSetEndS] = useState<number | null>(null)
+  /** Mid-rally Leave: Keep draft vs Discard choice. */
+  const [leaveDraftChoiceOpen, setLeaveDraftChoiceOpen] = useState(false)
+  /** Skip autosave when Discarding so the draft is not rewritten before navigate. */
+  const skipDraftPersistRef = useRef(false)
 
   const contactTimesRef = useRef(contactTimes)
   contactTimesRef.current = contactTimes
@@ -324,6 +329,7 @@ export function Pass1FocusComposer({
 
   // Persist in-progress point so reload can resume tagging.
   useEffect(() => {
+    if (skipDraftPersistRef.current) return
     if (!setId || !setReady) return
     if (phase !== 'tapping' && phase !== 'form') return
     savePass1FocusDraft({
@@ -878,21 +884,37 @@ export function Pass1FocusComposer({
     }
   }
 
+  /** Soft exit to Match Review without finalizing the set. */
+  const exitToMatchReview = () => {
+    clearIdleTimer()
+    setLeaveDraftChoiceOpen(false)
+    navigate(`/matches/${matchId}`)
+  }
+
   /**
-   * Soft exit to Match Review without finalizing the set.
-   * Mid-rally: confirm, keep localStorage draft (same as reload recovery), then leave.
-   * Does not clear draft — Resume restores open taps/form.
+   * Soft exit. Mid-rally: Keep draft vs Discard choice (both leave; Stay cancels).
+   * Between points with no open work: leave immediately.
    */
   const handleReviewMatch = () => {
     if (openRally || contactTimes.length > 0) {
-      const ok = window.confirm(
-        'Leave without finishing this set? Your open point is kept as a draft so you can resume later. This does not finish the set.'
-      )
-      if (!ok) return
+      setLeaveDraftChoiceOpen(true)
+      return
     }
-    clearIdleTimer()
-    // Draft stays in localStorage (autosave) — do not clearPass1FocusDraft here.
-    navigate(`/matches/${matchId}`)
+    exitToMatchReview()
+  }
+
+  const handleLeaveKeepDraft = () => {
+    // Autosaved draft stays — resume restores open taps/form.
+    exitToMatchReview()
+  }
+
+  const handleLeaveDiscardDraft = () => {
+    skipDraftPersistRef.current = true
+    if (setId) clearPass1FocusDraft(setId)
+    setOpenRally(null)
+    setContactTimes([])
+    setSelectedShot(null)
+    exitToMatchReview()
   }
 
   const handleMarkEnd = (at: number) => {
@@ -1212,6 +1234,13 @@ export function Pass1FocusComposer({
           </div>
         )}
       </div>
+
+      <Pass1LeaveDraftChoiceBlock
+        open={leaveDraftChoiceOpen}
+        onKeepDraft={handleLeaveKeepDraft}
+        onDiscard={handleLeaveDiscardDraft}
+        onCancel={() => setLeaveDraftChoiceOpen(false)}
+      />
     </div>
   )
 }

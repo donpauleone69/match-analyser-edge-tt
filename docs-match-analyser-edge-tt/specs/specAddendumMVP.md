@@ -6,6 +6,19 @@
 
 ## Change Log
 
+### 2026-11-13: MA-49 — Leave mid-rally Keep draft vs Discard (v3.99.0)
+
+**Change Type:** UX polish — Leave draft choice (no epics)
+
+**What Changed:**
+- Mid-rally Leave opens a choice dialog: **Keep draft** (resume later) vs **Discard** (clear localStorage draft) vs **Stay**. Soft exit either Keep or Discard; Done / Save paths unchanged.
+
+**Decision Rationale:** MA-48 status — let the user choose whether the open point survives Leave.
+
+**Key Files:** `Pass1LeaveDraftChoiceBlock.tsx`; `Pass1FocusComposer.tsx`; `Pass1ChromeProtoBlock.tsx`.
+
+---
+
 ### 2026-11-13: MA-48 — Pass 1 mid-rally Leave with confirm (v3.98.0)
 
 **Change Type:** UX polish — Leave reachable mid-point (no epics)
