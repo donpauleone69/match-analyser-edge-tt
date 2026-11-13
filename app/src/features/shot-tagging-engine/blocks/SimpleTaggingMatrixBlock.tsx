@@ -1,23 +1,30 @@
 /**
- * SimpleTaggingMatrixBlock — Phase 2.5 Pass 1 visual parity (MA-60) + MA-63/64 density.
+ * SimpleTaggingMatrixBlock — Phase 2.5 Pass 1 visual parity (MA-60) + MA-63/64
+ * density + MA-65 Pass 1 detail-card retheme.
  *
  * CNT columns + final RALLY column (None / ★). Row labels sit ABOVE each
  * matrix section (not sticky-left) so shot columns can scroll L→R freely.
  * Shot # headers: number + colour/underline only (no FA/End captions).
  * Idle = pill-idle (Shot 1 Offensive non-pressed). Pressed + shot # + detail
- * use Pass 1 protocol colours. Rally|Shot lives on the video overlay (composer).
+ * use Pass 1 protocol colours. Selected-shot detail card matches Pass 1
+ * ShotRow (pastel wash, 3px left stripe, role badges, contact-selected ring).
+ * Rally|Shot lives on the video overlay (composer).
  * Offensive/End/Review vertical gaps use `--control-gap` (same as DetailPill rows).
  */
 
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
 import { cn } from '@/helpers/utils'
+import { derivePass1ShotTagRole } from '@/rules/derive/shot/derivePass1ShotTagRole'
 import {
   ENDING_OPTIONS,
   END_STROKE_OPTIONS,
   END_STROKE_OPTIONS_COMPACT,
   MISS_REASON_OPTIONS,
+  PHASE_META,
   WING_OPTIONS,
+  getShotSummary,
   isErrorEnding,
+  phaseAt,
   playerForShot,
   type PointEnding,
   type PointMissReason,
@@ -106,6 +113,109 @@ const RESULT_HEADER_BG = {
   error: 'bg-result-error-bg',
   air: 'bg-result-air-bg',
 } as const
+
+/** Pass 1 ShotRow washes — opaque pastels (never grey card surface). */
+const PLAYER_ROW_BG = { p1: 'bg-player-1-bg', p2: 'bg-player-2-bg' } as const
+const SERVE_ROW_BG = 'bg-shot-serve-bg'
+const FOS_ROW_BG = 'bg-shot-first-attack-bg'
+const RESULT_ROW_BG = {
+  winner: 'bg-result-winner-bg',
+  error: 'bg-result-error-bg',
+  air: 'bg-result-air-bg',
+} as const
+const SERVE_STRIPE = 'var(--color-shot-serve)'
+
+type ShotRoleTone = 'serve' | 'receive' | 'attack' | 'winner' | 'error' | 'air'
+
+type SimpleShotVisual = {
+  rowBg: string
+  stripeColor: string
+  roleLabel: string | null
+  roleTone: ShotRoleTone
+}
+
+/** Mirror Pass1FocusBlock.deriveShotVisual for Simple detail-card paint. */
+function deriveSimpleShotVisual(
+  n: number,
+  state: RallyTimelineState,
+  players: [string, string],
+  server: string
+): SimpleShotVisual {
+  const isServe = n === 1
+  const isEnd = state.end === n
+  const role = derivePass1ShotTagRole(n, state.fos, state.end)
+  const phase = phaseAt(n, state)
+  const isPre = !isServe && (phase === 'opening' || phase === 'ball')
+  const resultKey: keyof typeof RESULT_ROW_BG =
+    state.ending === 'winner' || state.ending === 'lucky'
+      ? 'winner'
+      : state.ending === 'error_air'
+        ? 'air'
+        : 'error'
+  const rowBg =
+    isEnd && state.ending
+      ? RESULT_ROW_BG[resultKey]
+      : isServe
+        ? SERVE_ROW_BG
+        : role === 'first_attack'
+          ? FOS_ROW_BG
+          : playerForShot(n, players, server) === players[0]
+            ? PLAYER_ROW_BG.p1
+            : PLAYER_ROW_BG.p2
+  const resultStripe =
+    state.ending === 'winner' || state.ending === 'lucky'
+      ? 'var(--color-result-winner)'
+      : state.ending === 'error_air'
+        ? 'var(--color-result-air)'
+        : 'var(--color-result-error)'
+  const stripeColor = isServe
+    ? SERVE_STRIPE
+    : isEnd && state.ending
+      ? resultStripe
+      : role === 'first_attack'
+        ? 'var(--color-shot-first-attack)'
+        : n === 2 || role === 'reply'
+          ? 'var(--color-shot-receive)'
+          : isPre
+            ? PHASE_META.ball.stripe
+            : PHASE_META[phase].stripe
+
+  const roleLabel =
+    isEnd && state.ending
+      ? state.ending === 'winner'
+        ? 'Winner'
+        : state.ending === 'lucky'
+          ? 'Lucky'
+          : state.ending === 'error_air'
+            ? 'Air'
+            : 'Error'
+      : isServe
+        ? 'Serve'
+        : role === 'first_attack'
+          ? 'First attack'
+          : n === 2
+            ? 'Receive'
+            : role === 'reply'
+              ? 'Reply'
+              : role === 'ball_before_attack'
+                ? 'Ball'
+                : null
+
+  const roleTone: ShotRoleTone =
+    isEnd && state.ending
+      ? state.ending === 'winner' || state.ending === 'lucky'
+        ? 'winner'
+        : state.ending === 'error_air'
+          ? 'air'
+          : 'error'
+      : isServe
+        ? 'serve'
+        : role === 'first_attack'
+          ? 'attack'
+          : 'receive'
+
+  return { rowBg, stripeColor, roleLabel, roleTone }
+}
 
 function useCompactPass1Strokes(): boolean {
   const [compact, setCompact] = useState(() =>
@@ -273,6 +383,22 @@ export function SimpleTaggingMatrixBlock({
   const showFosTools =
     selectedShot !== null && selectedShot >= 2 && state.end !== 1
   const showEndDetail = selectedShot !== null && selectedShot === end
+  const detailVisual =
+    showDetail && selectedShot !== null
+      ? deriveSimpleShotVisual(selectedShot, state, players, server)
+      : null
+  const detailHitter =
+    showDetail && selectedShot !== null
+      ? playerForShot(selectedShot, players, server)
+      : null
+  const detailSummary =
+    showDetail && selectedShotData
+      ? getShotSummary(selectedShot!, selectedShotData)
+      : ''
+  const detailIsFos =
+    showDetail && selectedShot !== null && state.fos === selectedShot
+  const detailFlagged =
+    showDetail && selectedShotData != null && selectedShotData.reviewKind !== null
 
   const pressedStyle = (kind: PillKind): CSSProperties => ({
     backgroundColor: PILL_COLOR[kind],
@@ -514,197 +640,256 @@ export function SimpleTaggingMatrixBlock({
         </div>
       </div>
 
-      {/* Scrollable detail — Pass 1 colouring + sticky-tool function */}
+      {/* Scrollable detail — Pass 1 ShotRow card + sticky-tool function */}
       <div className="min-h-0 flex-1 overflow-y-auto px-1.5 pb-2">
-        {showDetail && selectedShot !== null && selectedShotData && (
+        {showDetail &&
+          selectedShot !== null &&
+          selectedShotData &&
+          detailVisual &&
+          detailHitter && (
           <div
-            className="flex flex-col rounded-md border border-pill-idle-border/70 bg-bg-card/40 p-2"
-            style={{ gap: 'var(--control-gap)' }}
+            className={cn(
+              'flex items-stretch gap-1.5 rounded-md px-1.5 py-1 min-w-0 w-full',
+              'border-2 border-contact-selected shadow-[inset_0_0_0_1px_var(--color-contact-selected)]',
+              detailVisual.rowBg
+            )}
             aria-label={`Shot ${selectedShot} detail`}
           >
             <div
-              className="flex flex-wrap items-center justify-end gap-1"
-              aria-label={`Shot ${selectedShot} tools`}
+              className="w-[3px] flex-none rounded-full self-stretch"
+              style={{ background: detailVisual.stripeColor }}
+              aria-hidden
+            />
+            <div
+              className="flex-1 min-w-0 flex flex-col"
+              style={{ gap: 'var(--control-gap)' }}
             >
-              <span className="mr-auto text-[9px] font-bold uppercase tracking-wide text-muted">
-                Shot {selectedShot}
-                {typeof state.fos === 'number'
-                  ? ` · FA ${state.fos}`
-                  : state.noFirstAttack
-                    ? ' · No attack'
-                    : state.end === 1
-                      ? ''
-                      : ' · FA?'}
-                {typeof state.end === 'number' ? ` · End ${state.end}` : ' · End?'}
-              </span>
-              {showFosTools && (
-                <>
-                  <DetailPill
-                    kind="fos"
-                    label={state.fos === selectedShot ? 'First attack ✓' : 'First attack'}
-                    selected={state.fos === selectedShot}
-                    title={
-                      state.fos === selectedShot
-                        ? `Shot ${selectedShot} is the first attack — tap to clear (undecided)`
-                        : `Mark shot ${selectedShot} as the first attack of the point`
-                    }
-                    onClick={() => onMarkFos(selectedShot)}
-                  />
-                  <DetailPill
-                    kind="fos"
-                    label={state.noFirstAttack ? 'No attack ✓' : 'No attack'}
-                    selected={state.noFirstAttack}
-                    title={
-                      state.noFirstAttack
-                        ? 'No first attack marked — tap to clear (undecided)'
-                        : 'This point had no first attack'
-                    }
-                    onClick={() => onNoAttack()}
-                  />
-                </>
-              )}
-              <DetailPill
-                kind="end"
-                label={state.end === selectedShot ? 'End point ✓' : 'End point'}
-                selected={state.end === selectedShot}
-                title={
-                  state.end === selectedShot
-                    ? `Shot ${selectedShot} ends the point — tap to un-mark the point end`
-                    : `Mark shot ${selectedShot} as the last shot of the point`
-                }
-                onClick={() => {
-                  onSelectRow('end')
-                  onMarkEnd(selectedShot)
-                }}
-              />
-              <DetailPill
-                kind="review"
-                label="Flag for review"
-                selected={selectedShotData.reviewKind !== null}
-                title={
-                  selectedShotData.reviewKind !== null
-                    ? `Shot ${selectedShot} is flagged for later review — tap to remove the flag`
-                    : `Flag shot ${selectedShot} for later review`
-                }
-                onClick={() => {
-                  onSelectRow('review')
-                  onToggleReview(selectedShot)
-                  onReviewDetailFocusChange(true)
-                }}
-              />
-            </div>
-
-            {showEndDetail && endShot && end !== null && (
-              <>
-                {end > 1 && (
-                  <ChoiceRow label="Shot">
-                    <div
-                      className="flex w-full min-w-0 flex-wrap items-start"
-                      style={{ gap: 'var(--control-gap)' }}
+              {/* Pass 1 ShotRow header: # + hitter + role badge + summary */}
+              <div className="min-w-0 flex justify-between items-center gap-1.5 min-h-[15px]">
+                <div className="inline-flex flex-none items-center gap-1.5 text-[11px]">
+                  <span className="w-3.5 text-[12px] font-bold text-primary">
+                    {selectedShot}
+                  </span>
+                  <strong className="text-primary">{detailHitter}</strong>
+                  {detailVisual.roleLabel && (
+                    <span
+                      className={cn(
+                        'inline-flex items-center h-[18px] px-1.5 rounded-full text-[9px] font-bold tracking-wide uppercase text-neutral-50',
+                        detailVisual.roleTone === 'serve' && 'bg-shot-serve',
+                        detailVisual.roleTone === 'receive' && 'bg-shot-receive',
+                        detailVisual.roleTone === 'attack' && 'bg-shot-first-attack',
+                        detailVisual.roleTone === 'winner' && 'bg-result-winner',
+                        detailVisual.roleTone === 'error' && 'bg-result-error',
+                        detailVisual.roleTone === 'air' && 'bg-result-air'
+                      )}
                     >
+                      {detailVisual.roleLabel}
+                    </span>
+                  )}
+                  {detailIsFos && detailVisual.roleTone !== 'attack' && (
+                    <span className="inline-flex items-center h-[18px] px-1.5 rounded-full bg-shot-first-attack text-neutral-50 text-[9px] font-bold tracking-wide uppercase">
+                      FOS
+                    </span>
+                  )}
+                  {detailFlagged && (
+                    <span className="inline-flex items-center h-[18px] px-1.5 rounded-full bg-review text-neutral-50 text-[9px] font-bold tracking-wide uppercase">
+                      Flagged
+                    </span>
+                  )}
+                </div>
+                <span
+                  className="min-w-0 text-right overflow-hidden text-ellipsis whitespace-nowrap text-[10px] text-muted"
+                  title={detailSummary}
+                >
+                  {detailSummary}
+                </span>
+              </div>
+
+              <div
+                className="flex flex-wrap items-center justify-end gap-1"
+                aria-label={`Shot ${selectedShot} tools`}
+              >
+                <span className="mr-auto text-[9px] font-bold uppercase tracking-wide text-muted">
+                  {typeof state.fos === 'number'
+                    ? `FA ${state.fos}`
+                    : state.noFirstAttack
+                      ? 'No attack'
+                      : state.end === 1
+                        ? ''
+                        : 'FA?'}
+                  {typeof state.end === 'number'
+                    ? `${state.end === 1 && state.fos == null && !state.noFirstAttack ? '' : ' · '}End ${state.end}`
+                    : ' · End?'}
+                </span>
+                {showFosTools && (
+                  <>
+                    <DetailPill
+                      kind="fos"
+                      label={state.fos === selectedShot ? 'First attack ✓' : 'First attack'}
+                      selected={state.fos === selectedShot}
+                      title={
+                        state.fos === selectedShot
+                          ? `Shot ${selectedShot} is the first attack — tap to clear (undecided)`
+                          : `Mark shot ${selectedShot} as the first attack of the point`
+                      }
+                      onClick={() => onMarkFos(selectedShot)}
+                    />
+                    <DetailPill
+                      kind="fos"
+                      label={state.noFirstAttack ? 'No attack ✓' : 'No attack'}
+                      selected={state.noFirstAttack}
+                      title={
+                        state.noFirstAttack
+                          ? 'No first attack marked — tap to clear (undecided)'
+                          : 'This point had no first attack'
+                      }
+                      onClick={() => onNoAttack()}
+                    />
+                  </>
+                )}
+                <DetailPill
+                  kind="end"
+                  label={state.end === selectedShot ? 'End point ✓' : 'End point'}
+                  selected={state.end === selectedShot}
+                  title={
+                    state.end === selectedShot
+                      ? `Shot ${selectedShot} ends the point — tap to un-mark the point end`
+                      : `Mark shot ${selectedShot} as the last shot of the point`
+                  }
+                  onClick={() => {
+                    onSelectRow('end')
+                    onMarkEnd(selectedShot)
+                  }}
+                />
+                <DetailPill
+                  kind="review"
+                  label="Flag for review"
+                  selected={selectedShotData.reviewKind !== null}
+                  title={
+                    selectedShotData.reviewKind !== null
+                      ? `Shot ${selectedShot} is flagged for later review — tap to remove the flag`
+                      : `Flag shot ${selectedShot} for later review`
+                  }
+                  onClick={() => {
+                    onSelectRow('review')
+                    onToggleReview(selectedShot)
+                    onReviewDetailFocusChange(true)
+                  }}
+                />
+              </div>
+
+              {showEndDetail && endShot && end !== null && (
+                <>
+                  {end > 1 && (
+                    <ChoiceRow label="Shot">
                       <div
-                        className="flex shrink-0 flex-wrap items-center"
+                        className="flex w-full min-w-0 flex-wrap items-start"
                         style={{ gap: 'var(--control-gap)' }}
                       >
-                        {[...WING_OPTIONS].reverse().map((v) => (
+                        <div
+                          className="flex shrink-0 flex-wrap items-center"
+                          style={{ gap: 'var(--control-gap)' }}
+                        >
+                          {[...WING_OPTIONS].reverse().map((v) => (
+                            <DetailPill
+                              key={v}
+                              kind="wing"
+                              label={v}
+                              selected={endShot.wing === v}
+                              onClick={() => onToggleShotChoice(end, 'wing', v)}
+                              className="min-w-[1.75rem]"
+                            />
+                          ))}
                           <DetailPill
-                            key={v}
                             kind="wing"
-                            label={v}
-                            selected={endShot.wing === v}
-                            onClick={() => onToggleShotChoice(end, 'wing', v)}
-                            className="min-w-[1.75rem]"
-                          />
-                        ))}
-                        <DetailPill
-                          kind="wing"
-                          label="Pivot"
-                          selected={endShot.isPivot}
-                          onClick={() => onToggleAttribute(end, 'isPivot')}
-                          className="min-w-[2.25rem]"
-                        />
-                      </div>
-                      <div
-                        className="flex flex-1 min-w-0 flex-wrap justify-end"
-                        style={{ gap: 'var(--control-gap)' }}
-                      >
-                        {endStrokes.map((v) => (
-                          <DetailPill
-                            key={v}
-                            kind="stroke"
-                            label={v}
-                            selected={endShot.stroke === v}
-                            onClick={() => onToggleShotChoice(end, 'stroke', v)}
+                            label="Pivot"
+                            selected={endShot.isPivot}
+                            onClick={() => onToggleAttribute(end, 'isPivot')}
                             className="min-w-[2.25rem]"
                           />
-                        ))}
+                        </div>
+                        <div
+                          className="flex flex-1 min-w-0 flex-wrap justify-end"
+                          style={{ gap: 'var(--control-gap)' }}
+                        >
+                          {endStrokes.map((v) => (
+                            <DetailPill
+                              key={v}
+                              kind="stroke"
+                              label={v}
+                              selected={endShot.stroke === v}
+                              onClick={() => onToggleShotChoice(end, 'stroke', v)}
+                              className="min-w-[2.25rem]"
+                            />
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  </ChoiceRow>
-                )}
+                    </ChoiceRow>
+                  )}
 
-                <ChoiceRow label="Result">
-                  {ENDING_OPTIONS.map(({ value, label }) => (
-                    <DetailPill
-                      key={value}
-                      kind={
-                        value === 'winner' || value === 'lucky'
-                          ? 'winner'
-                          : value === 'error_air'
-                            ? 'air'
-                            : 'error'
-                      }
-                      label={label}
-                      selected={state.ending === value}
-                      title={
-                        value === 'lucky'
-                          ? 'Lucky — valid when the error was forced (opponent lucky)'
-                          : undefined
-                      }
-                      onClick={() => onToggleEnding(value)}
-                    />
-                  ))}
-                </ChoiceRow>
-
-                {isMissReasonRequired(state.ending) && (
-                  <ChoiceRow
-                    label={`Miss reason${isErrorEnding(state.ending) ? ' (required)' : ''}`}
-                  >
-                    {MISS_REASON_OPTIONS.map(({ value, label }) => (
+                  <ChoiceRow label="Result">
+                    {ENDING_OPTIONS.map(({ value, label }) => (
                       <DetailPill
                         key={value}
-                        kind="standing"
+                        kind={
+                          value === 'winner' || value === 'lucky'
+                            ? 'winner'
+                            : value === 'error_air'
+                              ? 'air'
+                              : 'error'
+                        }
                         label={label}
-                        selected={state.missReason === value}
-                        onClick={() => onToggleMissReason(value)}
+                        selected={state.ending === value}
+                        title={
+                          value === 'lucky'
+                            ? 'Lucky — valid when the error was forced (opponent lucky)'
+                            : undefined
+                        }
+                        onClick={() => onToggleEnding(value)}
                       />
                     ))}
                   </ChoiceRow>
-                )}
-              </>
-            )}
 
-            {selectedShotData.reviewKind != null && (
-              <div
-                className={cn(
-                  'mt-0.5 rounded border border-review/40 bg-review-bg p-2',
-                  reviewDetailFocused && 'ring-1 ring-review'
-                )}
-                onFocus={() => onReviewDetailFocusChange(true)}
-                onBlur={(e) => {
-                  if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
-                    onReviewDetailFocusChange(false)
-                  }
-                }}
-                tabIndex={0}
-                role="group"
-                aria-label="Review detail"
-              >
-                <p className="text-[11px] text-primary">
-                  Review flagged → technical. Loop pauses while this detail is focused.
-                </p>
-              </div>
-            )}
+                  {isMissReasonRequired(state.ending) && (
+                    <ChoiceRow
+                      label={`Miss reason${isErrorEnding(state.ending) ? ' (required)' : ''}`}
+                    >
+                      {MISS_REASON_OPTIONS.map(({ value, label }) => (
+                        <DetailPill
+                          key={value}
+                          kind="standing"
+                          label={label}
+                          selected={state.missReason === value}
+                          onClick={() => onToggleMissReason(value)}
+                        />
+                      ))}
+                    </ChoiceRow>
+                  )}
+                </>
+              )}
+
+              {selectedShotData.reviewKind != null && (
+                <div
+                  className={cn(
+                    'mt-0.5 rounded border border-review/40 bg-review-bg p-2',
+                    reviewDetailFocused && 'ring-1 ring-review'
+                  )}
+                  onFocus={() => onReviewDetailFocusChange(true)}
+                  onBlur={(e) => {
+                    if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+                      onReviewDetailFocusChange(false)
+                    }
+                  }}
+                  tabIndex={0}
+                  role="group"
+                  aria-label="Review detail"
+                >
+                  <p className="text-[11px] text-primary">
+                    Review flagged → technical. Loop pauses while this detail is focused.
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
