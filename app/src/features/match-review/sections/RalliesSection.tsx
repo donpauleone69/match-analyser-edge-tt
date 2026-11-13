@@ -124,7 +124,9 @@ export function RalliesSection({
       ) : (
         <>
           <div className="flex items-center justify-between">
-            <span className="text-xs text-neutral-500">{shown.length} rallies · edit tags here</span>
+            <span className="text-xs text-neutral-500">
+              {shown.length} {shown.length === 1 ? 'rally' : 'rallies'} · edit tags here
+            </span>
             {shown.length > 1 && actions.onOpenInClips && (
               <Button
                 size="sm"

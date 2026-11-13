@@ -49,6 +49,9 @@ docs-match-analyser-edge-tt/videos/
 *.avi
 *.mkv
 *.webm
+# Keep the tiny smoke fixture for phone E2E (MA-37+)
+!app/public/fixtures/
+!app/public/fixtures/smoke-set.mp4
 
 # Executable and binary files
 *.exe
