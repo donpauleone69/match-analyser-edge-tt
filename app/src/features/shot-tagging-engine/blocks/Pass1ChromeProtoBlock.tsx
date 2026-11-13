@@ -53,15 +53,16 @@ export function Pass1SetHudBlock({
   return (
     <div
       className={cn(
-        'inline-block overflow-hidden rounded-md border border-white/20 bg-black/80 text-white shadow-lg backdrop-blur-sm select-none',
+        'inline-block overflow-hidden rounded-md border border-white/20 bg-black/80 text-white backdrop-blur-sm select-none',
         compact
-          ? 'min-w-[7rem] max-w-[9.25rem]'
-          : 'min-w-[9rem] max-w-[12.5rem]'
+          ? // Match transport chip height (h-7) so score + controls share one baseline
+            'h-7 min-w-[5.75rem] max-w-[7.5rem] shadow-md'
+          : 'min-w-[9rem] max-w-[12.5rem] shadow-lg'
       )}
       role="status"
       aria-label={`Set ${setNumber}: ${player1Name} ${player1Sets} sets ${player1Score} points, ${player2Name} ${player2Sets} sets ${player2Score} points. Serving: ${serverName}.`}
     >
-      <div className="divide-y divide-white/10">
+      <div className={cn('divide-y divide-white/10', compact && 'h-full')}>
         {rows.map((row) => {
           const isServing = serverId === row.side
           const isP1 = row.side === 'player1'
@@ -71,14 +72,14 @@ export function Pass1SetHudBlock({
               className={cn(
                 'grid items-stretch leading-none',
                 compact
-                  ? 'grid-cols-[minmax(0,1fr)_1.25rem_1.5rem] text-[9px]'
+                  ? 'h-1/2 grid-cols-[minmax(0,1fr)_1rem_1.25rem] text-[8px]'
                   : 'grid-cols-[minmax(0,1fr)_1.5rem_1.85rem] text-[11px]'
               )}
             >
               <div
                 className={cn(
                   'flex min-w-0 items-center border-l-2',
-                  compact ? 'gap-1 px-1 py-0.5' : 'gap-1.5 px-1.5 py-1',
+                  compact ? 'gap-0.5 px-1 py-0' : 'gap-1.5 px-1.5 py-1',
                   isServing
                     ? isP1
                       ? 'border-player-1 bg-white/10 font-bold text-white'
@@ -110,7 +111,7 @@ export function Pass1SetHudBlock({
               <div
                 className={cn(
                   'flex items-center justify-center font-black tabular-nums',
-                  compact ? 'text-[10px]' : 'text-[12px]',
+                  compact ? 'text-[9px]' : 'text-[12px]',
                   isServing ? 'text-white' : 'text-white/90'
                 )}
                 title={`${row.name} points: ${row.points}`}

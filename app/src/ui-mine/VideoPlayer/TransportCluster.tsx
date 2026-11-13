@@ -61,7 +61,7 @@ export function TransportCluster({
     ? 'tag-control h-8 min-w-8 px-2 bg-brand-primary text-on-accent border-brand-primary disabled:opacity-40'
     : btn
   const speedChip = overlay
-    ? 'min-w-[2.25rem] text-center text-[11px] font-bold text-white tabular-nums bg-black/70 rounded-md px-1.5 py-1 border border-white/20'
+    ? 'inline-flex h-8 min-w-[2.25rem] items-center justify-center text-center text-[11px] font-bold text-white tabular-nums bg-black/70 rounded-md px-1.5 border border-white/20'
     : 'h-10 min-w-10 px-3 rounded-md border border-neutral-600 text-neutral-100 flex items-center justify-center text-sm tabular-nums'
 
   return (

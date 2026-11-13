@@ -3,8 +3,8 @@
  *
  * Setup → tap contacts → 2s idle → matrix (Offensive/End/Review) while video loops.
  * Same DBRally/DBShot via Pass 1 persist path (End keeps wing/stroke; others stripped).
- * Phase 2.3 (MA-58): smaller score HUD; RALLY column (No Atk / Rally|Shot / Highlight);
- * matrix grid; one Serve·Hero + Discard/Save row; no Redo/Leave on this screen.
+ * Phase 2.4 (MA-59): score+transport shared h-7 baseline; RALLY None/cycle/★;
+ * square tag-control cells; no outer matrix frame.
  */
 
 import { useState, useRef, useEffect, useMemo, type ReactNode } from 'react'
@@ -1209,8 +1209,8 @@ export function SimpleTaggingComposer({
             bottomOverlayClassName="!bottom-2"
             bottomOverlay={
               videoUrl ? (
-                <div className="flex min-w-0 items-end justify-between gap-1.5">
-                  <div className="min-w-0 shrink">{scoreBadge}</div>
+                <div className="flex h-7 min-w-0 items-end justify-between gap-1.5">
+                  <div className="flex h-7 min-w-0 shrink items-end">{scoreBadge}</div>
                   <TransportCluster
                     variant="overlay"
                     overlayLayout="cluster"
@@ -1220,7 +1220,7 @@ export function SimpleTaggingComposer({
                     onTogglePlay={() => videoPlayerRef.current?.togglePlay()}
                     onSeekBy={handleSeekBy}
                     onNudgeSpeed={nudgePlaybackSpeed}
-                    className="shrink-0 gap-0.5 [&_button]:h-7 [&_button]:min-w-7 [&_button]:w-7 [&_span]:min-w-[1.75rem] [&_span]:px-1 [&_span]:py-0.5 [&_span]:text-[10px]"
+                    className="h-7 shrink-0 gap-0.5 [&_button]:h-7 [&_button]:min-w-7 [&_button]:w-7 [&_span]:inline-flex [&_span]:h-7 [&_span]:min-w-7 [&_span]:items-center [&_span]:justify-center [&_span]:px-1 [&_span]:py-0 [&_span]:text-[10px]"
                   />
                 </div>
               ) : null
