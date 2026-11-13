@@ -90,14 +90,13 @@ export function MatchListSection({
 
   return (
     <div className="space-y-4">
-      <Button onClick={onCreateNew}>Create Match</Button>
-
       {matches.length === 0 ? (
-        <Card className="p-8 text-center">
+        <Card className="p-8 text-center space-y-3">
           <p className="text-neutral-400">No matches yet</p>
-          <p className="text-sm text-neutral-500 mt-2">
-            Create your first match to get started
+          <p className="text-sm text-neutral-500">
+            Create a match from Library, or start here.
           </p>
+          <Button onClick={onCreateNew}>New match</Button>
         </Card>
       ) : (
         <div className="grid gap-4">

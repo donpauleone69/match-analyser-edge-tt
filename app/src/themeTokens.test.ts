@@ -106,7 +106,6 @@ describe('shared match color tokens', () => {
       './features/match-review/blocks/RallyPlayerBlock.tsx',
       './features/match-review/blocks/CompareCardBlock.tsx',
       './features/match-review/sections/WorkOnSection.tsx',
-      './features/match-review/sections/HighlightsSection.tsx',
       './features/match-review/blocks/ReviewPatternBlock.tsx',
       './features/shot-tagging-engine/composers/Pass1FocusComposer.tsx',
     ]

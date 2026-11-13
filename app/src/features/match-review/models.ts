@@ -186,3 +186,14 @@ export interface MatchReviewViewModel {
   rallies: RallyRowModel[]
   context: MatchContextModel
 }
+
+/** Shared actions for rally rows (Rallies browser, evidence). */
+export interface RallyActions {
+  onWatch: (rally: RallyRowModel, playlist: RallyRowModel[], playlistTitle: string) => void
+  onEdit: (rally: RallyRowModel) => void
+  onToggleHighlight: (rally: RallyRowModel) => void
+  /** Delete this rally and later ones, then resume tagging here */
+  onRetagFrom?: (rally: RallyRowModel) => void
+  /** Open a filtered set of rallies in the Clips playlist player */
+  onOpenInClips?: (rallies: RallyRowModel[], title: string) => void
+}

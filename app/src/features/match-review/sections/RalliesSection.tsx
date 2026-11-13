@@ -6,8 +6,7 @@
 import { Button, Icon } from '@/ui-mine'
 import { cn } from '@/helpers/utils'
 import { RallyRowBlock } from '../blocks/RallyRowBlock'
-import type { RallyRowModel, SetPanelModel } from '../models'
-import type { RallyActions } from './HighlightsSection'
+import type { RallyActions, RallyRowModel, SetPanelModel } from '../models'
 
 export type RallyFilter = 'all' | 'won' | 'lost' | 'errors' | 'starred' | 'flagged'
 
@@ -115,10 +114,19 @@ export function RalliesSection({
       ) : (
         <>
           <div className="flex items-center justify-between">
-            <span className="text-xs text-neutral-500">{shown.length} rallies</span>
-            {shown.length > 1 && (
-              <Button size="sm" variant="ghost" onClick={() => actions.onWatch(shown[0], shown, `Set ${selectedSetNumber} · ${FILTERS.find((f) => f.id === filter)?.label}`)}>
-                <Icon name="play" size="sm" /> Play these
+            <span className="text-xs text-neutral-500">{shown.length} rallies · edit tags here</span>
+            {shown.length > 1 && actions.onOpenInClips && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() =>
+                  actions.onOpenInClips!(
+                    shown,
+                    `Set ${selectedSetNumber} · ${FILTERS.find((f) => f.id === filter)?.label ?? 'All'}`
+                  )
+                }
+              >
+                <Icon name="film" size="sm" /> Open in Clips
               </Button>
             )}
           </div>

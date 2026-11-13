@@ -80,6 +80,14 @@ export async function downloadClipFile(
     sourceEnd: clip.end,
   })
   const url = URL.createObjectURL(file)
+  try {
+    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function' && navigator.canShare?.({ files: [file] })) {
+      await navigator.share({ files: [new File([file], fileName, { type: file.type || 'video/mp4' })], title: fileName })
+      return
+    }
+  } catch {
+    // User cancelled share or share failed — fall through to download.
+  }
   const a = document.createElement('a')
   a.href = url
   a.download = fileName
