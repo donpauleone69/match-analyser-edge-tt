@@ -6,6 +6,20 @@
 
 ## Change Log
 
+### 2026-11-13: MA-42 — Clips phone Download + Summary incomplete callout (v3.92.0)
+
+**Change Type:** UX polish — Clips density + Summary incomplete (no epics)
+
+**What Changed:**
+- Phone Clips: one Download (sticky bar); remove stage Download; presets collapsed under player by default.
+- Summary: soft callout when incomplete points > 0 → Rallies Incomplete; empty “Nothing tagged” gate no longer hides browseable incomplete-only matches.
+
+**Decision Rationale:** MA-38/39 follow-ups — cut Download redundancy; surface Fix path from Summary.
+
+**Key Files:** `ClipsComposer.tsx`; `OverviewSection.tsx`; `SummarySection.tsx`; `MatchReviewComposer.tsx`.
+
+---
+
 ### 2026-11-13: MA-41 — Video trim/archive + jump markers polish (v3.91.0)
 
 **Change Type:** UX polish — trim/archive + jump markers (no FFmpeg rebuild)
