@@ -48,9 +48,6 @@ export interface ClipStageBlockProps {
   onToggleAutoAdvance: () => void
   onEdit?: () => void
   onClose?: () => void
-  /** Download the current clip window (whole rally / shot per toggle). */
-  onDownload?: () => void
-  downloadBusy?: boolean
 }
 
 export const ClipStageBlock = forwardRef<VideoPlayerHandle, ClipStageBlockProps>(
@@ -79,8 +76,6 @@ export const ClipStageBlock = forwardRef<VideoPlayerHandle, ClipStageBlockProps>
       onToggleAutoAdvance,
       onEdit,
       onClose,
-      onDownload,
-      downloadBusy = false,
     },
     ref
   ) => {
@@ -230,12 +225,6 @@ export const ClipStageBlock = forwardRef<VideoPlayerHandle, ClipStageBlockProps>
             </label>
           )}
           <span className="flex-1" />
-          {onDownload && (
-            <Button size="sm" variant="secondary" onClick={onDownload} disabled={!videoUrl || downloadBusy}>
-              <Icon name={downloadBusy ? 'loader' : 'download'} size="sm" className={downloadBusy ? 'animate-spin' : undefined} />
-              Download
-            </Button>
-          )}
           {onEdit && (
             <Button size="sm" variant="secondary" onClick={onEdit}>
               <Icon name="edit" size="sm" /> Edit tags

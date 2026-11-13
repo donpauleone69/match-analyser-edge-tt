@@ -6,6 +6,20 @@
 
 ## Change Log
 
+### 2026-11-13: MA-52 — Desktop Clips one Download (v3.102.0)
+
+**Change Type:** UX polish — Clips Download density (no epics)
+
+**What Changed:**
+- Desktop Clips: single **Download** on the export strip (with Save as reel); removed leftover stage Download API from `ClipStageBlock`.
+- Phone sticky Download unchanged.
+
+**Decision Rationale:** Match phone’s one-Download rule on desktop; export strip is the kept surface.
+
+**Key Files:** `ClipStageBlock.tsx`; `ClipsComposer.tsx`.
+
+---
+
 ### 2026-11-13: MA-51 — Clips auto-expand Playlists on `?clip=` deep-link (v3.101.0)
 
 **Change Type:** UX polish — phone Clips playlist discoverability (no epics)
