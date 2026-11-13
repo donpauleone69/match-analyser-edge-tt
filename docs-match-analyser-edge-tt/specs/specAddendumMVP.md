@@ -6,6 +6,22 @@
 
 ## Change Log
 
+### 2026-11-13: MA-36 — Pass 1 small polish (v3.86.0)
+
+**Change Type:** UX — Pass 1 polish (no new epics)
+
+**What Changed:**
+- **Mid-draft persist:** localStorage snapshot of open tapping contacts / form timeline; restore on reload; clear on save, discard, redo, Done.
+- **Incomplete badges:** Browseable incomplete points (fail Pass 1 completeness) appear in Match Review Rallies with **Incomplete** badge + filter; still excluded from stats.
+- **Phone strokes:** Compact attack/reply/end stroke sets below 640px.
+- **Rail labels:** FA / End / FA·E text under marked shot-rail slots.
+
+**Decision Rationale:** MA-35 follow-ups — recover mid-point work, surface legacy incomplete for fix, reduce phone density, clearer rail state.
+
+**Key Files:** `pass1FocusDraftStorage.ts`; `Pass1FocusComposer.tsx`; `Pass1FocusBlock.tsx`; `isCompleteScoringRally.ts`; `buildMatchReview.ts`; `RallyRowBlock.tsx`; `RalliesSection.tsx`.
+
+---
+
 ### 2026-11-13: MA-35 — Pass 1 mandatory FOS/end + phone wrap (v3.85.0)
 
 **Change Type:** UX / domain — Pass 1 completeness

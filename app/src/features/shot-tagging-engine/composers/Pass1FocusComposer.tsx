@@ -69,6 +69,11 @@ import {
   loadResumedPass1FocusState,
   deleteLastPersistedPass1FocusRally,
 } from './persistPass1FocusRally'
+import {
+  clearPass1FocusDraft,
+  loadPass1FocusDraft,
+  savePass1FocusDraft,
+} from './pass1FocusDraftStorage'
 import { encodeClipFilter } from '@/rules/derive/clips/deriveClips'
 
 /** How far Redo rewinds when there are no contacts yet */
@@ -255,6 +260,34 @@ export function Pass1FocusComposer({
           }
         }
 
+        // Recover mid-point draft after reload (contacts or open form).
+        const draft = loadPass1FocusDraft(target.id)
+        if (draft && draft.matchId === matchId && draft.setNumber === setNumber) {
+          if (draft.phase === 'form' && draft.openRally) {
+            const { serveTimestamp, endTimestamp } = draft.openRally
+            const dur = useVideoPlaybackStore.getState().duration
+            const loop = loopWindowFromContacts(serveTimestamp, endTimestamp, dur)
+            setOpenRally(draft.openRally)
+            setContactTimes([])
+            setSelectedShot(draft.selectedShot)
+            setFosPickMode(false)
+            setFocusedRallyIndex('next')
+            setPhase('form')
+            setConstrainedPlayback({
+              enabled: true,
+              startTime: loop.startTime,
+              endTime: loop.endTime,
+              loopOnEnd: true,
+            })
+          } else if (draft.phase === 'tapping' && draft.contactTimes.length > 0) {
+            setOpenRally(null)
+            setContactTimes(draft.contactTimes)
+            setSelectedShot(null)
+            setPhase('tapping')
+            setPlaybackSpeed(CAPTURE_PLAYBACK_SPEED)
+          }
+        }
+
         const video = await resolveSetVideo(matchId, setNumber)
         if (video) {
           setVideoUrl(video.url)
@@ -269,12 +302,54 @@ export function Pass1FocusComposer({
 
   useEffect(() => () => clearIdleTimer(), [])
 
+  // Persist in-progress point so reload can resume tagging.
+  useEffect(() => {
+    if (!setId || !setReady) return
+    if (phase !== 'tapping' && phase !== 'form') return
+    savePass1FocusDraft({
+      version: 1,
+      setId,
+      matchId,
+      setNumber,
+      phase,
+      contactTimes,
+      openRally,
+      selectedShot,
+      savedAt: new Date().toISOString(),
+    })
+  }, [
+    setId,
+    setReady,
+    matchId,
+    setNumber,
+    phase,
+    contactTimes,
+    openRally,
+    selectedShot,
+  ])
+
   // Keep tapping seek floor in sync with completed rallies + duration
   useEffect(() => {
     if (phase !== 'tapping') return
     applyTappingConstraints(completed)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, completed, duration])
+
+  // When video duration arrives after draft restore, re-fit the form loop.
+  const openServeTs = openRally?.serveTimestamp
+  const openEndTs = openRally?.endTimestamp
+  useEffect(() => {
+    if (phase !== 'form') return
+    if (typeof openServeTs !== 'number' || typeof openEndTs !== 'number') return
+    if (!duration) return
+    const loop = loopWindowFromContacts(openServeTs, openEndTs, duration)
+    setConstrainedPlayback({
+      enabled: true,
+      startTime: loop.startTime,
+      endTime: loop.endTime,
+      loopOnEnd: true,
+    })
+  }, [phase, openServeTs, openEndTs, duration])
 
   // Sample live video time for the form overlay and the tapping timeline
   useEffect(() => {
@@ -442,6 +517,7 @@ export function Pass1FocusComposer({
     setOpenRally(null)
     setContactTimes([])
     setPhase('tapping')
+    if (setId) clearPass1FocusDraft(setId)
     setPlaybackSpeed(NORMAL_PLAYBACK_SPEED)
     applyTappingConstraints()
 
@@ -488,6 +564,7 @@ export function Pass1FocusComposer({
     setContactTimes([])
     setFocusedRallyIndex('next')
     setPhase('tapping')
+    if (setId) clearPass1FocusDraft(setId)
     setPlaybackSpeed(NORMAL_PLAYBACK_SPEED)
     applyTappingConstraints()
     seekClamped(endAt)
@@ -548,6 +625,7 @@ export function Pass1FocusComposer({
       setContactTimes([])
       setFocusedRallyIndex('next')
       setPhase('tapping')
+      clearPass1FocusDraft(setId)
       applyTappingConstraints(nextCompleted)
       setPlaybackSpeed(NORMAL_PLAYBACK_SPEED)
       seekClamped(openRally.endTimestamp, nextCompleted)
@@ -573,6 +651,7 @@ export function Pass1FocusComposer({
     clearIdleTimer()
     setOpenRally(null)
     setContactTimes([])
+    clearPass1FocusDraft(setId)
     setPlaybackSpeed(NORMAL_PLAYBACK_SPEED)
 
     try {

@@ -27,7 +27,10 @@ import { calculateRallyHighlights } from '@/rules/analytics/calculateRallyHighli
 import { deriveCompareTone, type ComparePolarity } from '@/rules/analytics/deriveCompareTone'
 import { deriveSetTaggingStatus } from '@/rules/derive/set/deriveSetTaggingStatus'
 import { isErrorEnding } from '@/rules/derive/rally/derivePointEndClass'
-import { filterCompleteScoringRallies } from '@/rules/analytics/isCompleteScoringRally'
+import {
+  filterBrowseableTaggedRallies,
+  isCompleteScoringRally,
+} from '@/rules/analytics/isCompleteScoringRally'
 import { matchDateSourceLabel, matchRoundLabel } from '@/rules/matchContext'
 import type {
   CompareCardModel,
@@ -639,9 +642,10 @@ export function buildRallyRows(data: CompleteMatchData, names: Names): RallyRowM
   const sideName = (playerId: string | null) =>
     playerId === names.heroId ? names.heroName : names.villainName
 
-  return filterCompleteScoringRallies(data.rallies)
+  return filterBrowseableTaggedRallies(data.rallies)
     .map((r: DBRally): RallyRowModel => {
       const shots = (shotsByRally.get(r.id) ?? []).sort((a, b) => a.shot_index - b.shot_index)
+      const incomplete = !isCompleteScoringRally(r)
       const last = shots[shots.length - 1]
       const heroWon = r.winner_id === names.heroId
       const isError = isErrorEnding(r.point_ending)
@@ -652,15 +656,26 @@ export function buildRallyRows(data: CompleteMatchData, names: Names): RallyRowM
           : heroWon ? names.heroName : names.villainName
       const missReasonLabel =
         isError && r.point_miss_reason ? MISS_REASON_LABEL[r.point_miss_reason] ?? null : null
-      const endingLabel = ENDING_LABEL[r.point_ending] ?? r.point_ending
+      const endingLabel = incomplete
+        ? r.point_ending
+          ? (ENDING_LABEL[r.point_ending] ?? r.point_ending)
+          : 'missing end'
+        : (ENDING_LABEL[r.point_ending] ?? r.point_ending)
       const shotCount = shots.length
       const summaryParts = [
         `${shotCount} shot${shotCount === 1 ? '' : 's'}`,
         r.first_attack_index ? `attack on ${r.first_attack_index}` : 'no attack',
-        `${lastHitter} ${endingLabel}${missReasonLabel ? ` (${missReasonLabel})` : ''}`,
+        incomplete
+          ? 'incomplete Pass 1'
+          : `${lastHitter} ${endingLabel}${missReasonLabel ? ` (${missReasonLabel})` : ''}`,
       ]
       const start = r.timestamp_start
       const end = r.timestamp_end ?? r.end_of_point_time
+      const winnerName = r.winner_id
+        ? heroWon
+          ? names.heroName
+          : names.villainName
+        : '—'
       return {
         id: r.id,
         setId: r.set_id,
@@ -669,7 +684,7 @@ export function buildRallyRows(data: CompleteMatchData, names: Names): RallyRowM
         scoreBefore: `${r.player1_score_before}–${r.player2_score_before}`,
         scoreAfter: `${r.player1_score_after}–${r.player2_score_after}`,
         serverName: sideName(r.server_id),
-        winnerName: heroWon ? names.heroName : names.villainName,
+        winnerName,
         heroWon,
         heroServed: r.server_id === names.heroId,
         shotCount,
@@ -679,6 +694,7 @@ export function buildRallyRows(data: CompleteMatchData, names: Names): RallyRowM
         missReasonLabel,
         isHighlight: r.is_highlight,
         reviewCount: shots.filter((s) => s.shot_review_kind).length,
+        isIncomplete: incomplete,
         summary: summaryParts.join(' · '),
         loop:
           typeof start === 'number' && typeof end === 'number'

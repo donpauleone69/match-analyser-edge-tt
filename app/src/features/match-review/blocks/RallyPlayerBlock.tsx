@@ -82,9 +82,13 @@ export const RallyPlayerBlock = forwardRef<VideoPlayerHandle, RallyPlayerBlockPr
                 <span className="ml-2 font-mono text-neutral-400 font-normal">
                   {rally.scoreBefore} → {rally.scoreAfter}
                 </span>
-                <span className={rally.heroWon ? 'ml-2 text-result-winner' : 'ml-2 text-result-error'}>
-                  {rally.winnerName.split(' ')[0]} won
-                </span>
+                {rally.isIncomplete ? (
+                  <span className="ml-2 text-amber-300">Incomplete</span>
+                ) : (
+                  <span className={rally.heroWon ? 'ml-2 text-result-winner' : 'ml-2 text-result-error'}>
+                    {rally.winnerName.split(' ')[0]} won
+                  </span>
+                )}
               </p>
             </div>
             <button

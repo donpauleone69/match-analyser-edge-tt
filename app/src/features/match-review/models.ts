@@ -92,6 +92,11 @@ export interface RallyRowModel {
   missReasonLabel: string | null
   isHighlight: boolean
   reviewCount: number
+  /**
+   * Fails Pass 1 mandatory completeness (unconfirmed framework / missing ending).
+   * Still listed so it can be fixed; excluded from stats.
+   */
+  isIncomplete: boolean
   /** Short summary, e.g. "5 shots · FOS 3 · Villain In-Net (Timing)" */
   summary: string
   /** Video loop window (seconds), null when no contact times */

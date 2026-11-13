@@ -12,7 +12,7 @@
  * Live = rail underline; selected = rail border. List keeps allow-list tagging.
  */
 
-import { type ReactNode } from 'react'
+import { type ReactNode, useEffect, useState } from 'react'
 import { cn } from '@/helpers/utils'
 import {
   derivePass1ShotTagAllowList,
@@ -24,8 +24,11 @@ import {
   MISS_REASON_OPTIONS,
   REVIEW_KIND_OPTIONS,
   ATTACK_STROKE_OPTIONS,
+  ATTACK_STROKE_OPTIONS_COMPACT,
   REPLY_STROKE_OPTIONS,
+  REPLY_STROKE_OPTIONS_COMPACT,
   END_STROKE_OPTIONS,
+  END_STROKE_OPTIONS_COMPACT,
   WING_OPTIONS,
   phaseAt,
   visibleShotNumbers,
@@ -42,6 +45,21 @@ import {
   type ShotChoiceKey,
   type ShotAttributeKey,
 } from '../composers/pass1FocusModel'
+
+/** Phone / narrow Pass 1 — fewer stroke pills after wrap. */
+function useCompactPass1Strokes(): boolean {
+  const [compact, setCompact] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia('(max-width: 639px)').matches : false
+  )
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 639px)')
+    const onChange = () => setCompact(mq.matches)
+    onChange()
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
+  return compact
+}
 
 export interface Pass1FocusBlockProps {
   state: RallyTimelineState
@@ -365,6 +383,7 @@ function ShotTagging({
   onToggleEnding,
   onToggleMissReason,
   onToggleReviewKind,
+  compactStrokes = false,
 }: {
   n: number
   state: RallyTimelineState
@@ -374,6 +393,7 @@ function ShotTagging({
   onToggleEnding: (value: PointEnding) => void
   onToggleMissReason: (value: PointMissReason) => void
   onToggleReviewKind: (n: number, value: ShotReviewKind) => void
+  compactStrokes?: boolean
 }) {
   const shot = state.shots[n]
   if (!shot) return null
@@ -386,12 +406,19 @@ function ShotTagging({
     ((allow.shot_wing && allow.shot_stroke) || forceTechnical) &&
     (isSelected || allow.shot_wing || allow.shot_stroke || forceTechnical)
 
+  const compact = Boolean(compactStrokes)
   const strokes: readonly string[] =
     role === 'first_attack'
-      ? ATTACK_STROKE_OPTIONS
+      ? compact
+        ? ATTACK_STROKE_OPTIONS_COMPACT
+        : ATTACK_STROKE_OPTIONS
       : role === 'end_shot'
-        ? END_STROKE_OPTIONS
-        : REPLY_STROKE_OPTIONS
+        ? compact
+          ? END_STROKE_OPTIONS_COMPACT
+          : END_STROKE_OPTIONS
+        : compact
+          ? REPLY_STROKE_OPTIONS_COMPACT
+          : REPLY_STROKE_OPTIONS
 
   const showOptional =
     isSelected &&
@@ -490,7 +517,13 @@ function ShotTagging({
             <ShotTypeRow
               n={n}
               shot={shot}
-              strokes={forceTechnical && !allow.shot_stroke ? END_STROKE_OPTIONS : strokes}
+              strokes={
+                forceTechnical && !allow.shot_stroke
+                  ? compact
+                    ? END_STROKE_OPTIONS_COMPACT
+                    : END_STROKE_OPTIONS
+                  : strokes
+              }
               showPivot={allow.shot_is_pivot || forceTechnical}
               onToggleShotChoice={onToggleShotChoice}
               onToggleAttribute={onToggleAttribute}
@@ -547,6 +580,7 @@ export function Pass1FocusBlock({
   scrollableShotRail = false,
   className,
 }: Pass1FocusBlockProps) {
+  const compactStrokes = useCompactPass1Strokes()
   const visible = visibleShotNumbers(state.shotCount, state.end)
   const selected =
     typeof selectedShot === 'number' && state.shots[selectedShot] ? selectedShot : null
@@ -693,6 +727,7 @@ export function Pass1FocusBlock({
                   onToggleEnding={onToggleEnding}
                   onToggleMissReason={onToggleMissReason}
                   onToggleReviewKind={onToggleReviewKind}
+                  compactStrokes={compactStrokes}
                 />
               </ShotRow>
             </div>
@@ -794,14 +829,9 @@ export function Pass1ShotMarkRail({
                 )}
               >
                 {n}
-                {(isFos || isEnd || flagged) && (
+                {flagged && !isFos && !isEnd && (
                   <span
-                    className={cn(
-                      'absolute top-0.5 right-0.5 h-1 w-1 rounded-full',
-                      isFos && 'bg-shot-first-attack',
-                      isEnd && !isFos && 'bg-shot-end',
-                      flagged && !isFos && !isEnd && 'bg-review'
-                    )}
+                    className="absolute top-0.5 right-0.5 h-1 w-1 rounded-full bg-review"
                     aria-hidden
                   />
                 )}
@@ -813,6 +843,21 @@ export function Pass1ShotMarkRail({
                 )}
                 aria-hidden
               />
+              <span
+                className={cn(
+                  'min-h-[0.7rem] text-[7px] font-black uppercase leading-none tracking-wide',
+                  isFos && isEnd
+                    ? 'text-shot-first-attack'
+                    : isFos
+                      ? 'text-shot-first-attack'
+                      : isEnd
+                        ? 'text-shot-end'
+                        : 'text-transparent'
+                )}
+                aria-hidden={!isFos && !isEnd}
+              >
+                {isFos && isEnd ? 'FA·E' : isFos ? 'FA' : isEnd ? 'End' : '·'}
+              </span>
             </div>
           )
         })}

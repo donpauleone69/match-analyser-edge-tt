@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { filterCompleteScoringRallies, isCompleteScoringRally } from './isCompleteScoringRally'
+import {
+  filterBrowseableTaggedRallies,
+  filterCompleteScoringRallies,
+  isBrowseableTaggedRally,
+  isCompleteScoringRally,
+  isIncompleteTaggedRally,
+} from './isCompleteScoringRally'
 
 const complete = {
   is_scoring: true,
@@ -51,5 +57,16 @@ describe('isCompleteScoringRally', () => {
       { ...complete, is_scoring: false },
     ]
     expect(filterCompleteScoringRallies(rows)).toEqual([complete])
+  })
+
+  it('flags incomplete tagged points for browse badges', () => {
+    const incomplete = { ...complete, framework_confirmed: false }
+    expect(isIncompleteTaggedRally(incomplete)).toBe(true)
+    expect(isBrowseableTaggedRally(incomplete)).toBe(true)
+    expect(isIncompleteTaggedRally(complete)).toBe(false)
+    expect(isBrowseableTaggedRally({ ...complete, is_stub_rally: true })).toBe(false)
+    expect(
+      filterBrowseableTaggedRallies([complete, incomplete, { ...complete, is_scoring: false }])
+    ).toEqual([complete, incomplete])
   })
 })

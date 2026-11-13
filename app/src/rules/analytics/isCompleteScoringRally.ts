@@ -33,3 +33,27 @@ export function filterCompleteScoringRallies<T extends CompleteScoringRallyField
 ): T[] {
   return rallies.filter(isCompleteScoringRally)
 }
+
+/**
+ * Scoring non-stub rally that fails Pass 1 mandatory completeness
+ * (unconfirmed framework and/or missing point ending). Safe to list with a badge;
+ * still excluded from stats via `isCompleteScoringRally`.
+ */
+export function isIncompleteTaggedRally(rally: CompleteScoringRallyFields): boolean {
+  if (!rally.is_scoring) return false
+  if (rally.is_stub_rally === true) return false
+  return !isCompleteScoringRally(rally)
+}
+
+/** Complete + incomplete tagged points for the Rallies browser (excludes lets/stubs). */
+export function isBrowseableTaggedRally(rally: CompleteScoringRallyFields): boolean {
+  if (!rally.is_scoring) return false
+  if (rally.is_stub_rally === true) return false
+  return true
+}
+
+export function filterBrowseableTaggedRallies<T extends CompleteScoringRallyFields>(
+  rallies: readonly T[]
+): T[] {
+  return rallies.filter(isBrowseableTaggedRally)
+}
