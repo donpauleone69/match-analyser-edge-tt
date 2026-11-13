@@ -5,6 +5,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useMatchStore, usePlayerStore, useTournamentStore, setDb, type DBSet } from '@/data'
+import { getLocalSyncStatus, type LocalSyncStatus } from '@/data/cloud'
 import { MatchListSection } from '../sections/MatchListSection'
 import { MatchListFiltersBlock } from '../blocks/MatchListFiltersBlock'
 import { Button, Icon } from '@/ui-mine'
@@ -52,9 +53,12 @@ export function MatchListComposer() {
   const [searchParams, setSearchParams] = useSearchParams()
   const { matches, isLoading, load: loadMatches } = useMatchStore()
   const profile = useCloudStore((state) => state.profile)
+  const cloudConfigured = useCloudStore((s) => s.configured)
+  const cloudUser = useCloudStore((s) => s.user)
   const { players, load: loadPlayers } = usePlayerStore()
   const { tournaments, load: loadTournaments } = useTournamentStore()
   const [setsByMatch, setSetsByMatch] = useState<Record<string, DBSet[]>>({})
+  const [syncByMatch, setSyncByMatch] = useState<Record<string, LocalSyncStatus>>({})
 
   const filters = useMemo(() => parseFilters(searchParams), [searchParams])
 
@@ -103,6 +107,27 @@ export function MatchListComposer() {
     // scopedMatchKey captures id list; scopedMatches read from latest render
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scopedMatchKey])
+
+  useEffect(() => {
+    if (!cloudConfigured || !cloudUser) {
+      setSyncByMatch({})
+      return
+    }
+    let active = true
+    ;(async () => {
+      const map: Record<string, LocalSyncStatus> = {}
+      for (const match of scopedMatches) {
+        map[match.id] = await getLocalSyncStatus(match.id)
+      }
+      if (active) setSyncByMatch(map)
+    })().catch((err) => {
+      console.error('[Matches] Failed to load sync status:', err)
+    })
+    return () => {
+      active = false
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scopedMatchKey, cloudConfigured, cloudUser])
 
   const filterRows = useMemo(
     () =>
@@ -177,6 +202,8 @@ export function MatchListComposer() {
         matches={filteredMatches}
         matchSets={setsByMatch}
         taggedAtByMatch={taggedAtByMatch}
+        syncByMatch={syncByMatch}
+        showSyncBadges={Boolean(cloudConfigured && cloudUser)}
         isLoading={isLoading}
         emptyBecauseFilter={scopedMatches.length > 0 && filteredMatches.length === 0}
         onCreateNew={handleCreateNew}

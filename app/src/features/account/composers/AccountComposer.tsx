@@ -163,6 +163,12 @@ export function AccountComposer() {
                 .
               </p>
             )}
+            {sessionKind === 'cloud' && (
+              <p className="text-xs text-neutral-500">
+                Sync now pushes/pulls match tags. Find matches shows Backed up / Backup stale / Not backed up.
+                Videos stay opt-in from Match Review → Details. Prefer match file when cloud is unavailable.
+              </p>
+            )}
             <div className="rounded-lg border border-neutral-700 bg-bg-surface p-4 space-y-3">
               <div>
                 <h3 className="font-semibold text-neutral-100">Whose matches are you reviewing?</h3>
