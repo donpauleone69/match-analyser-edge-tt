@@ -208,7 +208,8 @@ export const ClipStageBlock = forwardRef<VideoPlayerHandle, ClipStageBlockProps>
                 )}
                 onClick={() => onPlaybackModeChange('rally')}
               >
-                Whole rally
+                <span className="md:hidden">Rally</span>
+                <span className="hidden md:inline">Whole rally</span>
               </button>
               <button
                 type="button"

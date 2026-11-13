@@ -83,9 +83,15 @@ export function RalliesSection({
   return (
     <div className="space-y-4">
       <p className="text-sm text-neutral-400">
-        Fix a mistake without re-tagging: open any rally, change its tags and save — only that rally is rewritten, and later
-        scores follow if the winner changes. If tagging went off track, use{' '}
-        <Icon name="rotate-ccw" size="xs" className="inline align-[-2px]" /> to re-tag from that rally onwards.
+        <span className="md:hidden">
+          Tap Edit to fix tags. Use{' '}
+          <Icon name="rotate-ccw" size="xs" className="inline align-[-2px]" /> to re-tag from that rally on.
+        </span>
+        <span className="hidden md:inline">
+          Fix a mistake without re-tagging: open any rally, change its tags and save — only that rally is rewritten, and later
+          scores follow if the winner changes. If tagging went off track, use{' '}
+          <Icon name="rotate-ccw" size="xs" className="inline align-[-2px]" /> to re-tag from that rally onwards.
+        </span>
       </p>
 
       {sets.length > 1 && (

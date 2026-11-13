@@ -44,7 +44,7 @@ const KIND_LABEL: Record<ShotReviewKind, string> = { technical: 'Technical', tac
 
 export function formatClipShotType(wing: ShotWing | null | undefined, stroke: ShotStroke | null | undefined): string {
   const parts = [wing, stroke ? STROKE_LABEL[stroke] : null].filter(Boolean)
-  return parts.length > 0 ? parts.join(' ') : 'Shot type not tagged'
+  return parts.length > 0 ? parts.join(' ') : 'Flagged shot'
 }
 
 function reviewPatterns(matches: ClipMatchInput[], kind: ShotReviewKind): ClipPreset[] {
