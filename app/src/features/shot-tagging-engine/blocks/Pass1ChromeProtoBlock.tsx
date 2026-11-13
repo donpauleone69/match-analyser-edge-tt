@@ -129,7 +129,10 @@ export interface Pass1SetContextBlockProps {
   onJumpPrevSetEnd?: () => void
   prevSetNumber?: number | null
   onToggleHistory: () => void
-  /** Between points only — Done finishes the set; Leave soft-exits to Match Review. */
+  /**
+   * Between points only — Done finishes the set → Match Review;
+   * Leave soft-exits (set stays resumable). Not video Pause.
+   */
   canEndSet?: boolean
   onEndSet?: () => void
   onReviewMatch?: () => void
@@ -279,13 +282,26 @@ export function Pass1SetContextBlock({
       </button>
       {showSetExit && (
         <>
+          <span className="sr-only">
+            Done finishes this set. Leave exits tagging without finishing so you
+            can resume later. Leave is not video Pause.
+          </span>
           {onEndSet && (
             <button
               type="button"
               onClick={onEndSet}
               disabled={!canEndSet}
               className="tag-control tag-control-accent shrink-0 min-h-9 px-3 touch-manipulation"
-              title="Finish this set and open Match Review"
+              title={
+                canEndSet
+                  ? 'Done — finish this set and open Match Review'
+                  : 'Done — tag at least one point before finishing the set'
+              }
+              aria-label={
+                canEndSet
+                  ? 'Done — finish this set'
+                  : 'Done — disabled until at least one point is tagged'
+              }
             >
               Done
             </button>
@@ -295,8 +311,8 @@ export function Pass1SetContextBlock({
               type="button"
               onClick={onReviewMatch}
               className="tag-control shrink-0 min-h-9 px-3 touch-manipulation"
-              title="Leave tagging and open Match Review (set stays resumable)"
-              aria-label="Leave to Match Review"
+              title="Leave — soft exit to Match Review (resume later; does not finish set; not video Pause)"
+              aria-label="Leave tagging — resume later, does not finish set"
             >
               Leave
             </button>

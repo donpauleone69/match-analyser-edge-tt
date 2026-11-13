@@ -8,7 +8,8 @@
  * selected-shot tools (one tap, always visible, same on mobile/desktop).
  * Row-inline controls keep only the follow-ups that belong to that shot
  * (ending type once it is the end, review kind once flagged); rail cells stay
- * display/selection only. Session Done / Leave live in the set context bar.
+ * display/selection only. Session Done (finish set) / Leave (soft exit, not
+ * Pause) live in the set context bar.
  * Live = rail underline; selected = rail border. List keeps allow-list tagging.
  */
 
