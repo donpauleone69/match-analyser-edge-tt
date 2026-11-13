@@ -983,9 +983,7 @@ export function Pass1FocusComposer({
                     className="[&_button]:max-sm:h-10 [&_button]:max-sm:min-w-10 [&_button]:max-sm:w-10"
                   />
                 </div>
-              ) : (
-                <div className="flex justify-start">{scoreBadge}</div>
-              )
+              ) : null
             }
           >
             <VideoPlayerSection
@@ -1000,6 +998,10 @@ export function Pass1FocusComposer({
       </div>
 
       <div className="flex-1 min-h-0 flex flex-col bg-bg-surface">
+        {/* Score HUD sits under the empty video stage so it doesn't cover “Click to load”. */}
+        {!videoUrl && (
+          <div className="shrink-0 px-1.5 pt-1 flex justify-start">{scoreBadge}</div>
+        )}
         {phase === 'tapping' ? (
           <div className="relative flex flex-col flex-1 min-h-0">
             {setContextBar}

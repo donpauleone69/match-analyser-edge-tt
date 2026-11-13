@@ -80,7 +80,7 @@ export function CompareCardBlock({
   return (
     <Card className="p-4 md:p-5 border border-neutral-700">
       <h3 className="text-lg font-semibold text-neutral-50">
-        <span className="text-neutral-500 text-sm font-mono mr-2">{id}</span>
+        <span className="sr-only">{id}</span>
         {title}
       </h3>
       <p className="mt-1 text-sm italic text-neutral-400">{story}</p>

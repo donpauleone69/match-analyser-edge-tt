@@ -187,15 +187,6 @@ export function Settings() {
           </div>
         </div>
 
-        {/* Other Settings (Future) */}
-        <div className="mt-6 bg-bg-card rounded-lg border border-neutral-700 p-6">
-          <h2 className="text-xl font-semibold text-neutral-50 mb-2">
-            Application Settings
-          </h2>
-          <p className="text-neutral-400 text-sm">
-            Additional settings will be added here in future updates.
-          </p>
-        </div>
       </div>
     </div>
   )

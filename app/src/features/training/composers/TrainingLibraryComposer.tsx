@@ -251,8 +251,8 @@ export function TrainingLibraryComposer() {
         </Card>
       )}
 
-      <Button variant="secondary" onClick={() => navigate('/matches')}>
-        <Icon name="swords" size="sm" /> Back to matches
+      <Button variant="secondary" onClick={() => navigate('/')}>
+        <Icon name="home" size="sm" /> Back to Home
       </Button>
     </div>
   )

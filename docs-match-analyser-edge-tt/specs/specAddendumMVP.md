@@ -6,6 +6,21 @@
 
 ## Change Log
 
+### 2026-11-13: MA-37 — Flow smoke + small UX nits (v3.87.0)
+
+**Change Type:** QA smoke + UX nits (no epics)
+
+**What Changed:**
+- Phone-width E2E smoke (Home → Tag mandatory point → Review tabs → Incomplete → Clips → Account/Training).
+- Nits: empty-video score HUD off the load CTA; Training **Back to Home**; hide compare-card F-codes; “1 rally” copy; drop empty Account settings stub.
+- Fixture: `app/public/fixtures/smoke-set.mp4`.
+
+**Decision Rationale:** Validate MA-35/36 path; fix only small bugs found.
+
+**Key Files:** `Pass1FocusComposer.tsx`; `TrainingLibraryComposer.tsx`; `CompareCardBlock.tsx`; `RalliesSection.tsx`; `Settings.tsx`; `app/public/fixtures/smoke-set.mp4`.
+
+---
+
 ### 2026-11-13: MA-36 — Pass 1 small polish (v3.86.0)
 
 **Change Type:** UX — Pass 1 polish (no new epics)
