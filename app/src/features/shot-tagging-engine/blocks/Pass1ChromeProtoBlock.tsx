@@ -130,8 +130,9 @@ export interface Pass1SetContextBlockProps {
   prevSetNumber?: number | null
   onToggleHistory: () => void
   /**
-   * Between points only — Done finishes the set → Match Review;
-   * Leave soft-exits (set stays resumable). Not video Pause.
+   * Done finishes the set → Match Review (between points only).
+   * Leave soft-exits anytime, including mid-rally with confirm (draft kept).
+   * Leave is not video Pause.
    */
   canEndSet?: boolean
   onEndSet?: () => void
@@ -165,7 +166,9 @@ export function Pass1SetContextBlock({
   const viewed = viewingPast
     ? completed.find((point) => point.rallyIndex === focusedRallyIndex)
     : null
-  const showSetExit = !navigationLocked && Boolean(onEndSet || onReviewMatch)
+  /** Done stays between-points; Leave stays reachable mid-rally (confirm in handler). */
+  const showDone = !navigationLocked && Boolean(onEndSet)
+  const showLeave = Boolean(onReviewMatch)
   const otherServerName = serverId === 'player1' ? player2Name : player1Name
 
   return (
@@ -280,13 +283,14 @@ export function Pass1SetContextBlock({
       >
         History · {completed.length}
       </button>
-      {showSetExit && (
+      {(showDone || showLeave) && (
         <>
           <span className="sr-only">
-            Done finishes this set. Leave exits tagging without finishing so you
-            can resume later. Leave is not video Pause.
+            Done finishes this set (between points). Leave exits tagging without
+            finishing — available mid-rally with confirm; open point draft is
+            kept so you can resume. Leave is not video Pause.
           </span>
-          {onEndSet && (
+          {showDone && onEndSet && (
             <button
               type="button"
               onClick={onEndSet}
@@ -306,13 +310,21 @@ export function Pass1SetContextBlock({
               Done
             </button>
           )}
-          {onReviewMatch && (
+          {showLeave && onReviewMatch && (
             <button
               type="button"
               onClick={onReviewMatch}
               className="tag-control shrink-0 min-h-9 px-3 touch-manipulation"
-              title="Leave — soft exit to Match Review (resume later; does not finish set; not video Pause)"
-              aria-label="Leave tagging — resume later, does not finish set"
+              title={
+                navigationLocked
+                  ? 'Leave — soft exit mid-rally (confirm; draft kept; resume later; not Pause)'
+                  : 'Leave — soft exit to Match Review (resume later; does not finish set; not video Pause)'
+              }
+              aria-label={
+                navigationLocked
+                  ? 'Leave tagging mid-rally — confirm, draft kept, does not finish set'
+                  : 'Leave tagging — resume later, does not finish set'
+              }
             >
               Leave
             </button>
