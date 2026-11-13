@@ -6,6 +6,25 @@
 
 ## Change Log
 
+### 2026-11-13: MA-56 — Simple tagging Phase 2.1 UX (v3.105.0)
+
+**Change Type:** UX refine — Simple Phase 2.1 (Paul follow-up after #40)
+
+**What Changed:**
+- **No attack** control on the Offensive matrix row; removed redundant Pass-1-style FA/No-attack sticky bar from Simple.
+- Matrix **pinned** (detail scrolls); Offensive+End visually grouped; Review apart; lighter cells; ghost-style End.
+- **End auto-selected** as last contact; End detail opens immediately with Pass 1 **wing + shot** + ending (+ miss-reason on errors). Lucky = opponent-lucky / forced path (same Pass 1 chip).
+- Explicit **Rally | Shot** loop control (prefer Rally). End-reasoning narrows to previous+end while incomplete; returns to full rally when End is fully tagged. User can always force Rally.
+- ★ **Highlight Rally** gold, left, standalone on the save/action row; Redo/Discard/Done/Leave use consistent `tag-control` height.
+- Score HUD **bottom-left**; transport clustered **right**, lowered near the progress bar.
+- Mapper keeps End wing/stroke/pivot; other shots still strip optional Pass 1 tags. Clip windows still Phase 3.
+
+**Decision Rationale:** Paul Phase 2.1 review — matrix owns no-attack; End entry matches Pass 1 shot detail; clear rally vs shot loop; free central video.
+
+**Key Files:** `SimpleTaggingMatrixBlock.tsx`; `SimpleTaggingComposer.tsx`; `simpleTaggingModel.ts`; `mapSimpleTaggingToDb.ts`; `pass1FocusModel.ts` (`endReasoningLoopWindow`); `VideoStageChrome.tsx`; `TransportCluster.tsx`.
+
+---
+
 ### 2026-11-13: MA-55 — Simple tagging matrix UX refine (v3.104.0)
 
 **Change Type:** UX refine — Simple Phase 2 matrix (Paul review #11); Pass 1 chrome parity for More

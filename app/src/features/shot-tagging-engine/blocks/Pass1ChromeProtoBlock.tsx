@@ -306,7 +306,7 @@ export function Pass1SetContextBlock({
               type="button"
               onClick={onEndSet}
               disabled={!canEndSet}
-              className="tag-control tag-control-accent shrink-0 min-h-9 px-3 touch-manipulation"
+              className="tag-control tag-control-accent shrink-0 touch-manipulation"
               title={
                 canEndSet
                   ? 'Done — finish this set and open Match Review'
@@ -325,7 +325,7 @@ export function Pass1SetContextBlock({
             <button
               type="button"
               onClick={onReviewMatch}
-              className="tag-control shrink-0 min-h-9 px-3 touch-manipulation"
+              className="tag-control shrink-0 touch-manipulation"
               title={
                 navigationLocked
                   ? 'Leave — soft exit mid-rally (Keep draft or Discard; not Pause)'

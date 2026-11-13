@@ -13,6 +13,8 @@ export interface VideoStageChromeProps {
   topLeft?: ReactNode
   topRight?: ReactNode
   bottomOverlay?: ReactNode
+  /** Override bottom overlay position (default clears mid-video; Simple uses lower near progress). */
+  bottomOverlayClassName?: string
   className?: string
   onPointerDown?: MouseEventHandler<HTMLDivElement>
 }
@@ -22,6 +24,7 @@ export function VideoStageChrome({
   topLeft,
   topRight,
   bottomOverlay,
+  bottomOverlayClassName,
   className,
   onPointerDown,
 }: VideoStageChromeProps) {
@@ -36,7 +39,12 @@ export function VideoStageChrome({
         </div>
       )}
       {bottomOverlay && (
-        <div className="absolute bottom-6 left-2 right-2 z-30 pointer-events-none">
+        <div
+          className={cn(
+            'absolute bottom-6 left-2 right-2 z-30 pointer-events-none',
+            bottomOverlayClassName
+          )}
+        >
           <div className="pointer-events-auto">{bottomOverlay}</div>
         </div>
       )}

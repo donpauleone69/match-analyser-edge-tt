@@ -3,6 +3,7 @@ import {
   CONTACT_LATENCY_BUFFER_SECONDS,
   MIN_SHOT_LOOP_SECONDS,
   captureContactTime,
+  endReasoningLoopWindow,
   loopWindowFromContacts,
   shotLoopWindow,
   timelineFromContacts,
@@ -68,5 +69,22 @@ describe('shotLoopWindow', () => {
     const ended = { ...timeline, end: 2 }
     const w = shotLoopWindow(ended, 2, rallyLoop)!
     expect(w.endTime).toBeCloseTo(12.5)
+  })
+})
+
+describe('endReasoningLoopWindow', () => {
+  it('spans previous contact through end shot window', () => {
+    const w = endReasoningLoopWindow(timeline, rallyLoop)!
+    // End = 4; previous = 3 → start at 12.5, end at rally loop end
+    expect(w.startTime).toBeCloseTo(12.5)
+    expect(w.endTime).toBeCloseTo(rallyLoop.endTime)
+  })
+
+  it('serve-only End loops just the serve/end shot', () => {
+    const t = timelineFromContacts([10])
+    const loop = loopWindowFromContacts(10, 10, 100)
+    const w = endReasoningLoopWindow(t, loop)!
+    expect(w.startTime).toBeCloseTo(10)
+    expect(w.endTime).toBeCloseTo(loop.endTime)
   })
 })

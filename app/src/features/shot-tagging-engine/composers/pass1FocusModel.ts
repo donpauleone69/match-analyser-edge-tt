@@ -408,6 +408,24 @@ export function shotLoopWindow(
   return { startTime, endTime }
 }
 
+/**
+ * End-reasoning loop: previous contact + end contact (through end of that window).
+ * Serve-only End=1 → just the end/serve shot.
+ */
+export function endReasoningLoopWindow(
+  state: RallyTimelineState,
+  rallyLoop: { startTime: number; endTime: number }
+): { startTime: number; endTime: number } | null {
+  if (typeof state.end !== 'number') return null
+  const end = state.end
+  const startShot = end > 1 ? end - 1 : end
+  const startWin = shotLoopWindow(state, startShot, rallyLoop)
+  const endWin = shotLoopWindow(state, end, rallyLoop)
+  if (!startWin || !endWin) return null
+  if (endWin.endTime <= startWin.startTime) return null
+  return { startTime: startWin.startTime, endTime: endWin.endTime }
+}
+
 /** ± seek step on the Pass 1 Focus video overlay (and keyboard J/L). */
 export const SEEK_STEP_SECONDS = 10
 

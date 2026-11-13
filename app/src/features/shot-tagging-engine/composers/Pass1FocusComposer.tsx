@@ -1180,7 +1180,7 @@ export function Pass1FocusComposer({
                 <button
                   type="button"
                   onClick={handleRedoRally}
-                  className={cn(tagBtn, 'shrink-0 min-h-10 px-3 touch-manipulation')}
+                  className={cn(tagBtn, 'shrink-0 touch-manipulation')}
                   title="Clear these contacts and re-tap this rally from just before the serve"
                 >
                   Redo contacts
@@ -1188,7 +1188,7 @@ export function Pass1FocusComposer({
                 <button
                   type="button"
                   onClick={handleDiscardOpen}
-                  className={cn(tagBtn, 'tag-control-danger shrink-0 min-h-10 px-3 touch-manipulation')}
+                  className={cn(tagBtn, 'tag-control-danger shrink-0 touch-manipulation')}
                   title="Discard this rally draft without saving"
                 >
                   Discard rally
@@ -1199,12 +1199,13 @@ export function Pass1FocusComposer({
                   onClick={handleToggleHighlight}
                   className={cn(
                     tagBtn,
-                    'shrink-0 min-h-10 px-3 touch-manipulation',
-                    openRally?.isHighlight && 'bg-review border-review text-primary'
+                    'shrink-0 touch-manipulation border-amber-600/70 text-amber-200',
+                    openRally?.isHighlight &&
+                      'bg-amber-500 border-amber-400 text-neutral-950 font-bold'
                   )}
                   title="Mark this whole rally as a highlight (show-reel)"
                 >
-                  ★ Highlight
+                  ★ Highlight Rally
                 </button>
                 <button
                   type="button"
@@ -1212,7 +1213,7 @@ export function Pass1FocusComposer({
                   disabled={!canSave || saving}
                   className={cn(
                     tagBtn,
-                    'shrink-0 min-h-10 px-4 touch-manipulation font-bold',
+                    'shrink-0 touch-manipulation font-bold',
                     canSave ? 'tag-control-accent' : 'opacity-50'
                   )}
                   title="Save this rally and move to the next point"
