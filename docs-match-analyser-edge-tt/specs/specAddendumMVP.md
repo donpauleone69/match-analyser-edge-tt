@@ -6,18 +6,19 @@
 
 ## Change Log
 
-### 2026-11-13: MA-66 — Pass 1 video overlay + chrome bar on Simple (v3.113.0)
+### 2026-11-13: MA-67 — Simple video overlay + chrome bar on Pass 1 (v3.114.0)
 
-**Change Type:** UX polish — Simple chrome parity with Pass 1 Focus
+**Change Type:** UX polish — Pass 1 Focus gets Simple overlay + Let/Discard/Save bar
 
 **What Changed:**
-- Simple video stage uses Pass 1 **full** `Pass1SetHudBlock` (no compact) + Pass 1 transport overlay layout (`!bottom-2`, same cluster sizing).
-- Simple form chrome reuses `Pass1SetContextBlock` (Serve · player, Point in progress) with **Let / Discard / Save** via new `trailingActions` + `showHistory={false}`; matrix IA unchanged.
-- Between-points tapping still uses the same Pass 1 set bar (History · Done).
+- **Pass 1 video:** compact `Pass1SetHudBlock` + Simple transport overlay (`!bottom-4`, h-7 score/transport baseline, mute included via shared TransportCluster).
+- **Pass 1 form chrome:** Simple bar layout — Serve · player | Point in progress (or save hint) | **Let** / **Discard** / **Save**. Let = redo contacts. Pass 1 Focus tagging IA unchanged.
+- **★ Highlight** moved next to the Pass 1 shot rail (keeps Simple bar clean).
+- **Revert #49:** restore Simple’s own compact HUD + formChromeRow (Serve · Let/Discard/Save); drop unused `trailingActions` / `showHistory` on Pass1SetContextBlock.
 
-**Decision Rationale:** Paul prefers Simple mode; wants Pass 1’s overlay + chrome bar look/layout on Simple without reinventing chrome.
+**Decision Rationale:** Paul prefers Pass 1; #49 inverted the direction (Pass 1 chrome onto Simple). Correct direction is Simple chrome onto Pass 1.
 
-**Key Files:** `Pass1ChromeProtoBlock.tsx`; `SimpleTaggingComposer.tsx`; `VideoStageChrome.tsx`.
+**Key Files:** `Pass1FocusComposer.tsx`; `Pass1FocusBlock.tsx`; `SimpleTaggingComposer.tsx`; `Pass1ChromeProtoBlock.tsx`; `VideoStageChrome.tsx`.
 
 ---
 

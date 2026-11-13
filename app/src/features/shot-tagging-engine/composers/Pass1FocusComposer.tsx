@@ -3,6 +3,9 @@
  *
  * Setup → tap contacts → 2s idle finalize → timeline while video loops.
  * Each Save writes the rally + shots to IndexedDB.
+ * MA-67: Simple video overlay (compact HUD + !bottom-4 transport) + Simple
+ * form chrome (Serve · player | Point in progress | Let | Discard | Save).
+ * Pass 1 tagging IA unchanged; Let = redo contacts.
  */
 
 import { useState, useRef, useEffect, useMemo, type ReactNode } from 'react'
@@ -537,9 +540,8 @@ export function Pass1FocusComposer({
   }
 
   /**
-   * Restart contact tapping for this rally (from form or mid-tap), or rewind if empty.
-   * This is also the let path: no score is recorded, and the replayed point is
-   * captured as the next taps — so there is no separate Let control.
+   * Let / redo contacts: clear this point's taps and re-capture from just
+   * before the serve. No score recorded — wired as "Let" on the Simple-style bar.
    */
   const handleRedoRally = () => {
     const seekSource =
@@ -984,6 +986,7 @@ export function Pass1FocusComposer({
       player2Score={currentScore.player2}
       serverId={openServerId}
       serverName={serverName}
+      compact
     />
   )
 
@@ -1042,6 +1045,72 @@ export function Pass1FocusComposer({
     />
   )
 
+  /** Simple-style form chrome: Serve · player | status | Let / Discard / Save. */
+  const formChromeRow =
+    openRally && phase === 'form' ? (
+      <div className="shrink-0 flex min-h-10 items-center gap-1 border-t border-b border-pill-idle-border bg-bg-card px-1.5 py-1 text-[length:var(--control-text)]">
+        <button
+          type="button"
+          onClick={() =>
+            void handleSetServer(openServerId === 'player1' ? 'player2' : 'player1')
+          }
+          className={cn(
+            tagBtn,
+            'min-w-0 max-w-[6.75rem] shrink-0 gap-1 font-bold',
+            openServerId === 'player1'
+              ? 'bg-player-1-bg border-player-1 text-primary'
+              : 'bg-player-2-bg border-player-2 text-primary'
+          )}
+          title={`Rally server: ${serverName}. Tap to switch.`}
+          aria-label={`Rally server: ${serverName}. Tap to switch.`}
+        >
+          <span
+            className={cn(
+              'h-1.5 w-1.5 shrink-0 rounded-full',
+              openServerId === 'player1' ? 'bg-player-1' : 'bg-player-2'
+            )}
+            aria-hidden
+          />
+          <span className="truncate">Serve · {serverName}</span>
+        </button>
+        <span
+          className="min-w-0 flex-1 truncate px-1 text-center text-[10px] font-semibold text-primary"
+          role="status"
+        >
+          {saveHint && !canSave ? saveHint : 'Point in progress'}
+        </span>
+        <button
+          type="button"
+          onClick={handleRedoRally}
+          className={cn(tagBtn, 'shrink-0 touch-manipulation')}
+          title="Let — clear contacts and re-tap this rally from just before the serve (no score)"
+        >
+          Let
+        </button>
+        <button
+          type="button"
+          onClick={handleDiscardOpen}
+          className={cn(tagBtn, 'tag-control-danger shrink-0 touch-manipulation')}
+          title="Discard this rally draft without saving"
+        >
+          Discard
+        </button>
+        <button
+          type="button"
+          onClick={() => void handleSave()}
+          disabled={!canSave || saving}
+          className={cn(
+            tagBtn,
+            'shrink-0 touch-manipulation font-bold',
+            canSave ? 'tag-control-accent' : 'opacity-50'
+          )}
+          title="Save this rally and move to the next point"
+        >
+          {saving ? 'Saving…' : 'Save'}
+        </button>
+      </div>
+    ) : null
+
   return (
     <div
       className={cn(
@@ -1072,11 +1141,11 @@ export function Pass1FocusComposer({
                 />
               ) : undefined
             }
-            bottomOverlayClassName="!bottom-2"
+            bottomOverlayClassName="!bottom-4"
             bottomOverlay={
               videoUrl ? (
-                <div className="flex min-w-0 items-end justify-between gap-1.5">
-                  <div className="min-w-0 shrink">{scoreBadge}</div>
+                <div className="flex h-7 min-w-0 items-end justify-between gap-1.5">
+                  <div className="flex h-7 min-w-0 shrink items-end">{scoreBadge}</div>
                   <TransportCluster
                     variant="overlay"
                     overlayLayout="cluster"
@@ -1086,7 +1155,7 @@ export function Pass1FocusComposer({
                     onTogglePlay={() => videoPlayerRef.current?.togglePlay()}
                     onSeekBy={handleSeekBy}
                     onNudgeSpeed={nudgePlaybackSpeed}
-                    className="shrink-0 gap-0.5 [&_button]:h-7 [&_button]:min-w-7 [&_button]:w-7 [&_span]:min-w-[1.75rem] [&_span]:px-1 [&_span]:py-0.5 [&_span]:text-[10px]"
+                    className="h-7 shrink-0 gap-0.5 [&_button]:h-7 [&_button]:min-w-7 [&_button]:w-7 [&_span]:inline-flex [&_span]:h-7 [&_span]:min-w-7 [&_span]:items-center [&_span]:justify-center [&_span]:px-1 [&_span]:py-0 [&_span]:text-[10px]"
                   />
                 </div>
               ) : null
@@ -1185,63 +1254,13 @@ export function Pass1FocusComposer({
           </div>
         ) : (
           <div className="relative flex flex-col flex-1 min-h-0">
-            {setContextBar}
+            {/* Simple chrome: Serve · player + Let / Discard / Save (Pass 1 tagging below) */}
+            {formChromeRow}
             {pointLedger}
-            {/* Tagging chrome — Redo / Discard / Highlight / Save on one row (no More) */}
-            <div className="shrink-0 border-t border-pill-idle-border bg-bg-card pb-[max(0.25rem,env(safe-area-inset-bottom,0px))]">
-              {saveHint && !canSave && (
-                <p className="px-1.5 pt-1 text-[10px] font-semibold text-muted" role="status">
-                  {saveHint}
-                </p>
-              )}
-              <div className="relative min-h-11 px-1.5 py-1.5 flex flex-wrap items-center justify-end gap-1.5 text-[length:var(--control-text)]">
-                <button
-                  type="button"
-                  onClick={handleRedoRally}
-                  className={cn(tagBtn, 'shrink-0 touch-manipulation')}
-                  title="Clear these contacts and re-tap this rally from just before the serve"
-                >
-                  Redo contacts
-                </button>
-                <button
-                  type="button"
-                  onClick={handleDiscardOpen}
-                  className={cn(tagBtn, 'tag-control-danger shrink-0 touch-manipulation')}
-                  title="Discard this rally draft without saving"
-                >
-                  Discard rally
-                </button>
-                <button
-                  type="button"
-                  aria-pressed={Boolean(openRally?.isHighlight)}
-                  onClick={handleToggleHighlight}
-                  className={cn(
-                    tagBtn,
-                    'shrink-0 touch-manipulation border-amber-600/70 text-amber-200',
-                    openRally?.isHighlight &&
-                      'bg-amber-500 border-amber-400 text-neutral-950 font-bold'
-                  )}
-                  title="Mark this whole rally as a highlight (show-reel)"
-                >
-                  ★ Highlight Rally
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSave}
-                  disabled={!canSave || saving}
-                  className={cn(
-                    tagBtn,
-                    'shrink-0 touch-manipulation font-bold',
-                    canSave ? 'tag-control-accent' : 'opacity-50'
-                  )}
-                  title="Save this rally and move to the next point"
-                >
-                  {saving ? 'Saving…' : 'Save rally'}
-                </button>
-              </div>
-            </div>
-
-            <div data-pass1-scroller className="flex-1 min-h-0 overflow-y-auto">
+            <div
+              data-pass1-scroller
+              className="flex-1 min-h-0 overflow-y-auto pb-[max(0.25rem,env(safe-area-inset-bottom,0px))]"
+            >
               <Pass1FocusBlock
                 state={timeline}
                 players={players}
@@ -1261,6 +1280,8 @@ export function Pass1FocusComposer({
                 onToggleMissReason={handleToggleMissReason}
                 onToggleReviewKind={handleToggleReviewKind}
                 onToggleReviewFlag={handleToggleReviewFlag}
+                isHighlight={Boolean(openRally?.isHighlight)}
+                onToggleHighlight={handleToggleHighlight}
                 scrollableShotRail
               />
             </div>

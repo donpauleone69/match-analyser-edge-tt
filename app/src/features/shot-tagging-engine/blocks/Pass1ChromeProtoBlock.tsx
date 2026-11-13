@@ -1,4 +1,3 @@
-import type { ReactNode } from 'react'
 import { cn } from '@/helpers/utils'
 import { Icon } from '@/ui-mine'
 
@@ -157,10 +156,6 @@ export interface Pass1SetContextBlockProps {
   canEndSet?: boolean
   onEndSet?: () => void
   onReviewMatch?: () => void
-  /** Hide History (e.g. Simple form chrome — Let/Discard/Save only). Default true. */
-  showHistory?: boolean
-  /** Extra controls after History / Done / Leave (e.g. Simple Let · Discard · Save). */
-  trailingActions?: ReactNode
 }
 
 /** Persistent set controls without a persistent point strip. */
@@ -185,8 +180,6 @@ export function Pass1SetContextBlock({
   canEndSet = false,
   onEndSet,
   onReviewMatch,
-  showHistory = true,
-  trailingActions,
 }: Pass1SetContextBlockProps) {
   const last = completed[completed.length - 1]
   const viewingPast = focusedRallyIndex !== 'next'
@@ -309,17 +302,15 @@ export function Pass1SetContextBlock({
           First point · {player1Name} vs {player2Name}
         </span>
       )}
-      {showHistory && (
-        <button
-          type="button"
-          aria-expanded={historyOpen}
-          onClick={onToggleHistory}
-          disabled={navigationLocked}
-          className={cn('tag-control shrink-0', historyOpen && 'tag-control-active')}
-        >
-          History · {completed.length}
-        </button>
-      )}
+      <button
+        type="button"
+        aria-expanded={historyOpen}
+        onClick={onToggleHistory}
+        disabled={navigationLocked}
+        className={cn('tag-control shrink-0', historyOpen && 'tag-control-active')}
+      >
+        History · {completed.length}
+      </button>
       {(showDone || showLeave) && (
         <>
           <span className="sr-only">
@@ -368,7 +359,6 @@ export function Pass1SetContextBlock({
           )}
         </>
       )}
-      {trailingActions}
     </div>
   )
 }

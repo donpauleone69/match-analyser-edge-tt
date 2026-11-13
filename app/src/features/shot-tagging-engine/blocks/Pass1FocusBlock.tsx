@@ -85,6 +85,9 @@ export interface Pass1FocusBlockProps {
   onToggleMissReason: (value: PointMissReason) => void
   onToggleReviewKind: (n: number, value: ShotReviewKind) => void
   onToggleReviewFlag: (n: number) => void
+  /** Rally-level highlight (★) — lives here so form chrome can match Simple Let/Discard/Save. */
+  isHighlight?: boolean
+  onToggleHighlight?: () => void
   scrollableShotRail?: boolean
   className?: string
 }
@@ -579,6 +582,8 @@ export function Pass1FocusBlock({
   onToggleMissReason,
   onToggleReviewKind,
   onToggleReviewFlag,
+  isHighlight = false,
+  onToggleHighlight,
   scrollableShotRail = false,
   className,
 }: Pass1FocusBlockProps) {
@@ -597,15 +602,35 @@ export function Pass1FocusBlock({
         data-pass1-sticky
         className="sticky top-0 z-10 -mx-1.5 px-1.5 pt-0.5 pb-1 mb-1 bg-bg-card/95 backdrop-blur-sm border-b border-pill-idle-border space-y-1"
       >
-        <Pass1ShotMarkRail
-          state={state}
-          players={players}
-          server={server}
-          activeShot={activeShot}
-          selectedShot={selectedShot}
-          onSelectShot={onSelectShot}
-          scrollable={scrollableShotRail}
-        />
+        <div className="flex min-w-0 items-start gap-1">
+          <div className="min-w-0 flex-1">
+            <Pass1ShotMarkRail
+              state={state}
+              players={players}
+              server={server}
+              activeShot={activeShot}
+              selectedShot={selectedShot}
+              onSelectShot={onSelectShot}
+              scrollable={scrollableShotRail}
+            />
+          </div>
+          {onToggleHighlight && (
+            <button
+              type="button"
+              aria-pressed={isHighlight}
+              onClick={onToggleHighlight}
+              className={cn(
+                'tag-control shrink-0 touch-manipulation border-amber-600/70 text-amber-200',
+                'h-[var(--control-height)] min-w-[var(--control-height)] px-1.5 text-[length:var(--control-text)] font-bold',
+                isHighlight && 'bg-amber-500 border-amber-400 text-neutral-950'
+              )}
+              title="Mark this whole rally as a highlight (show-reel)"
+              aria-label={isHighlight ? 'Highlight on — tap to clear' : 'Highlight rally'}
+            >
+              ★
+            </button>
+          )}
+        </div>
         {selected !== null && selectedShotData && (
           <div className="space-y-1" aria-label={`Shot ${selected} tools`}>
             <div className="flex flex-wrap items-center justify-end gap-1">
