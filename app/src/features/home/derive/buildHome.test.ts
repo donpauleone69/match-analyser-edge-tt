@@ -112,4 +112,56 @@ describe('buildHome outstanding', () => {
     expect(home.continueItems).toEqual([])
     expect(home.recent[0].status).toBe('tagged')
   })
+
+  it('surfaces tagged matches missing opponent as context polish', () => {
+    const home = buildHome(
+      [
+        {
+          match: match({
+            id: 'm-thin',
+            player2_id: null,
+            step1_complete: true,
+            step2_complete: true,
+          }),
+          sets: [
+            set({
+              id: 'm-thin-s1',
+              match_id: 'm-thin',
+              set_number: 1,
+              is_tagged: true,
+              tagging_phase: 'phase2_complete',
+            }),
+          ],
+          rallyCounts: new Map([['m-thin-s1', 5]]),
+        },
+      ],
+      (id) => (id === 'hero' ? 'Paul' : 'Them')
+    )
+    expect(home.outstandingCount).toBe(0)
+    expect(home.contextItems).toHaveLength(1)
+    expect(home.contextItems[0].missing).toBe('opponent')
+    expect(home.contextItems[0].actionLabel).toBe('Add opponent')
+  })
+
+  it('skips context polish when opponent already set', () => {
+    const home = buildHome(
+      [
+        {
+          match: match({ id: 'm-full', player2_id: 'opp', tournament_id: null }),
+          sets: [
+            set({
+              id: 'm-full-s1',
+              match_id: 'm-full',
+              set_number: 1,
+              is_tagged: true,
+              tagging_phase: 'phase2_complete',
+            }),
+          ],
+          rallyCounts: new Map([['m-full-s1', 3]]),
+        },
+      ],
+      () => 'X'
+    )
+    expect(home.contextItems).toEqual([])
+  })
 })

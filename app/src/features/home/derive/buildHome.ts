@@ -4,7 +4,13 @@
 
 import type { DBMatch, DBSet } from '@/data'
 import { deriveSetTaggingStatus } from '@/rules/derive/set/deriveSetTaggingStatus'
-import type { ContinueTaggingModel, HomeMatchModel, HomeMatchStatus, HomeModel } from '../models'
+import type {
+  ContextPolishModel,
+  ContinueTaggingModel,
+  HomeMatchModel,
+  HomeMatchStatus,
+  HomeModel,
+} from '../models'
 
 export interface HomeMatchInput {
   match: DBMatch
@@ -15,9 +21,11 @@ export interface HomeMatchInput {
 
 const RECENT_LIMIT = 5
 const CONTINUE_LIMIT = 5
+const CONTEXT_LIMIT = 5
 
 export function buildHome(inputs: HomeMatchInput[], nameOf: (playerId: string | null) => string): HomeModel {
   const outstanding: Array<ContinueTaggingModel & { matchDate: string; createdAt: string }> = []
+  const contextCandidates: Array<ContextPolishModel & { matchDate: string; createdAt: string }> = []
   const rows: HomeMatchModel[] = []
   let ralliesTotal = 0
 
@@ -57,6 +65,25 @@ export function buildHome(inputs: HomeMatchInput[], nameOf: (playerId: string | 
       statusLabel: status === 'tagged' ? 'Tagged' : status === 'in_progress' ? 'Tagging in progress' : 'Not tagged yet',
     })
 
+    // Soft context on Home: missing opponent only (tournament nudge lives on Match Review Summary).
+    if (tagged > 0 && !match.player2_id) {
+      contextCandidates.push({
+        matchId: match.id,
+        title,
+        dateLabel: match.match_date
+          ? new Date(match.match_date).toLocaleDateString(undefined, {
+              day: 'numeric',
+              month: 'short',
+            })
+          : '',
+        missing: 'opponent',
+        detailLabel: 'Add opponent so Clips can filter “vs player”',
+        actionLabel: 'Add opponent',
+        matchDate: match.match_date ?? '',
+        createdAt: match.created_at ?? '',
+      })
+    }
+
     if (status === 'tagged') continue
 
     const openInProgress = ordered.findIndex((_, i) => statuses[i] === 'in_progress')
@@ -93,11 +120,24 @@ export function buildHome(inputs: HomeMatchInput[], nameOf: (playerId: string | 
     )
   })
 
+  contextCandidates.sort((a, b) => {
+    const pri = (m: ContextPolishModel['missing']) => (m === 'opponent' ? 0 : 1)
+    return (
+      pri(a.missing) - pri(b.missing) ||
+      b.matchDate.localeCompare(a.matchDate) ||
+      b.createdAt.localeCompare(a.createdAt)
+    )
+  })
+
   const continueItems = outstanding.slice(0, CONTINUE_LIMIT).map(({ matchDate: _d, createdAt: _c, ...item }) => item)
+  const contextItems = contextCandidates
+    .slice(0, CONTEXT_LIMIT)
+    .map(({ matchDate: _d, createdAt: _c, ...item }) => item)
 
   return {
     continueItems,
     outstandingCount: outstanding.length,
+    contextItems,
     recent: rows.slice(0, RECENT_LIMIT),
     totals: { matches: rows.length, tagged: rows.filter((r) => r.ralliesTagged > 0).length, rallies: ralliesTotal },
   }

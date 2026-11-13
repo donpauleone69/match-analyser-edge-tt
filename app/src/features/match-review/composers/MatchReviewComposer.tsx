@@ -578,6 +578,7 @@ export function MatchReviewComposer() {
           onWatchRally={(rally, playlist, title) => watch(rally, playlist, title)}
           onEditRally={openEditor}
           onToggleHighlight={toggleHighlight}
+          onOpenDetails={() => setParams({ tab: 'details', cat: null })}
         />
       ) : tab === 'workon' ? (
         <WorkOnSection
