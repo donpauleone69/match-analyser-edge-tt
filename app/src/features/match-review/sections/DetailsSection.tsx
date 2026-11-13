@@ -3,10 +3,11 @@
  * Kept off the main Summary / Work on / Clips tabs so chrome stays light.
  */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Card, Icon } from '@/ui-mine'
 import { cn } from '@/helpers/utils'
+import { deriveVideoJumpMarkers } from '@/rules/videoLifecycle'
 import { SetsPanelSection } from './SetsPanelSection'
 import { MatchStorageBlock } from '../blocks/MatchStorageBlock'
 import {
@@ -98,6 +99,17 @@ export function DetailsSection({
 }: DetailsSectionProps) {
   const taggedSets = review.sets.filter((s) => s.rallyCount > 0).length
   const [draft, setDraft] = useState<MatchContextDraft>(() => draftFromReview(review))
+  const jumpMarkers = useMemo(
+    () =>
+      deriveVideoJumpMarkers(
+        review.rallies.map((r) => ({
+          setNumber: r.setNumber,
+          rallyIndex: r.rallyIndex,
+          loop: r.loop,
+        }))
+      ),
+    [review.rallies]
+  )
 
   useEffect(() => {
     setDraft((prev) => ({
@@ -237,14 +249,41 @@ export function DetailsSection({
         />
       </section>
 
+      {jumpMarkers.chips.length > 0 && (
+        <section className="space-y-2">
+          <h2 className="text-lg font-semibold text-neutral-50">Jump markers</h2>
+          <p className="text-sm text-neutral-400">
+            Source times for first serve and set ends — use while trimming or when scrubbing the set video.
+          </p>
+          <ul className="flex flex-wrap gap-2">
+            {jumpMarkers.chips.map((chip) => (
+              <li key={chip.key}>
+                <span className="inline-flex items-center gap-1.5 rounded-md border border-neutral-600 bg-bg-card px-3 py-2 text-sm text-neutral-100">
+                  <Icon name="target" size="sm" className="text-brand-primary" />
+                  {chip.label}
+                  <span className="font-mono text-neutral-400">
+                    {Math.floor(chip.timeS / 60)}:
+                    {Math.floor(chip.timeS % 60)
+                      .toString()
+                      .padStart(2, '0')}
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {storage && (
         <section className="space-y-2">
           <h2 className="text-lg font-semibold text-neutral-50">Storage &amp; backup</h2>
           <p className="text-sm text-neutral-400">
-            Back up, archive the device copy (cloud kept), retrieve, or trim a set video. Tags stay on source-video time.
+            Guided trim cuts intro/gaps using play windows. Archive removes the device original after cloud
+            backup. Tags stay on source-video time.
           </p>
           <MatchStorageBlock
             storage={storage}
+            setMarkers={jumpMarkers.sets}
             signedIn={signedIn}
             cloudAvailable={cloudAvailable}
             busy={busy}
