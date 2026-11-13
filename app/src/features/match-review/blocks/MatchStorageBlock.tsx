@@ -171,18 +171,23 @@ export function MatchStorageBlock({
         )}
 
         <span className="flex-1" />
-        <button
-          type="button"
+        <Button
+          size="sm"
+          variant="secondary"
           onClick={onSaveFile}
-          className="flex items-center gap-1.5 text-neutral-400 hover:text-neutral-100"
+          disabled={busy !== null}
+          title="Download a portable JSON backup of this match (no account needed to restore)"
         >
-          <Icon name="file-down" size="sm" /> Save match file
-        </button>
+          <Icon name={busy === 'file' ? 'loader' : 'file-down'} size="sm" className={spin('file')} />
+          Save match file
+        </Button>
       </div>
 
       <p className="text-xs text-neutral-500">
-        Tournament captures often have long intro and gaps. Trim keeps tags on source time; archive
-        removes the device original after cloud backup.
+        Match file = tags + metadata for this device or another browser. Restore via Account → Import.
+        Videos are not inside the JSON — keep a device/cloud copy. Tournament captures often have long
+        intro and gaps; Trim keeps tags on source time; archive removes the device original after cloud
+        backup.
       </p>
 
       <ul className="space-y-3">

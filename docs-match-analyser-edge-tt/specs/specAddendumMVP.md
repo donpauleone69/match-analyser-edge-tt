@@ -6,6 +6,22 @@
 
 ## Change Log
 
+### 2026-11-13: MA-30 — Match-file export/import polish (v3.80.0)
+
+**Change Type:** UX — portable backup (persistence escape hatch)
+
+**What Changed:**
+- Details Storage: **Save match file** is a proper button + copy (JSON tags; videos stay device/cloud).
+- Success notice explains portable restore path.
+- Account import: clearer copy; **Open match** after import; video re-link note.
+- Home empty + device footer + Matches empty: **Import match file** → Account.
+
+**Decision Rationale:** Zero-infra backup until cloud is routine (persistence-next-sprint).
+
+**Key Files:** `MatchStorageBlock.tsx`; `AccountComposer.tsx`; `HomeComposer.tsx`; `MatchListSection.tsx`.
+
+---
+
 ### 2026-11-13: MA-29 — Context polish (v3.79.0)
 
 **Change Type:** UX — optional match context (goal 2)
@@ -7534,6 +7550,7 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v3.80.0 | 2026-11-13 | MA-30: match-file Save/Import polish — Open match after import |
 | v3.79.0 | 2026-11-13 | MA-29: context polish — Home Add opponent + Summary Details nudge |
 | v3.78.0 | 2026-11-13 | MA-28: Pass 1 phone speed — video height cap, larger taps, safe-area |
 | v3.77.0 | 2026-11-13 | MA-27: no-dupe match guard — context + video fingerprint soft warns with override |

@@ -111,8 +111,15 @@ export function MatchListSection({
         ) : (
           <>
             <p className="text-neutral-400">No matches yet</p>
-            <p className="text-sm text-neutral-500">Create a match from Home, or start here.</p>
-            <Button onClick={onCreateNew}>New match</Button>
+            <p className="text-sm text-neutral-500">
+              Create a match from Home, or restore one with Account → Import a match file.
+            </p>
+            <div className="flex flex-wrap justify-center gap-2">
+              <Button onClick={onCreateNew}>New match</Button>
+              <Button variant="secondary" onClick={() => navigate('/settings')}>
+                Import match file
+              </Button>
+            </div>
           </>
         )}
       </Card>
