@@ -5,6 +5,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { matchDb, rallyDb, setDb, usePlayerStore } from '@/data'
 import { THEM_SIDE_LABEL } from '@/helpers/themSide'
+import { isIncompleteTaggedRally } from '@/rules/analytics/isCompleteScoringRally'
 import { buildHome, type HomeMatchInput } from './buildHome'
 import type { HomeModel } from '../models'
 import { useCloudStore } from '@/stores/cloudStore'
@@ -27,8 +28,22 @@ export function useDeriveHome() {
       const loaded = await Promise.all(
         matches.map(async (match): Promise<HomeMatchInput> => {
           const sets = await setDb.getByMatchId(match.id)
-          const counts = await Promise.all(sets.map(async (s) => [s.id, (await rallyDb.getBySetId(s.id)).length] as const))
-          return { match, sets, rallyCounts: new Map(counts) }
+          const perSet = await Promise.all(
+            sets.map(async (s) => {
+              const rallies = await rallyDb.getBySetId(s.id)
+              return {
+                setId: s.id,
+                count: rallies.length,
+                incomplete: rallies.filter(isIncompleteTaggedRally).length,
+              }
+            })
+          )
+          return {
+            match,
+            sets,
+            rallyCounts: new Map(perSet.map((r) => [r.setId, r.count])),
+            incompleteRallyCount: perSet.reduce((n, r) => n + r.incomplete, 0),
+          }
         })
       )
       if (active) setInputs(loaded)

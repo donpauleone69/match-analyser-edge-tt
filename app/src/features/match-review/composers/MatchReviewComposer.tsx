@@ -82,8 +82,15 @@ export function MatchReviewComposer() {
   const tab = resolveReviewTab(searchParams.get('tab'))
   const categoryId = searchParams.get('cat')
   const rallySetParam = Number(searchParams.get('s'))
+  const rfParam = searchParams.get('rf')
 
-  const [filter, setFilter] = useState<RallyFilter>('all')
+  const [filter, setFilter] = useState<RallyFilter>(() =>
+    rfParam === 'incomplete' ? 'incomplete' : 'all'
+  )
+
+  useEffect(() => {
+    if (rfParam === 'incomplete') setFilter('incomplete')
+  }, [rfParam])
   const [evidence, setEvidence] = useState<EvidenceRef | null>(null)
   const [player, setPlayer] = useState<PlayerState | null>(null)
   const [videoUrls, setVideoUrls] = useState<Record<number, string | null>>({})
@@ -663,7 +670,10 @@ export function MatchReviewComposer() {
           onSelectSet={(n) => setParams({ s: String(n) })}
           rallies={review.rallies}
           filter={filter}
-          onFilterChange={setFilter}
+          onFilterChange={(next) => {
+            setFilter(next)
+            setParams({ rf: next === 'incomplete' ? 'incomplete' : null })
+          }}
           heroName={review.heroName}
           actions={rallyActions}
           onTagSet={openTagger}

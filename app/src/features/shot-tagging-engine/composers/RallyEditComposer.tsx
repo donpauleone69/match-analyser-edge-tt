@@ -249,23 +249,35 @@ export function RallyEditComposer() {
   const canSave = Boolean(draft && canSaveRallyTimeline(draft.timeline, winnerName))
   const saveHint = draft ? pass1SaveHint(draft.timeline) : null
   const winnerWillChange = Boolean(winnerName && originalWinner && winnerName !== originalWinner)
+  // Incomplete rows may already look “complete” in the form but still need Save fix
+  // to write framework_confirmed / ending back to the DB.
+  const needsCompleteSave = Boolean(current?.isIncomplete && canSave)
+  const saveEnabled = Boolean((isDirty || needsCompleteSave) && canSave && !saving)
 
   const patchTimeline = (fn: (s: RallyTimelineState) => RallyTimelineState) =>
     setDraft((d) => (d ? { ...d, timeline: fn(d.timeline) } : d))
 
-  const backToReview = (notice?: string) => {
+  const backToReview = (notice?: string, opts?: { keepIncompleteFilter?: boolean }) => {
     useVideoPlaybackStore.getState().setVideoUrl(null)
     const tab =
       fromParam === 'workon' ? 'workon' : fromParam === 'clips' ? 'clips' : 'rallies'
     const q = new URLSearchParams({ tab })
-    if (tab === 'rallies') q.set('s', String(setNumber))
+    if (tab === 'rallies') {
+      q.set('s', String(setNumber))
+      if (opts?.keepIncompleteFilter || current?.isIncomplete) q.set('rf', 'incomplete')
+    }
     navigate(`/matches/${matchId}?${q.toString()}`, {
       state: notice ? ({ notice } satisfies RallyEditNotice) : undefined,
     })
   }
 
   const confirmLeave = () =>
-    !isDirty || window.confirm('Discard your changes to this rally?')
+    !(isDirty || needsCompleteSave) ||
+    window.confirm(
+      needsCompleteSave && !isDirty
+        ? 'This point is still incomplete — leave without Save fix?'
+        : 'Discard your changes to this rally?'
+    )
 
   const goToRally = (index: number) => {
     if (!confirmLeave()) return
@@ -276,8 +288,10 @@ export function RallyEditComposer() {
 
   const handleSave = async () => {
     if (!draft || !setId || !current || !canSave || saving) return
+    if (!isDirty && !current.isIncomplete) return
     setSaving(true)
     try {
+      const wasIncomplete = current.isIncomplete
       const result = await updatePersistedPass1FocusRally({
         setId,
         rallyId: current.dbRallyId,
@@ -290,14 +304,16 @@ export function RallyEditComposer() {
       const parts = [
         focusShot
           ? `Set ${setNumber} · rally ${rallyIndex} · shot ${focusShot} updated.`
-          : `Set ${setNumber} · rally ${rallyIndex} updated.`,
+          : wasIncomplete
+            ? `Set ${setNumber} · rally ${rallyIndex} fixed — Incomplete badge cleared.`
+            : `Set ${setNumber} · rally ${rallyIndex} updated.`,
       ]
       if (result.winnerChanged) {
         parts.push(
           `Winner changed — ${result.rescoredCount} later rall${result.rescoredCount === 1 ? 'y' : 'ies'} re-scored (set now ${result.finalScore.player1}–${result.finalScore.player2}).`
         )
       }
-      backToReview(parts.join(' '))
+      backToReview(parts.join(' '), { keepIncompleteFilter: wasIncomplete })
     } catch (err) {
       console.error('[RallyEdit] Save failed:', err)
       alert(err instanceof Error ? err.message : 'Failed to save rally')
@@ -452,11 +468,11 @@ export function RallyEditComposer() {
         <button
           type="button"
           onClick={handleSave}
-          disabled={!isDirty || !canSave || saving}
+          disabled={!saveEnabled}
           className={cn(
             pillBtn,
             'hidden sm:inline-flex border-teal-600/60 text-teal-300',
-            isDirty && canSave && 'bg-teal-700/50 border-teal-500 text-teal-50'
+            saveEnabled && 'bg-teal-700/50 border-teal-500 text-teal-50'
           )}
         >
           {saving ? 'Saving…' : 'Save fix'}
@@ -464,6 +480,11 @@ export function RallyEditComposer() {
       </div>
 
       <div className="shrink-0 px-3 py-1.5 text-[11px] bg-neutral-950 text-neutral-400 flex flex-wrap gap-x-3">
+        {current.isIncomplete && (
+          <span className="text-amber-200 font-semibold" role="status">
+            Incomplete point — set FA, End, and ending, then Save fix. Still out of stats until complete.
+          </span>
+        )}
         {focusShot && (
           <span className="text-review font-semibold">Editing shot {focusShot} — fix tags, then Save fix.</span>
         )}
@@ -558,7 +579,7 @@ export function RallyEditComposer() {
           <Button
             className="flex-[1.4]"
             onClick={handleSave}
-            disabled={!isDirty || !canSave || saving}
+            disabled={!saveEnabled}
           >
             <Icon name={saving ? 'loader' : 'save'} size="sm" className={saving ? 'animate-spin' : undefined} />
             {saving ? 'Saving…' : 'Save fix'}

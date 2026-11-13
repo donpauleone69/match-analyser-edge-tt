@@ -126,7 +126,11 @@ export function RalliesSection({
           )}
         </div>
       ) : shown.length === 0 ? (
-        <p className="text-sm text-neutral-500 rounded-lg border border-neutral-800 px-3 py-3">No rallies match this filter.</p>
+        <p className="text-sm text-neutral-500 rounded-lg border border-neutral-800 px-3 py-3">
+          {filter === 'incomplete'
+            ? 'No incomplete points in this set — every tagged rally has Pass 1 FA, End, and ending.'
+            : 'No rallies match this filter.'}
+        </p>
       ) : (
         <>
           <div className="flex items-center justify-between">

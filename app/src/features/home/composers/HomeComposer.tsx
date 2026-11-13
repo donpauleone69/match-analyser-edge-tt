@@ -118,9 +118,15 @@ export function HomeComposer() {
                     key={`${item.matchId}-${item.setNumber}`}
                     item={item}
                     onReview={openMatch}
-                    onContinue={(i) =>
+                    onContinue={(i) => {
+                      if (i.kind === 'fix_incomplete') {
+                        navigate(
+                          `/matches/${i.matchId}?tab=rallies&s=${i.setNumber}&rf=incomplete`
+                        )
+                        return
+                      }
                       navigate(`/matches/${i.matchId}/tag?set=${i.setNumber}&mode=pass1focus`)
-                    }
+                    }}
                   />
                 ))}
               </div>
