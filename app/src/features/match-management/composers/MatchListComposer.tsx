@@ -178,7 +178,7 @@ export function MatchListComposer() {
             Find matches
           </h1>
           <p className="text-neutral-400 mt-2 text-sm md:text-base">
-            Filter by opponent, tournament, match date, or date tagged. New match lives on Home.
+            Opponent, tournament, match date, or date tagged. New match is on Home.
           </p>
         </div>
         <Button variant="secondary" onClick={() => navigate('/')}>

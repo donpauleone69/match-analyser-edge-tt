@@ -6,6 +6,21 @@
 
 ## Change Log
 
+### 2026-11-13: MA-40 — Match Find + optional context polish (v3.90.0)
+
+**Change Type:** UX polish — Find matches + optional context (no epics)
+
+**What Changed:**
+- Find filters denser on phone (2-col dates, shorter labels, Clear in header); empty opponent/tournament hints; clearer empty/filter-empty copy; row meta denser.
+- Home empty state gains **Find matches**; soft **Add context** copy.
+- Details/Summary context stays optional (“Skip anytime”); Details heading **Optional context**.
+
+**Decision Rationale:** Product goal 5 — Find by opponent/tournament/match date/date tagged must feel present and clear at phone width; context remains a nudge only.
+
+**Key Files:** `MatchListFiltersBlock.tsx`; `MatchListSection.tsx`; `MatchListComposer.tsx`; `HomeComposer.tsx`; `MatchContextBlock.tsx`; `OverviewSection.tsx`; `DetailsSection.tsx`.
+
+---
+
 ### 2026-11-13: MA-39 — Incomplete → Fix re-tag polish (v3.89.0)
 
 **Change Type:** UX polish — Incomplete Fix path (no epics)

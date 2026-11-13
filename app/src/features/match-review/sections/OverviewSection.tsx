@@ -107,8 +107,8 @@ export function OverviewSection({
           </p>
           <p className="text-xs text-neutral-400 mt-0.5">
             {needsOpponent
-              ? 'Opens Details — unlocks Clips “vs player” filters. Never required to tag.'
-              : 'Opens Details — unlocks event filters in Clips / Review scope.'}
+              ? 'Opens Details — helps Find / Clips “vs player”. Skip anytime.'
+              : 'Opens Details — helps Find / Clips by event. Skip anytime.'}
           </p>
         </button>
       )}
