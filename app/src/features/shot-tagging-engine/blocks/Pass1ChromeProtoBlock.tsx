@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { cn } from '@/helpers/utils'
 import { Icon, MatchScoreHud } from '@/ui-mine'
 
@@ -290,9 +291,9 @@ export interface Pass1PointLedgerBlockProps {
 }
 
 /**
- * Prototype: point history is a deliberate, vertically scalable ledger.
- * Score pairs are labelled as scores; sequential numbered cells remain exclusive to shots.
+ * Point history sheet — score-first ledger under the set bar.
  * Seek jumps (Gap / 1st) live here so the set bar stays tappable (MA-108).
+ * MA-124: sheet chrome (sticky header, Escape, scroll focused, ordinals, ★).
  */
 export function Pass1PointLedgerBlock({
   open,
@@ -312,6 +313,25 @@ export function Pass1PointLedgerBlock({
   gapJumpIsEstimate = false,
   prevSetNumber = null,
 }: Pass1PointLedgerBlockProps) {
+  const focusedRef = useRef<HTMLButtonElement | null>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        onClose()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [open, onClose])
+
+  useEffect(() => {
+    if (!open) return
+    focusedRef.current?.scrollIntoView({ block: 'nearest' })
+  }, [open, focusedRallyIndex, completed.length])
+
   if (!open) return null
 
   const nameOf = (side: PlayerSide) => (side === 'player1' ? player1Name : player2Name)
@@ -319,27 +339,39 @@ export function Pass1PointLedgerBlock({
 
   return (
     <div
-      className="absolute inset-x-0 top-9 bottom-0 z-30 bg-panel-scrim"
+      className="absolute inset-x-0 top-9 bottom-0 z-30 flex flex-col bg-panel-scrim"
       onClick={onClose}
+      role="presentation"
     >
       <section
-        className="border-y border-border bg-bg-card px-2 py-1.5 shadow-xl"
-        aria-label="Point history"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="pass1-history-title"
+        className="flex max-h-[min(48dvh,22rem)] flex-col overflow-hidden rounded-b-xl border-x border-b border-border bg-bg-card shadow-xl"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="mb-1 flex items-center gap-1.5">
-          <h2 className="text-xs font-bold text-primary shrink-0">History</h2>
+        <header className="flex shrink-0 items-center gap-1.5 border-b border-border px-2 py-1.5">
+          <h2
+            id="pass1-history-title"
+            className="text-xs font-bold text-primary shrink-0"
+          >
+            History
+          </h2>
           <span className="text-[9px] text-muted tabular-nums shrink-0">
-            {completed.length}
+            · {completed.length}
           </span>
           <div className="flex-1" />
           {showJumps && (
-            <div className="flex items-center gap-1" role="group" aria-label="Seek jumps">
+            <div
+              className="flex items-center gap-1 opacity-80"
+              role="group"
+              aria-label="Seek jumps"
+            >
               {onJumpPrevSetEnd && (
                 <button
                   type="button"
                   onClick={onJumpPrevSetEnd}
-                  className="tag-control shrink-0 gap-1"
+                  className="tag-control shrink-0 gap-1 text-muted"
                   title={
                     gapJumpIsEstimate
                       ? prevSetNumber
@@ -363,7 +395,7 @@ export function Pass1PointLedgerBlock({
                 <button
                   type="button"
                   onClick={onJumpFirstServe}
-                  className="tag-control shrink-0 gap-1"
+                  className="tag-control shrink-0 gap-1 text-muted"
                   title="Jump to first serve (skip intro / warm-up)"
                   aria-label="Jump to first serve"
                 >
@@ -385,26 +417,43 @@ export function Pass1PointLedgerBlock({
               Del
             </button>
           )}
-          <button type="button" onClick={onClose} className="tag-control shrink-0">
-            Close
+          <button
+            type="button"
+            onClick={onClose}
+            className="tag-control shrink-0 px-1.5"
+            aria-label="Close history"
+            title="Close (Esc)"
+          >
+            <Icon name="x" size="xs" />
           </button>
-        </div>
-        <div className="grid max-h-[32dvh] grid-cols-1 gap-1 overflow-y-auto pr-0.5 sm:grid-cols-2">
-          {completed.map((point) => {
+        </header>
+
+        <div className="grid min-h-0 flex-1 grid-cols-1 gap-1 overflow-y-auto overscroll-contain px-2 py-1.5 sm:grid-cols-2">
+          {completed.length === 0 && (
+            <p className="col-span-full px-1 py-2 text-center text-[10px] text-muted">
+              No points yet — save a rally to fill History.
+            </p>
+          )}
+          {completed.map((point, index) => {
             const winnerIsP1 = point.winnerId === 'player1'
             const focused = focusedRallyIndex === point.rallyIndex
             return (
               <button
                 key={point.rallyIndex}
+                ref={focused ? focusedRef : undefined}
                 type="button"
                 aria-current={focused ? 'true' : undefined}
                 onClick={() => onSelectCompleted(point.rallyIndex)}
                 className={cn(
-                  'flex min-w-0 items-center gap-2 rounded-md border bg-bg-surface px-2 py-1 text-left',
-                  focused ? 'border-contact-selected' : 'border-border'
+                  'flex min-w-0 items-center gap-2 rounded-md border bg-bg-surface px-2 py-1.5 text-left',
+                  focused ? 'border-contact-selected' : 'border-border',
+                  point.isHighlight && 'bg-bg-elevated'
                 )}
-                title={`Point won by ${point.winnerName}; ${point.player1ScoreAfter}–${point.player2ScoreAfter}; ${nameOf(point.serverId)} served`}
+                title={`Point ${index + 1} won by ${point.winnerName}; ${point.player1ScoreAfter}–${point.player2ScoreAfter}; ${nameOf(point.serverId)} served`}
               >
+                <span className="w-4 shrink-0 text-center text-[9px] tabular-nums text-muted">
+                  {index + 1}
+                </span>
                 <span
                   className={cn(
                     'h-2 w-2 shrink-0 rounded-full',
@@ -413,8 +462,18 @@ export function Pass1PointLedgerBlock({
                   aria-hidden
                 />
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[10px] font-bold text-primary leading-tight">
-                    {point.winnerName} won {point.isHighlight ? '★' : ''}
+                  <span className="flex min-w-0 items-center gap-1 leading-tight">
+                    <span className="truncate text-[10px] font-bold text-primary">
+                      {point.winnerName} won
+                    </span>
+                    {point.isHighlight && (
+                      <Icon
+                        name="star"
+                        size="xs"
+                        className="text-warning"
+                        label="Highlighted"
+                      />
+                    )}
                   </span>
                   <span className="block truncate text-[9px] text-muted leading-tight">
                     {nameOf(point.serverId)} served
@@ -427,32 +486,36 @@ export function Pass1PointLedgerBlock({
             )
           })}
           <button
+            ref={focusedRallyIndex === 'next' ? focusedRef : undefined}
             type="button"
             aria-current={focusedRallyIndex === 'next' ? 'true' : undefined}
             onClick={onSelectNext}
             className={cn(
-              'flex min-w-0 items-center gap-2 rounded-md border border-dashed bg-bg-elevated px-2 py-1 text-left',
+              'flex min-w-0 items-center gap-2 rounded-md border border-dashed bg-bg-elevated px-2 py-1.5 text-left',
               focusedRallyIndex === 'next'
                 ? 'border-contact-selected'
                 : 'border-border'
             )}
           >
-              <span
-                className={cn(
-                  'h-2 w-2 shrink-0 rounded-full',
-                  nextServerId === 'player1' ? 'bg-player-1' : 'bg-player-2'
-                )}
-                aria-hidden
-              />
-              <span className="min-w-0 flex-1">
-                <span className="block text-[10px] font-bold text-primary leading-tight">
-                  {nextIsOpen ? 'Point in progress' : 'Next point'}
-                </span>
-                <span className="block truncate text-[9px] text-muted leading-tight">
-                  {nameOf(nextServerId)} serves
-                </span>
+            <span className="w-4 shrink-0 text-center text-[9px] tabular-nums text-muted">
+              →
+            </span>
+            <span
+              className={cn(
+                'h-2 w-2 shrink-0 rounded-full',
+                nextServerId === 'player1' ? 'bg-player-1' : 'bg-player-2'
+              )}
+              aria-hidden
+            />
+            <span className="min-w-0 flex-1">
+              <span className="block text-[10px] font-bold text-primary leading-tight">
+                {nextIsOpen ? 'Point in progress' : 'Next point'}
               </span>
-              <span className="text-sm font-black text-muted">→</span>
+              <span className="block truncate text-[9px] text-muted leading-tight">
+                {nameOf(nextServerId)} serves
+              </span>
+            </span>
+            <span className="text-sm font-black text-muted">→</span>
           </button>
         </div>
       </section>
