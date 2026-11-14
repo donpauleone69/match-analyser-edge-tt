@@ -6,6 +6,21 @@
 
 ## Change Log
 
+### 2026-11-14: MA-145 — Phone playlist trail density (v3.182.0)
+
+**Change Type:** UX polish — sticky browse trail on phone
+
+**What Changed:**
+- `PlaylistBrowseShellBlock`: chip + trail share **one row** on phone (icon-first trail); strip padding `py-1` / `gap-0.5`.
+- Arrival trail (Work on / Summary / Rallies / Stay / Fix / Clips) uses **h-9 icon taps** on phone; labels from `sm` up.
+- Short labels tightened (Work / Sum / Rally) for any remaining labelled phone cases.
+
+**Decision Rationale:** Overnight Track C **MA-145** after #117 — denser sticky band without a second trail row eating stage height.
+
+**Key Files:** `PlaylistBrowseShellBlock.tsx`, `ClipsComposer.tsx`.
+
+---
+
 ### 2026-11-14: MA-147 — Pass 1 contacts pad polish (v3.181.0)
 
 **Change Type:** UX polish — Pass 1 / Simple contact tap pad
@@ -34,6 +49,7 @@
 **Decision Rationale:** Overnight Track D MA-143 — glance should scan in one beat after headlines, before leak/payoff detail.
 
 **Key Files:** `CompareCardBlock.tsx`, `buildServeReceiveCards.ts`, `ServeReceiveDataSection.tsx`, `models.ts`.
+
 
 ---
 
@@ -64,6 +80,7 @@
 **Decision Rationale:** Overnight Track E MA-142 after Leave dialog — form row must shout Save when ready and keep Let/Discard secondary.
 
 **Key Files:** `Pass1FocusComposer.tsx`, `SimpleTaggingComposer.tsx`.
+
 
 ---
 
@@ -9159,6 +9176,7 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v3.182.0 | 2026-11-14 | MA-145: phone playlist trail density — one-row icon-first trail |
 | v3.181.0 | 2026-11-14 | MA-147: Pass 1 contacts pad polish |
 | v3.180.0 | 2026-11-14 | MA-143: Serve/Receive glance card polish |
 | v3.179.0 | 2026-11-14 | MA-144: PlaylistFocusPicker none tone → border-strong |
