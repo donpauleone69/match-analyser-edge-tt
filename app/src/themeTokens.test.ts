@@ -159,13 +159,23 @@ describe('shared match color tokens', () => {
       './ui-mine/VideoPlayer/MatchScoreHud.tsx',
       './features/shot-tagging-engine/blocks/Pass1ContactCaptureBlock.tsx',
       './pages/DataViewer.tsx',
+      './pages/DataViewerAudit.tsx',
+      './features/shot-tagging-engine/blocks/RallyCard.tsx',
+      './features/shot-tagging-engine/blocks/ShotListItem.tsx',
+      './features/data-audit/blocks/RallyGroupBlock.tsx',
+      './features/data-audit/composers/Phase1AuditComposer.tsx',
+      './features/data-audit/sections/TaggingPhaseSection.tsx',
+      './features/data-audit/sections/SetupPhaseSection.tsx',
+      './features/data-audit/sections/SchemaReferenceSection.tsx',
     ]
 
     for (const path of reviewedSurfaces) {
       expect(
         source(path),
         `${path} bypasses semantic outcome/review/callout tokens`
-      ).not.toMatch(/\b(?:emerald|rose|amber|sky|cyan|violet|purple|indigo)-\d/)
+      ).not.toMatch(
+        /\b(?:emerald|rose|amber|sky|cyan|violet|purple|indigo|teal|yellow|orange|red|green|blue)-\d/
+      )
       expect(
         source(path),
         `${path} uses raw overlay scrim instead of video-scrim tokens`

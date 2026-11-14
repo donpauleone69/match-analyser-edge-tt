@@ -48,8 +48,8 @@ export function ShotListItem({
     <div className={cn(
       'space-y-0.5 py-1.5 px-2 -mx-2 rounded transition-all duration-200',
       // Active tag highlighting
-      isActive && playerColor === 'player1' && 'border-l-4 border-blue-500 bg-blue-500/10 pl-1',
-      isActive && playerColor === 'player2' && 'border-l-4 border-orange-500 bg-orange-500/10 pl-1',
+      isActive && playerColor === 'player1' && 'border-l-4 border-player-1 bg-player-1-bg pl-1',
+      isActive && playerColor === 'player2' && 'border-l-4 border-player-2 bg-player-2-bg pl-1',
       className
     )}>
       {/* Shot main info */}
@@ -57,13 +57,11 @@ export function ShotListItem({
         {/* Player color dot */}
         <div className={cn(
           'rounded-full transition-all duration-200',
-          playerColor === 'player1' && 'bg-blue-500',
-          playerColor === 'player2' && 'bg-orange-500',
+          playerColor === 'player1' && 'bg-player-1',
+          playerColor === 'player2' && 'bg-player-2',
           !playerColor && 'bg-neutral-600',
           // Size varies by state
-          isActive ? 'w-3 h-3' : 'w-2 h-2',
-          isActive && playerColor === 'player1' && 'shadow-md shadow-blue-500/50',
-          isActive && playerColor === 'player2' && 'shadow-md shadow-orange-500/50'
+          isActive ? 'w-3 h-3 ring-2 ring-offset-1 ring-border' : 'w-2 h-2'
         )} />
         
         <span className="font-mono text-xs text-neutral-600">#{shotNumber}</span>
@@ -72,8 +70,8 @@ export function ShotListItem({
         </span>
         <span className={cn(
           'text-xs font-medium',
-          playerColor === 'player1' && 'text-blue-400',
-          playerColor === 'player2' && 'text-orange-400',
+          playerColor === 'player1' && 'text-player-1',
+          playerColor === 'player2' && 'text-player-2',
           !playerColor && 'text-neutral-300'
         )}>{playerName}</span>
         {isError && <span className="text-xs text-danger">(error)</span>}

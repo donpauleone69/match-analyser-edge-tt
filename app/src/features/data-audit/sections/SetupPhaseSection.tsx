@@ -26,7 +26,7 @@ export function SetupPhaseSection({
   return (
     <div className="mb-8">
       <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-        <div className="w-3 h-3 rounded-full bg-green-500" />
+        <div className="w-3 h-3 rounded-full bg-success" />
         SETUP PHASE
       </h2>
       

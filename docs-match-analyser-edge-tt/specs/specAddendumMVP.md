@@ -6,6 +6,21 @@
 
 ## Change Log
 
+### 2026-11-14: MA-123 — Residual raw paint audit (v3.160.0)
+
+**Change Type:** Design tokens — leftover palette outliers
+
+**What Changed:**
+- RallyCard / ShotListItem player paints → `player-1*` / `player-2*` (drop blue/orange Tailwind).
+- Data-audit / DataViewerAudit: phase dots, rally callout, schema mono, errors → `callout-*` / `success`.
+- Extend `themeTokens.test.ts` gate to these surfaces; broaden palette ban to blue/orange/yellow/red/green/teal.
+
+**Decision Rationale:** MA-123 overnight Track F — thin residual audit after MA-120; product + audit chrome off raw palette classes.
+
+**Key Files:** `RallyCard.tsx`, `ShotListItem.tsx`, `RallyGroupBlock.tsx`, `Phase1AuditComposer.tsx`, `TaggingPhaseSection.tsx`, `SetupPhaseSection.tsx`, `SchemaReferenceSection.tsx`, `DataViewerAudit.tsx`, `themeTokens.test.ts`.
+
+---
+
 ### 2026-11-14: MA-121 — Playlist shell Work-on trail polish (v3.159.0)
 
 **Change Type:** UX polish — Work on ↔ Clips ↔ Fix trail
@@ -8802,6 +8817,7 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 | Version | Date | Changes |
 |---------|------|---------|
 | v3.159.0 | 2026-11-14 | MA-121: Playlist shell Work-on trail polish + Fix return continuity |
+| v3.160.0 | 2026-11-14 | MA-123: residual raw paint — player/callout tokens on RallyCard/ShotList/audit |
 | v3.157.0 | 2026-11-14 | MA-111: Clip/Rally/Edit stage chrome cohesion (muted tokens + edit rail) |
 | v3.156.0 | 2026-11-14 | MA-120: scrub wash-strong + DataViewer borders/callout tokens |
 | v3.155.0 | 2026-11-14 | MA-115: Serve/Receive stats card polish — denser cards + headline detail/focus |
