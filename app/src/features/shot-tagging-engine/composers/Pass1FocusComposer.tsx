@@ -1044,11 +1044,13 @@ export function Pass1FocusComposer({
       clearIdleTimer()
       setContactTimes([])
       setPlaybackSpeed(NORMAL_PLAYBACK_SPEED)
-    }
-    if (phase === 'form' && openRally) {
+    } else if (phase === 'form' && openRally) {
       const ok = window.confirm(
         'Delete the last completed rally? The open rally draft is kept.'
       )
+      if (!ok) return
+    } else {
+      const ok = window.confirm('Delete the last completed rally?')
       if (!ok) return
     }
 
