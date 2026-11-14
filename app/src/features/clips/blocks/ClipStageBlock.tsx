@@ -167,7 +167,7 @@ export const ClipStageBlock = forwardRef<VideoPlayerHandle, ClipStageBlockProps>
               type="button"
               onClick={onClose}
               aria-label="Close"
-              className="p-1.5 rounded-md text-neutral-400 hover:text-neutral-50 hover:bg-neutral-700"
+              className="p-1.5 rounded-md text-muted hover:text-primary hover:bg-bg-elevated"
             >
               <Icon name="x" size="md" />
             </button>
@@ -176,7 +176,7 @@ export const ClipStageBlock = forwardRef<VideoPlayerHandle, ClipStageBlockProps>
 
         <div className="relative w-full aspect-video bg-black">
           {videoLoading ? (
-            <div className="absolute inset-0 flex items-center justify-center text-sm text-neutral-400 gap-2">
+            <div className="absolute inset-0 flex items-center justify-center text-sm text-muted gap-2">
               <Icon name="loader" size="sm" className="animate-spin" /> Finding video…
             </div>
           ) : (
@@ -247,13 +247,13 @@ export const ClipStageBlock = forwardRef<VideoPlayerHandle, ClipStageBlockProps>
             </VideoStageChrome>
           )}
           {!videoLoading && !videoUrl && (
-            <p className="absolute bottom-3 inset-x-0 px-4 text-center text-xs text-neutral-400 pointer-events-none">
+            <p className="absolute bottom-3 inset-x-0 px-4 text-center text-xs text-muted pointer-events-none">
               {missingMessage}
             </p>
           )}
         </div>
 
-        <div className="px-4 py-2.5 flex flex-wrap items-center gap-2">
+        <div className="px-3 py-2 flex flex-wrap items-center gap-2 border-t border-border">
           {showWindowToggle && (
             <div className="flex rounded-md border border-border overflow-hidden text-xs">
               <button

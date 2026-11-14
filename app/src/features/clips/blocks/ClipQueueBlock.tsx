@@ -24,23 +24,33 @@ export function ClipQueueBlock({ rows, activeIndex, onSelect }: ClipQueueBlockPr
               onClick={() => onSelect(i)}
               className={cn(
                 'w-full flex items-center gap-2 px-2 py-1.5 text-left transition-colors',
-                active ? 'bg-contact-selected-bg ring-1 ring-inset ring-contact-selected/40' : 'hover:bg-bg-elevated'
+                active
+                  ? 'bg-contact-selected-bg ring-1 ring-inset ring-contact-selected/40'
+                  : 'hover:bg-bg-elevated'
               )}
             >
-              <span className={cn('w-5 text-right font-mono text-xs tabular-nums', active ? 'text-brand-primary' : 'text-neutral-500')}>
+              <span
+                className={cn(
+                  'w-5 text-right font-mono text-xs tabular-nums',
+                  active ? 'text-brand-primary' : 'text-muted'
+                )}
+              >
                 {active ? <Icon name="play" size="xs" className="inline" /> : i + 1}
               </span>
               <span
-                className={cn('h-1.5 w-1.5 rounded-full shrink-0', row.heroWon ? 'bg-result-winner' : 'bg-result-error')}
+                className={cn(
+                  'h-1.5 w-1.5 rounded-full shrink-0',
+                  row.heroWon ? 'bg-result-winner' : 'bg-result-error'
+                )}
                 aria-label={row.heroWon ? 'Won' : 'Lost'}
               />
               <span className="min-w-0 flex-1">
-                <span className="block text-sm text-neutral-100 truncate">{row.title}</span>
+                <span className="block text-sm text-primary truncate">{row.title}</span>
                 {row.subtitle ? (
-                  <span className="block text-xs text-neutral-500 truncate">{row.subtitle}</span>
+                  <span className="block text-xs text-muted truncate">{row.subtitle}</span>
                 ) : null}
               </span>
-              <span className="font-mono text-xs text-neutral-500 tabular-nums">{row.durationLabel}</span>
+              <span className="font-mono text-xs text-muted tabular-nums">{row.durationLabel}</span>
             </button>
           </li>
         )

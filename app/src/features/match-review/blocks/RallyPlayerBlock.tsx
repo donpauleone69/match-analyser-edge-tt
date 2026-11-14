@@ -233,7 +233,7 @@ export const RallyPlayerBlock = forwardRef<VideoPlayerHandle, RallyPlayerBlockPr
             )}
           </div>
 
-          <div className="px-4 py-2.5 flex flex-wrap items-center gap-2">
+          <div className="px-3 py-2 flex flex-wrap items-center gap-2 border-t border-border">
             <p className="text-xs text-muted flex-1 min-w-[12rem] truncate">{rally.summary}</p>
             <Button size="sm" variant="secondary" onClick={onEdit}>
               <Icon name="edit" size="sm" /> Edit tags

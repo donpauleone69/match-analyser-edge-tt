@@ -424,8 +424,8 @@ export function RallyEditComposer() {
     return (
       <div className="h-dvh flex items-center justify-center bg-bg-surface p-4">
         <div className="max-w-md text-center bg-bg-card border border-border rounded-lg p-8">
-          <h2 className="text-xl font-semibold text-neutral-50 mb-2">Can’t open this rally</h2>
-          <p className="text-sm text-neutral-400 mb-6">{loadError}</p>
+          <h2 className="text-xl font-semibold text-primary mb-2">Can’t open this rally</h2>
+          <p className="text-sm text-muted mb-6">{loadError}</p>
           <Button onClick={() => navigate(matchId ? `/matches/${matchId}` : '/matches')}>
             Back to match review
           </Button>
@@ -437,7 +437,7 @@ export function RallyEditComposer() {
   if (!draft || !current) {
     return (
       <div className="h-dvh flex items-center justify-center bg-bg-surface">
-        <p className="text-neutral-400">Loading rally…</p>
+        <p className="text-muted">Loading rally…</p>
       </div>
     )
   }
@@ -449,7 +449,7 @@ export function RallyEditComposer() {
       : null
   const scorePair = parseScorePair(scoreBefore) ?? { player1: 0, player2: 0 }
   const pillBtn =
-    'h-8 px-2.5 text-xs font-semibold rounded-md border border-neutral-600 text-neutral-200 hover:border-neutral-400 disabled:opacity-40 disabled:pointer-events-none'
+    'h-8 px-2.5 text-xs font-semibold rounded-md border border-border text-primary hover:border-border-strong disabled:opacity-40 disabled:pointer-events-none'
 
   const handleSeekBy = (deltaSeconds: number) => {
     const t = videoPlayerRef.current?.getCurrentTime() ?? 0
@@ -521,7 +521,7 @@ export function RallyEditComposer() {
         </div>
       </div>
 
-      <div className="shrink-0 border-y border-border bg-neutral-900 px-2 py-1.5 flex flex-wrap items-center gap-1.5">
+      <div className="shrink-0 border-y border-border bg-bg-card px-2 py-1.5 flex flex-wrap items-center gap-1.5">
         <button
           type="button"
           onClick={() => confirmLeave() && backToReview()}
@@ -542,12 +542,12 @@ export function RallyEditComposer() {
         >
           <Icon name="chevron-left" size="xs" />
         </button>
-        <span className="text-xs text-neutral-300 px-1">
-          <span className="font-semibold text-neutral-50">
+        <span className="text-xs text-muted px-1">
+          <span className="font-semibold text-primary">
             Set {setNumber} · Rally {rallyIndex}
           </span>
-          <span className="text-neutral-500"> / {rallies.length}</span>
-          {scoreBefore && <span className="ml-2 font-mono text-neutral-400">from {scoreBefore}</span>}
+          <span className="text-muted"> / {rallies.length}</span>
+          {scoreBefore && <span className="ml-2 font-mono text-muted">from {scoreBefore}</span>}
         </span>
         <button
           type="button"
@@ -560,7 +560,7 @@ export function RallyEditComposer() {
         </button>
 
         <div className="flex items-center gap-1 ml-1" role="group" aria-label="Server">
-          <span className="text-[11px] text-neutral-500 mr-0.5">Server</span>
+          <span className="text-[11px] text-muted mr-0.5">Server</span>
           {(['player1', 'player2'] as const).map((side) => (
             <button
               key={side}
@@ -571,7 +571,7 @@ export function RallyEditComposer() {
                 'h-8 px-2 rounded-md text-xs font-semibold border truncate max-w-[6rem]',
                 draft.serverId === side
                   ? 'bg-brand-primary/50 border-brand-primary text-on-accent'
-                  : 'border-border text-neutral-400 hover:border-border-strong'
+                  : 'border-border text-muted hover:border-border-strong'
               )}
             >
               {side === 'player1' ? player1Name : player2Name}
@@ -618,7 +618,7 @@ export function RallyEditComposer() {
         </button>
       </div>
 
-      <div className="shrink-0 px-3 py-1.5 text-[11px] bg-neutral-950 text-neutral-400 flex flex-wrap gap-x-3">
+      <div className="shrink-0 px-3 py-1.5 text-[11px] bg-bg-elevated text-muted flex flex-wrap gap-x-3 border-b border-border">
         {current.isIncomplete && (
           <span className="text-callout-warning font-semibold" role="status">
             Incomplete point — set FA, End, and ending, then Save fix. Still out of stats until complete.
@@ -628,7 +628,7 @@ export function RallyEditComposer() {
           <span className="text-review font-semibold">Editing shot {focusShot} — fix tags, then Save fix.</span>
         )}
         <span>
-          Winner: <span className="text-neutral-100 font-semibold">{winnerName ?? '—'}</span>
+          Winner: <span className="text-primary font-semibold">{winnerName ?? '—'}</span>
         </span>
         {winnerWillChange && (
           <span className="text-callout-warning">
@@ -636,7 +636,7 @@ export function RallyEditComposer() {
           </span>
         )}
         {!videoUrl && <span>Load the set video above to watch this rally while editing.</span>}
-        <span className="text-neutral-500">Contacts can’t be re-timed here — use the tagger for that.</span>
+        <span className="text-muted">Contacts can’t be re-timed here — use the tagger for that.</span>
         {saveHint && !canSave && (
           <span className="text-callout-warning font-semibold" role="status">
             {saveHint}

@@ -6,6 +6,19 @@
 
 ## Change Log
 
+### 2026-11-14: MA-111 — Video stage cohesion polish (v3.152.0)
+
+**Change Type:** UX cohesion — Clip / Rally / Edit stage chrome
+
+**What Changed:**
+- Clip stage close / loading / missing copy on `text-muted` (Rally watch parity); shared footer `border-t border-border`.
+- Clip queue + Evidence drawer on `text-primary` / `text-muted` / `divide-border` / close hover `bg-elevated` (keeps MA-110 denser row padding).
+- Rally Edit under-video rail + status strip + phone save bar + empty states on `border-border` / card / elevated tokens (drop raw neutrals).
+
+**Decision Rationale:** Overnight Track A MA-111 — stage surfaces read as one product after MA-104 playlist chrome.
+
+**Key Files:** `ClipStageBlock.tsx`, `ClipQueueBlock.tsx`, `RallyPlayerBlock.tsx`, `EvidenceDrawerBlock.tsx`, `RallyEditComposer.tsx`, `themeTokens.test.ts`.
+
 ### 2026-11-14: MA-107 — Playlist browse shell refine (v3.151.0)
 
 **Change Type:** UX polish — Clips PlaylistBrowseShell density / trail / mobile
@@ -8657,6 +8670,8 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v3.152.0 | 2026-11-14 | MA-111: Clip/Rally/Edit stage chrome cohesion (muted tokens + edit rail) |
+| v3.151.0 | 2026-11-14 | MA-107: PlaylistBrowseShell density and trail refine |
 | v3.150.0 | 2026-11-14 | MA-114: RallyPlayer + modal overlays → modal-scrim / modal-scrim-strong |
 | v3.149.0 | 2026-11-14 | MA-112: Pass 1 rail and dialog polish |
 | v3.148.0 | 2026-11-14 | MA-106: Serve/Receive adopts PlaylistBrowseShell + Summary/Clips trail |
