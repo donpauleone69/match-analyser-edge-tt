@@ -169,7 +169,7 @@ function TimelinePill({
         'inline-flex flex-none items-center justify-center',
         'h-[var(--control-height)] whitespace-nowrap rounded-[var(--control-radius)] border',
         'px-[var(--control-px)] text-[length:var(--control-text)] font-semibold cursor-pointer',
-        'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-500',
+        'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary',
         className
       )}
       style={

@@ -472,7 +472,7 @@ export function RallyEditComposer() {
                   }
                   className={cn(
                     'tag-control tag-control-active h-7 min-w-[3.25rem] px-2 text-[10px] font-bold',
-                    'border-white/30 bg-black/70 text-white backdrop-blur-sm touch-manipulation'
+                    'border-video-scrim-border bg-video-scrim text-white backdrop-blur-sm touch-manipulation'
                   )}
                   title={
                     loopScope === 'rally'
@@ -570,8 +570,8 @@ export function RallyEditComposer() {
               className={cn(
                 'h-8 px-2 rounded-md text-xs font-semibold border truncate max-w-[6rem]',
                 draft.serverId === side
-                  ? 'bg-teal-700/50 border-teal-500 text-teal-100'
-                  : 'border-neutral-600 text-neutral-400 hover:border-neutral-400'
+                  ? 'bg-brand-primary/50 border-brand-primary text-on-accent'
+                  : 'border-border text-neutral-400 hover:border-border-strong'
               )}
             >
               {side === 'player1' ? player1Name : player2Name}
@@ -588,8 +588,8 @@ export function RallyEditComposer() {
             pillBtn,
             'hidden sm:inline-flex',
             draft.isHighlight
-              ? 'bg-amber-500/90 text-neutral-950 border-amber-400'
-              : 'text-amber-200/90 border-amber-700/60'
+              ? 'bg-review text-primary border-review'
+              : 'text-review border-review/50'
           )}
         >
           ★ Highlight
@@ -610,8 +610,8 @@ export function RallyEditComposer() {
           disabled={!saveEnabled}
           className={cn(
             pillBtn,
-            'hidden sm:inline-flex border-teal-600/60 text-teal-300',
-            saveEnabled && 'bg-teal-700/50 border-teal-500 text-teal-50'
+            'hidden sm:inline-flex border-brand-primary/60 text-brand-primary',
+            saveEnabled && 'bg-brand-primary border-brand-primary text-on-accent'
           )}
         >
           {saving ? 'Saving…' : 'Save fix'}
@@ -620,7 +620,7 @@ export function RallyEditComposer() {
 
       <div className="shrink-0 px-3 py-1.5 text-[11px] bg-neutral-950 text-neutral-400 flex flex-wrap gap-x-3">
         {current.isIncomplete && (
-          <span className="text-amber-200 font-semibold" role="status">
+          <span className="text-callout-warning font-semibold" role="status">
             Incomplete point — set FA, End, and ending, then Save fix. Still out of stats until complete.
           </span>
         )}
@@ -631,14 +631,14 @@ export function RallyEditComposer() {
           Winner: <span className="text-neutral-100 font-semibold">{winnerName ?? '—'}</span>
         </span>
         {winnerWillChange && (
-          <span className="text-amber-300">
+          <span className="text-callout-warning">
             Winner changes from {originalWinner} — later scores in this set will shift.
           </span>
         )}
         {!videoUrl && <span>Load the set video above to watch this rally while editing.</span>}
         <span className="text-neutral-500">Contacts can’t be re-timed here — use the tagger for that.</span>
         {saveHint && !canSave && (
-          <span className="text-amber-300/90 font-semibold" role="status">
+          <span className="text-callout-warning font-semibold" role="status">
             {saveHint}
           </span>
         )}
@@ -796,8 +796,8 @@ export function RallyEditComposer() {
             className={cn(
               'h-10 px-3 rounded-md text-sm font-semibold border',
               draft.isHighlight
-                ? 'bg-amber-500/90 text-neutral-950 border-amber-400'
-                : 'border-neutral-600 text-amber-200'
+                ? 'bg-review text-primary border-review'
+                : 'border-border text-review'
             )}
           >
             ★

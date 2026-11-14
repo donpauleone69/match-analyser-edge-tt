@@ -259,7 +259,7 @@ function DetailPill({
         'inline-flex flex-none items-center justify-center',
         'h-[var(--control-height)] whitespace-nowrap rounded-[var(--control-radius)] border',
         'px-[var(--control-px)] text-[length:var(--control-text)] font-semibold cursor-pointer touch-manipulation',
-        'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-500',
+        'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary',
         className
       )}
       style={
@@ -504,8 +504,7 @@ export function SimpleTaggingMatrixBlock({
                 cellToggle,
                 'text-[12px] font-bold',
                 // Pressed ★ keeps Pass 1 highlight amber; idle = pill-idle (canonical)
-                isHighlight &&
-                  'border-amber-400 bg-amber-500 text-neutral-950'
+                isHighlight && 'border-review bg-review text-primary'
               )}
               title="Mark this whole rally as a highlight (show-reel)"
               aria-label={isHighlight ? 'Highlight on' : 'Highlight off'}

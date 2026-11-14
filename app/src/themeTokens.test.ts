@@ -131,6 +131,10 @@ describe('shared match color tokens', () => {
       './features/clips/blocks/ReelListBlock.tsx',
       './ui-mine/VideoPlayer/TransportCluster.tsx',
       './features/shot-tagging-engine/composers/Pass1FocusComposer.tsx',
+      './features/shot-tagging-engine/composers/SimpleTaggingComposer.tsx',
+      './features/shot-tagging-engine/composers/RallyEditComposer.tsx',
+      './features/shot-tagging-engine/blocks/Pass1FocusBlock.tsx',
+      './features/shot-tagging-engine/blocks/SimpleTaggingMatrixBlock.tsx',
     ]
 
     for (const path of reviewedSurfaces) {
@@ -138,6 +142,10 @@ describe('shared match color tokens', () => {
         source(path),
         `${path} bypasses semantic outcome/review/callout tokens`
       ).not.toMatch(/\b(?:emerald|rose|amber|sky|cyan|violet|purple|indigo)-\d/)
+      expect(
+        source(path),
+        `${path} uses raw overlay scrim instead of video-scrim tokens`
+      ).not.toMatch(/bg-black\/70|border-white\/2[05]/)
     }
   })
 
