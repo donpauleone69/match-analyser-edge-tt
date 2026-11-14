@@ -511,15 +511,27 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
 
   const browseTrail: PlaylistBrowseTrailLink[] = []
   if (embedded && fromParam === 'workon') {
-    browseTrail.push({ id: 'workon', label: 'Work on', onClick: backFromWorkOn, primary: true })
+    browseTrail.push({
+      id: 'workon',
+      label: 'Work on',
+      shortLabel: 'Work on',
+      onClick: backFromWorkOn,
+      primary: true,
+    })
   }
   if (embedded && fromParam === 'workon' && (clipTitleParam || atParam)) {
-    browseTrail.push({ id: 'stay', label: 'Stay in Clips', onClick: clearDeepLinkChrome })
+    browseTrail.push({
+      id: 'stay',
+      label: 'Stay in Clips — clear Work on deep link',
+      onClick: clearDeepLinkChrome,
+      iconOnly: true,
+    })
   }
   if (!reel && current) {
     browseTrail.push({
       id: 'fix',
       label: 'Fix tags',
+      shortLabel: 'Fix',
       onClick: () => {
         const q = new URLSearchParams({
           set: String(current.clip.setNumber),
@@ -532,10 +544,9 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
     })
   }
 
+  // Context is the pattern title only — Work on is the trail button (no double banner).
   const browseContext =
-    embedded && fromParam === 'workon'
-      ? `From Work on${clipTitleParam ? ` · ${clipTitleParam}` : ''}`
-      : null
+    embedded && fromParam === 'workon' && clipTitleParam ? clipTitleParam : null
 
   const browseShell = (
     <PlaylistBrowseShellBlock
@@ -547,6 +558,8 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
       meta={reel ? undefined : rows.length}
       contextLabel={browseContext}
       trail={browseTrail}
+      priorityGroup={fromParam === 'workon' ? 'work-on' : null}
+      stickyMode={embedded ? 'under-tabs' : 'page'}
       onSelect={selectPreset}
     />
   )
@@ -604,7 +617,7 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
       )}
 
       {/* Sticky browse shell (all viewports) on shared BrowseDisclosure + desktop rail. */}
-      <div className="grid gap-4 md:gap-6 md:grid-cols-[17rem_minmax(0,1fr)]">
+      <div className="grid gap-3 md:gap-6 md:grid-cols-[17rem_minmax(0,1fr)]">
         <aside className="hidden md:block md:sticky md:top-4 md:self-start md:max-h-[calc(100vh-6rem)] md:overflow-y-auto md:pr-1">
           <p className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-wide text-muted">
             Playlists
@@ -612,11 +625,15 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
           <ClipPresetListBlock groups={data.groups} activeKey={reel ? null : activeKey} onSelect={selectPreset} />
         </aside>
 
-        <div className="space-y-4 min-w-0">
+        <div className="space-y-3 md:space-y-4 min-w-0">
           {browseShell}
           {stage}
           {exportStrip}
-          {!activeReel && rows.length > 0 && <ClipQueueBlock rows={rows} activeIndex={index} onSelect={setIndex} />}
+          {!activeReel && rows.length > 0 && (
+            <div className="max-h-[min(36dvh,18rem)] overflow-y-auto overscroll-contain md:max-h-none">
+              <ClipQueueBlock rows={rows} activeIndex={index} onSelect={setIndex} />
+            </div>
+          )}
           <ReelListBlock
             reels={data.reels}
             activeAssetId={activeReel?.assetId ?? null}
