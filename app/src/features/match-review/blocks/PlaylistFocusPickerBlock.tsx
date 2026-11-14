@@ -1,7 +1,8 @@
 /**
- * PlaylistFocusPickerBlock — History-style disclosure for Serve/Receive playlist focus.
+ * PlaylistFocusPickerBlock — focus options for Serve/Receive playlists.
  *
- * Built on shared BrowseDisclosure (Track A / C cohesion).
+ * Default: standalone BrowseDisclosure. Prefer embedding options inside
+ * PlaylistBrowseShellBlock (MA-106) via chrome="options".
  */
 
 import { useEffect, useState } from 'react'
@@ -13,7 +14,9 @@ export interface PlaylistFocusPickerBlockProps {
   focuses: PlaylistFocusModel[]
   activeId: string
   onSelect: (focus: PlaylistFocusModel) => void
-  /** Full-width trigger (phone Serve/Receive, matches Clips). */
+  /** disclosure = own chip; options = list only (shell owns BrowseDisclosure) */
+  chrome?: 'disclosure' | 'options'
+  /** Full-width trigger when chrome=disclosure (phone parity with Clips). */
   fullWidth?: boolean
 }
 
@@ -24,10 +27,45 @@ const TONE_DOT: Record<PlaylistFocusModel['tone'], string> = {
   none: 'bg-neutral-500',
 }
 
+function FocusOptionsList({
+  focuses,
+  activeId,
+  onSelect,
+}: {
+  focuses: PlaylistFocusModel[]
+  activeId: string
+  onSelect: (focus: PlaylistFocusModel) => void
+}) {
+  const active = focuses.find((f) => f.id === activeId) ?? focuses[0]
+  if (!active) return null
+  return (
+    <ul role="listbox" aria-label="Playlist focus">
+      {focuses.map((f) => {
+        const selected = f.id === active.id
+        return (
+          <li key={f.id}>
+            <BrowseDisclosureOption
+              selected={selected}
+              leading={
+                <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', TONE_DOT[f.tone])} />
+              }
+              meta={f.count}
+              onSelect={() => onSelect(f)}
+            >
+              {f.label}
+            </BrowseDisclosureOption>
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
+
 export function PlaylistFocusPickerBlock({
   focuses,
   activeId,
   onSelect,
+  chrome = 'disclosure',
   fullWidth = false,
 }: PlaylistFocusPickerBlockProps) {
   const [open, setOpen] = useState(false)
@@ -38,6 +76,10 @@ export function PlaylistFocusPickerBlock({
   }, [activeId])
 
   if (!active || focuses.length === 0) return null
+
+  if (chrome === 'options') {
+    return <FocusOptionsList focuses={focuses} activeId={activeId} onSelect={onSelect} />
+  }
 
   return (
     <BrowseDisclosure
@@ -57,28 +99,14 @@ export function PlaylistFocusPickerBlock({
       meta={active.count}
       panelClassName="py-1 max-h-64 overflow-y-auto"
     >
-      <ul role="listbox" aria-label="Playlist focus">
-        {focuses.map((f) => {
-          const selected = f.id === active.id
-          return (
-            <li key={f.id}>
-              <BrowseDisclosureOption
-                selected={selected}
-                leading={
-                  <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', TONE_DOT[f.tone])} />
-                }
-                meta={f.count}
-                onSelect={() => {
-                  onSelect(f)
-                  setOpen(false)
-                }}
-              >
-                {f.label}
-              </BrowseDisclosureOption>
-            </li>
-          )
-        })}
-      </ul>
+      <FocusOptionsList
+        focuses={focuses}
+        activeId={activeId}
+        onSelect={(f) => {
+          onSelect(f)
+          setOpen(false)
+        }}
+      />
     </BrowseDisclosure>
   )
 }

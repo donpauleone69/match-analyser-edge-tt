@@ -6,6 +6,23 @@
 
 ## Change Log
 
+### 2026-11-14: MA-106 — Serve/Receive adopts PlaylistBrowseShell (v3.148.0)
+
+**Change Type:** UX polish — Serve Data / Receive Data curated browse
+
+**What Changed:**
+- Serve/Receive sticky playlist bar uses shared `PlaylistBrowseShellBlock` (from #82 / MA-81) with focus options as children — same chrome as Clips (supersedes MA-104 phone dual sticky layout).
+- Trail: Summary + Clips; drop duplicate top “All categories” back link.
+- Shell generalized: optional `children` panel + `meta` (Clips still passes preset groups).
+- `PlaylistFocusPickerBlock` keeps `fullWidth` for disclosure mode + `chrome="options"` for shell embed.
+- Keeps MA-110 denser Serve/Receive header spacing / quieter empty playlist copy.
+
+**Decision Rationale:** Overnight Track D MA-106 — adopt browse shell where it helps; one continuous playlists ↔ stats ↔ Clips pattern.
+
+**Key Files:** `ServeReceiveDataSection.tsx`, `PlaylistBrowseShellBlock.tsx`, `PlaylistFocusPickerBlock.tsx`, `ClipsComposer.tsx`.
+
+---
+
 ### 2026-11-14: MA-109 — Cross-surface theme cohesion (v3.147.0)
 
 **Change Type:** Design tokens — modal/panel scrims + theme gate after #82/#80/#78
@@ -33,6 +50,8 @@
 **Decision Rationale:** MA-110 overnight Track B — list density and empties match tagging chrome after MA-105.
 
 **Key Files:** `HomeComposer.tsx`, `ContinueTaggingBlock.tsx`, `MatchListSection.tsx`, `ClipsComposer.tsx`, `ClipQueueBlock.tsx`, `ReelListBlock.tsx`, `ClipPresetListBlock.tsx`, `MatchReviewComposer.tsx`, `RalliesSection.tsx`, `WorkOnSection.tsx`, `ReviewPatternBlock.tsx`, `RallyRowBlock.tsx`, `SummaryCategoryPlaylistBlock.tsx`, `ServeReceiveDataSection.tsx`, `MatchContextBlock.tsx`, `ScopeReviewComposer.tsx`.
+
+---
 
 ### 2026-11-14: MA-108 — Pass 1 interaction polish (v3.145.0)
 
@@ -8586,6 +8605,7 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v3.148.0 | 2026-11-14 | MA-106: Serve/Receive adopts PlaylistBrowseShell + Summary/Clips trail |
 | v3.147.0 | 2026-11-14 | MA-109: modal/panel scrims + themeTokens gate for newest surfaces |
 | v3.146.0 | 2026-11-14 | MA-110: list density + empty states |
 | v3.145.0 | 2026-11-14 | MA-108: Pass 1 interaction polish |
@@ -8594,7 +8614,7 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 | v3.142.0 | 2026-11-14 | MA-103: theme follow-up — video-scrim Simple overlay + brand focus rings |
 | v3.141.0 | 2026-11-14 | MA-102: Pass 1 chrome final polish |
 | v3.140.0 | 2026-11-14 | MA-81: Playlist browse shell on shared BrowseDisclosure |
-| v3.139.0 | 2026-11-14 | MA-98: Serve/Receive focus deep-link + sticky playlist |
+| v3.139.0 | 2026-11-14 | MA-98: Serve/Receive ?focus= deep-link + sticky playlist |
 | v3.138.0 | 2026-11-14 | MA-101: quiet Find/create/Account and match shell density |
 | v3.137.0 | 2026-11-14 | MA-100: BrowseDisclosure + scrub marks on Clips/Review stages |
 | v3.136.0 | 2026-11-14 | MA-99: tagging dialog/rail/contacts visual polish + scrub→History |
