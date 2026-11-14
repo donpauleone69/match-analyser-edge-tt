@@ -6,6 +6,22 @@
 
 ## Change Log
 
+### 2026-11-14: MA-107 — Playlist browse shell refine (v3.151.0)
+
+**Change Type:** UX polish — Clips PlaylistBrowseShell density / trail / mobile
+
+**What Changed:**
+- Sticky strip matches Serve/Receive (`top-14` when embedded under Match Review tabs; border-b, no heavy card chrome).
+- Trail denser: **Work on** + **Fix** (short on phone) + Stay as icon-only dismiss; context is pattern title only (no double “From Work on” banner).
+- Work on deep-links prioritize the work-on preset group in the disclosure.
+- Phone clip queue capped height + internal scroll so lists don’t recreate scroll hell under the stage.
+
+**Decision Rationale:** Overnight Track C MA-107 after #82 — refine, don’t reinvent BrowseDisclosure.
+
+**Key Files:** `PlaylistBrowseShellBlock.tsx`, `ClipsComposer.tsx`.
+
+---
+
 ### 2026-11-14: MA-114 — Modal overlay token cleanup (v3.150.0)
 
 **Change Type:** Design tokens — RallyPlayer + remaining modal dimmers
@@ -35,6 +51,7 @@
 
 **Key Files:** `Pass1FocusBlock.tsx`, `pass1FocusModel.ts`, timeline tests.
 
+
 ---
 
 ### 2026-11-14: MA-106 — Serve/Receive adopts PlaylistBrowseShell (v3.148.0)
@@ -54,6 +71,7 @@
 
 ---
 
+
 ### 2026-11-14: MA-109 — Cross-surface theme cohesion (v3.147.0)
 
 **Change Type:** Design tokens — modal/panel scrims + theme gate after #82/#80/#78
@@ -66,6 +84,7 @@
 **Decision Rationale:** MA-109 overnight Track F — after MA-104/105 landed BrowseDisclosure borders, finish shared scrim tokens + gate so newest surfaces stay cohesive.
 
 **Key Files:** `index.css`, `Pass1LeaveDraftChoiceBlock.tsx`, `Pass1ChromeProtoBlock.tsx`, `RallyEditComposer.tsx`, `themeTokens.test.ts`.
+
 
 ---
 
@@ -84,6 +103,7 @@
 
 ---
 
+
 ### 2026-11-14: MA-108 — Pass 1 interaction polish (v3.145.0)
 
 **Change Type:** UX polish — Pass 1 / Simple interaction
@@ -97,6 +117,7 @@
 **Decision Rationale:** Overnight Track E MA-108 — interaction polish after MA-102 chrome; fewer mis-taps, clearer exits.
 
 **Key Files:** `Pass1ChromeProtoBlock.tsx`, Pass1/Simple composers, `Pass1LeaveDraftChoiceBlock.tsx`, `Pass1FocusBlock.tsx`.
+
 
 ---
 

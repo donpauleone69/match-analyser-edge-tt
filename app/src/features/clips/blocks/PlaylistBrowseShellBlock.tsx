@@ -1,22 +1,27 @@
 /**
- * PlaylistBrowseShellBlock — sticky playlist browse chrome on shared BrowseDisclosure.
+ * PlaylistBrowseShellBlock — sticky browse chrome on shared BrowseDisclosure.
  *
- * Clips: preset groups panel. Serve/Receive: pass focus options as children.
- * Trail keeps Summary / Work on / Clips / Fix tags continuous with the stage.
+ * Clips: preset groups. Serve/Receive: pass focus options as children.
+ * MA-107: denser strip, compact Work on / Stay / Fix trail, sticky under tabs.
  */
 
 import type { ReactNode } from 'react'
 import { BrowseDisclosure, Button, Icon } from '@/ui-mine'
-import type { ClipPreset } from '@/rules/derive/clips/deriveClipPresets'
+import { cn } from '@/helpers/utils'
+import type { ClipPreset, ClipPresetGroup } from '@/rules/derive/clips/deriveClipPresets'
 import type { ClipPresetGroupModel } from '../models'
 import { ClipPresetListBlock } from './ClipPresetListBlock'
-import { cn } from '@/helpers/utils'
 
 export interface PlaylistBrowseTrailLink {
   id: string
   label: string
   onClick: () => void
+  /** Strong return path (Work on / Summary) */
   primary?: boolean
+  /** Phone: icon-only control (e.g. Stay dismiss) */
+  iconOnly?: boolean
+  /** Shorter label on narrow viewports when not iconOnly */
+  shortLabel?: string
 }
 
 export interface PlaylistBrowseShellBlockProps {
@@ -28,7 +33,7 @@ export interface PlaylistBrowseShellBlockProps {
   /** Quiet prefix on the chip (default "Playlists"). */
   label?: ReactNode
   'aria-label'?: string
-  /** e.g. "From Work on · BH Push" or "Serve Data · Problems" */
+  /** e.g. pattern title or "Serve Data · watch or open Clips" */
   contextLabel?: string | null
   trail?: PlaylistBrowseTrailLink[]
   below?: ReactNode
@@ -38,6 +43,13 @@ export interface PlaylistBrowseShellBlockProps {
   groups?: ClipPresetGroupModel[]
   activeKey?: string | null
   onSelect?: (preset: ClipPreset) => void
+  /** Prefer this preset group at the top of the disclosure (Work on deep-link). */
+  priorityGroup?: ClipPresetGroup | null
+  /**
+   * `under-tabs` = Match Review sticky header (~3.5rem).
+   * `page` = standalone /clips. Serve/Receive may also pass className="top-14".
+   */
+  stickyMode?: 'page' | 'under-tabs'
   /** Custom panel (Serve/Receive focuses). Takes precedence over groups. */
   children?: ReactNode
 }
@@ -51,6 +63,16 @@ function trailIcon(id: string) {
   return null
 }
 
+function orderGroups(
+  groups: ClipPresetGroupModel[],
+  priority: ClipPresetGroup | null | undefined
+): ClipPresetGroupModel[] {
+  if (!priority) return groups
+  const head = groups.filter((g) => g.group === priority)
+  const rest = groups.filter((g) => g.group !== priority)
+  return [...head, ...rest]
+}
+
 export function PlaylistBrowseShellBlock({
   open,
   onOpenChange,
@@ -62,17 +84,20 @@ export function PlaylistBrowseShellBlock({
   trail = [],
   below,
   className,
-  panelClassName = 'p-2 max-h-[min(42dvh,22rem)] overflow-y-auto overscroll-contain',
+  panelClassName = 'p-1.5 max-h-[min(40dvh,20rem)] overflow-y-auto overscroll-contain border-border bg-bg-elevated',
   groups,
   activeKey = null,
   onSelect,
+  priorityGroup = null,
+  stickyMode = 'page',
   children,
 }: PlaylistBrowseShellBlockProps) {
+  const ordered = groups ? orderGroups(groups, priorityGroup) : null
   const panel =
     children ??
-    (groups && onSelect ? (
+    (ordered && onSelect ? (
       <ClipPresetListBlock
-        groups={groups}
+        groups={ordered}
         activeKey={activeKey}
         density="compact"
         onSelect={(preset) => {
@@ -85,17 +110,12 @@ export function PlaylistBrowseShellBlock({
   return (
     <div
       className={cn(
-        'sticky top-0 z-20 space-y-2 rounded-lg border border-border/80 bg-bg-shell/95 px-2 py-2 backdrop-blur supports-[backdrop-filter]:bg-bg-shell/90',
+        'sticky z-20 -mx-1 space-y-1.5 border-b border-border bg-bg-surface/95 px-1 py-1.5 backdrop-blur',
+        stickyMode === 'under-tabs' ? 'top-14' : 'top-0',
         className
       )}
     >
-      {contextLabel ? (
-        <p className="truncate px-1 text-[10px] font-medium text-muted" title={contextLabel}>
-          {contextLabel}
-        </p>
-      ) : null}
-
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex items-stretch gap-1.5">
         <BrowseDisclosure
           className="min-w-0 flex-1"
           fullWidth
@@ -105,28 +125,53 @@ export function PlaylistBrowseShellBlock({
           meta={meta}
           open={open}
           onOpenChange={onOpenChange}
+          triggerClassName="rounded-md border-border bg-bg-card py-2 text-sm"
           panelClassName={panelClassName}
         >
           {panel}
         </BrowseDisclosure>
 
         {trail.length > 0 ? (
-          <div className="flex flex-wrap items-center gap-1.5">
-            {trail.map((t) => (
-              <Button
-                key={t.id}
-                size="sm"
-                variant={t.primary ? 'secondary' : 'ghost'}
-                className="h-8 shrink-0 px-2 text-xs"
-                onClick={t.onClick}
-              >
-                {trailIcon(t.id)}
-                {t.label}
-              </Button>
-            ))}
+          <div className="flex shrink-0 items-center gap-1">
+            {trail.map((t) => {
+              if (t.iconOnly) {
+                return (
+                  <Button
+                    key={t.id}
+                    size="sm"
+                    variant="ghost"
+                    className="h-9 w-9 shrink-0 px-0"
+                    onClick={t.onClick}
+                    aria-label={t.label}
+                    title={t.label}
+                  >
+                    <Icon name="x" size="sm" />
+                  </Button>
+                )
+              }
+              return (
+                <Button
+                  key={t.id}
+                  size="sm"
+                  variant={t.primary ? 'secondary' : 'ghost'}
+                  className="h-9 shrink-0 gap-1 px-2 text-xs"
+                  onClick={t.onClick}
+                >
+                  {trailIcon(t.id)}
+                  <span className="sm:hidden">{t.shortLabel ?? t.label}</span>
+                  <span className="hidden sm:inline">{t.label}</span>
+                </Button>
+              )
+            })}
           </div>
         ) : null}
       </div>
+
+      {contextLabel ? (
+        <p className="truncate px-0.5 text-[10px] leading-tight text-muted" title={contextLabel}>
+          {contextLabel}
+        </p>
+      ) : null}
 
       {below}
     </div>
