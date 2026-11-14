@@ -13,7 +13,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
-  BrowseDisclosure,
   Button,
   Card,
   Icon,
@@ -48,6 +47,10 @@ import { buildClipRows, formatSeconds } from '../derive/buildClipLibrary'
 import { ClipPresetListBlock } from '../blocks/ClipPresetListBlock'
 import { ClipQueueBlock } from '../blocks/ClipQueueBlock'
 import { ClipStageBlock } from '../blocks/ClipStageBlock'
+import {
+  PlaylistBrowseShellBlock,
+  type PlaylistBrowseTrailLink,
+} from '../blocks/PlaylistBrowseShellBlock'
 import { ReelListBlock } from '../blocks/ReelListBlock'
 import { ScopeControlBlock } from '@/features/match-review/blocks/ScopeControlBlock'
 import {
@@ -137,11 +140,10 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
   const [busyReel, setBusyReel] = useState<string | null>(null)
   const [downloadBusy, setDownloadBusy] = useState(false)
   const [notice, setNotice] = useState<{ tone: 'good' | 'bad'; text: string } | null>(null)
-  /** Phone: presets collapsed under the player so Download/reel stay primary. */
+  /** History-style playlist overlay via shared BrowseDisclosure (no page expand). */
   const [presetsOpen, setPresetsOpen] = useState(false)
   const blobUrls = useRef<string[]>([])
   const clipStartedAt = useRef(0)
-  const presetsPanelRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const urls = blobUrls.current
@@ -190,22 +192,7 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
     if (i >= 0) setIndex(i)
   }, [activeKey, atParam, rows])
 
-  // Work on → Clips `?clip=` (and other deep links): expand phone Playlists so the
-  // active playlist key is visible (collapsed by default otherwise).
-  useEffect(() => {
-    if (!clipParam) return
-    setPresetsOpen(true)
-  }, [clipParam])
-
-  useEffect(() => {
-    if (!presetsOpen || !activeKey) return
-    const root = presetsPanelRef.current
-    if (!root) return
-    const el = root.querySelector<HTMLElement>(
-      `[data-clip-preset-key="${CSS.escape(activeKey)}"]`
-    )
-    el?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' })
-  }, [presetsOpen, activeKey, presets.length])
+  // Deep links land on the sticky browse chip — do not auto-open or scrollIntoView.
 
   const clearDeepLinkChrome = () => {
     const next = new URLSearchParams(searchParams)
@@ -514,13 +501,56 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
         </Button>
       ) : (
         <p className="text-xs text-neutral-500">
-          Pick another playlist on the left, or flag shots / star rallies while tagging.
+          Open Playlists above to switch list, or flag shots / star rallies while tagging.
         </p>
       )}
     </Card>
   )
 
   const isHighlightReel = filter?.kind === 'highlights'
+
+  const browseTrail: PlaylistBrowseTrailLink[] = []
+  if (embedded && fromParam === 'workon') {
+    browseTrail.push({ id: 'workon', label: 'Work on', onClick: backFromWorkOn, primary: true })
+  }
+  if (embedded && fromParam === 'workon' && (clipTitleParam || atParam)) {
+    browseTrail.push({ id: 'stay', label: 'Stay in Clips', onClick: clearDeepLinkChrome })
+  }
+  if (!reel && current) {
+    browseTrail.push({
+      id: 'fix',
+      label: 'Fix tags',
+      onClick: () => {
+        const q = new URLSearchParams({
+          set: String(current.clip.setNumber),
+          rally: String(current.clip.rallyIndex),
+          from: 'clips',
+        })
+        if (current.clip.shotIndex != null) q.set('shot', String(current.clip.shotIndex))
+        navigate(`/matches/${current.clip.matchId}/edit-rally?${q.toString()}`)
+      },
+    })
+  }
+
+  const browseContext =
+    embedded && fromParam === 'workon'
+      ? `From Work on${clipTitleParam ? ` · ${clipTitleParam}` : ''}`
+      : null
+
+  const browseShell = (
+    <PlaylistBrowseShellBlock
+      open={presetsOpen}
+      onOpenChange={setPresetsOpen}
+      groups={data.groups}
+      activeKey={reel ? null : activeKey}
+      activeLabel={reel ? reel.label : playlistLabel}
+      clipCount={reel ? null : rows.length}
+      contextLabel={browseContext}
+      trail={browseTrail}
+      onSelect={selectPreset}
+    />
+  )
+
   const exportStrip = showExportBar && (
     <div className="hidden md:flex flex-wrap items-center gap-3 rounded-lg border border-border bg-bg-card px-3 py-2.5">
       <div className="min-w-0 flex-1">
@@ -557,32 +587,6 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
     <div className={`space-y-6 ${showExportBar ? 'pb-24 md:pb-6' : ''}`}>
       {header}
 
-      {embedded && fromParam === 'workon' && (
-        <div className="flex items-center gap-2 text-sm text-neutral-300">
-          <button
-            type="button"
-            onClick={backFromWorkOn}
-            className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-neutral-200 hover:border-neutral-500"
-          >
-            <Icon name="arrow-left" size="xs" /> Work on
-          </button>
-          {clipTitleParam ? (
-            <span className="min-w-0 truncate font-medium text-neutral-100">{clipTitleParam}</span>
-          ) : null}
-          {(clipTitleParam || atParam) && (
-            <button
-              type="button"
-              onClick={clearDeepLinkChrome}
-              className="ml-auto shrink-0 text-neutral-500 hover:text-neutral-200"
-              aria-label="Clear Work on deep link"
-              title="Stay in Clips"
-            >
-              <Icon name="x" size="sm" />
-            </button>
-          )}
-        </div>
-      )}
-
       {notice && (
         <div
           className={
@@ -599,33 +603,17 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
         </div>
       )}
 
-      {/* Desktop: presets aside. Phone: BrowseDisclosure above stage (no scroll-up hell). */}
+      {/* Sticky browse shell (all viewports) on shared BrowseDisclosure + desktop rail. */}
       <div className="grid gap-4 md:gap-6 md:grid-cols-[17rem_minmax(0,1fr)]">
         <aside className="hidden md:block md:sticky md:top-4 md:self-start md:max-h-[calc(100vh-6rem)] md:overflow-y-auto md:pr-1">
+          <p className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-wide text-muted">
+            Playlists
+          </p>
           <ClipPresetListBlock groups={data.groups} activeKey={reel ? null : activeKey} onSelect={selectPreset} />
         </aside>
 
         <div className="space-y-4 min-w-0">
-          <div className="md:hidden" ref={presetsPanelRef}>
-            <BrowseDisclosure
-              fullWidth
-              aria-label="Playlists"
-              label="Playlists"
-              value={reel ? 'Saved reel' : playlistLabel}
-              open={presetsOpen}
-              onOpenChange={setPresetsOpen}
-              panelClassName="p-2 max-h-[50dvh] overflow-y-auto"
-            >
-              <ClipPresetListBlock
-                groups={data.groups}
-                activeKey={reel ? null : activeKey}
-                onSelect={(preset) => {
-                  selectPreset(preset)
-                  setPresetsOpen(false)
-                }}
-              />
-            </BrowseDisclosure>
-          </div>
+          {browseShell}
           {stage}
           {exportStrip}
           {!activeReel && rows.length > 0 && <ClipQueueBlock rows={rows} activeIndex={index} onSelect={setIndex} />}

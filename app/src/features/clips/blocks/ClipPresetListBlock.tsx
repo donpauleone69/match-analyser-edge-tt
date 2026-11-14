@@ -10,15 +10,30 @@ export interface ClipPresetListBlockProps {
   groups: ClipPresetGroupModel[]
   activeKey: string | null
   onSelect: (preset: ClipPreset) => void
+  /** compact = disclosure overlay; comfortable = desktop rail */
+  density?: 'compact' | 'comfortable'
 }
 
-export function ClipPresetListBlock({ groups, activeKey, onSelect }: ClipPresetListBlockProps) {
+export function ClipPresetListBlock({
+  groups,
+  activeKey,
+  onSelect,
+  density = 'comfortable',
+}: ClipPresetListBlockProps) {
+  const compact = density === 'compact'
   return (
-    <nav aria-label="Clip playlists" className="space-y-4">
+    <nav aria-label="Clip playlists" className={cn(compact ? 'space-y-3' : 'space-y-4')}>
       {groups.map((g) => (
         <div key={g.group}>
-          <p className="px-1 mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted">{g.label}</p>
-          <div className="flex flex-wrap gap-1.5 md:flex-col md:gap-1">
+          <p
+            className={cn(
+              'px-1 font-semibold uppercase tracking-wide text-muted',
+              compact ? 'mb-1 text-[10px]' : 'mb-1.5 text-[11px]'
+            )}
+          >
+            {g.label}
+          </p>
+          <div className={cn(compact ? 'flex flex-col gap-1' : 'flex flex-wrap gap-1.5 md:flex-col md:gap-1')}>
             {g.presets.map((p) => {
               const active = p.key === activeKey
               return (
@@ -29,7 +44,8 @@ export function ClipPresetListBlock({ groups, activeKey, onSelect }: ClipPresetL
                   onClick={() => onSelect(p)}
                   aria-pressed={active}
                   className={cn(
-                    'flex items-center justify-between gap-2 rounded-md border px-2.5 py-1.5 text-left text-sm transition-colors',
+                    'flex w-full items-center justify-between gap-2 rounded-md border text-left text-sm transition-colors',
+                    compact ? 'px-2 py-1.5' : 'px-2.5 py-1.5',
                     active
                       ? 'border-contact-selected bg-contact-selected-bg text-primary'
                       : 'border-border bg-bg-card text-primary hover:border-border-strong'
