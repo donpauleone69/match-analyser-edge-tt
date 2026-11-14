@@ -6,6 +6,18 @@
 
 ## Change Log
 
+### 2026-11-14: MA-80 — Quiet Work on + Rallies chrome (v3.123.0)
+
+**Change Type:** UX declutter — Match Review Work on / Rallies feel like tagging chrome
+
+**What Changed:**
+- **Work on:** Drop “What to work on” card + tutorial copy; focus chips without “· Clips”; short empty state; Errors / List / Highlights labels tightened; Technical/Tactical hints removed; side panels use light border panels (not heavy Cards); pattern rows icon-only Clips/play/edit.
+- **Rallies:** Drop intro how-to paragraphs; shorter filter chips (`Errors`, `★`, `Flagged`); hide zero-count filters; count line without “edit tags here”; “Open in Clips” → **Clips**.
+
+**Decision Rationale:** Overnight Track B / Paul — Clips / Work on / Rallies should feel like one app with tagging chrome, not separate tools.
+
+**Key Files:** `WorkOnSection.tsx`, `RalliesSection.tsx`, `ReviewPatternBlock.tsx`.
+
 ### 2026-11-14: MA-77 — Pass 1 sync to tagging-rules doc (v3.122.0)
 
 **Change Type:** UX + domain — Pass 1 Focus aligns to living tagging-rules
