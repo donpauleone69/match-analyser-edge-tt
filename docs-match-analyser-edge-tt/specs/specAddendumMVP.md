@@ -6,6 +6,21 @@
 
 ## Change Log
 
+### 2026-11-14: MA-82 — Serve Data + Receive Data curated pages (v3.128.0)
+
+**Change Type:** UX — Match Review Summary categories for serve/receive
+
+**What Changed:**
+- Summary tiles **Serve Data** / **Receive Data** (`?cat=B` / `?cat=C`) open a curated page: headline metrics → ≤2 compare cards → playlist focus chips → supporting point list.
+- Flow reuses Evidence drawer, RallyPlayer, and Clips `encodeClipFilter({ kind: 'rallies' })` (Play all).
+- Card wall B0–B3 / C1–C3 reduced to two cards each (glance + payoff/leak).
+
+**Decision Rationale:** Overnight Track D / Paul — demo curated stats → playlist → shots; fewer better cards; shared video/playlist patterns.
+
+**Key Files:** `buildServeReceiveCards.ts`, `ServeReceiveDataSection.tsx`, `HeadlineMetricsBlock.tsx`, `PlaylistFocusChipsBlock.tsx`, `OverviewSection.tsx`, `models.ts`.
+
+---
+
 ### 2026-11-14: MA-91 — Quiet evidence / tabs / reels chrome (v3.127.0)
 
 **Change Type:** UX declutter — Review + Clips chrome cohesion
@@ -32,6 +47,7 @@
 **Decision Rationale:** Overnight Track E / Paul usability — contacts + timeline feel continuous with tagging chrome and shared video overlay; ideation brief already asked for winner ticks on scrub.
 
 **Key Files:** `VideoPlayer.tsx`, `VideoPlayerSection.tsx`, `pass1FocusModel.ts` (`deriveRallyScrubMarks`), `Pass1ContactCaptureBlock.tsx`, `Pass1FocusComposer.tsx`, `SimpleTaggingComposer.tsx`.
+
 
 ---
 
@@ -76,6 +92,7 @@
 
 **Key Files:** `WorkOnSection.tsx`, `RalliesSection.tsx`, `ReviewPatternBlock.tsx`.
 
+---
 
 ### 2026-11-14: MA-77 — Pass 1 sync to tagging-rules doc (v3.122.0)
 

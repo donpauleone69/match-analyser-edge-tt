@@ -112,7 +112,7 @@ IDs are human-readable slugs. Schema detail: `DataSchema.md`.
 
 ## Review & clips
 
-- **Summary:** category nav + playable point lists.
+- **Summary:** category nav + playable point lists. **Serve Data** / **Receive Data** are curated example pages (headlines → few cards → playlist focus → shots).
 - **Work on:** hero-first patterns → evidence → playlist.
 - **Clips:** presets (errors, opening attacks, highlights, …); Whole rally (default) ↔ Shot; slow-mo rates.
 - Cross-match: `/clips` and `/review?scope=…`.
