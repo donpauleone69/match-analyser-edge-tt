@@ -33,6 +33,7 @@ export {
   VideoStageChrome,
   MatchScoreHud,
   parseScorePair,
+  shortPlayerName,
   MatchVideoOverlayBar,
   MatchVideoOverlayIconButton,
   MATCH_VIDEO_OVERLAY_BOTTOM_CLASS,
@@ -44,6 +45,8 @@ export {
   nudgePlaybackSpeed,
   canNudgePlaybackSpeed,
   useVideoPlaybackStore,
+  useTaggingMuteDefault,
+  useWatchUnmuteDefault,
 } from './VideoPlayer'
 export type {
   VideoPlayerHandle,

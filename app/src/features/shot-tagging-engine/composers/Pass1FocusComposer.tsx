@@ -31,6 +31,7 @@ import {
   VideoStageChrome,
   MatchVideoOverlayBar,
   MATCH_VIDEO_OVERLAY_BOTTOM_CLASS,
+  useTaggingMuteDefault,
   nudgePlaybackSpeed as nudgeSharedSpeed,
   SEEK_STEP_SECONDS as SHARED_SEEK_STEP,
 } from '@/ui-mine/VideoPlayer'
@@ -180,6 +181,7 @@ export function Pass1FocusComposer({
   /** MA-77: shot loop iff selectedShot != null; else rally loop. */
   const [selectedShot, setSelectedShot] = useState<number | null>(null)
   const setMuted = useVideoPlaybackStore((s) => s.setMuted)
+  useTaggingMuteDefault()
   /** Which point cube is outlined — past rally index, or 'next' (about to tag / open). */
   const [focusedRallyIndex, setFocusedRallyIndex] = useState<number | 'next'>('next')
   const [pointLedgerOpen, setPointLedgerOpen] = useState(false)

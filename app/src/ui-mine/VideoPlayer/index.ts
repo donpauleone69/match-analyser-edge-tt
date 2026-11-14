@@ -10,7 +10,7 @@ export { TransportCluster } from './TransportCluster'
 export type { TransportClusterProps, TransportVariant } from './TransportCluster'
 export { VideoStageChrome } from './VideoStageChrome'
 export type { VideoStageChromeProps } from './VideoStageChrome'
-export { MatchScoreHud, parseScorePair } from './MatchScoreHud'
+export { MatchScoreHud, parseScorePair, shortPlayerName } from './MatchScoreHud'
 export type { MatchScoreHudProps, MatchScoreSide } from './MatchScoreHud'
 export {
   MatchVideoOverlayBar,
@@ -30,3 +30,4 @@ export {
   nudgePlaybackSpeed,
   canNudgePlaybackSpeed,
 } from './playbackSpeeds'
+export { useTaggingMuteDefault, useWatchUnmuteDefault } from './matchVideoMute'

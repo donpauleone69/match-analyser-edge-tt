@@ -22,9 +22,21 @@ export interface MatchScoreHudProps {
   serverName?: string
   /** Optional set label for a11y (e.g. review/clips). */
   setNumber?: number | null
+  /**
+   * Show the sets column (Pass 1 always). Clips often omit — no match-sets context.
+   * Default true.
+   */
+  showSets?: boolean
   /** Smaller H+W for video HUD next to overlay transport (Pass 1 baseline). */
   compact?: boolean
   className?: string
+}
+
+/** First token for compact HUD (shared by Clips / Review / Edit). */
+export function shortPlayerName(name: string, fallback = '?'): string {
+  const trimmed = name.trim()
+  if (!trimmed) return fallback
+  return trimmed.split(/\s+/)[0] ?? fallback
 }
 
 /** Parse "3–5" / "3-5" score pairs from clip/rally view models. */
@@ -49,6 +61,7 @@ export function MatchScoreHud({
   serverSide = null,
   serverName,
   setNumber = null,
+  showSets = true,
   compact = true,
   className,
 }: MatchScoreHudProps) {
@@ -64,18 +77,27 @@ export function MatchScoreHud({
 
   const serveLabel = serverName ?? (serverSide === 'player1' ? player1Name : serverSide === 'player2' ? player2Name : null)
   const setPrefix = setNumber != null ? `Set ${setNumber}: ` : ''
+  const gridCols = showSets
+    ? compact
+      ? 'h-1/2 grid-cols-[minmax(0,1fr)_1rem_1.25rem] text-[8px]'
+      : 'grid-cols-[minmax(0,1fr)_1.5rem_1.85rem] text-[11px]'
+    : compact
+      ? 'h-1/2 grid-cols-[minmax(0,1fr)_1.35rem] text-[8px]'
+      : 'grid-cols-[minmax(0,1fr)_1.85rem] text-[11px]'
 
   return (
     <div
       className={cn(
         'inline-block overflow-hidden rounded-md border border-white/20 bg-black/80 text-white backdrop-blur-sm select-none',
         compact
-          ? 'h-7 min-w-[5.75rem] max-w-[7.5rem] shadow-md'
+          ? showSets
+            ? 'h-7 min-w-[5.75rem] max-w-[7.5rem] shadow-md'
+            : 'h-7 min-w-[4.5rem] max-w-[6.5rem] shadow-md'
           : 'min-w-[9rem] max-w-[12.5rem] shadow-lg',
         className
       )}
       role="status"
-      aria-label={`${setPrefix}${player1Name} ${player1Sets} sets ${player1Score} points, ${player2Name} ${player2Sets} sets ${player2Score} points${serveLabel ? `. Serving: ${serveLabel}` : ''}.`}
+      aria-label={`${setPrefix}${player1Name}${showSets ? ` ${player1Sets} sets` : ''} ${player1Score} points, ${player2Name}${showSets ? ` ${player2Sets} sets` : ''} ${player2Score} points${serveLabel ? `. Serving: ${serveLabel}` : ''}.`}
     >
       <div className={cn('divide-y divide-white/10', compact && 'h-full')}>
         {rows.map((row) => {
@@ -84,12 +106,7 @@ export function MatchScoreHud({
           return (
             <div
               key={row.side}
-              className={cn(
-                'grid items-stretch leading-none',
-                compact
-                  ? 'h-1/2 grid-cols-[minmax(0,1fr)_1rem_1.25rem] text-[8px]'
-                  : 'grid-cols-[minmax(0,1fr)_1.5rem_1.85rem] text-[11px]'
-              )}
+              className={cn('grid items-stretch leading-none', gridCols)}
             >
               <div
                 className={cn(
@@ -117,15 +134,18 @@ export function MatchScoreHud({
                 />
                 <span className="truncate">{row.name}</span>
               </div>
-              <div
-                className="flex items-center justify-center border-x border-white/15 bg-white/20 font-bold tabular-nums text-white"
-                title={`${row.name} sets: ${row.sets}`}
-              >
-                {row.sets}
-              </div>
+              {showSets && (
+                <div
+                  className="flex items-center justify-center border-x border-white/15 bg-white/20 font-bold tabular-nums text-white"
+                  title={`${row.name} sets: ${row.sets}`}
+                >
+                  {row.sets}
+                </div>
+              )}
               <div
                 className={cn(
                   'flex items-center justify-center font-black tabular-nums',
+                  !showSets && 'border-l border-white/15 bg-white/10',
                   compact ? 'text-[9px]' : 'text-[12px]',
                   isServing ? 'text-white' : 'text-white/90'
                 )}

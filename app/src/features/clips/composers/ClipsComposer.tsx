@@ -17,10 +17,11 @@ import {
   Card,
   Icon,
   parseScorePair,
+  shortPlayerName,
   type MatchScoreHudProps,
   type VideoPlayerHandle,
 } from '@/ui-mine'
-import { useVideoPlaybackStore } from '@/ui-mine/VideoPlayer'
+import { useVideoPlaybackStore, useWatchUnmuteDefault } from '@/ui-mine/VideoPlayer'
 import { formatFileSize } from '@/helpers/videoFileHelpers'
 import { useCloudStore } from '@/stores/cloudStore'
 import { useMatchStore, usePlayerStore, useTournamentStore } from '@/data'
@@ -123,6 +124,7 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
   const { data, isLoading, error, refresh } = useDeriveClipLibrary(matchId, scopedMatchIds)
   const playerRef = useRef<VideoPlayerHandle>(null)
   const isPlaying = useVideoPlaybackStore((s) => s.isPlaying)
+  useWatchUnmuteDefault()
 
   const [index, setIndex] = useState(0)
   const [autoAdvance, setAutoAdvance] = useState(true)
@@ -422,15 +424,15 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
     const byId = new Map(players.map((p) => [p.id, p]))
     const p1 = input ? byId.get(input.match.player1_id) : undefined
     const p2 = input?.match.player2_id ? byId.get(input.match.player2_id) : undefined
-    // Compact HUD matches Pass 1 — first names only.
-    const player1Name = (p1?.first_name?.trim() || data.names.hero.split(' ')[0] || 'Hero')
-    const player2Name = (p2?.first_name?.trim() || data.names.villain.split(' ')[0] || 'Opp')
+    const player1Name = shortPlayerName(p1?.first_name?.trim() || data.names.hero, 'Hero')
+    const player2Name = shortPlayerName(p2?.first_name?.trim() || data.names.villain, 'Opp')
     return {
       player1Name,
       player2Name,
       player1Score: pair.player1,
       player2Score: pair.player2,
       setNumber: current.clip.setNumber,
+      showSets: false,
       compact: true,
     }
   }, [current, data, players])

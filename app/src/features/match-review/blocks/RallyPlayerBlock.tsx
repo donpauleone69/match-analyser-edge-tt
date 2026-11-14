@@ -18,6 +18,7 @@ import {
   MatchVideoOverlayIconButton,
   MATCH_VIDEO_OVERLAY_BOTTOM_CLASS,
   parseScorePair,
+  shortPlayerName,
   type VideoPlayerHandle,
   useVideoPlaybackStore,
   nudgePlaybackSpeed,
@@ -83,9 +84,9 @@ export const RallyPlayerBlock = forwardRef<VideoPlayerHandle, RallyPlayerBlockPr
     }
 
     const scorePair = parseScorePair(rally.scoreBefore)
-    const p1Short = heroName.split(' ')[0] || heroName
-    const p2Short = villainName.split(' ')[0] || villainName
-    const serveShort = rally.serverName.split(' ')[0] || rally.serverName
+    const p1Short = shortPlayerName(heroName)
+    const p2Short = shortPlayerName(villainName)
+    const serveShort = shortPlayerName(rally.serverName)
     const scoreHud = scorePair ? (
       <MatchScoreHud
         compact
@@ -96,6 +97,7 @@ export const RallyPlayerBlock = forwardRef<VideoPlayerHandle, RallyPlayerBlockPr
         player2Score={scorePair.player2}
         player1Sets={player1Sets}
         player2Sets={player2Sets}
+        showSets={player1Sets > 0 || player2Sets > 0}
         serverSide={rally.heroServed ? 'player1' : 'player2'}
         serverName={serveShort}
       />

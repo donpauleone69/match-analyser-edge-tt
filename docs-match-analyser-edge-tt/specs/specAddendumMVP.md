@@ -6,6 +6,18 @@
 
 ## Change Log
 
+### 2026-11-14: MA-95 — Mute + score HUD cohesion (v3.134.0)
+
+**Change Type:** UX cohesion — shared video mute + scorebug
+
+**What Changed:**
+- `useTaggingMuteDefault` / `useWatchUnmuteDefault`: Pass 1 / Simple / Rally edit mute on enter; Clips + Review rally player unmute for watch.
+- `MatchScoreHud.showSets` + `shortPlayerName`: Clips/Edit hide empty sets column; compact first names shared.
+
+**Decision Rationale:** Overnight Track A residual — mute and score HUD feel intentional across tag vs watch without one-off chrome.
+
+**Key Files:** `matchVideoMute.ts`, `MatchScoreHud.tsx`, Pass1/Simple/RallyEdit/Clips/MatchReview composers.
+
 ### 2026-11-14: MA-96 — Contacts / scrub / Pass 1 cohesion (v3.133.0)
 
 **Change Type:** UX cohesion — Pass 1 + Simple contacts + shared scrub
@@ -20,6 +32,7 @@
 **Key Files:** `Pass1ContactCaptureBlock.tsx`, `Pass1FocusComposer.tsx`, `SimpleTaggingComposer.tsx`, `pass1FocusModel.ts`, `VideoPlayer.tsx`.
 
 ---
+
 
 ### 2026-11-14: MA-94 — Serve/Receive polish (v3.132.0)
 
@@ -36,6 +49,7 @@
 
 
 ---
+
 
 ### 2026-11-14: MA-93 — Quiet notices + theme callout cohesion (v3.131.0)
 
