@@ -1,6 +1,6 @@
 /**
- * RallyRowBlock — one tagged rally with Watch / Edit / Highlight actions.
- * Used by the Evidence drawer, Highlights and the rally browser.
+ * RallyRowBlock — one tagged rally with Edit / Highlight / re-tag actions.
+ * Row click watches. Used by the Evidence drawer and the rally browser.
  */
 
 import { Icon } from '@/ui-mine'
@@ -34,7 +34,7 @@ export function RallyRowBlock({
   return (
     <li
       className={cn(
-        'flex items-center gap-3 px-3 py-2.5 bg-neutral-900/50',
+        'flex items-center gap-2 px-2.5 py-2 bg-neutral-900/50',
         active && 'bg-contact-selected-bg ring-1 ring-inset ring-contact-selected/50'
       )}
     >
@@ -44,26 +44,29 @@ export function RallyRowBlock({
         className="min-w-0 flex-1 text-left group"
         title={rally.loop ? 'Watch this rally' : 'No contact times — open to view tags'}
       >
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-1.5 flex-wrap">
           <span className="text-sm font-semibold text-neutral-100">
-            {showSet && <span className="text-neutral-500 font-normal">Set {rally.setNumber} · </span>}
-            Rally {rally.rallyIndex}
+            {showSet && <span className="text-neutral-500 font-normal">S{rally.setNumber} · </span>}
+            R{rally.rallyIndex}
           </span>
-          <span className="font-mono text-xs text-neutral-400">
-            {rally.scoreBefore} → <span className="text-neutral-200">{rally.scoreAfter}</span>
+          <span className="font-mono text-xs text-neutral-400 tabular-nums">
+            {rally.scoreBefore}→<span className="text-neutral-200">{rally.scoreAfter}</span>
           </span>
           {!rally.isIncomplete && (
             <span
               className={cn(
-                'text-[11px] font-semibold rounded px-1.5 py-0.5 border',
+                'text-[10px] font-bold rounded px-1 py-0.5 border tabular-nums',
                 rally.heroWon
                   ? 'text-result-winner border-result-winner/70 bg-result-winner-bg'
                   : 'text-result-error border-result-error/70 bg-result-error-bg'
               )}
+              title={
+                rally.heroWon
+                  ? `${heroName.split(' ')[0]} won`
+                  : `${rally.winnerName.split(' ')[0]} won`
+              }
             >
-              {rally.heroWon
-                ? `${heroName.split(' ')[0]} won`
-                : `${rally.winnerName.split(' ')[0]} won`}
+              {rally.heroWon ? 'W' : 'L'}
             </span>
           )}
           {rally.isIncomplete && (
@@ -71,28 +74,22 @@ export function RallyRowBlock({
               className="text-[10px] font-bold uppercase tracking-wide text-amber-200 border border-amber-500/60 bg-amber-950/40 rounded px-1"
               title="Missing Pass 1 required tags — open Edit to finish"
             >
-              Incomplete
+              Inc
             </span>
           )}
           {rally.isHighlight && <span className="text-review text-xs" aria-label="Highlight">★</span>}
           {rally.reviewCount > 0 && (
-            <span className="text-[10px] font-bold uppercase tracking-wide text-review border border-review/50 rounded px-1">
-              {rally.reviewCount} flagged
+            <span
+              className="text-[10px] font-bold tabular-nums text-review border border-review/50 rounded px-1"
+              title={`${rally.reviewCount} flagged shot${rally.reviewCount === 1 ? '' : 's'}`}
+            >
+              {rally.reviewCount}
             </span>
           )}
         </div>
-        <p className="text-xs text-neutral-400 mt-0.5 truncate group-hover:text-neutral-300">
-          {rally.serverName.split(' ')[0]} serves · {rally.summary}
+        <p className="text-xs text-neutral-500 mt-0.5 truncate group-hover:text-neutral-300">
+          {rally.serverName.split(' ')[0]} · {rally.summary}
         </p>
-      </button>
-      <button
-        type="button"
-        aria-label={`Watch rally ${rally.rallyIndex}`}
-        title="Watch"
-        onClick={() => onWatch(rally)}
-        className={iconBtn}
-      >
-        <Icon name="play" size="sm" />
       </button>
       <button
         type="button"

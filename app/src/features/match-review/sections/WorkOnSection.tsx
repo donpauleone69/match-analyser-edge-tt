@@ -202,17 +202,19 @@ export function WorkOnSection({
         </div>
       )}
 
-      <CompareCardBlock
-        id={workOn.missReasons.id}
-        title={workOn.missReasons.title}
-        story={workOn.missReasons.story}
-        heroName={heroName}
-        villainName={villainName}
-        rows={workOn.missReasons.rows}
-        emptyMessage={workOn.missReasons.emptyMessage}
-        activeEvidenceTitle={activeEvidenceTitle}
-        onOpenEvidence={onOpenEvidence}
-      />
+      {workOn.missReasons.rows.length > 0 && (
+        <CompareCardBlock
+          id={workOn.missReasons.id}
+          title={workOn.missReasons.title}
+          story={workOn.missReasons.story}
+          heroName={heroName}
+          villainName={villainName}
+          rows={workOn.missReasons.rows}
+          emptyMessage={workOn.missReasons.emptyMessage}
+          activeEvidenceTitle={activeEvidenceTitle}
+          onOpenEvidence={onOpenEvidence}
+        />
+      )}
     </div>
   )
 }
