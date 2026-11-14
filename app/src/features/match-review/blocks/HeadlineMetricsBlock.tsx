@@ -1,5 +1,6 @@
 /**
  * HeadlineMetricsBlock — curated tap-target metrics (stats → evidence).
+ * Dense quiet chrome to match Work on / Evidence after MA-91.
  */
 
 import { cn } from '@/helpers/utils'
@@ -19,20 +20,24 @@ export function HeadlineMetricsBlock({
 }: HeadlineMetricsBlockProps) {
   if (headlines.length === 0) return null
   return (
-    <div className="grid grid-cols-3 gap-2" role="group" aria-label="Headline stats">
+    <div className="grid grid-cols-3 gap-1.5" role="group" aria-label="Headline stats">
       {headlines.map((h) => {
         const active = Boolean(h.evidence && activeEvidenceTitle === h.evidence.title)
         const body = (
           <>
-            <span className="text-[11px] uppercase tracking-wide text-neutral-400">{h.label}</span>
-            <span className={cn('mt-1 text-2xl font-bold tabular-nums', TONE_TEXT[h.tone])}>{h.text}</span>
+            <span className="text-[10px] uppercase tracking-wide text-neutral-500 leading-tight">
+              {h.label}
+            </span>
+            <span className={cn('mt-0.5 text-xl font-bold tabular-nums leading-none', TONE_TEXT[h.tone])}>
+              {h.text}
+            </span>
           </>
         )
         if (!h.evidence) {
           return (
             <div
               key={h.key}
-              className="rounded-xl border border-neutral-700 bg-bg-card px-3 py-3 flex flex-col"
+              className="rounded-lg border border-neutral-800 px-2.5 py-2 flex flex-col"
             >
               {body}
             </div>
@@ -46,9 +51,9 @@ export function HeadlineMetricsBlock({
             onClick={() => onOpenEvidence(evidence)}
             title="Show the points behind this number"
             className={cn(
-              'rounded-xl border border-neutral-700 bg-bg-card px-3 py-3 flex flex-col text-left',
-              'hover:border-neutral-500 hover:bg-bg-elevated transition-colors',
-              active && 'ring-1 ring-brand-primary/60 border-brand-primary/40'
+              'rounded-lg border border-neutral-800 px-2.5 py-2 flex flex-col text-left',
+              'hover:border-neutral-600 hover:bg-bg-elevated/40 transition-colors',
+              active && 'border-brand-primary/50 bg-bg-elevated/50'
             )}
           >
             {body}

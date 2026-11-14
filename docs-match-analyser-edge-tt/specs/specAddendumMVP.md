@@ -6,6 +6,21 @@
 
 ## Change Log
 
+### 2026-11-14: MA-94 — Serve/Receive polish (v3.132.0)
+
+**Change Type:** UX polish — Serve Data / Receive Data cohesion
+
+**What Changed:**
+- History-style **focus picker** (disclosure) replaces chip rows; evidence taps sync a transient “from evidence” focus into the supporting playlist.
+- Playlist sticky bar: focus picker + **Clips** CTA (shared language with Evidence drawer); row watch still uses RallyPlayer + MatchVideoOverlayBar.
+- Quieter headlines / list chrome; drop instructional eyebrow; filter empty leak/payoff rows.
+
+**Decision Rationale:** Overnight Track D iterate — align with overlay + playlist browse (History disclosure until Track C shell lands).
+
+**Key Files:** `ServeReceiveDataSection.tsx`, `PlaylistFocusPickerBlock.tsx`, `HeadlineMetricsBlock.tsx`, `SummaryCategoryPlaylistBlock.tsx`, `buildServeReceiveCards.ts`.
+
+---
+
 ### 2026-11-14: MA-93 — Quiet notices + theme callout cohesion (v3.131.0)
 
 **Change Type:** UX declutter + theme cohesion

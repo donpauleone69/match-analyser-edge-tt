@@ -153,8 +153,7 @@ export function OverviewSection({
 
       {review.hasPointData && (
         <p className="text-xs text-neutral-500 -mt-4">
-          Tap a category for stats and the points behind them. Serve Data and Receive Data open a curated
-          stats → playlist → shots flow. Underlined numbers open evidence.
+          Tap a category for stats and points. Serve / Receive open a curated playlist. Numbers open evidence.
         </p>
       )}
 

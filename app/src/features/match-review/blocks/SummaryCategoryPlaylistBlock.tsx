@@ -16,6 +16,10 @@ export interface SummaryCategoryPlaylistBlockProps {
   onWatch: (rally: RallyRowModel, playlist: RallyRowModel[]) => void
   onEdit: (rally: RallyRowModel) => void
   onToggleHighlight: (rally: RallyRowModel) => void
+  /** When true, parent owns the Clips/Play CTA (Serve/Receive sticky bar). */
+  hidePlayAll?: boolean
+  listHeading?: string
+  emptyLabel?: string
 }
 
 export function SummaryCategoryPlaylistBlock({
@@ -28,30 +32,35 @@ export function SummaryCategoryPlaylistBlock({
   onWatch,
   onEdit,
   onToggleHighlight,
+  hidePlayAll = false,
+  listHeading = 'Points for you',
+  emptyLabel = 'No points linked to your numbers in this category yet.',
 }: SummaryCategoryPlaylistBlockProps) {
   if (rallies.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-neutral-700 px-4 py-6 text-sm text-neutral-400 text-center">
-        No points linked to your numbers in this category yet.
+      <div className="rounded-lg border border-dashed border-neutral-800 px-3 py-5 text-sm text-neutral-500 text-center">
+        {emptyLabel}
       </div>
     )
   }
   return (
-    <section className="space-y-3" aria-label={`${title} playlist`}>
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="min-w-0 flex-1">
-          <h3 className="text-base font-semibold text-neutral-50">Points for you</h3>
-          <p className="text-xs text-neutral-400">
-            {rallies.length} point{rallies.length === 1 ? '' : 's'} from your side of these stats
-          </p>
+    <section className="space-y-2" aria-label={`${title} playlist`}>
+      {!hidePlayAll && (
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="min-w-0 flex-1">
+            <h3 className="text-sm font-semibold text-neutral-50">{listHeading}</h3>
+            <p className="text-xs text-neutral-500">
+              {rallies.length} point{rallies.length === 1 ? '' : 's'}
+            </p>
+          </div>
+          {rallies.length > 1 && (
+            <Button size="sm" variant="secondary" onClick={onPlayAll}>
+              <Icon name="film" size="sm" /> Clips
+            </Button>
+          )}
         </div>
-        {rallies.length > 1 && (
-          <Button size="sm" variant="secondary" onClick={onPlayAll}>
-            <Icon name="play" size="sm" /> Play all
-          </Button>
-        )}
-      </div>
-      <ul className="rounded-xl border border-neutral-700 overflow-hidden divide-y divide-neutral-800">
+      )}
+      <ul className="rounded-lg border border-neutral-800 overflow-hidden divide-y divide-neutral-800">
         {rallies.map((r) => (
           <RallyRowBlock
             key={r.id}

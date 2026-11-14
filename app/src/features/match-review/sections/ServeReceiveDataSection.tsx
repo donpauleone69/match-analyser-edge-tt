@@ -1,15 +1,15 @@
 /**
- * ServeReceiveDataSection — curated Serve / Receive Data page.
+ * ServeReceiveDataSection — curated Serve / Receive Data page (MA-82 / MA-94).
  *
- * Flow: headlines → few compare cards → playlist focus chips → points list
- * → watch (RallyPlayer) or Play all (Clips). Reuses shared evidence/playlist blocks.
+ * Flow: headlines → ≤2 cards → History-style focus picker → points →
+ * watch (RallyPlayer + MatchVideoOverlayBar) or Clips playlist.
  */
 
 import { useEffect, useMemo, useState } from 'react'
-import { Icon } from '@/ui-mine'
+import { Button, Icon } from '@/ui-mine'
 import { CompareCardBlock } from '../blocks/CompareCardBlock'
 import { HeadlineMetricsBlock } from '../blocks/HeadlineMetricsBlock'
-import { PlaylistFocusChipsBlock } from '../blocks/PlaylistFocusChipsBlock'
+import { PlaylistFocusPickerBlock } from '../blocks/PlaylistFocusPickerBlock'
 import { SummaryCategoryPlaylistBlock } from '../blocks/SummaryCategoryPlaylistBlock'
 import type {
   CompareSectionModel,
@@ -34,12 +34,19 @@ export interface ServeReceiveDataSectionProps {
   onToggleHighlight: (rally: RallyRowModel) => void
 }
 
+const EVIDENCE_FOCUS_ID = 'from-evidence'
+
 function resolveFocus(
   focuses: PlaylistFocusModel[],
   activeId: string | null
 ): PlaylistFocusModel | null {
   if (focuses.length === 0) return null
   return focuses.find((f) => f.id === activeId) ?? focuses[0] ?? null
+}
+
+function shortEvidenceLabel(title: string): string {
+  const parts = title.split('·').map((s) => s.trim())
+  return parts[parts.length - 1] || title
 }
 
 export function ServeReceiveDataSection({
@@ -57,14 +64,21 @@ export function ServeReceiveDataSection({
   onEditRally,
   onToggleHighlight,
 }: ServeReceiveDataSectionProps) {
-  const focuses = section.playlistFocuses ?? []
-  const [focusId, setFocusId] = useState<string | null>(() => focuses[0]?.id ?? null)
+  const baseFocuses = section.playlistFocuses ?? []
+  const [focusId, setFocusId] = useState<string | null>(() => baseFocuses[0]?.id ?? null)
+  const [evidenceFocus, setEvidenceFocus] = useState<PlaylistFocusModel | null>(null)
 
   useEffect(() => {
     setFocusId(section.playlistFocuses?.[0]?.id ?? null)
-    // Reset focus when switching Serve ↔ Receive pages only
+    setEvidenceFocus(null)
+    // Reset when switching Serve ↔ Receive only
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [section.id])
+
+  const focuses = useMemo(() => {
+    if (!evidenceFocus) return baseFocuses
+    return [evidenceFocus, ...baseFocuses.filter((f) => f.id !== EVIDENCE_FOCUS_ID)]
+  }, [baseFocuses, evidenceFocus])
 
   const activeFocus = resolveFocus(focuses, focusId)
   const rallyById = useMemo(() => new Map(rallies.map((r) => [r.id, r])), [rallies])
@@ -79,27 +93,33 @@ export function ServeReceiveDataSection({
 
   const playlistTitle = activeFocus
     ? `${section.title} · ${activeFocus.label}`
-    : `${section.title} · points for you`
+    : `${section.title} · points`
 
   const openEvidenceAndFocus = (evidence: EvidenceRef) => {
     onOpenEvidence(evidence)
-    const match = focuses.find(
+    const match = baseFocuses.find(
       (f) =>
         f.rallyIds.length === evidence.rallyIds.length &&
         evidence.rallyIds.every((id) => f.rallyIds.includes(id))
     )
-    if (match) setFocusId(match.id)
-    else if (evidence.rallyIds.length > 0) {
-      // Soft-sync: prefer problems chip if it covers these ids, else keep current
-      const problems = focuses.find((f) => f.id === 'problems')
-      if (problems && evidence.rallyIds.every((id) => problems.rallyIds.includes(id))) {
-        setFocusId('problems')
-      }
+    if (match) {
+      setEvidenceFocus(null)
+      setFocusId(match.id)
+      return
     }
+    const next: PlaylistFocusModel = {
+      id: EVIDENCE_FOCUS_ID,
+      label: shortEvidenceLabel(evidence.title),
+      count: evidence.rallyIds.length,
+      tone: 'amber',
+      rallyIds: [...evidence.rallyIds],
+    }
+    setEvidenceFocus(next)
+    setFocusId(EVIDENCE_FOCUS_ID)
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <button
         type="button"
         onClick={onBack}
@@ -109,11 +129,10 @@ export function ServeReceiveDataSection({
       </button>
 
       <div>
-        <p className="text-[11px] uppercase tracking-wide text-neutral-500">Stats → playlist → shots</p>
         <h2 className="text-xl font-semibold text-neutral-50">{section.title}</h2>
-        <p className="text-sm italic text-neutral-400">{section.question}</p>
+        <p className="text-sm text-neutral-400">{section.question}</p>
         {section.pageStory && (
-          <p className="mt-2 text-sm text-neutral-300 max-w-2xl">{section.pageStory}</p>
+          <p className="mt-1.5 text-sm text-neutral-500 max-w-2xl line-clamp-2">{section.pageStory}</p>
         )}
       </div>
 
@@ -125,7 +144,7 @@ export function ServeReceiveDataSection({
         />
       )}
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-3 lg:grid-cols-2">
         {section.cards.map((card) => (
           <CompareCardBlock
             key={card.id}
@@ -143,24 +162,34 @@ export function ServeReceiveDataSection({
         ))}
       </div>
 
-      <section className="space-y-3" aria-label="Supporting playlist">
-        <div>
-          <h3 className="text-base font-semibold text-neutral-50">Supporting playlist</h3>
-          <p className="text-xs text-neutral-400">
-            Pick a focus, then watch points or open them in Clips.
-          </p>
+      <section className="space-y-2.5" aria-label="Supporting playlist">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="min-w-0 flex-1">
+            <h3 className="text-sm font-semibold text-neutral-50">Playlist</h3>
+            <p className="text-xs text-neutral-500 truncate">
+              {activeFocus ? activeFocus.label : 'Pick a focus'} · watch or open in Clips
+            </p>
+          </div>
+          <PlaylistFocusPickerBlock
+            focuses={focuses}
+            activeId={activeFocus?.id ?? ''}
+            onSelect={(f) => setFocusId(f.id)}
+          />
+          {playlistRallies.length > 0 && (
+            <Button size="sm" variant="secondary" onClick={() => onPlayPlaylist(playlistTitle, playlistRallies)}>
+              <Icon name="film" size="sm" /> Clips
+            </Button>
+          )}
         </div>
-        <PlaylistFocusChipsBlock
-          focuses={focuses}
-          activeId={activeFocus?.id ?? ''}
-          onSelect={(f) => setFocusId(f.id)}
-        />
         <SummaryCategoryPlaylistBlock
           title={playlistTitle}
           rallies={playlistRallies}
           heroName={heroName}
           multiSet={multiSet}
           activeRallyId={activeRallyId}
+          hidePlayAll
+          emptyLabel="No points in this focus yet — try another focus or tap a number above."
+          listHeading={activeFocus?.label ?? 'Points'}
           onPlayAll={() => onPlayPlaylist(playlistTitle, playlistRallies)}
           onWatch={(rally, list) => onWatchRally(rally, list, playlistTitle)}
           onEdit={onEditRally}
