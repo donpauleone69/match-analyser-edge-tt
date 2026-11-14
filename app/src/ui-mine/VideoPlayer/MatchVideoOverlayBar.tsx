@@ -5,12 +5,16 @@
  * should use this instead of footer TransportCluster rows so chrome stays one language.
  */
 
-import type { ReactNode } from 'react'
+import type { ButtonHTMLAttributes, ReactNode } from 'react'
 import { cn } from '@/helpers/utils'
 import { TransportCluster, type TransportClusterProps } from './TransportCluster'
 
 const OVERLAY_TRANSPORT_CLASS =
   'h-7 shrink-0 gap-0.5 [&_button]:h-7 [&_button]:min-w-7 [&_button]:w-7 [&_span]:inline-flex [&_span]:h-7 [&_span]:min-w-7 [&_span]:items-center [&_span]:justify-center [&_span]:px-1 [&_span]:py-0 [&_span]:text-[10px]'
+
+/** Trailing playlist / replay chips beside overlay transport (Clips, Rallies). */
+export const MATCH_VIDEO_OVERLAY_CHIP_CLASS =
+  'tag-control h-7 min-w-7 px-1.5 bg-black/70 text-white border-white/25 disabled:opacity-40'
 
 export interface MatchVideoOverlayBarProps
   extends Pick<
@@ -71,6 +75,17 @@ export function MatchVideoOverlayBar({
       />
     </div>
   )
+}
+
+export type MatchVideoOverlayIconButtonProps = ButtonHTMLAttributes<HTMLButtonElement>
+
+/** Icon chip for MatchVideoOverlayBar `trailing` (replay / prev / next). */
+export function MatchVideoOverlayIconButton({
+  className,
+  type = 'button',
+  ...props
+}: MatchVideoOverlayIconButtonProps) {
+  return <button type={type} className={cn(MATCH_VIDEO_OVERLAY_CHIP_CLASS, className)} {...props} />
 }
 
 /** Shared bottom offset so HUD clears the progress bar (Pass 1 / Simple). */

@@ -15,6 +15,7 @@ import {
   VideoStageChrome,
   MatchScoreHud,
   MatchVideoOverlayBar,
+  MatchVideoOverlayIconButton,
   MATCH_VIDEO_OVERLAY_BOTTOM_CLASS,
   parseScorePair,
   type VideoPlayerHandle,
@@ -73,8 +74,6 @@ export const RallyPlayerBlock = forwardRef<VideoPlayerHandle, RallyPlayerBlockPr
   ) => {
     const playbackSpeed = useVideoPlaybackStore((s) => s.playbackSpeed)
     const setPlaybackSpeed = useVideoPlaybackStore((s) => s.setPlaybackSpeed)
-    const chip =
-      'tag-control h-7 min-w-7 px-1.5 bg-black/70 text-white border-white/25 disabled:opacity-40'
 
     const handleSeekBy = (deltaSeconds: number) => {
       if (!ref || typeof ref === 'function') return
@@ -84,18 +83,21 @@ export const RallyPlayerBlock = forwardRef<VideoPlayerHandle, RallyPlayerBlockPr
     }
 
     const scorePair = parseScorePair(rally.scoreBefore)
+    const p1Short = heroName.split(' ')[0] || heroName
+    const p2Short = villainName.split(' ')[0] || villainName
+    const serveShort = rally.serverName.split(' ')[0] || rally.serverName
     const scoreHud = scorePair ? (
       <MatchScoreHud
         compact
         setNumber={rally.setNumber}
-        player1Name={heroName}
-        player2Name={villainName}
+        player1Name={p1Short}
+        player2Name={p2Short}
         player1Score={scorePair.player1}
         player2Score={scorePair.player2}
         player1Sets={player1Sets}
         player2Sets={player2Sets}
         serverSide={rally.heroServed ? 'player1' : 'player2'}
-        serverName={rally.serverName}
+        serverName={serveShort}
       />
     ) : null
 
@@ -147,34 +149,28 @@ export const RallyPlayerBlock = forwardRef<VideoPlayerHandle, RallyPlayerBlockPr
                     onNudgeSpeed={(dir) => setPlaybackSpeed(nudgePlaybackSpeed(playbackSpeed, dir))}
                     trailing={
                       <>
-                        <button
-                          type="button"
-                          className={chip}
+                        <MatchVideoOverlayIconButton
                           onClick={onReplay}
                           disabled={!videoUrl || !loop}
                           aria-label="Replay"
                           title="Replay"
                         >
                           <Icon name="rotate-ccw" size="sm" />
-                        </button>
-                        <button
-                          type="button"
-                          className={chip}
+                        </MatchVideoOverlayIconButton>
+                        <MatchVideoOverlayIconButton
                           onClick={onPrev}
                           disabled={position === 0}
                           aria-label="Previous rally"
                         >
                           <Icon name="chevron-left" size="sm" />
-                        </button>
-                        <button
-                          type="button"
-                          className={chip}
+                        </MatchVideoOverlayIconButton>
+                        <MatchVideoOverlayIconButton
                           onClick={onNext}
                           disabled={position >= total - 1}
                           aria-label="Next rally"
                         >
                           <Icon name="chevron-right" size="sm" />
-                        </button>
+                        </MatchVideoOverlayIconButton>
                       </>
                     }
                   />
@@ -186,7 +182,7 @@ export const RallyPlayerBlock = forwardRef<VideoPlayerHandle, RallyPlayerBlockPr
                 videoSrc={videoUrl ?? undefined}
                 onVideoSelect={onVideoSelect}
                 allowVideoChange={!videoUrl}
-                showTimeOverlay
+                showProgressBar
                 constrainedPlayback={
                   loop ? { enabled: true, startTime: loop.start, endTime: loop.end, loopOnEnd: true } : undefined
                 }

@@ -14,9 +14,14 @@ export { MatchScoreHud, parseScorePair } from './MatchScoreHud'
 export type { MatchScoreHudProps, MatchScoreSide } from './MatchScoreHud'
 export {
   MatchVideoOverlayBar,
+  MatchVideoOverlayIconButton,
   MATCH_VIDEO_OVERLAY_BOTTOM_CLASS,
+  MATCH_VIDEO_OVERLAY_CHIP_CLASS,
 } from './MatchVideoOverlayBar'
-export type { MatchVideoOverlayBarProps } from './MatchVideoOverlayBar'
+export type {
+  MatchVideoOverlayBarProps,
+  MatchVideoOverlayIconButtonProps,
+} from './MatchVideoOverlayBar'
 export {
   MATCH_PLAYBACK_SPEED_STEPS,
   DEFAULT_PLAYBACK_SPEED,

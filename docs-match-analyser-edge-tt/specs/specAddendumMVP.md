@@ -6,6 +6,19 @@
 
 ## Change Log
 
+### 2026-11-14: MA-90 — Overlay cohesion on Clips / Review (v3.129.0)
+
+**Change Type:** UX cohesion — shared video chrome language
+
+**What Changed:**
+- Shared `MatchVideoOverlayIconButton` + chip class for playlist trailing controls.
+- Clips + Rally Review drop timestamp badge; keep progress bar like Pass 1.
+- Compact score HUD uses first names on Clips / Review.
+
+**Decision Rationale:** Overnight Track A — one overlay spine; Work-on/Review attach without one-off chrome.
+
+**Key Files:** `MatchVideoOverlayBar.tsx`, `ClipStageBlock.tsx`, `RallyPlayerBlock.tsx`, `ClipsComposer.tsx`.
+
 ### 2026-11-14: MA-82 — Serve Data + Receive Data curated pages (v3.128.0)
 
 **Change Type:** UX — Match Review Summary categories for serve/receive
@@ -20,6 +33,7 @@
 **Key Files:** `buildServeReceiveCards.ts`, `ServeReceiveDataSection.tsx`, `HeadlineMetricsBlock.tsx`, `PlaylistFocusChipsBlock.tsx`, `OverviewSection.tsx`, `models.ts`.
 
 ---
+
 
 ### 2026-11-14: MA-91 — Quiet evidence / tabs / reels chrome (v3.127.0)
 

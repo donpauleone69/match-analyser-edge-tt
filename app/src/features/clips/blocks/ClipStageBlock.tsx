@@ -17,6 +17,7 @@ import {
   VideoStageChrome,
   MatchScoreHud,
   MatchVideoOverlayBar,
+  MatchVideoOverlayIconButton,
   MATCH_VIDEO_OVERLAY_BOTTOM_CLASS,
   type MatchScoreHudProps,
   type VideoPlayerHandle,
@@ -89,8 +90,6 @@ export const ClipStageBlock = forwardRef<VideoPlayerHandle, ClipStageBlockProps>
   ) => {
     const playbackSpeed = useVideoPlaybackStore((s) => s.playbackSpeed)
     const setPlaybackSpeed = useVideoPlaybackStore((s) => s.setPlaybackSpeed)
-    const chip =
-      'tag-control h-7 min-w-7 px-1.5 bg-black/70 text-white border-white/25 disabled:opacity-40'
     const clipMode = window !== null
     const reelMode = !clipMode
     const showWindowToggle = clipMode && playbackMode != null && onPlaybackModeChange
@@ -166,36 +165,30 @@ export const ClipStageBlock = forwardRef<VideoPlayerHandle, ClipStageBlockProps>
                     onNudgeSpeed={(dir) => setPlaybackSpeed(nudgePlaybackSpeed(playbackSpeed, dir))}
                     trailing={
                       <>
-                        <button
-                          type="button"
-                          className={chip}
+                        <MatchVideoOverlayIconButton
                           onClick={onReplay}
                           disabled={!videoUrl}
                           aria-label="Replay"
                           title="Replay"
                         >
                           <Icon name="rotate-ccw" size="sm" />
-                        </button>
+                        </MatchVideoOverlayIconButton>
                         {showPlaylistNav && (
                           <>
-                            <button
-                              type="button"
-                              className={chip}
+                            <MatchVideoOverlayIconButton
                               onClick={onPrev}
                               disabled={position <= 0}
                               aria-label="Previous clip"
                             >
                               <Icon name="chevron-left" size="sm" />
-                            </button>
-                            <button
-                              type="button"
-                              className={chip}
+                            </MatchVideoOverlayIconButton>
+                            <MatchVideoOverlayIconButton
                               onClick={onNext}
                               disabled={position >= total - 1}
                               aria-label="Next clip"
                             >
                               <Icon name="chevron-right" size="sm" />
-                            </button>
+                            </MatchVideoOverlayIconButton>
                           </>
                         )}
                       </>
@@ -209,7 +202,7 @@ export const ClipStageBlock = forwardRef<VideoPlayerHandle, ClipStageBlockProps>
                 videoSrc={videoUrl ?? undefined}
                 onVideoSelect={onVideoSelect}
                 allowVideoChange={Boolean(onVideoSelect) && !reelMode}
-                showTimeOverlay
+                showProgressBar
                 onConstrainedEnd={onClipEnd}
                 constrainedPlayback={
                   window ? { enabled: true, startTime: window.start, endTime: window.end, loopOnEnd: false } : undefined

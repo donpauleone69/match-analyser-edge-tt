@@ -34,7 +34,9 @@ export {
   MatchScoreHud,
   parseScorePair,
   MatchVideoOverlayBar,
+  MatchVideoOverlayIconButton,
   MATCH_VIDEO_OVERLAY_BOTTOM_CLASS,
+  MATCH_VIDEO_OVERLAY_CHIP_CLASS,
   MATCH_PLAYBACK_SPEED_STEPS,
   DEFAULT_PLAYBACK_SPEED,
   SEEK_STEP_SECONDS,
@@ -52,6 +54,7 @@ export type {
   MatchScoreHudProps,
   MatchScoreSide,
   MatchVideoOverlayBarProps,
+  MatchVideoOverlayIconButtonProps,
 } from './VideoPlayer'
 
 // Table Tennis Buttons (for shot-tagging-engine)
