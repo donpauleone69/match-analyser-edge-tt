@@ -226,13 +226,13 @@ export function MatchReviewComposer() {
 
   if (error || notFound || !data || !review || !matchId) {
     return (
-      <Card className="p-8 text-center max-w-lg mx-auto">
-        <h2 className="text-xl font-semibold text-neutral-50 mb-2">
+      <Card className="p-5 text-center max-w-lg mx-auto border border-border">
+        <h2 className="text-lg font-semibold text-neutral-50 mb-1">
           {error ? 'Could not load match' : 'Match not found'}
         </h2>
-        {error && <p className="text-sm text-neutral-400 mb-4">{error}</p>}
-        <Button variant="secondary" onClick={() => navigate('/')}>
-          Back to Home
+        {error && <p className="text-sm text-neutral-500 mb-3">{error}</p>}
+        <Button size="sm" variant="secondary" onClick={() => navigate('/')}>
+          Home
         </Button>
       </Card>
     )
@@ -582,13 +582,13 @@ export function MatchReviewComposer() {
       ) : !review.hasPointData &&
         review.rallies.length === 0 &&
         tab !== 'rallies' ? (
-        <Card className="p-6 text-center border border-dashed border-border">
-          <h2 className="text-lg font-semibold text-neutral-50">Nothing tagged yet</h2>
-          <p className="mt-1.5 text-sm text-neutral-500 max-w-sm mx-auto">
-            Tag a set — summary, highlights, and work-on appear as you go.
+        <Card className="p-4 text-center border border-dashed border-border">
+          <h2 className="text-base font-semibold text-neutral-50">Nothing tagged yet</h2>
+          <p className="mt-1 text-sm text-neutral-500 max-w-sm mx-auto">
+            Tag a set — summary and work-on appear as you go.
           </p>
           {nextSet && (
-            <Button className="mt-3" size="sm" onClick={() => openTagger(nextSet)}>
+            <Button className="mt-2.5" size="sm" onClick={() => openTagger(nextSet)}>
               <Icon name="play" size="sm" /> Start Set {nextSet.setNumber}
             </Button>
           )}

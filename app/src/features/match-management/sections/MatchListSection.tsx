@@ -103,11 +103,11 @@ export function MatchListSection({
 
   if (matches.length === 0) {
     return (
-      <Card className="p-6 text-center space-y-2 border border-border">
+      <Card className="p-4 text-center space-y-2 border border-dashed border-border">
         {emptyBecauseFilter ? (
           <>
-            <p className="text-neutral-200 font-medium">Nothing matches these filters</p>
-            <p className="text-sm text-neutral-500">Widen opponent, tournament, or dates.</p>
+            <p className="text-sm font-medium text-neutral-200">Nothing matches these filters</p>
+            <p className="text-xs text-neutral-500">Widen opponent, tournament, or dates.</p>
             {onClearFilters && (
               <Button variant="secondary" size="sm" onClick={onClearFilters}>
                 Clear filters
@@ -116,14 +116,16 @@ export function MatchListSection({
           </>
         ) : (
           <>
-            <p className="text-neutral-200 font-medium">No matches yet</p>
-            <p className="text-sm text-neutral-500">Create from Home, or import under Account.</p>
+            <p className="text-sm font-medium text-neutral-200">No matches yet</p>
+            <p className="text-xs text-neutral-500">Create from Home, or import under Account.</p>
             <div className="flex flex-wrap justify-center gap-2">
-              <Button onClick={onCreateNew}>New match</Button>
-              <Button variant="secondary" onClick={() => navigate('/')}>
+              <Button size="sm" onClick={onCreateNew}>
+                New match
+              </Button>
+              <Button size="sm" variant="secondary" onClick={() => navigate('/')}>
                 Home
               </Button>
-              <Button variant="secondary" onClick={() => navigate('/settings')}>
+              <Button size="sm" variant="secondary" onClick={() => navigate('/settings')}>
                 Import
               </Button>
             </div>

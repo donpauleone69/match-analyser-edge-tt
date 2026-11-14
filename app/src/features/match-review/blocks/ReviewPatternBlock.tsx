@@ -25,18 +25,18 @@ export function ReviewPatternBlock({
 }: ReviewPatternBlockProps) {
   const [open, setOpen] = useState(defaultOpen)
   return (
-    <li className="rounded-lg border border-border bg-neutral-900/50 overflow-hidden">
-      <div className="flex items-center gap-1 pr-2">
+    <li className="rounded-lg border border-border bg-bg-card overflow-hidden">
+      <div className="flex items-center gap-1 pr-1.5">
         <button
           type="button"
           onClick={() => setOpen((o) => !o)}
           aria-expanded={open}
-          className="min-w-0 flex-1 flex items-center gap-3 px-3 py-2.5 text-left hover:bg-neutral-800/60"
+          className="min-w-0 flex-1 flex items-center gap-2 px-2.5 py-2 text-left hover:bg-bg-elevated"
         >
           <span
             className={cn(
-              'shrink-0 min-w-9 h-7 px-2 rounded-md flex items-center justify-center font-mono text-sm font-bold',
-              pattern.count > 1 ? 'bg-review-bg text-review' : 'bg-neutral-800 text-neutral-300'
+              'shrink-0 min-w-8 h-6 px-1.5 rounded-md flex items-center justify-center font-mono text-xs font-bold',
+              pattern.count > 1 ? 'bg-review-bg text-review' : 'bg-bg-elevated text-neutral-500'
             )}
           >
             {pattern.count}×
@@ -61,7 +61,7 @@ export function ReviewPatternBlock({
       {open && (
         <ul className="border-t border-border divide-y divide-border">
           {pattern.items.map((item) => (
-            <li key={item.shotId} className="flex items-center gap-1.5 pl-14 pr-2 py-1.5">
+            <li key={item.shotId} className="flex items-center gap-1.5 pl-12 pr-1.5 py-1">
               <span className="flex-1 text-xs text-neutral-300 truncate">{item.label}</span>
               <button
                 type="button"

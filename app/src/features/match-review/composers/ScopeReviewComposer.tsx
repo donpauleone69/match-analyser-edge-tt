@@ -146,8 +146,8 @@ export function ScopeReviewComposer() {
       </div>
 
       {scoped.length === 0 ? (
-        <Card className="border border-dashed border-border p-5 text-center text-sm text-neutral-500">
-          No matches in this scope. Set opponent or tournament on Details to filter.
+        <Card className="border border-dashed border-border p-4 text-center text-sm text-neutral-500">
+          No matches in this scope.
         </Card>
       ) : tab === 'clips' ? (
         <ClipsComposer matchId={null} matchIds={scopedIds} embedded />

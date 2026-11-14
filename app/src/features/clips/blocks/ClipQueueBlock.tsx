@@ -23,8 +23,8 @@ export function ClipQueueBlock({ rows, activeIndex, onSelect }: ClipQueueBlockPr
               type="button"
               onClick={() => onSelect(i)}
               className={cn(
-                'w-full flex items-center gap-2 px-2.5 py-2 text-left transition-colors',
-                active ? 'bg-contact-selected-bg ring-1 ring-inset ring-contact-selected/40' : 'hover:bg-neutral-800/60'
+                'w-full flex items-center gap-2 px-2 py-1.5 text-left transition-colors',
+                active ? 'bg-contact-selected-bg ring-1 ring-inset ring-contact-selected/40' : 'hover:bg-bg-elevated'
               )}
             >
               <span className={cn('w-5 text-right font-mono text-xs tabular-nums', active ? 'text-brand-primary' : 'text-neutral-500')}>

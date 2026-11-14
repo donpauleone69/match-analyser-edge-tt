@@ -49,7 +49,7 @@ export function ReelListBlock({
             <li
               key={r.assetId}
               className={cn(
-                'flex items-center gap-2 px-2.5 py-2',
+                'flex items-center gap-2 px-2 py-1.5',
                 activeAssetId === r.assetId &&
                   'bg-contact-selected-bg ring-1 ring-inset ring-contact-selected/40'
               )}

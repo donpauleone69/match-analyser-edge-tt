@@ -34,11 +34,11 @@ export function SummaryCategoryPlaylistBlock({
   onToggleHighlight,
   hidePlayAll = false,
   listHeading = 'Points for you',
-  emptyLabel = 'No points linked to your numbers in this category yet.',
+  emptyLabel = 'No points in this focus yet.',
 }: SummaryCategoryPlaylistBlockProps) {
   if (rallies.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed border-border px-3 py-5 text-sm text-neutral-500 text-center">
+      <div className="rounded-lg border border-dashed border-border px-3 py-3 text-sm text-neutral-500 text-center">
         {emptyLabel}
       </div>
     )

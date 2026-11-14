@@ -22,7 +22,7 @@ export function ClipPresetListBlock({
 }: ClipPresetListBlockProps) {
   const compact = density === 'compact'
   return (
-    <nav aria-label="Clip playlists" className={cn(compact ? 'space-y-3' : 'space-y-4')}>
+    <nav aria-label="Clip playlists" className={cn(compact ? 'space-y-2' : 'space-y-3')}>
       {groups.map((g) => (
         <div key={g.group}>
           <p

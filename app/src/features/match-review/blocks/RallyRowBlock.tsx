@@ -30,11 +30,11 @@ export function RallyRowBlock({
   onRetagFrom,
 }: RallyRowBlockProps) {
   const iconBtn =
-    'h-8 w-8 shrink-0 rounded-md border border-border flex items-center justify-center text-primary hover:border-border-strong transition-colors'
+    'h-7 w-7 shrink-0 rounded-md border border-border flex items-center justify-center text-primary hover:border-border-strong transition-colors'
   return (
     <li
       className={cn(
-        'flex items-center gap-2 px-2.5 py-2 bg-neutral-900/50',
+        'flex items-center gap-1.5 px-2 py-1.5 bg-bg-card',
         active && 'bg-contact-selected-bg ring-1 ring-inset ring-contact-selected/50'
       )}
     >
