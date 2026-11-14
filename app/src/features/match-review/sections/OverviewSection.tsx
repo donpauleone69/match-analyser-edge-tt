@@ -125,17 +125,12 @@ export function OverviewSection({
         <button
           type="button"
           onClick={onOpenIncomplete}
-          className="w-full text-left rounded-lg border border-amber-800/50 bg-amber-950/20 px-4 py-3 hover:border-amber-600/60"
+          className="w-full text-left rounded-md border border-callout-warning-border bg-callout-warning-bg px-3 py-2 hover:border-callout-warning"
         >
-          <p className="text-sm font-medium text-amber-100">
-            {incompleteCount === 1
-              ? '1 incomplete point is out of stats'
-              : `${incompleteCount} incomplete points are out of stats`}
+          <p className="text-sm font-medium text-callout-warning">
+            {incompleteCount} incomplete · out of stats
           </p>
-          <p className="text-xs text-amber-200/80 mt-0.5">
-            Fix incomplete — opens Rallies Incomplete (same as What’s left). Still out of
-            stats until complete.
-          </p>
+          <p className="text-xs text-primary mt-0.5">Open Rallies → Incomplete to finish.</p>
         </button>
       )}
 
@@ -143,15 +138,13 @@ export function OverviewSection({
         <button
           type="button"
           onClick={onOpenDetails}
-          className="w-full text-left rounded-lg border border-neutral-700 bg-neutral-900/50 px-4 py-3 hover:border-neutral-500"
+          className="w-full text-left rounded-md border border-border px-3 py-2 hover:border-border-strong"
         >
           <p className="text-sm font-medium text-neutral-100">
-            {needsOpponent ? 'Add an opponent (optional)' : 'Add a tournament (optional)'}
+            {needsOpponent ? 'Add opponent (optional)' : 'Add tournament (optional)'}
           </p>
-          <p className="text-xs text-neutral-400 mt-0.5">
-            {needsOpponent
-              ? 'Opens Details — helps Find / Clips “vs player”. Skip anytime.'
-              : 'Opens Details — helps Find / Clips by event. Skip anytime.'}
+          <p className="text-xs text-neutral-500 mt-0.5">
+            {needsOpponent ? 'Helps Clips / Find vs player.' : 'Helps Clips / Find by event.'}
           </p>
         </button>
       )}

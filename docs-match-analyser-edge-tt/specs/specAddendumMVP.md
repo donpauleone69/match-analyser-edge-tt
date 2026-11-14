@@ -6,6 +6,20 @@
 
 ## Change Log
 
+### 2026-11-14: MA-93 — Quiet notices + theme callout cohesion (v3.131.0)
+
+**Change Type:** UX declutter + theme cohesion
+
+**What Changed:**
+- Summary incomplete / optional-context callouts denser; incomplete uses `callout-warning*` tokens.
+- Clips + Match Review notices compacted to one-line dismissible bars.
+- Scope select + Incomplete badges (Rallies row / tab) / reel Cloud label on shared chrome tokens (`border`, `callout-*`).
+- Landed overnight shared chrome CSS vars (aligned with MA-84 theme PR) so B surfaces stop using raw amber/sky.
+
+**Decision Rationale:** MA-93 overnight — quiet more surfaces; cohesion with theme track.
+
+**Key Files:** `index.css`, `OverviewSection.tsx`, `ClipsComposer.tsx`, `MatchReviewComposer.tsx`, `ScopeControlBlock.tsx`, `RallyRowBlock.tsx`, `TabBarBlock.tsx`, `ReelListBlock.tsx`.
+
 ### 2026-11-14: MA-92 — Contacts pad + scrub marks refine (v3.130.0)
 
 **Change Type:** UX polish — Pass 1 / Simple contacts + shared scrub
@@ -20,6 +34,7 @@
 **Key Files:** `Pass1ContactCaptureBlock.tsx`, `VideoPlayer.tsx`, `MatchVideoOverlayBar.tsx`, `pass1FocusModel.ts`, Pass1/Simple composers.
 
 ---
+
 
 ### 2026-11-14: MA-90 — Overlay cohesion on Clips / Review (v3.129.0)
 

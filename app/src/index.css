@@ -93,6 +93,27 @@
   --color-pill-idle-text: var(--color-text);
 
   /* ----------------------------------------
+     SHARED CHROME (Review / Clips / overlay — overnight A–E glue)
+     Prefer these over raw amber/sky/rose Tailwind.
+     ---------------------------------------- */
+  --color-border: #cbd5e1;
+  --color-border-strong: #94a3b8;
+  --color-callout-warning: #b45309;
+  --color-callout-warning-bg: #fff7ed;
+  --color-callout-warning-border: #fdba74;
+  --color-callout-danger: #b91c1c;
+  --color-callout-danger-bg: #fef2f2;
+  --color-callout-danger-border: #fca5a5;
+  --color-callout-info: #0369a1;
+  --color-callout-info-bg: #e0f2fe;
+  --color-callout-info-border: #7dd3fc;
+  /* Pass 1 No Attack selected fill — same family as danger, opaque */
+  --color-no-attack: #dc2626;
+  /* Video overlay scrim (Track A transport / HUD chips) */
+  --color-video-scrim: rgb(0 0 0 / 0.7);
+  --color-video-scrim-border: rgb(255 255 255 / 0.25);
+
+  /* ----------------------------------------
      SHOT TYPE COLORS
      ---------------------------------------- */
   --color-shot-defensive: #7eb6f0;

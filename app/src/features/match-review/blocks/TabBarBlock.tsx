@@ -69,8 +69,8 @@ export function TabBarBlock<T extends string>({
                   className={cn(
                     'ml-1 inline-flex min-w-[1.1rem] items-center justify-center rounded-md px-1 py-0.5 text-[10px] font-bold tabular-nums',
                     tab.id === 'rallies'
-                      ? 'bg-amber-600 text-neutral-950'
-                      : 'bg-neutral-700 text-neutral-200',
+                      ? 'bg-callout-warning text-on-accent'
+                      : 'bg-bg-elevated text-primary',
                     onBadgeClick && 'cursor-pointer hover:opacity-90'
                   )}
                 >

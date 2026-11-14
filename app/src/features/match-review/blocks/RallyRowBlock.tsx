@@ -71,7 +71,7 @@ export function RallyRowBlock({
           )}
           {rally.isIncomplete && (
             <span
-              className="text-[10px] font-bold uppercase tracking-wide text-amber-200 border border-amber-500/60 bg-amber-950/40 rounded px-1"
+              className="text-[10px] font-bold uppercase tracking-wide text-callout-warning border border-callout-warning-border bg-callout-warning-bg rounded px-1"
               title="Missing Pass 1 required tags — open Edit to finish"
             >
               Inc
@@ -106,7 +106,8 @@ export function RallyRowBlock({
         onClick={() => onEdit(rally)}
         className={cn(
           iconBtn,
-          rally.isIncomplete && 'border-amber-600/70 text-amber-200 hover:border-amber-400'
+          rally.isIncomplete &&
+            'border-callout-warning-border text-callout-warning hover:border-callout-warning'
         )}
       >
         <Icon name="edit" size="sm" />
