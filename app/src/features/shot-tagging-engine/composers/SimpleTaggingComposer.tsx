@@ -1177,6 +1177,18 @@ export function SimpleTaggingComposer({
 
   const handleProgressMarkerSeek = (marker: VideoProgressMarker) => {
     const match = scrubMarks.find((m) => m.id === marker.id)
+    if (match?.kind === 'rally' && match.id.startsWith('rally-')) {
+      const idx = Number(match.id.replace('rally-', ''))
+      const rally = completed.find((r) => r.rallyIndex === idx)
+      if (rally && !(phase === 'form' || contactTimes.length > 0)) {
+        handleSelectCompletedRally(rally)
+        return
+      }
+    }
+    if (match?.id === 'open-draft-rally' && openRally) {
+      handleSelectNextRally()
+      return
+    }
     seekClamped(match?.seekTime ?? marker.startTime)
   }
 
@@ -1471,11 +1483,11 @@ export function SimpleTaggingComposer({
   )
 }
 
-/** Contact-phase chrome: shot rail under the set context bar. */
+/** Contact-phase chrome: shot rail under the set context bar (flush with capture pad). */
 function TaggingSessionBar({ captureRail }: { captureRail: ReactNode }) {
   return (
     <div className="shrink-0 border-t border-pill-idle-border bg-bg-card">
-      <div className="px-1.5 pb-0.5">{captureRail}</div>
+      <div className="px-1.5 pt-1 pb-0">{captureRail}</div>
     </div>
   )
 }

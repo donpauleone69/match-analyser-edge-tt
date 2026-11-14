@@ -6,6 +6,21 @@
 
 ## Change Log
 
+### 2026-11-14: MA-99 — Tagging flow visual polish (v3.136.0)
+
+**Change Type:** UX polish — Pass 1 contacts / rail / guiding dialog
+
+**What Changed:**
+- **Dialog:** callout-warning / success tokens + left accent bar; clearer stage copy; slightly larger type.
+- **Rail:** readable phase/FA/End captions; selected shadow; live ring on active contact; rounded-md slots.
+- **Contacts:** flush rail→pad chrome; stage hint matches dialog; scrub rally marks open History preview (between points).
+
+**Decision Rationale:** Overnight Track E MA-99 — tagging flow visual polish after MA-96.
+
+**Key Files:** `Pass1FocusBlock.tsx`, `Pass1ContactCaptureBlock.tsx`, `pass1FocusModel.ts`, Pass1/Simple composers.
+
+---
+
 ### 2026-11-14: MA-97 — Quiet Home / nav / IA + list border tokens (v3.135.0)
 
 **Change Type:** UX declutter — Home/nav cohesion with Review/Clips chrome
@@ -18,6 +33,9 @@
 **Decision Rationale:** MA-97 overnight — Home/nav/IA quiet; fewer larger PRs; theme cohesion.
 
 **Key Files:** `HomeComposer.tsx`, home blocks, `AppShell.tsx`, `Sidebar.tsx`, `Header.tsx`, Clips/Review list blocks.
+
+---
+
 
 ### 2026-11-14: MA-95 — Mute + score HUD cohesion (v3.134.0)
 
@@ -8387,6 +8405,7 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v3.136.0 | 2026-11-14 | MA-99: tagging dialog/rail/contacts visual polish + scrub→History |
 | v3.133.0 | 2026-11-14 | MA-96: contacts pad server edge + scrub draft stripe/pastel + drop duplicate stage banner |
 | v3.130.0 | 2026-11-14 | MA-92: contacts pad flush + scrub playhead/marks readability + open-draft range |
 | v3.126.0 | 2026-11-14 | MA-83: contacts pad refine + colour-coded rally marks on shared video scrub |

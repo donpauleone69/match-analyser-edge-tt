@@ -225,17 +225,24 @@ function Pass1StageInfoBox({
   return (
     <div
       className={cn(
-        'rounded-md border px-1.5 py-1 text-[10px] font-semibold',
+        'relative overflow-hidden rounded-md border px-2 py-1.5 text-[11px] font-semibold leading-snug',
         ready
           ? 'border-success bg-success-muted text-success'
-          : 'border-warning bg-warning/15 text-warning'
+          : 'border-callout-warning-border bg-callout-warning-bg text-callout-warning'
       )}
       role="status"
       aria-live="polite"
       data-pass1-stage={stage}
       data-pass1-stage-tone={tone}
     >
-      {text}
+      <span
+        className={cn(
+          'absolute inset-y-0 left-0 w-1',
+          ready ? 'bg-success' : 'bg-callout-warning'
+        )}
+        aria-hidden
+      />
+      <span className="pl-1.5 block">{text}</span>
     </div>
   )
 }
@@ -904,7 +911,7 @@ function Pass1RailPhaseMarkers({
             style={{ flex: scrollable ? '0 0 2rem' : '1 1 0' }}
           >
             {group ? (
-              <span className="w-full truncate text-center text-[7px] font-black uppercase tracking-wide text-muted leading-none">
+              <span className="w-full truncate text-center text-[8px] font-bold uppercase tracking-wide text-muted leading-none">
                 {group.name === 'PRE OFFENSIVE SHOT'
                   ? 'PRE'
                   : group.name === 'INITIAL OFFENSE'
@@ -914,7 +921,7 @@ function Pass1RailPhaseMarkers({
                       : 'SRV'}
               </span>
             ) : inGroup ? (
-              <span className="h-px w-full bg-pill-idle-border" aria-hidden />
+              <span className="h-px w-3/4 mx-auto bg-pill-idle-border" aria-hidden />
             ) : (
               <span className="h-px w-full bg-transparent" aria-hidden />
             )}
@@ -1023,7 +1030,7 @@ export function Pass1ShotMarkRail({
                   onSelectShot?.(n)
                 }}
                 className={cn(
-                  'relative w-full h-7 rounded font-black tabular-nums text-xs',
+                  'relative w-full h-7 rounded-md font-black tabular-nums text-xs touch-manipulation',
                   grey
                     ? 'bg-bg-elevated text-muted opacity-40 border border-transparent'
                     : isPlayer1
@@ -1034,15 +1041,16 @@ export function Pass1ShotMarkRail({
                   isEnd && !grey && (endResultBg ?? 'bg-shot-end-bg'),
                   flagged && !isFos && !isEnd && !grey && 'bg-review-bg',
                   selected
-                    ? 'border-2 border-contact-selected'
+                    ? 'border-2 border-contact-selected shadow-sm'
                     : 'border border-transparent',
+                  active && !selected && !grey && 'ring-1 ring-contact-live/70',
                   !canTap && 'cursor-default'
                 )}
               >
                 {n}
                 {flagged && !isFos && !isEnd && (
                   <span
-                    className="absolute top-0.5 right-0.5 h-1 w-1 rounded-full bg-review"
+                    className="absolute top-0.5 right-0.5 h-1.5 w-1.5 rounded-full bg-review"
                     aria-hidden
                   />
                 )}
@@ -1057,7 +1065,7 @@ export function Pass1ShotMarkRail({
               {isFos && fosClearInteractive && onClearFos ? (
                 <button
                   type="button"
-                  className="min-h-[0.7rem] text-[7px] font-black uppercase leading-none tracking-wide text-shot-first-attack touch-manipulation"
+                  className="min-h-[0.75rem] text-[8px] font-black uppercase leading-none tracking-wide text-shot-first-attack touch-manipulation"
                   title="Clear first attack — choose again"
                   aria-label={`Clear first attack on shot ${n}`}
                   onClick={(e) => {
@@ -1070,7 +1078,7 @@ export function Pass1ShotMarkRail({
               ) : (
                 <span
                   className={cn(
-                    'min-h-[0.7rem] text-[7px] font-black uppercase leading-none tracking-wide',
+                    'min-h-[0.75rem] text-[8px] font-black uppercase leading-none tracking-wide',
                     isFos && isEnd
                       ? 'text-shot-first-attack'
                       : isFos
@@ -1126,7 +1134,7 @@ export function Pass1ShotMarkRail({
             <span className="h-1 w-full max-w-none rounded-sm shrink-0 bg-transparent" aria-hidden />
             <span
               className={cn(
-                'min-h-[0.7rem] text-[7px] font-black uppercase leading-none tracking-wide',
+                'min-h-[0.75rem] text-[8px] font-black uppercase leading-none tracking-wide',
                 !noAttackSelected && 'text-muted'
               )}
               style={noAttackSelected ? { color: NO_ATTACK_RED } : undefined}
@@ -1164,7 +1172,7 @@ export function Pass1ShotMarkRail({
             <span className="h-1 w-full max-w-none rounded-sm shrink-0 bg-transparent" aria-hidden />
             <span
               className={cn(
-                'min-h-[0.7rem] text-[7px] font-black uppercase leading-none tracking-wide',
+                'min-h-[0.75rem] text-[8px] font-black uppercase leading-none tracking-wide',
                 isHighlight ? 'text-warning' : 'text-muted'
               )}
             >

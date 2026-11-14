@@ -38,13 +38,13 @@ export function Pass1ContactCaptureBlock({
   const hint = previewingPast
     ? 'Viewing a past point · Live → in the set bar to capture'
     : contactCount === 0
-      ? 'First tap = serve · then each bat contact · idle 2s → End / FA'
-      : `${contactCount} contact${contactCount === 1 ? '' : 's'} · keep tapping · idle 2s → End / FA`
+      ? 'Tap contacts · next: End / FA'
+      : `${contactCount} contact${contactCount === 1 ? '' : 's'} · idle 2s → End / FA`
 
   return (
     <div
       className={cn(
-        'flex flex-1 min-h-0 flex-col justify-start gap-1.5 border-t border-pill-idle-border bg-bg-card px-2 pt-2 pb-2',
+        'flex flex-1 min-h-0 flex-col justify-start gap-1.5 bg-bg-card px-2 pt-1.5 pb-2',
         className
       )}
       data-pass1-capture="contacts"
