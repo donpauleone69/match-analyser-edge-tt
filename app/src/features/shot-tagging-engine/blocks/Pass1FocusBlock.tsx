@@ -3,7 +3,7 @@
  *
  * MA-71 staged flow (+ MA-73 FA undo / impossible-FA auto-skip):
  * contacts → end Result → end Wing/Stroke (locked) → select FA /
- * No Attack (last rail cell, strong red) → FA details → optional/save.
+ * No Attack (last rail cell; selected red only when on) → FA details → optional/save.
  * fa_details: tap FA caption / re-tap shot clears; other ≥2 reassigns.
  * Optional (MA-74) = phase RF fields (spin/placement/depth/Weak·Heavy,
  * FA contact/quality, later wing/stroke/initiative) + High/Safe + Review/★
@@ -51,9 +51,8 @@ import {
   type ShotAttributeKey,
 } from '../composers/pass1FocusModel'
 
-/** Strong red for No Attack rail cell (Paul MA-71) — not pastel error wash. */
+/** Selected No Attack rail cell — strong red only when noFirstAttack (MA-76). */
 const NO_ATTACK_RED = '#dc2626'
-const NO_ATTACK_RED_BG = '#fecaca'
 
 /** Phone / narrow Pass 1 — fewer stroke pills after wrap. */
 function useCompactPass1Strokes(): boolean {
@@ -1087,19 +1086,16 @@ export function Pass1ShotMarkRail({
               }}
               className={cn(
                 'relative w-full h-7 rounded font-black text-[9px] leading-none uppercase tracking-wide',
-                'border',
-                noAttackSelected
-                  ? 'text-white border-transparent'
-                  : 'text-primary border-transparent',
+                'border touch-manipulation',
                 !noAttackInteractive && 'cursor-default opacity-80'
               )}
               style={
                 noAttackSelected
-                  ? { backgroundColor: NO_ATTACK_RED, color: '#fff' }
+                  ? { backgroundColor: NO_ATTACK_RED, borderColor: NO_ATTACK_RED, color: '#fff' }
                   : {
-                      backgroundColor: NO_ATTACK_RED_BG,
-                      color: NO_ATTACK_RED,
-                      borderColor: NO_ATTACK_RED,
+                      backgroundColor: 'var(--color-pill-idle)',
+                      borderColor: 'var(--color-pill-idle-border)',
+                      color: 'var(--color-text)',
                     }
               }
             >
@@ -1107,8 +1103,11 @@ export function Pass1ShotMarkRail({
             </button>
             <span className="h-1 w-full max-w-none rounded-sm shrink-0 bg-transparent" aria-hidden />
             <span
-              className="min-h-[0.7rem] text-[7px] font-black uppercase leading-none tracking-wide"
-              style={{ color: NO_ATTACK_RED }}
+              className={cn(
+                'min-h-[0.7rem] text-[7px] font-black uppercase leading-none tracking-wide',
+                !noAttackSelected && 'text-muted'
+              )}
+              style={noAttackSelected ? { color: NO_ATTACK_RED } : undefined}
             >
               Atk
             </span>
