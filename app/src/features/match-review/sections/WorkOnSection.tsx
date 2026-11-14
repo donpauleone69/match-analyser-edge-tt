@@ -76,7 +76,7 @@ function SideCard({
   onPlayPlaylist?: WorkOnSectionProps['onPlayPlaylist']
 }) {
   return (
-    <div className="space-y-2.5 rounded-md border border-border px-2.5 py-2">
+    <div className="space-y-2.5">
       <h3 className="text-sm font-semibold text-primary">
         {side.name}{' '}
         <span className="text-muted font-normal tabular-nums">· {side.total}</span>
@@ -123,7 +123,7 @@ export function WorkOnSection({
     <div className="space-y-3">
       <div className="space-y-2">
         {workOn.total === 0 ? (
-          <p className="rounded-md border border-dashed border-border px-2.5 py-2 text-xs text-muted text-center">
+          <p className="rounded-md bg-bg-card px-2.5 py-2 text-xs text-muted text-center">
             No flagged shots yet — flag in Pass 1.
           </p>
         ) : (
@@ -137,13 +137,13 @@ export function WorkOnSection({
                       <button
                         type="button"
                         onClick={() => onPlayPlaylist(pattern)}
-                        className="rounded-md border border-review/60 bg-review-bg px-2 py-0.5 text-xs text-review hover:border-review"
+                        className="rounded-md bg-review-bg px-2 py-0.5 text-xs text-review hover:bg-review-bg/80"
                         title="Open this pattern as a Clips playlist"
                       >
                         {f.text}
                       </button>
                     ) : (
-                      <span className="rounded-md border border-review/60 bg-review-bg px-2 py-0.5 text-xs text-review">
+                      <span className="rounded-md bg-review-bg px-2 py-0.5 text-xs text-review">
                         {f.text}
                       </span>
                     )}

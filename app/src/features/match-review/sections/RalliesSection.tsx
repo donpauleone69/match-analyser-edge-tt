@@ -115,7 +115,7 @@ export function RalliesSection({
           )}
         </div>
       ) : shown.length === 0 ? (
-        <p className="text-xs text-muted rounded-md border border-border px-2.5 py-1.5">
+        <p className="text-xs text-muted rounded-md bg-bg-card px-2.5 py-1.5">
           {filter === 'incomplete' ? 'No incomplete points in this set.' : 'No rallies match this filter.'}
         </p>
       ) : (
@@ -139,7 +139,7 @@ export function RalliesSection({
               </Button>
             )}
           </div>
-          <ul className="divide-y divide-border rounded-lg border border-border overflow-hidden">
+          <ul className="divide-y divide-border rounded-lg bg-bg-card overflow-hidden">
             {shown.map((r) => (
               <RallyRowBlock
                 key={r.id}

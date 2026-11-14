@@ -135,7 +135,7 @@ export function DetailsSection({
 
   return (
     <div className="space-y-3">
-      <Card className="p-2.5 md:p-3 border border-border space-y-2">
+      <Card className="p-2.5 md:p-3 shadow-sm space-y-2">
         <h2 className="text-sm font-semibold text-primary">Your match</h2>
         <dl className="grid gap-2.5 sm:grid-cols-2 text-sm">
           <div>
@@ -180,13 +180,13 @@ export function DetailsSection({
         </dl>
       </Card>
 
-      <Card className="p-2.5 md:p-3 border border-border space-y-2.5">
+      <Card className="p-2.5 md:p-3 shadow-sm space-y-2.5">
         {(review.context.player2Id || review.context.tournamentId) && (
           <div className="flex flex-wrap gap-1.5">
             {review.context.player2Id && (
               <Link
                 to={`/clips?scope=opponent&id=${encodeURIComponent(review.context.player2Id)}`}
-                className="inline-flex items-center gap-1 rounded-md border border-border bg-bg-card px-2 py-1 text-xs text-primary hover:border-border-strong"
+                className="inline-flex items-center gap-1 rounded-md bg-bg-elevated px-2 py-1 text-xs text-primary hover:bg-bg-elevated/80"
               >
                 <Icon name="film" size="sm" /> Clips vs opponent
               </Link>
@@ -194,7 +194,7 @@ export function DetailsSection({
             {review.context.tournamentId && (
               <Link
                 to={`/clips?scope=tournament&id=${encodeURIComponent(review.context.tournamentId)}`}
-                className="inline-flex items-center gap-1 rounded-md border border-border bg-bg-card px-2 py-1 text-xs text-primary hover:border-border-strong"
+                className="inline-flex items-center gap-1 rounded-md bg-bg-elevated px-2 py-1 text-xs text-primary hover:bg-bg-elevated/80"
               >
                 <Icon name="film" size="sm" /> Clips in tournament
               </Link>

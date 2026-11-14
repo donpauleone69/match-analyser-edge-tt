@@ -15,9 +15,9 @@ export interface SetPanelBlockProps {
 }
 
 const STATUS_STYLE: Record<SetPanelModel['status'], string> = {
-  not_started: 'text-muted bg-bg-surface border-border',
-  in_progress: 'text-callout-warning bg-callout-warning-bg border-callout-warning-border',
-  tagged: 'text-result-winner bg-result-winner-bg border-result-winner/40',
+  not_started: 'text-muted bg-bg-elevated',
+  in_progress: 'text-callout-warning bg-callout-warning-bg',
+  tagged: 'text-result-winner bg-result-winner-bg',
 }
 
 export function SetPanelBlock({ set, onTag, onBrowse, onStartOver }: SetPanelBlockProps) {
@@ -55,7 +55,7 @@ export function SetPanelBlock({ set, onTag, onBrowse, onStartOver }: SetPanelBlo
     set.status === 'not_started' ? 'Start tagging' : set.status === 'in_progress' ? 'Continue tagging' : 'Add rallies'
 
   return (
-    <div className="rounded-md border border-border bg-bg-card px-2.5 py-2 flex flex-wrap items-center gap-2">
+    <div className="rounded-md bg-bg-card px-2.5 py-2 flex flex-wrap items-center gap-2">
       <div className="flex items-baseline gap-2 min-w-[6.5rem]">
         <span className="text-sm font-semibold text-primary">Set {set.setNumber}</span>
         {set.scoreLabel && (
@@ -71,7 +71,7 @@ export function SetPanelBlock({ set, onTag, onBrowse, onStartOver }: SetPanelBlo
           </span>
         )}
       </div>
-      <span className={cn('text-[11px] font-semibold rounded-md border px-1.5 py-0.5', STATUS_STYLE[set.status])}>
+      <span className={cn('text-[11px] font-semibold rounded-md px-1.5 py-0.5', STATUS_STYLE[set.status])}>
         {set.statusLabel}
         {set.rallyCount > 0 && ` · ${set.rallyCount}`}
       </span>
@@ -91,7 +91,7 @@ export function SetPanelBlock({ set, onTag, onBrowse, onStartOver }: SetPanelBlo
             onClick={() => setConfirming(true)}
             title="Delete this set's tags and start again"
             aria-label={`Start Set ${set.setNumber} over`}
-            className="h-8 w-8 rounded-md border border-border text-muted hover:text-danger hover:border-danger flex items-center justify-center"
+            className="h-8 w-8 rounded-md text-muted hover:bg-bg-elevated hover:text-danger flex items-center justify-center"
           >
             <Icon name="trash" size="sm" />
           </button>

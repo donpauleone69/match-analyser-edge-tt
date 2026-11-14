@@ -25,7 +25,7 @@ export function ReviewPatternBlock({
 }: ReviewPatternBlockProps) {
   const [open, setOpen] = useState(defaultOpen)
   return (
-    <li className="rounded-lg border border-border bg-bg-card overflow-hidden">
+    <li className="rounded-lg bg-bg-card overflow-hidden">
       <div className="flex items-center gap-1 pr-1.5">
         <button
           type="button"
@@ -50,7 +50,7 @@ export function ReviewPatternBlock({
           <button
             type="button"
             onClick={() => onPlayPlaylist(pattern)}
-            className="h-7 w-7 shrink-0 rounded-md border border-review/50 bg-review-bg/40 text-review hover:border-review inline-flex items-center justify-center"
+            className="h-7 w-7 shrink-0 rounded-md bg-review-bg/40 text-review hover:bg-review-bg inline-flex items-center justify-center"
             title="Open this pattern as a Clips playlist"
             aria-label={`Open ${pattern.title} in Clips`}
           >
@@ -66,7 +66,7 @@ export function ReviewPatternBlock({
               <button
                 type="button"
                 onClick={() => onWatch(item, pattern)}
-                className="h-7 w-7 rounded-md border border-border text-neutral-200 hover:border-neutral-400 inline-flex items-center justify-center"
+                className="h-7 w-7 rounded-md text-muted hover:bg-bg-elevated hover:text-primary inline-flex items-center justify-center"
                 title="Open in Clips at this shot"
                 aria-label={`Open ${item.label} in Clips`}
               >
@@ -75,7 +75,7 @@ export function ReviewPatternBlock({
               <button
                 type="button"
                 onClick={() => onEdit(item)}
-                className="h-7 w-7 rounded-md border border-border text-neutral-200 hover:border-neutral-400 inline-flex items-center justify-center"
+                className="h-7 w-7 rounded-md text-muted hover:bg-bg-elevated hover:text-primary inline-flex items-center justify-center"
                 title="Fix tags"
                 aria-label={`Fix ${item.label}`}
               >

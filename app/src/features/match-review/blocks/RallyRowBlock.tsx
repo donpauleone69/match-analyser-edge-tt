@@ -75,7 +75,7 @@ export function RallyRowBlock({
           )}
           {rally.isIncomplete && (
             <span
-              className="text-[10px] font-bold uppercase tracking-wide text-callout-warning border border-callout-warning-border bg-callout-warning-bg rounded px-1"
+              className="text-[10px] font-bold uppercase tracking-wide text-callout-warning bg-callout-warning-bg rounded px-1"
               title="Missing Pass 1 required tags — open Edit to finish"
             >
               Inc
@@ -84,7 +84,7 @@ export function RallyRowBlock({
           {rally.isHighlight && <span className="text-review text-xs" aria-label="Highlight">★</span>}
           {rally.reviewCount > 0 && (
             <span
-              className="text-[10px] font-bold tabular-nums text-review border border-review/50 rounded px-1"
+              className="text-[10px] font-bold tabular-nums text-review bg-review-bg rounded px-1"
               title={`${rally.reviewCount} flagged shot${rally.reviewCount === 1 ? '' : 's'}`}
             >
               {rally.reviewCount}
