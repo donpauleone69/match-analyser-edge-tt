@@ -153,6 +153,7 @@ describe('shared match color tokens', () => {
       './features/shot-tagging-engine/blocks/Pass1LeaveDraftChoiceBlock.tsx',
       './features/shot-tagging-engine/blocks/Pass1ChromeProtoBlock.tsx',
       './features/match-review/sections/ServeReceiveDataSection.tsx',
+      './features/match-review/blocks/PlaylistFocusPickerBlock.tsx',
       './features/shot-tagging-engine/blocks/CompletionModal.tsx',
       './features/match-management/sections/MatchResultEntryModal.tsx',
       './components/ui/dialog.tsx',

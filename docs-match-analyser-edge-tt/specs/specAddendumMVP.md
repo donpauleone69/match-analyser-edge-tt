@@ -6,6 +6,20 @@
 
 ## Change Log
 
+### 2026-11-14: MA-144 — Playlist focus none-tone token (v3.179.0)
+
+**Change Type:** Design tokens — Serve/Receive focus picker dots
+
+**What Changed:**
+- `PlaylistFocusPickerBlock` tone dot `none` → `bg-border-strong` (parity with Serve/Receive shell dots; drop `bg-neutral-500`).
+- Gate the picker in `themeTokens.test.ts`.
+
+**Decision Rationale:** Overnight Track A MA-144 — last quiet focus-dot leftover after MA-139 VideoPlayer empty chrome.
+
+**Key Files:** `PlaylistFocusPickerBlock.tsx`, `themeTokens.test.ts`.
+
+---
+
 ### 2026-11-14: MA-142 — Pass 1 Save/Let/Discard form row polish (v3.178.0)
 
 **Change Type:** UX polish — Pass 1 / Simple form action row
@@ -9113,6 +9127,7 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v3.179.0 | 2026-11-14 | MA-144: PlaylistFocusPicker none tone → border-strong |
 | v3.176.0 | 2026-11-14 | MA-140: BrowseDisclosure keyboard a11y — Arrow/Home/End, focus restore |
 | v3.172.0 | 2026-11-14 | MA-136: quiet Home and Find residual chrome |
 | v3.171.0 | 2026-11-14 | MA-137: Browse shell Fix/Edit round-trip — land on edited clip + Clips back label |
