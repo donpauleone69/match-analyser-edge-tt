@@ -77,7 +77,7 @@ export function CompareCardBlock({
   onOpenEvidence,
 }: CompareCardBlockProps) {
   return (
-    <div className="rounded-lg border border-neutral-800 px-3 py-3 md:px-4 md:py-4 space-y-3">
+    <div className="rounded-lg border border-border px-3 py-3 md:px-4 md:py-4 space-y-3">
       <div>
         <h3 className="text-sm font-semibold text-neutral-100">
           <span className="sr-only">{id}</span>
@@ -95,7 +95,7 @@ export function CompareCardBlock({
                 'inline-flex items-baseline gap-1.5 rounded-md border px-2 py-1',
                 s.heroWon === true && 'border-result-winner/60 bg-result-winner-bg',
                 s.heroWon === false && 'border-result-error/60 bg-result-error-bg',
-                s.heroWon === null && 'border-neutral-800 bg-neutral-900/50'
+                s.heroWon === null && 'border-border bg-neutral-900/50'
               )}
             >
               <span className="text-[10px] text-neutral-500">S{s.setNumber}</span>
@@ -111,7 +111,7 @@ export function CompareCardBlock({
         <p className="py-2 text-center text-sm text-neutral-500">{emptyMessage}</p>
       ) : (
         <div>
-          <div className="grid grid-cols-[1fr_1.3fr_1fr] gap-2 pb-1.5 border-b border-neutral-800 text-[11px] font-semibold uppercase tracking-wide text-neutral-500">
+          <div className="grid grid-cols-[1fr_1.3fr_1fr] gap-2 pb-1.5 border-b border-border text-[11px] font-semibold uppercase tracking-wide text-neutral-500">
             <span className="truncate text-left" title={heroName}>
               {heroName}
             </span>
@@ -120,7 +120,7 @@ export function CompareCardBlock({
               {villainName}
             </span>
           </div>
-          <ul className="divide-y divide-neutral-800">
+          <ul className="divide-y divide-border">
             {rows.map((row) => (
               <li key={row.key} className="grid grid-cols-[1fr_1.3fr_1fr] items-center gap-2 py-2">
                 <ValueCell

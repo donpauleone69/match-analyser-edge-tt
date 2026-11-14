@@ -143,7 +143,7 @@ export function MatchStorageBlock({
   }
 
   return (
-    <div className="rounded-lg border border-neutral-700 bg-bg-card px-3 py-3 sm:px-4 space-y-3 text-sm">
+    <div className="rounded-lg border border-border bg-bg-card px-3 py-3 sm:px-4 space-y-3 text-sm">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <span
           className={cn(
@@ -199,7 +199,7 @@ export function MatchStorageBlock({
             {jumpChips.map((chip) => (
               <li key={chip.key}>
                 <span
-                  className="inline-flex items-center gap-1 rounded-md border border-neutral-700 bg-neutral-950/50 px-2 py-1 text-[11px] text-neutral-200"
+                  className="inline-flex items-center gap-1 rounded-md border border-border bg-neutral-950/50 px-2 py-1 text-[11px] text-neutral-200"
                   title="Source time — use with Trim or when scrubbing the set video"
                 >
                   <Icon name="target" size="xs" className="text-brand-primary shrink-0" />
@@ -213,7 +213,7 @@ export function MatchStorageBlock({
       )}
 
       {storage.setVideos.length === 0 && (
-        <p className="text-xs text-neutral-500 rounded-md border border-dashed border-neutral-700 px-3 py-2">
+        <p className="text-xs text-neutral-500 rounded-md border border-dashed border-border px-3 py-2">
           No set video on this match yet — attach one while tagging.
         </p>
       )}
@@ -226,7 +226,7 @@ export function MatchStorageBlock({
           return (
             <li
               key={v.assetId}
-              className="rounded-md border border-neutral-800 bg-neutral-950/40 px-2.5 py-2 space-y-2"
+              className="rounded-md border border-border bg-neutral-950/40 px-2.5 py-2 space-y-2"
             >
               <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-neutral-300">
                 <Icon name="video" size="sm" />
@@ -339,7 +339,7 @@ export function MatchStorageBlock({
               </div>
 
               {trimFor === v.assetId && (
-                <div className="space-y-2 rounded border border-neutral-700 bg-bg-card p-2.5">
+                <div className="space-y-2 rounded border border-border bg-bg-card p-2.5">
                   <p className="text-xs text-neutral-400">
                     Source seconds. Keep tagged play inside the window — tags are not rewritten.
                   </p>
@@ -404,7 +404,7 @@ export function MatchStorageBlock({
       </ul>
 
       {conflict && (
-        <div className="flex flex-wrap items-center gap-2 rounded-md border border-amber-700/60 bg-amber-950/30 px-3 py-2 text-amber-100">
+        <div className="flex flex-wrap items-center gap-2 rounded-md border border-callout-warning-border bg-callout-warning-bg px-3 py-2 text-callout-warning">
           <Icon name="warning" size="sm" />
           <span className="flex-1 text-xs">Also changed elsewhere — which copy wins?</span>
           <Button size="sm" variant="secondary" onClick={onKeepDevice} disabled={busy !== null}>

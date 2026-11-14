@@ -15,13 +15,13 @@ export interface TakeawaysBlockProps {
 const DOT: Record<TakeawayModel['tone'], string> = {
   good: 'bg-result-winner',
   bad: 'bg-result-error',
-  info: 'bg-sky-400',
+  info: 'bg-callout-info',
 }
 
 export function TakeawaysBlock({ takeaways, onOpenEvidence }: TakeawaysBlockProps) {
   if (takeaways.length === 0) return null
   return (
-    <Card className="p-4 md:p-5 border border-neutral-700">
+    <Card className="p-4 md:p-5 border border-border">
       <h2 className="text-lg font-semibold text-primary">What this match says about you</h2>
       <ul className="mt-3 space-y-2">
         {takeaways.map((t) => (

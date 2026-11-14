@@ -25,7 +25,7 @@ export function ReviewPatternBlock({
 }: ReviewPatternBlockProps) {
   const [open, setOpen] = useState(defaultOpen)
   return (
-    <li className="rounded-lg border border-neutral-800 bg-neutral-900/50 overflow-hidden">
+    <li className="rounded-lg border border-border bg-neutral-900/50 overflow-hidden">
       <div className="flex items-center gap-1 pr-2">
         <button
           type="button"
@@ -59,14 +59,14 @@ export function ReviewPatternBlock({
         )}
       </div>
       {open && (
-        <ul className="border-t border-neutral-800 divide-y divide-neutral-800">
+        <ul className="border-t border-border divide-y divide-border">
           {pattern.items.map((item) => (
             <li key={item.shotId} className="flex items-center gap-1.5 pl-14 pr-2 py-1.5">
               <span className="flex-1 text-xs text-neutral-300 truncate">{item.label}</span>
               <button
                 type="button"
                 onClick={() => onWatch(item, pattern)}
-                className="h-7 w-7 rounded-md border border-neutral-700 text-neutral-200 hover:border-neutral-400 inline-flex items-center justify-center"
+                className="h-7 w-7 rounded-md border border-border text-neutral-200 hover:border-neutral-400 inline-flex items-center justify-center"
                 title="Open in Clips at this shot"
                 aria-label={`Open ${item.label} in Clips`}
               >
@@ -75,7 +75,7 @@ export function ReviewPatternBlock({
               <button
                 type="button"
                 onClick={() => onEdit(item)}
-                className="h-7 w-7 rounded-md border border-neutral-700 text-neutral-200 hover:border-neutral-400 inline-flex items-center justify-center"
+                className="h-7 w-7 rounded-md border border-border text-neutral-200 hover:border-neutral-400 inline-flex items-center justify-center"
                 title="Fix tags"
                 aria-label={`Fix ${item.label}`}
               >

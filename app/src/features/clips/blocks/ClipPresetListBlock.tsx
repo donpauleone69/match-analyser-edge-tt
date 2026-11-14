@@ -32,7 +32,7 @@ export function ClipPresetListBlock({ groups, activeKey, onSelect }: ClipPresetL
                     'flex items-center justify-between gap-2 rounded-md border px-2.5 py-1.5 text-left text-sm transition-colors',
                     active
                       ? 'border-contact-selected bg-contact-selected-bg text-neutral-50'
-                      : 'border-neutral-800 text-neutral-300 hover:border-neutral-500 hover:text-neutral-50'
+                      : 'border-border text-neutral-300 hover:border-border-strong hover:text-neutral-50'
                   )}
                 >
                   <span className="truncate">{p.label}</span>

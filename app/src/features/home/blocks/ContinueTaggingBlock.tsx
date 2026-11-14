@@ -14,21 +14,21 @@ export interface ContinueTaggingBlockProps {
 export function ContinueTaggingBlock({ item, onContinue, onReview }: ContinueTaggingBlockProps) {
   const tone =
     item.kind === 'fix_incomplete' || item.kind === 'in_progress'
-      ? 'border-amber-800/50 bg-amber-950/20'
-      : 'border-neutral-700 bg-neutral-900/40'
+      ? 'border-callout-warning-border bg-callout-warning-bg'
+      : 'border-border'
   const showScore = item.kind === 'in_progress' || item.kind === 'fix_incomplete'
   const actionIcon = item.kind === 'fix_incomplete' ? 'edit' : 'play'
 
   return (
-    <div className={`flex flex-wrap items-center gap-3 rounded-lg border px-4 py-3 ${tone}`}>
+    <div className={`flex flex-wrap items-center gap-2 rounded-md border px-3 py-2 ${tone}`}>
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold text-neutral-100 truncate">{item.title}</p>
-        <p className="text-xs text-neutral-400 mt-0.5">
+        <p className="text-xs text-neutral-500 mt-0.5">
           {item.detailLabel}
           {showScore && (
             <>
               {' '}
-              · <span className="font-mono">{item.scoreLabel}</span>
+              · <span className="font-mono tabular-nums">{item.scoreLabel}</span>
             </>
           )}
         </p>

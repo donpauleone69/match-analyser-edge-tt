@@ -31,11 +31,11 @@ export function EvidenceDrawerBlock({
     <aside
       role="dialog"
       aria-label={title}
-      className="fixed z-40 bg-bg-card border-neutral-800 shadow-xl flex flex-col
+      className="fixed z-40 bg-bg-card border-border shadow-xl flex flex-col
         inset-x-0 bottom-0 max-h-[70dvh] border-t rounded-t-xl
         md:inset-y-0 md:right-0 md:left-auto md:top-14 md:bottom-0 md:w-[420px] md:max-h-none md:border-t-0 md:border-l md:rounded-none"
     >
-      <div className="shrink-0 flex items-center gap-2 px-3 py-2.5 border-b border-neutral-800">
+      <div className="shrink-0 flex items-center gap-2 px-3 py-2.5 border-b border-border">
         <div className="min-w-0 flex-1">
           <h2 className="text-sm font-semibold text-neutral-50 truncate">
             {title}

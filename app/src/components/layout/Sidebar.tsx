@@ -22,14 +22,12 @@ interface SidebarProps {
 
 export function Sidebar({ onNavigate }: SidebarProps = {}) {
   return (
-    <aside className="fixed left-0 top-0 z-40 h-screen w-60 bg-bg-shell border-r border-neutral-700 flex flex-col">
-      <div className="flex h-14 items-center px-4 border-b border-neutral-700">
-        <span className="text-xl font-bold text-brand-primary">
-          Edge TT
-        </span>
+    <aside className="fixed left-0 top-0 z-40 h-screen w-56 bg-bg-shell border-r border-border flex flex-col">
+      <div className="flex h-12 items-center px-3 border-b border-border">
+        <span className="text-lg font-bold text-brand-primary">Edge TT</span>
       </div>
 
-      <nav className="p-4 space-y-1">
+      <nav className="p-2 space-y-0.5">
         {navItems.map((item) => (
           <NavLink
             key={item.to}
@@ -38,22 +36,18 @@ export function Sidebar({ onNavigate }: SidebarProps = {}) {
             onClick={onNavigate}
             className={({ isActive }) =>
               cn(
-                'flex items-center gap-3 px-4 py-3 rounded-lg text-base font-medium transition-all duration-[var(--animate-micro)]',
+                'flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium transition-colors',
                 isActive
-                  ? 'bg-bg-card text-neutral-50 border-l-4 border-brand-primary -ml-1 pl-[calc(1rem-3px)]'
-                  : 'text-neutral-400 hover:bg-bg-card hover:text-neutral-100'
+                  ? 'bg-bg-card text-neutral-50 border-l-2 border-brand-primary'
+                  : 'text-neutral-500 hover:bg-bg-card hover:text-neutral-100'
               )
             }
           >
-            <item.icon className="h-5 w-5" />
+            <item.icon className="h-4 w-4" />
             {item.label}
           </NavLink>
         ))}
       </nav>
-
-      <p className="mt-auto p-4 text-xs text-neutral-600">
-        Training is practice, not a match.
-      </p>
     </aside>
   )
 }
