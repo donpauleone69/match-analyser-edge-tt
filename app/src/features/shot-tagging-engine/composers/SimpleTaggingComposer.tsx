@@ -27,6 +27,7 @@ import {
   VideoStageChrome,
   MatchVideoOverlayBar,
   MATCH_VIDEO_OVERLAY_BOTTOM_CLASS,
+  useTaggingMuteDefault,
   nudgePlaybackSpeed as nudgeSharedSpeed,
   SEEK_STEP_SECONDS as SHARED_SEEK_STEP,
 } from '@/ui-mine/VideoPlayer'
@@ -206,6 +207,7 @@ export function SimpleTaggingComposer({
   const setPlaybackSpeed = useVideoPlaybackStore((state) => state.setPlaybackSpeed)
   const duration = useVideoPlaybackStore((state) => state.duration)
   const videoPlayerRef = useRef<VideoPlayerHandle>(null)
+  useTaggingMuteDefault()
 
   const [setId, setSetId] = useState<string | null>(null)
   const [setReady, setSetReady] = useState(false)

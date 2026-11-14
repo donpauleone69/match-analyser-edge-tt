@@ -11,7 +11,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Button, Card, Icon, type VideoPlayerHandle } from '@/ui-mine'
-import { useVideoPlaybackStore } from '@/ui-mine/VideoPlayer'
+import { useVideoPlaybackStore, useWatchUnmuteDefault } from '@/ui-mine/VideoPlayer'
 import { cn } from '@/helpers/utils'
 import { setPersistedRallyHighlight, type RallyEditNotice } from '@/features/shot-tagging-engine'
 import { useDeriveMatchReview } from '../derive/useDeriveMatchReview'
@@ -99,6 +99,7 @@ export function MatchReviewComposer() {
   )
   const playerRef = useRef<VideoPlayerHandle>(null)
   const isPlaying = useVideoPlaybackStore((s) => s.isPlaying)
+  useWatchUnmuteDefault(Boolean(player))
   const cloudConfigured = useCloudStore((s) => s.configured)
   const cloudUser = useCloudStore((s) => s.user)
   const { storage, refreshStorage } = useDeriveMatchStorage(matchId, data)

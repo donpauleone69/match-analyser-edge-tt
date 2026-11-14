@@ -18,7 +18,11 @@ interface VideoPlaybackState {
   playbackSpeed: number
   videoUrl: string | null
   currentSpeedMode: 'normal' | 'tag' | 'ff'
-  /** Mute preference (persisted). */
+  /**
+   * Mute preference (persisted).
+   * Tagging composers force mute on enter; Clips / Review watch unmute on open
+   * so one shared control still feels intentional per surface.
+   */
   isMuted: boolean
 
   // Speed mode presets (persisted - user preferences)

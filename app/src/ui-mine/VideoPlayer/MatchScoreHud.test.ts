@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseScorePair } from './MatchScoreHud'
+import { parseScorePair, shortPlayerName } from './MatchScoreHud'
 
 describe('parseScorePair', () => {
   it('parses en-dash and hyphen scorelines', () => {
@@ -12,5 +12,16 @@ describe('parseScorePair', () => {
     expect(parseScorePair(null)).toBeNull()
     expect(parseScorePair('')).toBeNull()
     expect(parseScorePair('won')).toBeNull()
+  })
+})
+
+describe('shortPlayerName', () => {
+  it('takes the first token', () => {
+    expect(shortPlayerName('Pat Overton')).toBe('Pat')
+    expect(shortPlayerName('  Sam  ')).toBe('Sam')
+  })
+
+  it('uses fallback when empty', () => {
+    expect(shortPlayerName('', 'Hero')).toBe('Hero')
   })
 })

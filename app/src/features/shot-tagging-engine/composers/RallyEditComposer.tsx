@@ -18,6 +18,8 @@ import {
   MatchVideoOverlayBar,
   MATCH_VIDEO_OVERLAY_BOTTOM_CLASS,
   parseScorePair,
+  shortPlayerName,
+  useTaggingMuteDefault,
   nudgePlaybackSpeed as nudgeSharedSpeed,
   SEEK_STEP_SECONDS as SHARED_SEEK_STEP,
 } from '@/ui-mine/VideoPlayer'
@@ -108,6 +110,7 @@ export function RallyEditComposer() {
   const playbackSpeed = useVideoPlaybackStore((s) => s.playbackSpeed)
   const setPlaybackSpeed = useVideoPlaybackStore((s) => s.setPlaybackSpeed)
   const videoPlayerRef = useRef<VideoPlayerHandle>(null)
+  useTaggingMuteDefault()
 
   const [match, setMatch] = useState<DBMatch | null>(null)
   const [setId, setSetId] = useState<string | null>(null)
@@ -488,13 +491,14 @@ export function RallyEditComposer() {
                   score={
                     <MatchScoreHud
                       compact
+                      showSets={false}
                       setNumber={setNumber}
-                      player1Name={player1Name}
-                      player2Name={player2Name}
+                      player1Name={shortPlayerName(player1Name)}
+                      player2Name={shortPlayerName(player2Name)}
                       player1Score={scorePair.player1}
                       player2Score={scorePair.player2}
                       serverSide={draft.serverId}
-                      serverName={serverName}
+                      serverName={shortPlayerName(serverName)}
                     />
                   }
                   isPlaying={isPlaying}
