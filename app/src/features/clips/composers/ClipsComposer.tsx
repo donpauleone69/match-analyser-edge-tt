@@ -493,16 +493,14 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
       }}
     />
   ) : (
-    <Card className="p-6 text-sm text-neutral-400 space-y-3">
+    <Card className="p-4 text-sm text-neutral-500 space-y-2 border border-dashed border-border">
       <p>No clips in this playlist.</p>
       {embedded && fromParam === 'workon' ? (
         <Button size="sm" variant="secondary" onClick={backFromWorkOn}>
-          <Icon name="arrow-left" size="sm" /> Back to Work on
+          <Icon name="arrow-left" size="sm" /> Work on
         </Button>
       ) : (
-        <p className="text-xs text-neutral-500">
-          Open Playlists above to switch list, or flag shots / star rallies while tagging.
-        </p>
+        <p className="text-xs text-neutral-500">Switch playlist, or star / flag while tagging.</p>
       )}
     </Card>
   )
@@ -597,7 +595,7 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
   )
 
   return (
-    <div className={`space-y-6 ${showExportBar ? 'pb-24 md:pb-6' : ''}`}>
+    <div className={`space-y-4 ${showExportBar ? 'pb-24 md:pb-6' : ''}`}>
       {header}
 
       {notice && (

@@ -23,7 +23,7 @@ export function HomeMatchRowBlock({ match, onOpen }: HomeMatchRowBlockProps) {
       <button
         type="button"
         onClick={() => onOpen(match.matchId)}
-        className="w-full flex items-center gap-2 px-2.5 py-2 text-left hover:bg-neutral-800/60 transition-colors"
+        className="w-full flex items-center gap-2 px-2 py-1.5 text-left hover:bg-bg-elevated transition-colors"
       >
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-neutral-100 truncate">{match.title}</p>

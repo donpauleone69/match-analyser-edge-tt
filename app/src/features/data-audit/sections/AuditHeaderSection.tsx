@@ -20,7 +20,7 @@ export function AuditHeaderSection({
   onRefresh 
 }: AuditHeaderSectionProps) {
   return (
-    <div className="sticky top-0 z-10 bg-neutral-950 border-b border-neutral-800 p-4 shadow-lg">
+    <div className="sticky top-0 z-10 bg-bg-shell border-b border-border p-4 shadow-lg">
       <div className="max-w-[1800px] mx-auto flex items-center justify-between">
         <div className="flex items-center gap-4">
           <a 

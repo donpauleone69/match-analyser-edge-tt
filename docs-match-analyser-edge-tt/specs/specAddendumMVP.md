@@ -6,6 +6,21 @@
 
 ## Change Log
 
+### 2026-11-14: MA-113 — Secondary chrome quiet pass (v3.152.0)
+
+**Change Type:** UX declutter — secondary Review / Details / audit chrome
+
+**What Changed:**
+- Overview denser (drop instructional blurb; quieter Coming next / category drill-in).
+- Takeaways + story nav denser; Details cards/links/copy quieter.
+- Clips empty playlist + Home rows / context polish / evidence drawer on shared borders.
+- MatchStorage trim fields, CompareCard hover, data-audit tables → `border-border` / callout fills.
+- Rally Edit error shell + chrome bars on `border-border` / `bg-bg-elevated` (no overlay retune).
+
+**Decision Rationale:** MA-113 overnight Track B — secondary chrome after MA-110 lists/empties.
+
+**Key Files:** `OverviewSection.tsx`, `TakeawaysBlock.tsx`, `SummaryCategoryNavBlock.tsx`, `DetailsSection.tsx`, `ClipsComposer.tsx`, `HomeMatchRowBlock.tsx`, `ContextPolishBlock.tsx`, `EvidenceDrawerBlock.tsx`, `CompareCardBlock.tsx`, `MatchStorageBlock.tsx`, `DataTableBlock.tsx`, data-audit sections, `RallyEditComposer.tsx`, `MatchResultEntryModal.tsx`.
+
 ### 2026-11-14: MA-107 — Playlist browse shell refine (v3.151.0)
 
 **Change Type:** UX polish — Clips PlaylistBrowseShell density / trail / mobile

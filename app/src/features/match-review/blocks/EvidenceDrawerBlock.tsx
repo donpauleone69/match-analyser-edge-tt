@@ -54,12 +54,12 @@ export function EvidenceDrawerBlock({
           type="button"
           onClick={onClose}
           aria-label="Close evidence"
-          className="p-1.5 rounded-md text-neutral-400 hover:text-neutral-50 hover:bg-neutral-800"
+          className="p-1.5 rounded-md text-neutral-500 hover:text-neutral-50 hover:bg-bg-elevated"
         >
           <Icon name="x" size="sm" />
         </button>
       </div>
-      <ul className="flex-1 min-h-0 overflow-y-auto divide-y divide-neutral-800">{children}</ul>
+      <ul className="flex-1 min-h-0 overflow-y-auto divide-y divide-border">{children}</ul>
     </aside>
   )
 }
