@@ -12,7 +12,7 @@ export function PageHeader({
   backTo?: string
 }) {
   return (
-    <header className="px-4 pt-4 pb-2">
+    <header className="px-4 sm:px-6 lg:px-8 pt-4 pb-2">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           {backTo ? (

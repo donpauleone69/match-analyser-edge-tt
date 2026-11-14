@@ -15,6 +15,11 @@ export const THEME_PACKS = [
     label: 'Harbor',
     blurb: 'Blue-gray chrome + deep cyan accent.',
   },
+  {
+    id: 'neon-night',
+    label: 'Neon Night',
+    blurb: 'Dark base + electric cyan neon accent.',
+  },
 ] as const
 
 export type ThemeId = (typeof THEME_PACKS)[number]['id']

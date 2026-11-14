@@ -9,7 +9,7 @@ export function ThemeSwitcher() {
   return (
     <div className="space-y-2" role="group" aria-label="Theme packs">
       <p className="text-xs font-semibold uppercase tracking-wide text-muted">Theme packs</p>
-      <div className="grid gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
         {THEME_PACKS.map((pack) => {
           const active = pack.id === theme
           return (

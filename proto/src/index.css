@@ -183,6 +183,41 @@
   --theme-bg-elevated: #dde6f0;
 }
 
+/* Pack: Neon Night — dark base + electric cyan neon */
+[data-theme="neon-night"] {
+  --theme-brand: #22d3ee;
+  --theme-brand-hover: #67e8f9;
+  --theme-brand-muted: rgb(34 211 238 / 0.18);
+
+  --theme-text: #e2e8f0;
+  --theme-text-muted: #94a3b8;
+  --theme-text-on-accent: #041016;
+
+  --theme-n950: #020617;
+  --theme-n900: #0b1220;
+  --theme-n850: #111827;
+  --theme-n800: #1e293b;
+  --theme-n700: #334155;
+  --theme-n600: #475569;
+  --theme-n500: #64748b;
+  --theme-n400: #94a3b8;
+  --theme-n300: #cbd5e1;
+  --theme-n200: #e2e8f0;
+  --theme-n100: #f1f5f9;
+  --theme-n50: #f8fafc;
+
+  --theme-border: #334155;
+  --theme-border-strong: #475569;
+  --theme-pill-idle: #1e293b;
+  --theme-pill-idle-border: #334155;
+
+  --theme-bg-app: #060a12;
+  --theme-bg-shell: #0b1220;
+  --theme-bg-surface: #111827;
+  --theme-bg-card: #0f172a;
+  --theme-bg-elevated: #1e293b;
+}
+
 html {
   font-family: var(--font-sans);
   font-size: 16px;
