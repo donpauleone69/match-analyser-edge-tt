@@ -244,13 +244,17 @@ function buildServeCards(story: ServeReceiveResult, names: Names): CompareCardMo
         ` ${heroFaults === 0 ? 'No faults.' : `${heroFaults} fault${heroFaults === 1 ? '' : 's'}.`}`
       : 'Is the serve working, and where does it leak points?'
 
+  const leakWithData = leakRows.filter(
+    (r) => r.hero.text !== NO_VALUE || r.villain.text !== NO_VALUE
+  )
+
   return [
     { id: 'B0', title: 'Serve at a glance', story: summaryStory, rows: glanceRows },
     {
       id: 'B1',
       title: 'Where it pays or leaks',
       story: 'Attack pressure on your serve, and whether you seize the third ball.',
-      rows: leakRows,
+      rows: leakWithData.length > 0 ? leakWithData : leakRows.slice(0, 2),
     },
   ]
 }
@@ -433,13 +437,17 @@ function buildReceiveCards(story: ServeReceiveResult, names: Names): CompareCard
     ),
   ]
 
+  const detailWithData = detailRows.filter(
+    (r) => r.hero.text !== NO_VALUE || r.villain.text !== NO_VALUE
+  )
+
   return [
     { id: 'C0', title: 'Receive at a glance', story: summaryStory, rows: glanceRows },
     {
       id: 'C1',
       title: 'Attack vs passive payoff',
       story: 'Does attacking the return pay, and does a passive return stay safe?',
-      rows: detailRows,
+      rows: detailWithData.length > 0 ? detailWithData : detailRows.slice(0, 2),
       emptyMessage: 'No decided returns marked yet',
     },
   ]
