@@ -6,9 +6,11 @@
  *
  * MA-118: mobile polish — pointer/touch outside dismiss, Escape, safer panel
  * height, denser touch targets on options.
+ * MA-140: keyboard a11y — Arrow/Home/End among options, focus selected on open,
+ * Escape restores focus to the trigger.
  */
 
-import { useEffect, useId, useRef, type ReactNode } from 'react'
+import { useEffect, useId, useRef, type KeyboardEvent, type ReactNode } from 'react'
 import { Icon } from '@/ui-mine/Icon'
 import { cn } from '@/helpers/utils'
 
@@ -30,6 +32,21 @@ export interface BrowseDisclosureProps {
   'aria-label'?: string
 }
 
+function optionNodes(list: HTMLElement | null): HTMLElement[] {
+  if (!list) return []
+  return Array.from(
+    list.querySelectorAll<HTMLElement>('[role="option"]')
+  ).filter((el) => !el.hasAttribute('disabled') && el.getAttribute('aria-disabled') !== 'true')
+}
+
+function focusOption(opts: HTMLElement[], index: number) {
+  if (opts.length === 0) return
+  const i = Math.max(0, Math.min(opts.length - 1, index))
+  const el = opts[i]
+  el.focus()
+  el.scrollIntoView({ block: 'nearest' })
+}
+
 export function BrowseDisclosure({
   label,
   value,
@@ -44,14 +61,18 @@ export function BrowseDisclosure({
   'aria-label': ariaLabel = 'Browse',
 }: BrowseDisclosureProps) {
   const rootRef = useRef<HTMLDivElement>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const listRef = useRef<HTMLDivElement>(null)
   const listId = useId()
+  const wasOpenRef = useRef(false)
 
+  // Outside dismiss + Escape (focus returns to trigger).
   useEffect(() => {
     if (!open) return
     const onPointer = (e: PointerEvent) => {
       if (!rootRef.current?.contains(e.target as Node)) onOpenChange(false)
     }
-    const onKey = (e: KeyboardEvent) => {
+    const onKey = (e: globalThis.KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault()
         onOpenChange(false)
@@ -66,15 +87,65 @@ export function BrowseDisclosure({
     }
   }, [open, onOpenChange])
 
+  // Open → focus selected (or first) option. Close → restore trigger focus.
+  useEffect(() => {
+    if (open) {
+      wasOpenRef.current = true
+      const id = requestAnimationFrame(() => {
+        const opts = optionNodes(listRef.current)
+        const selected =
+          opts.find((o) => o.getAttribute('aria-selected') === 'true') ??
+          opts.find((o) => o.getAttribute('aria-pressed') === 'true')
+        focusOption(opts, selected ? opts.indexOf(selected) : 0)
+      })
+      return () => cancelAnimationFrame(id)
+    }
+    if (wasOpenRef.current) {
+      wasOpenRef.current = false
+      triggerRef.current?.focus()
+    }
+  }, [open])
+
+  const onTriggerKeyDown = (e: KeyboardEvent<HTMLButtonElement>) => {
+    if (open) return
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault()
+      onOpenChange(true)
+    }
+  }
+
+  const onListKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    const opts = optionNodes(listRef.current)
+    if (opts.length === 0) return
+    const active = document.activeElement as HTMLElement | null
+    const idx = active ? opts.indexOf(active) : -1
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      focusOption(opts, idx < 0 ? 0 : idx + 1)
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      focusOption(opts, idx < 0 ? opts.length - 1 : idx - 1)
+    } else if (e.key === 'Home') {
+      e.preventDefault()
+      focusOption(opts, 0)
+    } else if (e.key === 'End') {
+      e.preventDefault()
+      focusOption(opts, opts.length - 1)
+    }
+  }
+
   return (
     <div ref={rootRef} className={cn('relative', fullWidth && 'w-full', className)}>
       <button
+        ref={triggerRef}
         type="button"
         aria-expanded={open}
         aria-haspopup="listbox"
         aria-controls={open ? listId : undefined}
         aria-label={ariaLabel}
         onClick={() => onOpenChange(!open)}
+        onKeyDown={onTriggerKeyDown}
         className={cn(
           'inline-flex min-h-10 items-center gap-2 rounded-md border border-border bg-bg-card px-3 py-2',
           'text-sm text-primary hover:border-border-strong transition-colors touch-manipulation',
@@ -100,9 +171,12 @@ export function BrowseDisclosure({
 
       {open && (
         <div
+          ref={listRef}
           id={listId}
           role="listbox"
           aria-label={ariaLabel}
+          tabIndex={-1}
+          onKeyDown={onListKeyDown}
           className={cn(
             'absolute z-40 mt-1 min-w-full rounded-md border border-border bg-bg-elevated shadow-xl',
             'max-h-[min(50dvh,22rem)] overflow-y-auto overscroll-contain',
@@ -140,9 +214,11 @@ export function BrowseDisclosureOption({
       type="button"
       role="option"
       aria-selected={selected}
+      tabIndex={selected ? 0 : -1}
       onClick={onSelect}
       className={cn(
         'w-full flex min-h-11 items-center gap-2 px-3 py-2.5 text-left text-sm transition-colors touch-manipulation',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-border-strong focus-visible:ring-inset',
         selected
           ? 'bg-contact-selected-bg text-primary'
           : 'text-primary hover:bg-bg-card active:bg-bg-card'
