@@ -12,7 +12,7 @@ export interface ContextPolishBlockProps {
 
 export function ContextPolishBlock({ item, onOpenDetails }: ContextPolishBlockProps) {
   return (
-    <div className="flex flex-wrap items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5">
+    <div className="flex flex-wrap items-center gap-1.5 rounded-md bg-bg-card px-2.5 py-1.5">
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold text-primary truncate">{item.title}</p>
         <p className="text-[11px] text-muted mt-0.5">

@@ -12,9 +12,9 @@ export interface HomeMatchRowBlockProps {
 }
 
 const STATUS_STYLE: Record<HomeMatchModel['status'], string> = {
-  tagged: 'text-result-winner border-result-winner/60 bg-result-winner-bg',
-  in_progress: 'text-callout-warning border-callout-warning-border bg-callout-warning-bg',
-  not_started: 'text-muted border-border',
+  tagged: 'text-result-winner bg-result-winner-bg',
+  in_progress: 'text-callout-warning bg-callout-warning-bg',
+  not_started: 'text-muted bg-bg-elevated',
 }
 
 export function HomeMatchRowBlock({ match, onOpen }: HomeMatchRowBlockProps) {
@@ -47,7 +47,7 @@ export function HomeMatchRowBlock({ match, onOpen }: HomeMatchRowBlockProps) {
         )}
         <span
           className={cn(
-            'hidden sm:inline text-[10px] font-semibold rounded-md border px-1.5 py-0.5',
+            'hidden sm:inline text-[10px] font-semibold rounded-md px-1.5 py-0.5',
             STATUS_STYLE[match.status]
           )}
         >
