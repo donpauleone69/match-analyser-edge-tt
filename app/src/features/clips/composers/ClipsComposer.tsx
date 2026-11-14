@@ -422,12 +422,9 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
     const byId = new Map(players.map((p) => [p.id, p]))
     const p1 = input ? byId.get(input.match.player1_id) : undefined
     const p2 = input?.match.player2_id ? byId.get(input.match.player2_id) : undefined
-    const player1Name =
-      (p1 ? `${p1.first_name}${p1.last_name ? ` ${p1.last_name}` : ''}`.trim() : '') ||
-      data.names.hero
-    const player2Name =
-      (p2 ? `${p2.first_name}${p2.last_name ? ` ${p2.last_name}` : ''}`.trim() : '') ||
-      data.names.villain
+    // Compact HUD matches Pass 1 — first names only.
+    const player1Name = (p1?.first_name?.trim() || data.names.hero.split(' ')[0] || 'Hero')
+    const player2Name = (p2?.first_name?.trim() || data.names.villain.split(' ')[0] || 'Opp')
     return {
       player1Name,
       player2Name,

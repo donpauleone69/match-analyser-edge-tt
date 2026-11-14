@@ -1,6 +1,6 @@
 /**
  * VideoPlayerSection — thin wrapper around shared VideoPlayer for tagging composers.
- * Transport chrome lives in TransportCluster / VideoStageChrome beside this section.
+ * Transport + score live in MatchVideoOverlayBar via VideoStageChrome.
  */
 
 import { forwardRef } from 'react'
