@@ -6,6 +6,22 @@
 
 ## Change Log
 
+### 2026-11-14: MA-74 — Pass 1 optional Rally Focus fields + Basic/Advanced (v3.120.0)
+
+**Change Type:** Data model + UX — Pass 1 optional stage absorbs RF phase fields; completeness flags
+
+**What Changed:**
+- **Optional attrs by phase** (allow-list merge): Serve → spin, placement, depth, Weak/High/Heavy; Pre-offensive → wing, placement, depth, Weak/High/Heavy; First attack → contact, quality (+ Safe); Later/reply → wing, stroke, initiative as RF allows. Keep Review / ★ / miss-reason (Forced = pressure).
+- **Persist:** `mapPass1FocusToDb` stores RF optionals when allow-listed (no longer strips them). Explicit placement wins over wing+pivot inference.
+- **Completeness:** `framework_confirmed` = **Basic** (compulsory Pass 1 gates on save); `detail_complete` = **Advanced** via `derivePass1AdvancedDataComplete` (all RF-class nullable choices filled for shots 1..end; toggles never gate). Advanced incomplete by default after Basic save.
+- UI optional stage shows phase-appropriate fields for the selected shot — no fake End/FA checklist.
+
+**Decision Rationale:** Paul (2026-11-13) Pass 1 absorbs Rally Focus; former RF fields not compulsory here become optional; Basic/Advanced so extras can be filled later. Plan: `docs/pass1-complete-logic-plan.md`.
+
+**Key Files:** `derivePass1ShotTagRole.ts`, `derivePass1AdvancedComplete.ts`, `mapPass1FocusToDb.ts`, `pass1FocusModel.ts`, `Pass1FocusBlock.tsx`, `persistPass1FocusRally.ts`, `DataSchema.md`.
+
+---
+
 ### 2026-11-13: MA-73 — Pass 1 FA undo + impossible-FA auto-skip (v3.119.0)
 
 **Change Type:** UX / logic — Pass 1 Focus FA correction + save gate

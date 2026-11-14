@@ -30,6 +30,13 @@ function stripOptionalPass1Tags(shot: Pass1FocusShotTags): Pass1FocusShotTags {
     isPivot: false,
     reviewKind: shot.reviewKind ?? null,
     contactTime: shot.contactTime,
+    spin: null,
+    depth: null,
+    placement: null,
+    tableContact: null,
+    quality: null,
+    isWeak: false,
+    isHeavy: false,
   }
 }
 
@@ -52,6 +59,13 @@ function toSimpleTimeline(
         isPivot: Boolean(shot.isPivot),
         reviewKind: shot.reviewKind ?? null,
         contactTime: shot.contactTime,
+        spin: null,
+        depth: null,
+        placement: null,
+        tableContact: null,
+        quality: null,
+        isWeak: false,
+        isHeavy: false,
       }
     } else {
       shots[n] = stripOptionalPass1Tags(shot)

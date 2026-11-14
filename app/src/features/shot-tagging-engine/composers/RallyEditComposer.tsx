@@ -370,6 +370,13 @@ export function RallyEditComposer() {
             isPivot: false,
             reviewKind: mapped.reviewKind,
             contactTime: mapped.contactTime,
+            spin: null,
+            depth: null,
+            placement: null,
+            tableContact: null,
+            quality: null,
+            isWeak: false,
+            isHeavy: false,
           }
         }
         timeline = { ...timeline, shots }

@@ -134,6 +134,13 @@ function stripForSimplePersist(timeline: RallyTimelineState): RallyTimelineState
         isPivot: mapped.isPivot,
         reviewKind: mapped.reviewKind,
         contactTime: mapped.contactTime,
+        spin: null,
+        depth: null,
+        placement: null,
+        tableContact: null,
+        quality: null,
+        isWeak: false,
+        isHeavy: false,
       }
     } else {
       shots[n] = {
@@ -145,6 +152,13 @@ function stripForSimplePersist(timeline: RallyTimelineState): RallyTimelineState
         isPivot: false,
         reviewKind: mapped.reviewKind,
         contactTime: mapped.contactTime,
+        spin: null,
+        depth: null,
+        placement: null,
+        tableContact: null,
+        quality: null,
+        isWeak: false,
+        isHeavy: false,
       }
     }
   }

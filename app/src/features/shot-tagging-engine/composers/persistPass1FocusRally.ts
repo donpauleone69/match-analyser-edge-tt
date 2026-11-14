@@ -332,6 +332,37 @@ function dbShotToUiTags(
           : false)
       : false
 
+  const spin =
+    shot.shot_spin === 'under'
+      ? 'Under'
+      : shot.shot_spin === 'top'
+        ? 'Top'
+        : shot.shot_spin === 'side'
+          ? 'Side'
+          : null
+  const depth =
+    shot.shot_depth === 'short'
+      ? 'Short'
+      : shot.shot_depth === 'half'
+        ? 'Half'
+        : shot.shot_depth === 'long'
+          ? 'Long'
+          : null
+  const quality =
+    shot.shot_quality === 'good'
+      ? 'Good'
+      : shot.shot_quality === 'normal'
+        ? 'Normal'
+        : shot.shot_quality === 'poor'
+          ? 'Poor'
+          : null
+  const tableContact =
+    shot.shot_contact === 'over_table'
+      ? 'Over'
+      : shot.shot_contact === 'off_table'
+        ? 'Off'
+        : null
+
   return {
     wing,
     stroke: shot.shot_stroke
@@ -347,6 +378,13 @@ function dbShotToUiTags(
         : null,
     standing: shot.shot_initiative,
     contactTime: shot.timestamp_start,
+    spin,
+    depth,
+    placement: shot.shot_placement,
+    tableContact,
+    quality,
+    isWeak: shot.shot_is_weak,
+    isHeavy: shot.shot_is_heavy,
   }
 }
 

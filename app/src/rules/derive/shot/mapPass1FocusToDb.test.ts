@@ -16,6 +16,13 @@ function tags(
     isSafe: false,
     isPivot: false,
     reviewKind: null,
+    spin: null,
+    depth: null,
+    placement: null,
+    tableContact: null,
+    quality: null,
+    isWeak: false,
+    isHeavy: false,
     ...partial,
   }
 }
@@ -65,22 +72,24 @@ describe('mapPass1FocusRallyToDb', () => {
     expect(rally.point_miss_reason).toBeNull()
 
     expect(shots).toHaveLength(6)
+    expect(rally.detail_complete).toBe(false) // RF optionals blank
 
-    // serve
+    // serve — RF attrs allow High; wing/stroke still stripped
     expect(shots[0].shot_wing).toBeNull()
     expect(shots[0].shot_stroke).toBeNull()
     expect(shots[0].shot_initiative).toBeNull()
-    expect(shots[0].shot_is_high).toBe(false)
+    expect(shots[0].shot_is_high).toBe(true)
     expect(shots[0].shot_is_safe).toBe(false)
 
-    // shot 2
-    expect(shots[1].shot_wing).toBeNull()
-    expect(shots[1].shot_is_high).toBe(false)
+    // shot 2 — RF pre-offensive keeps wing + High
+    expect(shots[1].shot_wing).toBe('BH')
+    expect(shots[1].shot_stroke).toBeNull()
+    expect(shots[1].shot_is_high).toBe(true)
 
-    // ball before attack
+    // ball before attack — High + RF pre wing
     expect(shots[2].shot_is_high).toBe(true)
     expect(shots[2].shot_is_safe).toBe(false)
-    expect(shots[2].shot_wing).toBeNull()
+    expect(shots[2].shot_wing).toBe('BH')
     expect(shots[2].shot_stroke).toBeNull()
 
     // first attack
@@ -90,7 +99,8 @@ describe('mapPass1FocusRallyToDb', () => {
     expect(shots[3].shot_is_high).toBe(false)
     expect(shots[3].shot_initiative).toBeNull()
     expect(shots[3].shot_is_pivot).toBe(false)
-    // previous placement from FOS wing FH + pivot off → FH on shot 3
+    // prior placement already set? ball-before had no explicit placement;
+    // FOS wing FH + pivot off → FH on shot 3
     expect(shots[2].shot_placement).toBe('FH')
 
     // reply
@@ -110,8 +120,8 @@ describe('mapPass1FocusRallyToDb', () => {
     expect(shots[5].shot_is_safe).toBe(false)
   })
 
-  it('ignores UI spin/placement/depth/contact/quality/weak/heavy; infers prior placement from wing', () => {
-    const { shots } = mapPass1FocusRallyToDb({
+  it('persists RF optionals when allow-listed; keeps explicit placement over wing inference', () => {
+    const { rally, shots } = mapPass1FocusRallyToDb({
       ...base,
       timeline: {
         shotCount: 3,
@@ -129,6 +139,7 @@ describe('mapPass1FocusRallyToDb', () => {
             contactTime: 1,
           }),
           2: tags({
+            wing: 'BH',
             isHigh: true,
             depth: 'Long',
             placement: 'middle',
@@ -148,20 +159,46 @@ describe('mapPass1FocusRallyToDb', () => {
       },
     })
 
-    for (const s of shots) {
-      expect(s.shot_spin).toBeNull()
-      expect(s.shot_depth).toBeNull()
-      expect(s.shot_contact).toBeNull()
-      expect(s.shot_quality).toBeNull()
-      expect(s.shot_is_weak).toBe(false)
-      expect(s.shot_is_heavy).toBe(false)
-    }
-    // UI placement on shot 2 is ignored; FOS wing FH + pivot off → prior FH
-    expect(shots[0].shot_placement).toBeNull()
-    expect(shots[1].shot_placement).toBe('FH')
-    expect(shots[2].shot_placement).toBeNull()
+    expect(rally.framework_confirmed).toBe(true)
+    expect(rally.detail_complete).toBe(true)
+
+    expect(shots[0].shot_spin).toBe('under')
+    expect(shots[0].shot_depth).toBe('short')
+    expect(shots[0].shot_placement).toBe('BH')
+    expect(shots[0].shot_is_weak).toBe(true)
+    expect(shots[0].shot_is_heavy).toBe(true)
+
+    expect(shots[1].shot_wing).toBe('BH')
+    expect(shots[1].shot_depth).toBe('long')
+    expect(shots[1].shot_placement).toBe('middle') // explicit wins over FOS wing inference
     expect(shots[1].shot_is_high).toBe(true)
+
+    expect(shots[2].shot_contact).toBe('over_table')
+    expect(shots[2].shot_quality).toBe('good')
     expect(shots[2].shot_is_safe).toBe(true)
+    expect(shots[2].shot_is_weak).toBe(false) // FA role strips attributes
+    expect(shots[2].shot_is_heavy).toBe(false)
+    expect(shots[2].shot_placement).toBeNull()
+  })
+
+  it('marks Advanced incomplete when RF optionals are blank after Basic save', () => {
+    const { rally } = mapPass1FocusRallyToDb({
+      ...base,
+      timeline: {
+        shotCount: 3,
+        fos: 3,
+        end: 3,
+        ending: 'winner',
+        missReason: null,
+        shots: {
+          1: tags({ contactTime: 1 }),
+          2: tags({ contactTime: 2 }),
+          3: tags({ wing: 'FH', stroke: 'Loop', isSafe: true, contactTime: 3 }),
+        },
+      },
+    })
+    expect(rally.framework_confirmed).toBe(true)
+    expect(rally.detail_complete).toBe(false)
   })
 
   it('keeps initiative when the reply is also the end shot', () => {
@@ -230,9 +267,11 @@ describe('mapPass1FocusRallyToDb', () => {
     })
 
     expect(rally.first_attack_index).toBeNull()
-    expect(shots[1].shot_wing).toBeNull()
-    expect(shots[1].shot_is_high).toBe(false) // no FOS → no High
-    expect(shots[2].shot_wing).toBeNull()
+    // MA-74: no-attack middle shots are RF pre-offensive → wing + High attrs
+    expect(shots[1].shot_wing).toBe('FH')
+    expect(shots[1].shot_stroke).toBeNull()
+    expect(shots[1].shot_is_high).toBe(true)
+    expect(shots[2].shot_wing).toBe('BH')
     expect(shots[3].shot_wing).toBe('FH')
     expect(shots[3].shot_stroke).toBe('push')
   })
@@ -275,8 +314,8 @@ describe('mapPass1FocusRallyToDb', () => {
     expect(rally.first_attack_index).toBeNull()
     expect(rally.point_ending).toBe('error_long')
     expect(rally.winner_id).toBe('p1')
-    // Treated as no attack → shot 2 is an end shot only
-    expect(shots[0].shot_is_high).toBe(false)
+    // Treated as no attack → shot 2 is end; serve may keep RF High attrs
+    expect(shots[0].shot_is_high).toBe(true)
     expect(shots[1].shot_is_safe).toBe(false)
     expect(shots[1].shot_wing).toBe('FH')
   })
