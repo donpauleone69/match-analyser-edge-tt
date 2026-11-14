@@ -14,7 +14,7 @@ export interface ClipQueueBlockProps {
 
 export function ClipQueueBlock({ rows, activeIndex, onSelect }: ClipQueueBlockProps) {
   return (
-    <ol className="divide-y divide-neutral-800 rounded-lg border border-neutral-800 overflow-hidden">
+    <ol className="divide-y divide-border rounded-lg border border-border overflow-hidden">
       {rows.map((row, i) => {
         const active = i === activeIndex
         return (

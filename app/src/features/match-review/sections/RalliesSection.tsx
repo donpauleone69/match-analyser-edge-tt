@@ -77,7 +77,7 @@ export function RalliesSection({
       'h-8 px-2.5 rounded-md border text-xs font-medium whitespace-nowrap transition-colors',
       active
         ? 'bg-neutral-100 text-neutral-900 border-neutral-100'
-        : 'border-neutral-700 text-neutral-300 hover:border-neutral-500'
+        : 'border-border text-neutral-300 hover:border-border-strong'
     )
 
   return (
@@ -106,7 +106,7 @@ export function RalliesSection({
       </div>
 
       {inSet.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-neutral-700 p-6 text-center space-y-3">
+        <div className="rounded-lg border border-dashed border-border p-6 text-center space-y-3">
           <p className="text-sm text-neutral-400">No rallies tagged in Set {selectedSetNumber} yet.</p>
           {set && (
             <Button size="sm" onClick={() => onTagSet(set)}>
@@ -115,7 +115,7 @@ export function RalliesSection({
           )}
         </div>
       ) : shown.length === 0 ? (
-        <p className="text-sm text-neutral-500 rounded-lg border border-neutral-800 px-3 py-3">
+        <p className="text-sm text-neutral-500 rounded-lg border border-border px-3 py-3">
           {filter === 'incomplete' ? 'No incomplete points in this set.' : 'No rallies match this filter.'}
         </p>
       ) : (
@@ -139,7 +139,7 @@ export function RalliesSection({
               </Button>
             )}
           </div>
-          <ul className="divide-y divide-neutral-800 rounded-lg border border-neutral-800 overflow-hidden">
+          <ul className="divide-y divide-border rounded-lg border border-border overflow-hidden">
             {shown.map((r) => (
               <RallyRowBlock
                 key={r.id}

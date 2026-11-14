@@ -12,9 +12,9 @@ export interface HomeMatchRowBlockProps {
 }
 
 const STATUS_STYLE: Record<HomeMatchModel['status'], string> = {
-  tagged: 'text-emerald-300 border-emerald-800/60 bg-emerald-950/40',
-  in_progress: 'text-amber-300 border-amber-800/60 bg-amber-950/40',
-  not_started: 'text-neutral-400 border-neutral-700 bg-neutral-800',
+  tagged: 'text-result-winner border-result-winner/60 bg-result-winner-bg',
+  in_progress: 'text-callout-warning border-callout-warning-border bg-callout-warning-bg',
+  not_started: 'text-neutral-500 border-border',
 }
 
 export function HomeMatchRowBlock({ match, onOpen }: HomeMatchRowBlockProps) {
@@ -23,28 +23,34 @@ export function HomeMatchRowBlock({ match, onOpen }: HomeMatchRowBlockProps) {
       <button
         type="button"
         onClick={() => onOpen(match.matchId)}
-        className="w-full flex items-center gap-3 px-3 py-3 text-left hover:bg-neutral-800/60 transition-colors"
+        className="w-full flex items-center gap-2 px-2.5 py-2 text-left hover:bg-neutral-800/60 transition-colors"
       >
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-neutral-100 truncate">{match.title}</p>
-          <p className="text-xs text-neutral-400 mt-0.5">
+          <p className="text-xs text-neutral-500 mt-0.5">
             {match.dateLabel}
-            {match.ralliesTagged > 0 && ` · ${match.ralliesTagged === 1 ? '1 rally' : `${match.ralliesTagged} rallies`} tagged`}
+            {match.ralliesTagged > 0 &&
+              ` · ${match.ralliesTagged === 1 ? '1 rally' : `${match.ralliesTagged} rallies`}`}
           </p>
         </div>
         {match.setsLabel && (
           <span
             className={cn(
-              'font-mono text-base font-bold',
-              match.heroWon === true && 'text-emerald-400',
-              match.heroWon === false && 'text-rose-400',
+              'font-mono text-sm font-bold tabular-nums',
+              match.heroWon === true && 'text-result-winner',
+              match.heroWon === false && 'text-result-error',
               match.heroWon === null && 'text-neutral-200'
             )}
           >
             {match.setsLabel}
           </span>
         )}
-        <span className={cn('hidden sm:inline text-[11px] font-semibold rounded-full border px-2 py-0.5', STATUS_STYLE[match.status])}>
+        <span
+          className={cn(
+            'hidden sm:inline text-[10px] font-semibold rounded-md border px-1.5 py-0.5',
+            STATUS_STYLE[match.status]
+          )}
+        >
           {match.statusLabel}
         </span>
         <Icon name="chevron-right" size="sm" className="text-neutral-500" />

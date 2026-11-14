@@ -37,7 +37,7 @@ export function HeadlineMetricsBlock({
           return (
             <div
               key={h.key}
-              className="rounded-lg border border-neutral-800 px-2.5 py-2 flex flex-col"
+              className="rounded-lg border border-border px-2.5 py-2 flex flex-col"
             >
               {body}
             </div>
@@ -51,8 +51,8 @@ export function HeadlineMetricsBlock({
             onClick={() => onOpenEvidence(evidence)}
             title="Show the points behind this number"
             className={cn(
-              'rounded-lg border border-neutral-800 px-2.5 py-2 flex flex-col text-left',
-              'hover:border-neutral-600 hover:bg-bg-elevated/40 transition-colors',
+              'rounded-lg border border-border px-2.5 py-2 flex flex-col text-left',
+              'hover:border-border-strong hover:bg-bg-elevated/40 transition-colors',
               active && 'border-brand-primary/50 bg-bg-elevated/50'
             )}
           >

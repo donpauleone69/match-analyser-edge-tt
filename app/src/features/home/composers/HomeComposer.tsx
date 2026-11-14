@@ -17,9 +17,9 @@ const SHORTCUT_LIMIT = 6
 
 function Panel({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <section className="rounded-xl border border-neutral-700 bg-bg-card p-4 space-y-3">
+    <section className="rounded-lg border border-border bg-bg-card p-3 md:p-4 space-y-2.5">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-400">{title}</h2>
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">{title}</h2>
         {action}
       </div>
       {children}
@@ -54,22 +54,19 @@ export function HomeComposer() {
     home.outstandingCount === 0
       ? null
       : home.outstandingCount === 1
-        ? '1 match left to finish'
-        : `${home.outstandingCount} matches left to finish`
+        ? '1 left to finish'
+        : `${home.outstandingCount} left to finish`
 
   return (
-    <div className="max-w-4xl mx-auto p-4 md:p-6 space-y-5">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-neutral-50">Home</h1>
-          <p className="text-sm text-neutral-400 mt-1">
-            Continue tagging, find matches, open playlists.
-          </p>
+    <div className="max-w-4xl mx-auto p-4 md:p-6 space-y-4">
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-xl md:text-2xl font-bold text-neutral-50">Home</h1>
           {outstandingLabel ? (
-            <p className="text-sm text-amber-300/90 mt-1">{outstandingLabel}</p>
+            <p className="text-sm text-callout-warning mt-0.5">{outstandingLabel}</p>
           ) : home.totals.matches > 0 ? (
-            <p className="text-sm text-neutral-500 mt-1">
-              {home.totals.matches} matches · {home.totals.rallies} rallies tagged
+            <p className="text-sm text-neutral-500 mt-0.5 tabular-nums">
+              {home.totals.matches} matches · {home.totals.rallies} rallies
             </p>
           ) : null}
         </div>
@@ -79,25 +76,22 @@ export function HomeComposer() {
       </header>
 
       {home.totals.matches === 0 ? (
-        <section className="rounded-xl border border-dashed border-neutral-700 p-8 text-center space-y-3">
-          <p className="text-neutral-200 font-medium">No matches yet</p>
-          <p className="text-sm text-neutral-400">
-            Create a match (opponent optional), load the video, and tap each contact. Review and
-            playlists build from your tags.
-          </p>
+        <section className="rounded-lg border border-dashed border-border p-6 text-center space-y-3">
+          <p className="text-neutral-100 font-medium">No matches yet</p>
+          <p className="text-sm text-neutral-500">Create a match, load video, tap contacts.</p>
           <div className="flex justify-center gap-2 flex-wrap">
             <Button onClick={() => navigate('/matches/create')}>
-              <Icon name="plus" size="sm" /> Create your first match
+              <Icon name="plus" size="sm" /> New match
             </Button>
             <Button variant="secondary" onClick={() => navigate('/matches')}>
-              <Icon name="search" size="sm" /> Find matches
+              <Icon name="search" size="sm" /> Find
             </Button>
             <Button variant="secondary" onClick={() => navigate('/settings')}>
-              <Icon name="file-up" size="sm" /> Import match file
+              <Icon name="file-up" size="sm" /> Import
             </Button>
             {cloudConfigured && (
               <Button variant="secondary" onClick={() => navigate('/settings')}>
-                <Icon name="cloud-download" size="sm" /> Restore from cloud
+                <Icon name="cloud-download" size="sm" /> Cloud
               </Button>
             )}
           </div>
@@ -128,9 +122,7 @@ export function HomeComposer() {
                         )
                         return
                       }
-                      navigate(
-                        `/matches/${i.matchId}/tag?set=${i.setNumber}`
-                      )
+                      navigate(`/matches/${i.matchId}/tag?set=${i.setNumber}`)
                     }}
                   />
                 ))}
@@ -139,10 +131,7 @@ export function HomeComposer() {
           )}
 
           {home.contextItems.length > 0 && (
-            <Panel title="Add context (optional)">
-              <p className="text-xs text-neutral-500 -mt-1">
-                Name an opponent or tournament when you want Clips filters. Skip anytime.
-              </p>
+            <Panel title="Context (optional)">
               <div className="space-y-2">
                 {home.contextItems.map((item) => (
                   <ContextPolishBlock
@@ -156,14 +145,14 @@ export function HomeComposer() {
           )}
 
           <Panel
-            title="Recent matches"
+            title="Recent"
             action={
               <Link to="/matches" className="text-sm text-brand-primary hover:underline">
-                Find matches
+                Find
               </Link>
             }
           >
-            <ul className="divide-y divide-neutral-800 rounded-lg border border-neutral-800 overflow-hidden">
+            <ul className="divide-y divide-border rounded-lg border border-border overflow-hidden">
               {home.recent.map((m) => (
                 <HomeMatchRowBlock key={m.matchId} match={m} onOpen={openMatch} />
               ))}
@@ -187,17 +176,17 @@ export function HomeComposer() {
             </Panel>
           )}
 
-          <p className="text-sm text-neutral-400 flex items-center gap-2 flex-wrap">
+          <p className="text-xs text-neutral-500 flex items-center gap-2 flex-wrap">
             <Icon name="hard-drive" size="sm" />
-            Matches live on this device.
+            On this device
             <Link to="/settings" className="text-brand-primary hover:underline">
-              Import a match file
+              Import
             </Link>
             {cloudConfigured && !cloudUser && (
               <>
                 <span className="text-neutral-600">·</span>
                 <Link to="/settings" className="text-brand-primary hover:underline">
-                  Sign in to back up
+                  Sign in
                 </Link>
               </>
             )}

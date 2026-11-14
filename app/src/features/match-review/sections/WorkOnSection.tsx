@@ -76,7 +76,7 @@ function SideCard({
   onPlayPlaylist?: WorkOnSectionProps['onPlayPlaylist']
 }) {
   return (
-    <div className="space-y-4 rounded-lg border border-neutral-800 px-3 py-3 md:px-4 md:py-4">
+    <div className="space-y-4 rounded-lg border border-border px-3 py-3 md:px-4 md:py-4">
       <h3 className="text-sm font-semibold text-neutral-100">
         {side.name}{' '}
         <span className="text-neutral-500 font-normal tabular-nums">· {side.total}</span>

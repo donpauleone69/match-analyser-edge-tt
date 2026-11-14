@@ -38,7 +38,7 @@ export function SummaryCategoryPlaylistBlock({
 }: SummaryCategoryPlaylistBlockProps) {
   if (rallies.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed border-neutral-800 px-3 py-5 text-sm text-neutral-500 text-center">
+      <div className="rounded-lg border border-dashed border-border px-3 py-5 text-sm text-neutral-500 text-center">
         {emptyLabel}
       </div>
     )
@@ -60,7 +60,7 @@ export function SummaryCategoryPlaylistBlock({
           )}
         </div>
       )}
-      <ul className="rounded-lg border border-neutral-800 overflow-hidden divide-y divide-neutral-800">
+      <ul className="rounded-lg border border-border overflow-hidden divide-y divide-border">
         {rallies.map((r) => (
           <RallyRowBlock
             key={r.id}

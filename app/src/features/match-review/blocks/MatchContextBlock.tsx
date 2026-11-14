@@ -76,7 +76,7 @@ export function MatchContextBlock({
             value={draft.matchDate}
             onChange={(e) => onChange({ matchDate: e.target.value })}
             disabled={saving}
-            className="bg-neutral-800 border-neutral-700"
+            className="bg-neutral-800 border-border"
           />
           <p className="text-xs text-neutral-500">{dateSourceLabel}</p>
           {suggestedVideoDate && suggestedVideoDate !== draft.matchDate && (
@@ -99,7 +99,7 @@ export function MatchContextBlock({
             value={draft.player2Id}
             onChange={(e) => onChange({ player2Id: e.target.value })}
             disabled={saving}
-            className="w-full h-10 rounded-md border border-neutral-700 bg-neutral-800 px-3 text-sm text-neutral-50"
+            className="w-full h-10 rounded-md border border-border bg-neutral-800 px-3 text-sm text-neutral-50"
           >
             <option value="">{THEM_SIDE_LABEL} (unnamed)</option>
             {players
@@ -116,7 +116,7 @@ export function MatchContextBlock({
           {!draft.showNewOpponent ? (
             <button
               type="button"
-              className="text-xs text-sky-400 hover:text-sky-300"
+              className="text-xs text-callout-info hover:opacity-90"
               onClick={() => onChange({ showNewOpponent: true })}
             >
               + New opponent
@@ -131,7 +131,7 @@ export function MatchContextBlock({
                   id="opp-first"
                   value={draft.newOpponentFirst}
                   onChange={(e) => onChange({ newOpponentFirst: e.target.value })}
-                  className="bg-neutral-800 border-neutral-700 h-9 w-28"
+                  className="bg-neutral-800 border-border h-9 w-28"
                   disabled={saving}
                 />
               </div>
@@ -143,7 +143,7 @@ export function MatchContextBlock({
                   id="opp-last"
                   value={draft.newOpponentLast}
                   onChange={(e) => onChange({ newOpponentLast: e.target.value })}
-                  className="bg-neutral-800 border-neutral-700 h-9 w-28"
+                  className="bg-neutral-800 border-border h-9 w-28"
                   disabled={saving}
                 />
               </div>
@@ -178,7 +178,7 @@ export function MatchContextBlock({
               })
             }
             disabled={saving}
-            className="w-full h-10 rounded-md border border-neutral-700 bg-neutral-800 px-3 text-sm text-neutral-50"
+            className="w-full h-10 rounded-md border border-border bg-neutral-800 px-3 text-sm text-neutral-50"
           >
             <option value="">None (friendly / practice)</option>
             {tournaments.map((t) => (
@@ -190,7 +190,7 @@ export function MatchContextBlock({
           {!draft.showNewTournament ? (
             <button
               type="button"
-              className="text-xs text-sky-400 hover:text-sky-300"
+              className="text-xs text-callout-info hover:opacity-90"
               onClick={() => onChange({ showNewTournament: true })}
             >
               + New tournament
@@ -201,7 +201,7 @@ export function MatchContextBlock({
                 value={draft.newTournamentName}
                 onChange={(e) => onChange({ newTournamentName: e.target.value })}
                 placeholder="Tournament name"
-                className="bg-neutral-800 border-neutral-700 h-9 flex-1 min-w-[10rem]"
+                className="bg-neutral-800 border-border h-9 flex-1 min-w-[10rem]"
                 disabled={saving}
               />
               <Button
@@ -231,7 +231,7 @@ export function MatchContextBlock({
               value={draft.round}
               onChange={(e) => onChange({ round: e.target.value as MatchRound | '' })}
               disabled={saving}
-              className="w-full h-10 rounded-md border border-neutral-700 bg-neutral-800 px-3 text-sm text-neutral-50"
+              className="w-full h-10 rounded-md border border-border bg-neutral-800 px-3 text-sm text-neutral-50"
             >
               <option value="">Select…</option>
               {MATCH_ROUND_OPTIONS.map((r) => (

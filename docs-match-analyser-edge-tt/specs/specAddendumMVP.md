@@ -6,6 +6,19 @@
 
 ## Change Log
 
+### 2026-11-14: MA-97 — Quiet Home / nav / IA + list border tokens (v3.135.0)
+
+**Change Type:** UX declutter — Home/nav cohesion with Review/Clips chrome
+
+**What Changed:**
+- **Home:** denser header/panels; drop tutorial blurbs; outstanding uses `callout-warning`; continue/context/recent/watch rows quieter; playlist chips `rounded-md` not pills; status colours on `result-*` / callout tokens.
+- **Nav:** bottom bar `h-12` + `border-border`; Sidebar/Header denser (legacy shell).
+- **Clips/Review lists:** migrate list/panel borders to `border-border` / `divide-border`; MatchContext links + MatchStorage conflict → `callout-info` / `callout-warning`.
+
+**Decision Rationale:** MA-97 overnight — Home/nav/IA quiet; fewer larger PRs; theme cohesion.
+
+**Key Files:** `HomeComposer.tsx`, home blocks, `AppShell.tsx`, `Sidebar.tsx`, `Header.tsx`, Clips/Review list blocks.
+
 ### 2026-11-14: MA-95 — Mute + score HUD cohesion (v3.134.0)
 
 **Change Type:** UX cohesion — shared video mute + scorebug
@@ -17,6 +30,7 @@
 **Decision Rationale:** Overnight Track A residual — mute and score HUD feel intentional across tag vs watch without one-off chrome.
 
 **Key Files:** `matchVideoMute.ts`, `MatchScoreHud.tsx`, Pass1/Simple/RallyEdit/Clips/MatchReview composers.
+
 
 ### 2026-11-14: MA-96 — Contacts / scrub / Pass 1 cohesion (v3.133.0)
 
