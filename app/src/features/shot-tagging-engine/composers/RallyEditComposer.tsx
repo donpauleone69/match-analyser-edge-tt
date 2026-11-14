@@ -322,11 +322,23 @@ export function RallyEditComposer() {
   const patchTimeline = (fn: (s: RallyTimelineState) => RallyTimelineState) =>
     setDraft((d) => (d ? { ...d, timeline: fn(d.timeline) } : d))
 
+  /** Came from a Clips playlist (browse shell Fix / stage Edit). */
+  const viaClipsPlaylist = Boolean(returnClip) && (trailFrom != null || fromParam === 'clips')
+
+  const backLabel = viaClipsPlaylist
+    ? 'Clips'
+    : trailFrom === 'workon'
+      ? 'Work on'
+      : trailFrom === 'summary'
+        ? 'Summary'
+        : fromParam === 'clips'
+          ? 'Clips'
+          : 'Review'
+
   const backToReview = (notice?: string, opts?: { keepIncompleteFilter?: boolean }) => {
     useVideoPlaybackStore.getState().setVideoUrl(null)
     // Summary / Work on / Rallies → Clips → Fix: restore Clips playlist + trail.
     // Direct Work on / Rallies → Fix (no clip param): return to that tab.
-    const viaClipsPlaylist = Boolean(returnClip) && (trailFrom != null || fromParam === 'clips')
     const tab = viaClipsPlaylist
       ? 'clips'
       : trailFrom === 'workon'
@@ -342,7 +354,10 @@ export function RallyEditComposer() {
     if (tab === 'clips' && returnClip) {
       q.set('clip', returnClip)
       if (returnClipTitle) q.set('clipTitle', returnClipTitle)
-      if (returnAt) q.set('at', returnAt)
+      // Prefer the rally just edited so the queue lands on that clip (MA-137).
+      // ClipsComposer matches shotId | rallyId | clip.id.
+      const landingAt = current?.dbRallyId ?? returnAt
+      if (landingAt) q.set('at', landingAt)
       if (trailFrom) q.set('from', trailFrom)
     }
     if (tab === 'rallies') {
@@ -553,9 +568,16 @@ export function RallyEditComposer() {
           type="button"
           onClick={() => confirmLeave() && backToReview()}
           className={cn(pillBtn, 'flex items-center gap-1')}
+          aria-label={viaClipsPlaylist ? 'Back to Clips playlist' : `Back to ${backLabel}`}
+          title={viaClipsPlaylist && returnClipTitle ? returnClipTitle : undefined}
         >
-          <Icon name="arrow-left" size="xs" /> Review
+          <Icon name="arrow-left" size="xs" /> {backLabel}
         </button>
+        {viaClipsPlaylist && returnClipTitle ? (
+          <span className="min-w-0 max-w-[40%] truncate text-[11px] text-muted" title={returnClipTitle}>
+            {returnClipTitle}
+          </span>
+        ) : null}
         <SimpleTaggingModePickerBlock
           mode={editMode}
           onSelect={handleEditModeChange}

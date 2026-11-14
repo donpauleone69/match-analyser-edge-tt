@@ -6,6 +6,21 @@
 
 ## Change Log
 
+### 2026-11-14: MA-137 — Browse shell Fix/Edit round-trip polish (v3.171.0)
+
+**Change Type:** UX polish — Clips → Fix tags → back into playlist
+
+**What Changed:**
+- Opening Fix / stage Edit from Clips sets `at` to the **current** clip (`shotId` / `rallyId`), not the original deep-link `at`, and always passes `clipTitle` (deep-link or playlist label).
+- Rally Edit Done / back restores that playlist and lands the queue on the rally just edited (`at=dbRallyId`).
+- Back pill label: **Clips** / Work on / Summary (not generic “Review”) when the round-trip context is known; quiet `clipTitle` chip beside the back control.
+
+**Decision Rationale:** Overnight Track C **MA-137** after #107 — Fix should feel continuous with the browse shell trail, not a detour that loses place in the playlist.
+
+**Key Files:** `ClipsComposer.tsx`, `RallyEditComposer.tsx`.
+
+---
+
 ### 2026-11-14: MA-129 — Work-on → Clips deep-link polish (v3.170.0)
 
 **Change Type:** UX polish — Work on ↔ Clips deep-link continuity
@@ -19,6 +34,7 @@
 **Decision Rationale:** Overnight Track A MA-129 after MA-121/131 — deep-link chrome survives in-Clips browsing and evidence handoff without lingering after tab switches.
 
 **Key Files:** `ClipsComposer.tsx`, `MatchReviewComposer.tsx`.
+
 
 ---
 
@@ -35,6 +51,7 @@
 
 **Key Files:** `specAddendumMVP.md`.
 
+
 ---
 
 ### 2026-11-14: MA-132 — Pass 1 Viewing / Live set-bar recovery (v3.168.0)
@@ -49,6 +66,7 @@
 **Decision Rationale:** Overnight Track E MA-132 after History sheet — recovery from past preview must read as deliberate, not a cryptic score chip.
 
 **Key Files:** `Pass1ChromeProtoBlock.tsx` (`Pass1SetContextBlock`), `specAddendumMVP.md`.
+
 
 ---
 
@@ -8994,6 +9012,10 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 | v3.161.0 | 2026-11-14 | MA-125: evidence drawer rows + Clips landing chrome cohesion |
 | v3.160.0 | 2026-11-14 | MA-123: residual raw paint — player/callout tokens on RallyCard/ShotList/audit |
 | v3.159.0 | 2026-11-14 | MA-121: Playlist shell Work-on trail polish + Fix return continuity |
+| v3.170.0 | 2026-11-14 | MA-137: Browse shell Fix/Edit round-trip — land on edited clip + Clips back label |
+| v3.168.0 | 2026-11-14 | MA-132: Pass 1 Viewing / Live set-bar recovery |
+| v3.167.0 | 2026-11-14 | MA-131: Summary/Evidence/Rallies → Clips return trail parity with Work-on |
+| v3.158.0 | 2026-11-14 | MA-119: notice and banner quiet pass || v3.157.0 | 2026-11-14 | MA-111: Clip/Rally/Edit stage chrome cohesion (muted tokens + edit rail) |
 | v3.158.0 | 2026-11-14 | MA-119: quiet notices and status banners |
 | v3.157.0 | 2026-11-14 | MA-111: Clip/Rally/Edit stage chrome cohesion (muted tokens + edit rail) |
 | v3.156.1 | 2026-11-14 | MA-116: Done mid-point + History/Delete density |
