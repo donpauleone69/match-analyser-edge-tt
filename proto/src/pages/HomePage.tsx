@@ -13,7 +13,7 @@ export function HomePage() {
       <PageHeader title="Home" subtitle="Recommended next steps and library." />
 
       <div className="px-4 space-y-4 pb-6">
-        <Card variant="interactive" className="space-y-2">
+        <Card className="space-y-2">
           <div className="flex items-center gap-2">
             <Icon name="target" size="sm" className="text-brand" />
             <CardTitle>Next / Continue</CardTitle>

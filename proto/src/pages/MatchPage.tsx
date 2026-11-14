@@ -9,11 +9,7 @@ export function MatchPage() {
 
   return (
     <div>
-      <PageHeader
-        title="Match"
-        subtitle={`Stub match · ${matchId}`}
-        backTo="/home"
-      />
+      <PageHeader title="Match" subtitle={`Stub match · ${matchId}`} />
       <HubTabs
         ariaLabel="Match sections"
         tabs={[
