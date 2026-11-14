@@ -742,7 +742,7 @@ export function MatchReviewComposer() {
         </EvidenceDrawerBlock>
       )}
 
-      {player && playerRally && (
+      {player && playerRally && review && (
         <RallyPlayerBlock
           ref={playerRef}
           rally={playerRally}
@@ -752,6 +752,16 @@ export function MatchReviewComposer() {
           videoUrl={playerVideoUrl}
           loop={playerRally.loop}
           isPlaying={isPlaying}
+          heroName={review.heroName}
+          villainName={review.villainName}
+          player1Sets={review.sets.reduce(
+            (n, s) => n + (s.setNumber < playerRally.setNumber && s.heroWon === true ? 1 : 0),
+            0
+          )}
+          player2Sets={review.sets.reduce(
+            (n, s) => n + (s.setNumber < playerRally.setNumber && s.heroWon === false ? 1 : 0),
+            0
+          )}
           onVideoSelect={handleVideoSelect}
           onTogglePlay={() => playerRef.current?.togglePlay()}
           onReplay={() => {

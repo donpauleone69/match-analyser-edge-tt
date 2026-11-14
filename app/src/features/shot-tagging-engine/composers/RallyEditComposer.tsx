@@ -13,8 +13,11 @@ import { Button, Icon } from '@/ui-mine'
 import {
   type VideoPlayerHandle,
   useVideoPlaybackStore,
-  TransportCluster,
   VideoStageChrome,
+  MatchScoreHud,
+  MatchVideoOverlayBar,
+  MATCH_VIDEO_OVERLAY_BOTTOM_CLASS,
+  parseScorePair,
   nudgePlaybackSpeed as nudgeSharedSpeed,
   SEEK_STEP_SECONDS as SHARED_SEEK_STEP,
 } from '@/ui-mine/VideoPlayer'
@@ -437,9 +440,11 @@ export function RallyEditComposer() {
   }
 
   const activeShot = videoUrl ? shotNumberAtTime(contactTimes, liveTime) : null
-  const scoreBefore = position > 0
-    ? `${rallies[position - 1].player1ScoreAfter}–${rallies[position - 1].player2ScoreAfter}`
-    : null
+  const scoreBefore =
+    position > 0
+      ? `${rallies[position - 1].player1ScoreAfter}–${rallies[position - 1].player2ScoreAfter}`
+      : null
+  const scorePair = parseScorePair(scoreBefore) ?? { player1: 0, player2: 0 }
   const pillBtn =
     'h-8 px-2.5 text-xs font-semibold rounded-md border border-neutral-600 text-neutral-200 hover:border-neutral-400 disabled:opacity-40 disabled:pointer-events-none'
 
@@ -476,10 +481,22 @@ export function RallyEditComposer() {
                 </button>
               ) : null
             }
+            bottomOverlayClassName={MATCH_VIDEO_OVERLAY_BOTTOM_CLASS}
             bottomOverlay={
               videoUrl ? (
-                <TransportCluster
-                  variant="overlay"
+                <MatchVideoOverlayBar
+                  score={
+                    <MatchScoreHud
+                      compact
+                      setNumber={setNumber}
+                      player1Name={player1Name}
+                      player2Name={player2Name}
+                      player1Score={scorePair.player1}
+                      player2Score={scorePair.player2}
+                      serverSide={draft.serverId}
+                      serverName={serverName}
+                    />
+                  }
                   isPlaying={isPlaying}
                   playbackSpeed={playbackSpeed}
                   seekStepSeconds={SHARED_SEEK_STEP}

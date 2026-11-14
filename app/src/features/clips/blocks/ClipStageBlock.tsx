@@ -5,6 +5,8 @@
  * on (virtual gameplay reel: no file is made). Reel mode plays a saved reel.
  * Shot-based playlists can toggle Whole rally (default) vs Shot. Speed uses the
  * shared match ladder (0.5×–2×).
+ *
+ * Transport + score use the Pass 1 overlay spine (MatchVideoOverlayBar).
  */
 
 import { forwardRef } from 'react'
@@ -12,8 +14,11 @@ import {
   Button,
   Icon,
   VideoPlayer,
-  TransportCluster,
   VideoStageChrome,
+  MatchScoreHud,
+  MatchVideoOverlayBar,
+  MATCH_VIDEO_OVERLAY_BOTTOM_CLASS,
+  type MatchScoreHudProps,
   type VideoPlayerHandle,
   useVideoPlaybackStore,
   nudgePlaybackSpeed,
@@ -48,6 +53,8 @@ export interface ClipStageBlockProps {
   onToggleAutoAdvance: () => void
   onEdit?: () => void
   onClose?: () => void
+  /** Pass 1 scorebug on the video (omit for reels / unknown score). */
+  scoreHud?: MatchScoreHudProps | null
 }
 
 export const ClipStageBlock = forwardRef<VideoPlayerHandle, ClipStageBlockProps>(
@@ -76,13 +83,14 @@ export const ClipStageBlock = forwardRef<VideoPlayerHandle, ClipStageBlockProps>
       onToggleAutoAdvance,
       onEdit,
       onClose,
+      scoreHud = null,
     },
     ref
   ) => {
     const playbackSpeed = useVideoPlaybackStore((s) => s.playbackSpeed)
     const setPlaybackSpeed = useVideoPlaybackStore((s) => s.setPlaybackSpeed)
-    const ctl =
-      'h-10 min-w-10 px-3 rounded-md border border-neutral-600 text-neutral-100 flex items-center justify-center gap-1.5 text-sm hover:border-neutral-400 disabled:opacity-40 disabled:pointer-events-none'
+    const chip =
+      'tag-control h-7 min-w-7 px-1.5 bg-black/70 text-white border-white/25 disabled:opacity-40'
     const clipMode = window !== null
     const reelMode = !clipMode
     const showWindowToggle = clipMode && playbackMode != null && onPlaybackModeChange
@@ -138,7 +146,59 @@ export const ClipStageBlock = forwardRef<VideoPlayerHandle, ClipStageBlockProps>
               <Icon name="loader" size="sm" className="animate-spin" /> Finding video…
             </div>
           ) : (
-            <VideoStageChrome>
+            <VideoStageChrome
+              bottomOverlayClassName={MATCH_VIDEO_OVERLAY_BOTTOM_CLASS}
+              bottomOverlay={
+                videoUrl ? (
+                  <MatchVideoOverlayBar
+                    score={scoreHud ? <MatchScoreHud {...scoreHud} compact /> : null}
+                    isPlaying={isPlaying}
+                    playbackSpeed={playbackSpeed}
+                    disabled={!videoUrl}
+                    seekStepSeconds={SEEK_STEP_SECONDS}
+                    onTogglePlay={onTogglePlay}
+                    onSeekBy={handleSeekBy}
+                    onNudgeSpeed={(dir) => setPlaybackSpeed(nudgePlaybackSpeed(playbackSpeed, dir))}
+                    trailing={
+                      <>
+                        <button
+                          type="button"
+                          className={chip}
+                          onClick={onReplay}
+                          disabled={!videoUrl}
+                          aria-label="Replay"
+                          title="Replay"
+                        >
+                          <Icon name="rotate-ccw" size="sm" />
+                        </button>
+                        {showPlaylistNav && (
+                          <>
+                            <button
+                              type="button"
+                              className={chip}
+                              onClick={onPrev}
+                              disabled={position <= 0}
+                              aria-label="Previous clip"
+                            >
+                              <Icon name="chevron-left" size="sm" />
+                            </button>
+                            <button
+                              type="button"
+                              className={chip}
+                              onClick={onNext}
+                              disabled={position >= total - 1}
+                              aria-label="Next clip"
+                            >
+                              <Icon name="chevron-right" size="sm" />
+                            </button>
+                          </>
+                        )}
+                      </>
+                    }
+                  />
+                ) : null
+              }
+            >
               <VideoPlayer
                 ref={ref}
                 videoSrc={videoUrl ?? undefined}
@@ -159,46 +219,13 @@ export const ClipStageBlock = forwardRef<VideoPlayerHandle, ClipStageBlockProps>
           )}
         </div>
 
-        <div className="px-4 py-3 flex flex-wrap items-center gap-2">
-          {showPlaylistNav && (
-            <button type="button" className={ctl} onClick={onPrev} disabled={position <= 0} aria-label="Previous clip">
-              <Icon name="chevron-left" size="sm" />
-            </button>
-          )}
-          <TransportCluster
-            variant="footer"
-            isPlaying={isPlaying}
-            playbackSpeed={playbackSpeed}
-            disabled={!videoUrl}
-            seekStepSeconds={SEEK_STEP_SECONDS}
-            onTogglePlay={onTogglePlay}
-            onSeekBy={handleSeekBy}
-            onNudgeSpeed={(dir) => setPlaybackSpeed(nudgePlaybackSpeed(playbackSpeed, dir))}
-            trailing={
-              <>
-                <button type="button" className={ctl} onClick={onReplay} disabled={!videoUrl}>
-                  <Icon name="rotate-ccw" size="sm" /> Replay
-                </button>
-                {showPlaylistNav && (
-                  <button
-                    type="button"
-                    className={ctl}
-                    onClick={onNext}
-                    disabled={position >= total - 1}
-                    aria-label="Next clip"
-                  >
-                    <Icon name="chevron-right" size="sm" />
-                  </button>
-                )}
-              </>
-            }
-          />
+        <div className="px-4 py-2.5 flex flex-wrap items-center gap-2">
           {showWindowToggle && (
-            <div className="ml-1 flex rounded-md border border-neutral-600 overflow-hidden text-xs">
+            <div className="flex rounded-md border border-neutral-600 overflow-hidden text-xs">
               <button
                 type="button"
                 className={cn(
-                  'px-2.5 h-10 transition-colors',
+                  'px-2.5 h-9 transition-colors',
                   playbackMode === 'rally' ? 'bg-neutral-600 text-neutral-50' : 'text-neutral-400 hover:text-neutral-100'
                 )}
                 onClick={() => onPlaybackModeChange('rally')}
@@ -209,7 +236,7 @@ export const ClipStageBlock = forwardRef<VideoPlayerHandle, ClipStageBlockProps>
               <button
                 type="button"
                 className={cn(
-                  'px-2.5 h-10 transition-colors border-l border-neutral-600',
+                  'px-2.5 h-9 transition-colors border-l border-neutral-600',
                   playbackMode === 'shot' ? 'bg-neutral-600 text-neutral-50' : 'text-neutral-400 hover:text-neutral-100'
                 )}
                 onClick={() => onPlaybackModeChange('shot')}
@@ -219,7 +246,7 @@ export const ClipStageBlock = forwardRef<VideoPlayerHandle, ClipStageBlockProps>
             </div>
           )}
           {clipMode && (
-            <label className="ml-1 flex items-center gap-2 text-xs text-neutral-400 select-none cursor-pointer">
+            <label className="flex items-center gap-2 text-xs text-neutral-400 select-none cursor-pointer">
               <input type="checkbox" checked={autoAdvance} onChange={onToggleAutoAdvance} className="accent-brand-primary" />
               Play through
             </label>

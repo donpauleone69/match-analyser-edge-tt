@@ -3,6 +3,8 @@
  *
  * Loops the rally window. When the set's video is not loaded on this device,
  * the player shows its file picker; the composer saves the file for next time.
+ *
+ * Transport + score use the Pass 1 overlay spine (MatchVideoOverlayBar).
  */
 
 import { forwardRef } from 'react'
@@ -10,8 +12,11 @@ import {
   Button,
   Icon,
   VideoPlayer,
-  TransportCluster,
   VideoStageChrome,
+  MatchScoreHud,
+  MatchVideoOverlayBar,
+  MATCH_VIDEO_OVERLAY_BOTTOM_CLASS,
+  parseScorePair,
   type VideoPlayerHandle,
   useVideoPlaybackStore,
   nudgePlaybackSpeed,
@@ -28,6 +33,11 @@ export interface RallyPlayerBlockProps {
   /** Loop window; null when the rally has no contact times */
   loop: { start: number; end: number } | null
   isPlaying: boolean
+  heroName: string
+  villainName: string
+  /** Sets won before this rally's set (optional HUD context). */
+  player1Sets?: number
+  player2Sets?: number
   onVideoSelect: (url: string) => void
   onTogglePlay: () => void
   onReplay: () => void
@@ -47,6 +57,10 @@ export const RallyPlayerBlock = forwardRef<VideoPlayerHandle, RallyPlayerBlockPr
       videoUrl,
       loop,
       isPlaying,
+      heroName,
+      villainName,
+      player1Sets = 0,
+      player2Sets = 0,
       onVideoSelect,
       onTogglePlay,
       onReplay,
@@ -59,8 +73,8 @@ export const RallyPlayerBlock = forwardRef<VideoPlayerHandle, RallyPlayerBlockPr
   ) => {
     const playbackSpeed = useVideoPlaybackStore((s) => s.playbackSpeed)
     const setPlaybackSpeed = useVideoPlaybackStore((s) => s.setPlaybackSpeed)
-    const ctl =
-      'h-10 min-w-10 px-3 rounded-md border border-neutral-600 text-neutral-100 flex items-center justify-center gap-1.5 text-sm hover:border-neutral-400 disabled:opacity-40 disabled:pointer-events-none'
+    const chip =
+      'tag-control h-7 min-w-7 px-1.5 bg-black/70 text-white border-white/25 disabled:opacity-40'
 
     const handleSeekBy = (deltaSeconds: number) => {
       if (!ref || typeof ref === 'function') return
@@ -68,6 +82,22 @@ export const RallyPlayerBlock = forwardRef<VideoPlayerHandle, RallyPlayerBlockPr
       if (!player) return
       player.seek(player.getCurrentTime() + deltaSeconds)
     }
+
+    const scorePair = parseScorePair(rally.scoreBefore)
+    const scoreHud = scorePair ? (
+      <MatchScoreHud
+        compact
+        setNumber={rally.setNumber}
+        player1Name={heroName}
+        player2Name={villainName}
+        player1Score={scorePair.player1}
+        player2Score={scorePair.player2}
+        player1Sets={player1Sets}
+        player2Sets={player2Sets}
+        serverSide={rally.heroServed ? 'player1' : 'player2'}
+        serverName={rally.serverName}
+      />
+    ) : null
 
     return (
       <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-2 md:p-6" role="dialog" aria-label="Rally player">
@@ -102,7 +132,55 @@ export const RallyPlayerBlock = forwardRef<VideoPlayerHandle, RallyPlayerBlockPr
           </div>
 
           <div className="relative w-full aspect-video bg-black">
-            <VideoStageChrome>
+            <VideoStageChrome
+              bottomOverlayClassName={MATCH_VIDEO_OVERLAY_BOTTOM_CLASS}
+              bottomOverlay={
+                videoUrl ? (
+                  <MatchVideoOverlayBar
+                    score={scoreHud}
+                    isPlaying={isPlaying}
+                    playbackSpeed={playbackSpeed}
+                    disabled={!videoUrl}
+                    seekStepSeconds={SEEK_STEP_SECONDS}
+                    onTogglePlay={onTogglePlay}
+                    onSeekBy={handleSeekBy}
+                    onNudgeSpeed={(dir) => setPlaybackSpeed(nudgePlaybackSpeed(playbackSpeed, dir))}
+                    trailing={
+                      <>
+                        <button
+                          type="button"
+                          className={chip}
+                          onClick={onReplay}
+                          disabled={!videoUrl || !loop}
+                          aria-label="Replay"
+                          title="Replay"
+                        >
+                          <Icon name="rotate-ccw" size="sm" />
+                        </button>
+                        <button
+                          type="button"
+                          className={chip}
+                          onClick={onPrev}
+                          disabled={position === 0}
+                          aria-label="Previous rally"
+                        >
+                          <Icon name="chevron-left" size="sm" />
+                        </button>
+                        <button
+                          type="button"
+                          className={chip}
+                          onClick={onNext}
+                          disabled={position >= total - 1}
+                          aria-label="Next rally"
+                        >
+                          <Icon name="chevron-right" size="sm" />
+                        </button>
+                      </>
+                    }
+                  />
+                ) : null
+              }
+            >
               <VideoPlayer
                 ref={ref}
                 videoSrc={videoUrl ?? undefined}
@@ -126,30 +204,7 @@ export const RallyPlayerBlock = forwardRef<VideoPlayerHandle, RallyPlayerBlockPr
             )}
           </div>
 
-          <div className="px-4 py-3 flex flex-wrap items-center gap-2">
-            <button type="button" className={ctl} onClick={onPrev} disabled={position === 0} aria-label="Previous rally">
-              <Icon name="chevron-left" size="sm" />
-            </button>
-            <TransportCluster
-              variant="footer"
-              isPlaying={isPlaying}
-              playbackSpeed={playbackSpeed}
-              disabled={!videoUrl}
-              seekStepSeconds={SEEK_STEP_SECONDS}
-              onTogglePlay={onTogglePlay}
-              onSeekBy={handleSeekBy}
-              onNudgeSpeed={(dir) => setPlaybackSpeed(nudgePlaybackSpeed(playbackSpeed, dir))}
-              trailing={
-                <>
-                  <button type="button" className={ctl} onClick={onReplay} disabled={!videoUrl || !loop}>
-                    <Icon name="rotate-ccw" size="sm" /> Replay
-                  </button>
-                  <button type="button" className={ctl} onClick={onNext} disabled={position >= total - 1} aria-label="Next rally">
-                    <Icon name="chevron-right" size="sm" />
-                  </button>
-                </>
-              }
-            />
+          <div className="px-4 py-2.5 flex flex-wrap items-center gap-2">
             <p className="text-xs text-neutral-400 flex-1 min-w-[12rem] truncate">{rally.summary}</p>
             <Button size="sm" variant="secondary" onClick={onEdit}>
               <Icon name="edit" size="sm" /> Edit tags
