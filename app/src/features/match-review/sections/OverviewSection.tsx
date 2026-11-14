@@ -17,7 +17,9 @@ export interface OverviewSectionProps {
   review: MatchReviewViewModel
   activeEvidenceTitle: string | null
   categoryId: string | null
+  focusId?: string | null
   onSelectCategory: (id: string | null) => void
+  onFocusChange?: (focusId: string | null) => void
   onOpenEvidence: (evidence: EvidenceRef) => void
   activeRallyId?: string | null
   onPlayCategoryPlaylist: (title: string, rallies: RallyRowModel[]) => void
@@ -34,7 +36,9 @@ export function OverviewSection({
   review,
   activeEvidenceTitle,
   categoryId,
+  focusId = null,
   onSelectCategory,
+  onFocusChange,
   onOpenEvidence,
   activeRallyId = null,
   onPlayCategoryPlaylist,
@@ -62,6 +66,8 @@ export function OverviewSection({
         multiSet={multiSet}
         activeEvidenceTitle={activeEvidenceTitle}
         activeRallyId={activeRallyId}
+        focusIdFromUrl={focusId}
+        onFocusChange={onFocusChange}
         onBack={() => onSelectCategory(null)}
         onOpenEvidence={onOpenEvidence}
         onPlayPlaylist={onPlayCategoryPlaylist}

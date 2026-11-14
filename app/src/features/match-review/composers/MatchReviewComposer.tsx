@@ -81,6 +81,7 @@ export function MatchReviewComposer() {
 
   const tab = resolveReviewTab(searchParams.get('tab'))
   const categoryId = searchParams.get('cat')
+  const focusId = searchParams.get('focus')
   const rallySetParam = Number(searchParams.get('s'))
   const rfParam = searchParams.get('rf')
 
@@ -598,7 +599,9 @@ export function MatchReviewComposer() {
           review={review}
           activeEvidenceTitle={evidence?.title ?? null}
           categoryId={categoryId}
-          onSelectCategory={(id) => setParams({ cat: id, tab: null })}
+          focusId={focusId}
+          onSelectCategory={(id) => setParams({ cat: id, tab: null, focus: null })}
+          onFocusChange={(id) => setParams({ focus: id })}
           onOpenEvidence={openEvidence}
           activeRallyId={playerRally?.id ?? null}
           onPlayCategoryPlaylist={(title, rallies) => {
@@ -607,12 +610,13 @@ export function MatchReviewComposer() {
               clip: encodeClipFilter({ kind: 'rallies', rallyIds: rallies.map((r) => r.id) }),
               clipTitle: title,
               cat: null,
+              focus: null,
             })
           }}
           onWatchRally={(rally, playlist, title) => watch(rally, playlist, title)}
           onEditRally={openEditor}
           onToggleHighlight={toggleHighlight}
-          onOpenDetails={() => setParams({ tab: 'details', cat: null })}
+          onOpenDetails={() => setParams({ tab: 'details', cat: null, focus: null })}
           onOpenIncomplete={() => {
             const first =
               review.rallies.find((r) => r.isIncomplete)?.setNumber ?? selectedSetNumber
@@ -621,6 +625,7 @@ export function MatchReviewComposer() {
               rf: 'incomplete',
               s: String(first),
               cat: null,
+              focus: null,
             })
           }}
         />

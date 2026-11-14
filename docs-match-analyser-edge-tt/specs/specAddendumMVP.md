@@ -6,6 +6,21 @@
 
 ## Change Log
 
+### 2026-11-14: MA-98 — Serve/Receive focus deep-link + sticky playlist (v3.139.0)
+
+**Change Type:** UX polish — Serve Data / Receive Data
+
+**What Changed:**
+- URL `?focus=` deep-link into Serve/Receive playlist focus; sticky playlist chrome; evidence tap scrolls playlist into view.
+- Glance cards drop duplicate story under the page blurb.
+- Adopts MA-100 `BrowseDisclosure` via existing `PlaylistFocusPickerBlock` — no duplicate primitive.
+
+**Decision Rationale:** Overnight Track D MA-98; rebased after #77 BrowseDisclosure landed.
+
+**Key Files:** `ServeReceiveDataSection.tsx`, `OverviewSection.tsx`, `SummarySection.tsx`, `MatchReviewComposer.tsx`.
+
+---
+
 ### 2026-11-14: MA-101 — Quiet match shell / settings / Find density (v3.138.0)
 
 **Change Type:** UX declutter — Find / create / Account / match shell chrome
@@ -20,6 +35,8 @@
 
 **Key Files:** `MatchListComposer.tsx`, `MatchListFiltersBlock.tsx`, `MatchListSection.tsx`, `MatchFormSection.tsx`, `MatchCreationComposer.tsx`, `AccountComposer.tsx`, `AccountGateComposer.tsx`, `SignInFormBlock.tsx`, `SetPanelBlock.tsx`, `MatchStorageBlock.tsx`, `DetailsSection.tsx`, `MatchResultEntryModal.tsx`.
 
+---
+
 ### 2026-11-14: MA-100 — BrowseDisclosure + stage scrub cohesion (v3.137.0)
 
 **Change Type:** UX cohesion — playlist browse + shared overlay stages
@@ -32,6 +49,8 @@
 **Decision Rationale:** Overnight Track A MA-100 — glue overlay into playlist/browse surfaces; ready for Track C shell.
 
 **Key Files:** `BrowseDisclosure.tsx`, `PlaylistFocusPickerBlock.tsx`, `ClipsComposer.tsx`, `ClipStageBlock.tsx`, `RallyPlayerBlock.tsx`.
+
+---
 
 ### 2026-11-14: MA-99 — Tagging flow visual polish (v3.136.0)
 

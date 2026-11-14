@@ -1,11 +1,12 @@
 /**
- * ServeReceiveDataSection — curated Serve / Receive Data page (MA-82 / MA-94).
+ * ServeReceiveDataSection — curated Serve / Receive Data (MA-82 / MA-94 / MA-98).
  *
- * Flow: headlines → ≤2 cards → History-style focus picker → points →
+ * Flow: headlines → ≤2 cards → focus picker → points →
  * watch (RallyPlayer + MatchVideoOverlayBar) or Clips playlist.
+ * Focus picker uses MA-100 BrowseDisclosure via PlaylistFocusPickerBlock.
  */
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Button, Icon } from '@/ui-mine'
 import { CompareCardBlock } from '../blocks/CompareCardBlock'
 import { HeadlineMetricsBlock } from '../blocks/HeadlineMetricsBlock'
@@ -26,6 +27,9 @@ export interface ServeReceiveDataSectionProps {
   multiSet: boolean
   activeEvidenceTitle: string | null
   activeRallyId?: string | null
+  /** URL `?focus=` deep-link into a playlist focus id */
+  focusIdFromUrl?: string | null
+  onFocusChange?: (focusId: string | null) => void
   onBack: () => void
   onOpenEvidence: (evidence: EvidenceRef) => void
   onPlayPlaylist: (title: string, rallies: RallyRowModel[]) => void
@@ -57,6 +61,8 @@ export function ServeReceiveDataSection({
   multiSet,
   activeEvidenceTitle,
   activeRallyId = null,
+  focusIdFromUrl = null,
+  onFocusChange,
   onBack,
   onOpenEvidence,
   onPlayPlaylist,
@@ -65,15 +71,24 @@ export function ServeReceiveDataSection({
   onToggleHighlight,
 }: ServeReceiveDataSectionProps) {
   const baseFocuses = section.playlistFocuses ?? []
-  const [focusId, setFocusId] = useState<string | null>(() => baseFocuses[0]?.id ?? null)
+  const initialFocus =
+    (focusIdFromUrl && baseFocuses.some((f) => f.id === focusIdFromUrl) && focusIdFromUrl) ||
+    baseFocuses[0]?.id ||
+    null
+  const [focusId, setFocusId] = useState<string | null>(initialFocus)
   const [evidenceFocus, setEvidenceFocus] = useState<PlaylistFocusModel | null>(null)
+  const playlistRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
-    setFocusId(section.playlistFocuses?.[0]?.id ?? null)
+    const next =
+      (focusIdFromUrl && baseFocuses.some((f) => f.id === focusIdFromUrl) && focusIdFromUrl) ||
+      section.playlistFocuses?.[0]?.id ||
+      null
+    setFocusId(next)
     setEvidenceFocus(null)
-    // Reset when switching Serve ↔ Receive only
+    // Reset when switching Serve ↔ Receive or URL focus
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [section.id])
+  }, [section.id, focusIdFromUrl])
 
   const focuses = useMemo(() => {
     if (!evidenceFocus) return baseFocuses
@@ -95,6 +110,16 @@ export function ServeReceiveDataSection({
     ? `${section.title} · ${activeFocus.label}`
     : `${section.title} · points`
 
+  const selectFocus = (f: PlaylistFocusModel) => {
+    setFocusId(f.id)
+    if (f.id !== EVIDENCE_FOCUS_ID) {
+      setEvidenceFocus(null)
+      onFocusChange?.(f.id)
+    } else {
+      onFocusChange?.(null)
+    }
+  }
+
   const openEvidenceAndFocus = (evidence: EvidenceRef) => {
     onOpenEvidence(evidence)
     const match = baseFocuses.find(
@@ -105,17 +130,22 @@ export function ServeReceiveDataSection({
     if (match) {
       setEvidenceFocus(null)
       setFocusId(match.id)
-      return
+      onFocusChange?.(match.id)
+    } else {
+      const next: PlaylistFocusModel = {
+        id: EVIDENCE_FOCUS_ID,
+        label: shortEvidenceLabel(evidence.title),
+        count: evidence.rallyIds.length,
+        tone: 'amber',
+        rallyIds: [...evidence.rallyIds],
+      }
+      setEvidenceFocus(next)
+      setFocusId(EVIDENCE_FOCUS_ID)
+      onFocusChange?.(null)
     }
-    const next: PlaylistFocusModel = {
-      id: EVIDENCE_FOCUS_ID,
-      label: shortEvidenceLabel(evidence.title),
-      count: evidence.rallyIds.length,
-      tone: 'amber',
-      rallyIds: [...evidence.rallyIds],
-    }
-    setEvidenceFocus(next)
-    setFocusId(EVIDENCE_FOCUS_ID)
+    requestAnimationFrame(() => {
+      playlistRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    })
   }
 
   return (
@@ -150,7 +180,7 @@ export function ServeReceiveDataSection({
             key={card.id}
             id={card.id}
             title={card.title}
-            story={card.story}
+            story={card.id === 'B0' || card.id === 'C0' ? '' : card.story}
             heroName="You"
             villainName={villainName}
             rows={card.rows}
@@ -162,18 +192,18 @@ export function ServeReceiveDataSection({
         ))}
       </div>
 
-      <section className="space-y-2.5" aria-label="Supporting playlist">
-        <div className="flex flex-wrap items-center gap-2">
+      <section ref={playlistRef} className="space-y-2.5" aria-label="Supporting playlist">
+        <div className="sticky top-14 z-10 -mx-1 px-1 py-2 bg-bg-surface/95 backdrop-blur border-b border-border flex flex-wrap items-center gap-2">
           <div className="min-w-0 flex-1">
             <h3 className="text-sm font-semibold text-neutral-50">Playlist</h3>
             <p className="text-xs text-neutral-500 truncate">
-              {activeFocus ? activeFocus.label : 'Pick a focus'} · watch or open in Clips
+              {activeFocus ? activeFocus.label : 'Pick a focus'} · watch or Clips
             </p>
           </div>
           <PlaylistFocusPickerBlock
             focuses={focuses}
             activeId={activeFocus?.id ?? ''}
-            onSelect={(f) => setFocusId(f.id)}
+            onSelect={selectFocus}
           />
           {playlistRallies.length > 0 && (
             <Button size="sm" variant="secondary" onClick={() => onPlayPlaylist(playlistTitle, playlistRallies)}>
