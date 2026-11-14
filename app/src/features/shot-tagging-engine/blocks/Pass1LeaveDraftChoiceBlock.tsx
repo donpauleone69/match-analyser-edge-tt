@@ -33,7 +33,7 @@ export function Pass1LeaveDraftChoiceBlock({
     >
       <div
         className={cn(
-          'w-full max-w-sm rounded-lg border border-neutral-700 bg-bg-card p-5 shadow-lg',
+          'w-full max-w-sm rounded-lg border border-border bg-bg-card p-5 shadow-lg',
           className
         )}
       >
@@ -68,7 +68,7 @@ export function Pass1LeaveDraftChoiceBlock({
             variant="secondary"
             onClick={onCancel}
             className="!h-11 !w-full"
-            aria-label="Stay on Pass 1"
+            aria-label="Stay tagging"
           >
             Stay
           </Button>

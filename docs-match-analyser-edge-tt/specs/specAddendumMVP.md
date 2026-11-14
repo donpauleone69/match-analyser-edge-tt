@@ -6,6 +6,22 @@
 
 ## Change Log
 
+### 2026-11-14: MA-102 — Pass 1 chrome final polish (v3.141.0)
+
+**Change Type:** UX polish — Pass 1 / Simple persistent tagging chrome
+
+**What Changed:**
+- **Set bar through form:** Serve · Done · Leave (and History when between points) stay visible during End/FA tagging — not only on the contacts pad.
+- **Slim form row:** Let · Discard · Save only (dropped duplicate Serve chip / “Point in progress”); status hint is stage copy.
+- **Simple Leave:** soft exit with Keep draft / Discard (parity with Pass 1).
+- **Borders:** Pass 1 chrome surfaces use `border-border` (set bar, History, sticky rail, contacts rail, leave dialog).
+
+**Decision Rationale:** Overnight Track E MA-102 — final Pass 1 chrome cohesion after MA-99; Done/Leave always reachable; one Serve control.
+
+**Key Files:** `Pass1FocusComposer.tsx`, `SimpleTaggingComposer.tsx`, `Pass1ChromeProtoBlock.tsx`, `Pass1FocusBlock.tsx`, `Pass1LeaveDraftChoiceBlock.tsx`.
+
+---
+
 ### 2026-11-14: MA-81 — Playlist browse shell (v3.140.0)
 
 **Change Type:** UX — fuller Clips playlist browse on shared BrowseDisclosure

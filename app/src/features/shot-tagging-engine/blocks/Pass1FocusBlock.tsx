@@ -745,7 +745,7 @@ export function Pass1FocusBlock({
       {/* Sticky: RALLY rail + phase markers; guiding dialog below rail (MA-77). */}
       <div
         data-pass1-sticky
-        className="sticky top-0 z-10 -mx-1.5 px-1.5 pt-0.5 pb-1 mb-1 bg-bg-card/95 backdrop-blur-sm border-b border-pill-idle-border space-y-1"
+        className="sticky top-0 z-10 -mx-1.5 px-1.5 pt-0.5 pb-1 mb-1 bg-bg-card/95 backdrop-blur-sm border-b border-border space-y-1"
       >
         <Pass1ShotMarkRail
           state={state}

@@ -1316,39 +1316,18 @@ export function Pass1FocusComposer({
     />
   )
 
-  /** Simple-style form chrome: Serve · player | status | Let / Discard / Save. */
+  /**
+   * Form action row under the persistent set bar (MA-102).
+   * Serve / Point in progress / Done / Leave live on setContextBar — avoid duplicate Serve.
+   */
   const formChromeRow =
     openRally && phase === 'form' ? (
-      <div className="shrink-0 flex min-h-10 items-center gap-1 border-t border-b border-pill-idle-border bg-bg-card px-1.5 py-1 text-[length:var(--control-text)]">
-        <button
-          type="button"
-          onClick={() =>
-            void handleSetServer(openServerId === 'player1' ? 'player2' : 'player1')
-          }
-          className={cn(
-            tagBtn,
-            'min-w-0 max-w-[6.75rem] shrink-0 gap-1 font-bold',
-            openServerId === 'player1'
-              ? 'bg-player-1-bg border-player-1 text-primary'
-              : 'bg-player-2-bg border-player-2 text-primary'
-          )}
-          title={`Rally server: ${serverName}. Tap to switch.`}
-          aria-label={`Rally server: ${serverName}. Tap to switch.`}
-        >
-          <span
-            className={cn(
-              'h-1.5 w-1.5 shrink-0 rounded-full',
-              openServerId === 'player1' ? 'bg-player-1' : 'bg-player-2'
-            )}
-            aria-hidden
-          />
-          <span className="truncate">Serve · {serverName}</span>
-        </button>
+      <div className="shrink-0 flex min-h-10 items-center gap-1 border-b border-border bg-bg-card px-1.5 py-1 text-[length:var(--control-text)]">
         <span
-          className="min-w-0 flex-1 truncate px-1 text-center text-[10px] font-semibold text-primary"
+          className="min-w-0 flex-1 truncate px-1 text-[10px] font-semibold text-muted"
           role="status"
         >
-          {saveHint && !canSave ? saveHint : 'Point in progress'}
+          {saveHint && !canSave ? saveHint : 'Tag End · FA · optionals'}
         </span>
         <button
           type="button"
@@ -1477,7 +1456,8 @@ export function Pass1FocusComposer({
           </div>
         ) : (
           <div className="relative flex flex-col flex-1 min-h-0">
-            {/* Simple chrome: Serve · player + Let / Discard / Save (Pass 1 tagging below) */}
+            {/* Persistent set chrome through form (Done / Leave / Serve); slim Let·Discard·Save below. */}
+            {setContextBar}
             {formChromeRow}
             {pointLedger}
             <div
@@ -1525,7 +1505,7 @@ export function Pass1FocusComposer({
 /** Contact-phase chrome: shot rail under the set context bar (flush with capture pad). */
 function TaggingSessionBar({ captureRail }: { captureRail: ReactNode }) {
   return (
-    <div className="shrink-0 border-t border-pill-idle-border bg-bg-card">
+    <div className="shrink-0 border-t border-border bg-bg-card">
       <div className="px-1.5 pt-1 pb-0">{captureRail}</div>
     </div>
   )
