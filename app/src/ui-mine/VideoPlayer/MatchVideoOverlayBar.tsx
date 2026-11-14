@@ -88,5 +88,5 @@ export function MatchVideoOverlayIconButton({
   return <button type={type} className={cn(MATCH_VIDEO_OVERLAY_CHIP_CLASS, className)} {...props} />
 }
 
-/** Shared bottom offset so HUD clears the progress bar (Pass 1 / Simple). */
-export const MATCH_VIDEO_OVERLAY_BOTTOM_CLASS = '!bottom-4'
+/** Shared bottom offset so HUD clears the progress bar + rally marks (Pass 1 / Simple). */
+export const MATCH_VIDEO_OVERLAY_BOTTOM_CLASS = '!bottom-5'

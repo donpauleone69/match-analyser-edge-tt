@@ -1122,9 +1122,14 @@ export function SimpleTaggingComposer({
         duration: duration > 0 ? duration : 1,
         liveTime,
         completed,
-        contactTimes: phase === 'tapping' ? contactTimes : [],
+        contactTimes:
+          phase === 'tapping'
+            ? contactTimes
+            : openRally
+              ? [openRally.serveTimestamp, openRally.endTimestamp]
+              : [],
       }),
-    [duration, liveTime, completed, phase, contactTimes]
+    [duration, liveTime, completed, phase, contactTimes, openRally]
   )
 
   const scrubMarks = useMemo(
@@ -1133,8 +1138,24 @@ export function SimpleTaggingComposer({
         completed,
         focusedRallyIndex,
         draftContactTimes: phase === 'tapping' && !previewRally ? contactTimes : [],
+        openDraft:
+          phase === 'form' && openRally && !previewRally
+            ? {
+                serveTimestamp: openRally.serveTimestamp,
+                endTimestamp: openRally.endTimestamp,
+                serverId: openServerId,
+              }
+            : null,
       }),
-    [completed, focusedRallyIndex, phase, previewRally, contactTimes]
+    [
+      completed,
+      focusedRallyIndex,
+      phase,
+      previewRally,
+      contactTimes,
+      openRally,
+      openServerId,
+    ]
   )
 
   const progressMarkers: VideoProgressMarker[] = useMemo(

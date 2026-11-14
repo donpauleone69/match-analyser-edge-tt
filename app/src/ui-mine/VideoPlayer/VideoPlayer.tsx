@@ -524,8 +524,8 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
         <div className="absolute bottom-0 left-0 right-0 px-2 pb-1.5 z-20">
           <div
             className={cn(
-              'bg-black/50 rounded-full cursor-pointer relative',
-              hasRallyMarks ? 'h-2.5' : 'h-1'
+              'bg-black/55 rounded-full cursor-pointer relative',
+              hasRallyMarks ? 'h-3' : 'h-1.5'
             )}
             role="slider"
             aria-label="Video timeline"
@@ -549,7 +549,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
           >
             {constrainedPlayback?.enabled && 'constrainedStart' in progressStyle && (
               <div
-                className="absolute top-0 bottom-0 bg-brand-primary/30 rounded-full"
+                className="absolute top-0 bottom-0 bg-brand-primary/25 rounded-full pointer-events-none"
                 style={{
                   left: `${progressStyle.constrainedStart}%`,
                   width: `${(progressStyle.constrainedEnd || 0) - (progressStyle.constrainedStart || 0)}%`,
@@ -557,10 +557,16 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
               />
             )}
 
+            {/* Soft elapsed wash under marks — marks stay colour-readable. */}
+            <div
+              className="absolute top-0 bottom-0 left-0 rounded-full bg-white/25 pointer-events-none"
+              style={{ width: progressStyle.width }}
+            />
+
             {progressMarkers.map((marker) => {
               const left = timeToScrubPercent(marker.startTime)
               const right = timeToScrubPercent(marker.endTime)
-              const rawWidth = Math.max(right - left, marker.kind === 'draft' ? 0.6 : 1.8)
+              const rawWidth = Math.max(right - left, marker.kind === 'draft' ? 0.7 : 2.2)
               const width = Math.min(100 - left, rawWidth)
               return (
                 <button
@@ -569,15 +575,15 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
                   title={marker.title}
                   aria-label={marker.title ?? 'Rally mark'}
                   className={cn(
-                    'absolute top-0 bottom-0 rounded-sm touch-manipulation border-0 p-0',
-                    marker.focused && 'ring-1 ring-white z-[1]',
-                    marker.kind === 'draft' ? 'opacity-80' : 'opacity-95'
+                    'absolute top-0 bottom-0 rounded-sm touch-manipulation border-0 p-0 z-[1]',
+                    marker.focused && 'ring-1 ring-white z-[2] scale-y-110',
+                    marker.kind === 'draft' ? 'opacity-90' : 'opacity-100'
                   )}
                   style={{
                     left: `${left}%`,
                     width: `${width}%`,
                     backgroundColor: marker.fillColor,
-                    minWidth: marker.kind === 'draft' ? 2 : 4,
+                    minWidth: marker.kind === 'draft' ? 3 : 5,
                   }}
                   onClick={(e) => {
                     e.stopPropagation()
@@ -599,21 +605,20 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
               )
             })}
 
+            {/* Playhead caret — does not wash out winner/server colours. */}
             <div
-              className="h-full bg-white/90 rounded-full transition-all absolute top-0 left-0 pointer-events-none"
-              style={{
-                width: progressStyle.width,
-              }}
+              className="absolute top-[-2px] bottom-[-2px] w-0.5 -translate-x-1/2 rounded-full bg-white shadow-[0_0_0_1px_rgba(0,0,0,0.45)] pointer-events-none z-[3]"
+              style={{ left: progressStyle.width }}
             />
 
             {constrainedPlayback?.enabled && 'constrainedStart' in progressStyle && (
               <>
                 <div
-                  className="absolute top-0 bottom-0 w-0.5 bg-brand-primary rounded pointer-events-none"
+                  className="absolute top-0 bottom-0 w-0.5 bg-brand-primary rounded pointer-events-none z-[2]"
                   style={{ left: `${progressStyle.constrainedStart}%` }}
                 />
                 <div
-                  className="absolute top-0 bottom-0 w-0.5 bg-brand-primary rounded pointer-events-none"
+                  className="absolute top-0 bottom-0 w-0.5 bg-brand-primary rounded pointer-events-none z-[2]"
                   style={{ left: `${progressStyle.constrainedEnd}%` }}
                 />
               </>
