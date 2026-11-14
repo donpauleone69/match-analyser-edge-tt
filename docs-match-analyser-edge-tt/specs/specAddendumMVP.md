@@ -6,7 +6,22 @@
 
 ## Change Log
 
-<<<<<<< HEAD
+### 2026-11-14: MA-122 — Serve/Receive playlist evidence polish (v3.165.0)
+
+**Change Type:** UX polish — evidence ↔ Focus playlist continuity
+
+**What Changed:**
+- Evidence drawer: optional `playlistHint` when on Serve/Receive; quieter denser header.
+- Serve/Receive: picking another focus clears evidence; closing evidence drops synthetic focus; shell context shows evidence sync.
+- Playlist rows soft-highlight when in the open evidence set; cover-match focuses when evidence is a subset.
+- Clear-evidence + evidenceRallyIds wired through Summary/Overview.
+
+**Decision Rationale:** Overnight Track D MA-122 — numbers → evidence → playlist should feel one continuous audit.
+
+**Key Files:** `EvidenceDrawerBlock.tsx`, `ServeReceiveDataSection.tsx`, `SummaryCategoryPlaylistBlock.tsx`, `RallyRowBlock.tsx`, `MatchReviewComposer.tsx`.
+
+---
+
 ### 2026-11-14: MA-124 — Pass 1 History sheet polish (v3.164.0)
 
 **Change Type:** UX polish — Pass 1 / Simple History ledger sheet
@@ -20,21 +35,7 @@
 **Decision Rationale:** Overnight Track E MA-124 — sheet feel after MA-116 density; History stays a deliberate overlay, not a dump of rows.
 
 **Key Files:** `Pass1ChromeProtoBlock.tsx` (`Pass1PointLedgerBlock`), `specAddendumMVP.md`.
-=======
-### 2026-11-14: MA-122 — Serve/Receive playlist evidence polish (v3.164.0)
 
-**Change Type:** UX polish — evidence ↔ Focus playlist continuity
-
-**What Changed:**
-- Evidence drawer: optional `playlistHint` when on Serve/Receive; quieter denser header.
-- Serve/Receive: picking another focus clears evidence; closing evidence drops synthetic focus; shell context shows evidence sync.
-- Playlist rows soft-highlight when in the open evidence set; cover-match focuses when evidence is a subset.
-- Clear-evidence + evidenceRallyIds wired through Summary/Overview.
-
-**Decision Rationale:** Overnight Track D MA-122 — numbers → evidence → playlist should feel one continuous audit.
-
-**Key Files:** `EvidenceDrawerBlock.tsx`, `ServeReceiveDataSection.tsx`, `SummaryCategoryPlaylistBlock.tsx`, `RallyRowBlock.tsx`, `MatchReviewComposer.tsx`.
->>>>>>> 288a515 (MA-122: Serve/Receive playlist evidence polish)
 
 ---
 
@@ -8537,7 +8538,7 @@ rally_end_role → errorType
 
 | Version | Date | Changes |
 |---------|------|---------|
-| v3.164.0 | 2026-11-14 | MA-122: Serve/Receive playlist evidence polish |
+| v3.165.0 | 2026-11-14 | MA-122: Serve/Receive playlist evidence polish |
 | v3.158.0 | 2026-11-14 | MA-119: quiet notices and status banners |
 | v2.1.0 | 2025-12-06 | Initial persistence layer implementation |
 | v2.1.1 | 2025-12-06 | Critical bug fixes for resume functionality |
@@ -8905,13 +8906,7 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 | v3.161.0 | 2026-11-14 | MA-125: evidence drawer rows + Clips landing chrome cohesion |
 | v3.160.0 | 2026-11-14 | MA-123: residual raw paint — player/callout tokens on RallyCard/ShotList/audit |
 | v3.159.0 | 2026-11-14 | MA-121: Playlist shell Work-on trail polish + Fix return continuity |
-<<<<<<< HEAD
-| v3.158.0 | 2026-11-14 | MA-119: quiet notices and status banners |
-| v3.159.0 | 2026-11-14 | MA-121: Playlist shell Work-on trail polish + Fix return continuity |
-| v3.158.0 | 2026-11-14 | MA-119: notice and banner quiet pass |
-=======
->>>>>>> 288a515 (MA-122: Serve/Receive playlist evidence polish)
-| v3.157.0 | 2026-11-14 | MA-111: Clip/Rally/Edit stage chrome cohesion (muted tokens + edit rail) |
+| v3.158.0 | 2026-11-14 | MA-119: notice and banner quiet pass || v3.157.0 | 2026-11-14 | MA-111: Clip/Rally/Edit stage chrome cohesion (muted tokens + edit rail) |
 | v3.156.1 | 2026-11-14 | MA-116: Done mid-point + History/Delete density |
 | v3.156.0 | 2026-11-14 | MA-120: scrub wash-strong + DataViewer borders/callout tokens |
 | v3.155.0 | 2026-11-14 | MA-115: Serve/Receive stats card polish — denser cards + headline detail/focus |
