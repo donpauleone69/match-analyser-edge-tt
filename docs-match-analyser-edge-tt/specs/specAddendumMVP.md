@@ -6,6 +6,23 @@
 
 ## Change Log
 
+### 2026-11-14: MA-133 — Serve/Receive empty + loading polish (v3.174.0)
+
+**Change Type:** UX polish — Serve/Receive empty shells + Match Review load
+
+**What Changed:**
+- Compare cards: denser dashed empty (title + hint) instead of a lone muted line.
+- Playlist empty: focus-aware title + hint; shell context when focus is empty; empty focus picker copy.
+- Headlines: dash placeholders quieter (`text-muted`, dashed chip, “No points yet”).
+- Serve B1 / Receive C1: real empty rows + emptyMessage (no fake dash rows).
+- Focus tone dot `none` → `bg-border-strong`; Match Review loading / not-found on primary/muted tokens.
+
+**Decision Rationale:** Overnight Track D MA-133 — empty/loading continuity after MA-122 evidence sync + MA-126 Review chrome.
+
+**Key Files:** `ServeReceiveDataSection.tsx`, `CompareCardBlock.tsx`, `SummaryCategoryPlaylistBlock.tsx`, `HeadlineMetricsBlock.tsx`, `buildServeReceiveCards.ts`, `MatchReviewComposer.tsx`.
+
+---
+
 ### 2026-11-14: MA-138 — Pass 1 Leave Keep/Discard polish (v3.173.0)
 
 **Change Type:** UX polish — Pass 1 / Simple mid-rally Leave dialog
@@ -33,6 +50,7 @@
 **Decision Rationale:** MA-136 overnight Track B — residual Home/Find quiet after MA-126 Match Review chrome.
 
 **Key Files:** `HomeComposer.tsx`, `HomeMatchRowBlock.tsx`, `ContinueTaggingBlock.tsx`, `ContextPolishBlock.tsx`, `ClipShortcutsBlock.tsx`, `MatchListComposer.tsx`, `MatchListFiltersBlock.tsx`, `MatchListSection.tsx`, `MatchCreationComposer.tsx`.
+
 
 ---
 
@@ -64,6 +82,7 @@
 **Decision Rationale:** Overnight Track A MA-129 after MA-121/131 — deep-link chrome survives in-Clips browsing and evidence handoff without lingering after tab switches.
 
 **Key Files:** `ClipsComposer.tsx`, `MatchReviewComposer.tsx`.
+
 
 
 ---
@@ -114,6 +133,7 @@
 
 **Key Files:** `MatchReviewComposer.tsx`, `ClipsComposer.tsx`, `RallyEditComposer.tsx`, `PlaylistBrowseShellBlock.tsx`.
 
+
 ---
 
 ### 2026-11-14: MA-126 — Match Review chrome quiet (v3.166.0)
@@ -163,7 +183,6 @@
 **Decision Rationale:** Overnight Track E MA-124 — sheet feel after MA-116 density; History stays a deliberate overlay, not a dump of rows.
 
 **Key Files:** `Pass1ChromeProtoBlock.tsx` (`Pass1PointLedgerBlock`), `specAddendumMVP.md`.
-| v3.167.0 | 2026-11-14 | MA-132: Pass 1 Viewing / Live set-bar recovery |
 
 ---
 
@@ -9030,8 +9049,9 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v3.174.0 | 2026-11-14 | MA-133: Serve/Receive empty + loading polish |
+| v3.171.0 | 2026-11-14 | MA-137: Browse shell Fix/Edit round-trip polish |
 | v3.170.0 | 2026-11-14 | MA-129: Work-on/Summary/Rallies → Clips deep-link — keep trail on preset switch; clear on leave |
-| v3.169.0 | 2026-11-14 | MA-135: addendum tip cleanup — dup MA-122 removed, VH order restored |
 | v3.168.0 | 2026-11-14 | MA-132: Pass 1 Viewing / Live set-bar recovery |
 | v3.167.0 | 2026-11-14 | MA-131: Summary/Evidence/Rallies → Clips return trail parity with Work-on |
 | v3.166.0 | 2026-11-14 | MA-126: Match Review chrome quiet (header/Summary/Details/Scope) |
@@ -9044,10 +9064,6 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 | v3.159.0 | 2026-11-14 | MA-121: Playlist shell Work-on trail polish + Fix return continuity |
 | v3.172.0 | 2026-11-14 | MA-138: Pass 1 Leave Keep/Discard dialog polish |
 | v3.170.0 | 2026-11-14 | MA-137: Browse shell Fix/Edit round-trip — land on edited clip + Clips back label |
-| v3.168.0 | 2026-11-14 | MA-132: Pass 1 Viewing / Live set-bar recovery |
-| v3.167.0 | 2026-11-14 | MA-131: Summary/Evidence/Rallies → Clips return trail parity with Work-on |
-| v3.158.0 | 2026-11-14 | MA-119: notice and banner quiet pass || v3.157.0 | 2026-11-14 | MA-111: Clip/Rally/Edit stage chrome cohesion (muted tokens + edit rail) |
-| v3.158.0 | 2026-11-14 | MA-119: quiet notices and status banners |
 | v3.157.0 | 2026-11-14 | MA-111: Clip/Rally/Edit stage chrome cohesion (muted tokens + edit rail) |
 | v3.156.1 | 2026-11-14 | MA-116: Done mid-point + History/Delete density |
 | v3.156.0 | 2026-11-14 | MA-120: scrub wash-strong + DataViewer borders/callout tokens |
