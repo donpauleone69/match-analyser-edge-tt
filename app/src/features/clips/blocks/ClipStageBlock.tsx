@@ -96,12 +96,17 @@ export const ClipStageBlock = forwardRef<VideoPlayerHandle, ClipStageBlockProps>
     }
 
     return (
-      <div className="rounded-xl border border-neutral-700 bg-bg-card overflow-hidden">
-        <div className="flex items-center gap-3 px-4 py-2.5 border-b border-neutral-700">
+      <div className="rounded-lg border border-neutral-800 bg-bg-card overflow-hidden">
+        <div className="flex items-center gap-2 px-3 py-2 border-b border-neutral-800">
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] uppercase tracking-wide text-neutral-500 truncate">
+            <p className="text-[11px] text-neutral-500 truncate">
               {heading}
-              {total > 0 && ` · ${position + 1} of ${total}`}
+              {total > 0 && (
+                <span className="tabular-nums">
+                  {' '}
+                  · {position + 1}/{total}
+                </span>
+              )}
             </p>
             <p className="text-sm font-semibold text-neutral-50 truncate">
               {title}
@@ -111,7 +116,7 @@ export const ClipStageBlock = forwardRef<VideoPlayerHandle, ClipStageBlockProps>
           {videoOrigin && (
             <span
               className={cn(
-                'hidden sm:flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px]',
+                'hidden sm:inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px]',
                 videoOrigin === 'cloud' ? 'bg-sky-950 text-sky-300' : 'bg-neutral-800 text-neutral-400'
               )}
               title={videoOrigin === 'cloud' ? 'Streaming from your cloud backup' : 'Playing from this device'}

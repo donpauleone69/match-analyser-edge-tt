@@ -369,10 +369,7 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
   const header = !embedded && (
     <header className="space-y-3">
       <div>
-        <h1 className="text-2xl md:text-3xl font-bold text-neutral-50">Clips</h1>
-        <p className="mt-1 text-sm text-neutral-400">
-          Play a playlist, then Download one clip or Save as reel for the whole list.
-        </p>
+        <h1 className="text-xl md:text-2xl font-bold text-neutral-50">Clips</h1>
       </div>
       {standalone && (
         <ScopeControlBlock
@@ -390,11 +387,10 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
     return (
       <div className="space-y-6">
         {header}
-        <Card className="p-8 text-center border border-dashed border-neutral-700">
-          <h2 className="text-lg font-semibold text-neutral-50">No clips yet</h2>
+        <Card className="p-6 text-center border border-dashed border-neutral-700">
+          <h2 className="text-base font-semibold text-neutral-50">No clips yet</h2>
           <p className="mt-2 text-sm text-neutral-400 max-w-md mx-auto">
-            Tag a set with Pass 1 — star highlights and flag shots for review — and your playlists appear here.
-            Then Download (one clip) or Save as reel (whole playlist) to keep them on your phone.
+            Star highlights or flag shots in Pass 1 — playlists show up here.
           </p>
           {!embedded && (
             <Button className="mt-4" onClick={() => navigate('/matches/create')}>
@@ -493,17 +489,15 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
 
   const isHighlightReel = filter?.kind === 'highlights'
   const exportStrip = showExportBar && (
-    <div className="flex flex-wrap items-center gap-3 rounded-lg border border-neutral-700 bg-bg-card px-4 py-3">
+    <div className="hidden md:flex flex-wrap items-center gap-3 rounded-lg border border-neutral-800 bg-bg-card px-3 py-2.5">
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold text-neutral-100 truncate">
           {isHighlightReel ? `★ ${playlistLabel}` : playlistLabel}
         </p>
-        <p className="text-xs text-neutral-500">
+        <p className="text-xs text-neutral-500 tabular-nums">
           {isHighlightReel
-            ? `${rows.length} starred · show-reel`
+            ? `${rows.length} starred`
             : `${rows.length} clip${rows.length === 1 ? '' : 's'} · ${formatSeconds(edl.duration)}`}
-          <span className="md:hidden"> · use Download / Save as reel below</span>
-          <span className="hidden md:inline"> · Download one clip or Save as reel</span>
         </p>
       </div>
       {exporting ? (
@@ -513,7 +507,7 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
           {exporting.stage === 'cutting' && ` ${exporting.done + 1}/${exporting.total}`}
         </p>
       ) : (
-        <div className="hidden md:flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button size="sm" variant="secondary" onClick={handleDownloadClip} disabled={!current || downloadBusy}>
             <Icon name={downloadBusy ? 'loader' : 'download'} size="sm" className={downloadBusy ? 'animate-spin' : undefined} />
             Download
@@ -531,26 +525,28 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
       {header}
 
       {embedded && fromParam === 'workon' && (
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-review/40 bg-review-bg/40 px-3 py-2">
-          <p className="text-sm text-neutral-200 min-w-0">
-            From Work on
-            {clipTitleParam ? (
-              <>
-                {' '}
-                · <span className="font-semibold">{clipTitleParam}</span>
-              </>
-            ) : null}
-          </p>
-          <div className="flex gap-2">
-            <Button size="sm" variant="secondary" onClick={backFromWorkOn}>
-              <Icon name="arrow-left" size="sm" /> Work on
-            </Button>
-            {(clipTitleParam || atParam) && (
-              <Button size="sm" variant="secondary" onClick={clearDeepLinkChrome}>
-                Stay in Clips
-              </Button>
-            )}
-          </div>
+        <div className="flex items-center gap-2 text-sm text-neutral-300">
+          <button
+            type="button"
+            onClick={backFromWorkOn}
+            className="inline-flex items-center gap-1 rounded-md border border-neutral-700 px-2 py-1 text-neutral-200 hover:border-neutral-500"
+          >
+            <Icon name="arrow-left" size="xs" /> Work on
+          </button>
+          {clipTitleParam ? (
+            <span className="min-w-0 truncate font-medium text-neutral-100">{clipTitleParam}</span>
+          ) : null}
+          {(clipTitleParam || atParam) && (
+            <button
+              type="button"
+              onClick={clearDeepLinkChrome}
+              className="ml-auto shrink-0 text-neutral-500 hover:text-neutral-200"
+              aria-label="Clear Work on deep link"
+              title="Stay in Clips"
+            >
+              <Icon name="x" size="sm" />
+            </button>
+          )}
         </div>
       )}
 
@@ -626,12 +622,7 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
       </div>
 
       {showExportBar && (
-        <div className="fixed inset-x-0 bottom-14 z-30 border-t border-neutral-700 bg-bg-shell/95 px-3 py-2 backdrop-blur md:hidden">
-          <p className="mx-auto mb-1 max-w-lg truncate text-center text-[10px] text-neutral-400">
-            {isHighlightReel ? 'Highlight show-reel' : playlistLabel}
-            {' · '}
-            {rows.length} clip{rows.length === 1 ? '' : 's'}
-          </p>
+        <div className="fixed inset-x-0 bottom-14 z-30 border-t border-neutral-800 bg-bg-shell/95 px-3 py-2 backdrop-blur md:hidden">
           <div className="mx-auto flex max-w-lg items-center gap-2">
             <Button
               size="sm"
