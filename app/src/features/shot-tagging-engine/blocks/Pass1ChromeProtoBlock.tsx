@@ -71,8 +71,8 @@ export interface Pass1SetContextBlockProps {
   onSelectNext: () => void
   onToggleHistory: () => void
   /**
-   * Done finishes the set → Match Review (between points only).
-   * Leave soft-exits anytime, including mid-rally with confirm (draft kept).
+   * Done finishes the set → Match Review (available mid-point with discard confirm).
+   * Leave soft-exits anytime, including mid-rally with Keep/Discard choice.
    * Leave is not video Pause.
    * Gap / 1st seek jumps live in History (MA-108) so this bar stays tappable.
    */
@@ -105,8 +105,8 @@ export function Pass1SetContextBlock({
   const viewed = viewingPast
     ? completed.find((point) => point.rallyIndex === focusedRallyIndex)
     : null
-  /** Done stays between-points; Leave stays reachable mid-rally (confirm in handler). */
-  const showDone = !navigationLocked && Boolean(onEndSet)
+  /** Done stays visible mid-point (handler confirms discard); Leave soft-exits. */
+  const showDone = Boolean(onEndSet)
   const showLeave = Boolean(onReviewMatch)
   const otherServerName = serverId === 'player1' ? player2Name : player1Name
 
@@ -204,16 +204,18 @@ export function Pass1SetContextBlock({
         aria-expanded={historyOpen}
         onClick={onToggleHistory}
         disabled={navigationLocked}
-        className={cn('tag-control shrink-0', historyOpen && 'tag-control-active')}
+        className={cn('tag-control shrink-0 tabular-nums', historyOpen && 'tag-control-active')}
+        title={`Point history (${completed.length})`}
+        aria-label={`Point history, ${completed.length} saved`}
       >
-        History · {completed.length}
+        Hist · {completed.length}
       </button>
       {(showDone || showLeave) && (
         <>
           <span className="sr-only">
-            Done finishes this set (between points). Leave exits tagging without
-            finishing — available mid-rally with confirm; open point draft is
-            kept so you can resume. Leave is not video Pause.
+            Done finishes this set and opens Match Review — mid-point asks to
+            discard the open rally first. Leave exits without finishing; mid-rally
+            offers Keep draft or Discard. Leave is not video Pause.
           </span>
           {showDone && onEndSet && (
             <button
@@ -222,14 +224,18 @@ export function Pass1SetContextBlock({
               disabled={!canEndSet}
               className="tag-control tag-control-accent shrink-0 touch-manipulation"
               title={
-                canEndSet
-                  ? 'Done — finish this set and open Match Review'
-                  : 'Done — tag at least one point before finishing the set'
+                !canEndSet
+                  ? 'Done — tag at least one point before finishing the set'
+                  : navigationLocked
+                    ? 'Done — discard open point and finish this set → Match Review'
+                    : 'Done — finish this set and open Match Review'
               }
               aria-label={
-                canEndSet
-                  ? 'Done — finish this set'
-                  : 'Done — disabled until at least one point is tagged'
+                !canEndSet
+                  ? 'Done — disabled until at least one point is tagged'
+                  : navigationLocked
+                    ? 'Done — discard open point and finish set'
+                    : 'Done — finish this set'
               }
             >
               Done
@@ -321,11 +327,11 @@ export function Pass1PointLedgerBlock({
         aria-label="Point history"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="mb-1 flex items-center gap-2">
-          <div>
-            <h2 className="text-xs font-bold text-primary">Point history</h2>
-            <p className="text-[9px] text-muted">Winner, score after, and server</p>
-          </div>
+        <div className="mb-1 flex items-center gap-1.5">
+          <h2 className="text-xs font-bold text-primary shrink-0">History</h2>
+          <span className="text-[9px] text-muted tabular-nums shrink-0">
+            {completed.length}
+          </span>
           <div className="flex-1" />
           {showJumps && (
             <div className="flex items-center gap-1" role="group" aria-label="Seek jumps">
@@ -374,11 +380,12 @@ export function Pass1PointLedgerBlock({
               disabled={!canDeleteLast}
               className="tag-control tag-control-danger shrink-0"
               title="Delete the last saved point"
+              aria-label="Delete last saved point"
             >
-              Delete last
+              Del
             </button>
           )}
-          <button type="button" onClick={onClose} className="tag-control">
+          <button type="button" onClick={onClose} className="tag-control shrink-0">
             Close
           </button>
         </div>
@@ -393,23 +400,23 @@ export function Pass1PointLedgerBlock({
                 aria-current={focused ? 'true' : undefined}
                 onClick={() => onSelectCompleted(point.rallyIndex)}
                 className={cn(
-                  'flex min-w-0 items-center gap-2 rounded-md border bg-bg-surface px-2 py-1.5 text-left',
+                  'flex min-w-0 items-center gap-2 rounded-md border bg-bg-surface px-2 py-1 text-left',
                   focused ? 'border-contact-selected' : 'border-border'
                 )}
                 title={`Point won by ${point.winnerName}; ${point.player1ScoreAfter}–${point.player2ScoreAfter}; ${nameOf(point.serverId)} served`}
               >
                 <span
                   className={cn(
-                    'h-2.5 w-2.5 shrink-0 rounded-full',
+                    'h-2 w-2 shrink-0 rounded-full',
                     winnerIsP1 ? 'bg-player-1' : 'bg-player-2'
                   )}
                   aria-hidden
                 />
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[10px] font-bold text-primary">
+                  <span className="block truncate text-[10px] font-bold text-primary leading-tight">
                     {point.winnerName} won {point.isHighlight ? '★' : ''}
                   </span>
-                  <span className="block truncate text-[9px] text-muted">
+                  <span className="block truncate text-[9px] text-muted leading-tight">
                     {nameOf(point.serverId)} served
                   </span>
                 </span>
@@ -424,7 +431,7 @@ export function Pass1PointLedgerBlock({
             aria-current={focusedRallyIndex === 'next' ? 'true' : undefined}
             onClick={onSelectNext}
             className={cn(
-              'flex min-w-0 items-center gap-2 rounded-md border border-dashed bg-bg-elevated px-2 py-1.5 text-left',
+              'flex min-w-0 items-center gap-2 rounded-md border border-dashed bg-bg-elevated px-2 py-1 text-left',
               focusedRallyIndex === 'next'
                 ? 'border-contact-selected'
                 : 'border-border'
@@ -432,16 +439,16 @@ export function Pass1PointLedgerBlock({
           >
               <span
                 className={cn(
-                  'h-2.5 w-2.5 shrink-0 rounded-full',
+                  'h-2 w-2 shrink-0 rounded-full',
                   nextServerId === 'player1' ? 'bg-player-1' : 'bg-player-2'
                 )}
                 aria-hidden
               />
               <span className="min-w-0 flex-1">
-                <span className="block text-[10px] font-bold text-primary">
+                <span className="block text-[10px] font-bold text-primary leading-tight">
                   {nextIsOpen ? 'Point in progress' : 'Next point'}
                 </span>
-                <span className="block truncate text-[9px] text-muted">
+                <span className="block truncate text-[9px] text-muted leading-tight">
                   {nameOf(nextServerId)} serves
                 </span>
               </span>
