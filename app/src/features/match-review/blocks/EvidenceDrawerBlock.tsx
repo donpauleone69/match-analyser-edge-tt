@@ -35,15 +35,15 @@ export function EvidenceDrawerBlock({
         inset-x-0 bottom-0 max-h-[70dvh] border-t rounded-t-xl
         md:inset-y-0 md:right-0 md:left-auto md:top-14 md:bottom-0 md:w-[420px] md:max-h-none md:border-t-0 md:border-l md:rounded-none"
     >
-      <div className="shrink-0 flex items-center gap-2 px-3 py-2.5 border-b border-border">
+      <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b border-border">
         <div className="min-w-0 flex-1">
-          <h2 className="text-sm font-semibold text-neutral-50 truncate">
+          <h2 className="text-sm font-semibold text-primary truncate">
             {title}
-            <span className="ml-1.5 font-normal text-neutral-500 tabular-nums">
+            <span className="ml-1.5 font-normal text-muted tabular-nums">
               · {count}
             </span>
           </h2>
-          {subtitle && <p className="text-xs text-neutral-500 mt-0.5 truncate">{subtitle}</p>}
+          {subtitle && <p className="text-xs text-muted mt-0.5 truncate">{subtitle}</p>}
         </div>
         {canPlayAll && (
           <Button size="sm" variant="secondary" onClick={onPlayAll}>
@@ -54,7 +54,7 @@ export function EvidenceDrawerBlock({
           type="button"
           onClick={onClose}
           aria-label="Close evidence"
-          className="p-1.5 rounded-md text-neutral-500 hover:text-neutral-50 hover:bg-bg-elevated"
+          className="p-1.5 rounded-md text-muted hover:text-primary hover:bg-bg-elevated"
         >
           <Icon name="x" size="sm" />
         </button>

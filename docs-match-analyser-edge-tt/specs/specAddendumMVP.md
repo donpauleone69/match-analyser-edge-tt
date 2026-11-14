@@ -7,6 +7,22 @@
 ## Change Log
 
 <<<<<<< HEAD
+### 2026-11-14: MA-111 — Video stage cohesion polish (v3.157.0)
+
+**Change Type:** UX cohesion — Clip / Rally / Edit stage chrome
+
+**What Changed:**
+- Clip stage close / loading / missing copy on `text-muted` (Rally watch parity); shared footer `border-t border-border`.
+- Clip queue + Evidence drawer on `text-primary` / `text-muted` / `divide-border` / close hover `bg-elevated` (keeps MA-110 denser row padding).
+- Rally Edit under-video rail + status strip + phone save bar + empty states on `border-border` / card / elevated tokens (drop raw neutrals).
+
+**Decision Rationale:** Overnight Track A MA-111 — stage surfaces read as one product after MA-104 playlist chrome.
+
+**Key Files:** `ClipStageBlock.tsx`, `ClipQueueBlock.tsx`, `RallyPlayerBlock.tsx`, `EvidenceDrawerBlock.tsx`, `RallyEditComposer.tsx`, `themeTokens.test.ts`.
+
+=======
+<<<<<<< HEAD
+>>>>>>> origin/main
 ### 2026-11-14: MA-120 — Scrub wash + DataViewer token cleanup (v3.156.0)
 
 **Change Type:** Design tokens — scrub elapsed wash + DataViewer debug chrome
@@ -8758,6 +8774,7 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v3.157.0 | 2026-11-14 | MA-111: Clip/Rally/Edit stage chrome cohesion (muted tokens + edit rail) |
 | v3.156.0 | 2026-11-14 | MA-120: scrub wash-strong + DataViewer borders/callout tokens |
 | v3.155.0 | 2026-11-14 | MA-115: Serve/Receive stats card polish — denser cards + headline detail/focus |
 | v3.154.0 | 2026-11-14 | MA-118: BrowseDisclosure / shell mobile polish |
