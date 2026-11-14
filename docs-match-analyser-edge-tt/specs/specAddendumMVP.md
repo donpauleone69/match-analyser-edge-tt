@@ -6,6 +6,19 @@
 
 ## Change Log
 
+### 2026-11-14: MA-104 — Video / playlist chrome leftovers (v3.144.0)
+
+**Change Type:** UX cohesion — BrowseDisclosure + stage shells
+
+**What Changed:**
+- `BrowseDisclosure` / option rows on `border-border` + contact-selected paint (match Clips/Review lists).
+- Serve/Receive sticky playlist: phone full-width Focus disclosure (Clips browse parity); desktop stays compact.
+- Rally watch modal header matches Clip stage quiet chrome (`n/total`, denser padding).
+
+**Decision Rationale:** Overnight Track A MA-104 — leftover video/playlist chrome after MA-100 / MA-81 shell landed.
+
+**Key Files:** `BrowseDisclosure.tsx`, `PlaylistFocusPickerBlock.tsx`, `ServeReceiveDataSection.tsx`, `RallyPlayerBlock.tsx`.
+
 ### 2026-11-14: MA-105 — Settings / match IA quiet (v3.143.0)
 
 **Change Type:** UX declutter — Settings, Training, Scope, set-select IA
@@ -8527,6 +8540,8 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v3.144.0 | 2026-11-14 | MA-104: BrowseDisclosure tokens + Serve/Receive phone focus + rally modal chrome |
+| v3.143.0 | 2026-11-14 | MA-105: quiet Settings/Training/match IA |
 | v3.142.0 | 2026-11-14 | MA-103: theme follow-up — video-scrim Simple overlay + brand focus rings |
 | v3.141.0 | 2026-11-14 | MA-102: Pass 1 chrome final polish |
 | v3.140.0 | 2026-11-14 | MA-81: Playlist browse shell on shared BrowseDisclosure |
