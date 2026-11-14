@@ -170,18 +170,13 @@ export function MatchListComposer() {
   }
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-neutral-50 flex items-center gap-3">
-            <Icon name="swords" size="lg" className="text-brand-primary" />
-            Find matches
-          </h1>
-          <p className="text-neutral-400 mt-2 text-sm md:text-base">
-            Opponent, tournament, match date, or date tagged. New match is on Home.
-          </p>
-        </div>
-        <Button variant="secondary" onClick={() => navigate('/')}>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <h1 className="text-xl md:text-2xl font-bold text-neutral-50 flex items-center gap-2">
+          <Icon name="swords" size="md" className="text-brand-primary" />
+          Find matches
+        </h1>
+        <Button variant="secondary" size="sm" onClick={() => navigate('/')}>
           <Icon name="home" size="sm" /> Home
         </Button>
       </div>

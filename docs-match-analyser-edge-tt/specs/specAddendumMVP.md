@@ -6,6 +6,20 @@
 
 ## Change Log
 
+### 2026-11-14: MA-101 — Quiet match shell / settings / Find density (v3.138.0)
+
+**Change Type:** UX declutter — Find / create / Account / match shell chrome
+
+**What Changed:**
+- **Find:** denser header + filters; match cards use `border-border`, callout/result badges (tagging + sync), shorter empty copy.
+- **Create:** quieter form fields/labels; duplicate warning on `callout-warning*`.
+- **Account / gate / sign-in:** denser panels; drop long blurbs; session/error/storage on shared chrome tokens.
+- **Match shell:** Set panels, Details cards, MatchStorage sync/archive/missing, result modal → `border-border` + result/callout tones.
+
+**Decision Rationale:** MA-101 overnight Track B — remaining density quiet so Find/settings/match chrome match Review/Clips.
+
+**Key Files:** `MatchListComposer.tsx`, `MatchListFiltersBlock.tsx`, `MatchListSection.tsx`, `MatchFormSection.tsx`, `MatchCreationComposer.tsx`, `AccountComposer.tsx`, `AccountGateComposer.tsx`, `SignInFormBlock.tsx`, `SetPanelBlock.tsx`, `MatchStorageBlock.tsx`, `DetailsSection.tsx`, `MatchResultEntryModal.tsx`.
+
 ### 2026-11-14: MA-100 — BrowseDisclosure + stage scrub cohesion (v3.137.0)
 
 **Change Type:** UX cohesion — playlist browse + shared overlay stages

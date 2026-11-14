@@ -135,7 +135,7 @@ export function DetailsSection({
 
   return (
     <div className="space-y-6">
-      <Card className="p-4 md:p-5 border border-neutral-700 space-y-3">
+      <Card className="p-4 md:p-5 border border-border space-y-3">
         <h2 className="text-lg font-semibold text-neutral-50">Your match</h2>
         <dl className="grid gap-3 sm:grid-cols-2 text-sm">
           <div>
@@ -181,7 +181,7 @@ export function DetailsSection({
         </dl>
       </Card>
 
-      <Card className="p-4 md:p-5 border border-neutral-700 space-y-3">
+      <Card className="p-4 md:p-5 border border-border space-y-3">
         {(review.context.player2Id || review.context.tournamentId) && (
           <div className="flex flex-wrap gap-2">
             {review.context.player2Id && (

@@ -168,7 +168,7 @@ export function MatchResultEntryModal({
                     id="player1-sets"
                     value={player1Sets}
                     onChange={(e) => setPlayer1Sets(Number(e.target.value))}
-                    className="w-full mt-1 px-3 py-2 bg-bg-surface border border-neutral-700 rounded-md text-neutral-50 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                    className="w-full mt-1 px-3 py-2 bg-bg-surface border border-border rounded-md text-neutral-50 focus:outline-none focus:ring-2 focus:ring-brand-primary"
                   >
                     {Array.from({ length: match.best_of + 1 }, (_, i) => (
                       <option key={i} value={i}>{i} sets</option>
@@ -182,7 +182,7 @@ export function MatchResultEntryModal({
                     id="player2-sets"
                     value={player2Sets}
                     onChange={(e) => setPlayer2Sets(Number(e.target.value))}
-                    className="w-full mt-1 px-3 py-2 bg-bg-surface border border-neutral-700 rounded-md text-neutral-50 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                    className="w-full mt-1 px-3 py-2 bg-bg-surface border border-border rounded-md text-neutral-50 focus:outline-none focus:ring-2 focus:ring-brand-primary"
                   >
                     {Array.from({ length: match.best_of + 1 }, (_, i) => (
                       <option key={i} value={i}>{i} sets</option>
@@ -193,8 +193,8 @@ export function MatchResultEntryModal({
               
               {/* Winner Display */}
               {determinedWinner && (
-                <div className="p-3 bg-green-900/20 border border-green-700 rounded-md">
-                  <p className="text-green-400 font-semibold">
+                <div className="p-3 bg-result-winner-bg border border-result-winner/40 rounded-md">
+                  <p className="text-result-winner font-semibold">
                     Winner: {winnerName} ({player1Sets}-{player2Sets})
                   </p>
                 </div>
@@ -233,7 +233,7 @@ export function MatchResultEntryModal({
                                 const newScore = `${e.target.value}-${p2Score}`
                                 handlePointScoreChange(i, newScore)
                               }}
-                              className="w-full px-3 py-2 bg-bg-surface border border-neutral-700 rounded-md text-neutral-50 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                              className="w-full px-3 py-2 bg-bg-surface border border-border rounded-md text-neutral-50 focus:outline-none focus:ring-2 focus:ring-brand-primary"
                             >
                               {Array.from({ length: 31 }, (_, j) => (
                                 <option key={j} value={j}>{j}</option>
@@ -253,7 +253,7 @@ export function MatchResultEntryModal({
                                 const newScore = `${p1Score}-${e.target.value}`
                                 handlePointScoreChange(i, newScore)
                               }}
-                              className="w-full px-3 py-2 bg-bg-surface border border-neutral-700 rounded-md text-neutral-50 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                              className="w-full px-3 py-2 bg-bg-surface border border-border rounded-md text-neutral-50 focus:outline-none focus:ring-2 focus:ring-brand-primary"
                             >
                               {Array.from({ length: 31 }, (_, j) => (
                                 <option key={j} value={j}>{j}</option>
@@ -268,9 +268,9 @@ export function MatchResultEntryModal({
                             {(() => {
                               const validation = validatePointScore(pointScores[i])
                               return validation.valid ? (
-                                <span className="text-green-400">✓ Valid score</span>
+                                <span className="text-result-winner">✓ Valid score</span>
                               ) : (
-                                <span className="text-red-400">
+                                <span className="text-callout-danger">
                                   ✗ Invalid (must be 11+ and win by 2)
                                 </span>
                               )
@@ -286,9 +286,9 @@ export function MatchResultEntryModal({
             
             {/* Validation Errors */}
             {validationErrors.length > 0 && (
-              <div className="p-3 bg-red-900/20 border border-red-700 rounded-md">
-                <p className="text-red-400 font-semibold mb-1">Validation Errors:</p>
-                <ul className="list-disc list-inside text-red-300 text-sm space-y-1">
+              <div className="p-3 bg-callout-danger-bg border border-callout-danger-border rounded-md">
+                <p className="text-callout-danger font-semibold mb-1">Validation errors</p>
+                <ul className="list-disc list-inside text-callout-danger text-sm space-y-1">
                   {validationErrors.map((error, i) => (
                     <li key={i}>{error}</li>
                   ))}
@@ -297,7 +297,7 @@ export function MatchResultEntryModal({
             )}
             
             {/* Actions */}
-            <div className="flex justify-end gap-3 pt-4 border-t border-neutral-700">
+            <div className="flex justify-end gap-3 pt-4 border-t border-border">
               <Button
                 variant="secondary"
                 onClick={onClose}

@@ -103,32 +103,28 @@ export function MatchListSection({
 
   if (matches.length === 0) {
     return (
-      <Card className="p-8 text-center space-y-3">
+      <Card className="p-6 text-center space-y-2 border border-border">
         {emptyBecauseFilter ? (
           <>
             <p className="text-neutral-200 font-medium">Nothing matches these filters</p>
-            <p className="text-sm text-neutral-500">
-              Try another opponent or tournament, or widen match / tagged dates.
-            </p>
+            <p className="text-sm text-neutral-500">Widen opponent, tournament, or dates.</p>
             {onClearFilters && (
-              <Button variant="secondary" onClick={onClearFilters}>
+              <Button variant="secondary" size="sm" onClick={onClearFilters}>
                 Clear filters
               </Button>
             )}
           </>
         ) : (
           <>
-            <p className="text-neutral-200 font-medium">No matches to find yet</p>
-            <p className="text-sm text-neutral-500">
-              Create one from Home (opponent optional), or import a match file from Account.
-            </p>
+            <p className="text-neutral-200 font-medium">No matches yet</p>
+            <p className="text-sm text-neutral-500">Create from Home, or import under Account.</p>
             <div className="flex flex-wrap justify-center gap-2">
               <Button onClick={onCreateNew}>New match</Button>
               <Button variant="secondary" onClick={() => navigate('/')}>
-                Back to Home
+                Home
               </Button>
               <Button variant="secondary" onClick={() => navigate('/settings')}>
-                Import match file
+                Import
               </Button>
             </div>
           </>
@@ -138,8 +134,8 @@ export function MatchListSection({
   }
 
   return (
-    <div className="space-y-4">
-      <div className="grid gap-3">
+    <div className="space-y-3">
+      <div className="grid gap-2">
         {matches.map((match) => {
           const player1Name = getPlayerName(match.player1_id)
           const player2Name = opponentName(match)
@@ -155,36 +151,36 @@ export function MatchListSection({
           )
 
           return (
-            <Card key={match.id} className="p-4 sm:p-5">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div className="flex-1 min-w-0 space-y-2">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="text-lg sm:text-xl font-semibold text-neutral-50">
+            <Card key={match.id} className="p-3 sm:p-4 border border-border">
+              <div className="flex flex-col gap-2.5 sm:flex-row sm:items-start sm:justify-between">
+                <div className="flex-1 min-w-0 space-y-1.5">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <h3 className="text-base sm:text-lg font-semibold text-neutral-50">
                       {player1Name} vs {player2Name}
                     </h3>
                     {badge?.tone === 'progress' && (
-                      <span className="px-2 py-0.5 text-xs bg-yellow-900/50 text-yellow-400 rounded">
+                      <span className="px-1.5 py-0.5 text-[11px] rounded bg-callout-warning-bg text-callout-warning border border-callout-warning-border">
                         {badge.label}
                       </span>
                     )}
                     {badge?.tone === 'done' && (
-                      <span className="px-2 py-0.5 text-xs bg-green-900/50 text-green-400 rounded">
+                      <span className="px-1.5 py-0.5 text-[11px] rounded bg-result-winner-bg text-result-winner">
                         {badge.label}
                       </span>
                     )}
                     {badge?.tone === 'todo' && (
-                      <span className="px-2 py-0.5 text-xs bg-neutral-800 text-neutral-400 rounded">
+                      <span className="px-1.5 py-0.5 text-[11px] rounded border border-border text-neutral-500">
                         {badge.label}
                       </span>
                     )}
                     {!match.player2_id && (
-                      <span className="px-2 py-0.5 text-xs bg-neutral-800 text-neutral-400 rounded">
+                      <span className="px-1.5 py-0.5 text-[11px] rounded border border-border text-neutral-500">
                         Opponent open
                       </span>
                     )}
                     {showSyncBadges && syncByMatch[match.id] === 'never' && (
                       <span
-                        className="px-2 py-0.5 text-xs bg-neutral-800 text-neutral-400 rounded"
+                        className="px-1.5 py-0.5 text-[11px] rounded border border-border text-neutral-500"
                         title="Not backed up to cloud yet"
                       >
                         Not backed up
@@ -192,7 +188,7 @@ export function MatchListSection({
                     )}
                     {showSyncBadges && syncByMatch[match.id] === 'changed' && (
                       <span
-                        className="px-2 py-0.5 text-xs bg-amber-900/50 text-amber-300 rounded"
+                        className="px-1.5 py-0.5 text-[11px] rounded bg-callout-warning-bg text-callout-warning border border-callout-warning-border"
                         title="Local tags changed since last cloud backup"
                       >
                         Backup stale
@@ -200,7 +196,7 @@ export function MatchListSection({
                     )}
                     {showSyncBadges && syncByMatch[match.id] === 'synced' && (
                       <span
-                        className="px-2 py-0.5 text-xs bg-emerald-950/60 text-emerald-400 rounded"
+                        className="px-1.5 py-0.5 text-[11px] rounded bg-result-winner-bg text-result-winner"
                         title="Match tags match last cloud backup"
                       >
                         Backed up
@@ -212,7 +208,7 @@ export function MatchListSection({
                     {match.winner_id ? (
                       <>
                         <p>
-                          <span className="text-green-400 font-semibold">
+                          <span className="text-result-winner font-semibold">
                             {getPlayerName(match.winner_id)}
                           </span>
                           <span className="ml-1.5 text-neutral-500">

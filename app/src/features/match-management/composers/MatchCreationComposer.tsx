@@ -21,16 +21,11 @@ export function MatchCreationComposer() {
   }, [loadPlayers, loadTournaments])
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl md:text-3xl font-bold text-neutral-50 flex items-center gap-3">
-          <Icon name="plus" size="lg" className="text-brand-primary" />
-          Create Match
-        </h1>
-        <p className="text-neutral-400 mt-2 text-sm md:text-base">
-          Pick who you are tagging and start. Opponent and tournament can wait.
-        </p>
-      </div>
+    <div className="space-y-4">
+      <h1 className="text-xl md:text-2xl font-bold text-neutral-50 flex items-center gap-2">
+        <Icon name="plus" size="md" className="text-brand-primary" />
+        New match
+      </h1>
 
       <MatchFormSection
         players={players}
