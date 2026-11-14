@@ -3,7 +3,7 @@ import { Button, Card, CardDescription, CardTitle, Icon } from '@/ui-mine'
 import { BrandMark } from '@/layout/BrandMark'
 import { WfBadge, WfField } from '@/layout/Wireframe'
 
-/** Pre-Home gate — login / register / device session stubs. */
+/** Pre-Home gate stubs. */
 export function GatePage() {
   const navigate = useNavigate()
   const enter = () => navigate('/home')
@@ -14,16 +14,12 @@ export function GatePage() {
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 space-y-1 max-w-prose">
             <h1 className="text-2xl font-bold text-primary">Match Analyser</h1>
-            <p className="text-sm text-muted">
-              Unlock a session, then land on Home. Auth is wireframe only — every path below
-              enters the proto shell.
-            </p>
+            <p className="text-sm text-muted">Unlock a session to reach Home.</p>
           </div>
           <BrandMark className="pt-1" />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Login */}
           <Card className="space-y-3">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
@@ -32,22 +28,19 @@ export function GatePage() {
               </div>
               <WfBadge>stub</WfBadge>
             </div>
-            <CardDescription>
-              Sign in to your cloud account. Profile / reviewing-as finish in Account after ready.
-            </CardDescription>
+            <CardDescription>Cloud sign-in.</CardDescription>
             <div className="space-y-2">
               <WfField label="Email" placeholder="you@example.com" />
               <WfField label="Password" placeholder="••••••••" />
             </div>
             <Button fullWidth disabled>
-              Sign in (cloud) — not wired
+              Sign in (stub)
             </Button>
             <Button fullWidth variant="secondary" onClick={enter}>
-              Fake sign-in → Home
+              Fake sign-in
             </Button>
           </Card>
 
-          {/* Registration */}
           <Card className="space-y-3">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
@@ -56,23 +49,20 @@ export function GatePage() {
               </div>
               <WfBadge>stub</WfBadge>
             </div>
-            <CardDescription>
-              Create an account. No cloud call in proto — fields show the real form shape.
-            </CardDescription>
+            <CardDescription>Create account.</CardDescription>
             <div className="space-y-2">
               <WfField label="Display name" placeholder="Paul" />
               <WfField label="Email" placeholder="you@example.com" />
               <WfField label="Password" placeholder="••••••••" />
             </div>
             <Button fullWidth disabled>
-              Create account — not wired
+              Create account (stub)
             </Button>
             <Button fullWidth variant="secondary" onClick={enter}>
-              Fake register → Home
+              Fake register
             </Button>
           </Card>
 
-          {/* Device session */}
           <Card className="space-y-3">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
@@ -81,24 +71,17 @@ export function GatePage() {
               </div>
               <WfBadge>stub</WfBadge>
             </div>
-            <CardDescription>
-              Continue on this device without cloud. Local library + reviewing-as stay on device.
-            </CardDescription>
+            <CardDescription>Local only, no cloud.</CardDescription>
             <ul className="space-y-1.5 text-sm text-muted list-disc pl-4">
-              <li>No sign-in required</li>
-              <li>Data stays on this browser / device</li>
-              <li>Import / export / sync live under Account</li>
+              <li>No sign-in</li>
+              <li>Data stays on device</li>
+              <li>Import / export in Account</li>
             </ul>
             <Button fullWidth variant="ghost" onClick={enter}>
-              Continue on this device → Home
+              Continue on this device
             </Button>
           </Card>
         </div>
-
-        <p className="text-xs text-muted max-w-prose">
-          Gate is pre-Home only. After ready: Home cards → Match / Insights / Account via bottom
-          nav. No app chrome until you enter.
-        </p>
       </div>
     </div>
   )

@@ -3,17 +3,13 @@ import { Button, Card, CardDescription, CardTitle, Icon } from '@/ui-mine'
 import { PageHeader } from '@/layout/PageHeader'
 import { WfBadge, WfEmpty, WfField, WfRow } from '@/layout/Wireframe'
 
-/** Find — thin stub from Home Matches card (may fold into Home later). */
+/** Find stub from Home. */
 export function FindPage() {
   const navigate = useNavigate()
 
   return (
     <div>
-      <PageHeader
-        title="Find"
-        subtitle="Locate a match → open Tag or Match Insights. Wireframe filters only."
-        backTo="/home"
-      />
+      <PageHeader title="Find" subtitle="Locate a match." backTo="/home" />
       <div className="px-4 sm:px-6 lg:px-8 pb-6 space-y-4">
         <Card className="space-y-3">
           <div className="flex items-center justify-between gap-2">
@@ -27,7 +23,7 @@ export function FindPage() {
           </div>
           <div className="flex flex-wrap gap-2">
             <Button size="sm" disabled>
-              Apply filters — not wired
+              Apply filters (stub)
             </Button>
             <Button size="sm" variant="ghost" disabled>
               Clear
@@ -46,29 +42,26 @@ export function FindPage() {
                 <Icon name="search" size="sm" className="text-brand" />
                 <CardTitle>Demo vs Opponent</CardTitle>
               </div>
-              <CardDescription>Club league · 3–1 · open Match Insights</CardDescription>
+              <CardDescription>Club league · 3-1</CardDescription>
             </Link>
           </Card>
           <Card variant="interactive">
             <Link to="/matches/demo-2/details" className="block space-y-1">
-              <CardTitle>Club night — recent</CardTitle>
-              <CardDescription>Friendly · nothing tagged · open Details</CardDescription>
+              <CardTitle>Club night recent</CardTitle>
+              <CardDescription>Friendly · untagged</CardDescription>
             </Link>
           </Card>
         </div>
 
         <ul className="space-y-2">
           <WfRow
-            title="County cup — final (stub)"
-            meta="Open → Tag set 2 · or Review Insights"
-            trailing={<WfBadge>list only</WfBadge>}
+            title="County cup final"
+            meta="Tag set 2 or open Insights"
+            trailing={<WfBadge>list</WfBadge>}
           />
         </ul>
 
-        <WfEmpty
-          title="No matches match filters"
-          body="Empty state: clear filters or New match (attach video on Details)."
-        />
+        <WfEmpty title="No matches" body="Clear filters or start New match." />
       </div>
     </div>
   )

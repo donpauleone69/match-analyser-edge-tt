@@ -21,7 +21,7 @@ export function WfField({
         )}
         aria-disabled="true"
       >
-        {value ?? placeholder ?? '—'}
+        {value ?? placeholder ?? '-'}
       </div>
     </label>
   )

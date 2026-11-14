@@ -5,19 +5,15 @@ import { WfBadge, WfEmpty, WfRow } from '@/layout/Wireframe'
 
 const DEMO_MATCH_ID = 'demo-1'
 
-/** Home — cards only (Next/Continue · Matches · Insights tease). */
+/** Home cards: Next/Continue, Matches, Insights tease. */
 export function HomePage() {
   const navigate = useNavigate()
 
   return (
     <div>
-      <PageHeader
-        title="Home"
-        subtitle="Pick a job — continue tagging, open a match, or peek at insights."
-      />
+      <PageHeader title="Home" subtitle="Continue, matches, insights peek." />
 
       <div className="px-4 sm:px-6 lg:px-8 pb-6 space-y-4">
-        {/* Next / Continue — full bleed */}
         <Card className="space-y-3">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
@@ -28,27 +24,21 @@ export function HomePage() {
           </div>
           <div className="rounded-md border border-border bg-bg-card px-3 py-3 space-y-1">
             <p className="text-sm font-semibold text-primary">Demo vs Opponent · Set 2</p>
-            <p className="text-sm text-muted">
-              4 rallies left to tag · last contact at 12:41 on source · resume at Contacts.
-            </p>
-            <p className="text-xs text-muted">
-              Job 1 resume — opens Match → Tag (Pass 1). Not real tagging in proto.
-            </p>
+            <p className="text-sm text-muted">4 rallies left · last at 12:41 · resume Contacts</p>
           </div>
           <Button fullWidth onClick={() => navigate(`/matches/${DEMO_MATCH_ID}/tag`)}>
-            Continue tagging → Match Tag
+            Continue tagging
           </Button>
           <Button
             fullWidth
             variant="ghost"
             onClick={() => navigate(`/matches/${DEMO_MATCH_ID}/insights`)}
           >
-            Open this match Insights instead
+            Open match Insights
           </Button>
         </Card>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Matches */}
           <Card className="space-y-3">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
@@ -62,7 +52,7 @@ export function HomePage() {
                   onClick={() => navigate(`/matches/${DEMO_MATCH_ID}/details`)}
                 >
                   <Icon name="plus" size="xs" />
-                  New match
+                  New
                 </Button>
                 <Button size="sm" variant="ghost" onClick={() => navigate('/find')}>
                   <Icon name="search" size="xs" />
@@ -70,9 +60,7 @@ export function HomePage() {
                 </Button>
               </div>
             </div>
-            <CardDescription>
-              Recent library. New → empty Match Details (attach video first). Find → filter list.
-            </CardDescription>
+            <CardDescription>Recent library.</CardDescription>
             <ul className="space-y-2">
               <li>
                 <Link
@@ -81,9 +69,7 @@ export function HomePage() {
                 >
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-primary">Demo vs Opponent</p>
-                    <p className="text-xs text-muted mt-0.5">
-                      Club league · 3–1 · tagged Set 1 · Set 2 in progress
-                    </p>
+                    <p className="text-xs text-muted mt-0.5">Club league · 3-1 · Set 2 open</p>
                   </div>
                   <Icon name="chevron-right" size="sm" className="text-muted shrink-0" />
                 </Link>
@@ -94,27 +80,21 @@ export function HomePage() {
                   className="flex items-center justify-between rounded-md border border-border bg-bg-card px-3 py-2 hover:bg-bg-elevated"
                 >
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-primary">Club night — recent</p>
-                    <p className="text-xs text-muted mt-0.5">
-                      Friendly · 11 Nov · nothing tagged yet
-                    </p>
+                    <p className="text-sm font-medium text-primary">Club night recent</p>
+                    <p className="text-xs text-muted mt-0.5">Friendly · 11 Nov · untagged</p>
                   </div>
                   <Icon name="chevron-right" size="sm" className="text-muted shrink-0" />
                 </Link>
               </li>
               <WfRow
-                title="County cup — final (stub)"
-                meta="14 Oct · video attached · 2 sets tagged"
-                trailing={<WfBadge>list only</WfBadge>}
+                title="County cup final"
+                meta="14 Oct · video on · 2 sets tagged"
+                trailing={<WfBadge>list</WfBadge>}
               />
             </ul>
-            <WfEmpty
-              title="Empty library state"
-              body="When there are 0 matches: dashed CTA “New match — attach video first” lands on Match Details."
-            />
+            <WfEmpty title="No matches" body="Empty library. New opens Match Details." />
           </Card>
 
-          {/* Insights tease */}
           <Card className="space-y-3">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
@@ -123,28 +103,26 @@ export function HomePage() {
               </div>
               <WfBadge>peek</WfBadge>
             </div>
-            <CardDescription>
-              Couple notables only — full Story / Reels / Scope live on Insights hub.
-            </CardDescription>
+            <CardDescription>A few notables. Full hub elsewhere.</CardDescription>
             <ul className="space-y-2">
               <WfRow
-                title="Short-ball receive leaks"
-                meta="Work on · across last 3 matches · opens Reels"
+                title="Short-ball receive"
+                meta="Work on · last 3 matches"
                 trailing={<Icon name="chevron-right" size="sm" className="text-muted" />}
               />
               <WfRow
                 title="Highlight reel ready"
-                meta="12 clips · Demo + Club night · download on Reels"
+                meta="12 clips · Demo + Club night"
                 trailing={<Icon name="film" size="sm" className="text-muted" />}
               />
               <WfRow
                 title="Serve +1 vs lefties"
-                meta="Pattern stub · scope = opponent handedness"
+                meta="Pattern stub"
                 trailing={<WfBadge>stub</WfBadge>}
               />
             </ul>
             <Button fullWidth variant="secondary" onClick={() => navigate('/insights/story')}>
-              See all insights → Story
+              See all insights
             </Button>
             <Button fullWidth variant="ghost" onClick={() => navigate('/insights/reels')}>
               Jump to Reels

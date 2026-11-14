@@ -1,24 +1,24 @@
-/** Proto-only flipable visual directions for Paul to pick — not product migration. */
+/** Proto-only flipable visual directions for Paul to pick. */
 export const THEME_PACKS = [
   {
     id: 'slate-teal',
     label: 'Slate Teal',
-    blurb: 'Current proto default — cool slate + teal accent.',
+    blurb: 'Default. Cool slate + teal.',
   },
   {
     id: 'ink-lime',
     label: 'Ink Lime',
-    blurb: 'Paper gray surfaces + court lime accent.',
+    blurb: 'Paper gray + court lime.',
   },
   {
     id: 'harbor',
     label: 'Harbor',
-    blurb: 'Blue-gray chrome + deep cyan accent.',
+    blurb: 'Blue-gray + deep cyan.',
   },
   {
     id: 'neon-night',
     label: 'Neon Night',
-    blurb: 'Dark base + electric cyan neon accent.',
+    blurb: 'Dark + electric cyan.',
   },
 ] as const
 

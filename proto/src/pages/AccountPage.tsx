@@ -3,16 +3,12 @@ import { PageHeader } from '@/layout/PageHeader'
 import { ThemeSwitcher } from '@/theme/ThemeSwitcher'
 import { WfBadge, WfEmpty, WfField, WfRow } from '@/layout/Wireframe'
 
-/** Account hub — Profile · Reviewing as · Import/export · Permissions · Theme. */
+/** Account hub: profile, reviewing-as, data, theme. */
 export function AccountPage() {
   return (
     <div>
-      <PageHeader
-        title="Account"
-        subtitle="Identity + library data. Gate auth stays pre-Home — this is the logged-in hub."
-      />
+      <PageHeader title="Account" subtitle="Identity and library data." />
       <div className="px-4 sm:px-6 lg:px-8 pb-6 space-y-4">
-        {/* Look & feel first so theme stays easy to find */}
         <Card className="space-y-2">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
@@ -21,14 +17,11 @@ export function AccountPage() {
             </div>
             <WfBadge>proto</WfBadge>
           </div>
-          <CardDescription>
-            Theme packs flip tokens across hubs. Not a product setting — wireframe control only.
-          </CardDescription>
+          <CardDescription>Theme packs for this proto.</CardDescription>
           <ThemeSwitcher />
         </Card>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Profile */}
           <Card className="space-y-3">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
@@ -39,24 +32,23 @@ export function AccountPage() {
             </div>
             <div className="space-y-2">
               <WfField label="Display name" value="Paul (stub)" />
-              <WfField label="Role" value="Player / coach (stub)" />
-              <WfField label="Linked player" value="Paul Overton (library)" />
-              <WfField label="Email" placeholder="Signed-in cloud email (stub)" />
+              <WfField label="Role" value="Player / coach" />
+              <WfField label="Linked player" value="Paul Overton" />
+              <WfField label="Email" placeholder="Cloud email" />
             </div>
             <div className="flex flex-wrap gap-2">
               <Button size="sm" disabled>
-                Save profile — not wired
+                Save profile (stub)
               </Button>
               <Button size="sm" variant="secondary" disabled>
-                Sign out — not wired
+                Sign out (stub)
               </Button>
               <Button size="sm" variant="ghost" disabled>
-                Switch session — not wired
+                Switch session (stub)
               </Button>
             </div>
           </Card>
 
-          {/* Reviewing as */}
           <Card className="space-y-3">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
@@ -65,25 +57,22 @@ export function AccountPage() {
               </div>
               <WfBadge>focal</WfBadge>
             </div>
-            <CardDescription>
-              Whose library you’re in — scopes Home, Match, Insights. Not the same as Profile role.
-            </CardDescription>
+            <CardDescription>Whose library you view.</CardDescription>
             <WfField label="Focal player" value="Paul Overton" />
             <ul className="space-y-2">
               <WfRow
                 title="Paul Overton"
-                meta="Your linked player · active"
+                meta="Linked player"
                 trailing={<WfBadge>active</WfBadge>}
               />
-              <WfRow title="Club teammate (stub)" meta="Shared library later" />
+              <WfRow title="Club teammate" meta="Shared later" />
             </ul>
             <Button size="sm" disabled>
-              Change reviewing-as — not wired
+              Change reviewing-as (stub)
             </Button>
           </Card>
         </div>
 
-        {/* Import / export */}
         <Card className="space-y-3">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
@@ -92,59 +81,52 @@ export function AccountPage() {
             </div>
             <WfBadge>data</WfBadge>
           </div>
-          <CardDescription>
-            Bundle on/off device · cloud sync · storage. Clip/reel download stays on Insights Reels
-            / Match Insights — not here.
-          </CardDescription>
+          <CardDescription>Bundle and sync. Reel download stays on Insights.</CardDescription>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
             <Button disabled>
               <Icon name="upload" size="xs" />
-              Import bundle — not wired
+              Import (stub)
             </Button>
             <Button variant="secondary" disabled>
               <Icon name="download" size="xs" />
-              Export backup — not wired
+              Export (stub)
             </Button>
             <Button variant="secondary" disabled>
               <Icon name="cloud" size="xs" />
-              Sync now — not wired
+              Sync (stub)
             </Button>
             <Button variant="ghost" disabled>
               <Icon name="hard-drive" size="xs" />
-              Device storage — not wired
+              Storage (stub)
             </Button>
           </div>
-          <WfEmpty
-            title="No backup yet"
-            body="Empty state: last export — never. Dev clear-all / dummy-data stay optional under backup (hidden or light in MVP)."
-          />
+          <WfEmpty title="No backup yet" body="Last export: never." />
         </Card>
 
-        {/* Permissions */}
         <Card className="space-y-3">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <Icon name="cloud" size="sm" className="text-brand" />
               <CardTitle>Permissions notes</CardTitle>
             </div>
-            <WfBadge>plain notes</WfBadge>
+            <WfBadge>notes</WfBadge>
           </div>
           <ul className="space-y-2 text-sm text-muted">
             <li>
-              <span className="font-semibold text-primary">Device:</span> local matches, tags, video
-              assets (OPFS) — works offline after Gate device session.
+              <span className="font-semibold text-primary">Device:</span> local matches, tags,
+              video assets. Works offline after device session.
             </li>
             <li>
-              <span className="font-semibold text-primary">Cloud:</span> account login, optional sync
-              / backup — needs Sign in on Gate.
+              <span className="font-semibold text-primary">Cloud:</span> login, optional sync.
+              Needs Gate sign-in.
             </li>
             <li>
-              <span className="font-semibold text-primary">Needs sign-in:</span> cross-device restore,
-              shared reviewing-as (later) — not required for local tagging.
+              <span className="font-semibold text-primary">Needs sign-in:</span> cross-device
+              restore. Not required for local tagging.
             </li>
             <li>
-              <span className="font-semibold text-primary">Not here:</span> raw match video attach →
-              Match Details · reel download → Insights / Match Insights.
+              <span className="font-semibold text-primary">Not here:</span> video attach on Match
+              Details. Reel download on Insights.
             </li>
           </ul>
         </Card>
