@@ -6,6 +6,20 @@
 
 ## Change Log
 
+### 2026-11-14: MA-154 — Clips white-screen hooks crash (v3.183.0)
+
+**Change Type:** Bugfix — Clips blank / crash on open
+
+**What Changed:**
+- `ClipsComposer`: score HUD is a plain compute after the loading/empty early returns — **not** `useMemo`.
+- Overnight MA-86 put `useMemo` after `if (isLoading) return …`, so loading → data flipped hook count and React white-screened Clips whenever the library had presets.
+
+**Decision Rationale:** Smallest hotfix vs tip rollback. BrowseDisclosure / PlaylistBrowseShell are fine; gate (`npm run build`) does not catch Rules of Hooks.
+
+**Key Files:** `ClipsComposer.tsx`.
+
+---
+
 ### 2026-11-14: MA-145 — Phone playlist trail density (v3.182.0)
 
 **Change Type:** UX polish — sticky browse trail on phone
@@ -9176,6 +9190,7 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v3.183.0 | 2026-11-14 | MA-154: Clips white-screen — remove useMemo after early returns (MA-86 hooks crash) |
 | v3.182.0 | 2026-11-14 | MA-145: phone playlist trail density — one-row icon-first trail |
 | v3.181.0 | 2026-11-14 | MA-147: Pass 1 contacts pad polish |
 | v3.180.0 | 2026-11-14 | MA-143: Serve/Receive glance card polish |
