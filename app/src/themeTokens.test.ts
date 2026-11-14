@@ -196,6 +196,12 @@ describe('shared match color tokens', () => {
       ).not.toMatch(
         /border-white\/15|divide-white\/10|bg-white\/(?:10|20|25)\b/
       )
+      if (path.endsWith('VideoPlayer.tsx')) {
+        expect(
+          source(path),
+          `${path} uses raw neutral empty/load paint instead of elevated/muted tokens`
+        ).not.toMatch(/\bbg-neutral-\d+\b|\btext-neutral-\d+\b|\bborder-neutral-\d+\b|hover:bg-black\b/)
+      }
     }
   })
 

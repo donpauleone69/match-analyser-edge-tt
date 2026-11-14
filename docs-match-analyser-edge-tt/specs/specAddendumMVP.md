@@ -6,6 +6,22 @@
 
 ## Change Log
 
+### 2026-11-14: MA-139 — VideoPlayer empty/loading chrome (v3.175.0)
+
+**Change Type:** Design tokens — shared VideoPlayer empty / load / Change chrome
+
+**What Changed:**
+- Empty / processing / pick-file circles → `bg-bg-elevated` + `border-border` (hover shell / border-strong).
+- Spinner track → `border-border` + `border-t-brand-primary`; helper copy → `text-muted`.
+- Constrained end-time on HUD chip → `text-white/70`; Change chip hover drops raw `bg-black` → `hover:bg-video-scrim`.
+- `themeTokens.test.ts` gates VideoPlayer against raw `neutral-*` / `hover:bg-black`.
+
+**Decision Rationale:** Overnight Track A MA-139 — shared spine leftover after MA-129; empty/load states match Clip stage muted language on the light video shell.
+
+**Key Files:** `VideoPlayer.tsx`, `themeTokens.test.ts`.
+
+---
+
 ### 2026-11-14: MA-133 — Serve/Receive empty + loading polish (v3.174.0)
 
 **Change Type:** UX polish — Serve/Receive empty shells + Match Review load
@@ -9049,6 +9065,7 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v3.175.0 | 2026-11-14 | MA-139: VideoPlayer empty/loading → elevated/muted tokens; Change hover video-scrim |
 | v3.174.0 | 2026-11-14 | MA-133: Serve/Receive empty + loading polish |
 | v3.171.0 | 2026-11-14 | MA-137: Browse shell Fix/Edit round-trip polish |
 | v3.170.0 | 2026-11-14 | MA-129: Work-on/Summary/Rallies → Clips deep-link — keep trail on preset switch; clear on leave |
