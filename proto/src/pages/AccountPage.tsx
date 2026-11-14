@@ -1,5 +1,6 @@
 import { Button, Card, CardDescription, CardTitle, Icon } from '@/ui-mine'
 import { PageHeader } from '@/layout/PageHeader'
+import { StickyChrome } from '@/layout/StickyChrome'
 import { ThemeSwitcher } from '@/theme/ThemeSwitcher'
 import { WfBadge, WfEmpty, WfField, WfRow } from '@/layout/Wireframe'
 
@@ -7,7 +8,9 @@ import { WfBadge, WfEmpty, WfField, WfRow } from '@/layout/Wireframe'
 export function AccountPage() {
   return (
     <div>
-      <PageHeader title="Account" />
+      <StickyChrome>
+        <PageHeader title="Account" />
+      </StickyChrome>
       <div className="px-4 sm:px-6 lg:px-8 pb-6 space-y-4">
         <Card className="space-y-2">
           <div className="flex items-center justify-between gap-2">

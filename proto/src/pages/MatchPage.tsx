@@ -3,6 +3,7 @@ import { Link, Outlet, useMatch, useNavigate, useParams } from 'react-router-dom
 import { Button, Card, CardDescription, CardTitle, Icon } from '@/ui-mine'
 import { HubTabs } from '@/layout/HubTabs'
 import { PageHeader } from '@/layout/PageHeader'
+import { StickyChrome } from '@/layout/StickyChrome'
 import { WfBadge, WfEmpty, WfField, WfRow } from '@/layout/Wireframe'
 import { DEMO_MATCH, getDemoSet } from '@/data/demoMatch'
 
@@ -18,15 +19,17 @@ export function MatchPage() {
 
   return (
     <div>
-      <PageHeader title={DEMO_MATCH.name} subtitle={subtitle} backTo={backTo} />
-      <HubTabs
-        ariaLabel="Match sections"
-        tabs={[
-          { to: `${base}/insights`, label: 'Insights' },
-          { to: `${base}/details`, label: 'Details' },
-          { to: `${base}/tag`, label: 'Tag' },
-        ]}
-      />
+      <StickyChrome>
+        <PageHeader title={DEMO_MATCH.name} subtitle={subtitle} backTo={backTo} />
+        <HubTabs
+          ariaLabel="Match sections"
+          tabs={[
+            { to: `${base}/insights`, label: 'Insights' },
+            { to: `${base}/details`, label: 'Details' },
+            { to: `${base}/tag`, label: 'Tag' },
+          ]}
+        />
+      </StickyChrome>
       <Outlet />
     </div>
   )

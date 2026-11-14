@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AppShell } from '@/layout/AppShell'
+import { ScrollToTop } from '@/layout/ScrollToTop'
 import { GatePage } from '@/pages/GatePage'
 import { HomePage } from '@/pages/HomePage'
 import { FindPage } from '@/pages/FindPage'
@@ -20,7 +21,9 @@ import { AccountPage } from '@/pages/AccountPage'
 
 export default function App() {
   return (
-    <Routes>
+    <>
+      <ScrollToTop />
+      <Routes>
       <Route path="/" element={<GatePage />} />
       <Route element={<AppShell />}>
         <Route path="/home" element={<HomePage />} />
@@ -42,5 +45,6 @@ export default function App() {
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </>
   )
 }

@@ -9,7 +9,7 @@ export function GatePage() {
   const enter = () => navigate('/home')
 
   return (
-    <div className="h-full overflow-y-auto bg-bg-app px-4 sm:px-6 lg:px-8 py-8">
+    <div id="gate-scroll" className="h-full overflow-y-auto bg-bg-app px-4 sm:px-6 lg:px-8 py-8">
       <div className="space-y-6">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 space-y-1 max-w-prose">

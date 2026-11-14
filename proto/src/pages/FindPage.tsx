@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { Button, Card, CardDescription, CardTitle, Icon } from '@/ui-mine'
 import { PageHeader } from '@/layout/PageHeader'
+import { StickyChrome } from '@/layout/StickyChrome'
 import { WfBadge, WfEmpty, WfField, WfRow } from '@/layout/Wireframe'
 
 /** Find stub from Home. */
@@ -9,7 +10,9 @@ export function FindPage() {
 
   return (
     <div>
-      <PageHeader title="Find" backTo="/home" />
+      <StickyChrome>
+        <PageHeader title="Find" backTo="/home" />
+      </StickyChrome>
       <div className="px-4 sm:px-6 lg:px-8 pb-6 space-y-4">
         <Card className="space-y-3">
           <div className="flex items-center justify-between gap-2">

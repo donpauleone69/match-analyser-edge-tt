@@ -11,7 +11,10 @@ const navItems: { to: string; icon: IconName; label: string; end?: boolean }[] =
 export function AppShell() {
   return (
     <div className="h-full bg-bg-app flex flex-col">
-      <main className="flex-1 min-h-0 overflow-y-auto overscroll-behavior-none pb-14">
+      <main
+        id="shell-scroll"
+        className="flex-1 min-h-0 overflow-y-auto overscroll-behavior-none pb-14"
+      >
         <Outlet />
       </main>
 

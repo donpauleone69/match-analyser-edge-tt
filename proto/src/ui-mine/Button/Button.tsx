@@ -7,14 +7,15 @@ const buttonVariants = cva(
    transition-all duration-[var(--animate-micro)]
    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary
    focus-visible:ring-offset-2 focus-visible:ring-offset-bg-surface
-   disabled:opacity-50 disabled:pointer-events-none active:scale-[0.98]`,
+   disabled:pointer-events-none disabled:active:scale-100 disabled:shadow-none disabled:opacity-100
+   active:scale-[0.98]`,
   {
     variants: {
       variant: {
-        primary: 'bg-brand-primary text-on-accent hover:bg-brand-primary-hover',
+        primary: 'bg-brand-primary text-on-accent hover:bg-brand-primary-hover border border-transparent',
         secondary:
           'bg-pill-idle border border-pill-idle-border text-primary hover:bg-bg-elevated',
-        ghost: 'bg-transparent text-primary hover:bg-pill-idle',
+        ghost: 'bg-transparent text-primary hover:bg-pill-idle border border-transparent',
       },
       size: {
         sm: 'h-[var(--control-height)] px-[var(--control-px)] text-[length:var(--control-text)] rounded-[var(--control-radius)]',
@@ -29,6 +30,10 @@ const buttonVariants = cva(
   }
 )
 
+/** Applied after variants so disabled colors beat text-on-accent / text-primary. */
+const disabledSurface =
+  'disabled:bg-disabled-bg disabled:text-disabled-text disabled:border-disabled-border'
+
 export interface ButtonProps
   extends ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
@@ -39,7 +44,12 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, fullWidth, children, ...props }, ref) => (
     <button
       ref={ref}
-      className={cn(buttonVariants({ variant, size }), fullWidth && 'w-full', className)}
+      className={cn(
+        buttonVariants({ variant, size }),
+        disabledSurface,
+        fullWidth && 'w-full',
+        className
+      )}
       {...props}
     >
       {children}

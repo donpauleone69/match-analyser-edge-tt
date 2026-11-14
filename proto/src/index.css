@@ -49,6 +49,10 @@
   --color-bg-card: var(--theme-bg-card);
   --color-bg-elevated: var(--theme-bg-elevated);
 
+  --color-disabled-bg: var(--theme-disabled-bg);
+  --color-disabled-text: var(--theme-disabled-text);
+  --color-disabled-border: var(--theme-disabled-border);
+
   --font-sans: "Plus Jakarta Sans", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", "Fira Code", monospace;
 
@@ -77,16 +81,20 @@
   --animate-micro: 150ms ease-out;
 }
 
-/* Pack: Slate Teal (default) */
+/* Pack: Slate Teal (default) — brand darkened for ≥4.5 text/button contrast */
 :root,
 [data-theme="slate-teal"] {
-  --theme-brand: #14b8a6;
+  --theme-brand: #0f766e;
   --theme-brand-hover: #0d9488;
-  --theme-brand-muted: rgb(20 184 166 / 0.15);
+  --theme-brand-muted: rgb(15 118 110 / 0.15);
 
   --theme-text: #0f172a;
   --theme-text-muted: #475569;
-  --theme-text-on-accent: #f8fafc;
+  --theme-text-on-accent: #ffffff;
+
+  --theme-disabled-bg: #d7dde6;
+  --theme-disabled-text: #334155;
+  --theme-disabled-border: #94a3b8;
 
   --theme-n950: #f8fafc;
   --theme-n900: #f1f5f9;
@@ -113,15 +121,19 @@
   --theme-bg-elevated: #e8edf3;
 }
 
-/* Pack: Ink Lime — cool paper + court lime */
+/* Pack: Ink Lime — brand darkened for ≥4.5 text/button contrast */
 [data-theme="ink-lime"] {
-  --theme-brand: #65a30d;
+  --theme-brand: #3f6212;
   --theme-brand-hover: #4d7c0f;
-  --theme-brand-muted: rgb(101 163 13 / 0.16);
+  --theme-brand-muted: rgb(63 98 18 / 0.16);
 
   --theme-text: #141714;
   --theme-text-muted: #4b5548;
-  --theme-text-on-accent: #f7faf3;
+  --theme-text-on-accent: #ffffff;
+
+  --theme-disabled-bg: #d7ddd0;
+  --theme-disabled-text: #333a31;
+  --theme-disabled-border: #8f9c87;
 
   --theme-n950: #f7f8f5;
   --theme-n900: #eef1ea;
@@ -148,15 +160,19 @@
   --theme-bg-elevated: #e4e9df;
 }
 
-/* Pack: Harbor — blue-gray + deep cyan */
+/* Pack: Harbor — brand nudged for ≥4.5 on shell/app surfaces */
 [data-theme="harbor"] {
-  --theme-brand: #0e7490;
+  --theme-brand: #0c5c75;
   --theme-brand-hover: #155e75;
-  --theme-brand-muted: rgb(14 116 144 / 0.15);
+  --theme-brand-muted: rgb(12 92 117 / 0.15);
 
   --theme-text: #0c1929;
   --theme-text-muted: #3d5166;
-  --theme-text-on-accent: #f0f9ff;
+  --theme-text-on-accent: #ffffff;
+
+  --theme-disabled-bg: #d0dbe8;
+  --theme-disabled-text: #2a3a4d;
+  --theme-disabled-border: #8499b0;
 
   --theme-n950: #f3f7fb;
   --theme-n900: #e8eef5;
@@ -192,6 +208,10 @@
   --theme-text: #e2e8f0;
   --theme-text-muted: #94a3b8;
   --theme-text-on-accent: #041016;
+
+  --theme-disabled-bg: #1e293b;
+  --theme-disabled-text: #cbd5e1;
+  --theme-disabled-border: #475569;
 
   --theme-n950: #020617;
   --theme-n900: #0b1220;
@@ -250,4 +270,14 @@ body {
 }
 .text-on-accent {
   color: var(--color-text-on-accent);
+}
+
+/* Disabled controls: readable (≥3.0) without relying on opacity wash */
+button:disabled,
+button[disabled] {
+  background-color: var(--theme-disabled-bg) !important;
+  color: var(--theme-disabled-text) !important;
+  border-color: var(--theme-disabled-border) !important;
+  opacity: 1 !important;
+  box-shadow: none !important;
 }

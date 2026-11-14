@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { Button, Card, CardDescription, CardTitle, Icon } from '@/ui-mine'
 import { PageHeader } from '@/layout/PageHeader'
+import { StickyChrome } from '@/layout/StickyChrome'
 import { WfBadge, WfEmpty, WfRow } from '@/layout/Wireframe'
 
 const DEMO_MATCH_ID = 'demo-1'
@@ -11,7 +12,9 @@ export function HomePage() {
 
   return (
     <div>
-      <PageHeader title="Home" />
+      <StickyChrome>
+        <PageHeader title="Home" />
+      </StickyChrome>
 
       <div className="px-4 sm:px-6 lg:px-8 pb-6 space-y-4">
         <Card className="space-y-3">

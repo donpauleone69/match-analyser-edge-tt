@@ -2,21 +2,24 @@ import { Outlet, useNavigate } from 'react-router-dom'
 import { Button, Card, CardTitle, Icon } from '@/ui-mine'
 import { HubTabs } from '@/layout/HubTabs'
 import { PageHeader } from '@/layout/PageHeader'
+import { StickyChrome } from '@/layout/StickyChrome'
 import { WfBadge, WfEmpty, WfField, WfRow } from '@/layout/Wireframe'
 
 /** Insights hub: Story, Reels, Scope. */
 export function InsightsPage() {
   return (
     <div>
-      <PageHeader title="Insights" />
-      <HubTabs
-        ariaLabel="Insights sections"
-        tabs={[
-          { to: '/insights/story', label: 'Story / Work on' },
-          { to: '/insights/reels', label: 'Reels' },
-          { to: '/insights/scope', label: 'Scope' },
-        ]}
-      />
+      <StickyChrome>
+        <PageHeader title="Insights" />
+        <HubTabs
+          ariaLabel="Insights sections"
+          tabs={[
+            { to: '/insights/story', label: 'Story / Work on' },
+            { to: '/insights/reels', label: 'Reels' },
+            { to: '/insights/scope', label: 'Scope' },
+          ]}
+        />
+      </StickyChrome>
       <Outlet />
     </div>
   )
