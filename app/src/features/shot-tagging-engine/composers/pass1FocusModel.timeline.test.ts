@@ -341,8 +341,8 @@ describe('first attack mandatory (MA-35 / MA-68 / MA-71)', () => {
     expect(
       derivePass1Stage(timelineFromContacts([]), { inForm: false, hasContacts: false })
     ).toBe('contacts')
-    expect(pass1StageInfo('contacts').text).toBe('Click rally contacts')
-    expect(pass1StageInfo('end_details').text).toMatch(/end reason|Result/i)
+    expect(pass1StageInfo('contacts').text).toMatch(/Tap contacts/i)
+    expect(pass1StageInfo('end_details').text).toMatch(/Result/i)
   })
 
   it('shotToRallyEndLoopWindow runs from shot start to rally end', () => {
