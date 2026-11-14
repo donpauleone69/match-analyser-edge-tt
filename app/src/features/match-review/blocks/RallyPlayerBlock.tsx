@@ -124,15 +124,21 @@ export const RallyPlayerBlock = forwardRef<VideoPlayerHandle, RallyPlayerBlockPr
 
     return (
       <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-2 md:p-6" role="dialog" aria-label="Rally player">
-        <div className="w-full max-w-4xl bg-bg-card border border-border rounded-xl overflow-hidden shadow-2xl">
-          <div className="flex items-center gap-3 px-4 py-2.5 border-b border-border">
+        <div className="w-full max-w-4xl bg-bg-card border border-border rounded-lg overflow-hidden shadow-2xl">
+          <div className="flex items-center gap-2 px-3 py-2 border-b border-border">
             <div className="min-w-0 flex-1">
-              <p className="text-[11px] uppercase tracking-wide text-neutral-500 truncate">
-                {playlistTitle} · {position + 1} of {total}
+              <p className="text-[11px] text-muted truncate">
+                {playlistTitle}
+                {total > 0 && (
+                  <span className="tabular-nums">
+                    {' '}
+                    · {position + 1}/{total}
+                  </span>
+                )}
               </p>
-              <p className="text-sm font-semibold text-neutral-50 truncate">
+              <p className="text-sm font-semibold text-primary truncate">
                 Set {rally.setNumber} · Rally {rally.rallyIndex}
-                <span className="ml-2 font-mono text-neutral-400 font-normal">
+                <span className="ml-2 font-mono text-muted font-normal">
                   {rally.scoreBefore} → {rally.scoreAfter}
                 </span>
                 {rally.isIncomplete ? (
@@ -148,7 +154,7 @@ export const RallyPlayerBlock = forwardRef<VideoPlayerHandle, RallyPlayerBlockPr
               type="button"
               onClick={onClose}
               aria-label="Close player"
-              className="p-1.5 rounded-md text-neutral-400 hover:text-neutral-50 hover:bg-neutral-700"
+              className="p-1.5 rounded-md text-muted hover:text-primary hover:bg-bg-elevated"
             >
               <Icon name="x" size="md" />
             </button>
@@ -216,19 +222,19 @@ export const RallyPlayerBlock = forwardRef<VideoPlayerHandle, RallyPlayerBlockPr
               />
             </VideoStageChrome>
             {!videoUrl && (
-              <p className="absolute bottom-3 inset-x-0 text-center text-xs text-neutral-400 pointer-events-none">
+              <p className="absolute bottom-3 inset-x-0 text-center text-xs text-muted pointer-events-none">
                 Video for Set {rally.setNumber} isn’t on this device yet — load it once and it’s remembered.
               </p>
             )}
             {videoUrl && !loop && (
-              <p className="absolute top-3 inset-x-0 text-center text-xs text-warning">
+              <p className="absolute top-3 inset-x-0 text-center text-xs text-callout-warning">
                 This rally has no contact times, so it can’t be clipped.
               </p>
             )}
           </div>
 
           <div className="px-4 py-2.5 flex flex-wrap items-center gap-2">
-            <p className="text-xs text-neutral-400 flex-1 min-w-[12rem] truncate">{rally.summary}</p>
+            <p className="text-xs text-muted flex-1 min-w-[12rem] truncate">{rally.summary}</p>
             <Button size="sm" variant="secondary" onClick={onEdit}>
               <Icon name="edit" size="sm" /> Edit tags
             </Button>

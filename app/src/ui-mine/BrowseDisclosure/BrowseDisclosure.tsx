@@ -60,32 +60,32 @@ export function BrowseDisclosure({
         aria-label={ariaLabel}
         onClick={() => onOpenChange(!open)}
         className={cn(
-          'inline-flex items-center gap-2 rounded-lg border border-neutral-700 bg-bg-card px-3 py-1.5',
-          'text-sm text-neutral-100 hover:border-neutral-500 transition-colors',
+          'inline-flex items-center gap-2 rounded-lg border border-border bg-bg-card px-3 py-1.5',
+          'text-sm text-primary hover:border-border-strong transition-colors',
           fullWidth && 'w-full justify-between py-2.5',
           triggerClassName
         )}
       >
         <span className="min-w-0 flex items-center gap-2 truncate">
           {label != null && (
-            <span className="shrink-0 text-neutral-500 font-medium">{label}</span>
+            <span className="shrink-0 text-muted font-medium">{label}</span>
           )}
           <span className="font-semibold truncate">{value}</span>
           {meta != null && (
-            <span className="shrink-0 tabular-nums text-neutral-500">{meta}</span>
+            <span className="shrink-0 tabular-nums text-muted">{meta}</span>
           )}
         </span>
         <Icon
           name={open ? 'chevron-up' : 'chevron-down'}
           size="sm"
-          className="shrink-0 text-neutral-400"
+          className="shrink-0 text-muted"
         />
       </button>
 
       {open && (
         <div
           className={cn(
-            'absolute z-30 mt-1 min-w-full rounded-lg border border-neutral-700 bg-bg-elevated shadow-xl',
+            'absolute z-30 mt-1 min-w-full rounded-lg border border-border bg-bg-elevated shadow-xl',
             fullWidth ? 'left-0 right-0' : 'min-w-[14rem]',
             panelClassName
           )}
@@ -120,13 +120,15 @@ export function BrowseDisclosureOption({
       aria-selected={selected}
       onClick={onSelect}
       className={cn(
-        'w-full flex items-center gap-2 px-3 py-2 text-left text-sm',
-        selected ? 'bg-neutral-800 text-neutral-50' : 'text-neutral-200 hover:bg-neutral-800/70'
+        'w-full flex items-center gap-2 px-3 py-2 text-left text-sm transition-colors',
+        selected
+          ? 'bg-contact-selected-bg text-primary'
+          : 'text-primary hover:bg-bg-card'
       )}
     >
       {leading}
       <span className="flex-1 truncate">{children}</span>
-      {meta != null && <span className="tabular-nums text-neutral-500">{meta}</span>}
+      {meta != null && <span className="tabular-nums text-muted">{meta}</span>}
     </button>
   )
 }

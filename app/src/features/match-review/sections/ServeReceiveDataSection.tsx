@@ -193,20 +193,35 @@ export function ServeReceiveDataSection({
       </div>
 
       <section ref={playlistRef} className="space-y-2.5" aria-label="Supporting playlist">
-        <div className="sticky top-14 z-10 -mx-1 px-1 py-2 bg-bg-surface/95 backdrop-blur border-b border-border flex flex-wrap items-center gap-2">
-          <div className="min-w-0 flex-1">
-            <h3 className="text-sm font-semibold text-neutral-50">Playlist</h3>
-            <p className="text-xs text-neutral-500 truncate">
+        <div className="sticky top-14 z-10 -mx-1 px-1 py-2 bg-bg-surface/95 backdrop-blur border-b border-border flex flex-col gap-2 md:flex-row md:flex-wrap md:items-center">
+          <div className="hidden md:block min-w-0 flex-1">
+            <h3 className="text-sm font-semibold text-primary">Playlist</h3>
+            <p className="text-xs text-muted truncate">
               {activeFocus ? activeFocus.label : 'Pick a focus'} · watch or Clips
             </p>
           </div>
-          <PlaylistFocusPickerBlock
-            focuses={focuses}
-            activeId={activeFocus?.id ?? ''}
-            onSelect={selectFocus}
-          />
+          <div className="w-full md:hidden">
+            <PlaylistFocusPickerBlock
+              fullWidth
+              focuses={focuses}
+              activeId={activeFocus?.id ?? ''}
+              onSelect={selectFocus}
+            />
+          </div>
+          <div className="hidden md:block">
+            <PlaylistFocusPickerBlock
+              focuses={focuses}
+              activeId={activeFocus?.id ?? ''}
+              onSelect={selectFocus}
+            />
+          </div>
           {playlistRallies.length > 0 && (
-            <Button size="sm" variant="secondary" onClick={() => onPlayPlaylist(playlistTitle, playlistRallies)}>
+            <Button
+              size="sm"
+              variant="secondary"
+              className="self-start md:self-auto"
+              onClick={() => onPlayPlaylist(playlistTitle, playlistRallies)}
+            >
               <Icon name="film" size="sm" /> Clips
             </Button>
           )}

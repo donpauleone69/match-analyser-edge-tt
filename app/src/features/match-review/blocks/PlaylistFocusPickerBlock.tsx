@@ -13,6 +13,8 @@ export interface PlaylistFocusPickerBlockProps {
   focuses: PlaylistFocusModel[]
   activeId: string
   onSelect: (focus: PlaylistFocusModel) => void
+  /** Full-width trigger (phone Serve/Receive, matches Clips). */
+  fullWidth?: boolean
 }
 
 const TONE_DOT: Record<PlaylistFocusModel['tone'], string> = {
@@ -26,6 +28,7 @@ export function PlaylistFocusPickerBlock({
   focuses,
   activeId,
   onSelect,
+  fullWidth = false,
 }: PlaylistFocusPickerBlockProps) {
   const [open, setOpen] = useState(false)
   const active = focuses.find((f) => f.id === activeId) ?? focuses[0]
@@ -39,12 +42,16 @@ export function PlaylistFocusPickerBlock({
   return (
     <BrowseDisclosure
       aria-label="Playlist focus"
+      label={fullWidth ? 'Focus' : undefined}
+      fullWidth={fullWidth}
       open={open}
       onOpenChange={setOpen}
       value={
         <span className="inline-flex items-center gap-2 min-w-0">
           <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', TONE_DOT[active.tone])} />
-          <span className="truncate max-w-[12rem]">{active.label}</span>
+          <span className={cn('truncate', fullWidth ? 'max-w-none' : 'max-w-[12rem]')}>
+            {active.label}
+          </span>
         </span>
       }
       meta={active.count}

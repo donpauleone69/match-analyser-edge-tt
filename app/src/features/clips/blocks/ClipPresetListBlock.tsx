@@ -33,7 +33,11 @@ export function ClipPresetListBlock({
           >
             {g.label}
           </p>
-          <div className={cn(compact ? 'flex flex-col gap-1' : 'flex flex-wrap gap-1.5 md:flex-col md:gap-1')}>
+          <div
+            className={cn(
+              compact ? 'flex flex-col gap-1' : 'flex flex-wrap gap-1.5 md:flex-col md:gap-1'
+            )}
+          >
             {g.presets.map((p) => {
               const active = p.key === activeKey
               return (
@@ -52,7 +56,12 @@ export function ClipPresetListBlock({
                   )}
                 >
                   <span className="truncate">{p.label}</span>
-                  <span className={cn('shrink-0 font-mono text-xs tabular-nums', active ? 'text-contact-selected' : 'text-muted')}>
+                  <span
+                    className={cn(
+                      'shrink-0 font-mono text-xs tabular-nums',
+                      active ? 'text-contact-selected' : 'text-muted'
+                    )}
+                  >
                     {p.count}
                   </span>
                 </button>
