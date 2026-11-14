@@ -39,7 +39,7 @@
 
 > **SoT for live values:** `app/src/index.css` `@theme` (light pastel tagging). Tables below are historical dark-era notes — prefer CSS tokens / `themeTokens.test.ts` for overnight A–E work.
 
-### 2.0 Light cohesion tokens (MA-84)
+### 2.0 Light cohesion tokens (MA-84 → MA-128)
 
 | Family | Tokens | Use |
 |--------|--------|-----|
@@ -47,8 +47,54 @@
 | Surfaces | `bg-app/shell/surface/card/elevated` | Paper elevation |
 | Match paint | `player-*`, `shot-*`, `result-*`, `contact-*`, `review`, `pill-idle*` | Pass 1 / Review / Clips |
 | Callouts | `callout-warning*`, `callout-danger*`, `callout-info*` | Incomplete, sync conflict, cloud — not raw amber/sky/rose |
-| Chrome | `border`, `border-strong`, `video-scrim*` | Lists + overlay HUD |
+| Borders | `border`, `border-strong` | Lists, cards, dashed empties |
+| Video scrim | `video-scrim*` (see §2.0.2) | Overlay HUD chips, scorebug, scrub washes |
+| Modal / panel | `modal-scrim*`, `panel-scrim` (see §2.0.3) | Dialogs, History dimmers |
 | Controls | `--control-height/px/text/gap/radius`, `.tag-control` | Shared density |
+| Pass 1 | `no-attack` | No Attack selected fill (opaque; not raw `#dc2626`) |
+
+Live CSS names are `--color-<token>` in `app/src/index.css` `@theme`. Tailwind classes: `bg-<token>`, `text-<token>`, `border-<token>`. Gate: `app/src/themeTokens.test.ts`.
+
+#### 2.0.1 Callout family
+
+Prefer these over raw `amber-*` / `rose-*` / `sky-*` / `cyan-*`.
+
+| Token | CSS value | Use |
+|-------|-----------|-----|
+| `callout-warning` | `#b45309` | Soft warn ink (incomplete, winner-shift) |
+| `callout-warning-bg` | `#fff7ed` | Soft warn fill |
+| `callout-warning-border` | `#fdba74` | Soft warn border |
+| `callout-danger` | `#b91c1c` | Error / missing ink |
+| `callout-danger-bg` | `#fef2f2` | Error fill |
+| `callout-danger-border` | `#fca5a5` | Error border |
+| `callout-info` | `#0369a1` | Cloud / info / audit accent ink |
+| `callout-info-bg` | `#e0f2fe` | Info fill |
+| `callout-info-border` | `#7dd3fc` | Info border |
+
+#### 2.0.2 Video scrim family (on-video chrome)
+
+Prefer these over raw `bg-black/*` / `border-white/*` / `bg-white/*` on video overlays.
+
+| Token | CSS value | Use |
+|-------|-----------|-----|
+| `video-scrim` | `rgb(0 0 0 / 0.7)` | Transport / HUD chip fill (default) |
+| `video-scrim-strong` | `rgb(0 0 0 / 0.9)` | Time / shot / Change chips |
+| `video-scrim-soft` | `rgb(0 0 0 / 0.55)` | Scrub track trough |
+| `video-scrim-border` | `rgb(255 255 255 / 0.25)` | Chip / HUD outline |
+| `video-scrim-edge` | `rgb(255 255 255 / 0.15)` | Scorebug internal rules |
+| `video-scrim-wash` | `rgb(255 255 255 / 0.2)` | Scorebug set cell wash |
+| `video-scrim-wash-strong` | `rgb(255 255 255 / 0.25)` | Scrub elapsed wash |
+| `video-scrim-wash-muted` | `rgb(255 255 255 / 0.1)` | Scorebug row / divide wash |
+
+#### 2.0.3 Modal / panel scrims
+
+Prefer these over raw `bg-black/50|60|80` dialog dimmers.
+
+| Token | CSS value | Use |
+|-------|-----------|-----|
+| `modal-scrim` | `rgb(0 0 0 / 0.6)` | Form dialogs (Leave draft, Completion, Match Result) |
+| `modal-scrim-strong` | `rgb(0 0 0 / 0.8)` | Stage overlays (RallyPlayer, shadcn Dialog/Alert) |
+| `panel-scrim` | `rgb(0 0 0 / 0.2)` | Soft drawer dim (Pass 1 History) + badge washes |
 
 ### 2.1 Brand Palette
 
