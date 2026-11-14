@@ -153,23 +153,26 @@ export function MatchFormSection({ players, tournaments, focalPlayerId }: MatchF
     return tournaments.find((t) => t.id === id)?.name ?? id
   }
 
+  const fieldClass =
+    'w-full px-3 py-2 bg-bg-surface border border-border rounded-md text-neutral-50 focus:outline-none focus:ring-2 focus:ring-brand-primary text-sm'
+
   return (
-    <div className="bg-bg-card border border-neutral-700 rounded-lg p-4 md:p-6">
+    <div className="bg-bg-card border border-border rounded-lg p-4">
       <form onSubmit={handleSubmit} className="space-y-4">
-        <p className="text-sm text-neutral-400">
-          Choose who you are tagging. Opponent and tournament are optional — add them now or later under Details so Clips can filter by them.
+        <p className="text-sm text-neutral-500">
+          Opponent and tournament optional — add later under Details.
         </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
-            <label className="block text-sm font-medium text-neutral-300 mb-2">
+            <label className="block text-xs font-medium text-neutral-500 mb-1">
               You (player) *
             </label>
             <select
               required
               value={formData.player1_id}
               disabled
-              className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-md text-neutral-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
+              className={fieldClass}
             >
               <option value="">Select player...</option>
               {players.map((player) => (
@@ -178,11 +181,11 @@ export function MatchFormSection({ players, tournaments, focalPlayerId }: MatchF
                 </option>
               ))}
             </select>
-            <p className="mt-1 text-xs text-neutral-500">Change “Reviewing as” in Account & data.</p>
+            <p className="mt-1 text-[11px] text-neutral-500">Change in Account & data.</p>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-neutral-300 mb-2">
+            <label className="block text-xs font-medium text-neutral-500 mb-1">
               Opponent
             </label>
             <select
@@ -191,7 +194,7 @@ export function MatchFormSection({ players, tournaments, focalPlayerId }: MatchF
                 setDupes(null)
                 setFormData({ ...formData, player2_id: e.target.value })
               }}
-              className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-md text-neutral-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
+              className={fieldClass}
             >
               <option value="">Add later in Details</option>
               {players.map((player) => (
@@ -207,7 +210,7 @@ export function MatchFormSection({ players, tournaments, focalPlayerId }: MatchF
           </div>
 
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-neutral-300 mb-2">
+            <label className="block text-xs font-medium text-neutral-500 mb-1">
               Tournament
             </label>
             <select
@@ -216,7 +219,7 @@ export function MatchFormSection({ players, tournaments, focalPlayerId }: MatchF
                 setDupes(null)
                 setFormData({ ...formData, tournament_id: e.target.value })
               }}
-              className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-md text-neutral-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base"
+              className={fieldClass}
             >
               <option value="">None (optional)</option>
               {tournaments.map((t) => (
@@ -225,8 +228,8 @@ export function MatchFormSection({ players, tournaments, focalPlayerId }: MatchF
                 </option>
               ))}
             </select>
-            <p className="mt-1 text-xs text-neutral-500">
-              Create a new tournament from Match Review → Details if it isn’t listed.
+            <p className="mt-1 text-[11px] text-neutral-500">
+              New tournaments: Match Review → Details.
             </p>
           </div>
         </div>
@@ -234,14 +237,14 @@ export function MatchFormSection({ players, tournaments, focalPlayerId }: MatchF
         {dupes && dupes.length > 0 && (
           <div
             role="alert"
-            className="rounded-md border border-amber-600/60 bg-amber-950/40 p-3 space-y-3"
+            className="rounded-md border border-callout-warning-border bg-callout-warning-bg p-3 space-y-2.5"
           >
-            <p className="text-sm text-amber-100 font-medium">
-              You may already have this match
+            <p className="text-sm text-callout-warning font-medium">
+              Possible duplicate
             </p>
-            <p className="text-xs text-amber-200/80">
-              Same opponent{formData.tournament_id ? ', tournament,' : ''} and today’s date. Open the
-              existing one, or create anyway if this is a second match (e.g. groups then KO).
+            <p className="text-xs text-callout-warning/90">
+              Same opponent{formData.tournament_id ? ', tournament,' : ''} and today’s date. Open
+              existing, or create anyway for a second match.
             </p>
             <ul className="space-y-2">
               {dupes.slice(0, 3).map((d) => (

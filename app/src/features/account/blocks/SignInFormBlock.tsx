@@ -34,11 +34,9 @@ export function SignInFormBlock({
   }
 
   return (
-    <div className="space-y-4 max-w-sm">
-      <div className="rounded-lg border border-brand-primary/40 bg-brand-primary-muted p-3 space-y-2">
-        <p className="text-sm text-neutral-200">
-          Testing on this phone or PC? Skip cloud auth and use a local device session (same player/coach model).
-        </p>
+    <div className="space-y-3 max-w-sm">
+      <div className="rounded-lg border border-border bg-bg-surface p-3 space-y-2">
+        <p className="text-sm text-neutral-400">Local session — same player/coach model, no cloud.</p>
         <Button type="button" onClick={onContinueOnThisDevice} disabled={busy} className="w-full">
           <Icon name={busy ? 'loader' : 'user'} size="sm" className={busy ? 'animate-spin' : undefined} />
           Continue on this device
@@ -47,7 +45,7 @@ export function SignInFormBlock({
 
       {cloudAvailable ? (
         <form onSubmit={submit} className="space-y-3">
-          <p className="text-xs uppercase tracking-wide text-neutral-500">Or use cloud account</p>
+          <p className="text-[11px] uppercase tracking-wide text-neutral-500">Or cloud account</p>
           <div className="space-y-1.5">
             <Label htmlFor="cloud-email">Email</Label>
             <Input
@@ -71,7 +69,11 @@ export function SignInFormBlock({
               required
             />
           </div>
-          {error && <p className="text-sm text-rose-400">{error}</p>}
+          {error && (
+            <p className="rounded-md border border-callout-danger-border bg-callout-danger-bg px-2.5 py-1.5 text-sm text-callout-danger">
+              {error}
+            </p>
+          )}
           <div className="flex items-center gap-3">
             <Button type="submit" disabled={busy}>
               <Icon name={busy ? 'loader' : 'log-in'} size="sm" className={busy ? 'animate-spin' : undefined} />
@@ -79,18 +81,22 @@ export function SignInFormBlock({
             </Button>
             <button
               type="button"
-              className="text-sm text-neutral-400 hover:text-neutral-100 underline-offset-2 hover:underline"
+              className="text-sm text-neutral-500 hover:text-neutral-100 underline-offset-2 hover:underline"
               onClick={() => setMode(mode === 'in' ? 'up' : 'in')}
             >
-              {mode === 'in' ? 'New here? Create an account' : 'Have an account? Sign in'}
+              {mode === 'in' ? 'Create an account' : 'Sign in instead'}
             </button>
           </div>
         </form>
       ) : (
         <div className="space-y-2">
-          {error && <p className="text-sm text-rose-400">{error}</p>}
-          <p className="text-sm text-amber-300">
-            Cloud sign-in is not configured for this copy. Continue on this device to use the library.
+          {error && (
+            <p className="rounded-md border border-callout-danger-border bg-callout-danger-bg px-2.5 py-1.5 text-sm text-callout-danger">
+              {error}
+            </p>
+          )}
+          <p className="rounded-md border border-callout-warning-border bg-callout-warning-bg px-2.5 py-1.5 text-sm text-callout-warning">
+            Cloud sign-in is not configured. Continue on this device.
           </p>
         </div>
       )}

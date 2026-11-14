@@ -82,7 +82,7 @@ export function AccountComposer() {
       const matchId = bundle.match.id
       setFileNotice({
         tone: 'good',
-        text: `Imported ${title}. Videos are not in the file — attach or restore them on Details if missing.`,
+        text: `Imported ${title}. Re-link videos on Details if needed.`,
         matchId,
       })
     } catch (err) {
@@ -97,21 +97,22 @@ export function AccountComposer() {
     setStorage(await getStorageEstimate())
   }
 
+  const fieldClass =
+    'mt-1.5 w-full rounded-md border border-border bg-bg-surface px-3 py-2 text-sm text-neutral-50'
+
   return (
-    <div className="space-y-6">
-      <Card className="p-6 space-y-4">
-        <div className="flex items-center gap-3">
-          <Icon name="cloud" size="lg" className="text-brand-primary" />
-          <div>
-            <h2 className="text-xl font-semibold text-neutral-50">Account & cloud backup</h2>
-            <p className="text-sm text-neutral-400">
-              Sign in to use your library, tagging and review. Your data remains local-first and can be backed up.
-            </p>
+    <div className="space-y-4">
+      <Card className="p-4 md:p-5 space-y-3 border border-border">
+        <div className="flex items-center gap-2.5">
+          <Icon name="cloud" size="md" className="text-brand-primary shrink-0" />
+          <div className="min-w-0">
+            <h2 className="text-lg font-semibold text-neutral-50">Account & backup</h2>
+            <p className="text-sm text-neutral-500">Local-first library; optional cloud sync.</p>
           </div>
         </div>
 
         {!ready ? (
-          <p className="text-sm text-neutral-400">Checking sign-in…</p>
+          <p className="text-sm text-neutral-500">Checking sign-in…</p>
         ) : !user ? (
           <SignInFormBlock
             busy={busy}
@@ -126,61 +127,64 @@ export function AccountComposer() {
             }}
           />
         ) : (
-          <div className="space-y-4">
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="flex items-center gap-2 rounded-full bg-emerald-950 px-3 py-1 text-sm text-emerald-300">
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-bg-surface px-2.5 py-1 text-sm text-neutral-200">
                 <Icon name="user" size="sm" />{' '}
-                {sessionKind === 'local' ? 'Local device session' : user.email}
+                {sessionKind === 'local' ? 'This device' : user.email}
               </span>
               {sessionKind === 'cloud' && (
-                <Button onClick={handleSync} disabled={busy}>
+                <Button size="sm" onClick={handleSync} disabled={busy}>
                   <Icon name={busy ? 'loader' : 'refresh'} size="sm" className={busy ? 'animate-spin' : undefined} />
-                  Sync now
+                  Sync
                 </Button>
               )}
-              <Button variant="secondary" onClick={signOut} disabled={busy}>
-                <Icon name="log-out" size="sm" /> {sessionKind === 'local' ? 'Leave device session' : 'Sign out'}
+              <Button variant="secondary" size="sm" onClick={signOut} disabled={busy}>
+                <Icon name="log-out" size="sm" /> {sessionKind === 'local' ? 'Leave' : 'Sign out'}
               </Button>
             </div>
             {sessionKind === 'local' && (
-              <p className="text-sm text-neutral-400">
-                This browser keeps your library locally. Cloud backup stays available when you sign in with Supabase.
+              <p className="text-xs text-neutral-500">Library stays on this browser until you sign in.</p>
+            )}
+            {error && (
+              <p className="rounded-md border border-callout-danger-border bg-callout-danger-bg px-2.5 py-1.5 text-sm text-callout-danger">
+                {error}
               </p>
             )}
-            {error && <p className="text-sm text-rose-400">{error}</p>}
             {lastSync && (
-              <p className="text-sm text-neutral-400">
-                Last sync {new Date(lastSync.at).toLocaleTimeString()}: {lastSync.pushed.length} backed up,{' '}
-                {lastSync.pulled.length} downloaded
+              <p className="text-xs text-neutral-500">
+                Last sync {new Date(lastSync.at).toLocaleTimeString()}: {lastSync.pushed.length} up,{' '}
+                {lastSync.pulled.length} down
                 {lastSync.conflicts.length > 0 && (
-                  <span className="text-amber-300">
-                    , {lastSync.conflicts.length} changed on another device too (open the match to choose a copy)
+                  <span className="text-callout-warning">
+                    , {lastSync.conflicts.length} conflict
+                    {lastSync.conflicts.length === 1 ? '' : 's'}
                   </span>
                 )}
                 {lastSync.failed.length > 0 && (
-                  <span className="text-rose-400">, {lastSync.failed.length} failed ({lastSync.failed[0].message})</span>
+                  <span className="text-callout-danger">
+                    , {lastSync.failed.length} failed ({lastSync.failed[0].message})
+                  </span>
                 )}
                 .
               </p>
             )}
             {sessionKind === 'cloud' && (
-              <p className="text-xs text-neutral-500">
-                Sync now pushes/pulls match tags. Find matches shows Backed up / Backup stale / Not backed up.
-                Videos stay opt-in from Match Review → Details. Prefer match file when cloud is unavailable.
+              <p className="text-[11px] text-neutral-500">
+                Sync pushes match tags. Videos stay opt-in from Details.
               </p>
             )}
-            <div className="rounded-lg border border-neutral-700 bg-bg-surface p-4 space-y-3">
+            <div className="rounded-lg border border-border bg-bg-surface p-3 space-y-2.5">
               <div>
-                <h3 className="font-semibold text-neutral-100">Whose matches are you reviewing?</h3>
-                <p className="text-sm text-neutral-400">
-                  Your account is separate from the player in the point. Review speaks as the selected player.
-                </p>
+                <h3 className="text-sm font-semibold text-neutral-100">Reviewing as</h3>
+                <p className="text-xs text-neutral-500">Library and “you” follow this player.</p>
               </div>
 
               {!profile?.role ? (
                 <div className="flex flex-wrap gap-2">
                   <Button
                     variant="secondary"
+                    size="sm"
                     onClick={() => {
                       void ensurePlayerList().then(() => setAccountRole('player'))
                     }}
@@ -189,6 +193,7 @@ export function AccountComposer() {
                   </Button>
                   <Button
                     variant="secondary"
+                    size="sm"
                     onClick={() => {
                       void ensurePlayerList().then(() => setAccountRole('coach'))
                     }}
@@ -198,7 +203,7 @@ export function AccountComposer() {
                 </div>
               ) : (
                 <>
-                  <label className="block text-sm text-neutral-300">
+                  <label className="block text-xs text-neutral-500">
                     {profile.role === 'player' ? 'Your player record' : 'Reviewing as'}
                     <select
                       value={focalPlayerId ?? ''}
@@ -207,7 +212,7 @@ export function AccountComposer() {
                           ? setLinkedPlayer(event.target.value)
                           : setFocalPlayer(event.target.value)
                       }
-                      className="mt-2 w-full rounded-md border border-neutral-700 bg-neutral-800 px-3 py-2 text-neutral-50"
+                      className={fieldClass}
                     >
                       <option value="">Select player…</option>
                       {players.map((player) => (
@@ -229,9 +234,9 @@ export function AccountComposer() {
                     </Button>
                   )}
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-sm text-neutral-400">
+                    <p className="text-xs text-neutral-500">
                       {focalPlayer
-                        ? `The library and “you” now mean ${focalPlayer.first_name} ${focalPlayer.last_name}.`
+                        ? `${focalPlayer.first_name} ${focalPlayer.last_name}`
                         : 'Choose a player to unlock the library.'}
                     </p>
                     <Button
@@ -245,53 +250,50 @@ export function AccountComposer() {
                 </>
               )}
             </div>
-            <p className="text-xs text-neutral-500">
-              Matches sync as one record each. Videos are only uploaded when you choose “Back up” on a video or reel.
-              {cloudUrl && <> Server: {cloudUrl}</>}
+            <p className="text-[11px] text-neutral-500">
+              Matches sync as one record each. Videos only when you choose Back up.
+              {cloudUrl && <> · {cloudUrl}</>}
             </p>
           </div>
         )}
       </Card>
 
-      <Card className="p-6 space-y-3">
-        <div className="flex items-center gap-3">
-          <Icon name="target" size="lg" className="text-neutral-400" />
+      <Card className="p-4 border border-border">
+        <div className="flex items-center gap-2.5">
+          <Icon name="target" size="md" className="text-neutral-400 shrink-0" />
           <div className="min-w-0 flex-1">
-            <h2 className="text-xl font-semibold text-neutral-50">Training (practice)</h2>
-            <p className="text-sm text-neutral-400">
-              Shot-type and combo posts — not match tagging. Hidden from the main tabs until it grows into a
-              full product surface.
-            </p>
+            <h2 className="text-base font-semibold text-neutral-50">Training</h2>
+            <p className="text-xs text-neutral-500">Practice posts — not match tagging.</p>
           </div>
           <Button variant="secondary" size="sm" onClick={() => navigate('/training')}>
-            Open Training
+            Open
           </Button>
         </div>
       </Card>
 
-      <Card className="p-6 space-y-3">
-        <div className="flex items-center gap-3">
-          <Icon name="hard-drive" size="lg" className="text-neutral-400" />
+      <Card className="p-4 space-y-2.5 border border-border">
+        <div className="flex items-center gap-2.5">
+          <Icon name="hard-drive" size="md" className="text-neutral-400 shrink-0" />
           <div>
-            <h2 className="text-xl font-semibold text-neutral-50">This device</h2>
-            <p className="text-sm text-neutral-400">Videos you load are kept in the app’s own storage on this device.</p>
+            <h2 className="text-base font-semibold text-neutral-50">This device</h2>
+            <p className="text-xs text-neutral-500">Videos stay in on-device app storage.</p>
           </div>
         </div>
         {storage ? (
-          <p className="text-sm text-neutral-300">
-            Using {formatFileSize(storage.usage)} of {formatFileSize(storage.quota)} available.{' '}
+          <p className="text-sm text-neutral-400">
+            {formatFileSize(storage.usage)} of {formatFileSize(storage.quota)}{' '}
             {storage.persisted ? (
-              <span className="text-emerald-400">Protected from automatic clean-up.</span>
+              <span className="text-result-winner">· Protected</span>
             ) : (
               <button type="button" onClick={keepStorage} className="text-brand-primary hover:underline">
-                Protect from automatic clean-up
+                · Protect from clean-up
               </button>
             )}
           </p>
         ) : (
-          <p className="text-sm text-neutral-500">Storage details aren’t available in this browser.</p>
+          <p className="text-sm text-neutral-500">Storage details unavailable.</p>
         )}
-        <div className="flex flex-wrap items-center gap-3 pt-2">
+        <div className="flex flex-wrap items-center gap-2 pt-1">
           <input
             ref={fileRef}
             type="file"
@@ -299,17 +301,20 @@ export function AccountComposer() {
             className="hidden"
             onChange={(e) => handleImport(e.target.files?.[0])}
           />
-          <Button variant="secondary" onClick={() => fileRef.current?.click()}>
-            <Icon name="file-up" size="sm" /> Import a match file
+          <Button variant="secondary" size="sm" onClick={() => fileRef.current?.click()}>
+            <Icon name="file-up" size="sm" /> Import match file
           </Button>
-          <span className="text-xs text-neutral-500">
-            Zero-infra backup: restore a JSON saved from Match Review → Details → Save match file.
-            Works without cloud; videos re-link by asset id when present on this device.
-          </span>
+          <span className="text-[11px] text-neutral-500">JSON from Match Review → Details.</span>
         </div>
         {fileNotice && (
           <div className="flex flex-wrap items-center gap-2">
-            <p className={fileNotice.tone === 'good' ? 'text-sm text-emerald-400' : 'text-sm text-rose-400'}>
+            <p
+              className={
+                fileNotice.tone === 'good'
+                  ? 'text-sm text-result-winner'
+                  : 'rounded-md border border-callout-danger-border bg-callout-danger-bg px-2.5 py-1.5 text-sm text-callout-danger'
+              }
+            >
               {fileNotice.text}
             </p>
             {fileNotice.tone === 'good' && fileNotice.matchId && (

@@ -15,9 +15,9 @@ export interface SetPanelBlockProps {
 }
 
 const STATUS_STYLE: Record<SetPanelModel['status'], string> = {
-  not_started: 'text-neutral-400 bg-neutral-800 border-neutral-700',
-  in_progress: 'text-warning bg-warning-muted border-warning/60',
-  tagged: 'text-success bg-success-muted border-success/60',
+  not_started: 'text-neutral-500 bg-bg-surface border-border',
+  in_progress: 'text-callout-warning bg-callout-warning-bg border-callout-warning-border',
+  tagged: 'text-result-winner bg-result-winner-bg border-result-winner/40',
 }
 
 export function SetPanelBlock({ set, onTag, onBrowse, onStartOver }: SetPanelBlockProps) {
@@ -55,7 +55,7 @@ export function SetPanelBlock({ set, onTag, onBrowse, onStartOver }: SetPanelBlo
     set.status === 'not_started' ? 'Start tagging' : set.status === 'in_progress' ? 'Continue tagging' : 'Add rallies'
 
   return (
-    <div className="rounded-lg border border-neutral-700 bg-neutral-900/50 p-3 flex flex-wrap items-center gap-3">
+    <div className="rounded-lg border border-border bg-bg-card p-3 flex flex-wrap items-center gap-2.5">
       <div className="flex items-baseline gap-2 min-w-[7rem]">
         <span className="text-sm font-semibold text-neutral-200">Set {set.setNumber}</span>
         {set.scoreLabel && (
@@ -71,9 +71,9 @@ export function SetPanelBlock({ set, onTag, onBrowse, onStartOver }: SetPanelBlo
           </span>
         )}
       </div>
-      <span className={cn('text-[11px] font-semibold rounded-full border px-2 py-0.5', STATUS_STYLE[set.status])}>
+      <span className={cn('text-[11px] font-semibold rounded-md border px-1.5 py-0.5', STATUS_STYLE[set.status])}>
         {set.statusLabel}
-        {set.rallyCount > 0 && ` · ${set.rallyCount} rallies`}
+        {set.rallyCount > 0 && ` · ${set.rallyCount}`}
       </span>
       <div className="flex-1" />
       <div className="flex flex-wrap gap-2">
@@ -91,7 +91,7 @@ export function SetPanelBlock({ set, onTag, onBrowse, onStartOver }: SetPanelBlo
             onClick={() => setConfirming(true)}
             title="Delete this set's tags and start again"
             aria-label={`Start Set ${set.setNumber} over`}
-            className="h-9 w-9 rounded-md border border-neutral-700 text-neutral-500 hover:text-danger hover:border-danger flex items-center justify-center"
+            className="h-9 w-9 rounded-md border border-border text-neutral-500 hover:text-danger hover:border-danger flex items-center justify-center"
           >
             <Icon name="trash" size="sm" />
           </button>

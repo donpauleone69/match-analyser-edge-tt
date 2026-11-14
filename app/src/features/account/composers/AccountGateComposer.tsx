@@ -36,19 +36,18 @@ export function AccountGateComposer({ children }: AccountGateComposerProps) {
   }, [matchId, user, scope.status, scope.focalPlayerId])
 
   if (!ready) {
-    return <p className="p-6 text-neutral-400">Checking account…</p>
+    return <p className="p-4 text-sm text-neutral-500">Checking account…</p>
   }
 
   // Cloud auth or a local device session both unlock the same AccountProfile scope.
   if (!user || scope.status !== 'ready') {
     return (
-      <main className="min-h-dvh bg-bg-shell p-4 md:p-8">
-        <div className="mx-auto max-w-3xl space-y-4">
-          <Card className="p-5">
-            <h1 className="text-2xl font-bold text-neutral-50">Account required</h1>
-            <p className="mt-2 text-sm text-neutral-400">
-              Sign in, or continue on this device, then choose the player whose library you are reviewing to continue to{' '}
-              {location.pathname}.
+      <main className="min-h-dvh bg-bg-shell p-4 md:p-6">
+        <div className="mx-auto max-w-3xl space-y-3">
+          <Card className="p-4 border border-border">
+            <h1 className="text-xl font-bold text-neutral-50">Account required</h1>
+            <p className="mt-1 text-sm text-neutral-500">
+              Sign in or continue on this device, then choose who you’re reviewing.
             </p>
           </Card>
           <AccountComposer />
@@ -58,21 +57,23 @@ export function AccountGateComposer({ children }: AccountGateComposerProps) {
   }
 
   if (matchId && routeMatch === undefined) {
-    return <p className="p-6 text-neutral-400">Checking match access…</p>
+    return <p className="p-4 text-sm text-neutral-500">Checking match access…</p>
   }
 
   if (routeMatch && routeMatch.player1_id !== scope.focalPlayerId) {
     return (
-      <main className="min-h-dvh bg-bg-shell p-4 md:p-8">
-        <Card className="mx-auto max-w-lg p-6 space-y-4">
-          <h1 className="text-xl font-bold text-neutral-50">Not in this player’s library</h1>
-          <p className="text-sm text-neutral-400">
-            This match was recorded for a different focal player. Switch “Reviewing as” in Account & data to open it.
+      <main className="min-h-dvh bg-bg-shell p-4 md:p-6">
+        <Card className="mx-auto max-w-lg p-4 space-y-3 border border-border">
+          <h1 className="text-lg font-bold text-neutral-50">Not in this library</h1>
+          <p className="text-sm text-neutral-500">
+            Switch “Reviewing as” in Account to open this match.
           </p>
           <div className="flex flex-wrap gap-2">
-            <Button onClick={() => navigate('/settings')}>Account & data</Button>
-            <Button variant="secondary" onClick={() => navigate('/matches')}>
-              Back to matches
+            <Button size="sm" onClick={() => navigate('/settings')}>
+              Account
+            </Button>
+            <Button size="sm" variant="secondary" onClick={() => navigate('/matches')}>
+              Find matches
             </Button>
           </div>
         </Card>
