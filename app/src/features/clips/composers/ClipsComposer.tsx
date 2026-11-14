@@ -194,6 +194,12 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
 
   // Deep links land on the sticky browse chip — do not auto-open or scrollIntoView.
 
+  /** Deep-link arrival sources that own a sticky return trail (MA-121 / MA-131). */
+  const trailFrom =
+    fromParam === 'workon' || fromParam === 'summary' || fromParam === 'rallies'
+      ? fromParam
+      : null
+
   const clearDeepLinkChrome = () => {
     const next = new URLSearchParams(searchParams)
     next.delete('from')
@@ -202,9 +208,11 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
     setSearchParams(next, { replace: true })
   }
 
-  const backFromWorkOn = () => {
+  const backFromTrailSource = () => {
     const next = new URLSearchParams(searchParams)
-    next.set('tab', 'workon')
+    // Summary is the default Review landing — omit tab for a cleaner URL.
+    if (trailFrom === 'summary') next.delete('tab')
+    else next.set('tab', trailFrom === 'rallies' ? 'rallies' : 'workon')
     next.delete('clip')
     next.delete('clipTitle')
     next.delete('from')
@@ -212,7 +220,7 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
     setSearchParams(next, { replace: true })
   }
 
-  /** Fix tags — keep Work-on trail so Done returns to this playlist (MA-121). */
+  /** Fix tags — keep arrival trail so Done returns to this playlist. */
   const openFixTags = (clip: {
     matchId: string
     setNumber: number
@@ -222,7 +230,7 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
     const q = new URLSearchParams({
       set: String(clip.setNumber),
       rally: String(clip.rallyIndex),
-      from: fromParam === 'workon' ? 'workon' : 'clips',
+      from: trailFrom ?? 'clips',
     })
     if (clip.shotIndex != null) q.set('shot', String(clip.shotIndex))
     // Round-trip playlist context for edit → back into Clips with trail intact.
@@ -507,11 +515,11 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
   ) : (
     <Card className="p-4 text-sm text-muted space-y-2 border border-dashed border-border">
       <p>No clips in this playlist.</p>
-{/* Work on return lives on the sticky trail — avoid a second button here. */}
-      {!(embedded && fromParam === 'workon') ? (
+      {/* Return lives on the sticky trail — avoid a second button here. */}
+      {!(embedded && trailFrom) ? (
         <p className="text-xs text-muted">Switch playlist, or star / flag while tagging.</p>
       ) : (
-        <p className="text-xs text-muted">Use Work on above to go back, or switch playlist.</p>
+        <p className="text-xs text-muted">Use the trail above to go back, or switch playlist.</p>
       )}
     </Card>
   )
@@ -519,18 +527,22 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
   const isHighlightReel = filter?.kind === 'highlights'
 
   const browseTrail: PlaylistBrowseTrailLink[] = []
-  if (embedded && fromParam === 'workon') {
+  if (embedded && trailFrom) {
+    const returnMeta =
+      trailFrom === 'summary'
+        ? { id: 'summary', label: 'Summary', shortLabel: 'Summary' }
+        : trailFrom === 'rallies'
+          ? { id: 'rallies', label: 'Rallies', shortLabel: 'Rallies' }
+          : { id: 'workon', label: 'Work on', shortLabel: 'Work on' }
     browseTrail.push({
-      id: 'workon',
-      label: 'Work on',
-      shortLabel: 'Work on',
-      onClick: backFromWorkOn,
+      ...returnMeta,
+      onClick: backFromTrailSource,
       primary: true,
     })
-    // Stay always available on Work-on arrival — dismiss trail without leaving Clips.
+    // Stay dismisses arrival chrome without leaving Clips.
     browseTrail.push({
       id: 'stay',
-      label: 'Stay in Clips — clear Work on deep link',
+      label: `Stay in Clips — clear ${returnMeta.label} deep link`,
       onClick: clearDeepLinkChrome,
       iconOnly: true,
     })
@@ -544,9 +556,8 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
     })
   }
 
-  // Context is the pattern title only — Work on is the trail button (no double banner).
-  const browseContext =
-    embedded && fromParam === 'workon' && clipTitleParam ? clipTitleParam : null
+  // Context is the playlist title only — return button owns the source (no double banner).
+  const browseContext = embedded && trailFrom && clipTitleParam ? clipTitleParam : null
 
   const browseShell = (
     <PlaylistBrowseShellBlock

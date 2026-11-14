@@ -296,6 +296,7 @@ export function MatchReviewComposer() {
         tab: 'clips',
         clip: encodeClipFilter({ kind: 'rallies', rallyIds: rallies.map((r) => r.id) }),
         clipTitle: title,
+        from: 'rallies',
       })
     },
     onRetagFrom: async (rally) => {
@@ -610,6 +611,7 @@ export function MatchReviewComposer() {
               tab: 'clips',
               clip: encodeClipFilter({ kind: 'rallies', rallyIds: rallies.map((r) => r.id) }),
               clipTitle: title,
+              from: 'summary',
               cat: null,
               focus: null,
             })
@@ -734,6 +736,7 @@ export function MatchReviewComposer() {
               tab: 'clips',
               clip: encodeClipFilter({ kind: 'rallies', rallyIds: evidenceRallies.map((r) => r.id) }),
               clipTitle: evidence.title,
+              from: 'summary',
             })
             setEvidence(null)
           }}
