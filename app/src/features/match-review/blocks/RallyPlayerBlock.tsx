@@ -20,6 +20,7 @@ import {
   parseScorePair,
   shortPlayerName,
   type VideoPlayerHandle,
+  type VideoProgressMarker,
   useVideoPlaybackStore,
   nudgePlaybackSpeed,
   SEEK_STEP_SECONDS,
@@ -103,6 +104,24 @@ export const RallyPlayerBlock = forwardRef<VideoPlayerHandle, RallyPlayerBlockPr
       />
     ) : null
 
+    const progressMarkers: VideoProgressMarker[] = loop
+      ? [
+          {
+            id: rally.id,
+            startTime: loop.start,
+            endTime: loop.end,
+            fillColor: rally.heroWon ? 'var(--color-player-1)' : 'var(--color-player-2)',
+            stripeColor: rally.heroServed ? 'var(--color-player-1)' : 'var(--color-player-2)',
+            title: `Rally ${rally.rallyIndex} · ${rally.scoreBefore} → ${rally.scoreAfter}`,
+            focused: true,
+            kind: 'rally',
+          },
+        ]
+      : []
+    const progressViewWindow = loop
+      ? { start: Math.max(0, loop.start - 1.5), end: loop.end + 1.5 }
+      : null
+
     return (
       <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-2 md:p-6" role="dialog" aria-label="Rally player">
         <div className="w-full max-w-4xl bg-bg-card border border-neutral-700 rounded-xl overflow-hidden shadow-2xl">
@@ -185,6 +204,12 @@ export const RallyPlayerBlock = forwardRef<VideoPlayerHandle, RallyPlayerBlockPr
                 onVideoSelect={onVideoSelect}
                 allowVideoChange={!videoUrl}
                 showProgressBar
+                progressMarkers={progressMarkers}
+                progressViewWindow={progressViewWindow}
+                onProgressMarkerSeek={(marker) => {
+                  if (!ref || typeof ref === 'function') return
+                  ref.current?.seek(marker.startTime, true)
+                }}
                 constrainedPlayback={
                   loop ? { enabled: true, startTime: loop.start, endTime: loop.end, loopOnEnd: true } : undefined
                 }

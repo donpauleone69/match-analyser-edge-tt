@@ -6,7 +6,19 @@
 
 ## Change Log
 
-<<<<<<< HEAD
+### 2026-11-14: MA-100 — BrowseDisclosure + stage scrub cohesion (v3.137.0)
+
+**Change Type:** UX cohesion — playlist browse + shared overlay stages
+
+**What Changed:**
+- Shared `BrowseDisclosure` in ui-mine; Serve/Receive focus picker + Clips phone playlist picker adopt it (picker above stage — no scroll-up hell).
+- Clips + Review rally stages show Pass 1-style scrub marks for the active window.
+- Also clears leftover conflict markers in this addendum from the MA-84 / MA-99 merge race on main.
+
+**Decision Rationale:** Overnight Track A MA-100 — glue overlay into playlist/browse surfaces; ready for Track C shell.
+
+**Key Files:** `BrowseDisclosure.tsx`, `PlaylistFocusPickerBlock.tsx`, `ClipsComposer.tsx`, `ClipStageBlock.tsx`, `RallyPlayerBlock.tsx`.
+
 ### 2026-11-14: MA-99 — Tagging flow visual polish (v3.136.0)
 
 **Change Type:** UX polish — Pass 1 contacts / rail / guiding dialog
@@ -19,7 +31,7 @@
 **Decision Rationale:** Overnight Track E MA-99 — tagging flow visual polish after MA-96.
 
 **Key Files:** `Pass1FocusBlock.tsx`, `Pass1ContactCaptureBlock.tsx`, `pass1FocusModel.ts`, Pass1/Simple composers.
-=======
+
 ### 2026-11-14: MA-84 — Theme token cohesion remainder (v3.136.0)
 
 **Change Type:** Design tokens + Review/Clips/transport paint
@@ -34,9 +46,6 @@
 **Decision Rationale:** Overnight theme glue — finish A–E cohesion after callout tokens landed via MA-93; unblock #65 rebase race.
 
 **Key Files:** `index.css`, `themeTokens.test.ts`, `Pass1FocusBlock.tsx`, Match Review / Clips blocks, `TransportCluster.tsx`, `MatchVideoOverlayBar.tsx`.
-
----
->>>>>>> c5da9ed (MA-84: Theme cohesion remainder on tip of main (v3.134.0))
 
 ---
 
@@ -54,7 +63,6 @@
 **Key Files:** `HomeComposer.tsx`, home blocks, `AppShell.tsx`, `Sidebar.tsx`, `Header.tsx`, Clips/Review list blocks.
 
 ---
-
 
 ### 2026-11-14: MA-95 — Mute + score HUD cohesion (v3.134.0)
 
@@ -8064,7 +8072,6 @@ rally_end_role → errorType
 
 | Version | Date | Changes |
 |---------|------|---------|
-| v3.136.0 | 2026-11-14 | MA-84: theme remainder — video-scrim + no-attack + token tests |
 | v2.1.0 | 2025-12-06 | Initial persistence layer implementation |
 | v2.1.1 | 2025-12-06 | Critical bug fixes for resume functionality |
 | v2.1.2 | 2025-12-06 | Comprehensive persistence refinement with full logging |
@@ -8425,12 +8432,11 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 
 | Version | Date | Changes |
 |---------|------|---------|
-<<<<<<< HEAD
+| v3.137.0 | 2026-11-14 | MA-100: BrowseDisclosure + scrub marks on Clips/Review stages |
 | v3.136.0 | 2026-11-14 | MA-99: tagging dialog/rail/contacts visual polish + scrub→History |
-=======
+| v3.136.0 | 2026-11-14 | MA-84: theme remainder — video-scrim + no-attack + token tests |
 | v3.135.0 | 2026-11-14 | MA-97: quiet Home/nav IA and list border tokens |
 | v3.134.0 | 2026-11-14 | MA-95: mute policy + score HUD cohesion across surfaces |
->>>>>>> c5da9ed (MA-84: Theme cohesion remainder on tip of main (v3.134.0))
 | v3.133.0 | 2026-11-14 | MA-96: contacts pad server edge + scrub draft stripe/pastel + drop duplicate stage banner |
 | v3.132.0 | 2026-11-14 | MA-94: Serve/Receive polish with History focus picker |
 | v3.131.0 | 2026-11-14 | MA-93: Quiet notices + theme callout cohesion |
