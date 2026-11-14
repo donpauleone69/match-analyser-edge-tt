@@ -19,12 +19,14 @@ import {
   Pass1SetHudBlock,
   Pass1SetContextBlock,
   Pass1PointLedgerBlock,
+  Pass1ContactCaptureBlock,
   Pass1LeaveDraftChoiceBlock,
   snapPass1ShotIntoView,
 } from '../blocks'
 import { VideoPlayerSection } from '../sections'
 import {
   type VideoPlayerHandle,
+  type VideoProgressMarker,
   useVideoPlaybackStore,
   VideoStageChrome,
   MatchVideoOverlayBar,
@@ -32,7 +34,6 @@ import {
   nudgePlaybackSpeed as nudgeSharedSpeed,
   SEEK_STEP_SECONDS as SHARED_SEEK_STEP,
 } from '@/ui-mine/VideoPlayer'
-import { Button } from '@/ui-mine'
 import { calculateServer } from '@/rules'
 import { deriveMatchSetsBeforeSet } from '@/rules/derive/set/deriveMatchSetsBeforeSet'
 import { rallyDb, setDb } from '@/data'
@@ -68,6 +69,8 @@ import {
   LOOP_PAD_SECONDS,
   CAPTURE_PLAYBACK_SPEED,
   NORMAL_PLAYBACK_SPEED,
+  rallyTimelineViewWindow,
+  deriveRallyScrubMarks,
   type RallyTimelineState,
   type PointEnding,
   type PointMissReason,
@@ -1166,6 +1169,47 @@ export function Pass1FocusComposer({
       ? completed.find((rally) => rally.rallyIndex === focusedRallyIndex) ?? null
       : null
 
+  const scrubViewWindow = useMemo(
+    () =>
+      rallyTimelineViewWindow({
+        duration: duration > 0 ? duration : 1,
+        liveTime,
+        completed,
+        contactTimes: phase === 'tapping' ? contactTimes : [],
+      }),
+    [duration, liveTime, completed, phase, contactTimes]
+  )
+
+  const scrubMarks = useMemo(
+    () =>
+      deriveRallyScrubMarks({
+        completed,
+        focusedRallyIndex,
+        draftContactTimes: phase === 'tapping' && !previewRally ? contactTimes : [],
+      }),
+    [completed, focusedRallyIndex, phase, previewRally, contactTimes]
+  )
+
+  const progressMarkers: VideoProgressMarker[] = useMemo(
+    () =>
+      scrubMarks.map((m) => ({
+        id: m.id,
+        startTime: m.startTime,
+        endTime: m.endTime,
+        fillColor: m.fillColor,
+        stripeColor: m.stripeColor,
+        title: m.title,
+        focused: m.focused,
+        kind: m.kind,
+      })),
+    [scrubMarks]
+  )
+
+  const handleProgressMarkerSeek = (marker: VideoProgressMarker) => {
+    const match = scrubMarks.find((m) => m.id === marker.id)
+    seekClamped(match?.seekTime ?? marker.startTime)
+  }
+
   const scoreBadge = (
     <Pass1SetHudBlock
       setNumber={setNumber}
@@ -1334,6 +1378,13 @@ export function Pass1FocusComposer({
               onVideoSelect={setVideoUrl}
               constrainedPlayback={activePlayback}
               showProgressBar
+              progressViewWindow={
+                videoUrl
+                  ? { start: scrubViewWindow.viewStart, end: scrubViewWindow.viewEnd }
+                  : null
+              }
+              progressMarkers={videoUrl ? progressMarkers : []}
+              onProgressMarkerSeek={handleProgressMarkerSeek}
             />
           </VideoStageChrome>
         </div>
@@ -1359,7 +1410,7 @@ export function Pass1FocusComposer({
                     aria-live="polite"
                     data-pass1-stage="contacts"
                   >
-                    Click rally contacts
+                    Tap contacts · next: End / FA
                   </div>
                   <Pass1ShotMarkRail
                     state={
@@ -1387,37 +1438,13 @@ export function Pass1FocusComposer({
                 </div>
               }
             />
-            <div className="flex-1 min-h-0 flex flex-col gap-2 p-2">
-              <div className="relative flex-1 min-h-0 flex flex-col">
-                <Button
-                  variant="primary"
-                  onClick={handleTapContact}
-                  disabled={!setReady || Boolean(previewRally)}
-                  className="flex-1 w-full min-h-[28dvh] !h-auto self-stretch text-2xl font-bold rounded-xl active:scale-[0.99] touch-manipulation"
-                >
-                  {previewRally
-                    ? 'Return to live to capture'
-                    : 'Tap contact'}
-                </Button>
-                {contactCount > 0 && !previewRally && (
-                  <button
-                    type="button"
-                    onClick={handleUndoLastContact}
-                    className="absolute bottom-2 right-2 rounded-md border border-white/25 bg-black/45 px-2 py-1 text-[11px] font-semibold text-white/90 backdrop-blur-sm"
-                    title="Drop the last contact tap"
-                  >
-                    Undo tap
-                  </button>
-                )}
-              </div>
-              <p className="shrink-0 text-[11px] text-muted text-center pb-1">
-                {previewRally
-                  ? 'Viewing a past point · Live → in the set bar to capture'
-                  : contactCount === 0
-                    ? 'Tap each bat contact · first tap is the serve · auto-finishes after 2s idle'
-                    : `${contactCount} contact${contactCount === 1 ? '' : 's'} · auto-finishes after 2s idle`}
-              </p>
-            </div>
+            <Pass1ContactCaptureBlock
+              contactCount={contactCount}
+              disabled={!setReady}
+              previewingPast={Boolean(previewRally)}
+              onTap={handleTapContact}
+              onUndo={handleUndoLastContact}
+            />
           </div>
         ) : (
           <div className="relative flex flex-col flex-1 min-h-0">

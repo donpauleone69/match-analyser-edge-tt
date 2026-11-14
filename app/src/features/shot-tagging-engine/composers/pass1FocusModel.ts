@@ -595,6 +595,93 @@ export function rallyTimelineViewEnd(
   return rallyTimelineViewWindow(input).viewEnd
 }
 
+export type PlayerSide = 'player1' | 'player2'
+
+/** Input for colour-coded scrub marks (winner fill + server stripe). */
+export interface RallyScrubMarkInput {
+  rallyIndex: number
+  serveTimestamp: number
+  endTimestamp: number
+  winnerId: PlayerSide
+  serverId: PlayerSide
+  winnerName?: string
+  serverName?: string
+  player1ScoreAfter?: number
+  player2ScoreAfter?: number
+}
+
+export interface RallyScrubMark {
+  id: string
+  startTime: number
+  endTime: number
+  fillColor: string
+  stripeColor: string
+  title: string
+  focused: boolean
+  kind: 'rally' | 'draft'
+  seekTime: number
+}
+
+const PLAYER_FILL: Record<PlayerSide, string> = {
+  player1: 'var(--color-player-1)',
+  player2: 'var(--color-player-2)',
+}
+
+/**
+ * Colour-coded rally marks for the shared video scrub.
+ * Winner = fill; server = top stripe. Draft contact taps = short ticks.
+ * Better than the removed thick strip / cubes: zero extra chrome row,
+ * glanceable on the same progress language as other video surfaces.
+ */
+export function deriveRallyScrubMarks(input: {
+  completed: ReadonlyArray<RallyScrubMarkInput>
+  focusedRallyIndex?: number | 'next'
+  draftContactTimes?: ReadonlyArray<number>
+}): RallyScrubMark[] {
+  const { completed, focusedRallyIndex = 'next', draftContactTimes = [] } = input
+  const marks: RallyScrubMark[] = []
+
+  for (const rally of completed) {
+    const start = Math.min(rally.serveTimestamp, rally.endTimestamp)
+    const end = Math.max(rally.serveTimestamp, rally.endTimestamp)
+    const score =
+      typeof rally.player1ScoreAfter === 'number' &&
+      typeof rally.player2ScoreAfter === 'number'
+        ? ` · ${rally.player1ScoreAfter}–${rally.player2ScoreAfter}`
+        : ''
+    const winner = rally.winnerName ?? rally.winnerId
+    const server = rally.serverName ?? rally.serverId
+    marks.push({
+      id: `rally-${rally.rallyIndex}`,
+      startTime: start,
+      endTime: end,
+      fillColor: PLAYER_FILL[rally.winnerId],
+      stripeColor: PLAYER_FILL[rally.serverId],
+      title: `Point ${rally.rallyIndex}: ${winner} won${score} · ${server} served`,
+      focused: focusedRallyIndex === rally.rallyIndex,
+      kind: 'rally',
+      seekTime: start,
+    })
+  }
+
+  draftContactTimes.forEach((t, i) => {
+    if (typeof t !== 'number' || !Number.isFinite(t)) return
+    marks.push({
+      id: `draft-contact-${i}`,
+      startTime: t,
+      endTime: t,
+      fillColor: 'rgba(255,255,255,0.85)',
+      stripeColor: 'rgba(255,255,255,0.85)',
+      title: i === 0 ? 'Serve contact (draft)' : `Contact ${i + 1} (draft)`,
+      focused: false,
+      kind: 'draft',
+      seekTime: t,
+    })
+  })
+
+  return marks
+}
+
 /** Players alternate from the known server. Shot 1 = server. */
 export function playerForShot(
   n: number,

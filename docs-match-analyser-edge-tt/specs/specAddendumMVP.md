@@ -6,6 +6,21 @@
 
 ## Change Log
 
+### 2026-11-14: MA-83 — Contacts pad + colour-coded scrub marks (v3.126.0)
+
+**Change Type:** UX — Pass 1 / Simple contacts + shared video scrub
+
+**What Changed:**
+- **Contact capture pad** refined: fixed thumb-height control (`Tap serve` → `Tap contact` + count) with sibling **Undo** in tag-control language — no more full-viewport giant button. Hint ties to next step (End / FA).
+- **Colour-coded rally marks on the shared video scrub:** winner fill + server top stripe; zoomed activity window (`rallyTimelineViewWindow`); draft contact ticks while tapping; tap mark seeks to serve. Replaces the removed thick `RallyProgressTimeline` / cubes with a zero-row glance layer on the same progress chrome Track A shares.
+- Wired on Pass 1 Focus and Simple tapping composers via `VideoPlayer` / `VideoPlayerSection` marker props.
+
+**Decision Rationale:** Overnight Track E / Paul usability — contacts + timeline feel continuous with tagging chrome and shared video overlay; ideation brief already asked for winner ticks on scrub.
+
+**Key Files:** `VideoPlayer.tsx`, `VideoPlayerSection.tsx`, `pass1FocusModel.ts` (`deriveRallyScrubMarks`), `Pass1ContactCaptureBlock.tsx`, `Pass1FocusComposer.tsx`, `SimpleTaggingComposer.tsx`.
+
+---
+
 ### 2026-11-14: MA-89 — Quiet rally/clip list density (v3.125.0)
 
 **Change Type:** UX declutter — shared list language for Rallies + Clips queue
@@ -18,6 +33,7 @@
 **Decision Rationale:** Overnight Track B — lists should match tagging chrome density after MA-87/88.
 
 **Key Files:** `RallyRowBlock.tsx`, `ClipQueueBlock.tsx`, `ClipPresetListBlock.tsx`, `WorkOnSection.tsx`.
+
 
 ### 2026-11-14: MA-88 — Quiet Clips export/banner chrome (v3.124.0)
 
@@ -45,6 +61,7 @@
 **Decision Rationale:** Overnight Track B / Paul — Clips / Work on / Rallies should feel like one app with tagging chrome, not separate tools.
 
 **Key Files:** `WorkOnSection.tsx`, `RalliesSection.tsx`, `ReviewPatternBlock.tsx`.
+
 
 ### 2026-11-14: MA-77 — Pass 1 sync to tagging-rules doc (v3.122.0)
 
@@ -8232,6 +8249,7 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v3.126.0 | 2026-11-14 | MA-83: contacts pad refine + colour-coded rally marks on shared video scrub |
 | v3.84.0 | 2026-11-13 | MA-34: hide Training from bottom nav; Account entry |
 | v3.83.0 | 2026-11-13 | MA-33: Review header Tag-only density; drop Clips/Rallies badges |
 | v3.82.0 | 2026-11-13 | MA-32: Find-matches sync badges; cloud-only download copy |
