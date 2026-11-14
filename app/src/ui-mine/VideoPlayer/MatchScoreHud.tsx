@@ -99,7 +99,7 @@ export function MatchScoreHud({
       role="status"
       aria-label={`${setPrefix}${player1Name}${showSets ? ` ${player1Sets} sets` : ''} ${player1Score} points, ${player2Name}${showSets ? ` ${player2Sets} sets` : ''} ${player2Score} points${serveLabel ? `. Serving: ${serveLabel}` : ''}.`}
     >
-      <div className={cn('divide-y divide-white/10', compact && 'h-full')}>
+      <div className={cn('divide-y divide-video-scrim-wash-muted', compact && 'h-full')}>
         {rows.map((row) => {
           const isServing = serverSide === row.side
           const isP1 = row.side === 'player1'
@@ -114,8 +114,8 @@ export function MatchScoreHud({
                   compact ? 'gap-0.5 px-1 py-0' : 'gap-1.5 px-1.5 py-1',
                   isServing
                     ? isP1
-                      ? 'border-player-1 bg-white/10 font-bold text-white'
-                      : 'border-player-2 bg-white/10 font-bold text-white'
+                      ? 'border-player-1 bg-video-scrim-wash-muted font-bold text-white'
+                      : 'border-player-2 bg-video-scrim-wash-muted font-bold text-white'
                     : 'border-transparent font-semibold text-white/80'
                 )}
                 title={isServing ? `${row.name} (serving)` : row.name}
@@ -136,7 +136,7 @@ export function MatchScoreHud({
               </div>
               {showSets && (
                 <div
-                  className="flex items-center justify-center border-x border-white/15 bg-white/20 font-bold tabular-nums text-white"
+                  className="flex items-center justify-center border-x border-video-scrim-edge bg-video-scrim-wash font-bold tabular-nums text-white"
                   title={`${row.name} sets: ${row.sets}`}
                 >
                   {row.sets}
@@ -145,7 +145,7 @@ export function MatchScoreHud({
               <div
                 className={cn(
                   'flex items-center justify-center font-black tabular-nums',
-                  !showSets && 'border-l border-white/15 bg-white/10',
+                  !showSets && 'border-l border-video-scrim-edge bg-video-scrim-wash-muted',
                   compact ? 'text-[9px]' : 'text-[12px]',
                   isServing ? 'text-white' : 'text-white/90'
                 )}

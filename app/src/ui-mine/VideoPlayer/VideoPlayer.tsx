@@ -498,7 +498,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
       )}
 
       {showTimeOverlay && effectiveVideoSrc && (
-        <div className="absolute top-4 left-4 px-3 py-1.5 rounded-lg bg-black/90 text-white font-mono text-sm">
+        <div className="absolute top-4 left-4 px-3 py-1.5 rounded-lg bg-video-scrim-strong text-white font-mono text-sm">
           {formatTime(currentTime)}
           {constrainedPlayback?.enabled && (
             <span className="text-neutral-400 ml-2">
@@ -515,7 +515,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
       )}
 
       {shotDescription && effectiveVideoSrc && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 px-4 py-2 rounded-lg bg-black/95 border border-neutral-600 text-white text-sm font-medium shadow-lg">
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 px-4 py-2 rounded-lg bg-video-scrim-strong border border-video-scrim-border text-white text-sm font-medium shadow-lg">
           {shotDescription}
         </div>
       )}
@@ -524,7 +524,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
         <div className="absolute bottom-0 left-0 right-0 px-2 pb-1.5 z-20">
           <div
             className={cn(
-              'bg-black/55 rounded-full cursor-pointer relative',
+              'bg-video-scrim-soft rounded-full cursor-pointer relative',
               hasRallyMarks ? 'h-3' : 'h-1.5'
             )}
             role="slider"
@@ -638,7 +638,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
               if (file) handleFileSelect(file)
             }}
           />
-          <div className="px-3 py-1.5 rounded-lg bg-black/95 hover:bg-black border border-neutral-600 text-white text-sm flex items-center gap-2 transition-colors">
+          <div className="px-3 py-1.5 rounded-lg bg-video-scrim-strong hover:bg-black border border-video-scrim-border text-white text-sm flex items-center gap-2 transition-colors">
             <Upload className="w-4 h-4" />
             Change
           </div>

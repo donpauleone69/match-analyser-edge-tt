@@ -81,7 +81,7 @@ export function Pass1ContactCaptureBlock({
             <span>{label}</span>
             {contactCount > 0 && !previewingPast && (
               <span
-                className="inline-flex h-6 min-w-6 items-center justify-center rounded-md bg-black/20 px-1.5 text-sm font-bold tabular-nums"
+                className="inline-flex h-6 min-w-6 items-center justify-center rounded-md bg-panel-scrim px-1.5 text-sm font-bold tabular-nums"
                 aria-hidden
               >
                 {contactCount}
