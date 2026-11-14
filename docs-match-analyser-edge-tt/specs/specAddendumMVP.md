@@ -6,6 +6,21 @@
 
 ## Change Log
 
+### 2026-11-14: MA-141 — Settings / Training residual quiet (v3.177.0)
+
+**Change Type:** UX declutter — Account page + Training residual density
+
+**What Changed:**
+- Settings/Account page title denser; Account cards / sign-in / gate / device storage on `text-primary` / `text-muted`.
+- Training library header, post cards, empties, compare sheet quieter (same tokens).
+- Danger zone copy already dense; headings use primary/muted.
+
+**Decision Rationale:** MA-141 overnight Track B — last residual Account/Training quiet after MA-136 Home/Find; prefer smoke notes after this.
+
+**Key Files:** `Settings.tsx`, `AccountComposer.tsx`, `SignInFormBlock.tsx`, `AccountGateComposer.tsx`, `TrainingLibraryComposer.tsx`.
+
+---
+
 ### 2026-11-14: MA-140 — BrowseDisclosure keyboard a11y (v3.176.0)
 
 **Change Type:** A11y — playlist / focus picker keyboard

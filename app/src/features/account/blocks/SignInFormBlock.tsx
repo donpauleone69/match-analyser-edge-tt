@@ -35,8 +35,8 @@ export function SignInFormBlock({
 
   return (
     <div className="space-y-3 max-w-sm">
-      <div className="rounded-lg border border-border bg-bg-surface p-3 space-y-2">
-        <p className="text-sm text-neutral-400">Local session — same player/coach model, no cloud.</p>
+      <div className="rounded-md border border-border bg-bg-surface p-2.5 space-y-1.5">
+        <p className="text-xs text-muted">Local session — same player/coach model, no cloud.</p>
         <Button type="button" onClick={onContinueOnThisDevice} disabled={busy} className="w-full">
           <Icon name={busy ? 'loader' : 'user'} size="sm" className={busy ? 'animate-spin' : undefined} />
           Continue on this device
@@ -45,7 +45,7 @@ export function SignInFormBlock({
 
       {cloudAvailable ? (
         <form onSubmit={submit} className="space-y-3">
-          <p className="text-[11px] uppercase tracking-wide text-neutral-500">Or cloud account</p>
+          <p className="text-[11px] uppercase tracking-wide text-muted">Or cloud account</p>
           <div className="space-y-1.5">
             <Label htmlFor="cloud-email">Email</Label>
             <Input
@@ -81,7 +81,7 @@ export function SignInFormBlock({
             </Button>
             <button
               type="button"
-              className="text-sm text-neutral-500 hover:text-neutral-100 underline-offset-2 hover:underline"
+              className="text-xs text-muted hover:text-primary underline-offset-2 hover:underline"
               onClick={() => setMode(mode === 'in' ? 'up' : 'in')}
             >
               {mode === 'in' ? 'Create an account' : 'Sign in instead'}

@@ -36,17 +36,17 @@ export function AccountGateComposer({ children }: AccountGateComposerProps) {
   }, [matchId, user, scope.status, scope.focalPlayerId])
 
   if (!ready) {
-    return <p className="p-4 text-sm text-neutral-500">Checking account…</p>
+    return <p className="p-4 text-xs text-muted">Checking account…</p>
   }
 
   // Cloud auth or a local device session both unlock the same AccountProfile scope.
   if (!user || scope.status !== 'ready') {
     return (
-      <main className="min-h-dvh bg-bg-shell p-4 md:p-6">
+      <main className="min-h-dvh bg-bg-shell p-3 md:p-4">
         <div className="mx-auto max-w-3xl space-y-3">
-          <Card className="p-4 border border-border">
-            <h1 className="text-xl font-bold text-neutral-50">Account required</h1>
-            <p className="mt-1 text-sm text-neutral-500">
+          <Card className="p-2.5 border border-border">
+            <h1 className="text-lg font-semibold text-primary">Account required</h1>
+            <p className="mt-1 text-xs text-muted">
               Sign in or continue on this device, then choose who you’re reviewing.
             </p>
           </Card>
@@ -57,15 +57,15 @@ export function AccountGateComposer({ children }: AccountGateComposerProps) {
   }
 
   if (matchId && routeMatch === undefined) {
-    return <p className="p-4 text-sm text-neutral-500">Checking match access…</p>
+    return <p className="p-4 text-xs text-muted">Checking match access…</p>
   }
 
   if (routeMatch && routeMatch.player1_id !== scope.focalPlayerId) {
     return (
-      <main className="min-h-dvh bg-bg-shell p-4 md:p-6">
-        <Card className="mx-auto max-w-lg p-4 space-y-3 border border-border">
-          <h1 className="text-lg font-bold text-neutral-50">Not in this library</h1>
-          <p className="text-sm text-neutral-500">
+      <main className="min-h-dvh bg-bg-shell p-3 md:p-4">
+        <Card className="mx-auto max-w-lg p-2.5 space-y-2 border border-border">
+          <h1 className="text-base font-semibold text-primary">Not in this library</h1>
+          <p className="text-xs text-muted">
             Switch “Reviewing as” in Account to open this match.
           </p>
           <div className="flex flex-wrap gap-2">

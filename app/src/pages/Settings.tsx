@@ -70,8 +70,8 @@ export function Settings() {
 
   return (
     <div className="w-full">
-      <div className="max-w-4xl mx-auto p-4 md:p-5 space-y-4">
-        <h1 className="text-xl md:text-2xl font-bold text-neutral-50">Account</h1>
+      <div className="max-w-4xl mx-auto p-3 md:p-4 space-y-3">
+        <h1 className="text-lg md:text-xl font-semibold text-primary">Account</h1>
 
         <AccountComposer />
 
@@ -83,8 +83,8 @@ export function Settings() {
 
           <div className="p-3 space-y-3">
             <div>
-              <h3 className="text-sm font-medium text-neutral-50 mb-0.5">Clear all data</h3>
-              <p className="text-[11px] text-neutral-500 mb-2">
+              <h3 className="text-sm font-medium text-primary mb-0.5">Clear all data</h3>
+              <p className="text-[11px] text-muted mb-2">
                 Deletes local clubs, players, matches, tags, and videos. Cannot be undone.
               </p>
 
@@ -99,7 +99,7 @@ export function Settings() {
                 </Button>
               ) : (
                 <div className="rounded-md border border-border bg-bg-surface p-3 space-y-3">
-                  <p className="text-sm text-neutral-200">
+                  <p className="text-sm text-primary">
                     Delete everything on this device?
                   </p>
                   <div className="flex flex-wrap gap-2">
@@ -120,8 +120,8 @@ export function Settings() {
             </div>
 
             <div className="pt-2.5 border-t border-border">
-              <h3 className="text-sm font-medium text-neutral-50 mb-0.5">Populate dummy data</h3>
-              <p className="text-[11px] text-neutral-500 mb-2">
+              <h3 className="text-sm font-medium text-primary mb-0.5">Populate dummy data</h3>
+              <p className="text-[11px] text-muted mb-2">
                 Dev sample: 4 players, 2 matches. Only when empty.
               </p>
               <Button
@@ -134,7 +134,7 @@ export function Settings() {
                 {isPopulating ? 'Populating…' : 'Populate dummy data'}
               </Button>
               {!isDatabaseEmpty && (
-                <p className="text-[11px] text-neutral-500 mt-2">Clear data first.</p>
+                <p className="text-[11px] text-muted mt-2">Clear data first.</p>
               )}
             </div>
           </div>

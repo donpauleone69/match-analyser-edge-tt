@@ -98,21 +98,21 @@ export function AccountComposer() {
   }
 
   const fieldClass =
-    'mt-1.5 w-full rounded-md border border-border bg-bg-surface px-3 py-2 text-sm text-neutral-50'
+    'mt-1 w-full rounded-md border border-border bg-bg-surface px-2.5 py-1.5 text-sm text-primary'
 
   return (
-    <div className="space-y-4">
-      <Card className="p-4 md:p-5 space-y-3 border border-border">
+    <div className="space-y-3">
+      <Card className="p-2.5 md:p-3 space-y-2.5 border border-border">
         <div className="flex items-center gap-2.5">
           <Icon name="cloud" size="md" className="text-brand-primary shrink-0" />
           <div className="min-w-0">
-            <h2 className="text-lg font-semibold text-neutral-50">Account & backup</h2>
-            <p className="text-sm text-neutral-500">Local-first library; optional cloud sync.</p>
+            <h2 className="text-sm font-semibold text-primary">Account & backup</h2>
+            <p className="text-xs text-muted">Local-first library; optional cloud sync.</p>
           </div>
         </div>
 
         {!ready ? (
-          <p className="text-sm text-neutral-500">Checking sign-in…</p>
+          <p className="text-xs text-muted">Checking sign-in…</p>
         ) : !user ? (
           <SignInFormBlock
             busy={busy}
@@ -129,7 +129,7 @@ export function AccountComposer() {
         ) : (
           <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-bg-surface px-2.5 py-1 text-sm text-neutral-200">
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-bg-surface px-2.5 py-1 text-sm text-primary">
                 <Icon name="user" size="sm" />{' '}
                 {sessionKind === 'local' ? 'This device' : user.email}
               </span>
@@ -144,7 +144,7 @@ export function AccountComposer() {
               </Button>
             </div>
             {sessionKind === 'local' && (
-              <p className="text-xs text-neutral-500">Library stays on this browser until you sign in.</p>
+              <p className="text-xs text-muted">Library stays on this browser until you sign in.</p>
             )}
             {error && (
               <p className="rounded-md border border-callout-danger-border bg-callout-danger-bg px-2.5 py-1.5 text-xs text-callout-danger">
@@ -152,7 +152,7 @@ export function AccountComposer() {
               </p>
             )}
             {lastSync && (
-              <p className="text-xs text-neutral-500">
+              <p className="text-xs text-muted">
                 Last sync {new Date(lastSync.at).toLocaleTimeString()}: {lastSync.pushed.length} up,{' '}
                 {lastSync.pulled.length} down
                 {lastSync.conflicts.length > 0 && (
@@ -170,14 +170,14 @@ export function AccountComposer() {
               </p>
             )}
             {sessionKind === 'cloud' && (
-              <p className="text-[11px] text-neutral-500">
+              <p className="text-[11px] text-muted">
                 Sync pushes match tags. Videos stay opt-in from Details.
               </p>
             )}
-            <div className="rounded-lg border border-border bg-bg-surface p-3 space-y-2.5">
+            <div className="rounded-md border border-border bg-bg-surface p-2.5 space-y-2">
               <div>
-                <h3 className="text-sm font-semibold text-neutral-100">Reviewing as</h3>
-                <p className="text-xs text-neutral-500">Library and “you” follow this player.</p>
+                <h3 className="text-sm font-semibold text-primary">Reviewing as</h3>
+                <p className="text-xs text-muted">Library and “you” follow this player.</p>
               </div>
 
               {!profile?.role ? (
@@ -203,7 +203,7 @@ export function AccountComposer() {
                 </div>
               ) : (
                 <>
-                  <label className="block text-xs text-neutral-500">
+                  <label className="block text-xs text-muted">
                     {profile.role === 'player' ? 'Your player record' : 'Reviewing as'}
                     <select
                       value={focalPlayerId ?? ''}
@@ -234,7 +234,7 @@ export function AccountComposer() {
                     </Button>
                   )}
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-xs text-neutral-500">
+                    <p className="text-xs text-muted">
                       {focalPlayer
                         ? `${focalPlayer.first_name} ${focalPlayer.last_name}`
                         : 'Choose a player to unlock the library.'}
@@ -250,7 +250,7 @@ export function AccountComposer() {
                 </>
               )}
             </div>
-            <p className="text-[11px] text-neutral-500">
+            <p className="text-[11px] text-muted">
               Matches sync as one record each. Videos only when you choose Back up.
               {cloudUrl && <> · {cloudUrl}</>}
             </p>
@@ -258,12 +258,12 @@ export function AccountComposer() {
         )}
       </Card>
 
-      <Card className="p-4 border border-border">
+      <Card className="p-2.5 border border-border">
         <div className="flex items-center gap-2.5">
-          <Icon name="target" size="md" className="text-neutral-400 shrink-0" />
+          <Icon name="target" size="md" className="text-muted shrink-0" />
           <div className="min-w-0 flex-1">
-            <h2 className="text-base font-semibold text-neutral-50">Training</h2>
-            <p className="text-xs text-neutral-500">Practice posts — not match tagging.</p>
+            <h2 className="text-sm font-semibold text-primary">Training</h2>
+            <p className="text-xs text-muted">Practice posts — not match tagging.</p>
           </div>
           <Button variant="secondary" size="sm" onClick={() => navigate('/training')}>
             Open
@@ -271,16 +271,16 @@ export function AccountComposer() {
         </div>
       </Card>
 
-      <Card className="p-4 space-y-2.5 border border-border">
+      <Card className="p-2.5 space-y-2 border border-border">
         <div className="flex items-center gap-2.5">
-          <Icon name="hard-drive" size="md" className="text-neutral-400 shrink-0" />
+          <Icon name="hard-drive" size="md" className="text-muted shrink-0" />
           <div>
-            <h2 className="text-base font-semibold text-neutral-50">This device</h2>
-            <p className="text-xs text-neutral-500">Videos stay in on-device app storage.</p>
+            <h2 className="text-sm font-semibold text-primary">This device</h2>
+            <p className="text-xs text-muted">Videos stay in on-device app storage.</p>
           </div>
         </div>
         {storage ? (
-          <p className="text-sm text-neutral-400">
+          <p className="text-xs text-muted">
             {formatFileSize(storage.usage)} of {formatFileSize(storage.quota)}{' '}
             {storage.persisted ? (
               <span className="text-result-winner">· Protected</span>
@@ -291,7 +291,7 @@ export function AccountComposer() {
             )}
           </p>
         ) : (
-          <p className="text-sm text-neutral-500">Storage details unavailable.</p>
+          <p className="text-xs text-muted">Storage details unavailable.</p>
         )}
         <div className="flex flex-wrap items-center gap-2 pt-1">
           <input
@@ -304,7 +304,7 @@ export function AccountComposer() {
           <Button variant="secondary" size="sm" onClick={() => fileRef.current?.click()}>
             <Icon name="file-up" size="sm" /> Import match file
           </Button>
-          <span className="text-[11px] text-neutral-500">JSON from Match Review → Details.</span>
+          <span className="text-[11px] text-muted">JSON from Match Review → Details.</span>
         </div>
         {fileNotice && (
           <div className="flex flex-wrap items-center gap-2">
