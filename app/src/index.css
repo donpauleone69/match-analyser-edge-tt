@@ -112,6 +112,9 @@
   /* Video overlay scrim (Track A transport / HUD chips) */
   --color-video-scrim: rgb(0 0 0 / 0.7);
   --color-video-scrim-border: rgb(255 255 255 / 0.25);
+  /* Dialog / drawer dimmers (Pass 1 Leave, History panel) */
+  --color-modal-scrim: rgb(0 0 0 / 0.6);
+  --color-panel-scrim: rgb(0 0 0 / 0.2);
 
   /* ----------------------------------------
      SHOT TYPE COLORS

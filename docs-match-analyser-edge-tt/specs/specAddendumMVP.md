@@ -6,6 +6,21 @@
 
 ## Change Log
 
+### 2026-11-14: MA-109 — Cross-surface theme cohesion (v3.147.0)
+
+**Change Type:** Design tokens — modal/panel scrims + theme gate after #82/#80/#78
+
+**What Changed:**
+- New `--color-modal-scrim` / `--color-panel-scrim` for Pass 1 Leave dialog + History dimmers (drop raw `bg-black/60` / `bg-black/20`).
+- RallyEdit residual chrome borders → `border-border` (align with MA-104/105 Review shells).
+- Extend `themeTokens.test.ts` to BrowseDisclosure, PlaylistBrowseShell, Pass1 Leave/History, Serve/Receive (+ ban raw `border-neutral-700` / modal black scrims).
+
+**Decision Rationale:** MA-109 overnight Track F — after MA-104/105 landed BrowseDisclosure borders, finish shared scrim tokens + gate so newest surfaces stay cohesive.
+
+**Key Files:** `index.css`, `Pass1LeaveDraftChoiceBlock.tsx`, `Pass1ChromeProtoBlock.tsx`, `RallyEditComposer.tsx`, `themeTokens.test.ts`.
+
+---
+
 ### 2026-11-14: MA-110 — List density + empty states (v3.146.0)
 
 **Change Type:** UX declutter — lists and empty states
@@ -8571,6 +8586,9 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v3.147.0 | 2026-11-14 | MA-109: modal/panel scrims + themeTokens gate for newest surfaces |
+| v3.146.0 | 2026-11-14 | MA-110: list density + empty states |
+| v3.145.0 | 2026-11-14 | MA-108: Pass 1 interaction polish |
 | v3.144.0 | 2026-11-14 | MA-104: BrowseDisclosure tokens + Serve/Receive phone focus + rally modal chrome |
 | v3.143.0 | 2026-11-14 | MA-105: quiet Settings/Training/match IA |
 | v3.142.0 | 2026-11-14 | MA-103: theme follow-up — video-scrim Simple overlay + brand focus rings |

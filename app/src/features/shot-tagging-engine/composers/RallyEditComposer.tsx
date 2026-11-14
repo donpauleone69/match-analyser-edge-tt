@@ -423,7 +423,7 @@ export function RallyEditComposer() {
   if (loadError) {
     return (
       <div className="h-dvh flex items-center justify-center bg-bg-surface p-4">
-        <div className="max-w-md text-center bg-bg-card border border-neutral-700 rounded-lg p-8">
+        <div className="max-w-md text-center bg-bg-card border border-border rounded-lg p-8">
           <h2 className="text-xl font-semibold text-neutral-50 mb-2">Can’t open this rally</h2>
           <p className="text-sm text-neutral-400 mb-6">{loadError}</p>
           <Button onClick={() => navigate(matchId ? `/matches/${matchId}` : '/matches')}>
@@ -521,7 +521,7 @@ export function RallyEditComposer() {
         </div>
       </div>
 
-      <div className="shrink-0 border-y border-neutral-700 bg-neutral-900 px-2 py-1.5 flex flex-wrap items-center gap-1.5">
+      <div className="shrink-0 border-y border-border bg-neutral-900 px-2 py-1.5 flex flex-wrap items-center gap-1.5">
         <button
           type="button"
           onClick={() => confirmLeave() && backToReview()}
@@ -787,7 +787,7 @@ export function RallyEditComposer() {
       </div>
 
       {/* Phone-first sticky save strip */}
-      <div className="sm:hidden fixed inset-x-0 bottom-0 z-40 border-t border-neutral-700 bg-bg-shell/95 px-3 py-2 backdrop-blur safe-area-pb">
+      <div className="sm:hidden fixed inset-x-0 bottom-0 z-40 border-t border-border bg-bg-shell/95 px-3 py-2 backdrop-blur safe-area-pb">
         <div className="mx-auto flex max-w-lg items-center gap-2">
           <button
             type="button"
