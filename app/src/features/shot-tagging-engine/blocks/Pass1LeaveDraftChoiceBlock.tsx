@@ -33,19 +33,18 @@ export function Pass1LeaveDraftChoiceBlock({
     >
       <div
         className={cn(
-          'w-full max-w-sm rounded-lg border border-border bg-bg-card p-5 shadow-lg',
+          'w-full max-w-sm rounded-lg border border-border bg-bg-card p-4 shadow-lg',
           className
         )}
       >
         <h2
           id="pass1-leave-draft-title"
-          className="text-lg font-semibold text-neutral-50"
+          className="text-base font-semibold text-neutral-50"
         >
           Leave tagging?
         </h2>
-        <p id="pass1-leave-draft-desc" className="mt-2 text-sm text-neutral-300">
-          Soft exit to Match Review — does not finish the set. Choose whether to
-          keep the open point as a draft for resume, or discard it.
+        <p id="pass1-leave-draft-desc" className="mt-1.5 text-sm text-neutral-500">
+          Soft exit — keep the open point as a draft, or discard it.
         </p>
         <div className="mt-5 flex flex-col gap-2">
           <Button

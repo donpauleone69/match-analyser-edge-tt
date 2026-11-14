@@ -582,15 +582,14 @@ export function MatchReviewComposer() {
       ) : !review.hasPointData &&
         review.rallies.length === 0 &&
         tab !== 'rallies' ? (
-        <Card className="p-8 text-center border border-dashed border-neutral-700">
-          <h2 className="text-xl font-semibold text-neutral-50">Nothing tagged yet</h2>
-          <p className="mt-2 text-sm text-neutral-400 max-w-md mx-auto">
-            Tag a set with Pass 1 — tap each contact, mark the first attack and how the point ended. Your match story,
-            highlights and things to work on appear here as you go.
+        <Card className="p-6 text-center border border-dashed border-border">
+          <h2 className="text-lg font-semibold text-neutral-50">Nothing tagged yet</h2>
+          <p className="mt-1.5 text-sm text-neutral-500 max-w-sm mx-auto">
+            Tag a set — summary, highlights, and work-on appear as you go.
           </p>
           {nextSet && (
-            <Button className="mt-4" onClick={() => openTagger(nextSet)}>
-              <Icon name="play" size="sm" /> Start tagging Set {nextSet.setNumber}
+            <Button className="mt-3" size="sm" onClick={() => openTagger(nextSet)}>
+              <Icon name="play" size="sm" /> Start Set {nextSet.setNumber}
             </Button>
           )}
         </Card>

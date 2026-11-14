@@ -114,17 +114,16 @@ export function ScopeReviewComposer() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-5 p-4 md:p-6">
-      <header className="space-y-3">
-        <Link to="/" className="inline-flex items-center gap-1 text-sm text-neutral-400 hover:text-neutral-100">
+    <div className="mx-auto max-w-5xl space-y-4 p-4 md:p-5">
+      <header className="space-y-2">
+        <Link to="/" className="inline-flex items-center gap-1 text-sm text-neutral-500 hover:text-neutral-100">
           <Icon name="arrow-left" size="sm" /> Home
         </Link>
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-brand-primary">Review scope</p>
-            <h1 className="text-2xl font-bold text-neutral-50 md:text-3xl">{title}</h1>
-            <p className="mt-1 text-sm text-neutral-400">
-              {scoped.length} match{scoped.length === 1 ? '' : 'es'} · playlists across opponent or tournament
+            <h1 className="text-xl font-bold text-neutral-50 md:text-2xl">{title}</h1>
+            <p className="mt-0.5 text-sm text-neutral-500">
+              {scoped.length} match{scoped.length === 1 ? '' : 'es'}
             </p>
           </div>
           <ScopeControlBlock
@@ -147,16 +146,15 @@ export function ScopeReviewComposer() {
       </div>
 
       {scoped.length === 0 ? (
-        <Card className="border-dashed border-neutral-700 p-8 text-center text-sm text-neutral-400">
-          No matches in this scope for the player you are reviewing as. Add an opponent or tournament on a match’s Details tab to filter here.
+        <Card className="border border-dashed border-border p-5 text-center text-sm text-neutral-500">
+          No matches in this scope. Set opponent or tournament on Details to filter.
         </Card>
       ) : tab === 'clips' ? (
         <ClipsComposer matchId={null} matchIds={scopedIds} embedded />
       ) : (
-        <Card className="space-y-3 p-5">
-          <h2 className="text-lg font-semibold text-neutral-50">Matches in scope</h2>
-          <p className="text-sm text-neutral-400">Open a match to tag, edit, or work on patterns one at a time.</p>
-          <ul className="divide-y divide-neutral-800">
+        <Card className="space-y-2 p-4 border border-border">
+          <h2 className="text-base font-semibold text-neutral-50">Matches in scope</h2>
+          <ul className="divide-y divide-border">
             {scoped.map((m) => (
               <li key={m.id} className="flex flex-wrap items-center justify-between gap-2 py-3">
                 <span className="text-sm text-neutral-200">{labelMatch(m)}</span>
