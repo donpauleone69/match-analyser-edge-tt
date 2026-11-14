@@ -14,13 +14,13 @@ export interface LockedSectionBlockProps {
 
 export function LockedSectionBlock({ id, title, question, note }: LockedSectionBlockProps) {
   return (
-    <Card className="p-2.5 border border-dashed border-border bg-bg-card opacity-70">
+    <Card className="p-2.5 shadow-sm bg-bg-card opacity-70">
       <div className="flex items-center justify-between gap-2">
         <h3 className="text-sm font-semibold text-muted">
           <span className="text-muted/80 mr-1.5">{id}</span>
           {title}
         </h3>
-        <Badge variant="outline" className="gap-1 text-muted border-border text-[10px]">
+        <Badge variant="outline" className="gap-1 text-muted text-[10px]">
           <Icon name="clock" size="xs" />
           Coming
         </Badge>

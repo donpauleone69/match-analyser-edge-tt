@@ -25,8 +25,8 @@ export function SummaryCategoryNavBlock({ sections, onSelect }: SummaryCategoryN
               type="button"
               onClick={() => onSelect(section.id)}
               className={cn(
-                'w-full text-left rounded-md border border-border bg-bg-card px-2.5 py-2',
-                'hover:border-border-strong hover:bg-bg-elevated transition-colors group'
+                'w-full text-left rounded-md bg-bg-card px-2.5 py-2',
+                'hover:bg-bg-elevated transition-colors group'
               )}
             >
               <div className="flex items-start gap-2">

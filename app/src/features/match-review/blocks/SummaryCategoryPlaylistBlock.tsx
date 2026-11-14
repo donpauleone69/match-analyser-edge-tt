@@ -49,7 +49,7 @@ export function SummaryCategoryPlaylistBlock({
 
   if (rallies.length === 0) {
     return (
-      <div className="rounded-md border border-dashed border-border px-2.5 py-2 text-center">
+      <div className="rounded-md bg-bg-card px-2.5 py-2 text-center">
         <p className="text-xs font-medium text-primary">{emptyLabel}</p>
         {emptyHint ? <p className="mt-0.5 text-[11px] text-muted">{emptyHint}</p> : null}
       </div>
@@ -78,7 +78,7 @@ export function SummaryCategoryPlaylistBlock({
           {evidenceSet ? ' · linked to open evidence' : ''}
         </p>
       )}
-      <ul className="rounded-lg border border-border overflow-hidden divide-y divide-border">
+      <ul className="rounded-lg bg-bg-card overflow-hidden divide-y divide-border">
         {rallies.map((r) => (
           <RallyRowBlock
             key={r.id}

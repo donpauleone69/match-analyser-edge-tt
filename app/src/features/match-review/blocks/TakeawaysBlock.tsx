@@ -21,7 +21,7 @@ const DOT: Record<TakeawayModel['tone'], string> = {
 export function TakeawaysBlock({ takeaways, onOpenEvidence }: TakeawaysBlockProps) {
   if (takeaways.length === 0) return null
   return (
-    <Card className="p-2.5 md:p-3 border border-border">
+    <Card className="p-2.5 md:p-3 shadow-sm">
       <h2 className="text-sm font-semibold text-primary">Takeaways</h2>
       <ul className="mt-1.5 space-y-1">
         {takeaways.map((t) => (

@@ -135,10 +135,10 @@ export function CompareCardBlock({
             <span
               key={s.setNumber}
               className={cn(
-                'inline-flex items-baseline gap-1.5 rounded-md border px-2 py-1',
-                s.heroWon === true && 'border-result-winner/60 bg-result-winner-bg',
-                s.heroWon === false && 'border-result-error/60 bg-result-error-bg',
-                s.heroWon === null && 'border-border bg-bg-elevated'
+                'inline-flex items-baseline gap-1.5 rounded-md px-2 py-1',
+                s.heroWon === true && 'bg-result-winner-bg',
+                s.heroWon === false && 'bg-result-error-bg',
+                s.heroWon === null && 'bg-bg-elevated'
               )}
             >
               <span className="text-[10px] text-muted">S{s.setNumber}</span>

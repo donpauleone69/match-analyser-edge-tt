@@ -143,7 +143,7 @@ export function MatchStorageBlock({
   }
 
   return (
-    <div className="rounded-lg border border-border bg-bg-card px-3 py-3 sm:px-4 space-y-3 text-sm">
+    <div className="rounded-lg bg-bg-card px-3 py-3 sm:px-4 space-y-3 text-sm shadow-sm">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <span
           className={cn(
@@ -199,7 +199,7 @@ export function MatchStorageBlock({
             {jumpChips.map((chip) => (
               <li key={chip.key}>
                 <span
-                  className="inline-flex items-center gap-1 rounded-md border border-border bg-neutral-950/50 px-2 py-1 text-[11px] text-neutral-200"
+                  className="inline-flex items-center gap-1 rounded-md bg-bg-elevated px-2 py-1 text-[11px] text-primary"
                   title="Source time — use with Trim or when scrubbing the set video"
                 >
                   <Icon name="target" size="xs" className="text-brand-primary shrink-0" />
@@ -213,7 +213,7 @@ export function MatchStorageBlock({
       )}
 
       {storage.setVideos.length === 0 && (
-        <p className="text-xs text-neutral-500 rounded-md border border-dashed border-border px-3 py-2">
+        <p className="text-xs text-muted rounded-md bg-bg-elevated/50 px-3 py-2">
           No set video on this match yet — attach one while tagging.
         </p>
       )}
@@ -226,14 +226,14 @@ export function MatchStorageBlock({
           return (
             <li
               key={v.assetId}
-              className="rounded-md border border-border bg-bg-surface px-2.5 py-2 space-y-2"
+              className="rounded-md bg-bg-elevated/40 px-2.5 py-2 space-y-2"
             >
-              <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-neutral-300">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-muted">
                 <Icon name="video" size="sm" />
-                <span className="font-semibold text-neutral-100">Set {v.setNumber}</span>
-                <span className="text-neutral-500 text-xs">{VIDEO_LABEL[v.availability]}</span>
+                <span className="font-semibold text-primary">Set {v.setNumber}</span>
+                <span className="text-muted text-xs">{VIDEO_LABEL[v.availability]}</span>
                 {v.archivedLocally && (
-                  <span className="rounded border border-callout-warning-border bg-callout-warning-bg px-1.5 py-0.5 text-[10px] text-callout-warning">
+                  <span className="rounded bg-callout-warning-bg px-1.5 py-0.5 text-[10px] text-callout-warning">
                     archived
                   </span>
                 )}
@@ -339,7 +339,7 @@ export function MatchStorageBlock({
               </div>
 
               {trimFor === v.assetId && (
-                <div className="space-y-2 rounded border border-border bg-bg-card p-2.5">
+                <div className="space-y-2 rounded bg-bg-card p-2.5">
                   <p className="text-xs text-neutral-400">
                     Source seconds. Keep tagged play inside the window — tags are not rewritten.
                   </p>
@@ -404,7 +404,7 @@ export function MatchStorageBlock({
       </ul>
 
       {conflict && (
-        <div className="flex flex-wrap items-center gap-1.5 rounded-md border border-callout-warning-border bg-callout-warning-bg px-2.5 py-1.5 text-callout-warning">
+        <div className="flex flex-wrap items-center gap-1.5 rounded-md bg-callout-warning-bg px-2.5 py-1.5 text-callout-warning">
           <Icon name="warning" size="sm" />
           <span className="flex-1 text-[11px]">Changed elsewhere — keep which copy?</span>
           <Button size="sm" variant="secondary" onClick={onKeepDevice} disabled={busy !== null}>

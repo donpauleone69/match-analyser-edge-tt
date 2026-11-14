@@ -139,7 +139,7 @@ export function OverviewSection({
         <button
           type="button"
           onClick={onOpenIncomplete}
-          className="w-full text-left rounded-md border border-callout-warning-border bg-callout-warning-bg px-2.5 py-1.5 hover:border-callout-warning"
+          className="w-full text-left rounded-md bg-callout-warning-bg px-2.5 py-1.5 hover:bg-callout-warning-bg/80"
         >
           <p className="text-xs font-medium text-callout-warning">
             {incompleteCount} incomplete · Rallies → Incomplete
@@ -151,7 +151,7 @@ export function OverviewSection({
         <button
           type="button"
           onClick={onOpenDetails}
-          className="w-full text-left rounded-md border border-border px-2.5 py-1.5 hover:border-border-strong"
+          className="w-full text-left rounded-md bg-bg-card px-2.5 py-1.5 hover:bg-bg-elevated"
         >
           <p className="text-xs font-medium text-primary">
             {needsOpponent ? 'Add opponent (optional)' : 'Add tournament (optional)'}

@@ -152,7 +152,7 @@ export function ScopeReviewComposer() {
       ) : tab === 'clips' ? (
         <ClipsComposer matchId={null} matchIds={scopedIds} embedded />
       ) : (
-        <Card className="space-y-1.5 p-3 border border-border">
+        <Card className="space-y-1.5 p-3 shadow-sm">
           <h2 className="text-sm font-semibold text-primary">Matches in scope</h2>
           <ul className="divide-y divide-border">
             {scoped.map((m) => (

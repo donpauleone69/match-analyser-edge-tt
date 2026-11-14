@@ -6,6 +6,23 @@
 
 ## Change Log
 
+### 2026-11-14: MA-156 — De-frame Match Review nested borders (v3.185.0)
+
+**Change Type:** UX hotfix — remove stacked frames (not density polish)
+
+**What Changed:**
+- Work on: side column / empty / focus chips lose decorative borders
+- Patterns, Rallies lists, category playlists: wash + divide-y (no outer frame)
+- Takeaways / Details / Scope cards: shadow-only; Set panels + status chips wash
+- Overview callouts, storage block, rally Inc/flag chips: wash-only
+- Compare scoreline chips: wash (card keeps one outer border)
+
+**Decision Rationale:** MA-155 continuation — nested Panel/Card/border stacks on Review. Cap thin de-frame PRs then assess vs tip `1316612`.
+
+**Key Files:** WorkOn / Rallies / Details / Overview sections; ReviewPattern / SetPanel / Takeaways / SummaryCategory* / MatchStorage / RallyRow / Compare / Locked / ScopeReview.
+
+---
+
 ### 2026-11-14: MA-155 — De-frame nested borders on Home / Find / Summary (v3.184.0)
 
 **Change Type:** UX hotfix — overnight border stacking
@@ -9205,6 +9222,7 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v3.185.0 | 2026-11-14 | MA-156: de-frame Match Review nested borders (Work on / Rallies / Details) |
 | v3.184.0 | 2026-11-14 | MA-155: de-frame nested borders on Home / Find / Summary headlines |
 | v3.183.0 | 2026-11-14 | MA-154: Clips white-screen — remove useMemo after early returns (MA-86 hooks crash) |
 | v3.182.0 | 2026-11-14 | MA-145: phone playlist trail density — one-row icon-first trail |
