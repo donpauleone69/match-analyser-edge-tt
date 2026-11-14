@@ -2,10 +2,13 @@
  * BrowseDisclosure — History-style picker chrome for playlists / focuses.
  *
  * Closed = active context chip; open = pick another. Shared by Clips,
- * Serve/Receive, and Track C playlist shell adopters.
+ * Serve/Receive, and playlist shell adopters.
+ *
+ * MA-118: mobile polish — pointer/touch outside dismiss, Escape, safer panel
+ * height, denser touch targets on options.
  */
 
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useId, useRef, type ReactNode } from 'react'
 import { Icon } from '@/ui-mine/Icon'
 import { cn } from '@/helpers/utils'
 
@@ -41,14 +44,26 @@ export function BrowseDisclosure({
   'aria-label': ariaLabel = 'Browse',
 }: BrowseDisclosureProps) {
   const rootRef = useRef<HTMLDivElement>(null)
+  const listId = useId()
 
   useEffect(() => {
     if (!open) return
-    const onDoc = (e: MouseEvent) => {
+    const onPointer = (e: PointerEvent) => {
       if (!rootRef.current?.contains(e.target as Node)) onOpenChange(false)
     }
-    document.addEventListener('mousedown', onDoc)
-    return () => document.removeEventListener('mousedown', onDoc)
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        onOpenChange(false)
+      }
+    }
+    // pointerdown covers mouse + touch; capture so sticky parents don't eat it.
+    document.addEventListener('pointerdown', onPointer, true)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('pointerdown', onPointer, true)
+      document.removeEventListener('keydown', onKey)
+    }
   }, [open, onOpenChange])
 
   return (
@@ -57,12 +72,13 @@ export function BrowseDisclosure({
         type="button"
         aria-expanded={open}
         aria-haspopup="listbox"
+        aria-controls={open ? listId : undefined}
         aria-label={ariaLabel}
         onClick={() => onOpenChange(!open)}
         className={cn(
-          'inline-flex items-center gap-2 rounded-lg border border-border bg-bg-card px-3 py-1.5',
-          'text-sm text-primary hover:border-border-strong transition-colors',
-          fullWidth && 'w-full justify-between py-2.5',
+          'inline-flex min-h-10 items-center gap-2 rounded-md border border-border bg-bg-card px-3 py-2',
+          'text-sm text-primary hover:border-border-strong transition-colors touch-manipulation',
+          fullWidth && 'w-full justify-between',
           triggerClassName
         )}
       >
@@ -84,8 +100,14 @@ export function BrowseDisclosure({
 
       {open && (
         <div
+          id={listId}
+          role="listbox"
+          aria-label={ariaLabel}
           className={cn(
-            'absolute z-30 mt-1 min-w-full rounded-lg border border-border bg-bg-elevated shadow-xl',
+            'absolute z-40 mt-1 min-w-full rounded-md border border-border bg-bg-elevated shadow-xl',
+            'max-h-[min(50dvh,22rem)] overflow-y-auto overscroll-contain',
+            // Keep the panel on-screen when the sticky shell sits near the bottom.
+            'origin-top',
             fullWidth ? 'left-0 right-0' : 'min-w-[14rem]',
             panelClassName
           )}
@@ -120,10 +142,10 @@ export function BrowseDisclosureOption({
       aria-selected={selected}
       onClick={onSelect}
       className={cn(
-        'w-full flex items-center gap-2 px-3 py-2 text-left text-sm transition-colors',
+        'w-full flex min-h-11 items-center gap-2 px-3 py-2.5 text-left text-sm transition-colors touch-manipulation',
         selected
           ? 'bg-contact-selected-bg text-primary'
-          : 'text-primary hover:bg-bg-card'
+          : 'text-primary hover:bg-bg-card active:bg-bg-card'
       )}
     >
       {leading}

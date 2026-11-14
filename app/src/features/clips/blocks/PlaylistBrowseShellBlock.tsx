@@ -2,7 +2,7 @@
  * PlaylistBrowseShellBlock — sticky browse chrome on shared BrowseDisclosure.
  *
  * Clips: preset groups. Serve/Receive: pass focus options as children.
- * MA-107: denser strip, compact Work on / Stay / Fix trail, sticky under tabs.
+ * MA-118: mobile polish — safe sticky strip, trail wrap, under-tabs sticky.
  */
 
 import type { ReactNode } from 'react'
@@ -47,7 +47,7 @@ export interface PlaylistBrowseShellBlockProps {
   priorityGroup?: ClipPresetGroup | null
   /**
    * `under-tabs` = Match Review sticky header (~3.5rem).
-   * `page` = standalone /clips. Serve/Receive may also pass className="top-14".
+   * `page` = standalone /clips.
    */
   stickyMode?: 'page' | 'under-tabs'
   /** Custom panel (Serve/Receive focuses). Takes precedence over groups. */
@@ -84,7 +84,7 @@ export function PlaylistBrowseShellBlock({
   trail = [],
   below,
   className,
-  panelClassName = 'p-1.5 max-h-[min(40dvh,20rem)] overflow-y-auto overscroll-contain border-border bg-bg-elevated',
+  panelClassName = 'p-1 max-h-[min(45dvh,20rem)] overflow-y-auto overscroll-contain',
   groups,
   activeKey = null,
   onSelect,
@@ -110,14 +110,19 @@ export function PlaylistBrowseShellBlock({
   return (
     <div
       className={cn(
-        'sticky z-20 -mx-1 space-y-1.5 border-b border-border bg-bg-surface/95 px-1 py-1.5 backdrop-blur',
+        'sticky z-20 -mx-1 space-y-1 border-b border-border bg-bg-surface/95 px-1 py-1.5 backdrop-blur',
+        'supports-[padding:max(0px)]:pb-[max(0.375rem,env(safe-area-inset-bottom,0px))]',
         stickyMode === 'under-tabs' ? 'top-14' : 'top-0',
         className
       )}
     >
-      <div className="flex items-stretch gap-1.5">
+      {/*
+        Phone: chip full-width, trail on a second row so the disclosure never
+        starves. sm+: chip + trail on one row (MA-107 density).
+      */}
+      <div className="flex flex-col gap-1.5 sm:flex-row sm:items-stretch">
         <BrowseDisclosure
-          className="min-w-0 flex-1"
+          className="min-w-0 w-full sm:flex-1"
           fullWidth
           aria-label={ariaLabel}
           label={label}
@@ -125,14 +130,14 @@ export function PlaylistBrowseShellBlock({
           meta={meta}
           open={open}
           onOpenChange={onOpenChange}
-          triggerClassName="rounded-md border-border bg-bg-card py-2 text-sm"
+          triggerClassName="rounded-md border-border bg-bg-card py-2.5 text-sm sm:py-2"
           panelClassName={panelClassName}
         >
           {panel}
         </BrowseDisclosure>
 
         {trail.length > 0 ? (
-          <div className="flex shrink-0 items-center gap-1">
+          <div className="flex shrink-0 items-center justify-end gap-1 sm:justify-start">
             {trail.map((t) => {
               if (t.iconOnly) {
                 return (
@@ -140,7 +145,7 @@ export function PlaylistBrowseShellBlock({
                     key={t.id}
                     size="sm"
                     variant="ghost"
-                    className="h-9 w-9 shrink-0 px-0"
+                    className="h-10 w-10 shrink-0 px-0 touch-manipulation sm:h-9 sm:w-9"
                     onClick={t.onClick}
                     aria-label={t.label}
                     title={t.label}
@@ -154,7 +159,7 @@ export function PlaylistBrowseShellBlock({
                   key={t.id}
                   size="sm"
                   variant={t.primary ? 'secondary' : 'ghost'}
-                  className="h-9 shrink-0 gap-1 px-2 text-xs"
+                  className="h-10 shrink-0 gap-1 px-2.5 text-xs touch-manipulation sm:h-9 sm:px-2"
                   onClick={t.onClick}
                 >
                   {trailIcon(t.id)}
