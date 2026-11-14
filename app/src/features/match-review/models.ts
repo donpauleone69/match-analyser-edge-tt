@@ -16,7 +16,10 @@ export interface EvidenceRef {
 }
 
 export interface MetricCellModel {
+  /** Primary share / count (e.g. "45% (9/20)") */
   text: string
+  /** Optional second line (misses, win rate) — keeps the primary number scannable */
+  detail?: string
   tone: CellTone
   evidence: EvidenceRef | null
 }
@@ -54,8 +57,12 @@ export interface HeadlineMetricModel {
   key: string
   label: string
   text: string
+  /** Quiet count under the % (e.g. "9/20") */
+  detail?: string
   tone: CellTone
   evidence: EvidenceRef | null
+  /** Prefer this playlist focus when the headline is tapped */
+  focusId?: string
 }
 
 /** Chip that swaps the supporting playlist under curated stats */
