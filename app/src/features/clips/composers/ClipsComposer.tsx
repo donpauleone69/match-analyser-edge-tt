@@ -544,7 +544,7 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
       groups={data.groups}
       activeKey={reel ? null : activeKey}
       activeLabel={reel ? reel.label : playlistLabel}
-      clipCount={reel ? null : rows.length}
+      meta={reel ? undefined : rows.length}
       contextLabel={browseContext}
       trail={browseTrail}
       onSelect={selectPreset}

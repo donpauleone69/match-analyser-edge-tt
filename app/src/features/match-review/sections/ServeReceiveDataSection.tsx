@@ -1,16 +1,19 @@
 /**
- * ServeReceiveDataSection — curated Serve / Receive Data (MA-82 / MA-94 / MA-98).
+ * ServeReceiveDataSection — curated Serve / Receive Data (MA-82 → MA-106).
  *
- * Flow: headlines → ≤2 cards → focus picker → points →
+ * Flow: headlines → ≤2 cards → PlaylistBrowseShell focus → points →
  * watch (RallyPlayer + MatchVideoOverlayBar) or Clips playlist.
- * Focus picker uses MA-100 BrowseDisclosure via PlaylistFocusPickerBlock.
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Button, Icon } from '@/ui-mine'
+import { cn } from '@/helpers/utils'
+import {
+  PlaylistBrowseShellBlock,
+  type PlaylistBrowseTrailLink,
+} from '@/features/clips'
+import { PlaylistFocusPickerBlock } from '../blocks/PlaylistFocusPickerBlock'
 import { CompareCardBlock } from '../blocks/CompareCardBlock'
 import { HeadlineMetricsBlock } from '../blocks/HeadlineMetricsBlock'
-import { PlaylistFocusPickerBlock } from '../blocks/PlaylistFocusPickerBlock'
 import { SummaryCategoryPlaylistBlock } from '../blocks/SummaryCategoryPlaylistBlock'
 import type {
   CompareSectionModel,
@@ -39,6 +42,13 @@ export interface ServeReceiveDataSectionProps {
 }
 
 const EVIDENCE_FOCUS_ID = 'from-evidence'
+
+const TONE_DOT: Record<PlaylistFocusModel['tone'], string> = {
+  good: 'bg-result-winner',
+  bad: 'bg-result-error',
+  amber: 'bg-warning',
+  none: 'bg-neutral-500',
+}
 
 function resolveFocus(
   focuses: PlaylistFocusModel[],
@@ -77,6 +87,7 @@ export function ServeReceiveDataSection({
     null
   const [focusId, setFocusId] = useState<string | null>(initialFocus)
   const [evidenceFocus, setEvidenceFocus] = useState<PlaylistFocusModel | null>(null)
+  const [focusOpen, setFocusOpen] = useState(false)
   const playlistRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
@@ -86,6 +97,7 @@ export function ServeReceiveDataSection({
       null
     setFocusId(next)
     setEvidenceFocus(null)
+    setFocusOpen(false)
     // Reset when switching Serve ↔ Receive or URL focus
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [section.id, focusIdFromUrl])
@@ -143,21 +155,25 @@ export function ServeReceiveDataSection({
       setFocusId(EVIDENCE_FOCUS_ID)
       onFocusChange?.(null)
     }
+    setFocusOpen(false)
     requestAnimationFrame(() => {
       playlistRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
     })
   }
 
+  const trail: PlaylistBrowseTrailLink[] = [
+    { id: 'summary', label: 'Summary', onClick: onBack, primary: true },
+  ]
+  if (playlistRallies.length > 0) {
+    trail.push({
+      id: 'clips',
+      label: 'Clips',
+      onClick: () => onPlayPlaylist(playlistTitle, playlistRallies),
+    })
+  }
+
   return (
     <div className="space-y-4">
-      <button
-        type="button"
-        onClick={onBack}
-        className="inline-flex items-center gap-1 text-sm text-neutral-500 hover:text-neutral-100"
-      >
-        <Icon name="arrow-left" size="sm" /> All categories
-      </button>
-
       <div>
         <h2 className="text-lg font-semibold text-neutral-50">{section.title}</h2>
         <p className="text-sm text-neutral-500">{section.question}</p>
@@ -193,39 +209,39 @@ export function ServeReceiveDataSection({
       </div>
 
       <section ref={playlistRef} className="space-y-2.5" aria-label="Supporting playlist">
-        <div className="sticky top-14 z-10 -mx-1 px-1 py-2 bg-bg-surface/95 backdrop-blur border-b border-border flex flex-col gap-2 md:flex-row md:flex-wrap md:items-center">
-          <div className="hidden md:block min-w-0 flex-1">
-            <h3 className="text-sm font-semibold text-primary">Playlist</h3>
-            <p className="text-xs text-muted truncate">
-              {activeFocus ? activeFocus.label : 'Pick a focus'} · watch or Clips
-            </p>
-          </div>
-          <div className="w-full md:hidden">
-            <PlaylistFocusPickerBlock
-              fullWidth
-              focuses={focuses}
-              activeId={activeFocus?.id ?? ''}
-              onSelect={selectFocus}
-            />
-          </div>
-          <div className="hidden md:block">
-            <PlaylistFocusPickerBlock
-              focuses={focuses}
-              activeId={activeFocus?.id ?? ''}
-              onSelect={selectFocus}
-            />
-          </div>
-          {playlistRallies.length > 0 && (
-            <Button
-              size="sm"
-              variant="secondary"
-              className="self-start md:self-auto"
-              onClick={() => onPlayPlaylist(playlistTitle, playlistRallies)}
-            >
-              <Icon name="film" size="sm" /> Clips
-            </Button>
-          )}
-        </div>
+        <PlaylistBrowseShellBlock
+          className="top-14"
+          open={focusOpen}
+          onOpenChange={setFocusOpen}
+          label="Focus"
+          aria-label="Playlist focus"
+          activeLabel={
+            activeFocus ? (
+              <span className="inline-flex items-center gap-2 min-w-0">
+                <span
+                  className={cn('h-1.5 w-1.5 rounded-full shrink-0', TONE_DOT[activeFocus.tone])}
+                />
+                <span className="truncate">{activeFocus.label}</span>
+              </span>
+            ) : (
+              'Pick a focus'
+            )
+          }
+          meta={activeFocus?.count}
+          contextLabel={`${section.title} · watch or open Clips`}
+          trail={trail}
+          panelClassName="py-1 max-h-[min(42dvh,22rem)] overflow-y-auto overscroll-contain"
+        >
+          <PlaylistFocusPickerBlock
+            chrome="options"
+            focuses={focuses}
+            activeId={activeFocus?.id ?? ''}
+            onSelect={(f) => {
+              selectFocus(f)
+              setFocusOpen(false)
+            }}
+          />
+        </PlaylistBrowseShellBlock>
         <SummaryCategoryPlaylistBlock
           title={playlistTitle}
           rallies={playlistRallies}
