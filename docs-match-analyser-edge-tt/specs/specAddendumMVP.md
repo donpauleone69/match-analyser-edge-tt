@@ -6,6 +6,23 @@
 
 ## Change Log
 
+### 2026-11-14: MA-118 — BrowseDisclosure / shell mobile polish (v3.154.0)
+
+**Change Type:** UX polish — mobile browse chrome
+
+**What Changed:**
+- `BrowseDisclosure`: pointerdown (touch) outside dismiss + Escape; listbox id wiring; taller touch targets; safer `max-h` / overscroll on panel.
+- `PlaylistBrowseShellBlock`: phone stacks chip then trail (disclosure never starves); larger trail taps; safe-area padding; Serve/Receive uses `stickyMode="under-tabs"` (drop ad-hoc `top-14` class).
+- Compact preset rows get phone-friendly min height.
+
+**Decision Rationale:** Overnight Track C MA-118 after #85 — mobile polish on the shared primitive + shell.
+
+**Key Files:** `BrowseDisclosure.tsx`, `PlaylistBrowseShellBlock.tsx`, `ClipPresetListBlock.tsx`, `ServeReceiveDataSection.tsx`.
+
+---
+
+---
+
 ### 2026-11-14: MA-117 — Video HUD chip token cleanup (v3.153.0)
 
 **Change Type:** Design tokens — VideoPlayer HUD + MatchScoreHud + Pass 1 badge wash
@@ -20,6 +37,7 @@
 **Decision Rationale:** MA-117 overnight Track F — finish video HUD leftover black/white alpha after MA-114 modal scrims.
 
 **Key Files:** `index.css`, `VideoPlayer.tsx`, `MatchScoreHud.tsx`, `Pass1ContactCaptureBlock.tsx`, `themeTokens.test.ts`.
+
 
 ---
 
@@ -37,6 +55,7 @@
 **Decision Rationale:** MA-113 overnight Track B — secondary chrome after MA-110 lists/empties.
 
 **Key Files:** `OverviewSection.tsx`, `TakeawaysBlock.tsx`, `SummaryCategoryNavBlock.tsx`, `DetailsSection.tsx`, `ClipsComposer.tsx`, `HomeMatchRowBlock.tsx`, `ContextPolishBlock.tsx`, `EvidenceDrawerBlock.tsx`, `CompareCardBlock.tsx`, `MatchStorageBlock.tsx`, `DataTableBlock.tsx`, data-audit sections, `RallyEditComposer.tsx`, `MatchResultEntryModal.tsx`.
+
 
 ### 2026-11-14: MA-107 — Playlist browse shell refine (v3.151.0)
 
