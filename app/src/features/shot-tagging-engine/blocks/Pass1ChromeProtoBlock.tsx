@@ -1,5 +1,5 @@
 import { cn } from '@/helpers/utils'
-import { Icon } from '@/ui-mine'
+import { Icon, MatchScoreHud } from '@/ui-mine'
 
 type PlayerSide = 'player1' | 'player2'
 
@@ -27,7 +27,7 @@ export interface Pass1SetHudBlockProps {
   compact?: boolean
 }
 
-/** Prototype: compact WTT-style 2-row scorebug (Name | Sets | Points) on the video HUD. */
+/** Pass 1 alias → shared MatchScoreHud (ui-mine spine for all video surfaces). */
 export function Pass1SetHudBlock({
   setNumber,
   player1Name,
@@ -40,90 +40,19 @@ export function Pass1SetHudBlock({
   serverName,
   compact = false,
 }: Pass1SetHudBlockProps) {
-  const rows: Array<{
-    side: PlayerSide
-    name: string
-    sets: number
-    points: number
-  }> = [
-    { side: 'player1', name: player1Name, sets: player1Sets, points: player1Score },
-    { side: 'player2', name: player2Name, sets: player2Sets, points: player2Score },
-  ]
-
   return (
-    <div
-      className={cn(
-        'inline-block overflow-hidden rounded-md border border-white/20 bg-black/80 text-white backdrop-blur-sm select-none',
-        compact
-          ? // Match transport chip height (h-7) so score + controls share one baseline
-            'h-7 min-w-[5.75rem] max-w-[7.5rem] shadow-md'
-          : 'min-w-[9rem] max-w-[12.5rem] shadow-lg'
-      )}
-      role="status"
-      aria-label={`Set ${setNumber}: ${player1Name} ${player1Sets} sets ${player1Score} points, ${player2Name} ${player2Sets} sets ${player2Score} points. Serving: ${serverName}.`}
-    >
-      <div className={cn('divide-y divide-white/10', compact && 'h-full')}>
-        {rows.map((row) => {
-          const isServing = serverId === row.side
-          const isP1 = row.side === 'player1'
-          return (
-            <div
-              key={row.side}
-              className={cn(
-                'grid items-stretch leading-none',
-                compact
-                  ? 'h-1/2 grid-cols-[minmax(0,1fr)_1rem_1.25rem] text-[8px]'
-                  : 'grid-cols-[minmax(0,1fr)_1.5rem_1.85rem] text-[11px]'
-              )}
-            >
-              <div
-                className={cn(
-                  'flex min-w-0 items-center border-l-2',
-                  compact ? 'gap-0.5 px-1 py-0' : 'gap-1.5 px-1.5 py-1',
-                  isServing
-                    ? isP1
-                      ? 'border-player-1 bg-white/10 font-bold text-white'
-                      : 'border-player-2 bg-white/10 font-bold text-white'
-                    : 'border-transparent font-semibold text-white/80'
-                )}
-                title={isServing ? `${row.name} (serving)` : row.name}
-              >
-                <span
-                  className={cn(
-                    'shrink-0 rounded-full',
-                    compact ? 'h-1 w-1' : 'h-1.5 w-1.5',
-                    isServing
-                      ? isP1
-                        ? 'bg-player-1'
-                        : 'bg-player-2'
-                      : 'bg-transparent'
-                  )}
-                  aria-hidden
-                />
-                <span className="truncate">{row.name}</span>
-              </div>
-              <div
-                className="flex items-center justify-center border-x border-white/15 bg-white/20 font-bold tabular-nums text-white"
-                title={`${row.name} sets: ${row.sets}`}
-              >
-                {row.sets}
-              </div>
-              <div
-                className={cn(
-                  'flex items-center justify-center font-black tabular-nums',
-                  compact ? 'text-[9px]' : 'text-[12px]',
-                  isServing ? 'text-white' : 'text-white/90'
-                )}
-                title={`${row.name} points: ${row.points}`}
-              >
-                {row.points}
-              </div>
-            </div>
-          )
-        })}
-      </div>
-      <span className="sr-only">Set {setNumber} · Serving: {serverName}</span>
-    </div>
+    <MatchScoreHud
+      setNumber={setNumber}
+      player1Name={player1Name}
+      player2Name={player2Name}
+      player1Sets={player1Sets}
+      player2Sets={player2Sets}
+      player1Score={player1Score}
+      player2Score={player2Score}
+      serverSide={serverId}
+      serverName={serverName}
+      compact={compact}
+    />
   )
 }
 
