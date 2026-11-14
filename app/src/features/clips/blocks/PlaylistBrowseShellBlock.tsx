@@ -6,6 +6,7 @@
  * MA-121: Work-on trail — return cluster vs Fix action; phone Fix icon-only.
  * MA-127: sticky chrome — under-review offset tracks Match Review header height
  * (title + tabs), not a hard-coded top-14; quieter strip; open elevates z.
+ * MA-131: Summary / Evidence / Rallies arrival trail parity with Work-on.
  */
 
 import { useEffect, useState, type ReactNode } from 'react'
@@ -58,7 +59,7 @@ export interface PlaylistBrowseShellBlockProps {
 }
 
 function trailIcon(id: string) {
-  if (id === 'workon' || id === 'back' || id === 'summary') {
+  if (id === 'workon' || id === 'back' || id === 'summary' || id === 'rallies') {
     return <Icon name="arrow-left" size="xs" />
   }
   if (id === 'fix') return <Icon name="edit" size="xs" />
@@ -66,9 +67,16 @@ function trailIcon(id: string) {
   return null
 }
 
-/** Arrival / return chrome (Work on, Stay, Summary) vs clip actions (Fix). */
+/** Arrival / return chrome (Work on, Summary, Rallies, Stay) vs clip actions (Fix). */
 function isReturnTrailId(id: string) {
-  return id === 'workon' || id === 'stay' || id === 'back' || id === 'summary' || id === 'clips'
+  return (
+    id === 'workon' ||
+    id === 'stay' ||
+    id === 'back' ||
+    id === 'summary' ||
+    id === 'rallies' ||
+    id === 'clips'
+  )
 }
 
 function orderGroups(
@@ -146,9 +154,11 @@ export function PlaylistBrowseShellBlock({
 
   const returnTrail = trail.filter((t) => isReturnTrailId(t.id))
   const actionTrail = trail.filter((t) => !isReturnTrailId(t.id))
-  // When Work-on arrival chrome is present, Fix is icon-only on phone so the
-  // return path stays readable (MA-121).
-  const compactActions = returnTrail.some((t) => t.id === 'workon' || t.id === 'stay')
+  // When arrival chrome is present, Fix is icon-only on phone so the return
+  // path stays readable (MA-121 / MA-131).
+  const compactActions = returnTrail.some(
+    (t) => t.id === 'workon' || t.id === 'summary' || t.id === 'rallies' || t.id === 'stay'
+  )
 
   const renderTrailButton = (t: PlaylistBrowseTrailLink) => {
     // Stay is always icon-only; Fix becomes icon-only on phone beside Work on.

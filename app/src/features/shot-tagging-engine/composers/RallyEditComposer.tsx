@@ -99,11 +99,13 @@ export function RallyEditComposer() {
   const setNumber = Number(searchParams.get('set'))
   const rallyIndex = Number(searchParams.get('rally'))
   const shotParam = Number(searchParams.get('shot'))
-  const fromParam = searchParams.get('from') // workon | rallies | clips
-  /** Clips playlist round-trip (MA-121 Work-on trail → Fix → back into playlist). */
+  const fromParam = searchParams.get('from') // workon | summary | rallies | clips
+  /** Clips playlist round-trip (MA-121 / MA-131 arrival trail → Fix → back into playlist). */
   const returnClip = searchParams.get('clip')
   const returnClipTitle = searchParams.get('clipTitle')
   const returnAt = searchParams.get('at')
+  const trailFrom =
+    fromParam === 'workon' || fromParam === 'summary' || fromParam === 'rallies' ? fromParam : null
   const modeParam = searchParams.get('mode')
   const focusShot = Number.isFinite(shotParam) && shotParam > 0 ? shotParam : null
 
@@ -322,22 +324,26 @@ export function RallyEditComposer() {
 
   const backToReview = (notice?: string, opts?: { keepIncompleteFilter?: boolean }) => {
     useVideoPlaybackStore.getState().setVideoUrl(null)
-    // Work on → Clips → Fix: restore Clips playlist + trail (not Work on tab).
-    // Direct Work on → Fix (no clip param): return to Work on.
-    const viaClipsPlaylist = Boolean(returnClip) && (fromParam === 'workon' || fromParam === 'clips')
+    // Summary / Work on / Rallies → Clips → Fix: restore Clips playlist + trail.
+    // Direct Work on / Rallies → Fix (no clip param): return to that tab.
+    const viaClipsPlaylist = Boolean(returnClip) && (trailFrom != null || fromParam === 'clips')
     const tab = viaClipsPlaylist
       ? 'clips'
-      : fromParam === 'workon'
+      : trailFrom === 'workon'
         ? 'workon'
-        : fromParam === 'clips'
-          ? 'clips'
-          : 'rallies'
-    const q = new URLSearchParams({ tab })
+        : trailFrom === 'summary'
+          ? 'summary'
+          : fromParam === 'clips'
+            ? 'clips'
+            : 'rallies'
+    const q = new URLSearchParams()
+    // Summary is default Review landing — omit tab for a cleaner URL.
+    if (tab !== 'summary') q.set('tab', tab)
     if (tab === 'clips' && returnClip) {
       q.set('clip', returnClip)
       if (returnClipTitle) q.set('clipTitle', returnClipTitle)
       if (returnAt) q.set('at', returnAt)
-      if (fromParam === 'workon') q.set('from', 'workon')
+      if (trailFrom) q.set('from', trailFrom)
     }
     if (tab === 'rallies') {
       q.set('s', String(setNumber))
