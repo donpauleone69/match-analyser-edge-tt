@@ -21,12 +21,12 @@ const DOT: Record<TakeawayModel['tone'], string> = {
 export function TakeawaysBlock({ takeaways, onOpenEvidence }: TakeawaysBlockProps) {
   if (takeaways.length === 0) return null
   return (
-    <Card className="p-3 md:p-4 border border-border">
-      <h2 className="text-base font-semibold text-primary">Takeaways</h2>
-      <ul className="mt-2 space-y-1.5">
+    <Card className="p-2.5 md:p-3 border border-border">
+      <h2 className="text-sm font-semibold text-primary">Takeaways</h2>
+      <ul className="mt-1.5 space-y-1">
         {takeaways.map((t) => (
-          <li key={t.key} className="flex items-start gap-2.5">
-            <span className={cn('mt-1.5 h-2 w-2 shrink-0 rounded-full', DOT[t.tone])} aria-hidden />
+          <li key={t.key} className="flex items-start gap-2">
+            <span className={cn('mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full', DOT[t.tone])} aria-hidden />
             <span className="flex-1 text-sm text-primary">{t.text}</span>
             {t.evidence && (
               <button

@@ -480,7 +480,7 @@ export function MatchReviewComposer() {
       {/* Slim sticky chrome — title + tabs; PlaylistBrowseShell offsets from this node (MA-127). */}
       <header
         data-match-review-chrome
-        className="sticky top-0 z-30 -mx-0 bg-bg-surface/95 backdrop-blur border-b border-border px-0 py-2 space-y-2"
+        className="sticky top-0 z-30 -mx-0 bg-bg-surface/95 backdrop-blur border-b border-border px-0 py-1.5 space-y-1.5"
       >
         <div className="flex items-center gap-2 min-w-0">
           <button
@@ -492,10 +492,10 @@ export function MatchReviewComposer() {
             <Icon name="arrow-left" size="sm" />
           </button>
           <div className="min-w-0 flex-1">
-            <h1 className="text-base md:text-lg font-bold text-primary truncate">
+            <h1 className="text-sm md:text-base font-semibold text-primary truncate">
               You vs {review.villainName}
             </h1>
-            <p className="text-[11px] text-primary truncate">
+            <p className="text-[11px] text-muted truncate">
               <span
                 className={cn(
                   'font-medium',
@@ -509,7 +509,7 @@ export function MatchReviewComposer() {
           </div>
           {/* Phone density: Tag only — Clips live in tabs + bottom nav */}
           {nextSet ? (
-            <Button size="sm" onClick={() => openTagger(nextSet)} className="shrink-0 min-h-9 px-3">
+            <Button size="sm" onClick={() => openTagger(nextSet)} className="shrink-0 min-h-8 px-2.5">
               <Icon name="play" size="sm" />
               Tag
             </Button>
@@ -517,7 +517,7 @@ export function MatchReviewComposer() {
             <Button
               size="sm"
               variant="secondary"
-              className="shrink-0 min-h-9 px-3"
+              className="shrink-0 min-h-8 px-2.5"
               onClick={() => setParams({ tab: 'clips', cat: null })}
               title="Open this match’s Clips tab"
             >
@@ -582,13 +582,13 @@ export function MatchReviewComposer() {
       ) : !review.hasPointData &&
         review.rallies.length === 0 &&
         tab !== 'rallies' ? (
-        <Card className="p-4 text-center border border-dashed border-border">
-          <h2 className="text-base font-semibold text-neutral-50">Nothing tagged yet</h2>
-          <p className="mt-1 text-sm text-neutral-500 max-w-sm mx-auto">
+        <Card className="p-3 text-center border border-dashed border-border">
+          <h2 className="text-sm font-semibold text-primary">Nothing tagged yet</h2>
+          <p className="mt-0.5 text-xs text-muted max-w-sm mx-auto">
             Tag a set — summary and work-on appear as you go.
           </p>
           {nextSet && (
-            <Button className="mt-2.5" size="sm" onClick={() => openTagger(nextSet)}>
+            <Button className="mt-2" size="sm" onClick={() => openTagger(nextSet)}>
               <Icon name="play" size="sm" /> Start Set {nextSet.setNumber}
             </Button>
           )}

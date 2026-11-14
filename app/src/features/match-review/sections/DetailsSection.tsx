@@ -134,45 +134,44 @@ export function DetailsSection({
   }
 
   return (
-    <div className="space-y-4">
-      <Card className="p-3 md:p-4 border border-border space-y-2.5">
-        <h2 className="text-base font-semibold text-neutral-50">Your match</h2>
-        <dl className="grid gap-3 sm:grid-cols-2 text-sm">
+    <div className="space-y-3">
+      <Card className="p-2.5 md:p-3 border border-border space-y-2">
+        <h2 className="text-sm font-semibold text-primary">Your match</h2>
+        <dl className="grid gap-2.5 sm:grid-cols-2 text-sm">
           <div>
-            <dt className="text-neutral-500">Result</dt>
+            <dt className="text-xs text-muted">Result</dt>
             <dd
               className={cn(
-                'mt-0.5 font-semibold',
+                'mt-0.5 font-semibold text-primary',
                 review.resultTone === 'good' && 'text-result-winner',
-                review.resultTone === 'bad' && 'text-result-error',
-                review.resultTone === 'info' && 'text-neutral-200'
+                review.resultTone === 'bad' && 'text-result-error'
               )}
             >
               {review.resultLabel}
             </dd>
           </div>
           <div>
-            <dt className="text-neutral-500">Date</dt>
-            <dd className="mt-0.5 text-neutral-200">{review.dateLabel}</dd>
+            <dt className="text-xs text-muted">Date</dt>
+            <dd className="mt-0.5 text-primary">{review.dateLabel}</dd>
           </div>
           <div>
-            <dt className="text-neutral-500">Tagging</dt>
-            <dd className="mt-0.5 text-neutral-200">
+            <dt className="text-xs text-muted">Tagging</dt>
+            <dd className="mt-0.5 text-primary">
               {review.totalPoints > 0
                 ? `${review.totalPoints} points · ${taggedSets} of ${review.sets.length} set${review.sets.length === 1 ? '' : 's'}`
                 : 'Nothing tagged yet'}
             </dd>
           </div>
           <div>
-            <dt className="text-neutral-500">Players</dt>
-            <dd className="mt-0.5 text-neutral-200">
+            <dt className="text-xs text-muted">Players</dt>
+            <dd className="mt-0.5 text-primary">
               You ({review.heroName}) vs {review.villainName}
             </dd>
           </div>
           {review.context.tournamentName && (
             <div className="sm:col-span-2">
-              <dt className="text-neutral-500">Tournament</dt>
-              <dd className="mt-0.5 text-neutral-200">
+              <dt className="text-xs text-muted">Tournament</dt>
+              <dd className="mt-0.5 text-primary">
                 {review.context.tournamentName}
                 {review.context.roundLabel ? ` · ${review.context.roundLabel}` : ''}
               </dd>
@@ -181,13 +180,13 @@ export function DetailsSection({
         </dl>
       </Card>
 
-      <Card className="p-3 md:p-4 border border-border space-y-3">
+      <Card className="p-2.5 md:p-3 border border-border space-y-2.5">
         {(review.context.player2Id || review.context.tournamentId) && (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5">
             {review.context.player2Id && (
               <Link
                 to={`/clips?scope=opponent&id=${encodeURIComponent(review.context.player2Id)}`}
-                className="inline-flex items-center gap-1 rounded-md border border-border bg-bg-card px-2.5 py-1.5 text-sm text-neutral-100 hover:border-border-strong"
+                className="inline-flex items-center gap-1 rounded-md border border-border bg-bg-card px-2 py-1 text-xs text-primary hover:border-border-strong"
               >
                 <Icon name="film" size="sm" /> Clips vs opponent
               </Link>
@@ -195,7 +194,7 @@ export function DetailsSection({
             {review.context.tournamentId && (
               <Link
                 to={`/clips?scope=tournament&id=${encodeURIComponent(review.context.tournamentId)}`}
-                className="inline-flex items-center gap-1 rounded-md border border-border bg-bg-card px-2.5 py-1.5 text-sm text-neutral-100 hover:border-border-strong"
+                className="inline-flex items-center gap-1 rounded-md border border-border bg-bg-card px-2 py-1 text-xs text-primary hover:border-border-strong"
               >
                 <Icon name="film" size="sm" /> Clips in tournament
               </Link>
@@ -231,9 +230,9 @@ export function DetailsSection({
         />
       </Card>
 
-      <section className="space-y-2">
-        <h2 className="text-base font-semibold text-neutral-50">Your sets</h2>
-        <p className="text-xs text-neutral-500">Start, continue, or clear a set.</p>
+      <section className="space-y-1.5">
+        <h2 className="text-sm font-semibold text-primary">Your sets</h2>
+        <p className="text-[11px] text-muted">Start, continue, or clear a set.</p>
         <SetsPanelSection
           sets={review.sets}
           onTag={onTag}
@@ -244,9 +243,9 @@ export function DetailsSection({
       </section>
 
       {storage && (
-        <section className="space-y-2">
-          <h2 className="text-base font-semibold text-neutral-50">Video &amp; backup</h2>
-          <p className="text-xs text-neutral-500">Trim, archive after cloud backup, or save a match file.</p>
+        <section className="space-y-1.5">
+          <h2 className="text-sm font-semibold text-primary">Video &amp; backup</h2>
+          <p className="text-[11px] text-muted">Trim, archive after cloud backup, or save a match file.</p>
           <MatchStorageBlock
             storage={storage}
             setMarkers={jumpMarkers.sets}

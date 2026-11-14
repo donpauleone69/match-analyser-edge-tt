@@ -6,6 +6,23 @@
 
 ## Change Log
 
+### 2026-11-14: MA-126 — Match Review chrome quiet (v3.166.0)
+
+**Change Type:** UX declutter — Match Review shell / Summary / Details / Scope density
+
+**What Changed:**
+- Sticky Review header denser (`border-border`, smaller title, shorter Tag/Clips); keeps MA-127 `data-match-review-chrome` + `z-30`.
+- Summary: tighter Takeaways / Your story / Coming next / category drill-in; empties on `text-muted`.
+- Details: denser fact cards + context selects on `bg-bg-surface`; quieter sets / video section headers; SetPanel rows denser.
+- Work on / Rallies / category playlist empties + chips quieter.
+- Scope review header / match list denser (stay off Serve/Receive + playlist shell).
+
+**Decision Rationale:** MA-126 overnight Track B — Match Review chrome after MA-119 notices.
+
+**Key Files:** `MatchReviewComposer.tsx`, `OverviewSection.tsx`, `TakeawaysBlock.tsx`, `SummaryCategoryNavBlock.tsx`, `LockedSectionBlock.tsx`, `DetailsSection.tsx`, `MatchContextBlock.tsx`, `SetPanelBlock.tsx`, `SetsPanelSection.tsx`, `WorkOnSection.tsx`, `RalliesSection.tsx`, `SummaryCategoryPlaylistBlock.tsx`, `ScopeReviewComposer.tsx`, `ScopeControlBlock.tsx`.
+
+---
+
 ### 2026-11-14: MA-122 — Serve/Receive playlist evidence polish (v3.165.0)
 
 **Change Type:** UX polish — evidence ↔ Focus playlist continuity

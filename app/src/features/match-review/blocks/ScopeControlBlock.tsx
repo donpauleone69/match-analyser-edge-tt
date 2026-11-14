@@ -27,10 +27,10 @@ export function ScopeControlBlock({
   const opponentIds = [...new Set(matches.map((m) => m.player2_id).filter(Boolean))] as string[]
 
   return (
-    <label className="flex flex-col gap-1 text-xs text-neutral-500">
+    <label className="flex flex-col gap-0.5 text-[11px] text-muted">
       Scope
       <select
-        className="min-w-[12rem] rounded-md border border-border bg-bg-card px-2.5 py-1.5 text-sm text-neutral-100"
+        className="min-w-[11rem] rounded-md border border-border bg-bg-card px-2 py-1.5 text-sm text-primary"
         value={`${scope.kind}:${scope.id ?? ''}`}
         onChange={(e) => {
           const [kind, id] = e.target.value.split(':') as [ReviewScope['kind'], string]

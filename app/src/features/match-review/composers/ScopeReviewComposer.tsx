@@ -75,7 +75,7 @@ export function ScopeReviewComposer() {
   }, [scope, navigate])
 
   if (scope.kind === 'match' && scope.id) {
-    return <p className="p-4 text-sm text-neutral-500">Opening match review…</p>
+    return <p className="p-4 text-xs text-muted">Opening match review…</p>
   }
 
   const setScope = (next: ReviewScope) => {
@@ -114,15 +114,15 @@ export function ScopeReviewComposer() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-4 p-4 md:p-5">
-      <header className="space-y-2">
-        <Link to="/" className="inline-flex items-center gap-1 text-sm text-neutral-500 hover:text-neutral-100">
+    <div className="mx-auto max-w-5xl space-y-3 p-3 md:p-4">
+      <header className="space-y-1.5">
+        <Link to="/" className="inline-flex items-center gap-1 text-xs text-muted hover:text-primary">
           <Icon name="arrow-left" size="sm" /> Home
         </Link>
-        <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="flex flex-wrap items-end justify-between gap-2.5">
           <div>
-            <h1 className="text-xl font-bold text-neutral-50 md:text-2xl">{title}</h1>
-            <p className="mt-0.5 text-sm text-neutral-500">
+            <h1 className="text-lg font-semibold text-primary md:text-xl">{title}</h1>
+            <p className="mt-0.5 text-xs text-muted">
               {scoped.length} match{scoped.length === 1 ? '' : 'es'}
             </p>
           </div>
@@ -136,7 +136,7 @@ export function ScopeReviewComposer() {
         </div>
       </header>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-1.5">
         <Button variant={tab === 'clips' ? 'primary' : 'secondary'} size="sm" onClick={() => setTab('clips')}>
           Clips
         </Button>
@@ -146,19 +146,19 @@ export function ScopeReviewComposer() {
       </div>
 
       {scoped.length === 0 ? (
-        <Card className="border border-dashed border-border p-4 text-center text-sm text-neutral-500">
+        <Card className="border border-dashed border-border p-3 text-center text-xs text-muted">
           No matches in this scope.
         </Card>
       ) : tab === 'clips' ? (
         <ClipsComposer matchId={null} matchIds={scopedIds} embedded />
       ) : (
-        <Card className="space-y-2 p-4 border border-border">
-          <h2 className="text-base font-semibold text-neutral-50">Matches in scope</h2>
+        <Card className="space-y-1.5 p-3 border border-border">
+          <h2 className="text-sm font-semibold text-primary">Matches in scope</h2>
           <ul className="divide-y divide-border">
             {scoped.map((m) => (
-              <li key={m.id} className="flex flex-wrap items-center justify-between gap-2 py-3">
-                <span className="text-sm text-neutral-200">{labelMatch(m)}</span>
-                <div className="flex gap-2">
+              <li key={m.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                <span className="text-sm text-primary">{labelMatch(m)}</span>
+                <div className="flex gap-1.5">
                   <Button size="sm" variant="secondary" onClick={() => navigate(`/matches/${m.id}?tab=workon`)}>
                     Work on
                   </Button>

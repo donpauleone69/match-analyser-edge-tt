@@ -61,8 +61,8 @@ export function MatchContextBlock({
   return (
     <div className="space-y-3">
       <div>
-        <h2 className="text-base font-semibold text-neutral-50">Optional context</h2>
-        <p className="text-xs text-neutral-500 mt-0.5">
+        <h2 className="text-sm font-semibold text-primary">Optional context</h2>
+        <p className="text-[11px] text-muted mt-0.5">
           Opponent and tournament help Find and Clips — optional to tag.
         </p>
       </div>
@@ -76,9 +76,9 @@ export function MatchContextBlock({
             value={draft.matchDate}
             onChange={(e) => onChange({ matchDate: e.target.value })}
             disabled={saving}
-            className="bg-neutral-800 border-border"
+            className="bg-bg-surface border-border"
           />
-          <p className="text-xs text-neutral-500">{dateSourceLabel}</p>
+          <p className="text-xs text-muted">{dateSourceLabel}</p>
           {suggestedVideoDate && suggestedVideoDate !== draft.matchDate && (
             <Button
               type="button"
@@ -99,7 +99,7 @@ export function MatchContextBlock({
             value={draft.player2Id}
             onChange={(e) => onChange({ player2Id: e.target.value })}
             disabled={saving}
-            className="w-full h-10 rounded-md border border-border bg-neutral-800 px-3 text-sm text-neutral-50"
+            className="w-full h-10 rounded-md border border-border bg-bg-surface px-3 text-sm text-primary"
           >
             <option value="">{THEM_SIDE_LABEL} (unnamed)</option>
             {players
@@ -110,7 +110,7 @@ export function MatchContextBlock({
                 </option>
               ))}
           </select>
-          <p className="text-xs text-neutral-500">
+          <p className="text-xs text-muted">
             You ({heroName}) vs {opponentName}
           </p>
           {!draft.showNewOpponent ? (
@@ -131,7 +131,7 @@ export function MatchContextBlock({
                   id="opp-first"
                   value={draft.newOpponentFirst}
                   onChange={(e) => onChange({ newOpponentFirst: e.target.value })}
-                  className="bg-neutral-800 border-border h-9 w-28"
+                  className="bg-bg-surface border-border h-9 w-28"
                   disabled={saving}
                 />
               </div>
@@ -143,7 +143,7 @@ export function MatchContextBlock({
                   id="opp-last"
                   value={draft.newOpponentLast}
                   onChange={(e) => onChange({ newOpponentLast: e.target.value })}
-                  className="bg-neutral-800 border-border h-9 w-28"
+                  className="bg-bg-surface border-border h-9 w-28"
                   disabled={saving}
                 />
               </div>
@@ -157,7 +157,7 @@ export function MatchContextBlock({
               </Button>
               <button
                 type="button"
-                className="text-xs text-neutral-500 hover:text-neutral-300"
+                className="text-xs text-muted hover:text-primary"
                 onClick={() => onChange({ showNewOpponent: false })}
               >
                 Cancel
@@ -178,7 +178,7 @@ export function MatchContextBlock({
               })
             }
             disabled={saving}
-            className="w-full h-10 rounded-md border border-border bg-neutral-800 px-3 text-sm text-neutral-50"
+            className="w-full h-10 rounded-md border border-border bg-bg-surface px-3 text-sm text-primary"
           >
             <option value="">None (friendly / practice)</option>
             {tournaments.map((t) => (
@@ -201,7 +201,7 @@ export function MatchContextBlock({
                 value={draft.newTournamentName}
                 onChange={(e) => onChange({ newTournamentName: e.target.value })}
                 placeholder="Tournament name"
-                className="bg-neutral-800 border-border h-9 flex-1 min-w-[10rem]"
+                className="bg-bg-surface border-border h-9 flex-1 min-w-[10rem]"
                 disabled={saving}
               />
               <Button
@@ -214,7 +214,7 @@ export function MatchContextBlock({
               </Button>
               <button
                 type="button"
-                className="text-xs text-neutral-500 hover:text-neutral-300"
+                className="text-xs text-muted hover:text-primary"
                 onClick={() => onChange({ showNewTournament: false })}
               >
                 Cancel
@@ -231,7 +231,7 @@ export function MatchContextBlock({
               value={draft.round}
               onChange={(e) => onChange({ round: e.target.value as MatchRound | '' })}
               disabled={saving}
-              className="w-full h-10 rounded-md border border-border bg-neutral-800 px-3 text-sm text-neutral-50"
+              className="w-full h-10 rounded-md border border-border bg-bg-surface px-3 text-sm text-primary"
             >
               <option value="">Select…</option>
               {MATCH_ROUND_OPTIONS.map((r) => (

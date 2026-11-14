@@ -15,7 +15,7 @@ export interface SetPanelBlockProps {
 }
 
 const STATUS_STYLE: Record<SetPanelModel['status'], string> = {
-  not_started: 'text-neutral-500 bg-bg-surface border-border',
+  not_started: 'text-muted bg-bg-surface border-border',
   in_progress: 'text-callout-warning bg-callout-warning-bg border-callout-warning-border',
   tagged: 'text-result-winner bg-result-winner-bg border-result-winner/40',
 }
@@ -25,14 +25,14 @@ export function SetPanelBlock({ set, onTag, onBrowse, onStartOver }: SetPanelBlo
 
   if (confirming) {
     return (
-      <div className="rounded-lg border border-danger/60 bg-danger-muted p-3 space-y-2">
-        <p className="text-sm text-neutral-200">
-          Delete all {set.rallyCount} tagged rallies in Set {set.setNumber} and start again?
+      <div className="rounded-md border border-danger/60 bg-danger-muted p-2.5 space-y-1.5">
+        <p className="text-xs text-primary">
+          Delete {set.rallyCount} rallies in Set {set.setNumber} and start again?
         </p>
-        <p className="text-xs text-neutral-400">
-          To fix a few rallies, use <span className="text-neutral-200">Rallies → Edit</span> instead — it keeps everything else.
+        <p className="text-[11px] text-muted">
+          Fix a few via <span className="text-primary">Rallies → Edit</span> instead.
         </p>
-        <div className="flex gap-2">
+        <div className="flex gap-1.5">
           <Button
             size="sm"
             variant="destructive"
@@ -55,16 +55,16 @@ export function SetPanelBlock({ set, onTag, onBrowse, onStartOver }: SetPanelBlo
     set.status === 'not_started' ? 'Start tagging' : set.status === 'in_progress' ? 'Continue tagging' : 'Add rallies'
 
   return (
-    <div className="rounded-lg border border-border bg-bg-card p-3 flex flex-wrap items-center gap-2.5">
-      <div className="flex items-baseline gap-2 min-w-[7rem]">
-        <span className="text-sm font-semibold text-neutral-200">Set {set.setNumber}</span>
+    <div className="rounded-md border border-border bg-bg-card px-2.5 py-2 flex flex-wrap items-center gap-2">
+      <div className="flex items-baseline gap-2 min-w-[6.5rem]">
+        <span className="text-sm font-semibold text-primary">Set {set.setNumber}</span>
         {set.scoreLabel && (
           <span
             className={cn(
-              'font-mono text-lg font-bold',
+              'font-mono text-base font-bold',
               set.heroWon === true && 'text-result-winner',
               set.heroWon === false && 'text-result-error',
-              set.heroWon === null && 'text-neutral-100'
+              set.heroWon === null && 'text-primary'
             )}
           >
             {set.scoreLabel}
@@ -76,7 +76,7 @@ export function SetPanelBlock({ set, onTag, onBrowse, onStartOver }: SetPanelBlo
         {set.rallyCount > 0 && ` · ${set.rallyCount}`}
       </span>
       <div className="flex-1" />
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-1.5">
         {set.rallyCount > 0 && (
           <Button size="sm" variant="secondary" onClick={() => onBrowse(set)}>
             <Icon name="edit" size="sm" /> Rallies
@@ -91,7 +91,7 @@ export function SetPanelBlock({ set, onTag, onBrowse, onStartOver }: SetPanelBlo
             onClick={() => setConfirming(true)}
             title="Delete this set's tags and start again"
             aria-label={`Start Set ${set.setNumber} over`}
-            className="h-9 w-9 rounded-md border border-border text-neutral-500 hover:text-danger hover:border-danger flex items-center justify-center"
+            className="h-8 w-8 rounded-md border border-border text-muted hover:text-danger hover:border-danger flex items-center justify-center"
           >
             <Icon name="trash" size="sm" />
           </button>

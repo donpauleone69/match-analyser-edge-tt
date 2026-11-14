@@ -14,19 +14,19 @@ export interface LockedSectionBlockProps {
 
 export function LockedSectionBlock({ id, title, question, note }: LockedSectionBlockProps) {
   return (
-    <Card className="p-3 border border-dashed border-border bg-bg-card opacity-70">
+    <Card className="p-2.5 border border-dashed border-border bg-bg-card opacity-70">
       <div className="flex items-center justify-between gap-2">
-        <h3 className="text-base font-semibold text-neutral-300">
-          <span className="text-neutral-500 mr-2">{id}</span>
+        <h3 className="text-sm font-semibold text-muted">
+          <span className="text-muted/80 mr-1.5">{id}</span>
           {title}
         </h3>
-        <Badge variant="outline" className="gap-1 text-neutral-500 border-border">
+        <Badge variant="outline" className="gap-1 text-muted border-border text-[10px]">
           <Icon name="clock" size="xs" />
           Coming
         </Badge>
       </div>
-      <p className="mt-1 text-sm italic text-neutral-500">{question}</p>
-      {note && <p className="mt-2 text-xs text-neutral-500">{note}</p>}
+      <p className="mt-0.5 text-xs italic text-muted">{question}</p>
+      {note && <p className="mt-1 text-[11px] text-muted">{note}</p>}
     </Card>
   )
 }

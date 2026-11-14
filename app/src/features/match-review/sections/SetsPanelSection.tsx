@@ -24,7 +24,7 @@ export function SetsPanelSection({ sets, onTag, onBrowse, onStartOver, onAddSet 
       <button
         type="button"
         onClick={onAddSet}
-        className="w-full rounded-lg border border-dashed border-border py-2 text-sm text-neutral-500 hover:text-neutral-100 hover:border-border-strong inline-flex items-center justify-center gap-1.5"
+        className="w-full rounded-md border border-dashed border-border py-1.5 text-xs text-muted hover:text-primary hover:border-border-strong inline-flex items-center justify-center gap-1.5"
       >
         <Icon name="plus" size="sm" /> Add Set {sets.length + 1}
       </button>

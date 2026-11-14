@@ -76,10 +76,10 @@ function SideCard({
   onPlayPlaylist?: WorkOnSectionProps['onPlayPlaylist']
 }) {
   return (
-    <div className="space-y-3 rounded-lg border border-border px-3 py-2.5">
-      <h3 className="text-sm font-semibold text-neutral-100">
+    <div className="space-y-2.5 rounded-md border border-border px-2.5 py-2">
+      <h3 className="text-sm font-semibold text-primary">
         {side.name}{' '}
-        <span className="text-neutral-500 font-normal tabular-nums">· {side.total}</span>
+        <span className="text-muted font-normal tabular-nums">· {side.total}</span>
       </h3>
       <PatternGroup
         title="Technical"
@@ -120,15 +120,15 @@ export function WorkOnSection({
   )
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-2.5">
+    <div className="space-y-3">
+      <div className="space-y-2">
         {workOn.total === 0 ? (
-          <p className="rounded-md border border-dashed border-border px-2.5 py-2 text-xs text-neutral-500 text-center">
+          <p className="rounded-md border border-dashed border-border px-2.5 py-2 text-xs text-muted text-center">
             No flagged shots yet — flag in Pass 1.
           </p>
         ) : (
           heroFocus.length > 0 && (
-            <ul className="flex flex-wrap gap-2">
+            <ul className="flex flex-wrap gap-1.5">
               {heroFocus.map((f) => {
                 const pattern = patternByKey.get(f.key)
                 return (
@@ -137,13 +137,13 @@ export function WorkOnSection({
                       <button
                         type="button"
                         onClick={() => onPlayPlaylist(pattern)}
-                        className="rounded-md border border-review/60 bg-review-bg px-2.5 py-1 text-sm text-review hover:border-review"
+                        className="rounded-md border border-review/60 bg-review-bg px-2 py-0.5 text-xs text-review hover:border-review"
                         title="Open this pattern as a Clips playlist"
                       >
                         {f.text}
                       </button>
                     ) : (
-                      <span className="rounded-md border border-review/60 bg-review-bg px-2.5 py-1 text-sm text-review">
+                      <span className="rounded-md border border-review/60 bg-review-bg px-2 py-0.5 text-xs text-review">
                         {f.text}
                       </span>
                     )}
@@ -153,7 +153,7 @@ export function WorkOnSection({
             </ul>
           )
         )}
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1.5">
           {workOn.heroErrors.rallyIds.length > 0 && onOpenErrorsPlaylist && (
             <Button size="sm" onClick={onOpenErrorsPlaylist}>
               <Icon name="film" size="sm" /> Errors ({workOn.heroErrors.rallyIds.length})
@@ -186,7 +186,7 @@ export function WorkOnSection({
           <button
             type="button"
             onClick={() => setShowVillain((s) => !s)}
-            className="text-sm text-neutral-400 hover:text-neutral-100 inline-flex items-center gap-1"
+            className="text-xs text-muted hover:text-primary inline-flex items-center gap-1"
           >
             <Icon name={showVillain ? 'chevron-up' : 'chevron-down'} size="sm" />
             {villainName} ({workOn.villain.total})

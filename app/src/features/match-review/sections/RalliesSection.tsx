@@ -106,8 +106,8 @@ export function RalliesSection({
       </div>
 
       {inSet.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-border p-4 text-center space-y-2">
-          <p className="text-sm text-neutral-500">No rallies in Set {selectedSetNumber} yet.</p>
+        <div className="rounded-md border border-dashed border-border p-3 text-center space-y-1.5">
+          <p className="text-xs text-muted">No rallies in Set {selectedSetNumber} yet.</p>
           {set && (
             <Button size="sm" onClick={() => onTagSet(set)}>
               <Icon name="play" size="sm" /> Start tagging
@@ -115,13 +115,13 @@ export function RalliesSection({
           )}
         </div>
       ) : shown.length === 0 ? (
-        <p className="text-sm text-neutral-500 rounded-lg border border-border px-3 py-2">
+        <p className="text-xs text-muted rounded-md border border-border px-2.5 py-1.5">
           {filter === 'incomplete' ? 'No incomplete points in this set.' : 'No rallies match this filter.'}
         </p>
       ) : (
         <>
           <div className="flex items-center justify-between gap-2">
-            <span className="text-xs text-neutral-500 tabular-nums">
+            <span className="text-[11px] text-muted tabular-nums">
               {shown.length} {shown.length === 1 ? 'rally' : 'rallies'}
             </span>
             {shown.length > 1 && actions.onOpenInClips && (
