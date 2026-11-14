@@ -21,6 +21,14 @@ export { Badge, type BadgeProps, badgeVariants } from './Badge'
 // Icon system
 export { Icon, icons, type IconName, type IconProps } from './Icon'
 
+// Browse / playlist disclosure (Clips, Serve/Receive, Track C shell)
+export {
+  BrowseDisclosure,
+  BrowseDisclosureOption,
+  type BrowseDisclosureProps,
+  type BrowseDisclosureOptionProps,
+} from './BrowseDisclosure'
+
 // Grid components
 export { SpinGrid, SPIN_LABELS, SPIN_SHORT_LABELS, type SpinGridProps } from './SpinGrid'
 export { LandingZoneGrid, ZONE_LABELS, ZONE_SHORT_LABELS, type LandingZoneGridProps } from './LandingZoneGrid'
@@ -51,6 +59,8 @@ export {
 export type {
   VideoPlayerHandle,
   ConstrainedPlayback,
+  VideoProgressMarker,
+  VideoProgressViewWindow,
   TransportClusterProps,
   TransportVariant,
   VideoStageChromeProps,

@@ -21,6 +21,7 @@ import {
   MATCH_VIDEO_OVERLAY_BOTTOM_CLASS,
   type MatchScoreHudProps,
   type VideoPlayerHandle,
+  type VideoProgressMarker,
   useVideoPlaybackStore,
   nudgePlaybackSpeed,
   SEEK_STEP_SECONDS,
@@ -56,6 +57,8 @@ export interface ClipStageBlockProps {
   onClose?: () => void
   /** Pass 1 scorebug on the video (omit for reels / unknown score). */
   scoreHud?: MatchScoreHudProps | null
+  /** Colours the scrub mark (Pass 1 winner language). */
+  heroWon?: boolean | null
 }
 
 export const ClipStageBlock = forwardRef<VideoPlayerHandle, ClipStageBlockProps>(
@@ -85,6 +88,7 @@ export const ClipStageBlock = forwardRef<VideoPlayerHandle, ClipStageBlockProps>
       onEdit,
       onClose,
       scoreHud = null,
+      heroWon = null,
     },
     ref
   ) => {
@@ -101,6 +105,30 @@ export const ClipStageBlock = forwardRef<VideoPlayerHandle, ClipStageBlockProps>
       if (!player) return
       player.seek(player.getCurrentTime() + deltaSeconds)
     }
+
+    const progressMarkers: VideoProgressMarker[] =
+      window != null
+        ? [
+            {
+              id: 'clip-window',
+              startTime: window.start,
+              endTime: window.end,
+              fillColor:
+                heroWon === true
+                  ? 'var(--color-player-1)'
+                  : heroWon === false
+                    ? 'var(--color-player-2)'
+                    : 'var(--color-brand-primary)',
+              title,
+              focused: true,
+              kind: 'rally',
+            },
+          ]
+        : []
+    const progressViewWindow =
+      window != null
+        ? { start: Math.max(0, window.start - 1.5), end: window.end + 1.5 }
+        : null
 
     return (
       <div className="rounded-lg border border-border bg-bg-card overflow-hidden">
@@ -205,6 +233,12 @@ export const ClipStageBlock = forwardRef<VideoPlayerHandle, ClipStageBlockProps>
                 onVideoSelect={onVideoSelect}
                 allowVideoChange={Boolean(onVideoSelect) && !reelMode}
                 showProgressBar
+                progressMarkers={progressMarkers}
+                progressViewWindow={progressViewWindow}
+                onProgressMarkerSeek={(marker) => {
+                  if (!ref || typeof ref === 'function') return
+                  ref.current?.seek(marker.startTime, true)
+                }}
                 onConstrainedEnd={onClipEnd}
                 constrainedPlayback={
                   window ? { enabled: true, startTime: window.start, endTime: window.end, loopOnEnd: false } : undefined
