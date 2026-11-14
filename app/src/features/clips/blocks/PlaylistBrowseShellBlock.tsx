@@ -4,9 +4,11 @@
  * Clips: preset groups. Serve/Receive: pass focus options as children.
  * MA-118: mobile polish — safe sticky strip, trail wrap, under-tabs sticky.
  * MA-121: Work-on trail — return cluster vs Fix action; phone Fix icon-only.
+ * MA-127: sticky chrome — under-review offset tracks Match Review header height
+ * (title + tabs), not a hard-coded top-14; quieter strip; open elevates z.
  */
 
-import type { ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { BrowseDisclosure, Button, Icon } from '@/ui-mine'
 import { cn } from '@/helpers/utils'
 import type { ClipPreset, ClipPresetGroup } from '@/rules/derive/clips/deriveClipPresets'
@@ -47,8 +49,8 @@ export interface PlaylistBrowseShellBlockProps {
   /** Prefer this preset group at the top of the disclosure (Work on deep-link). */
   priorityGroup?: ClipPresetGroup | null
   /**
-   * `under-tabs` = Match Review sticky header (~3.5rem).
-   * `page` = standalone /clips.
+   * `under-tabs` = below Match Review sticky chrome (`[data-match-review-chrome]`).
+   * `page` = standalone /clips (top of scrollport).
    */
   stickyMode?: 'page' | 'under-tabs'
   /** Custom panel (Serve/Receive focuses). Takes precedence over groups. */
@@ -79,6 +81,32 @@ function orderGroups(
   return [...head, ...rest]
 }
 
+/** Fallback when review chrome isn't mounted yet (~title + denser tabs). */
+const UNDER_TABS_FALLBACK_PX = 104
+
+function useUnderReviewStickyTop(enabled: boolean): number {
+  const [top, setTop] = useState(UNDER_TABS_FALLBACK_PX)
+
+  useEffect(() => {
+    if (!enabled) return
+    const chrome = document.querySelector<HTMLElement>('[data-match-review-chrome]')
+    if (!chrome) {
+      setTop(UNDER_TABS_FALLBACK_PX)
+      return
+    }
+    const sync = () => {
+      const h = Math.ceil(chrome.getBoundingClientRect().height)
+      if (h > 0) setTop(h)
+    }
+    sync()
+    const ro = new ResizeObserver(sync)
+    ro.observe(chrome)
+    return () => ro.disconnect()
+  }, [enabled])
+
+  return top
+}
+
 export function PlaylistBrowseShellBlock({
   open,
   onOpenChange,
@@ -98,6 +126,9 @@ export function PlaylistBrowseShellBlock({
   stickyMode = 'page',
   children,
 }: PlaylistBrowseShellBlockProps) {
+  const underTabs = stickyMode === 'under-tabs'
+  const underTop = useUnderReviewStickyTop(underTabs)
+
   const ordered = groups ? orderGroups(groups, priorityGroup) : null
   const panel =
     children ??
@@ -171,11 +202,13 @@ export function PlaylistBrowseShellBlock({
   return (
     <div
       className={cn(
-        'sticky z-20 -mx-1 space-y-1 border-b border-border bg-bg-surface/95 px-1 py-1.5 backdrop-blur',
-        'supports-[padding:max(0px)]:pb-[max(0.375rem,env(safe-area-inset-bottom,0px))]',
-        stickyMode === 'under-tabs' ? 'top-14' : 'top-0',
+        'sticky -mx-1 space-y-1 border-b border-border bg-bg-surface/95 px-1 py-1.5 backdrop-blur',
+        // Open disclosure must clear scrolling stage content; closed sits under review chrome.
+        open ? 'z-30' : 'z-20',
+        !underTabs && 'top-0',
         className
       )}
+      style={underTabs ? { top: underTop } : undefined}
     >
       {/*
         Phone: chip full-width, trail on a second row so the disclosure never

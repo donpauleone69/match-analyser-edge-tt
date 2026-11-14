@@ -5,7 +5,7 @@
  * watch (RallyPlayer + MatchVideoOverlayBar) or Clips playlist.
  */
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { cn } from '@/helpers/utils'
 import {
   PlaylistBrowseShellBlock,
@@ -89,7 +89,6 @@ export function ServeReceiveDataSection({
   const [focusId, setFocusId] = useState<string | null>(initialFocus)
   const [evidenceFocus, setEvidenceFocus] = useState<PlaylistFocusModel | null>(null)
   const [focusOpen, setFocusOpen] = useState(false)
-  const playlistRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
     const next =
@@ -159,10 +158,8 @@ export function ServeReceiveDataSection({
       setFocusId(EVIDENCE_FOCUS_ID)
       onFocusChange?.(null)
     }
+    // Sticky PlaylistBrowseShell owns focus chrome — no scrollIntoView (MA-127).
     setFocusOpen(false)
-    requestAnimationFrame(() => {
-      playlistRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-    })
   }
 
   const trail: PlaylistBrowseTrailLink[] = [
@@ -213,7 +210,7 @@ export function ServeReceiveDataSection({
         ))}
       </div>
 
-      <section ref={playlistRef} className="space-y-2.5" aria-label="Supporting playlist">
+      <section className="space-y-2.5" aria-label="Supporting playlist">
         <PlaylistBrowseShellBlock
           stickyMode="under-tabs"
           open={focusOpen}

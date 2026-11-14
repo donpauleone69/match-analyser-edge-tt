@@ -6,6 +6,23 @@
 
 ## Change Log
 
+### 2026-11-14: MA-127 — Playlist shell sticky chrome refine (v3.163.0)
+
+**Change Type:** UX polish — sticky browse stacking under Match Review
+
+**What Changed:**
+- `PlaylistBrowseShellBlock` `stickyMode="under-tabs"` tracks `[data-match-review-chrome]` height via ResizeObserver (replaces hard-coded `top-14` that slid under title+tabs).
+- Open disclosure elevates to `z-30`; Match Review header owns sticky at `z-30` with `data-match-review-chrome`.
+- `TabBarBlock` drops nested sticky/border (parent header is the single sticky chrome).
+- Serve/Receive: remove focus `scrollIntoView` — sticky shell is the browse anchor.
+- Drop mistaken bottom safe-area padding on the top sticky strip.
+
+**Decision Rationale:** Overnight Track C MA-127 after #99 — sticky shell must sit under the real review chrome, not a guessed 3.5rem.
+
+**Key Files:** `PlaylistBrowseShellBlock.tsx`, `TabBarBlock.tsx`, `MatchReviewComposer.tsx`, `ServeReceiveDataSection.tsx`.
+
+---
+
 ### 2026-11-14: MA-128 — DesignSystem SoT sync for overnight tokens (v3.162.0)
 
 **Change Type:** Docs — DesignSystem token reference
@@ -17,6 +34,7 @@
 **Decision Rationale:** MA-128 overnight Track F — docs catch up after token landings so A–E agents share one SoT.
 
 **Key Files:** `DesignSystem.md`, `specAddendumMVP.md`.
+
 
 ---
 
@@ -47,6 +65,7 @@
 **Decision Rationale:** MA-123 overnight Track F — thin residual audit after MA-120; product + audit chrome off raw palette classes.
 
 **Key Files:** `RallyCard.tsx`, `ShotListItem.tsx`, `RallyGroupBlock.tsx`, `Phase1AuditComposer.tsx`, `TaggingPhaseSection.tsx`, `SetupPhaseSection.tsx`, `SchemaReferenceSection.tsx`, `DataViewerAudit.tsx`, `themeTokens.test.ts`.
+
 
 ---
 
@@ -8845,6 +8864,7 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v3.163.0 | 2026-11-14 | MA-127: Playlist shell sticky chrome — under-review offset + single sticky header |
 | v3.162.0 | 2026-11-14 | MA-128: DesignSystem SoT sync — callout + video-scrim + modal/panel families |
 | v3.161.0 | 2026-11-14 | MA-125: evidence drawer rows + Clips landing chrome cohesion |
 | v3.160.0 | 2026-11-14 | MA-123: residual raw paint — player/callout tokens on RallyCard/ShotList/audit |
