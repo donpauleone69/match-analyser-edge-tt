@@ -136,6 +136,23 @@ describe('deriveRallyScrubMarks (MA-83)', () => {
     expect(marks.every((m) => m.kind === 'draft')).toBe(true)
     expect(marks[0].title).toMatch(/Serve/)
   })
+
+  it('paints open unsaved rally as a soft draft range with server stripe', () => {
+    const marks = deriveRallyScrubMarks({
+      completed: [],
+      openDraft: {
+        serveTimestamp: 40,
+        endTimestamp: 48,
+        serverId: 'player2',
+      },
+    })
+    expect(marks).toHaveLength(1)
+    expect(marks[0].id).toBe('open-draft-rally')
+    expect(marks[0].kind).toBe('draft')
+    expect(marks[0].stripeColor).toBe('var(--color-player-2)')
+    expect(marks[0].startTime).toBe(40)
+    expect(marks[0].endTime).toBe(48)
+  })
 })
 
 describe('first attack mandatory (MA-35 / MA-68 / MA-71)', () => {

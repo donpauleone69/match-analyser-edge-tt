@@ -1,9 +1,8 @@
 /**
  * Pass1ContactCaptureBlock — refined contact tap pad for Pass 1 / Simple.
  *
- * Large enough for thumb capture, but no longer a full-viewport void.
- * Speaks the same tag-control language as the set bar and form chrome so
- * contacts → End/FA feels continuous with the rest of tagging.
+ * Sits flush under the shot rail (not a mid-screen void) so contacts → End/FA
+ * reads as one continuous tagging surface with shared chrome language.
  */
 
 import { cn } from '@/helpers/utils'
@@ -36,12 +35,12 @@ export function Pass1ContactCaptureBlock({
     ? 'Viewing a past point · Live → in the set bar to capture'
     : contactCount === 0
       ? 'First tap = serve · then each bat contact · idle 2s → End / FA'
-      : `${contactCount} contact${contactCount === 1 ? '' : 's'} · idle 2s → End / FA tags`
+      : `${contactCount} contact${contactCount === 1 ? '' : 's'} · keep tapping · idle 2s → End / FA`
 
   return (
     <div
       className={cn(
-        'flex flex-1 min-h-0 flex-col justify-center gap-2 px-2 pb-2 pt-1',
+        'flex flex-1 min-h-0 flex-col justify-start gap-1.5 border-t border-pill-idle-border bg-bg-card px-2 pt-2 pb-2',
         className
       )}
     >
@@ -51,7 +50,7 @@ export function Pass1ContactCaptureBlock({
           onClick={onTap}
           disabled={disabled || previewingPast}
           className={cn(
-            'relative flex-1 min-h-14 h-[min(12dvh,5.75rem)] max-h-24',
+            'relative flex-1 min-h-14 h-[min(11dvh,5.25rem)] max-h-[5.5rem]',
             'text-lg font-bold rounded-[var(--control-radius)]',
             'active:scale-[0.99] touch-manipulation shadow-sm'
           )}

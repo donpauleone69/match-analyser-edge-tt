@@ -6,6 +6,21 @@
 
 ## Change Log
 
+### 2026-11-14: MA-92 — Contacts pad + scrub marks refine (v3.130.0)
+
+**Change Type:** UX polish — Pass 1 / Simple contacts + shared scrub
+
+**What Changed:**
+- Contact pad sits flush under the shot rail (`bg-bg-card` + border) — continuous with set chrome, not a floating mid-screen void.
+- Scrub: taller mark track; soft elapsed wash + white playhead caret so winner/server colours stay readable; overlay bottom clearance `!bottom-5`.
+- Form phase: soft open-draft range on scrub (server stripe) so contacts → End/FA stays continuous with the timeline.
+
+**Decision Rationale:** Overnight Track E continue (MA-92) after #63 — align with shared overlay spine.
+
+**Key Files:** `Pass1ContactCaptureBlock.tsx`, `VideoPlayer.tsx`, `MatchVideoOverlayBar.tsx`, `pass1FocusModel.ts`, Pass1/Simple composers.
+
+---
+
 ### 2026-11-14: MA-90 — Overlay cohesion on Clips / Review (v3.129.0)
 
 **Change Type:** UX cohesion — shared video chrome language
@@ -18,6 +33,9 @@
 **Decision Rationale:** Overnight Track A — one overlay spine; Work-on/Review attach without one-off chrome.
 
 **Key Files:** `MatchVideoOverlayBar.tsx`, `ClipStageBlock.tsx`, `RallyPlayerBlock.tsx`, `ClipsComposer.tsx`.
+
+---
+
 
 ### 2026-11-14: MA-82 — Serve Data + Receive Data curated pages (v3.128.0)
 
@@ -48,6 +66,7 @@
 **Decision Rationale:** Overnight Track B / MA-91 — more list density + chrome quieting; stay compatible with theme `border` tokens and playlist shell when they land.
 
 **Key Files:** `EvidenceDrawerBlock.tsx`, `CompareCardBlock.tsx`, `TabBarBlock.tsx`, `ReelListBlock.tsx`.
+
 
 ### 2026-11-14: MA-83 — Contacts pad + colour-coded scrub marks (v3.126.0)
 
@@ -8294,6 +8313,7 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v3.130.0 | 2026-11-14 | MA-92: contacts pad flush + scrub playhead/marks readability + open-draft range |
 | v3.126.0 | 2026-11-14 | MA-83: contacts pad refine + colour-coded rally marks on shared video scrub |
 | v3.84.0 | 2026-11-13 | MA-34: hide Training from bottom nav; Account entry |
 | v3.83.0 | 2026-11-13 | MA-33: Review header Tag-only density; drop Clips/Rallies badges |

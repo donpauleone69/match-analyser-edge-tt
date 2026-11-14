@@ -630,15 +630,26 @@ const PLAYER_FILL: Record<PlayerSide, string> = {
 /**
  * Colour-coded rally marks for the shared video scrub.
  * Winner = fill; server = top stripe. Draft contact taps = short ticks.
- * Better than the removed thick strip / cubes: zero extra chrome row,
- * glanceable on the same progress language as other video surfaces.
+ * Open (unsaved) rally = soft range with server stripe so form phase
+ * stays continuous with the scrub after contacts finalize.
  */
 export function deriveRallyScrubMarks(input: {
   completed: ReadonlyArray<RallyScrubMarkInput>
   focusedRallyIndex?: number | 'next'
   draftContactTimes?: ReadonlyArray<number>
+  /** Unsaved open point (form phase) — soft range on scrub. */
+  openDraft?: {
+    serveTimestamp: number
+    endTimestamp: number
+    serverId: PlayerSide
+  } | null
 }): RallyScrubMark[] {
-  const { completed, focusedRallyIndex = 'next', draftContactTimes = [] } = input
+  const {
+    completed,
+    focusedRallyIndex = 'next',
+    draftContactTimes = [],
+    openDraft = null,
+  } = input
   const marks: RallyScrubMark[] = []
 
   for (const rally of completed) {
@@ -660,6 +671,26 @@ export function deriveRallyScrubMarks(input: {
       title: `Point ${rally.rallyIndex}: ${winner} won${score} · ${server} served`,
       focused: focusedRallyIndex === rally.rallyIndex,
       kind: 'rally',
+      seekTime: start,
+    })
+  }
+
+  if (
+    openDraft &&
+    Number.isFinite(openDraft.serveTimestamp) &&
+    Number.isFinite(openDraft.endTimestamp)
+  ) {
+    const start = Math.min(openDraft.serveTimestamp, openDraft.endTimestamp)
+    const end = Math.max(openDraft.serveTimestamp, openDraft.endTimestamp)
+    marks.push({
+      id: 'open-draft-rally',
+      startTime: start,
+      endTime: end,
+      fillColor: 'rgba(255,255,255,0.35)',
+      stripeColor: PLAYER_FILL[openDraft.serverId],
+      title: 'Open point (unsaved)',
+      focused: focusedRallyIndex === 'next',
+      kind: 'draft',
       seekTime: start,
     })
   }
