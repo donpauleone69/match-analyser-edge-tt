@@ -140,6 +140,8 @@ describe('shared match color tokens', () => {
       './features/clips/blocks/ClipPresetListBlock.tsx',
       './features/clips/blocks/ReelListBlock.tsx',
       './features/match-review/blocks/EvidenceDrawerBlock.tsx',
+      './features/match-review/blocks/SummaryCategoryPlaylistBlock.tsx',
+      './features/clips/composers/ClipsComposer.tsx',
       './ui-mine/VideoPlayer/TransportCluster.tsx',
       './features/shot-tagging-engine/composers/Pass1FocusComposer.tsx',
       './features/shot-tagging-engine/composers/SimpleTaggingComposer.tsx',
