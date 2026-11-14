@@ -6,6 +6,22 @@
 
 ## Change Log
 
+### 2026-11-14: MA-77 — Pass 1 sync to tagging-rules doc (v3.122.0)
+
+**Change Type:** UX + domain — Pass 1 Focus aligns to living tagging-rules
+
+**What Changed:**
+- **Lob → defensive:** out of FA attack menu; in `DEFENSIVE_END_STROKES`; end=2 Lob → auto No Attack.
+- **Phase optionals (Paul L/R):** Serve = Spin/Depth + Ball High·Heavy + Review; Pre = Wing+Pivot/Depth + Ball + Review; FA = Contact + Safe/Aggressive + Review; Reply = Initiative + Review; drop Placement / Weak / Quality; ★ on rally rail (not shot box).
+- **UI chrome:** phase markers on rally row; guiding dialog **below** rail (amber incomplete → green when can save); remove Change first attack; select_fa / post-FA close shot panel until shot chosen; mute default for tagging; rally loop when no shot selected, shot loop only while selected.
+- **No Attack restyle** already shipped in MA-76 (unchanged here).
+
+**Decision Rationale:** Living source of truth `docs/tagging-rules-and-phase-options.md` (MA-75); implement brief MA-77.
+
+**Key Files:** `pass1FocusModel.ts`, `Pass1FocusBlock.tsx`, `Pass1FocusComposer.tsx`, `derivePass1ShotTagRole.ts`, `derivePass1AdvancedComplete.ts`, `mapPass1FocusToDb.ts`, `DataSchema.md`.
+
+---
+
 ### 2026-11-14: MA-76 — No Attack rail toggle restyle (v3.121.0)
 
 **Change Type:** UX polish — Pass 1 Focus No Attack rail cell

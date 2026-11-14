@@ -25,20 +25,19 @@ function allow(partial: Partial<Pass1ShotTagAllowList>): Pass1ShotTagAllowList {
   return { ...NONE, ...partial }
 }
 
-const SERVE_RF = {
+/** MA-77 serve: spin, depth, High/Heavy — no placement / Weak / Quality. */
+const SERVE_OPT = {
   shot_spin: true,
-  shot_placement: true,
   shot_depth: true,
-  shot_is_weak: true,
   shot_is_high: true,
   shot_is_heavy: true,
 } as const
 
-const PRE_RF = {
+/** MA-77 pre-offensive: wing+pivot, depth, High/Heavy — no placement / Weak. */
+const PRE_OPT = {
   shot_wing: true,
-  shot_placement: true,
+  shot_is_pivot: true,
   shot_depth: true,
-  shot_is_weak: true,
   shot_is_high: true,
   shot_is_heavy: true,
 } as const
@@ -97,21 +96,19 @@ describe('derivePass1ShotTagAllowList', () => {
     const fos = 4
     const end = 7
 
-    it('serve: RF spin/placement/depth/Weak·High·Heavy', () => {
-      expect(derivePass1ShotTagAllowList(1, fos, end)).toEqual(allow({ ...SERVE_RF }))
+    it('serve: spin/depth/High·Heavy (no placement/Weak)', () => {
+      expect(derivePass1ShotTagAllowList(1, fos, end)).toEqual(allow({ ...SERVE_OPT }))
     })
 
-    it('early pre-offensive: RF wing/placement/depth/attrs', () => {
-      expect(derivePass1ShotTagAllowList(2, fos, end)).toEqual(allow({ ...PRE_RF }))
+    it('early pre-offensive: wing+pivot/depth/High·Heavy', () => {
+      expect(derivePass1ShotTagAllowList(2, fos, end)).toEqual(allow({ ...PRE_OPT }))
     })
 
-    it('ball before attack: High + RF pre-offensive fields', () => {
-      expect(derivePass1ShotTagAllowList(3, fos, end)).toEqual(
-        allow({ ...PRE_RF, shot_is_high: true })
-      )
+    it('ball before attack: High + pre-offensive fields', () => {
+      expect(derivePass1ShotTagAllowList(3, fos, end)).toEqual(allow({ ...PRE_OPT }))
     })
 
-    it('first attack: wing, stroke, safe + contact/quality', () => {
+    it('first attack: wing, stroke, safe + contact (no quality)', () => {
       expect(derivePass1ShotTagAllowList(4, fos, end)).toEqual(
         allow({
           shot_wing: true,
@@ -119,7 +116,6 @@ describe('derivePass1ShotTagAllowList', () => {
           shot_stroke: true,
           shot_is_safe: true,
           shot_contact: true,
-          shot_quality: true,
         })
       )
     })
@@ -140,6 +136,7 @@ describe('derivePass1ShotTagAllowList', () => {
         allow({
           shot_wing: true,
           shot_stroke: true,
+          shot_is_pivot: true,
           shot_initiative: true,
         })
       )
@@ -153,13 +150,13 @@ describe('derivePass1ShotTagAllowList', () => {
   })
 
   describe('serve and FOS = 2', () => {
-    it('serve gets High + RF serve fields', () => {
+    it('serve gets High + serve optionals', () => {
       expect(derivePass1ShotTagAllowList(1, 2, 5)).toEqual(
-        allow({ ...SERVE_RF, shot_is_high: true })
+        allow({ ...SERVE_OPT })
       )
     })
 
-    it('shot 2 is first attack with safe + contact/quality', () => {
+    it('shot 2 is first attack with safe + contact (no quality)', () => {
       expect(derivePass1ShotTagAllowList(2, 2, 5)).toEqual(
         allow({
           shot_wing: true,
@@ -167,7 +164,6 @@ describe('derivePass1ShotTagAllowList', () => {
           shot_stroke: true,
           shot_is_safe: true,
           shot_contact: true,
-          shot_quality: true,
         })
       )
     })
@@ -185,11 +181,11 @@ describe('derivePass1ShotTagAllowList', () => {
   })
 
   describe('High never lands on the attack itself', () => {
-    it('only fos - 1 across a rally (plus RF attrs on serve/pre)', () => {
+    it('only fos - 1 across a rally (plus Ball attrs on serve/pre)', () => {
       const highs = [1, 2, 3, 4, 5, 6, 7].filter(
         (i) => derivePass1ShotTagAllowList(i, 5, 7).shot_is_high
       )
-      // serve + pre (2..4 ball-before) have RF attributes High; FA+ later do not
+      // serve + pre (2..4 ball-before) have Ball High; FA+ later do not
       expect(highs).toEqual([1, 2, 3, 4])
     })
   })
@@ -210,7 +206,6 @@ describe('derivePass1ShotTagAllowList', () => {
           shot_stroke: true,
           shot_is_safe: true,
           shot_contact: true,
-          shot_quality: true,
         })
       )
     })
@@ -230,21 +225,19 @@ describe('derivePass1ShotTagAllowList', () => {
   })
 
   describe('no first attack (push rallies / unforced errors)', () => {
-    it('serve: RF serve fields', () => {
-      expect(derivePass1ShotTagAllowList(1, null, 4)).toEqual(allow({ ...SERVE_RF }))
+    it('serve: optionals', () => {
+      expect(derivePass1ShotTagAllowList(1, null, 4)).toEqual(allow({ ...SERVE_OPT }))
     })
 
-    it('middle shots: RF pre-offensive (no High without FOS ball-before)', () => {
-      expect(derivePass1ShotTagAllowList(2, null, 4)).toEqual(allow({ ...PRE_RF }))
-      expect(derivePass1ShotTagAllowList(3, null, 4)).toEqual(allow({ ...PRE_RF }))
+    it('middle shots: pre-offensive (no High without FOS ball-before, still Ball attrs)', () => {
+      expect(derivePass1ShotTagAllowList(2, null, 4)).toEqual(allow({ ...PRE_OPT }))
+      expect(derivePass1ShotTagAllowList(3, null, 4)).toEqual(allow({ ...PRE_OPT }))
     })
 
-    it('end shot (before_attack): wing + stroke (+ RF pre attrs merge)', () => {
-      // end is also RF pre_offensive when fos null → wing/placement/depth/attrs + Pass1 pivot
+    it('end shot (before_attack): wing + stroke (+ pre attrs merge)', () => {
       expect(derivePass1ShotTagAllowList(4, null, 4)).toEqual(
         allow({
-          ...PRE_RF,
-          shot_is_pivot: true,
+          ...PRE_OPT,
           shot_stroke: true,
         })
       )
@@ -253,8 +246,7 @@ describe('derivePass1ShotTagAllowList', () => {
     it('end shot at index 2 (receive error) still gets wing + stroke', () => {
       expect(derivePass1ShotTagAllowList(2, null, 2)).toEqual(
         allow({
-          ...PRE_RF,
-          shot_is_pivot: true,
+          ...PRE_OPT,
           shot_stroke: true,
         })
       )
@@ -262,8 +254,8 @@ describe('derivePass1ShotTagAllowList', () => {
   })
 
   describe('serve as the end shot (endIndex = 1)', () => {
-    it('gets RF serve fields — no wing/stroke on a serve end', () => {
-      expect(derivePass1ShotTagAllowList(1, null, 1)).toEqual(allow({ ...SERVE_RF }))
+    it('gets serve optionals — no wing/stroke on a serve end', () => {
+      expect(derivePass1ShotTagAllowList(1, null, 1)).toEqual(allow({ ...SERVE_OPT }))
     })
   })
 
@@ -271,25 +263,22 @@ describe('derivePass1ShotTagAllowList', () => {
     it('fos past the end behaves as no attack', () => {
       expect(derivePass1ShotTagAllowList(2, 4, 2)).toEqual(
         allow({
-          ...PRE_RF,
-          shot_is_pivot: true,
+          ...PRE_OPT,
           shot_stroke: true,
         })
       )
-      expect(derivePass1ShotTagAllowList(1, 4, 2)).toEqual(allow({ ...SERVE_RF }))
+      expect(derivePass1ShotTagAllowList(1, 4, 2)).toEqual(allow({ ...SERVE_OPT }))
     })
 
     it('fos < 2 behaves as no attack', () => {
-      expect(derivePass1ShotTagAllowList(1, 1, 3)).toEqual(allow({ ...SERVE_RF }))
-      expect(derivePass1ShotTagAllowList(2, 1, 3)).toEqual(allow({ ...PRE_RF }))
+      expect(derivePass1ShotTagAllowList(1, 1, 3)).toEqual(allow({ ...SERVE_OPT }))
+      expect(derivePass1ShotTagAllowList(2, 1, 3)).toEqual(allow({ ...PRE_OPT }))
     })
   })
 
   describe('end not marked yet', () => {
-    it('still allows attack / reply / ball-before tags + RF merge', () => {
-      expect(derivePass1ShotTagAllowList(2, 3, null)).toEqual(
-        allow({ ...PRE_RF, shot_is_high: true })
-      )
+    it('still allows attack / reply / ball-before tags + phase optionals', () => {
+      expect(derivePass1ShotTagAllowList(2, 3, null)).toEqual(allow({ ...PRE_OPT }))
       expect(derivePass1ShotTagAllowList(3, 3, null)).toEqual(
         allow({
           shot_wing: true,
@@ -297,7 +286,6 @@ describe('derivePass1ShotTagAllowList', () => {
           shot_stroke: true,
           shot_is_safe: true,
           shot_contact: true,
-          shot_quality: true,
         })
       )
       expect(derivePass1ShotTagAllowList(4, 3, null)).toEqual(
@@ -310,9 +298,8 @@ describe('derivePass1ShotTagAllowList', () => {
       )
     })
 
-    it('grants RF pre-offensive when no fos/end yet on shot 5', () => {
-      // fos null → pre_offensive for shot > 1
-      expect(derivePass1ShotTagAllowList(5, null, null)).toEqual(allow({ ...PRE_RF }))
+    it('grants pre-offensive when no fos/end yet on shot 5', () => {
+      expect(derivePass1ShotTagAllowList(5, null, null)).toEqual(allow({ ...PRE_OPT }))
     })
   })
 
@@ -321,7 +308,18 @@ describe('derivePass1ShotTagAllowList', () => {
     expect(derivePass1ShotTagAllowList(-1, null, 5)).toEqual(NONE)
   })
 
-  it('exposes Pass 1 + RF optional flags', () => {
+  it('never allows placement or quality (MA-77)', () => {
+    for (const fos of [null, 2, 4] as const) {
+      for (let i = 1; i <= 5; i++) {
+        const a = derivePass1ShotTagAllowList(i, fos, 5)
+        expect(a.shot_placement).toBe(false)
+        expect(a.shot_quality).toBe(false)
+        expect(a.shot_is_weak).toBe(false)
+      }
+    }
+  })
+
+  it('exposes Pass 1 + phase optional flags', () => {
     expect(Object.keys(derivePass1ShotTagAllowList(3, 3, 5)).sort()).toEqual([
       'shot_contact',
       'shot_depth',

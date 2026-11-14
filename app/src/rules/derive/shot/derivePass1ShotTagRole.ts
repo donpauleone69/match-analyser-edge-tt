@@ -8,9 +8,10 @@
  *
  * Pass 1 compulsory: wing / pivot / stroke on FA, reply, and non-serve end;
  * High on ball-before; Safe on first attack; Initiative on reply.
- * MA-74 optional Rally Focus fields (by RF role): spin / placement / depth /
- * Weak·Heavy on serve & pre-offensive; contact / quality on first attack;
- * wing / stroke / initiative on later shots as RF allows.
+ * MA-77 phase optionals (Paul tagging-rules): spin / depth / High·Heavy on
+ * serve; wing+pivot / depth / High·Heavy on pre-offensive; contact +
+ * Safe/Aggressive on FA; no placement / Weak / Quality. Later wing/stroke/
+ * initiative as RF allows.
  */
 
 import {
@@ -45,7 +46,7 @@ export interface Pass1ShotTagAllowList {
   shot_initiative: boolean
   shot_is_high: boolean
   shot_is_safe: boolean
-  /** Rally Focus optionals (MA-74) — optional stage only. */
+  /** Rally Focus optionals (MA-74/77) — optional stage only. */
   shot_spin: boolean
   shot_placement: boolean
   shot_depth: boolean
@@ -114,19 +115,21 @@ const NONE_ALLOW: Pass1ShotTagAllowList = {
 }
 
 /**
- * Allow-list for a shot in a Pass 1 rally (compulsory + MA-74 RF optionals).
+ * Allow-list for a shot in a Pass 1 rally (compulsory + MA-77 phase optionals).
  *
  * Pass 1 base:
- * - High: ball immediately before the attack (fos - 1), also via RF attributes.
- * - Safe: first attack only.
- * - Wing + Pivot + stroke: first attack, reply, non-serve end.
- * - Initiative: reply (including when reply is end).
+ * - High: ball immediately before the attack (fos - 1), also via Ball row.
+ * - Safe: first attack only (Aggressive is exclusive UI pair, not a gate).
+ * - Wing + Pivot + stroke: first attack, reply, non-serve end; pivot also with
+ *   pre-offensive optional wing.
+ * - Initiative: reply (including when reply is end) / fos+2 while continuing.
  *
- * Rally Focus merge (optional stage):
- * - Serve: spin, placement, depth, Weak/High/Heavy
- * - Pre-offensive: wing, placement, depth, Weak/High/Heavy
- * - First attack: contact, quality
- * - Later: wing, stroke; initiative when RF allows (fos+1/+2, not end)
+ * Phase optionals (Paul tagging-rules MA-77):
+ * - Serve: spin, depth, Ball High/Heavy — no placement / Weak / Quality
+ * - Pre-offensive: wing+pivot, depth, Ball High/Heavy — no stroke types /
+ *   placement / Weak
+ * - First attack: contact (+ Safe/Aggressive in UI) — no Quality
+ * - Later: wing, stroke; initiative when RF allows
  *
  * @param shotIndex - 1-based
  * @param firstAttackIndex - FOS stamp, or null when nobody attacked
@@ -154,19 +157,25 @@ export function derivePass1ShotTagAllowList(
     fos !== null &&
     allowInitiativeForLaterShot(shotIndex, fos, endIndex)
 
+  // Serve / pre Ball row: High + Heavy (MA-77 drops Weak).
+  const ballAttrs = rf.attributes
+
   return {
     shot_wing: hasWing || rf.shot_wing,
-    shot_is_pivot: hasWing,
+    shot_is_pivot: hasWing || rf.shot_wing,
     shot_stroke: hasWing || rf.shot_stroke,
     shot_initiative: isReply || rfInitiative,
-    shot_is_high: isBallBeforeAttack || rf.attributes,
+    shot_is_high: isBallBeforeAttack || ballAttrs,
     shot_is_safe: isFirstAttack,
     shot_spin: rf.shot_spin,
-    shot_placement: rf.shot_placement,
+    // MA-77: drop placement from Pass 1 optionals (wing+pivot infers prior).
+    shot_placement: false,
     shot_depth: rf.shot_depth,
     shot_contact: rf.shot_contact,
-    shot_quality: rf.shot_quality,
-    shot_is_weak: rf.attributes,
-    shot_is_heavy: rf.attributes,
+    // MA-77: Quality replaced by Safe / Aggressive toggles.
+    shot_quality: false,
+    // MA-77: Weak removed from Ball row.
+    shot_is_weak: false,
+    shot_is_heavy: ballAttrs,
   }
 }

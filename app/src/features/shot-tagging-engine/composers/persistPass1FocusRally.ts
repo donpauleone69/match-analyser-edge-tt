@@ -371,6 +371,7 @@ function dbShotToUiTags(
       : null,
     isHigh: shot.shot_is_high,
     isSafe: shot.shot_is_safe,
+    isAggressive: false,
     isPivot,
     reviewKind:
       shot.shot_review_kind === 'technical' || shot.shot_review_kind === 'tactical'

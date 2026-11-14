@@ -2,9 +2,9 @@
  * Pass 1 Focus tagger model.
  *
  * Contact taps + first-attack stamp + end/ending, then per-shot tags:
- * compulsory FA/End wing·stroke, plus optional-stage Rally Focus fields
- * (spin/placement/depth/Weak·Heavy, FA contact/quality, later wing/stroke/
- * initiative) merged into `derivePass1ShotTagAllowList`.
+ * compulsory FA/End wing·stroke, plus optional-stage phase fields
+ * (spin/depth/Ball High·Heavy, FA contact + Safe/Aggressive, later
+ * wing/stroke/initiative) via `derivePass1ShotTagAllowList` (MA-77).
  *
  * Which tags a shot may carry is decided by the pure rules allow-list
  * (`derivePass1ShotTagAllowList`) — the same one the save mapper uses.
@@ -27,8 +27,8 @@ export type PointEnding =
   | 'error_air'
 
 export type Wing = 'BH' | 'FH'
-/** First attack strokes. */
-export type AttackStroke = 'Flick' | 'Loop' | 'Drive' | 'Smash' | 'Lob'
+/** First attack strokes (Lob is defensive — not an opening attack). */
+export type AttackStroke = 'Flick' | 'Loop' | 'Drive' | 'Smash'
 /** Reply strokes (also available on the end shot). */
 export type ReplyStroke =
   | 'Block'
@@ -69,8 +69,10 @@ export interface ShotTags {
   stroke: AttackStroke | ReplyStroke | EndStroke | null
   /** Higher than intended — ball before attack and/or RF serve/pre attrs. */
   isHigh: boolean
-  /** Safe first attack — first attack only. */
+  /** Safe first attack — first attack only (exclusive with Aggressive). */
   isSafe: boolean
+  /** Aggressive first attack — exclusive with Safe (MA-77; UI session + future persist). */
+  isAggressive: boolean
   /** Crossed wing (FH from BH side / BH from FH side). */
   isPivot: boolean
   /** Flag for later review; technical also requires wing + stroke. */
@@ -79,7 +81,7 @@ export interface ShotTags {
   standing: Standing | null
   /** Video time of the contact tap (seconds), if captured */
   contactTime: number | null
-  /** MA-74 RF optionals */
+  /** Phase optionals (MA-74/77) */
   spin: Spin | null
   depth: Depth | null
   placement: Placement | null
@@ -145,14 +147,14 @@ export const REVIEW_KIND_OPTIONS: { value: ShotReviewKind; label: string }[] = [
 ]
 
 export const WING_OPTIONS: Wing[] = ['FH', 'BH']
+/** Attack / FA menu — Lob is defensive (MA-77). */
 export const ATTACK_STROKE_OPTIONS: AttackStroke[] = [
   'Flick',
   'Loop',
   'Drive',
   'Smash',
-  'Lob',
 ]
-/** Phone-first attack set — Lob still available on wider layouts. */
+/** Phone-first attack set (same curated attack strokes). */
 export const ATTACK_STROKE_OPTIONS_COMPACT: AttackStroke[] = [
   'Flick',
   'Loop',
@@ -186,7 +188,7 @@ export const END_STROKE_OPTIONS: EndStroke[] = [
   'Push',
   'Chop',
 ]
-/** Phone end-shot set — essentials only. */
+/** Phone end-shot set — essentials + Lob (defensive). */
 export const END_STROKE_OPTIONS_COMPACT: EndStroke[] = [
   'Flick',
   'Loop',
@@ -194,13 +196,15 @@ export const END_STROKE_OPTIONS_COMPACT: EndStroke[] = [
   'Smash',
   'Block',
   'Push',
+  'Lob',
 ]
 
-/** End strokes that cannot be a first attack (MA-73 impossible-FA). */
+/** End strokes that cannot be a first attack (MA-73/77 — Lob defensive). */
 export const DEFENSIVE_END_STROKES: ReadonlySet<string> = new Set([
   'Push',
   'Block',
   'Chop',
+  'Lob',
 ])
 
 export function isDefensiveEndStroke(
@@ -248,6 +252,7 @@ function emptyShot(contactTime: number | null = null): ShotTags {
     stroke: null,
     isHigh: false,
     isSafe: false,
+    isAggressive: false,
     isPivot: false,
     reviewKind: null,
     standing: null,
@@ -644,6 +649,7 @@ export function getShotSummary(_n: number, shot: ShotTags): string {
     shot.isHigh ? 'High' : null,
     shot.isHeavy ? 'Heavy' : null,
     shot.isSafe ? 'Safe' : null,
+    shot.isAggressive ? 'Aggressive' : null,
     shot.standing === 'behind'
       ? 'Behind'
       : shot.standing === 'level'
@@ -703,6 +709,7 @@ export type ShotChoiceKey =
 export type ShotAttributeKey =
   | 'isHigh'
   | 'isSafe'
+  | 'isAggressive'
   | 'isPivot'
   | 'isWeak'
   | 'isHeavy'
@@ -729,7 +736,11 @@ export function toggleShotChoice(
   }
 }
 
-/** Toggle an independent attribute switch (High / Safe / Pivot). */
+/**
+ * Toggle an attribute switch (High / Pivot / Weak / Heavy).
+ * Safe ↔ Aggressive are an exclusive pair (MA-77): selecting one clears the other;
+ * re-tapping the active one clears both.
+ */
 export function toggleShotAttribute(
   state: RallyTimelineState,
   n: number,
@@ -737,6 +748,26 @@ export function toggleShotAttribute(
 ): RallyTimelineState {
   const shot = state.shots[n]
   if (!shot) return state
+  if (key === 'isSafe') {
+    const next = !shot.isSafe
+    return {
+      ...state,
+      shots: {
+        ...state.shots,
+        [n]: { ...shot, isSafe: next, isAggressive: next ? false : shot.isAggressive },
+      },
+    }
+  }
+  if (key === 'isAggressive') {
+    const next = !shot.isAggressive
+    return {
+      ...state,
+      shots: {
+        ...state.shots,
+        [n]: { ...shot, isAggressive: next, isSafe: next ? false : shot.isSafe },
+      },
+    }
+  }
   return {
     ...state,
     shots: {
@@ -1054,32 +1085,41 @@ export function derivePass1Stage(
   return 'optional'
 }
 
-/** Info-box copy for the current stage (single surface above Rally). */
-export function pass1StageInfo(stage: Pass1Stage): {
+/**
+ * Info-box copy for the current stage (dialog below Rally rail).
+ * Tone: amber (`pending`) while incomplete; green (`ready`) when can save.
+ */
+export function pass1StageInfo(
+  stage: Pass1Stage,
+  opts?: { canSave?: boolean }
+): {
   text: string
-  tone: 'neutral' | 'ready'
+  tone: 'pending' | 'ready'
 } {
+  const canSave = Boolean(opts?.canSave)
   switch (stage) {
     case 'contacts':
-      return { text: 'Click rally contacts', tone: 'neutral' }
+      return { text: 'Click rally contacts', tone: 'pending' }
     case 'end_details':
-      return { text: 'Enter end reason (Result)', tone: 'neutral' }
+      return { text: 'Enter end reason (Result)', tone: 'pending' }
     case 'end_shot':
-      return { text: 'Enter End shot Wing and Stroke', tone: 'neutral' }
+      return { text: 'Enter End shot Wing and Stroke', tone: 'pending' }
     case 'select_fa':
       return {
         text: 'Tap a shot for first attack, or No Attack',
-        tone: 'neutral',
+        tone: 'pending',
       }
     case 'fa_details':
       return {
         text: 'Enter First attack Wing and Stroke — or tap FA to undo',
-        tone: 'neutral',
+        tone: 'pending',
       }
     case 'optional':
       return {
-        text: 'Add additional details if you want',
-        tone: 'ready',
+        text: canSave
+          ? 'Add additional details if you want — ready to save'
+          : 'Add additional details if you want',
+        tone: canSave ? 'ready' : 'pending',
       }
   }
 }
@@ -1137,6 +1177,7 @@ export function toPass1FocusMapperShot(shot: ShotTags) {
     standing: shot.standing,
     isHigh: shot.isHigh,
     isSafe: shot.isSafe,
+    isAggressive: shot.isAggressive,
     isPivot: shot.isPivot,
     reviewKind: shot.reviewKind,
     contactTime: shot.contactTime,
