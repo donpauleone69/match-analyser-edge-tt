@@ -627,6 +627,11 @@ const PLAYER_FILL: Record<PlayerSide, string> = {
   player2: 'var(--color-player-2)',
 }
 
+const PLAYER_SOFT: Record<PlayerSide, string> = {
+  player1: 'var(--color-player-1-bg)',
+  player2: 'var(--color-player-2-bg)',
+}
+
 /**
  * Colour-coded rally marks for the shared video scrub.
  * Winner = fill; server = top stripe. Draft contact taps = short ticks.
@@ -686,7 +691,7 @@ export function deriveRallyScrubMarks(input: {
       id: 'open-draft-rally',
       startTime: start,
       endTime: end,
-      fillColor: 'rgba(255,255,255,0.35)',
+      fillColor: PLAYER_SOFT[openDraft.serverId],
       stripeColor: PLAYER_FILL[openDraft.serverId],
       title: 'Open point (unsaved)',
       focused: focusedRallyIndex === 'next',
