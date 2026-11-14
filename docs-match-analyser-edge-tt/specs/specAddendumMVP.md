@@ -6,6 +6,20 @@
 
 ## Change Log
 
+### 2026-11-14: MA-128 — DesignSystem SoT sync for overnight tokens (v3.162.0)
+
+**Change Type:** Docs — DesignSystem token reference
+
+**What Changed:**
+- `DesignSystem.md` §2.0 expanded: callout family, video-scrim family (strong/soft/edge/wash*), modal/panel scrims, `no-attack`.
+- Points SoT at `app/src/index.css` `@theme` + `themeTokens.test.ts` (MA-84 → MA-128 overnight glue).
+
+**Decision Rationale:** MA-128 overnight Track F — docs catch up after token landings so A–E agents share one SoT.
+
+**Key Files:** `DesignSystem.md`, `specAddendumMVP.md`.
+
+---
+
 ### 2026-11-14: MA-125 — Clips evidence drawer cohesion (v3.161.0)
 
 **Change Type:** UX cohesion — evidence rows + Clips landing chrome
@@ -8831,6 +8845,7 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v3.162.0 | 2026-11-14 | MA-128: DesignSystem SoT sync — callout + video-scrim + modal/panel families |
 | v3.161.0 | 2026-11-14 | MA-125: evidence drawer rows + Clips landing chrome cohesion |
 | v3.160.0 | 2026-11-14 | MA-123: residual raw paint — player/callout tokens on RallyCard/ShotList/audit |
 | v3.159.0 | 2026-11-14 | MA-121: Playlist shell Work-on trail polish + Fix return continuity |
