@@ -4,7 +4,7 @@
  */
 
 import { useState } from 'react'
-import { Button, Card, Icon } from '@/ui-mine'
+import { Button, Icon } from '@/ui-mine'
 import { CompareCardBlock } from '../blocks/CompareCardBlock'
 import { ReviewPatternBlock } from '../blocks/ReviewPatternBlock'
 import type {
@@ -30,14 +30,12 @@ export interface WorkOnSectionProps {
 
 function PatternGroup({
   title,
-  hint,
   patterns,
   onWatchItem,
   onEditItem,
   onPlayPlaylist,
 }: {
   title: string
-  hint: string
   patterns: ReviewPatternModel[]
   onWatchItem: WorkOnSectionProps['onWatchItem']
   onEditItem: WorkOnSectionProps['onEditItem']
@@ -47,12 +45,9 @@ function PatternGroup({
   const total = patterns.reduce((s, p) => s + p.count, 0)
   return (
     <div className="space-y-2">
-      <div className="flex items-baseline gap-2">
-        <h4 className="text-sm font-semibold text-neutral-200">
-          {title} <span className="text-neutral-500 font-normal">({total})</span>
-        </h4>
-        <span className="text-xs text-neutral-500">{hint}</span>
-      </div>
+      <h4 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+        {title} <span className="font-normal tabular-nums">({total})</span>
+      </h4>
       <ul className="space-y-2">
         {patterns.map((p, i) => (
           <ReviewPatternBlock
@@ -81,13 +76,13 @@ function SideCard({
   onPlayPlaylist?: WorkOnSectionProps['onPlayPlaylist']
 }) {
   return (
-    <Card className="p-4 md:p-5 border border-neutral-700 space-y-4">
-      <h3 className="text-lg font-semibold text-neutral-50">
-        {side.name} <span className="text-neutral-500 text-sm font-normal">· {side.total} flagged</span>
+    <div className="space-y-4 rounded-lg border border-neutral-800 px-3 py-3 md:px-4 md:py-4">
+      <h3 className="text-sm font-semibold text-neutral-100">
+        {side.name}{' '}
+        <span className="text-neutral-500 font-normal tabular-nums">· {side.total}</span>
       </h3>
       <PatternGroup
         title="Technical"
-        hint="how the shot was played"
         patterns={side.technical}
         onWatchItem={onWatchItem}
         onEditItem={onEditItem}
@@ -95,13 +90,12 @@ function SideCard({
       />
       <PatternGroup
         title="Tactical"
-        hint="the choice of shot"
         patterns={side.tactical}
         onWatchItem={onWatchItem}
         onEditItem={onEditItem}
         onPlayPlaylist={onPlayPlaylist}
       />
-    </Card>
+    </div>
   )
 }
 
@@ -126,72 +120,57 @@ export function WorkOnSection({
   )
 
   return (
-    <div className="space-y-6">
-      <Card className="p-4 md:p-5 border border-neutral-700">
-        <h2 className="text-lg font-semibold text-neutral-50">What to work on</h2>
+    <div className="space-y-5">
+      <div className="space-y-3">
         {workOn.total === 0 ? (
-          <p className="mt-2 text-sm text-neutral-400">
-            No shots flagged yet. In Pass 1, select a shot →{' '}
-            <span className="text-neutral-200">Flag for review</span>, then open{' '}
-            <span className="text-neutral-200">Clips</span> here to play, Download, or Save as reel.
+          <p className="text-sm text-neutral-400">
+            No flagged shots yet — in Pass 1, select a shot → Flag for review.
           </p>
         ) : (
-          <>
-            <p className="mt-2 text-sm text-neutral-400">
-              Open <span className="text-neutral-200">Clips</span> on a row to play the playlist — then
-              Download one clip or Save as reel.
-            </p>
-            {heroFocus.length > 0 ? (
-              <ul className="mt-3 flex flex-wrap gap-2">
-                {heroFocus.map((f) => {
-                  const pattern = patternByKey.get(f.key)
-                  return (
-                    <li key={f.key}>
-                      {pattern && onPlayPlaylist ? (
-                        <button
-                          type="button"
-                          onClick={() => onPlayPlaylist(pattern)}
-                          className="rounded-full border border-review/60 bg-review-bg px-3 py-1 text-sm text-review hover:border-review"
-                          title="Open this pattern as a Clips playlist"
-                        >
-                          {f.text} · Clips
-                        </button>
-                      ) : (
-                        <span className="rounded-full border border-review/60 bg-review-bg px-3 py-1 text-sm text-review">
-                          {f.text}
-                        </span>
-                      )}
-                    </li>
-                  )
-                })}
-              </ul>
-            ) : (
-              <p className="mt-2 text-sm text-neutral-400">
-                {workOn.hero.total} flagged
-                {workOn.hero.total === 1 ? ' shot' : ' shots'} — tap{' '}
-                <span className="text-neutral-200">Clips</span> on a row below.
-              </p>
-            )}
-          </>
+          heroFocus.length > 0 && (
+            <ul className="flex flex-wrap gap-2">
+              {heroFocus.map((f) => {
+                const pattern = patternByKey.get(f.key)
+                return (
+                  <li key={f.key}>
+                    {pattern && onPlayPlaylist ? (
+                      <button
+                        type="button"
+                        onClick={() => onPlayPlaylist(pattern)}
+                        className="rounded-md border border-review/60 bg-review-bg px-2.5 py-1 text-sm text-review hover:border-review"
+                        title="Open this pattern as a Clips playlist"
+                      >
+                        {f.text}
+                      </button>
+                    ) : (
+                      <span className="rounded-md border border-review/60 bg-review-bg px-2.5 py-1 text-sm text-review">
+                        {f.text}
+                      </span>
+                    )}
+                  </li>
+                )
+              })}
+            </ul>
+          )
         )}
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2">
           {workOn.heroErrors.rallyIds.length > 0 && onOpenErrorsPlaylist && (
             <Button size="sm" onClick={onOpenErrorsPlaylist}>
-              <Icon name="film" size="sm" /> Errors playlist ({workOn.heroErrors.rallyIds.length})
+              <Icon name="film" size="sm" /> Errors ({workOn.heroErrors.rallyIds.length})
             </Button>
           )}
           {workOn.heroErrors.rallyIds.length > 0 && (
             <Button size="sm" variant="secondary" onClick={() => onOpenEvidence(workOn.heroErrors)}>
-              <Icon name="list-video" size="sm" /> List errors
+              <Icon name="list-video" size="sm" /> List
             </Button>
           )}
           {onOpenHighlights && (
             <Button size="sm" variant="secondary" onClick={onOpenHighlights}>
-              <Icon name="star" size="sm" /> Highlights show-reel
+              <Icon name="star" size="sm" /> Highlights
             </Button>
           )}
         </div>
-      </Card>
+      </div>
 
       {workOn.hero.total > 0 && (
         <SideCard
@@ -210,7 +189,7 @@ export function WorkOnSection({
             className="text-sm text-neutral-400 hover:text-neutral-100 inline-flex items-center gap-1"
           >
             <Icon name={showVillain ? 'chevron-up' : 'chevron-down'} size="sm" />
-            {villainName}’s flagged shots ({workOn.villain.total}) — scouting
+            {villainName} ({workOn.villain.total})
           </button>
           {showVillain && (
             <SideCard

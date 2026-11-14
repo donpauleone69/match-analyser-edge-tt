@@ -21,10 +21,10 @@ const FILTERS: { id: RallyFilter; label: string }[] = [
   { id: 'all', label: 'All' },
   { id: 'won', label: 'Won' },
   { id: 'lost', label: 'Lost' },
-  { id: 'errors', label: 'My errors' },
+  { id: 'errors', label: 'Errors' },
   { id: 'incomplete', label: 'Incomplete' },
-  { id: 'starred', label: '★ Starred' },
-  { id: 'flagged', label: 'Flagged shots' },
+  { id: 'starred', label: '★' },
+  { id: 'flagged', label: 'Flagged' },
 ]
 
 export function filterRallies(rallies: RallyRowModel[], filter: RallyFilter): RallyRowModel[] {
@@ -74,28 +74,16 @@ export function RalliesSection({
   const shown = filterRallies(inSet, filter)
   const chip = (active: boolean) =>
     cn(
-      'h-8 px-3 rounded-full border text-xs font-medium whitespace-nowrap transition-colors',
+      'h-8 px-2.5 rounded-md border text-xs font-medium whitespace-nowrap transition-colors',
       active
         ? 'bg-neutral-100 text-neutral-900 border-neutral-100'
         : 'border-neutral-700 text-neutral-300 hover:border-neutral-500'
     )
 
   return (
-    <div className="space-y-4">
-      <p className="text-sm text-neutral-400">
-        <span className="md:hidden">
-          Tap Edit to fix tags. Use{' '}
-          <Icon name="rotate-ccw" size="xs" className="inline align-[-2px]" /> to re-tag from that rally on.
-        </span>
-        <span className="hidden md:inline">
-          Fix a mistake without re-tagging: open any rally, change its tags and save — only that rally is rewritten, and later
-          scores follow if the winner changes. If tagging went off track, use{' '}
-          <Icon name="rotate-ccw" size="xs" className="inline align-[-2px]" /> to re-tag from that rally onwards.
-        </span>
-      </p>
-
+    <div className="space-y-3">
       {sets.length > 1 && (
-        <div className="flex gap-2 overflow-x-auto" role="group" aria-label="Set">
+        <div className="flex gap-1.5 overflow-x-auto" role="group" aria-label="Set">
           {sets.map((s) => (
             <button key={s.setId} type="button" className={chip(s.setNumber === selectedSetNumber)} onClick={() => onSelectSet(s.setNumber)}>
               Set {s.setNumber}
@@ -105,12 +93,13 @@ export function RalliesSection({
         </div>
       )}
 
-      <div className="flex gap-2 overflow-x-auto" role="group" aria-label="Filter rallies">
+      <div className="flex gap-1.5 overflow-x-auto" role="group" aria-label="Filter rallies">
         {FILTERS.map((f) => {
           const count = filterRallies(inSet, f.id).length
+          if (f.id !== 'all' && f.id !== filter && count === 0) return null
           return (
             <button key={f.id} type="button" className={chip(filter === f.id)} onClick={() => onFilterChange(f.id)}>
-              {f.label} <span className="opacity-60">{count}</span>
+              {f.label} <span className="opacity-60 tabular-nums">{count}</span>
             </button>
           )
         })}
@@ -127,15 +116,13 @@ export function RalliesSection({
         </div>
       ) : shown.length === 0 ? (
         <p className="text-sm text-neutral-500 rounded-lg border border-neutral-800 px-3 py-3">
-          {filter === 'incomplete'
-            ? 'No incomplete points in this set — every tagged rally has Pass 1 FA, End, and ending.'
-            : 'No rallies match this filter.'}
+          {filter === 'incomplete' ? 'No incomplete points in this set.' : 'No rallies match this filter.'}
         </p>
       ) : (
         <>
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-neutral-500">
-              {shown.length} {shown.length === 1 ? 'rally' : 'rallies'} · edit tags here
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs text-neutral-500 tabular-nums">
+              {shown.length} {shown.length === 1 ? 'rally' : 'rallies'}
             </span>
             {shown.length > 1 && actions.onOpenInClips && (
               <Button
@@ -148,7 +135,7 @@ export function RalliesSection({
                   )
                 }
               >
-                <Icon name="film" size="sm" /> Open in Clips
+                <Icon name="film" size="sm" /> Clips
               </Button>
             )}
           </div>
