@@ -10,7 +10,9 @@ export interface SummarySectionProps {
   review: MatchReviewViewModel
   activeEvidenceTitle: string | null
   categoryId: string | null
+  focusId?: string | null
   onSelectCategory: (id: string | null) => void
+  onFocusChange?: (focusId: string | null) => void
   onOpenEvidence: (evidence: EvidenceRef) => void
   activeRallyId?: string | null
   onPlayCategoryPlaylist: (title: string, rallies: RallyRowModel[]) => void
