@@ -6,6 +6,20 @@
 
 ## Change Log
 
+### 2026-11-14: MA-91 — Quiet evidence / tabs / reels chrome (v3.127.0)
+
+**Change Type:** UX declutter — Review + Clips chrome cohesion
+
+**What Changed:**
+- **Evidence drawer:** compact header (`title · count`); **Clips** CTA inline (was “Play all as a playlist”); quieter borders.
+- **Compare cards:** light panel (no Card), denser score chips / rows; story muted.
+- **Tab bar:** shorter tabs; square badge chips.
+- **Saved reels:** icon-only play/backup actions; shorter availability labels; list density matches clip queue.
+
+**Decision Rationale:** Overnight Track B / MA-91 — more list density + chrome quieting; stay compatible with theme `border` tokens and playlist shell when they land.
+
+**Key Files:** `EvidenceDrawerBlock.tsx`, `CompareCardBlock.tsx`, `TabBarBlock.tsx`, `ReelListBlock.tsx`.
+
 ### 2026-11-14: MA-83 — Contacts pad + colour-coded scrub marks (v3.126.0)
 
 **Change Type:** UX — Pass 1 / Simple contacts + shared video scrub

@@ -5,7 +5,6 @@
  * Colour is on the value only: green = better side, red = worse, amber = warning.
  */
 
-import { Card } from '@/ui-mine'
 import { cn } from '@/helpers/utils'
 import type { CellTone, CompareRowModel, EvidenceRef, MetricCellModel, SetScoreChipModel } from '../models'
 
@@ -78,27 +77,29 @@ export function CompareCardBlock({
   onOpenEvidence,
 }: CompareCardBlockProps) {
   return (
-    <Card className="p-4 md:p-5 border border-neutral-700">
-      <h3 className="text-lg font-semibold text-neutral-50">
-        <span className="sr-only">{id}</span>
-        {title}
-      </h3>
-      <p className="mt-1 text-sm italic text-neutral-400">{story}</p>
+    <div className="rounded-lg border border-neutral-800 px-3 py-3 md:px-4 md:py-4 space-y-3">
+      <div>
+        <h3 className="text-sm font-semibold text-neutral-100">
+          <span className="sr-only">{id}</span>
+          {title}
+        </h3>
+        {story ? <p className="mt-0.5 text-xs text-neutral-500">{story}</p> : null}
+      </div>
 
       {scoreline && scoreline.length > 0 && (
-        <div className="mt-3 flex flex-wrap gap-2" aria-label="Set scores">
+        <div className="flex flex-wrap gap-1.5" aria-label="Set scores">
           {scoreline.map((s) => (
             <span
               key={s.setNumber}
               className={cn(
-                'inline-flex items-baseline gap-2 rounded-lg border px-3 py-1.5',
+                'inline-flex items-baseline gap-1.5 rounded-md border px-2 py-1',
                 s.heroWon === true && 'border-result-winner/60 bg-result-winner-bg',
                 s.heroWon === false && 'border-result-error/60 bg-result-error-bg',
-                s.heroWon === null && 'border-neutral-700 bg-neutral-900/50'
+                s.heroWon === null && 'border-neutral-800 bg-neutral-900/50'
               )}
             >
-              <span className="text-[11px] uppercase tracking-wide text-neutral-400">Set {s.setNumber}</span>
-              <span className="font-mono text-lg font-bold text-neutral-50">
+              <span className="text-[10px] text-neutral-500">S{s.setNumber}</span>
+              <span className="font-mono text-sm font-bold text-neutral-50 tabular-nums">
                 {s.hero}–{s.villain}
               </span>
             </span>
@@ -107,10 +108,10 @@ export function CompareCardBlock({
       )}
 
       {rows.length === 0 ? (
-        <p className="mt-6 mb-2 text-center text-sm text-neutral-500">{emptyMessage}</p>
+        <p className="py-2 text-center text-sm text-neutral-500">{emptyMessage}</p>
       ) : (
-        <div className="mt-4">
-          <div className="grid grid-cols-[1fr_1.3fr_1fr] gap-3 pb-2 border-b border-neutral-700 text-xs font-semibold uppercase tracking-wide text-neutral-400">
+        <div>
+          <div className="grid grid-cols-[1fr_1.3fr_1fr] gap-2 pb-1.5 border-b border-neutral-800 text-[11px] font-semibold uppercase tracking-wide text-neutral-500">
             <span className="truncate text-left" title={heroName}>
               {heroName}
             </span>
@@ -121,14 +122,14 @@ export function CompareCardBlock({
           </div>
           <ul className="divide-y divide-neutral-800">
             {rows.map((row) => (
-              <li key={row.key} className="grid grid-cols-[1fr_1.3fr_1fr] items-center gap-3 py-2.5">
+              <li key={row.key} className="grid grid-cols-[1fr_1.3fr_1fr] items-center gap-2 py-2">
                 <ValueCell
                   cell={row.hero}
                   align="left"
                   active={Boolean(activeEvidenceTitle && row.hero.evidence?.title === activeEvidenceTitle)}
                   onOpenEvidence={onOpenEvidence}
                 />
-                <span className="text-center text-sm text-neutral-400">{row.label}</span>
+                <span className="text-center text-xs text-neutral-400">{row.label}</span>
                 <ValueCell
                   cell={row.villain}
                   align="right"
@@ -140,6 +141,6 @@ export function CompareCardBlock({
           </ul>
         </div>
       )}
-    </Card>
+    </div>
   )
 }
