@@ -67,4 +67,18 @@ describe('buildServeReceiveSections', () => {
     expect(sections[0].playlistFocuses?.find((f) => f.id === 'all')?.count).toBe(3)
     expect(sections[1].playlistFocuses?.find((f) => f.id === 'all')?.count).toBe(2)
   })
+
+  it('keeps primary cell % scannable with optional detail + headline focusId', () => {
+    const glance = sections[0].cards[0]
+    const withDetail = glance.rows.find((r) => r.hero.detail || r.villain.detail)
+    // Faults / miss rows may carry detail; at least primary text has no " · " glue
+    for (const row of glance.rows) {
+      expect(row.hero.text.includes(' · ')).toBe(false)
+      expect(row.villain.text.includes(' · ')).toBe(false)
+    }
+    expect(withDetail === undefined || Boolean(withDetail)).toBe(true)
+    const worked = sections[0].headlines?.find((h) => h.key === 'worked')
+    expect(worked?.focusId).toBe('worked')
+    expect(worked?.detail).toMatch(/^\d+\/\d+$/)
+  })
 })

@@ -3,6 +3,7 @@
  *
  * Cells with evidence are buttons; clicking opens the Evidence drawer.
  * Colour is on the value only: green = better side, red = worse, amber = warning.
+ * MA-115: denser token chrome; primary % + optional detail line.
  */
 
 import { cn } from '@/helpers/utils'
@@ -25,7 +26,7 @@ export const TONE_TEXT: Record<CellTone, string> = {
   good: 'text-result-winner',
   bad: 'text-result-error',
   amber: 'text-warning',
-  none: 'text-neutral-50',
+  none: 'text-primary',
 }
 
 function ValueCell({
@@ -39,13 +40,24 @@ function ValueCell({
   active: boolean
   onOpenEvidence: (evidence: EvidenceRef) => void
 }) {
-  const text = (
-    <span className={cn('text-base font-semibold tabular-nums', TONE_TEXT[cell.tone])}>
-      {cell.text}
+  const stack = (
+    <span
+      className={cn(
+        'flex flex-col gap-0.5 min-w-0',
+        align === 'left' ? 'items-start text-left' : 'items-end text-right'
+      )}
+    >
+      <span className={cn('text-sm font-semibold tabular-nums leading-tight', TONE_TEXT[cell.tone])}>
+        {cell.text}
+      </span>
+      {cell.detail ? (
+        <span className="text-[10px] leading-tight text-muted tabular-nums">{cell.detail}</span>
+      ) : null}
     </span>
   )
+
   if (!cell.evidence) {
-    return <span className={align === 'left' ? 'text-left' : 'text-right'}>{text}</span>
+    return stack
   }
   const evidence = cell.evidence
   return (
@@ -54,12 +66,13 @@ function ValueCell({
       onClick={() => onOpenEvidence(evidence)}
       title="Show the rallies behind this number"
       className={cn(
-        'rounded-md px-1.5 -mx-1.5 py-0.5 underline decoration-dotted decoration-neutral-600 underline-offset-4 hover:bg-bg-elevated hover:decoration-neutral-300 transition-colors',
-        align === 'left' ? 'justify-self-start text-left' : 'justify-self-end text-right',
-        active && 'bg-neutral-800 ring-1 ring-brand-primary/60'
+        'rounded-md px-1 -mx-1 py-0.5 underline decoration-dotted decoration-border underline-offset-4',
+        'hover:bg-bg-elevated hover:decoration-muted transition-colors',
+        align === 'left' ? 'justify-self-start' : 'justify-self-end',
+        active && 'bg-bg-elevated ring-1 ring-brand-primary/50'
       )}
     >
-      {text}
+      {stack}
     </button>
   )
 }
@@ -77,13 +90,13 @@ export function CompareCardBlock({
   onOpenEvidence,
 }: CompareCardBlockProps) {
   return (
-    <div className="rounded-lg border border-border px-3 py-3 md:px-4 md:py-4 space-y-3">
+    <div className="rounded-lg border border-border bg-bg-card px-3 py-2.5 md:px-3.5 md:py-3 space-y-2.5">
       <div>
-        <h3 className="text-sm font-semibold text-neutral-100">
+        <h3 className="text-sm font-semibold text-primary">
           <span className="sr-only">{id}</span>
           {title}
         </h3>
-        {story ? <p className="mt-0.5 text-xs text-neutral-500">{story}</p> : null}
+        {story ? <p className="mt-0.5 text-xs text-muted line-clamp-2">{story}</p> : null}
       </div>
 
       {scoreline && scoreline.length > 0 && (
@@ -98,8 +111,8 @@ export function CompareCardBlock({
                 s.heroWon === null && 'border-border bg-bg-elevated'
               )}
             >
-              <span className="text-[10px] text-neutral-500">S{s.setNumber}</span>
-              <span className="font-mono text-sm font-bold text-neutral-50 tabular-nums">
+              <span className="text-[10px] text-muted">S{s.setNumber}</span>
+              <span className="font-mono text-sm font-bold text-primary tabular-nums">
                 {s.hero}–{s.villain}
               </span>
             </span>
@@ -108,10 +121,10 @@ export function CompareCardBlock({
       )}
 
       {rows.length === 0 ? (
-        <p className="py-2 text-center text-sm text-neutral-500">{emptyMessage}</p>
+        <p className="py-2 text-center text-sm text-muted">{emptyMessage}</p>
       ) : (
         <div>
-          <div className="grid grid-cols-[1fr_1.3fr_1fr] gap-2 pb-1.5 border-b border-border text-[11px] font-semibold uppercase tracking-wide text-neutral-500">
+          <div className="grid grid-cols-[1fr_1.2fr_1fr] gap-2 pb-1 border-b border-border text-[10px] font-semibold uppercase tracking-wide text-muted">
             <span className="truncate text-left" title={heroName}>
               {heroName}
             </span>
@@ -122,14 +135,14 @@ export function CompareCardBlock({
           </div>
           <ul className="divide-y divide-border">
             {rows.map((row) => (
-              <li key={row.key} className="grid grid-cols-[1fr_1.3fr_1fr] items-center gap-2 py-2">
+              <li key={row.key} className="grid grid-cols-[1fr_1.2fr_1fr] items-center gap-2 py-1.5">
                 <ValueCell
                   cell={row.hero}
                   align="left"
                   active={Boolean(activeEvidenceTitle && row.hero.evidence?.title === activeEvidenceTitle)}
                   onOpenEvidence={onOpenEvidence}
                 />
-                <span className="text-center text-xs text-neutral-400">{row.label}</span>
+                <span className="text-center text-[11px] leading-snug text-muted">{row.label}</span>
                 <ValueCell
                   cell={row.villain}
                   align="right"

@@ -169,7 +169,7 @@ export function DataViewer() {
         {/* Hierarchical Data Tables */}
         <div className="space-y-4">
           {matchesWithData.length === 0 ? (
-            <div className="bg-bg-card rounded-lg border border-neutral-700 p-8 text-center">
+            <div className="bg-bg-card rounded-lg border border-border p-8 text-center">
               <p className="text-neutral-400">No matches in database yet</p>
             </div>
           ) : (
@@ -194,7 +194,7 @@ export function DataViewer() {
 
 function StatCard({ label, count }: { label: string; count: number }) {
   return (
-    <div className="bg-bg-card rounded-lg border border-neutral-700 p-3 md:p-4">
+    <div className="bg-bg-card rounded-lg border border-border p-3 md:p-4">
       <div className="text-neutral-400 text-xs md:text-sm mb-1">{label}</div>
       <div className="text-xl md:text-2xl font-bold text-neutral-50">{count}</div>
     </div>
@@ -216,12 +216,12 @@ function MatchTable({ match, isExpanded, onToggle, expandedSets, expandedRallies
   const p2Name = match.player2 ? `${match.player2.first_name} ${match.player2.last_name}` : match.player2_id
   
   return (
-    <div className="bg-bg-card rounded-lg border border-neutral-700 overflow-hidden">
+    <div className="bg-bg-card rounded-lg border border-border overflow-hidden">
       {/* Match Header */}
       <div className="flex items-center">
         <button
           onClick={onToggle}
-          className="flex-1 p-3 md:p-4 bg-bg-shell hover:bg-neutral-800/50 transition-colors flex items-center gap-3 text-left"
+          className="flex-1 p-3 md:p-4 bg-bg-shell hover:bg-bg-surface transition-colors flex items-center gap-3 text-left"
         >
           {isExpanded ? (
             <ChevronDown className="h-5 w-5 text-neutral-400 shrink-0" />
@@ -250,15 +250,15 @@ function MatchTable({ match, isExpanded, onToggle, expandedSets, expandedRallies
 
       {/* Match Table */}
       {isExpanded && (
-        <div className="border-t border-neutral-700 overflow-x-auto">
+        <div className="border-t border-border overflow-x-auto">
           <table className="w-full text-xs">
-            <thead className="bg-neutral-900">
+            <thead className="bg-bg-elevated">
               <tr>
                 <th className="px-3 py-2 text-left text-neutral-400 font-medium">Field</th>
                 <th className="px-3 py-2 text-left text-neutral-400 font-medium">Value</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-neutral-800">
+            <tbody className="divide-y divide-border">
               <TableRow label="id" value={match.id} />
               <TableRow label="tournament_id" value={match.tournament_id} />
               <TableRow label="round" value={match.round} />
@@ -282,7 +282,7 @@ function MatchTable({ match, isExpanded, onToggle, expandedSets, expandedRallies
           </table>
 
           {/* Sets */}
-          <div className="border-t-4 border-neutral-600 mt-2">
+          <div className="border-t-4 border-border-strong mt-2">
             {match.sets.map(set => (
               <SetTable
                 key={set.id}
@@ -310,10 +310,10 @@ interface SetTableProps {
 
 function SetTable({ set, isExpanded, onToggle, expandedRallies, onToggleRally }: SetTableProps) {
   return (
-    <div className="border-b border-neutral-700 last:border-b-0">
+    <div className="border-b border-border last:border-b-0">
       <button
         onClick={onToggle}
-        className="w-full p-3 pl-8 hover:bg-neutral-800/30 transition-colors flex items-center gap-3 text-left bg-neutral-900/50"
+        className="w-full p-3 pl-8 hover:bg-bg-surface transition-colors flex items-center gap-3 text-left bg-bg-shell"
       >
         {isExpanded ? (
           <ChevronDown className="h-4 w-4 text-neutral-400 shrink-0" />
@@ -331,15 +331,15 @@ function SetTable({ set, isExpanded, onToggle, expandedRallies, onToggleRally }:
       </button>
 
       {isExpanded && (
-        <div className="bg-neutral-950/50">
+        <div className="bg-bg-shell">
           <table className="w-full text-xs">
-            <thead className="bg-neutral-900">
+            <thead className="bg-bg-elevated">
               <tr>
                 <th className="px-3 py-2 text-left text-neutral-400 font-medium">Field</th>
                 <th className="px-3 py-2 text-left text-neutral-400 font-medium">Value</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-neutral-800">
+            <tbody className="divide-y divide-border">
               <TableRow label="id" value={set.id} />
               <TableRow label="match_id" value={set.match_id} />
               <TableRow label="set_number" value={set.set_number} />
@@ -367,7 +367,7 @@ function SetTable({ set, isExpanded, onToggle, expandedRallies, onToggleRally }:
           </table>
 
           {/* Rallies */}
-          <div className="border-t-4 border-neutral-500 mt-2">
+          <div className="border-t-4 border-border-strong mt-2">
             {set.rallies.map((rally, idx) => (
               <RallyTable
                 key={rally.id}
@@ -393,10 +393,10 @@ interface RallyTableProps {
 
 function RallyTable({ rally, rallyNumber, isExpanded, onToggle }: RallyTableProps) {
   return (
-    <div className="border-b border-neutral-800 last:border-b-0">
+    <div className="border-b border-border last:border-b-0">
       <button
         onClick={onToggle}
-        className="w-full p-2 pl-16 hover:bg-neutral-800/30 transition-colors flex items-center gap-2 text-left"
+        className="w-full p-2 pl-16 hover:bg-bg-surface transition-colors flex items-center gap-2 text-left"
       >
         {isExpanded ? (
           <ChevronDown className="h-3 w-3 text-neutral-500 shrink-0" />
@@ -404,22 +404,22 @@ function RallyTable({ rally, rallyNumber, isExpanded, onToggle }: RallyTableProp
           <ChevronRight className="h-3 w-3 text-neutral-500 shrink-0" />
         )}
         <div className="flex-1">
-          <div className="text-xs text-yellow-400 font-medium">
+          <div className="text-xs text-callout-warning font-medium">
             RALLY {rallyNumber}: {rally.shots.length} shots • scoring={String(rally.is_scoring)} • winner={rally.winner_id || 'null'}
           </div>
         </div>
       </button>
 
       {isExpanded && (
-        <div className="bg-black/30">
+        <div className="bg-panel-scrim">
           <table className="w-full text-xs">
-            <thead className="bg-neutral-900">
+            <thead className="bg-bg-elevated">
               <tr>
                 <th className="px-3 py-2 text-left text-neutral-400 font-medium">Field</th>
                 <th className="px-3 py-2 text-left text-neutral-400 font-medium">Value</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-neutral-800">
+            <tbody className="divide-y divide-border">
               <TableRow label="id" value={rally.id} />
               <TableRow label="set_id" value={rally.set_id} />
               <TableRow label="rally_index" value={rally.rally_index} />
@@ -446,8 +446,8 @@ function RallyTable({ rally, rallyNumber, isExpanded, onToggle }: RallyTableProp
           </table>
 
           {/* Shots */}
-          <div className="border-t-4 border-neutral-400 mt-2 p-3 pl-6">
-            <div className="text-xs font-semibold text-cyan-400 mb-2">SHOTS ({rally.shots.length}):</div>
+          <div className="border-t-4 border-border-strong mt-2 p-3 pl-6">
+            <div className="text-xs font-semibold text-callout-info mb-2">SHOTS ({rally.shots.length}):</div>
             {rally.shots.map(shot => (
               <ShotTable
                 key={shot.id}
@@ -471,14 +471,14 @@ function ShotTable({
 }) {
   const phase = describeShotPhase(deriveShotPhase(shot.shot_index, firstAttackIndex))
   return (
-    <div className="mb-4 bg-neutral-900/70 border border-cyan-900/50 rounded overflow-hidden">
-      <div className="bg-cyan-950/30 px-3 py-1.5 border-b border-cyan-900/50">
-        <span className="text-xs font-mono font-semibold text-cyan-300">
+    <div className="mb-4 bg-bg-elevated border border-callout-info-border rounded overflow-hidden">
+      <div className="bg-callout-info-bg px-3 py-1.5 border-b border-callout-info-border">
+        <span className="text-xs font-mono font-semibold text-callout-info">
           Shot {shot.shot_index} - {phase} - Player: {shot.player_id}
         </span>
       </div>
       <table className="w-full text-xs">
-        <tbody className="divide-y divide-neutral-800">
+        <tbody className="divide-y divide-border">
           <TableRow label="id" value={shot.id} />
           <TableRow label="rally_id" value={shot.rally_id} />
           <TableRow label="video_id" value={shot.video_id} />
@@ -512,12 +512,12 @@ function TableRow({ label, value, highlight }: { label: string; value: any; high
                        typeof value === 'object' ? JSON.stringify(value) :
                        String(value)
   
-  const valueColor = value === null || value === undefined ? 'text-red-400' :
-                     typeof value === 'boolean' ? (value ? 'text-green-400' : 'text-orange-400') :
+  const valueColor = value === null || value === undefined ? 'text-callout-danger' :
+                     typeof value === 'boolean' ? (value ? 'text-success' : 'text-callout-warning') :
                      'text-neutral-300'
   
   return (
-    <tr className={highlight ? 'bg-red-950/20' : ''}>
+    <tr className={highlight ? 'bg-callout-danger-bg' : ''}>
       <td className="px-3 py-1.5 text-neutral-500 font-mono whitespace-nowrap">{label}</td>
       <td className={`px-3 py-1.5 font-mono ${valueColor} break-all`}>{displayValue}</td>
     </tr>

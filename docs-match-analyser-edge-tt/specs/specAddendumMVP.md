@@ -6,7 +6,7 @@
 
 ## Change Log
 
-### 2026-11-14: MA-111 — Video stage cohesion polish (v3.155.0)
+### 2026-11-14: MA-111 — Video stage cohesion polish (v3.157.0)
 
 **Change Type:** UX cohesion — Clip / Rally / Edit stage chrome
 
@@ -18,6 +18,36 @@
 **Decision Rationale:** Overnight Track A MA-111 — stage surfaces read as one product after MA-104 playlist chrome.
 
 **Key Files:** `ClipStageBlock.tsx`, `ClipQueueBlock.tsx`, `RallyPlayerBlock.tsx`, `EvidenceDrawerBlock.tsx`, `RallyEditComposer.tsx`, `themeTokens.test.ts`.
+
+### 2026-11-14: MA-120 — Scrub wash + DataViewer token cleanup (v3.156.0)
+
+**Change Type:** Design tokens — scrub elapsed wash + DataViewer debug chrome
+
+**What Changed:**
+- New `--color-video-scrim-wash-strong` (0.25); VideoPlayer scrub elapsed wash → `bg-video-scrim-wash-strong`.
+- DataViewer: borders → `border-border*`; nested tables → `bg-bg-elevated` / `bg-bg-shell` / `panel-scrim`; cyan shot cards → `callout-info*`; null/bool/highlight cells → callout/success tokens.
+- Extend `themeTokens.test.ts` gate to DataViewer (+ ban `bg-white/25`, `bg-black/30`).
+
+**Decision Rationale:** MA-120 overnight Track F — finish scrub + debug-viewer leftover paint after MA-117 HUD chips.
+
+**Key Files:** `index.css`, `VideoPlayer.tsx`, `DataViewer.tsx`, `themeTokens.test.ts`.
+
+---
+
+### 2026-11-14: MA-115 — Serve/Receive stats card polish (v3.155.0)
+
+**Change Type:** UX polish — curated stats cards + headlines
+
+**What Changed:**
+- Compare cards: denser `bg-bg-card` chrome; `text-primary` / `text-muted` tokens; primary % on its own line with miss/won as quiet detail.
+- Headlines: count under % (`9/20`); tap prefers matching playlist `focusId`.
+- Serve/Receive page header on primary/muted tokens; focus shell uses MA-107/118 `stickyMode="under-tabs"`.
+
+**Decision Rationale:** Overnight Track D MA-115 — stats card polish after PlaylistBrowseShell landed; fewer denser numbers that still open evidence → playlist.
+
+**Key Files:** `CompareCardBlock.tsx`, `HeadlineMetricsBlock.tsx`, `buildServeReceiveCards.ts`, `ServeReceiveDataSection.tsx`, `models.ts`.
+
+---
 
 ### 2026-11-14: MA-118 — BrowseDisclosure / shell mobile polish (v3.154.0)
 
@@ -31,8 +61,6 @@
 **Decision Rationale:** Overnight Track C MA-118 after #85 — mobile polish on the shared primitive + shell.
 
 **Key Files:** `BrowseDisclosure.tsx`, `PlaylistBrowseShellBlock.tsx`, `ClipPresetListBlock.tsx`, `ServeReceiveDataSection.tsx`.
-
----
 
 ---
 
@@ -69,6 +97,7 @@
 
 **Key Files:** `OverviewSection.tsx`, `TakeawaysBlock.tsx`, `SummaryCategoryNavBlock.tsx`, `DetailsSection.tsx`, `ClipsComposer.tsx`, `HomeMatchRowBlock.tsx`, `ContextPolishBlock.tsx`, `EvidenceDrawerBlock.tsx`, `CompareCardBlock.tsx`, `MatchStorageBlock.tsx`, `DataTableBlock.tsx`, data-audit sections, `RallyEditComposer.tsx`, `MatchResultEntryModal.tsx`.
 
+---
 
 ### 2026-11-14: MA-107 — Playlist browse shell refine (v3.151.0)
 
@@ -114,7 +143,6 @@
 **Decision Rationale:** Overnight Track E MA-112 — rail/dialog polish after MA-108 interaction; End lock matches dialog copy.
 
 **Key Files:** `Pass1FocusBlock.tsx`, `pass1FocusModel.ts`, timeline tests.
-
 
 ---
 
@@ -8721,7 +8749,10 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 
 | Version | Date | Changes |
 |---------|------|---------|
-| v3.155.0 | 2026-11-14 | MA-111: Clip/Rally/Edit stage chrome cohesion (muted tokens + edit rail) |
+| v3.157.0 | 2026-11-14 | MA-111: Clip/Rally/Edit stage chrome cohesion (muted tokens + edit rail) |
+| v3.156.0 | 2026-11-14 | MA-120: scrub wash-strong + DataViewer borders/callout tokens |
+| v3.155.0 | 2026-11-14 | MA-115: Serve/Receive stats card polish — denser cards + headline detail/focus |
+| v3.154.0 | 2026-11-14 | MA-118: BrowseDisclosure / shell mobile polish |
 | v3.153.0 | 2026-11-14 | MA-117: Video HUD chips + MatchScoreHud washes → video-scrim variants |
 | v3.152.0 | 2026-11-14 | MA-113: quiet secondary Review/Details/audit chrome |
 | v3.151.0 | 2026-11-14 | MA-107: Refine PlaylistBrowseShell density and trail |
