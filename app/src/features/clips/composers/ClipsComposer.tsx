@@ -278,9 +278,11 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
     setReel(null)
     const next = new URLSearchParams(searchParams)
     next.set('clip', preset.key)
-    next.delete('clipTitle')
-    next.delete('from')
+    // New playlist — drop shot/rally landing. Keep arrival trail (workon/summary/rallies)
+    // until Stay or leaving Clips; Stay is the explicit dismiss (MA-129).
     next.delete('at')
+    next.delete('clipTitle')
+    if (!trailFrom) next.delete('from')
     setSearchParams(next, { replace: true })
   }
 
@@ -556,8 +558,16 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
     })
   }
 
-  // Context is the playlist title only — return button owns the source (no double banner).
-  const browseContext = embedded && trailFrom && clipTitleParam ? clipTitleParam : null
+  // Context only when it adds info beyond the chip (custom evidence title / shot landing).
+  const activePresetLabel = presets.find((p) => p.key === activeKey)?.label
+  const browseContext = (() => {
+    if (!(embedded && trailFrom)) return null
+    if (atParam && current?.title && current.title !== playlistLabel) return current.title
+    if (clipTitleParam && clipTitleParam !== playlistLabel && clipTitleParam !== activePresetLabel) {
+      return clipTitleParam
+    }
+    return null
+  })()
 
   const browseShell = (
     <PlaylistBrowseShellBlock

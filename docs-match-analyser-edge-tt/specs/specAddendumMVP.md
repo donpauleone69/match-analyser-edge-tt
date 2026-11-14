@@ -6,6 +6,22 @@
 
 ## Change Log
 
+### 2026-11-14: MA-129 — Work-on → Clips deep-link polish (v3.170.0)
+
+**Change Type:** UX polish — Work on ↔ Clips deep-link continuity
+
+**What Changed:**
+- Switching playlists while an arrival trail is active (`from=workon|summary|rallies`) keeps Work on / Summary / Rallies + Stay (clears `at` / `clipTitle` only); Stay remains the explicit dismiss.
+- Leaving the Clips tab clears `from` / `at` / `clipTitle` so a later Clips visit has no stale trail (keeps `clip` playlist memory).
+- Evidence **Clips** sets `from` from the open tab (Work on / Rallies / Summary) after MA-131 trail parity.
+- Browse context only when it adds info beyond the chip (no duplicate pattern title).
+
+**Decision Rationale:** Overnight Track A MA-129 after MA-121/131 — deep-link chrome survives in-Clips browsing and evidence handoff without lingering after tab switches.
+
+**Key Files:** `ClipsComposer.tsx`, `MatchReviewComposer.tsx`.
+
+---
+
 ### 2026-11-14: MA-135 — Addendum tip cleanup after overnight merge races (v3.169.0)
 
 **Change Type:** Docs — changelog / version history hygiene
@@ -8966,6 +8982,7 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v3.170.0 | 2026-11-14 | MA-129: Work-on/Summary/Rallies → Clips deep-link — keep trail on preset switch; clear on leave |
 | v3.169.0 | 2026-11-14 | MA-135: addendum tip cleanup — dup MA-122 removed, VH order restored |
 | v3.168.0 | 2026-11-14 | MA-132: Pass 1 Viewing / Live set-bar recovery |
 | v3.167.0 | 2026-11-14 | MA-131: Summary/Evidence/Rallies → Clips return trail parity with Work-on |

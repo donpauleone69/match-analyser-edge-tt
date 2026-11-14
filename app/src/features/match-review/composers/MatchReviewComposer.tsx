@@ -530,7 +530,21 @@ export function MatchReviewComposer() {
         <TabBarBlock
           tabs={tabs}
           active={tab}
-          onChange={(id) => setParams({ tab: id === 'summary' ? null : id, cat: null })}
+          onChange={(id) => {
+            // Leaving Clips dismisses arrival deep-link chrome; keep `clip` so
+            // returning to Clips restores the playlist without a stale trail (MA-129).
+            if (id !== 'clips') {
+              setParams({
+                tab: id === 'summary' ? null : id,
+                cat: null,
+                from: null,
+                at: null,
+                clipTitle: null,
+              })
+            } else {
+              setParams({ tab: id, cat: null })
+            }
+          }}
           onBadgeClick={(id) => {
             if (id !== 'rallies' || incompleteCount <= 0) return
             const first =
@@ -736,7 +750,9 @@ export function MatchReviewComposer() {
               tab: 'clips',
               clip: encodeClipFilter({ kind: 'rallies', rallyIds: evidenceRallies.map((r) => r.id) }),
               clipTitle: evidence.title,
-              from: 'summary',
+              // Trail matches the tab that opened evidence (MA-129 / MA-131).
+              from: tab === 'workon' ? 'workon' : tab === 'rallies' ? 'rallies' : 'summary',
+              at: null,
             })
             setEvidence(null)
           }}
