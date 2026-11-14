@@ -1424,15 +1424,7 @@ export function Pass1FocusComposer({
             {pointLedger}
             <TaggingSessionBar
               captureRail={
-                <div className="space-y-1">
-                  <div
-                    className="rounded-md border border-pill-idle-border bg-bg-elevated/60 px-1.5 py-1 text-[10px] font-semibold text-primary"
-                    role="status"
-                    aria-live="polite"
-                    data-pass1-stage="contacts"
-                  >
-                    Tap contacts · next: End / FA
-                  </div>
+                <div className="space-y-1" data-pass1-stage="contacts">
                   <Pass1ShotMarkRail
                     state={
                       previewRally
@@ -1463,6 +1455,7 @@ export function Pass1FocusComposer({
               contactCount={contactCount}
               disabled={!setReady}
               previewingPast={Boolean(previewRally)}
+              serverSide={previewRally?.serverId ?? openServerId}
               onTap={handleTapContact}
               onUndo={handleUndoLastContact}
             />

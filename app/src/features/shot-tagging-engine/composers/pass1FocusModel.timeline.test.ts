@@ -149,6 +149,7 @@ describe('deriveRallyScrubMarks (MA-83)', () => {
     expect(marks).toHaveLength(1)
     expect(marks[0].id).toBe('open-draft-rally')
     expect(marks[0].kind).toBe('draft')
+    expect(marks[0].fillColor).toBe('var(--color-player-2-bg)')
     expect(marks[0].stripeColor).toBe('var(--color-player-2)')
     expect(marks[0].startTime).toBe(40)
     expect(marks[0].endTime).toBe(48)

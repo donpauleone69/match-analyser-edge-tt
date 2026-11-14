@@ -594,7 +594,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
                     }
                   }}
                 >
-                  {marker.stripeColor && marker.kind !== 'draft' && (
+                  {marker.stripeColor && (
                     <span
                       className="absolute inset-x-0 top-0 h-[3px] rounded-t-sm"
                       style={{ backgroundColor: marker.stripeColor }}

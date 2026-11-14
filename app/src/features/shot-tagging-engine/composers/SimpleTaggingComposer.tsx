@@ -1425,6 +1425,7 @@ export function SimpleTaggingComposer({
               contactCount={contactCount}
               disabled={!setReady}
               previewingPast={Boolean(previewRally)}
+              serverSide={previewRally?.serverId ?? openServerId}
               onTap={handleTapContact}
               onUndo={handleUndoLastContact}
             />

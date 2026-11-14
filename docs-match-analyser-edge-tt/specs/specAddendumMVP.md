@@ -6,6 +6,21 @@
 
 ## Change Log
 
+### 2026-11-14: MA-96 — Contacts / scrub / Pass 1 cohesion (v3.133.0)
+
+**Change Type:** UX cohesion — Pass 1 + Simple contacts + shared scrub
+
+**What Changed:**
+- Contact pad: server-colour left edge matches set-bar Serve chip; hint is the sole contacts-stage guide (dropped duplicate banner above the rail).
+- Open-draft scrub range uses player pastel fill + server stripe (stripe also shown for draft marks).
+- Continues MA-92 flush pad + readable caret playhead / overlay clearance.
+
+**Decision Rationale:** Overnight Track E MA-96 — fewer larger cohesion PRs; contacts → End/FA feels one surface with shared overlay.
+
+**Key Files:** `Pass1ContactCaptureBlock.tsx`, `Pass1FocusComposer.tsx`, `SimpleTaggingComposer.tsx`, `pass1FocusModel.ts`, `VideoPlayer.tsx`.
+
+---
+
 ### 2026-11-14: MA-94 — Serve/Receive polish (v3.132.0)
 
 **Change Type:** UX polish — Serve Data / Receive Data cohesion
@@ -18,6 +33,7 @@
 **Decision Rationale:** Overnight Track D iterate — align with overlay + playlist browse (History disclosure until Track C shell lands).
 
 **Key Files:** `ServeReceiveDataSection.tsx`, `PlaylistFocusPickerBlock.tsx`, `HeadlineMetricsBlock.tsx`, `SummaryCategoryPlaylistBlock.tsx`, `buildServeReceiveCards.ts`.
+
 
 ---
 
@@ -8343,6 +8359,7 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v3.133.0 | 2026-11-14 | MA-96: contacts pad server edge + scrub draft stripe/pastel + drop duplicate stage banner |
 | v3.130.0 | 2026-11-14 | MA-92: contacts pad flush + scrub playhead/marks readability + open-draft range |
 | v3.126.0 | 2026-11-14 | MA-83: contacts pad refine + colour-coded rally marks on shared video scrub |
 | v3.84.0 | 2026-11-13 | MA-34: hide Training from bottom nav; Account entry |
