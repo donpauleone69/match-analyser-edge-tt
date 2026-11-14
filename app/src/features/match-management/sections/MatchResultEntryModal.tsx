@@ -286,9 +286,9 @@ export function MatchResultEntryModal({
             
             {/* Validation Errors */}
             {validationErrors.length > 0 && (
-              <div className="p-3 bg-callout-danger-bg border border-callout-danger-border rounded-md">
-                <p className="text-callout-danger font-semibold mb-1">Validation errors</p>
-                <ul className="list-disc list-inside text-callout-danger text-sm space-y-1">
+              <div className="p-2.5 bg-callout-danger-bg border border-callout-danger-border rounded-md">
+                <p className="text-callout-danger text-xs font-semibold mb-1">Validation errors</p>
+                <ul className="list-disc list-inside text-callout-danger text-xs space-y-0.5">
                   {validationErrors.map((error, i) => (
                     <li key={i}>{error}</li>
                   ))}

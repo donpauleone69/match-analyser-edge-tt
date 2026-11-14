@@ -6,7 +6,23 @@
 
 ## Change Log
 
-<<<<<<< HEAD
+### 2026-11-14: MA-119 — Notice and banner quiet pass (v3.158.0)
+
+**Change Type:** UX declutter — dismissible notices + status banners
+
+**What Changed:**
+- Match Review + Clips notices → denser sticky strips (`px-2.5 py-1.5 text-xs`); Clips errors use `callout-danger` tokens.
+- Overview incomplete / context prompts → one-line denser banners; TabBar `h-9` + outline incomplete badge.
+- Rally Edit status strip shorter on `bg-bg-elevated`; MatchStorage conflict copy shortened.
+- Clips export strip + phone sticky Download denser (still sticky reel CTA).
+- Form duplicate alert, Training notice, RallyPlayer overlays, Work on empty, Match Result validation, Settings danger zone, Account/Sign-in notices → quieter density.
+
+**Decision Rationale:** MA-119 overnight Track B — notices/banners after MA-113 secondary chrome.
+
+**Key Files:** `MatchReviewComposer.tsx`, `ClipsComposer.tsx`, `OverviewSection.tsx`, `TabBarBlock.tsx`, `RallyEditComposer.tsx`, `MatchStorageBlock.tsx`, `MatchFormSection.tsx`, `TrainingLibraryComposer.tsx`, `RallyPlayerBlock.tsx`, `WorkOnSection.tsx`, `MatchResultEntryModal.tsx`, `Settings.tsx`, `AccountComposer.tsx`, `SignInFormBlock.tsx`.
+
+---
+
 ### 2026-11-14: MA-111 — Video stage cohesion polish (v3.157.0)
 
 **Change Type:** UX cohesion — Clip / Rally / Edit stage chrome
@@ -20,9 +36,8 @@
 
 **Key Files:** `ClipStageBlock.tsx`, `ClipQueueBlock.tsx`, `RallyPlayerBlock.tsx`, `EvidenceDrawerBlock.tsx`, `RallyEditComposer.tsx`, `themeTokens.test.ts`.
 
-=======
-<<<<<<< HEAD
->>>>>>> origin/main
+---
+
 ### 2026-11-14: MA-120 — Scrub wash + DataViewer token cleanup (v3.156.0)
 
 **Change Type:** Design tokens — scrub elapsed wash + DataViewer debug chrome
@@ -35,8 +50,10 @@
 **Decision Rationale:** MA-120 overnight Track F — finish scrub + debug-viewer leftover paint after MA-117 HUD chips.
 
 **Key Files:** `index.css`, `VideoPlayer.tsx`, `DataViewer.tsx`, `themeTokens.test.ts`.
-=======
-### 2026-11-14: MA-116 — Pass 1 Done mid-point + History density (v3.156.0)
+
+---
+
+### 2026-11-14: MA-116 — Pass 1 Done mid-point + History density (v3.156.1)
 
 **Change Type:** UX polish — Pass 1 / Simple session exit + History
 
@@ -48,7 +65,6 @@
 **Decision Rationale:** Overnight Track E MA-116 — finish-set reachable without leaving mid-point first; History chrome denser after MA-108/112.
 
 **Key Files:** `Pass1ChromeProtoBlock.tsx`, Pass1/Simple composers.
->>>>>>> 77f1ac9 (MA-116: Done mid-point + History/Delete density)
 
 ---
 
@@ -115,14 +131,8 @@
 
 **Key Files:** `OverviewSection.tsx`, `TakeawaysBlock.tsx`, `SummaryCategoryNavBlock.tsx`, `DetailsSection.tsx`, `ClipsComposer.tsx`, `HomeMatchRowBlock.tsx`, `ContextPolishBlock.tsx`, `EvidenceDrawerBlock.tsx`, `CompareCardBlock.tsx`, `MatchStorageBlock.tsx`, `DataTableBlock.tsx`, data-audit sections, `RallyEditComposer.tsx`, `MatchResultEntryModal.tsx`.
 
-<<<<<<< HEAD
 ---
-=======
-<<<<<<< HEAD
-=======
 ---
->>>>>>> ceac9e8 (MA-116: Done mid-point + History/Delete density)
->>>>>>> de49b93 (MA-116: Done mid-point + History/Delete density)
 
 ### 2026-11-14: MA-107 — Playlist browse shell refine (v3.151.0)
 

@@ -618,25 +618,25 @@ export function RallyEditComposer() {
         </button>
       </div>
 
-      <div className="shrink-0 px-3 py-1.5 text-[11px] bg-bg-elevated text-muted flex flex-wrap gap-x-3 border-b border-border">
+      <div className="shrink-0 px-2.5 py-1 text-[11px] bg-bg-elevated border-b border-border text-muted flex flex-wrap gap-x-2.5 gap-y-0.5">
         {current.isIncomplete && (
           <span className="text-callout-warning font-semibold" role="status">
-            Incomplete point — set FA, End, and ending, then Save fix. Still out of stats until complete.
+            Incomplete — set FA, End, ending, then Save fix.
           </span>
         )}
         {focusShot && (
-          <span className="text-review font-semibold">Editing shot {focusShot} — fix tags, then Save fix.</span>
+          <span className="text-review font-semibold">Shot {focusShot} — Save fix when done.</span>
         )}
         <span>
           Winner: <span className="text-primary font-semibold">{winnerName ?? '—'}</span>
         </span>
         {winnerWillChange && (
           <span className="text-callout-warning">
-            Winner changes from {originalWinner} — later scores in this set will shift.
+            Winner changes from {originalWinner} — later set scores shift.
           </span>
         )}
-        {!videoUrl && <span>Load the set video above to watch this rally while editing.</span>}
-        <span className="text-muted">Contacts can’t be re-timed here — use the tagger for that.</span>
+        {!videoUrl && <span>Load set video to watch while editing.</span>}
+        <span className="text-muted">Contacts re-time in the tagger.</span>
         {saveHint && !canSave && (
           <span className="text-callout-warning font-semibold" role="status">
             {saveHint}

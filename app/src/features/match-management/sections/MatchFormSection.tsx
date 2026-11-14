@@ -237,14 +237,11 @@ export function MatchFormSection({ players, tournaments, focalPlayerId }: MatchF
         {dupes && dupes.length > 0 && (
           <div
             role="alert"
-            className="rounded-md border border-callout-warning-border bg-callout-warning-bg p-3 space-y-2.5"
+            className="rounded-md border border-callout-warning-border bg-callout-warning-bg p-2.5 space-y-2"
           >
-            <p className="text-sm text-callout-warning font-medium">
-              Possible duplicate
-            </p>
-            <p className="text-xs text-callout-warning/90">
-              Same opponent{formData.tournament_id ? ', tournament,' : ''} and today’s date. Open
-              existing, or create anyway for a second match.
+            <p className="text-xs text-callout-warning font-medium">
+              Possible duplicate · same opponent
+              {formData.tournament_id ? '/tournament' : ''} today
             </p>
             <ul className="space-y-2">
               {dupes.slice(0, 3).map((d) => (

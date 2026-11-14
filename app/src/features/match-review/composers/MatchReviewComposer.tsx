@@ -544,13 +544,10 @@ export function MatchReviewComposer() {
       {notice && (
         <div
           role="status"
-          className="flex items-center gap-2 rounded-md border border-result-winner/50 bg-result-winner-bg px-3 py-2 text-sm text-result-winner sticky top-0 z-20"
+          className="flex items-center gap-1.5 rounded-md border border-result-winner/40 bg-result-winner-bg px-2.5 py-1.5 text-xs text-result-winner sticky top-0 z-20"
         >
           <Icon name="check" size="sm" className="shrink-0" />
-          <p className="min-w-0 flex-1 truncate">
-            <span className="font-semibold">Fix saved</span>
-            <span className="text-result-winner/90"> · {notice}</span>
-          </p>
+          <p className="min-w-0 flex-1 truncate">{notice}</p>
           <button type="button" aria-label="Dismiss" onClick={() => setNotice(null)} className="hover:text-neutral-50">
             <Icon name="x" size="sm" />
           </button>

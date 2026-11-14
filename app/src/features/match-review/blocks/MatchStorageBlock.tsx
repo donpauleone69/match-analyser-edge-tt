@@ -404,14 +404,14 @@ export function MatchStorageBlock({
       </ul>
 
       {conflict && (
-        <div className="flex flex-wrap items-center gap-2 rounded-md border border-callout-warning-border bg-callout-warning-bg px-3 py-2 text-callout-warning">
+        <div className="flex flex-wrap items-center gap-1.5 rounded-md border border-callout-warning-border bg-callout-warning-bg px-2.5 py-1.5 text-callout-warning">
           <Icon name="warning" size="sm" />
-          <span className="flex-1 text-xs">Also changed elsewhere — which copy wins?</span>
+          <span className="flex-1 text-[11px]">Changed elsewhere — keep which copy?</span>
           <Button size="sm" variant="secondary" onClick={onKeepDevice} disabled={busy !== null}>
-            Keep device
+            Device
           </Button>
           <Button size="sm" variant="secondary" onClick={onUseCloud} disabled={busy !== null}>
-            Use cloud
+            Cloud
           </Button>
         </div>
       )}

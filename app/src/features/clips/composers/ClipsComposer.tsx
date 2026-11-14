@@ -563,12 +563,12 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
   )
 
   const exportStrip = showExportBar && (
-    <div className="hidden md:flex flex-wrap items-center gap-3 rounded-lg border border-border bg-bg-card px-3 py-2.5">
+    <div className="hidden md:flex flex-wrap items-center gap-2 rounded-lg border border-border bg-bg-card px-2.5 py-2">
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold text-neutral-100 truncate">
           {isHighlightReel ? `★ ${playlistLabel}` : playlistLabel}
         </p>
-        <p className="text-xs text-neutral-500 tabular-nums">
+        <p className="text-[11px] text-neutral-500 tabular-nums">
           {isHighlightReel
             ? `${rows.length} starred`
             : `${rows.length} clip${rows.length === 1 ? '' : 's'} · ${formatSeconds(edl.duration)}`}
@@ -602,8 +602,8 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
         <div
           className={
             notice.tone === 'good'
-              ? 'flex items-center gap-2 rounded-md border border-result-winner/50 bg-result-winner-bg px-3 py-2 text-sm text-result-winner'
-              : 'flex items-center gap-2 rounded-md border border-result-error/50 bg-result-error-bg px-3 py-2 text-sm text-result-error'
+              ? 'flex items-center gap-1.5 rounded-md border border-result-winner/40 bg-result-winner-bg px-2.5 py-1.5 text-xs text-result-winner'
+              : 'flex items-center gap-1.5 rounded-md border border-callout-danger-border bg-callout-danger-bg px-2.5 py-1.5 text-xs text-callout-danger'
           }
         >
           <Icon name={notice.tone === 'good' ? 'check' : 'warning'} size="sm" />
@@ -645,7 +645,7 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
       </div>
 
       {showExportBar && (
-        <div className="fixed inset-x-0 bottom-12 z-30 border-t border-border bg-bg-shell/95 px-3 py-2 backdrop-blur md:hidden">
+        <div className="fixed inset-x-0 bottom-12 z-30 border-t border-border bg-bg-shell/95 px-3 py-1.5 backdrop-blur md:hidden">
           <div className="mx-auto flex max-w-lg items-center gap-2">
             <Button
               size="sm"

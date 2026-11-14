@@ -222,13 +222,13 @@ export const RallyPlayerBlock = forwardRef<VideoPlayerHandle, RallyPlayerBlockPr
               />
             </VideoStageChrome>
             {!videoUrl && (
-              <p className="absolute bottom-3 inset-x-0 text-center text-xs text-muted pointer-events-none">
-                Video for Set {rally.setNumber} isn’t on this device yet — load it once and it’s remembered.
+              <p className="absolute bottom-2 inset-x-0 text-center text-[11px] text-muted pointer-events-none">
+                Set {rally.setNumber} video missing — load once to remember.
               </p>
             )}
             {videoUrl && !loop && (
-              <p className="absolute top-3 inset-x-0 text-center text-xs text-callout-warning">
-                This rally has no contact times, so it can’t be clipped.
+              <p className="absolute top-2 inset-x-0 text-center text-[11px] text-callout-warning">
+                No contact times — can’t clip.
               </p>
             )}
           </div>
