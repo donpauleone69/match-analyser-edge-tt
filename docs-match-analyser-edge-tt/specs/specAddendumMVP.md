@@ -6,6 +6,21 @@
 
 ## Change Log
 
+### 2026-11-14: MA-138 — Pass 1 Leave Keep/Discard polish (v3.173.0)
+
+**Change Type:** UX polish — Pass 1 / Simple mid-rally Leave dialog
+
+**What Changed:**
+- Leave dialog: Escape + scrim dismiss = Stay; focus lands on **Keep draft**.
+- Clearer hierarchy — Keep draft primary + short resume hint; **Discard point** danger-tinted secondary + clear-draft hint; quieter Stay.
+- Phone: bottom-sheet placement (`items-end` + `rounded-xl`); denser copy that soft exit does not finish the set.
+
+**Decision Rationale:** Overnight Track E MA-138 after Viewing/Live — Keep vs Discard must be unmistakable before leaving mid-point.
+
+**Key Files:** `Pass1LeaveDraftChoiceBlock.tsx`.
+
+---
+
 ### 2026-11-14: MA-136 — Home and Find residual quiet (v3.172.0)
 
 **Change Type:** UX declutter — Home + Find / create residual density
@@ -9027,6 +9042,7 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 | v3.161.0 | 2026-11-14 | MA-125: evidence drawer rows + Clips landing chrome cohesion |
 | v3.160.0 | 2026-11-14 | MA-123: residual raw paint — player/callout tokens on RallyCard/ShotList/audit |
 | v3.159.0 | 2026-11-14 | MA-121: Playlist shell Work-on trail polish + Fix return continuity |
+| v3.172.0 | 2026-11-14 | MA-138: Pass 1 Leave Keep/Discard dialog polish |
 | v3.170.0 | 2026-11-14 | MA-137: Browse shell Fix/Edit round-trip — land on edited clip + Clips back label |
 | v3.168.0 | 2026-11-14 | MA-132: Pass 1 Viewing / Live set-bar recovery |
 | v3.167.0 | 2026-11-14 | MA-131: Summary/Evidence/Rallies → Clips return trail parity with Work-on |
