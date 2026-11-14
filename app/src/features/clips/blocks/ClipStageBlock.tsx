@@ -131,8 +131,8 @@ export const ClipStageBlock = forwardRef<VideoPlayerHandle, ClipStageBlockProps>
         : null
 
     return (
-      <div className="rounded-lg border border-border bg-bg-card overflow-hidden">
-        <div className="flex items-center gap-2 px-3 py-2 border-b border-border">
+      <div className="rounded-lg bg-bg-card overflow-hidden shadow-sm">
+        <div className="flex items-center gap-2 px-3 py-2 border-b border-border/60">
           <div className="min-w-0 flex-1">
             <p className="text-[11px] text-muted truncate">
               {heading}
@@ -153,7 +153,7 @@ export const ClipStageBlock = forwardRef<VideoPlayerHandle, ClipStageBlockProps>
               className={cn(
                 'hidden sm:inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px]',
                 videoOrigin === 'cloud'
-                  ? 'bg-callout-info-bg text-callout-info border border-callout-info-border'
+                  ? 'bg-callout-info-bg text-callout-info'
                   : 'bg-bg-elevated text-muted'
               )}
               title={videoOrigin === 'cloud' ? 'Streaming from your cloud backup' : 'Playing from this device'}

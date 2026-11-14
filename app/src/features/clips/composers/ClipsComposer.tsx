@@ -421,7 +421,7 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
     return (
       <div className="space-y-3">
         {header}
-        <Card className="p-4 text-center border border-dashed border-border">
+        <Card className="p-4 text-center shadow-sm">
           <h2 className="text-sm font-semibold text-primary">No clips yet</h2>
           <p className="mt-1 text-sm text-muted max-w-sm mx-auto">
             Star highlights or flag shots in Pass 1.
@@ -523,7 +523,7 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
       onEdit={() => openFixTags(current.clip)}
     />
   ) : (
-    <Card className="p-4 text-sm text-muted space-y-2 border border-dashed border-border">
+    <Card className="p-4 text-sm text-muted space-y-2 shadow-sm">
       <p>No clips in this playlist.</p>
       {/* Return lives on the sticky trail — avoid a second button here. */}
       {!(embedded && trailFrom) ? (
@@ -594,7 +594,7 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
   )
 
   const exportStrip = showExportBar && (
-    <div className="hidden md:flex flex-wrap items-center gap-2 rounded-lg border border-border bg-bg-card px-2.5 py-2">
+    <div className="hidden md:flex flex-wrap items-center gap-2 rounded-lg bg-bg-card px-2.5 py-2 shadow-sm">
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold text-primary truncate">
           {isHighlightReel ? `★ ${playlistLabel}` : playlistLabel}
@@ -633,8 +633,8 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
         <div
           className={
             notice.tone === 'good'
-              ? 'flex items-center gap-1.5 rounded-md border border-result-winner/40 bg-result-winner-bg px-2.5 py-1.5 text-xs text-result-winner'
-              : 'flex items-center gap-1.5 rounded-md border border-callout-danger-border bg-callout-danger-bg px-2.5 py-1.5 text-xs text-callout-danger'
+              ? 'flex items-center gap-1.5 rounded-md bg-result-winner-bg px-2.5 py-1.5 text-xs text-result-winner'
+              : 'flex items-center gap-1.5 rounded-md bg-callout-danger-bg px-2.5 py-1.5 text-xs text-callout-danger'
           }
         >
           <Icon name={notice.tone === 'good' ? 'check' : 'warning'} size="sm" />

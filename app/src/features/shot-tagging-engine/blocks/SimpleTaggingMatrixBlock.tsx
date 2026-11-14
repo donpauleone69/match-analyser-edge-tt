@@ -870,7 +870,7 @@ export function SimpleTaggingMatrixBlock({
               {selectedShotData.reviewKind != null && (
                 <div
                   className={cn(
-                    'mt-0.5 rounded border border-review/40 bg-review-bg p-2',
+                    'mt-0.5 rounded bg-review-bg p-2',
                     reviewDetailFocused && 'ring-1 ring-review'
                   )}
                   onFocus={() => onReviewDetailFocusChange(true)}

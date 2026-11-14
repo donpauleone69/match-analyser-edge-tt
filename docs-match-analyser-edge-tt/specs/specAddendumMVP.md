@@ -6,6 +6,23 @@
 
 ## Change Log
 
+### 2026-11-14: MA-157 — De-frame Clips / Pass 1 / Settings (v3.186.0)
+
+**Change Type:** UX hotfix — last thin nested-border pass; then stop
+
+**What Changed:**
+- Clips: queue/reels lists wash+divide; stage shadow-sm; export/notices wash; empty Cards shadow-only
+- Pass 1 set picker: outer/row nested borders off; review detail wash
+- Account/Settings: Cards shadow-sm; nested Reviewing-as / sign-in / danger confirm wash
+
+**Kept:** BrowseDisclosure chip + sticky hairline; form inputs; one stage header/footer divider; segmented playback toggle.
+
+**Decision Rationale:** Cap de-frame PRs. Next step = Paul assess vs tip `1316612`; rollback ready if still wrong.
+
+**Key Files:** ClipQueue/ReelList/ClipStage/ClipsComposer; SetSetupBlock; SimpleTaggingMatrixBlock; AccountComposer/Gate/SignIn; Settings.
+
+---
+
 ### 2026-11-14: MA-156 — De-frame Match Review nested borders (v3.185.0)
 
 **Change Type:** UX hotfix — remove stacked frames (not density polish)
@@ -9222,6 +9239,7 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v3.186.0 | 2026-11-14 | MA-157: de-frame Clips / Pass 1 set picker / Account Settings |
 | v3.185.0 | 2026-11-14 | MA-156: de-frame Match Review nested borders (Work on / Rallies / Details) |
 | v3.184.0 | 2026-11-14 | MA-155: de-frame nested borders on Home / Find / Summary headlines |
 | v3.183.0 | 2026-11-14 | MA-154: Clips white-screen — remove useMemo after early returns (MA-86 hooks crash) |

@@ -44,7 +44,7 @@ export function AccountGateComposer({ children }: AccountGateComposerProps) {
     return (
       <main className="min-h-dvh bg-bg-shell p-3 md:p-4">
         <div className="mx-auto max-w-3xl space-y-3">
-          <Card className="p-2.5 border border-border">
+          <Card className="p-2.5 shadow-sm">
             <h1 className="text-lg font-semibold text-primary">Account required</h1>
             <p className="mt-1 text-xs text-muted">
               Sign in or continue on this device, then choose who you’re reviewing.
@@ -63,7 +63,7 @@ export function AccountGateComposer({ children }: AccountGateComposerProps) {
   if (routeMatch && routeMatch.player1_id !== scope.focalPlayerId) {
     return (
       <main className="min-h-dvh bg-bg-shell p-3 md:p-4">
-        <Card className="mx-auto max-w-lg p-2.5 space-y-2 border border-border">
+        <Card className="mx-auto max-w-lg p-2.5 space-y-2 shadow-sm">
           <h1 className="text-base font-semibold text-primary">Not in this library</h1>
           <p className="text-xs text-muted">
             Switch “Reviewing as” in Account to open this match.

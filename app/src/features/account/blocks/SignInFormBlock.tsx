@@ -35,7 +35,7 @@ export function SignInFormBlock({
 
   return (
     <div className="space-y-3 max-w-sm">
-      <div className="rounded-md border border-border bg-bg-surface p-2.5 space-y-1.5">
+      <div className="rounded-md bg-bg-elevated/50 p-2.5 space-y-1.5">
         <p className="text-xs text-muted">Local session — same player/coach model, no cloud.</p>
         <Button type="button" onClick={onContinueOnThisDevice} disabled={busy} className="w-full">
           <Icon name={busy ? 'loader' : 'user'} size="sm" className={busy ? 'animate-spin' : undefined} />
@@ -70,7 +70,7 @@ export function SignInFormBlock({
             />
           </div>
           {error && (
-            <p className="rounded-md border border-callout-danger-border bg-callout-danger-bg px-2.5 py-1.5 text-xs text-callout-danger">
+            <p className="rounded-md bg-callout-danger-bg px-2.5 py-1.5 text-xs text-callout-danger">
               {error}
             </p>
           )}
@@ -91,11 +91,11 @@ export function SignInFormBlock({
       ) : (
         <div className="space-y-2">
           {error && (
-            <p className="rounded-md border border-callout-danger-border bg-callout-danger-bg px-2.5 py-1.5 text-xs text-callout-danger">
+            <p className="rounded-md bg-callout-danger-bg px-2.5 py-1.5 text-xs text-callout-danger">
               {error}
             </p>
           )}
-          <p className="rounded-md border border-callout-warning-border bg-callout-warning-bg px-2.5 py-1.5 text-xs text-callout-warning">
+          <p className="rounded-md bg-callout-warning-bg px-2.5 py-1.5 text-xs text-callout-warning">
             Cloud sign-in is not configured. Continue on this device.
           </p>
         </div>
