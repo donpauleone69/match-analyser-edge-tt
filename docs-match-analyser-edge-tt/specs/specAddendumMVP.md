@@ -6,6 +6,22 @@
 
 ## Change Log
 
+### 2026-11-14: MA-147 — Pass 1 contacts pad polish (v3.181.0)
+
+**Change Type:** UX polish — Pass 1 / Simple contact tap pad
+
+**What Changed:**
+- Pad slightly shorter / less clunky (`~9.5dvh`, `text-base`); tighter vertical padding.
+- Viewing past: secondary (not disabled primary void) + brand hint **Return live — Live → in the set bar**.
+- Contact count chip on elevated wash; Undo quieter (`text-muted`).
+- Shorter live hint once taps exist: **Idle 2s → End / FA**.
+
+**Decision Rationale:** Overnight Track E MA-147 after Save row — contacts pad should feel like the next step, not a giant dead button when previewing.
+
+**Key Files:** `Pass1ContactCaptureBlock.tsx`.
+
+---
+
 ### 2026-11-14: MA-143 — Serve/Receive glance card polish (v3.180.0)
 
 **Change Type:** UX polish — Serve/Receive B0/C0 glance cards
@@ -9143,6 +9159,7 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v3.181.0 | 2026-11-14 | MA-147: Pass 1 contacts pad polish |
 | v3.180.0 | 2026-11-14 | MA-143: Serve/Receive glance card polish |
 | v3.179.0 | 2026-11-14 | MA-144: PlaylistFocusPicker none tone → border-strong |
 | v3.176.0 | 2026-11-14 | MA-140: BrowseDisclosure keyboard a11y — Arrow/Home/End, focus restore |
