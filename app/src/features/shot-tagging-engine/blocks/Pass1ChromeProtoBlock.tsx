@@ -313,7 +313,7 @@ export function Pass1PointLedgerBlock({
 
   return (
     <div
-      className="absolute inset-x-0 top-9 bottom-0 z-30 bg-black/20"
+      className="absolute inset-x-0 top-9 bottom-0 z-30 bg-panel-scrim"
       onClick={onClose}
     >
       <section

@@ -51,6 +51,8 @@ describe('shared match color tokens', () => {
       '--color-no-attack',
       '--color-video-scrim',
       '--color-video-scrim-border',
+      '--color-modal-scrim',
+      '--color-panel-scrim',
       '--control-gap',
     ]
 
@@ -135,6 +137,11 @@ describe('shared match color tokens', () => {
       './features/shot-tagging-engine/composers/RallyEditComposer.tsx',
       './features/shot-tagging-engine/blocks/Pass1FocusBlock.tsx',
       './features/shot-tagging-engine/blocks/SimpleTaggingMatrixBlock.tsx',
+      './ui-mine/BrowseDisclosure/BrowseDisclosure.tsx',
+      './features/clips/blocks/PlaylistBrowseShellBlock.tsx',
+      './features/shot-tagging-engine/blocks/Pass1LeaveDraftChoiceBlock.tsx',
+      './features/shot-tagging-engine/blocks/Pass1ChromeProtoBlock.tsx',
+      './features/match-review/sections/ServeReceiveDataSection.tsx',
     ]
 
     for (const path of reviewedSurfaces) {
@@ -146,6 +153,14 @@ describe('shared match color tokens', () => {
         source(path),
         `${path} uses raw overlay scrim instead of video-scrim tokens`
       ).not.toMatch(/bg-black\/70|border-white\/2[05]/)
+      expect(
+        source(path),
+        `${path} uses raw border-neutral-700 instead of border-border`
+      ).not.toMatch(/\bborder-neutral-700\b/)
+      expect(
+        source(path),
+        `${path} uses raw modal/panel black scrim`
+      ).not.toMatch(/bg-black\/(?:20|60)\b/)
     }
   })
 
