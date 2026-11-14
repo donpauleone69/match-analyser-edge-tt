@@ -72,8 +72,8 @@ export function RallyCard({
           <span className="ml-2 text-neutral-500">
             Server: <span className={cn(
               'font-medium',
-              serverColor === 'player1' && 'text-blue-400',
-              serverColor === 'player2' && 'text-orange-400',
+              serverColor === 'player1' && 'text-player-1',
+              serverColor === 'player2' && 'text-player-2',
               !serverColor && 'text-neutral-300'
             )}>{serverName}</span>
           </span>
@@ -83,8 +83,8 @@ export function RallyCard({
           <div className="text-xs">
             <span className={cn(
               'font-medium mr-2',
-              winnerColor === 'player1' && 'text-blue-400',
-              winnerColor === 'player2' && 'text-orange-400',
+              winnerColor === 'player1' && 'text-player-1',
+              winnerColor === 'player2' && 'text-player-2',
               !winnerColor && 'text-success'
             )}>{winnerName} won</span>
             <span className={cn('font-medium', endConditionColor)}>

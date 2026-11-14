@@ -129,7 +129,7 @@ export function Phase1AuditComposer({ matchId }: Phase1AuditComposerProps) {
     return (
       <div className="min-h-screen bg-neutral-950 flex items-center justify-center">
         <div className="text-center">
-          <div className="text-xl font-semibold mb-2 text-red-400">Error</div>
+          <div className="text-xl font-semibold mb-2 text-callout-danger">Error</div>
           <div className="text-sm text-neutral-400">{error || 'Match not found'}</div>
           <a 
             href="/data-viewer" 

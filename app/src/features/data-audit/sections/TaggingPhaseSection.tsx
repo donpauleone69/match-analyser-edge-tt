@@ -18,7 +18,7 @@ export function TaggingPhaseSection({
     return (
       <div className="mb-8">
         <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-blue-500" />
+          <div className="w-3 h-3 rounded-full bg-callout-info" />
           TAGGING PHASE
         </h2>
         <div className="text-neutral-500 italic text-sm">
@@ -31,7 +31,7 @@ export function TaggingPhaseSection({
   return (
     <div className="mb-8">
       <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-        <div className="w-3 h-3 rounded-full bg-blue-500" />
+        <div className="w-3 h-3 rounded-full bg-callout-info" />
         TAGGING PHASE ({taggedRallies.length} rallies)
       </h2>
       

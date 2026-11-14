@@ -13,7 +13,7 @@ export function DataViewerAudit() {
     return (
       <div className="min-h-screen bg-neutral-950 flex items-center justify-center">
         <div className="text-center">
-          <div className="text-xl font-semibold mb-2 text-yellow-400">Missing Parameter</div>
+          <div className="text-xl font-semibold mb-2 text-callout-warning">Missing Parameter</div>
           <div className="text-sm text-neutral-400 mb-4">
             No matchId provided in URL
           </div>

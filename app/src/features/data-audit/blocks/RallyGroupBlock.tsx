@@ -39,7 +39,7 @@ export function RallyGroupBlock({
   const buttonPressed = getButtonPressed()
   
   return (
-    <div className="border-l-4 border-blue-500 pl-4 mb-6">
+    <div className="border-l-4 border-callout-info pl-4 mb-6">
       <h3 className="text-base font-semibold mb-3 flex items-center gap-3 flex-wrap">
         <span>📊 RALLY {rally.rally_index}</span>
         <span className="text-sm font-normal text-neutral-400">
@@ -79,8 +79,8 @@ export function RallyGroupBlock({
       
       {/* First rally only: show set update note */}
       {isFirstTaggedRally && (
-        <div className="mt-4 p-3 bg-blue-900/20 border border-blue-700 rounded text-sm">
-          <div className="font-semibold text-blue-400 mb-1">
+        <div className="mt-4 p-3 bg-callout-info-bg border border-callout-info-border rounded text-sm">
+          <div className="font-semibold text-callout-info mb-1">
             Set Record Updated (first rally):
           </div>
           <div className="font-mono text-xs text-neutral-300">

@@ -63,7 +63,7 @@ export function SchemaReferenceSection({
             <h3 className="text-lg font-semibold mb-3 text-neutral-300">
               📋 MATCH TABLE ({MATCH_PREPOPULATED_FIELDS.length} fields not touched)
             </h3>
-            <div className="text-xs text-yellow-400 mb-2 font-semibold">
+            <div className="text-xs text-callout-warning mb-2 font-semibold">
               ⚠️ Phase 1 does NOT modify the Match table - all fields are prepopulated
             </div>
             {matchRecord && (
@@ -88,7 +88,7 @@ export function SchemaReferenceSection({
                       <tr key={field.key} className="border-t border-border">
                         <td className="px-3 py-2 font-mono text-neutral-300">{field.key}</td>
                         <td className="px-3 py-2 font-mono text-neutral-500">{field.defaultValue}</td>
-                        <td className="px-3 py-2 font-mono text-blue-400">
+                        <td className="px-3 py-2 font-mono text-callout-info">
                           {matchRecord ? formatValue(actualValue) : '—'}
                         </td>
                         <td className="px-3 py-2 text-neutral-400">{field.description}</td>
@@ -127,7 +127,7 @@ export function SchemaReferenceSection({
                       <tr key={field.key} className="border-t border-border">
                         <td className="px-3 py-2 font-mono text-neutral-300">{field.key}</td>
                         <td className="px-3 py-2 font-mono text-neutral-500">{field.defaultValue}</td>
-                        <td className="px-3 py-2 font-mono text-blue-400">
+                        <td className="px-3 py-2 font-mono text-callout-info">
                           {sampleSet ? formatValue(actualValue) : '—'}
                         </td>
                         <td className="px-3 py-2 text-neutral-400">{field.description}</td>
@@ -166,7 +166,7 @@ export function SchemaReferenceSection({
                       <tr key={field.key} className="border-t border-border">
                         <td className="px-3 py-2 font-mono text-neutral-300">{field.key}</td>
                         <td className="px-3 py-2 font-mono text-neutral-500">{field.defaultValue}</td>
-                        <td className="px-3 py-2 font-mono text-blue-400">
+                        <td className="px-3 py-2 font-mono text-callout-info">
                           {sampleRally ? formatValue(actualValue) : '—'}
                         </td>
                         <td className="px-3 py-2 text-neutral-400">{field.description}</td>
@@ -205,7 +205,7 @@ export function SchemaReferenceSection({
                       <tr key={field.key} className="border-t border-border">
                         <td className="px-3 py-2 font-mono text-neutral-300">{field.key}</td>
                         <td className="px-3 py-2 font-mono text-neutral-500">{field.defaultValue}</td>
-                        <td className="px-3 py-2 font-mono text-blue-400">
+                        <td className="px-3 py-2 font-mono text-callout-info">
                           {sampleShot ? formatValue(actualValue) : '—'}
                         </td>
                         <td className="px-3 py-2 text-neutral-400">{field.description}</td>
@@ -226,7 +226,7 @@ export function SchemaReferenceSection({
               <strong className="text-neutral-300">Breakdown:</strong>
             </p>
             <ul className="list-disc list-inside mt-1 ml-2 space-y-1">
-              <li><strong className="text-yellow-400">Match:</strong> {MATCH_PREPOPULATED_FIELDS.length} fields (Phase 1 never modifies match table)</li>
+              <li><strong className="text-callout-warning">Match:</strong> {MATCH_PREPOPULATED_FIELDS.length} fields (Phase 1 never modifies match table)</li>
               <li><strong className="text-neutral-300">Set:</strong> {SET_PREPOPULATED_FIELDS.length} fields</li>
               <li><strong className="text-neutral-300">Rally:</strong> {RALLY_PREPOPULATED_FIELDS.length} fields</li>
               <li><strong className="text-neutral-300">Shot:</strong> {SHOT_PREPOPULATED_FIELDS.length} fields</li>
