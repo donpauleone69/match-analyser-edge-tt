@@ -6,6 +6,19 @@
 
 ## Change Log
 
+### 2026-11-14: MA-89 — Quiet rally/clip list density (v3.125.0)
+
+**Change Type:** UX declutter — shared list language for Rallies + Clips queue
+
+**What Changed:**
+- **RallyRow:** compact `R#` / `W|L` / `Inc` / flag count; drop duplicate Watch icon (row click watches); tighter padding.
+- **Clip queue + presets:** quieter borders, denser rows; hide empty clip subtitles.
+- **Work on:** hide empty miss-reasons CompareCard.
+
+**Decision Rationale:** Overnight Track B — lists should match tagging chrome density after MA-87/88.
+
+**Key Files:** `RallyRowBlock.tsx`, `ClipQueueBlock.tsx`, `ClipPresetListBlock.tsx`, `WorkOnSection.tsx`.
+
 ### 2026-11-14: MA-88 — Quiet Clips export/banner chrome (v3.124.0)
 
 **Change Type:** UX declutter — Clips reads like tagging chrome
