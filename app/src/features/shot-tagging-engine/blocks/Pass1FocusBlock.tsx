@@ -49,9 +49,6 @@ import {
   type ShotAttributeKey,
 } from '../composers/pass1FocusModel'
 
-/** Selected No Attack rail cell — strong red only when noFirstAttack (MA-76). */
-const NO_ATTACK_RED = '#dc2626'
-
 /** Phone / narrow Pass 1 — fewer stroke pills after wrap. */
 function useCompactPass1Strokes(): boolean {
   const [compact, setCompact] = useState(() =>
@@ -1121,7 +1118,11 @@ export function Pass1ShotMarkRail({
               )}
               style={
                 noAttackSelected
-                  ? { backgroundColor: NO_ATTACK_RED, borderColor: NO_ATTACK_RED, color: '#fff' }
+                  ? {
+                      backgroundColor: 'var(--color-no-attack)',
+                      borderColor: 'var(--color-no-attack)',
+                      color: 'var(--color-text-on-accent)',
+                    }
                   : {
                       backgroundColor: 'var(--color-pill-idle)',
                       borderColor: 'var(--color-pill-idle-border)',
@@ -1137,7 +1138,9 @@ export function Pass1ShotMarkRail({
                 'min-h-[0.75rem] text-[8px] font-black uppercase leading-none tracking-wide',
                 !noAttackSelected && 'text-muted'
               )}
-              style={noAttackSelected ? { color: NO_ATTACK_RED } : undefined}
+              style={
+                noAttackSelected ? { color: 'var(--color-no-attack)' } : undefined
+              }
             >
               Atk
             </span>

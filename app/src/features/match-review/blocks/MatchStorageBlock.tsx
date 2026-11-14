@@ -149,10 +149,10 @@ export function MatchStorageBlock({
           className={cn(
             'flex items-center gap-1.5',
             storage.sync === 'synced'
-              ? 'text-emerald-400'
+              ? 'text-result-winner'
               : storage.sync === 'changed'
-                ? 'text-amber-300'
-                : 'text-neutral-400'
+                ? 'text-callout-warning'
+                : 'text-muted'
           )}
         >
           <Icon name={storage.sync === 'never' ? 'cloud-off' : 'cloud'} size="sm" />
@@ -233,7 +233,7 @@ export function MatchStorageBlock({
                 <span className="font-semibold text-neutral-100">Set {v.setNumber}</span>
                 <span className="text-neutral-500 text-xs">{VIDEO_LABEL[v.availability]}</span>
                 {v.archivedLocally && (
-                  <span className="rounded bg-neutral-800 px-1.5 py-0.5 text-[10px] text-amber-300">
+                  <span className="rounded bg-callout-warning-bg px-1.5 py-0.5 text-[10px] text-callout-warning border border-callout-warning-border">
                     archived
                   </span>
                 )}
@@ -327,12 +327,12 @@ export function MatchStorageBlock({
                   </p>
                 )}
                 {v.availability === 'cloud' && (
-                  <p className="w-full text-[11px] text-amber-200/90">
+                  <p className="w-full text-[11px] text-callout-warning">
                     Cloud-only — download to tag offline.
                   </p>
                 )}
                 {v.availability === 'missing' && (
-                  <p className="w-full text-[11px] text-rose-300/90">
+                  <p className="w-full text-[11px] text-callout-danger">
                     Video missing — re-attach a file or restore from backup.
                   </p>
                 )}

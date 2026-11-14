@@ -314,16 +314,16 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--color-neutral-900);
+  background: var(--color-bg-shell);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-neutral-600);
+  background: var(--color-border-strong);
   border-radius: var(--radius-full);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-neutral-500);
+  background: color-mix(in srgb, var(--color-text) 45%, var(--color-border-strong));
 }
 
 /* ============================================

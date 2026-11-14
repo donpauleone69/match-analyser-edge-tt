@@ -20,7 +20,7 @@ const AVAILABILITY: Record<
   ReelRowModel['availability'],
   { icon: 'hard-drive' | 'cloud' | 'cloud-off'; label: string; tone: string }
 > = {
-  device: { icon: 'hard-drive', label: 'Device', tone: 'text-neutral-400' },
+  device: { icon: 'hard-drive', label: 'Device', tone: 'text-muted' },
   'device+cloud': { icon: 'cloud', label: 'Synced', tone: 'text-result-winner' },
   cloud: { icon: 'cloud', label: 'Cloud', tone: 'text-callout-info' },
   missing: { icon: 'cloud-off', label: 'Missing', tone: 'text-review' },
@@ -37,11 +37,11 @@ export function ReelListBlock({
 }: ReelListBlockProps) {
   if (reels.length === 0) return null
   const iconBtn =
-    'h-8 w-8 shrink-0 rounded-md border border-border flex items-center justify-center text-neutral-300 hover:border-neutral-400 hover:text-neutral-50 disabled:opacity-40 disabled:pointer-events-none'
+    'h-8 w-8 shrink-0 rounded-md border border-border flex items-center justify-center text-primary hover:border-border-strong disabled:opacity-40 disabled:pointer-events-none'
   return (
     <section className="space-y-2">
-      <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Saved reels</h3>
-      <ul className="divide-y divide-border rounded-lg border border-border overflow-hidden">
+      <h3 className="text-xs font-semibold uppercase tracking-wide text-muted">Saved reels</h3>
+      <ul className="divide-y divide-border rounded-lg border border-border overflow-hidden bg-bg-card">
         {reels.map((r) => {
           const a = AVAILABILITY[r.availability]
           const busy = busyAssetId === r.assetId
@@ -55,8 +55,8 @@ export function ReelListBlock({
               )}
             >
               <div className="min-w-0 flex-1">
-                <p className="text-sm text-neutral-100 truncate">{r.label}</p>
-                <p className="text-xs text-neutral-500 tabular-nums truncate">
+                <p className="text-sm text-primary truncate">{r.label}</p>
+                <p className="text-xs text-muted tabular-nums truncate">
                   {r.clipCount} · {r.durationLabel} · {r.sizeLabel}
                   <span className={cn('ml-1.5 inline-flex items-center gap-0.5', a.tone)}>
                     <Icon name={a.icon} size="xs" /> {a.label}

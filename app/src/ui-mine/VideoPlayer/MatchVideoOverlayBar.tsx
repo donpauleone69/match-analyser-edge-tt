@@ -14,7 +14,7 @@ const OVERLAY_TRANSPORT_CLASS =
 
 /** Trailing playlist / replay chips beside overlay transport (Clips, Rallies). */
 export const MATCH_VIDEO_OVERLAY_CHIP_CLASS =
-  'tag-control h-7 min-w-7 px-1.5 bg-black/70 text-white border-white/25 disabled:opacity-40'
+  'tag-control h-7 min-w-7 px-1.5 bg-video-scrim text-white border-video-scrim-border disabled:opacity-40'
 
 export interface MatchVideoOverlayBarProps
   extends Pick<
