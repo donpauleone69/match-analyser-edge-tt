@@ -6,6 +6,22 @@
 
 ## Change Log
 
+### 2026-11-14: MA-124 — Pass 1 History sheet polish (v3.164.0)
+
+**Change Type:** UX polish — Pass 1 / Simple History ledger sheet
+
+**What Changed:**
+- History opens as a capped sheet (`rounded-b-xl`, sticky header, `role="dialog"`) under the set bar.
+- Escape / icon dismiss; focused point scrolls into view; empty state when no points yet.
+- Point ordinals + clearer ★ highlight; Gap/1st quieter secondary; `overscroll-contain` list.
+- Cleaned unresolved merge conflict markers left in this addendum from #93 / MA-120 race.
+
+**Decision Rationale:** Overnight Track E MA-124 — sheet feel after MA-116 density; History stays a deliberate overlay, not a dump of rows.
+
+**Key Files:** `Pass1ChromeProtoBlock.tsx` (`Pass1PointLedgerBlock`), `specAddendumMVP.md`.
+
+---
+
 ### 2026-11-14: MA-127 — Playlist shell sticky chrome refine (v3.163.0)
 
 **Change Type:** UX polish — sticky browse stacking under Match Review
@@ -114,6 +130,7 @@
 **Decision Rationale:** Overnight Track A MA-111 — stage surfaces read as one product after MA-104 playlist chrome.
 
 **Key Files:** `ClipStageBlock.tsx`, `ClipQueueBlock.tsx`, `RallyPlayerBlock.tsx`, `EvidenceDrawerBlock.tsx`, `RallyEditComposer.tsx`, `themeTokens.test.ts`.
+
 
 ---
 
@@ -8864,12 +8881,15 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v3.164.0 | 2026-11-14 | MA-124: Pass 1 History sheet polish (dialog, Escape, ordinals, ★) |
 | v3.163.0 | 2026-11-14 | MA-127: Playlist shell sticky chrome — under-review offset + single sticky header |
 | v3.162.0 | 2026-11-14 | MA-128: DesignSystem SoT sync — callout + video-scrim + modal/panel families |
 | v3.161.0 | 2026-11-14 | MA-125: evidence drawer rows + Clips landing chrome cohesion |
 | v3.160.0 | 2026-11-14 | MA-123: residual raw paint — player/callout tokens on RallyCard/ShotList/audit |
 | v3.159.0 | 2026-11-14 | MA-121: Playlist shell Work-on trail polish + Fix return continuity |
 | v3.158.0 | 2026-11-14 | MA-119: quiet notices and status banners |
+| v3.159.0 | 2026-11-14 | MA-121: Playlist shell Work-on trail polish + Fix return continuity |
+| v3.158.0 | 2026-11-14 | MA-119: notice and banner quiet pass |
 | v3.157.0 | 2026-11-14 | MA-111: Clip/Rally/Edit stage chrome cohesion (muted tokens + edit rail) |
 | v3.156.1 | 2026-11-14 | MA-116: Done mid-point + History/Delete density |
 | v3.156.0 | 2026-11-14 | MA-120: scrub wash-strong + DataViewer borders/callout tokens |
