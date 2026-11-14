@@ -1,8 +1,9 @@
 /**
- * ServeReceiveDataSection — curated Serve / Receive Data (MA-82 → MA-115).
+ * ServeReceiveDataSection — curated Serve / Receive Data (MA-82 → MA-122).
  *
  * Flow: headlines → ≤2 cards → PlaylistBrowseShell focus → points →
  * watch (RallyPlayer + MatchVideoOverlayBar) or Clips playlist.
+ * MA-122: evidence ↔ playlist sync (clear, hint, soft-highlight).
  */
 
 import { useEffect, useMemo, useState } from 'react'
@@ -30,10 +31,12 @@ export interface ServeReceiveDataSectionProps {
   rallies: RallyRowModel[]
   multiSet: boolean
   activeEvidenceTitle: string | null
+  evidenceRallyIds?: string[] | null
   activeRallyId?: string | null
   /** URL `?focus=` deep-link into a playlist focus id */
   focusIdFromUrl?: string | null
   onFocusChange?: (focusId: string | null) => void
+  onClearEvidence?: () => void
   onBack: () => void
   onOpenEvidence: (evidence: EvidenceRef) => void
   onPlayPlaylist: (title: string, rallies: RallyRowModel[]) => void
@@ -64,6 +67,33 @@ function shortEvidenceLabel(title: string): string {
   return parts[parts.length - 1] || title
 }
 
+/** Prefer exact rally-set match, else smallest focus that covers all evidence ids. */
+function matchFocusForEvidence(
+  focuses: PlaylistFocusModel[],
+  evidence: EvidenceRef,
+  preferredId?: string | null
+): PlaylistFocusModel | null {
+  if (preferredId) {
+    const preferred = focuses.find((f) => f.id === preferredId && f.count > 0)
+    if (preferred) return preferred
+  }
+  const exact = focuses.find(
+    (f) =>
+      f.rallyIds.length === evidence.rallyIds.length &&
+      evidence.rallyIds.every((id) => f.rallyIds.includes(id))
+  )
+  if (exact) return exact
+  const covers = focuses
+    .filter(
+      (f) =>
+        f.id !== 'all' &&
+        f.count > 0 &&
+        evidence.rallyIds.every((id) => f.rallyIds.includes(id))
+    )
+    .sort((a, b) => a.count - b.count)
+  return covers[0] ?? null
+}
+
 export function ServeReceiveDataSection({
   section,
   villainName,
@@ -71,9 +101,11 @@ export function ServeReceiveDataSection({
   rallies,
   multiSet,
   activeEvidenceTitle,
+  evidenceRallyIds = null,
   activeRallyId = null,
   focusIdFromUrl = null,
   onFocusChange,
+  onClearEvidence,
   onBack,
   onOpenEvidence,
   onPlayPlaylist,
@@ -102,6 +134,18 @@ export function ServeReceiveDataSection({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [section.id, focusIdFromUrl])
 
+  // Evidence closed externally → drop synthetic from-evidence focus
+  useEffect(() => {
+    if (activeEvidenceTitle) return
+    if (focusId === EVIDENCE_FOCUS_ID) {
+      const fallback = baseFocuses[0]?.id ?? null
+      setFocusId(fallback)
+      onFocusChange?.(fallback)
+    }
+    setEvidenceFocus(null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeEvidenceTitle])
+
   const focuses = useMemo(() => {
     if (!evidenceFocus) return baseFocuses
     return [evidenceFocus, ...baseFocuses.filter((f) => f.id !== EVIDENCE_FOCUS_ID)]
@@ -127,6 +171,7 @@ export function ServeReceiveDataSection({
     if (f.id !== EVIDENCE_FOCUS_ID) {
       setEvidenceFocus(null)
       onFocusChange?.(f.id)
+      if (activeEvidenceTitle) onClearEvidence?.()
     } else {
       onFocusChange?.(null)
     }
@@ -134,14 +179,7 @@ export function ServeReceiveDataSection({
 
   const openEvidenceAndFocus = (evidence: EvidenceRef, headline?: HeadlineMetricModel) => {
     onOpenEvidence(evidence)
-    const byFocusId =
-      headline?.focusId && baseFocuses.find((f) => f.id === headline.focusId && f.count > 0)
-    const byRallySet = baseFocuses.find(
-      (f) =>
-        f.rallyIds.length === evidence.rallyIds.length &&
-        evidence.rallyIds.every((id) => f.rallyIds.includes(id))
-    )
-    const match = byFocusId ?? byRallySet
+    const match = matchFocusForEvidence(baseFocuses, evidence, headline?.focusId)
     if (match) {
       setEvidenceFocus(null)
       setFocusId(match.id)
@@ -173,6 +211,11 @@ export function ServeReceiveDataSection({
       onClick: () => onPlayPlaylist(playlistTitle, playlistRallies),
     })
   }
+
+  const evidenceOpen = Boolean(activeEvidenceTitle)
+  const shellContext = evidenceOpen
+    ? `Evidence · ${shortEvidenceLabel(activeEvidenceTitle!)} · playlist synced`
+    : `${section.title} · watch or open Clips`
 
   return (
     <div className="space-y-4">
@@ -230,7 +273,7 @@ export function ServeReceiveDataSection({
             )
           }
           meta={activeFocus?.count}
-          contextLabel={`${section.title} · watch or open Clips`}
+          contextLabel={shellContext}
           trail={trail}
           panelClassName="py-1 max-h-[min(42dvh,22rem)] overflow-y-auto overscroll-contain"
         >
@@ -250,6 +293,7 @@ export function ServeReceiveDataSection({
           heroName={heroName}
           multiSet={multiSet}
           activeRallyId={activeRallyId}
+          evidenceRallyIds={evidenceOpen ? evidenceRallyIds : null}
           hidePlayAll
           emptyLabel="No points in this focus yet."
           listHeading={activeFocus?.label ?? 'Points'}
