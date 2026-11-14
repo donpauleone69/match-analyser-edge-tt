@@ -1,0 +1,109 @@
+@import "tailwindcss";
+
+/* Proto theme — subset of app/src/index.css tokens (light default) */
+
+@theme {
+  --color-brand-primary: #14b8a6;
+  --color-brand-primary-hover: #0d9488;
+  --color-brand-primary-muted: rgb(20 184 166 / 0.15);
+
+  --color-text: #0f172a;
+  --color-text-muted: #475569;
+  --color-text-on-accent: #f8fafc;
+
+  --color-neutral-950: #f8fafc;
+  --color-neutral-900: #f1f5f9;
+  --color-neutral-850: #e8edf3;
+  --color-neutral-800: #e2e8f0;
+  --color-neutral-700: #cbd5e1;
+  --color-neutral-600: #94a3b8;
+  --color-neutral-500: #64748b;
+  --color-neutral-400: #475569;
+  --color-neutral-300: #334155;
+  --color-neutral-200: #1e293b;
+  --color-neutral-100: #0f172a;
+  --color-neutral-50: #020617;
+
+  --control-height: 1.625rem;
+  --control-px: 0.35rem;
+  --control-text: 0.625rem;
+  --control-radius: 0.25rem;
+  --control-gap: 0.2rem;
+
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+  --color-info: #3b82f6;
+
+  --color-border: #cbd5e1;
+  --color-border-strong: #94a3b8;
+  --color-pill-idle: #eef2f7;
+  --color-pill-idle-border: #cbd5e1;
+
+  --color-bg-app: #f4f6f9;
+  --color-bg-shell: #eef1f5;
+  --color-bg-surface: #ffffff;
+  --color-bg-card: #f8fafc;
+  --color-bg-elevated: #e8edf3;
+
+  --font-sans: "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", monospace;
+
+  --text-xs: 0.6875rem;
+  --text-xs--line-height: 1rem;
+  --text-sm: 0.8125rem;
+  --text-sm--line-height: 1.125rem;
+  --text-base: 0.9375rem;
+  --text-base--line-height: 1.375rem;
+  --text-lg: 1.0625rem;
+  --text-lg--line-height: 1.5rem;
+  --text-xl: 1.25rem;
+  --text-xl--line-height: 1.75rem;
+  --text-2xl: 1.5rem;
+  --text-2xl--line-height: 2rem;
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.08);
+  --shadow-md: 0 4px 6px rgba(15, 23, 42, 0.1);
+  --shadow-lg: 0 10px 15px rgba(15, 23, 42, 0.12);
+
+  --animate-micro: 150ms ease-out;
+}
+
+html {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  background-color: var(--color-bg-app);
+  color: var(--color-text);
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+#root {
+  height: 100%;
+  overflow: hidden;
+}
+
+.text-primary {
+  color: var(--color-text);
+}
+.text-muted {
+  color: var(--color-text-muted);
+}
+.text-brand {
+  color: var(--color-brand-primary);
+}
+.text-on-accent {
+  color: var(--color-text-on-accent);
+}
