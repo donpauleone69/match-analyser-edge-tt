@@ -16,6 +16,7 @@ import {
   Pass1SetContextBlock,
   Pass1PointLedgerBlock,
   Pass1ContactCaptureBlock,
+  Pass1LeaveDraftChoiceBlock,
   SimpleTaggingMatrixBlock,
   SimpleTaggingModePickerBlock,
 } from '../blocks'
@@ -238,6 +239,8 @@ export function SimpleTaggingComposer({
   /** Which point cube is outlined — past rally index, or 'next' (about to tag / open). */
   const [focusedRallyIndex, setFocusedRallyIndex] = useState<number | 'next'>('next')
   const [pointLedgerOpen, setPointLedgerOpen] = useState(false)
+  /** Mid-rally Leave: Keep draft vs Discard choice. */
+  const [leaveDraftChoiceOpen, setLeaveDraftChoiceOpen] = useState(false)
   /** Live element time for form playhead underline (avoids timeupdate lag). */
   const [liveTime, setLiveTime] = useState(0)
   /** Previous set’s last timed action — between-set gap jump on multi-set captures. */
@@ -245,6 +248,7 @@ export function SimpleTaggingComposer({
   const contactTimesRef = useRef(contactTimes)
   contactTimesRef.current = contactTimes
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const skipDraftPersistRef = useRef(false)
 
   /** Prefer the <video> element's clock over the ~4 Hz store sample. */
   const readVideoTime = () =>
@@ -426,6 +430,7 @@ export function SimpleTaggingComposer({
   useEffect(() => {
     if (!setId || !setReady) return
     if (phase !== 'tapping' && phase !== 'form') return
+    if (skipDraftPersistRef.current) return
     saveSimpleTaggingDraft({
       version: 1,
       setId,
@@ -844,7 +849,7 @@ export function SimpleTaggingComposer({
     if (!setId) return
     if (openRally || contactTimes.length > 0) {
       const ok = window.confirm(
-        'Discard the open rally and finish this set with Done? This closes the set.'
+        'Discard the open rally and finish this set with Done? This closes the set — use Leave if you only want to exit and resume later.'
       )
       if (!ok) return
     }
@@ -883,6 +888,35 @@ export function SimpleTaggingComposer({
     }
     const q = params.toString()
     navigate(`/matches/${matchId}${q ? `?${q}` : ''}`)
+  }
+
+  const exitToMatchReview = () => {
+    clearIdleTimer()
+    setLeaveDraftChoiceOpen(false)
+    navigate(`/matches/${matchId}`)
+  }
+
+  /** Soft exit. Mid-rally: Keep draft vs Discard. Between points: leave immediately. */
+  const handleReviewMatch = () => {
+    if (openRally || contactTimes.length > 0) {
+      setLeaveDraftChoiceOpen(true)
+      return
+    }
+    exitToMatchReview()
+  }
+
+  const handleLeaveKeepDraft = () => {
+    exitToMatchReview()
+  }
+
+  const handleLeaveDiscardDraft = () => {
+    skipDraftPersistRef.current = true
+    if (setId) clearSimpleTaggingDraft(setId)
+    setOpenRally(null)
+    setContactTimes([])
+    setSelectedShot(null)
+    setReviewDetailFocused(false)
+    exitToMatchReview()
   }
 
   /** Seek to shot `n`'s loop start and play; selected-shot loop keeps cycling unless review-focused. */
@@ -1258,38 +1292,16 @@ export function SimpleTaggingComposer({
       onToggleHistory={() => setPointLedgerOpen((open) => !open)}
       canEndSet={canEndSet}
       onEndSet={() => void handleEndSession()}
+      onReviewMatch={handleReviewMatch}
     />
   )
 
+  /** Form actions under persistent set bar — Serve / Done / Leave live on setContextBar. */
   const formChromeRow =
     openRally && phase === 'form' ? (
-      <div className="shrink-0 flex min-h-10 items-center gap-1 border-t border-b border-pill-idle-border bg-bg-card px-1.5 py-1 text-[length:var(--control-text)]">
-        <button
-          type="button"
-          onClick={() =>
-            void handleSetServer(openServerId === 'player1' ? 'player2' : 'player1')
-          }
-          className={cn(
-            tagBtn,
-            'min-w-0 max-w-[6.75rem] shrink-0 gap-1 font-bold',
-            openServerId === 'player1'
-              ? 'bg-player-1-bg border-player-1 text-primary'
-              : 'bg-player-2-bg border-player-2 text-primary'
-          )}
-          title={`Rally server: ${serverName}. Tap to switch.`}
-          aria-label={`Rally server: ${serverName}. Tap to switch.`}
-        >
-          <span
-            className={cn(
-              'h-1.5 w-1.5 shrink-0 rounded-full',
-              openServerId === 'player1' ? 'bg-player-1' : 'bg-player-2'
-            )}
-            aria-hidden
-          />
-          <span className="truncate">Serve · {serverName}</span>
-        </button>
-        <span className="min-w-0 flex-1 truncate px-1 text-center text-[10px] font-semibold text-primary">
-          Point in progress
+      <div className="shrink-0 flex min-h-10 items-center gap-1 border-b border-border bg-bg-card px-1.5 py-1 text-[length:var(--control-text)]">
+        <span className="min-w-0 flex-1 truncate px-1 text-[10px] font-semibold text-muted">
+          Matrix · Offensive · End · Review
         </span>
         <button
           type="button"
@@ -1446,7 +1458,8 @@ export function SimpleTaggingComposer({
           </div>
         ) : (
           <div className="relative flex flex-col flex-1 min-h-0">
-            {/* One combined row: Serve·Hero + Let / Discard / Save */}
+            {/* Persistent set chrome through form; slim Let·Discard·Save below. */}
+            {setContextBar}
             {formChromeRow}
             {pointLedger}
             {openRally && (
@@ -1479,6 +1492,13 @@ export function SimpleTaggingComposer({
           </div>
         )}
       </div>
+
+      <Pass1LeaveDraftChoiceBlock
+        open={leaveDraftChoiceOpen}
+        onKeepDraft={handleLeaveKeepDraft}
+        onDiscard={handleLeaveDiscardDraft}
+        onCancel={() => setLeaveDraftChoiceOpen(false)}
+      />
     </div>
   )
 }
@@ -1486,7 +1506,7 @@ export function SimpleTaggingComposer({
 /** Contact-phase chrome: shot rail under the set context bar (flush with capture pad). */
 function TaggingSessionBar({ captureRail }: { captureRail: ReactNode }) {
   return (
-    <div className="shrink-0 border-t border-pill-idle-border bg-bg-card">
+    <div className="shrink-0 border-t border-border bg-bg-card">
       <div className="px-1.5 pt-1 pb-0">{captureRail}</div>
     </div>
   )

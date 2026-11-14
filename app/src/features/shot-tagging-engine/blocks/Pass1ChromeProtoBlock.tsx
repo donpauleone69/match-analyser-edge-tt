@@ -121,7 +121,7 @@ export function Pass1SetContextBlock({
   const otherServerName = serverId === 'player1' ? player2Name : player1Name
 
   return (
-    <div className="shrink-0 flex min-h-10 items-center gap-1 border-t border-pill-idle-border bg-bg-card px-1.5 py-1">
+    <div className="shrink-0 flex min-h-10 items-center gap-1 border-t border-border bg-bg-card px-1.5 py-1">
       {onJumpPrevSetEnd && !navigationLocked && (
         <button
           type="button"
@@ -336,7 +336,7 @@ export function Pass1PointLedgerBlock({
       onClick={onClose}
     >
       <section
-        className="border-y border-pill-idle-border bg-bg-card px-2 py-1.5 shadow-xl"
+        className="border-y border-border bg-bg-card px-2 py-1.5 shadow-xl"
         aria-label="Point history"
         onClick={(event) => event.stopPropagation()}
       >
@@ -373,7 +373,7 @@ export function Pass1PointLedgerBlock({
                 onClick={() => onSelectCompleted(point.rallyIndex)}
                 className={cn(
                   'flex min-w-0 items-center gap-2 rounded-md border bg-bg-surface px-2 py-1.5 text-left',
-                  focused ? 'border-contact-selected' : 'border-pill-idle-border'
+                  focused ? 'border-contact-selected' : 'border-border'
                 )}
                 title={`Point won by ${point.winnerName}; ${point.player1ScoreAfter}–${point.player2ScoreAfter}; ${nameOf(point.serverId)} served`}
               >
@@ -406,7 +406,7 @@ export function Pass1PointLedgerBlock({
               'flex min-w-0 items-center gap-2 rounded-md border border-dashed bg-bg-elevated px-2 py-1.5 text-left',
               focusedRallyIndex === 'next'
                 ? 'border-contact-selected'
-                : 'border-pill-idle-border'
+                : 'border-border'
             )}
           >
               <span
