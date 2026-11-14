@@ -6,6 +6,22 @@
 
 ## Change Log
 
+### 2026-11-14: MA-121 — Playlist shell Work-on trail polish (v3.159.0)
+
+**Change Type:** UX polish — Work on ↔ Clips ↔ Fix trail
+
+**What Changed:**
+- `PlaylistBrowseShellBlock` trail splits **return** (Work on / Stay) vs **actions** (Fix) with a quiet hairline; Fix is icon-only on phone when Work-on chrome is present.
+- Stay is always offered on Work-on arrival (dismiss trail, keep playlist).
+- Empty playlist no longer duplicates the Work on button (sticky trail owns it).
+- **Fix tags** / stage Edit pass `from=workon` + `clip` / `clipTitle` / `at` so Rally Edit Done returns to the same Clips playlist with the Work-on trail intact (direct Work on → Fix still returns to Work on).
+
+**Decision Rationale:** Overnight Track C MA-121 after #95 — continuous Work on ↔ playlists ↔ tags without losing the sticky trail.
+
+**Key Files:** `PlaylistBrowseShellBlock.tsx`, `ClipsComposer.tsx`, `RallyEditComposer.tsx`.
+
+---
+
 ### 2026-11-14: MA-119 — Notice and banner quiet pass (v3.158.0)
 
 **Change Type:** UX declutter — dismissible notices + status banners
@@ -80,6 +96,7 @@
 **Decision Rationale:** Overnight Track D MA-115 — stats card polish after PlaylistBrowseShell landed; fewer denser numbers that still open evidence → playlist.
 
 **Key Files:** `CompareCardBlock.tsx`, `HeadlineMetricsBlock.tsx`, `buildServeReceiveCards.ts`, `ServeReceiveDataSection.tsx`, `models.ts`.
+
 
 ---
 
@@ -8784,6 +8801,7 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v3.159.0 | 2026-11-14 | MA-121: Playlist shell Work-on trail polish + Fix return continuity |
 | v3.157.0 | 2026-11-14 | MA-111: Clip/Rally/Edit stage chrome cohesion (muted tokens + edit rail) |
 | v3.156.0 | 2026-11-14 | MA-120: scrub wash-strong + DataViewer borders/callout tokens |
 | v3.155.0 | 2026-11-14 | MA-115: Serve/Receive stats card polish — denser cards + headline detail/focus |
