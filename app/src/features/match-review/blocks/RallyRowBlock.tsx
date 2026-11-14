@@ -13,6 +13,8 @@ export interface RallyRowBlockProps {
   /** Show "Set N ·" in the label (multi-set matches) */
   showSet?: boolean
   active?: boolean
+  /** Soft highlight when this point is in the open evidence set (MA-122) */
+  evidenceLinked?: boolean
   onWatch: (rally: RallyRowModel) => void
   onEdit: (rally: RallyRowModel) => void
   onToggleHighlight: (rally: RallyRowModel) => void
@@ -24,6 +26,7 @@ export function RallyRowBlock({
   heroName,
   showSet = false,
   active = false,
+  evidenceLinked = false,
   onWatch,
   onEdit,
   onToggleHighlight,
@@ -35,6 +38,7 @@ export function RallyRowBlock({
     <li
       className={cn(
         'flex items-center gap-1.5 px-2 py-1.5 bg-bg-card',
+        evidenceLinked && !active && 'bg-bg-elevated/70',
         active && 'bg-contact-selected-bg ring-1 ring-inset ring-contact-selected/50'
       )}
     >

@@ -597,11 +597,13 @@ export function MatchReviewComposer() {
         <SummarySection
           review={review}
           activeEvidenceTitle={evidence?.title ?? null}
+          evidenceRallyIds={evidence?.rallyIds ?? null}
           categoryId={categoryId}
           focusId={focusId}
           onSelectCategory={(id) => setParams({ cat: id, tab: null, focus: null })}
           onFocusChange={(id) => setParams({ focus: id })}
           onOpenEvidence={openEvidence}
+          onClearEvidence={() => setEvidence(null)}
           activeRallyId={playerRally?.id ?? null}
           onPlayCategoryPlaylist={(title, rallies) => {
             setParams({
@@ -722,6 +724,11 @@ export function MatchReviewComposer() {
           subtitle={evidence.subtitle}
           count={evidenceRallies.length}
           canPlayAll={evidenceRallies.length > 1}
+          playlistHint={
+            categoryId === 'B' || categoryId === 'C'
+              ? 'Focus playlist below is synced — watch there or open Clips'
+              : null
+          }
           onPlayAll={() => {
             setParams({
               tab: 'clips',

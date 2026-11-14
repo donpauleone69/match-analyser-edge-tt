@@ -21,6 +21,10 @@ export interface OverviewSectionProps {
   onSelectCategory: (id: string | null) => void
   onFocusChange?: (focusId: string | null) => void
   onOpenEvidence: (evidence: EvidenceRef) => void
+  /** Close evidence drawer (Serve/Receive focus change) */
+  onClearEvidence?: () => void
+  /** Rally ids in the open evidence set (playlist soft-highlight) */
+  evidenceRallyIds?: string[] | null
   activeRallyId?: string | null
   onPlayCategoryPlaylist: (title: string, rallies: RallyRowModel[]) => void
   onWatchRally: (rally: RallyRowModel, playlist: RallyRowModel[], title: string) => void
@@ -40,6 +44,8 @@ export function OverviewSection({
   onSelectCategory,
   onFocusChange,
   onOpenEvidence,
+  onClearEvidence,
+  evidenceRallyIds = null,
   activeRallyId = null,
   onPlayCategoryPlaylist,
   onWatchRally,
@@ -65,9 +71,11 @@ export function OverviewSection({
         rallies={review.rallies}
         multiSet={multiSet}
         activeEvidenceTitle={activeEvidenceTitle}
+        evidenceRallyIds={evidenceRallyIds}
         activeRallyId={activeRallyId}
         focusIdFromUrl={focusId}
         onFocusChange={onFocusChange}
+        onClearEvidence={onClearEvidence}
         onBack={() => onSelectCategory(null)}
         onOpenEvidence={onOpenEvidence}
         onPlayPlaylist={onPlayCategoryPlaylist}

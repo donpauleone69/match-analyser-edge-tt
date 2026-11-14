@@ -14,6 +14,8 @@ export interface SummarySectionProps {
   onSelectCategory: (id: string | null) => void
   onFocusChange?: (focusId: string | null) => void
   onOpenEvidence: (evidence: EvidenceRef) => void
+  onClearEvidence?: () => void
+  evidenceRallyIds?: string[] | null
   activeRallyId?: string | null
   onPlayCategoryPlaylist: (title: string, rallies: RallyRowModel[]) => void
   onWatchRally: (rally: RallyRowModel, playlist: RallyRowModel[], title: string) => void

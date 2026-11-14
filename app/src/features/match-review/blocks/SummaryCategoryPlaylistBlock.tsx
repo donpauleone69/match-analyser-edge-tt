@@ -1,5 +1,6 @@
 /**
  * SummaryCategoryPlaylistBlock — Clips-like list of points for a Summary category.
+ * MA-122: quieter tokens; optional evidence-linked row highlight.
  */
 
 import { Button, Icon } from '@/ui-mine'
@@ -20,6 +21,8 @@ export interface SummaryCategoryPlaylistBlockProps {
   hidePlayAll?: boolean
   listHeading?: string
   emptyLabel?: string
+  /** Soft-highlight rows that belong to the open evidence set */
+  evidenceRallyIds?: string[] | null
 }
 
 export function SummaryCategoryPlaylistBlock({
@@ -35,7 +38,11 @@ export function SummaryCategoryPlaylistBlock({
   hidePlayAll = false,
   listHeading = 'Points for you',
   emptyLabel = 'No points in this focus yet.',
+  evidenceRallyIds = null,
 }: SummaryCategoryPlaylistBlockProps) {
+  const evidenceSet =
+    evidenceRallyIds && evidenceRallyIds.length > 0 ? new Set(evidenceRallyIds) : null
+
   if (rallies.length === 0) {
     return (
       <div className="rounded-lg border border-dashed border-border px-3 py-3 text-sm text-muted text-center">
@@ -60,6 +67,12 @@ export function SummaryCategoryPlaylistBlock({
           )}
         </div>
       )}
+      {hidePlayAll && (
+        <p className="text-[10px] text-muted tabular-nums px-0.5">
+          {rallies.length} point{rallies.length === 1 ? '' : 's'}
+          {evidenceSet ? ' · linked to open evidence' : ''}
+        </p>
+      )}
       <ul className="rounded-lg border border-border overflow-hidden divide-y divide-border">
         {rallies.map((r) => (
           <RallyRowBlock
@@ -68,6 +81,7 @@ export function SummaryCategoryPlaylistBlock({
             heroName={heroName}
             showSet={multiSet}
             active={activeRallyId === r.id}
+            evidenceLinked={Boolean(evidenceSet?.has(r.id))}
             onWatch={(rally) => onWatch(rally, rallies)}
             onEdit={onEdit}
             onToggleHighlight={onToggleHighlight}
