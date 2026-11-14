@@ -220,12 +220,18 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
     setSearchParams(next, { replace: true })
   }
 
-  /** Fix tags — keep arrival trail so Done returns to this playlist. */
+  /**
+   * Fix tags — round-trip playlist + trail so Done lands on the same clip
+   * (MA-121 / MA-131 / MA-137). Prefer the *current* clip identity for `at`,
+   * not the original deep-link, so queue index follows the clip you fixed.
+   */
   const openFixTags = (clip: {
     matchId: string
     setNumber: number
     rallyIndex: number
     shotIndex?: number | null
+    shotId?: string | null
+    rallyId: string
   }) => {
     const q = new URLSearchParams({
       set: String(clip.setNumber),
@@ -233,10 +239,11 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
       from: trailFrom ?? 'clips',
     })
     if (clip.shotIndex != null) q.set('shot', String(clip.shotIndex))
-    // Round-trip playlist context for edit → back into Clips with trail intact.
     if (activeKey) q.set('clip', activeKey)
-    if (clipTitleParam) q.set('clipTitle', clipTitleParam)
-    if (atParam) q.set('at', atParam)
+    const title = clipTitleParam ?? (reel ? reel.label : playlistLabel)
+    if (title) q.set('clipTitle', title)
+    const at = clip.shotId || clip.rallyId
+    if (at) q.set('at', at)
     navigate(`/matches/${clip.matchId}/edit-rally?${q.toString()}`)
   }
 
