@@ -88,7 +88,7 @@ export function MatchScoreHud({
   return (
     <div
       className={cn(
-        'inline-block overflow-hidden rounded-md border border-white/20 bg-black/80 text-white backdrop-blur-sm select-none',
+        'inline-block overflow-hidden rounded-md border border-video-scrim-border bg-video-scrim text-white backdrop-blur-sm select-none',
         compact
           ? showSets
             ? 'h-7 min-w-[5.75rem] max-w-[7.5rem] shadow-md'

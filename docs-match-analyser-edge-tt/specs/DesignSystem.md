@@ -37,6 +37,19 @@
 
 ## 2. Color System
 
+> **SoT for live values:** `app/src/index.css` `@theme` (light pastel tagging). Tables below are historical dark-era notes — prefer CSS tokens / `themeTokens.test.ts` for overnight A–E work.
+
+### 2.0 Light cohesion tokens (MA-84)
+
+| Family | Tokens | Use |
+|--------|--------|-----|
+| Text | `text`, `text-muted`, `text-on-accent` | Two ink roles + fills |
+| Surfaces | `bg-app/shell/surface/card/elevated` | Paper elevation |
+| Match paint | `player-*`, `shot-*`, `result-*`, `contact-*`, `review`, `pill-idle*` | Pass 1 / Review / Clips |
+| Callouts | `callout-warning*`, `callout-danger*`, `callout-info*` | Incomplete, sync conflict, cloud — not raw amber/sky/rose |
+| Chrome | `border`, `border-strong`, `video-scrim*` | Lists + overlay HUD |
+| Controls | `--control-height/px/text/gap/radius`, `.tag-control` | Shared density |
+
 ### 2.1 Brand Palette
 
 | Token | Hex | Usage |

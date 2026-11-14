@@ -39,6 +39,19 @@ describe('shared match color tokens', () => {
       '--color-pill-idle',
       '--color-pill-idle-border',
       '--color-pill-idle-text',
+      '--color-border',
+      '--color-border-strong',
+      '--color-callout-warning',
+      '--color-callout-warning-bg',
+      '--color-callout-warning-border',
+      '--color-callout-danger',
+      '--color-callout-danger-bg',
+      '--color-callout-info',
+      '--color-callout-info-bg',
+      '--color-no-attack',
+      '--color-video-scrim',
+      '--color-video-scrim-border',
+      '--control-gap',
     ]
 
     for (const token of required) {
@@ -107,14 +120,30 @@ describe('shared match color tokens', () => {
       './features/match-review/blocks/CompareCardBlock.tsx',
       './features/match-review/sections/WorkOnSection.tsx',
       './features/match-review/blocks/ReviewPatternBlock.tsx',
+      './features/match-review/blocks/TabBarBlock.tsx',
+      './features/match-review/blocks/RallyRowBlock.tsx',
+      './features/match-review/blocks/TakeawaysBlock.tsx',
+      './features/match-review/blocks/MatchContextBlock.tsx',
+      './features/match-review/blocks/MatchStorageBlock.tsx',
+      './features/match-review/sections/OverviewSection.tsx',
+      './features/clips/blocks/ClipStageBlock.tsx',
+      './features/clips/blocks/ClipPresetListBlock.tsx',
+      './features/clips/blocks/ReelListBlock.tsx',
+      './ui-mine/VideoPlayer/TransportCluster.tsx',
       './features/shot-tagging-engine/composers/Pass1FocusComposer.tsx',
     ]
 
     for (const path of reviewedSurfaces) {
       expect(
         source(path),
-        `${path} bypasses semantic outcome/review tokens`
-      ).not.toMatch(/\b(?:emerald|rose|amber)-\d/)
+        `${path} bypasses semantic outcome/review/callout tokens`
+      ).not.toMatch(/\b(?:emerald|rose|amber|sky|cyan|violet|purple|indigo)-\d/)
     }
+  })
+
+  it('avoids purple-on-white AI-default brand drift in core tokens', () => {
+    const brand = css.match(/--color-brand-primary:\s*([^;]+);/)?.[1]?.trim() ?? ''
+    expect(brand.toLowerCase()).not.toMatch(/#(7c3aed|8b5cf6|a855f7|6366f1|4f46e5)\b/i)
+    expect(css).toContain('--color-brand-primary: #14b8a6')
   })
 })

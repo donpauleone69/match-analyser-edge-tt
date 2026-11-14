@@ -116,7 +116,7 @@ export function MatchContextBlock({
           {!draft.showNewOpponent ? (
             <button
               type="button"
-              className="text-xs text-callout-info hover:opacity-90"
+              className="text-xs text-callout-info hover:text-brand-primary"
               onClick={() => onChange({ showNewOpponent: true })}
             >
               + New opponent
@@ -190,7 +190,7 @@ export function MatchContextBlock({
           {!draft.showNewTournament ? (
             <button
               type="button"
-              className="text-xs text-callout-info hover:opacity-90"
+              className="text-xs text-callout-info hover:text-brand-primary"
               onClick={() => onChange({ showNewTournament: true })}
             >
               + New tournament

@@ -63,14 +63,14 @@ export function TransportCluster({
   const toggleMuted = useVideoPlaybackStore((s) => s.toggleMuted)
   const overlay = variant === 'overlay'
   const btn = overlay
-    ? 'tag-control h-8 w-8 px-0 bg-black/70 text-white border-white/25 disabled:opacity-40'
-    : 'h-10 min-w-10 px-3 rounded-md border border-neutral-600 text-neutral-100 flex items-center justify-center gap-1.5 text-sm hover:border-neutral-400 disabled:opacity-40 disabled:pointer-events-none'
+    ? 'tag-control h-8 w-8 px-0 bg-video-scrim text-white border-video-scrim-border disabled:opacity-40'
+    : 'h-10 min-w-10 px-3 rounded-md border border-border text-primary flex items-center justify-center gap-1.5 text-sm hover:border-border-strong disabled:opacity-40 disabled:pointer-events-none'
   const playBtn = overlay
     ? 'tag-control h-8 min-w-8 px-2 bg-brand-primary text-on-accent border-brand-primary disabled:opacity-40'
     : btn
   const speedChip = overlay
-    ? 'inline-flex h-8 min-w-[2.25rem] items-center justify-center text-center text-[11px] font-bold text-white tabular-nums bg-black/70 rounded-md px-1.5 border border-white/20'
-    : 'h-10 min-w-10 px-3 rounded-md border border-neutral-600 text-neutral-100 flex items-center justify-center text-sm tabular-nums'
+    ? 'inline-flex h-8 min-w-[2.25rem] items-center justify-center text-center text-[11px] font-bold text-white tabular-nums bg-video-scrim rounded-md px-1.5 border border-video-scrim-border'
+    : 'h-10 min-w-10 px-3 rounded-md border border-border text-primary flex items-center justify-center text-sm tabular-nums'
 
   return (
     <div className={cn('flex items-center gap-1', className)}>

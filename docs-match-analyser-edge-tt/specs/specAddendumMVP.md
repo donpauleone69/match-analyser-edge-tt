@@ -6,6 +6,7 @@
 
 ## Change Log
 
+<<<<<<< HEAD
 ### 2026-11-14: MA-99 — Tagging flow visual polish (v3.136.0)
 
 **Change Type:** UX polish — Pass 1 contacts / rail / guiding dialog
@@ -18,6 +19,24 @@
 **Decision Rationale:** Overnight Track E MA-99 — tagging flow visual polish after MA-96.
 
 **Key Files:** `Pass1FocusBlock.tsx`, `Pass1ContactCaptureBlock.tsx`, `pass1FocusModel.ts`, Pass1/Simple composers.
+=======
+### 2026-11-14: MA-84 — Theme token cohesion remainder (v3.136.0)
+
+**Change Type:** Design tokens + Review/Clips/transport paint
+
+**What Changed:**
+- Pass 1 No Attack uses `--color-no-attack` (no raw hex).
+- TransportCluster + `MATCH_VIDEO_OVERLAY_CHIP_CLASS` + MatchScoreHud on `video-scrim*` tokens.
+- Review/Clips residual surfaces on `callout-*` / `border*` (after MA-93 landed shared CSS vars).
+- Scrollbar uses border tokens on light paper.
+- Extended `themeTokens.test.ts`; DesignSystem §2.0 notes `index.css` as SoT.
+
+**Decision Rationale:** Overnight theme glue — finish A–E cohesion after callout tokens landed via MA-93; unblock #65 rebase race.
+
+**Key Files:** `index.css`, `themeTokens.test.ts`, `Pass1FocusBlock.tsx`, Match Review / Clips blocks, `TransportCluster.tsx`, `MatchVideoOverlayBar.tsx`.
+
+---
+>>>>>>> c5da9ed (MA-84: Theme cohesion remainder on tip of main (v3.134.0))
 
 ---
 
@@ -49,7 +68,6 @@
 
 **Key Files:** `matchVideoMute.ts`, `MatchScoreHud.tsx`, Pass1/Simple/RallyEdit/Clips/MatchReview composers.
 
-
 ### 2026-11-14: MA-96 — Contacts / scrub / Pass 1 cohesion (v3.133.0)
 
 **Change Type:** UX cohesion — Pass 1 + Simple contacts + shared scrub
@@ -78,7 +96,6 @@
 **Decision Rationale:** Overnight Track D iterate — align with overlay + playlist browse (History disclosure until Track C shell lands).
 
 **Key Files:** `ServeReceiveDataSection.tsx`, `PlaylistFocusPickerBlock.tsx`, `HeadlineMetricsBlock.tsx`, `SummaryCategoryPlaylistBlock.tsx`, `buildServeReceiveCards.ts`.
-
 
 ---
 
@@ -188,6 +205,8 @@
 **Decision Rationale:** Overnight Track B — lists should match tagging chrome density after MA-87/88.
 
 **Key Files:** `RallyRowBlock.tsx`, `ClipQueueBlock.tsx`, `ClipPresetListBlock.tsx`, `WorkOnSection.tsx`.
+
+---
 
 
 ### 2026-11-14: MA-88 — Quiet Clips export/banner chrome (v3.124.0)
@@ -8045,6 +8064,7 @@ rally_end_role → errorType
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v3.136.0 | 2026-11-14 | MA-84: theme remainder — video-scrim + no-attack + token tests |
 | v2.1.0 | 2025-12-06 | Initial persistence layer implementation |
 | v2.1.1 | 2025-12-06 | Critical bug fixes for resume functionality |
 | v2.1.2 | 2025-12-06 | Comprehensive persistence refinement with full logging |
@@ -8405,10 +8425,20 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 
 | Version | Date | Changes |
 |---------|------|---------|
+<<<<<<< HEAD
 | v3.136.0 | 2026-11-14 | MA-99: tagging dialog/rail/contacts visual polish + scrub→History |
+=======
+| v3.135.0 | 2026-11-14 | MA-97: quiet Home/nav IA and list border tokens |
+| v3.134.0 | 2026-11-14 | MA-95: mute policy + score HUD cohesion across surfaces |
+>>>>>>> c5da9ed (MA-84: Theme cohesion remainder on tip of main (v3.134.0))
 | v3.133.0 | 2026-11-14 | MA-96: contacts pad server edge + scrub draft stripe/pastel + drop duplicate stage banner |
+| v3.132.0 | 2026-11-14 | MA-94: Serve/Receive polish with History focus picker |
+| v3.131.0 | 2026-11-14 | MA-93: Quiet notices + theme callout cohesion |
 | v3.130.0 | 2026-11-14 | MA-92: contacts pad flush + scrub playhead/marks readability + open-draft range |
-| v3.126.0 | 2026-11-14 | MA-83: contacts pad refine + colour-coded rally marks on shared video scrub |
+| v3.129.0 | 2026-11-14 | MA-90: Overlay cohesion on Clips / Review |
+| v3.128.0 | 2026-11-14 | MA-82: curated Serve/Receive Data pages |
+| v3.127.0 | 2026-11-14 | MA-91: Quiet evidence / tabs / reels chrome |
+| v3.126.0 | 2026-11-14 | MA-83: contacts pad + colour-coded scrub marks |
 | v3.84.0 | 2026-11-13 | MA-34: hide Training from bottom nav; Account entry |
 | v3.83.0 | 2026-11-13 | MA-33: Review header Tag-only density; drop Clips/Rallies badges |
 | v3.82.0 | 2026-11-13 | MA-32: Find-matches sync badges; cloud-only download copy |

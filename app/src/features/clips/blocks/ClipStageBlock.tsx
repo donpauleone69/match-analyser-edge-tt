@@ -106,7 +106,7 @@ export const ClipStageBlock = forwardRef<VideoPlayerHandle, ClipStageBlockProps>
       <div className="rounded-lg border border-border bg-bg-card overflow-hidden">
         <div className="flex items-center gap-2 px-3 py-2 border-b border-border">
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] text-neutral-500 truncate">
+            <p className="text-[11px] text-muted truncate">
               {heading}
               {total > 0 && (
                 <span className="tabular-nums">
@@ -115,9 +115,9 @@ export const ClipStageBlock = forwardRef<VideoPlayerHandle, ClipStageBlockProps>
                 </span>
               )}
             </p>
-            <p className="text-sm font-semibold text-neutral-50 truncate">
+            <p className="text-sm font-semibold text-primary truncate">
               {title}
-              {subtitle && <span className="ml-2 font-normal text-neutral-400">{subtitle}</span>}
+              {subtitle && <span className="ml-2 font-normal text-muted">{subtitle}</span>}
             </p>
           </div>
           {videoOrigin && (
@@ -125,8 +125,8 @@ export const ClipStageBlock = forwardRef<VideoPlayerHandle, ClipStageBlockProps>
               className={cn(
                 'hidden sm:inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px]',
                 videoOrigin === 'cloud'
-                  ? 'bg-callout-info-bg text-callout-info'
-                  : 'bg-neutral-800 text-neutral-400'
+                  ? 'bg-callout-info-bg text-callout-info border border-callout-info-border'
+                  : 'bg-bg-elevated text-muted'
               )}
               title={videoOrigin === 'cloud' ? 'Streaming from your cloud backup' : 'Playing from this device'}
             >
@@ -221,12 +221,14 @@ export const ClipStageBlock = forwardRef<VideoPlayerHandle, ClipStageBlockProps>
 
         <div className="px-4 py-2.5 flex flex-wrap items-center gap-2">
           {showWindowToggle && (
-            <div className="flex rounded-md border border-neutral-600 overflow-hidden text-xs">
+            <div className="flex rounded-md border border-border overflow-hidden text-xs">
               <button
                 type="button"
                 className={cn(
                   'px-2.5 h-9 transition-colors',
-                  playbackMode === 'rally' ? 'bg-neutral-600 text-neutral-50' : 'text-neutral-400 hover:text-neutral-100'
+                  playbackMode === 'rally'
+                    ? 'bg-contact-selected-bg text-contact-selected'
+                    : 'text-muted hover:text-primary'
                 )}
                 onClick={() => onPlaybackModeChange('rally')}
               >
@@ -236,8 +238,10 @@ export const ClipStageBlock = forwardRef<VideoPlayerHandle, ClipStageBlockProps>
               <button
                 type="button"
                 className={cn(
-                  'px-2.5 h-9 transition-colors border-l border-neutral-600',
-                  playbackMode === 'shot' ? 'bg-neutral-600 text-neutral-50' : 'text-neutral-400 hover:text-neutral-100'
+                  'px-2.5 h-9 transition-colors border-l border-border',
+                  playbackMode === 'shot'
+                    ? 'bg-contact-selected-bg text-contact-selected'
+                    : 'text-muted hover:text-primary'
                 )}
                 onClick={() => onPlaybackModeChange('shot')}
               >
@@ -246,7 +250,7 @@ export const ClipStageBlock = forwardRef<VideoPlayerHandle, ClipStageBlockProps>
             </div>
           )}
           {clipMode && (
-            <label className="flex items-center gap-2 text-xs text-neutral-400 select-none cursor-pointer">
+            <label className="flex items-center gap-2 text-xs text-muted select-none cursor-pointer">
               <input type="checkbox" checked={autoAdvance} onChange={onToggleAutoAdvance} className="accent-brand-primary" />
               Play through
             </label>
