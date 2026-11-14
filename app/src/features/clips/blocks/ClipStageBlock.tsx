@@ -124,7 +124,9 @@ export const ClipStageBlock = forwardRef<VideoPlayerHandle, ClipStageBlockProps>
             <span
               className={cn(
                 'hidden sm:inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px]',
-                videoOrigin === 'cloud' ? 'bg-sky-950 text-sky-300' : 'bg-neutral-800 text-neutral-400'
+                videoOrigin === 'cloud'
+                  ? 'bg-callout-info-bg text-callout-info'
+                  : 'bg-neutral-800 text-neutral-400'
               )}
               title={videoOrigin === 'cloud' ? 'Streaming from your cloud backup' : 'Playing from this device'}
             >

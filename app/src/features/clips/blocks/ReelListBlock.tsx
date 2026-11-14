@@ -22,7 +22,7 @@ const AVAILABILITY: Record<
 > = {
   device: { icon: 'hard-drive', label: 'Device', tone: 'text-neutral-400' },
   'device+cloud': { icon: 'cloud', label: 'Synced', tone: 'text-result-winner' },
-  cloud: { icon: 'cloud', label: 'Cloud', tone: 'text-sky-300' },
+  cloud: { icon: 'cloud', label: 'Cloud', tone: 'text-callout-info' },
   missing: { icon: 'cloud-off', label: 'Missing', tone: 'text-review' },
 }
 

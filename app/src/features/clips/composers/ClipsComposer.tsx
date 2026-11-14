@@ -583,12 +583,12 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
         <div
           className={
             notice.tone === 'good'
-              ? 'flex items-start gap-3 rounded-lg border border-result-winner/60 bg-result-winner-bg px-4 py-3 text-sm text-result-winner'
-              : 'flex items-start gap-3 rounded-lg border border-result-error/60 bg-result-error-bg px-4 py-3 text-sm text-result-error'
+              ? 'flex items-center gap-2 rounded-md border border-result-winner/50 bg-result-winner-bg px-3 py-2 text-sm text-result-winner'
+              : 'flex items-center gap-2 rounded-md border border-result-error/50 bg-result-error-bg px-3 py-2 text-sm text-result-error'
           }
         >
-          <Icon name={notice.tone === 'good' ? 'check' : 'warning'} size="sm" className="mt-0.5" />
-          <span className="flex-1">{notice.text}</span>
+          <Icon name={notice.tone === 'good' ? 'check' : 'warning'} size="sm" />
+          <span className="min-w-0 flex-1 truncate">{notice.text}</span>
           <button type="button" aria-label="Dismiss" onClick={() => setNotice(null)}>
             <Icon name="x" size="sm" />
           </button>
