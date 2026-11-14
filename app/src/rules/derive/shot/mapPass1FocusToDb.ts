@@ -4,8 +4,13 @@
  * Pure — no React, no IO.
  * standing (UI) is stored as shot_initiative.
  * The Pass 1 allow-list strips tags that the shot's role may not keep.
- * Spin / depth / contact / quality / weak / heavy are never stored.
- * Previous-shot placement is inferred from wing + pivot when wing is set.
+ * MA-74: RF optionals (spin/depth/placement/contact/quality/weak/heavy)
+ * persist when allow-listed. Previous-shot placement is inferred from
+ * wing + pivot when wing is set and prior placement is still null.
+ *
+ * Completeness: framework_confirmed = Basic (compulsory gates met on save);
+ * detail_complete = Advanced (RF-class optionals filled — see
+ * derivePass1AdvancedDataComplete).
  */
 
 import type {
@@ -17,6 +22,11 @@ import type {
   ShotStroke,
   ShotInitiative,
   ShotReviewKind,
+  ShotSpin,
+  ShotDepth,
+  ShotPlacement,
+  ShotContact,
+  ShotQuality,
 } from '@/data'
 import {
   deriveRally_winner_id,
@@ -27,6 +37,7 @@ import {
   derivePass1ShotTagAllowList,
   type Pass1ShotTagAllowList,
 } from './derivePass1ShotTagRole'
+import { derivePass1AdvancedDataComplete } from './derivePass1AdvancedComplete'
 import { derivePreviousPlacementFromWingPivot } from './derivePreviousPlacementFromWingPivot'
 import { toStoredPlayerId } from '@/helpers/themSide'
 
@@ -39,7 +50,6 @@ export interface Pass1FocusShotTags {
   isPivot: boolean
   reviewKind: ShotReviewKind | null
   contactTime: number | null
-  // Accepted for caller convenience; always ignored in Pass 1 UI strip.
   spin?: string | null
   depth?: string | null
   placement?: string | null
@@ -136,6 +146,47 @@ function mapReviewKind(kind: string | null | undefined): ShotReviewKind | null {
   return null
 }
 
+function mapSpin(spin: string | null | undefined): ShotSpin | null {
+  if (!spin) return null
+  const v = spin.toLowerCase()
+  if (v === 'under' || v === 'top' || v === 'side') return v
+  return null
+}
+
+function mapDepth(depth: string | null | undefined): ShotDepth | null {
+  if (!depth) return null
+  const v = depth.toLowerCase()
+  if (v === 'short' || v === 'half' || v === 'long') return v
+  return null
+}
+
+function mapPlacement(placement: string | null | undefined): ShotPlacement | null {
+  if (!placement) return null
+  if (placement === 'BH' || placement === 'FH' || placement === 'middle') {
+    return placement
+  }
+  const v = placement.toLowerCase()
+  if (v === 'bh') return 'BH'
+  if (v === 'fh') return 'FH'
+  if (v === 'middle' || v === 'mid') return 'middle'
+  return null
+}
+
+function mapContact(contact: string | null | undefined): ShotContact | null {
+  if (!contact) return null
+  const v = contact.toLowerCase().replace(/\s+/g, '_')
+  if (v === 'over_table' || v === 'over') return 'over_table'
+  if (v === 'off_table' || v === 'off') return 'off_table'
+  return null
+}
+
+function mapQuality(quality: string | null | undefined): ShotQuality | null {
+  if (!quality) return null
+  const v = quality.toLowerCase()
+  if (v === 'good' || v === 'normal' || v === 'poor') return v
+  return null
+}
+
 function applyAllowList(
   tags: Pass1FocusShotTags,
   allow: Pass1ShotTagAllowList
@@ -151,17 +202,17 @@ function applyAllowList(
   const allowPivot = allow.shot_is_pivot || forceShotType
   const wing = allowWing ? mapWing(tags.wing) : null
   return {
-    shot_spin: null,
+    shot_spin: allow.shot_spin ? mapSpin(tags.spin) : null,
     shot_wing: wing,
     shot_stroke: allowStroke ? mapStroke(tags.stroke) : null,
-    shot_placement: null,
-    shot_depth: null,
-    shot_contact: null,
+    shot_placement: allow.shot_placement ? mapPlacement(tags.placement) : null,
+    shot_depth: allow.shot_depth ? mapDepth(tags.depth) : null,
+    shot_contact: allow.shot_contact ? mapContact(tags.tableContact) : null,
     shot_initiative: allow.shot_initiative ? mapInitiative(tags.standing) : null,
-    shot_quality: null,
-    shot_is_weak: false,
+    shot_quality: allow.shot_quality ? mapQuality(tags.quality) : null,
+    shot_is_weak: allow.shot_is_weak ? Boolean(tags.isWeak) : false,
     shot_is_high: allow.shot_is_high ? Boolean(tags.isHigh) : false,
-    shot_is_heavy: false,
+    shot_is_heavy: allow.shot_is_heavy ? Boolean(tags.isHeavy) : false,
     shot_is_safe: allow.shot_is_safe ? Boolean(tags.isSafe) : false,
     shot_is_pivot: allowPivot && wing !== null ? Boolean(tags.isPivot) : false,
     shot_review_kind: reviewKind,
@@ -171,7 +222,8 @@ function applyAllowList(
 /**
  * Map a completed Pass 1 Focus timeline into DB rows.
  * Shots saved are 1..end only.
- * When shot N has a wing, shot N-1 gets placement from wing + pivot.
+ * When shot N has a wing and prior placement is unset, shot N-1 gets
+ * placement from wing + pivot.
  */
 export function mapPass1FocusRallyToDb(
   input: MapPass1FocusInput
@@ -216,6 +268,12 @@ export function mapPass1FocusRallyToDb(
   const firstContact = timeline.shots[1]?.contactTime ?? null
   const lastContact = timeline.shots[end]?.contactTime ?? null
 
+  const advancedComplete = derivePass1AdvancedDataComplete({
+    end,
+    fos: firstAttackIndex,
+    shots: timeline.shots,
+  })
+
   const rally: NewRally = {
     set_id: setId,
     rally_index: rallyIndex,
@@ -236,8 +294,10 @@ export function mapPass1FocusRallyToDb(
     point_ending: ending,
     point_miss_reason: mapMissReason(ending, timeline.missReason ?? null),
     is_highlight: isHighlight,
+    // Basic = compulsory Pass 1 gates (caller only maps when saveable)
     framework_confirmed: true,
-    detail_complete: true,
+    // Advanced = RF-class optionals filled; incomplete by default after basic save
+    detail_complete: advancedComplete,
     server_corrected: false,
     score_corrected: false,
     correction_notes: null,
@@ -267,13 +327,14 @@ export function mapPass1FocusRallyToDb(
     })
   }
 
-  // Infer previous placement from each tagged wing (+ pivot).
+  // Infer previous placement from each tagged wing (+ pivot) when unset.
   for (let i = 0; i < shots.length; i++) {
     const shot = shots[i]
     const wing = shot.shot_wing
     if (!wing || shot.shot_index < 2) continue
     const prev = shots[i - 1]
     if (!prev || prev.shot_index !== shot.shot_index - 1) continue
+    if (prev.shot_placement != null) continue
     prev.shot_placement = derivePreviousPlacementFromWingPivot(
       wing,
       shot.shot_is_pivot

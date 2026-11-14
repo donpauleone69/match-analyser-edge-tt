@@ -6,11 +6,18 @@
  *
  * Pure — no React, no IO.
  *
- * Pass 1 only captures: wing, pivot, stroke, initiative (reply "standing"),
- * high (ball before the attack) and safe (first attack).
- * Previous-shot placement is inferred from wing + pivot on save — not a UI tag.
- * Spin / depth / contact / quality / weak / heavy are never allowed in Pass 1.
+ * Pass 1 compulsory: wing / pivot / stroke on FA, reply, and non-serve end;
+ * High on ball-before; Safe on first attack; Initiative on reply.
+ * MA-74 optional Rally Focus fields (by RF role): spin / placement / depth /
+ * Weak·Heavy on serve & pre-offensive; contact / quality on first attack;
+ * wing / stroke / initiative on later shots as RF allows.
  */
+
+import {
+  allowInitiativeForLaterShot,
+  allowListForRole,
+  deriveShotTagRole,
+} from './deriveShotTagRole'
 
 export type Pass1ShotTagRole =
   | 'serve'
@@ -38,6 +45,14 @@ export interface Pass1ShotTagAllowList {
   shot_initiative: boolean
   shot_is_high: boolean
   shot_is_safe: boolean
+  /** Rally Focus optionals (MA-74) — optional stage only. */
+  shot_spin: boolean
+  shot_placement: boolean
+  shot_depth: boolean
+  shot_contact: boolean
+  shot_quality: boolean
+  shot_is_weak: boolean
+  shot_is_heavy: boolean
 }
 
 /**
@@ -89,17 +104,29 @@ const NONE_ALLOW: Pass1ShotTagAllowList = {
   shot_initiative: false,
   shot_is_high: false,
   shot_is_safe: false,
+  shot_spin: false,
+  shot_placement: false,
+  shot_depth: false,
+  shot_contact: false,
+  shot_quality: false,
+  shot_is_weak: false,
+  shot_is_heavy: false,
 }
 
 /**
- * Allow-list for a shot in a Pass 1 rally.
+ * Allow-list for a shot in a Pass 1 rally (compulsory + MA-74 RF optionals).
  *
- * - High: only on the ball immediately before the attack (fos - 1).
- * - Safe: only on the first attack.
- * - Wing + Pivot + stroke: first attack, reply (fos + 1), and any end shot that
- *   is not the serve (includes end shots before an attack, e.g. push rallies).
- * - Initiative: on the reply (fos + 1), including when that reply is also the end.
- * - Everything else: false.
+ * Pass 1 base:
+ * - High: ball immediately before the attack (fos - 1), also via RF attributes.
+ * - Safe: first attack only.
+ * - Wing + Pivot + stroke: first attack, reply, non-serve end.
+ * - Initiative: reply (including when reply is end).
+ *
+ * Rally Focus merge (optional stage):
+ * - Serve: spin, placement, depth, Weak/High/Heavy
+ * - Pre-offensive: wing, placement, depth, Weak/High/Heavy
+ * - First attack: contact, quality
+ * - Later: wing, stroke; initiative when RF allows (fos+1/+2, not end)
  *
  * @param shotIndex - 1-based
  * @param firstAttackIndex - FOS stamp, or null when nobody attacked
@@ -119,12 +146,27 @@ export function derivePass1ShotTagAllowList(
   const isEnd = isNonServeEndShot(shotIndex, endIndex)
 
   const hasWing = isFirstAttack || isReply || isEnd
+
+  const rfRole = deriveShotTagRole(shotIndex, fos)
+  const rf = allowListForRole(rfRole)
+  const rfInitiative =
+    rf.shot_initiative &&
+    fos !== null &&
+    allowInitiativeForLaterShot(shotIndex, fos, endIndex)
+
   return {
-    shot_wing: hasWing,
+    shot_wing: hasWing || rf.shot_wing,
     shot_is_pivot: hasWing,
-    shot_stroke: hasWing,
-    shot_initiative: isReply,
-    shot_is_high: isBallBeforeAttack,
+    shot_stroke: hasWing || rf.shot_stroke,
+    shot_initiative: isReply || rfInitiative,
+    shot_is_high: isBallBeforeAttack || rf.attributes,
     shot_is_safe: isFirstAttack,
+    shot_spin: rf.shot_spin,
+    shot_placement: rf.shot_placement,
+    shot_depth: rf.shot_depth,
+    shot_contact: rf.shot_contact,
+    shot_quality: rf.shot_quality,
+    shot_is_weak: rf.attributes,
+    shot_is_heavy: rf.attributes,
   }
 }

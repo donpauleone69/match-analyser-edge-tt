@@ -5,8 +5,9 @@
  * contacts → end Result → end Wing/Stroke (locked) → select FA /
  * No Attack (last rail cell, strong red) → FA details → optional/save.
  * fa_details: tap FA caption / re-tap shot clears; other ≥2 reassigns.
- * Optional = allow-list attrs by phase + Review/★ only — no fake
- * End/FA/No attack/Review/★ checklist row.
+ * Optional (MA-74) = phase RF fields (spin/placement/depth/Weak·Heavy,
+ * FA contact/quality, later wing/stroke/initiative) + High/Safe + Review/★
+ * — no fake End/FA checklist row.
  */
 
 import { type ReactNode, useEffect, useState } from 'react'
@@ -26,6 +27,11 @@ import {
   END_STROKE_OPTIONS,
   END_STROKE_OPTIONS_COMPACT,
   WING_OPTIONS,
+  SPIN_OPTIONS,
+  DEPTH_OPTIONS,
+  PLACEMENT_OPTIONS,
+  TABLE_CONTACT_OPTIONS,
+  QUALITY_OPTIONS,
   phaseAt,
   visibleShotNumbers,
   railSlotCount,
@@ -471,10 +477,21 @@ function ShotTagging({
     ((endShotPhase && isEnd) ||
       (endResultPhase && isEnd && Boolean(state.ending)) ||
       (faDetailPhase && isFos) ||
-      (optionalOpen && allow.shot_wing && allow.shot_stroke))
+      (optionalOpen && (allow.shot_wing || allow.shot_stroke)))
 
   const showResult =
     isSelected && isEnd && (endPhase || optionalOpen || faDetailPhase)
+
+  const showRfOptionals =
+    isSelected &&
+    optionalOpen &&
+    (allow.shot_spin ||
+      allow.shot_placement ||
+      allow.shot_depth ||
+      allow.shot_contact ||
+      allow.shot_quality ||
+      allow.shot_is_weak ||
+      allow.shot_is_heavy)
 
   const showAttrs =
     isSelected &&
@@ -513,7 +530,7 @@ function ShotTagging({
         <ShotTypeRow
           n={n}
           shot={shot}
-          strokes={strokes}
+          strokes={allow.shot_stroke ? strokes : []}
           showPivot={allow.shot_is_pivot}
           onToggleShotChoice={onToggleShotChoice}
           onToggleAttribute={onToggleAttribute}
@@ -524,7 +541,102 @@ function ShotTagging({
 
   const optional = (
     <>
-      {showAttrs && allow.shot_is_high && (
+      {showRfOptionals && allow.shot_spin && (
+        <ChoiceRow label="Spin">
+          {SPIN_OPTIONS.map((v) => (
+            <TimelinePill
+              key={v}
+              kind="standing"
+              label={v}
+              selected={shot.spin === v}
+              onClick={() => onToggleShotChoice(n, 'spin', v)}
+            />
+          ))}
+        </ChoiceRow>
+      )}
+      {showRfOptionals && allow.shot_placement && (
+        <ChoiceRow label="Placement">
+          {PLACEMENT_OPTIONS.map((v) => (
+            <TimelinePill
+              key={v}
+              kind="wing"
+              label={v === 'middle' ? 'Mid' : v}
+              selected={shot.placement === v}
+              onClick={() => onToggleShotChoice(n, 'placement', v)}
+            />
+          ))}
+        </ChoiceRow>
+      )}
+      {showRfOptionals && allow.shot_depth && (
+        <ChoiceRow label="Depth">
+          {DEPTH_OPTIONS.map((v) => (
+            <TimelinePill
+              key={v}
+              kind="standing"
+              label={v}
+              selected={shot.depth === v}
+              onClick={() => onToggleShotChoice(n, 'depth', v)}
+            />
+          ))}
+        </ChoiceRow>
+      )}
+      {showRfOptionals &&
+        (allow.shot_is_weak || allow.shot_is_high || allow.shot_is_heavy) &&
+        (allow.shot_is_weak || allow.shot_is_heavy) && (
+          <ChoiceRow label="Ball">
+            {allow.shot_is_weak && (
+              <TimelinePill
+                kind="standing"
+                label="Weak"
+                selected={shot.isWeak}
+                onClick={() => onToggleAttribute(n, 'isWeak')}
+              />
+            )}
+            {allow.shot_is_high && (
+              <TimelinePill
+                kind="standing"
+                label="High"
+                selected={shot.isHigh}
+                onClick={() => onToggleAttribute(n, 'isHigh')}
+              />
+            )}
+            {allow.shot_is_heavy && (
+              <TimelinePill
+                kind="standing"
+                label="Heavy"
+                selected={shot.isHeavy}
+                onClick={() => onToggleAttribute(n, 'isHeavy')}
+              />
+            )}
+          </ChoiceRow>
+        )}
+      {showRfOptionals && allow.shot_contact && (
+        <ChoiceRow label="Contact">
+          {TABLE_CONTACT_OPTIONS.map(({ value, label }) => (
+            <TimelinePill
+              key={value}
+              kind="standing"
+              label={label}
+              selected={shot.tableContact === value}
+              onClick={() => onToggleShotChoice(n, 'tableContact', value)}
+            />
+          ))}
+        </ChoiceRow>
+      )}
+      {showRfOptionals && allow.shot_quality && (
+        <ChoiceRow label="Quality">
+          {QUALITY_OPTIONS.map((v) => (
+            <TimelinePill
+              key={v}
+              kind="standing"
+              label={v}
+              selected={shot.quality === v}
+              onClick={() => onToggleShotChoice(n, 'quality', v)}
+            />
+          ))}
+        </ChoiceRow>
+      )}
+      {showAttrs && allow.shot_is_high && !allow.shot_is_weak && !allow.shot_is_heavy && (
         <ChoiceRow label="Ball">
           <TimelinePill
             kind="standing"
@@ -622,7 +734,8 @@ function ShotTagging({
     </>
   )
 
-  const hasOptional = showAttrs || showReviewStar || showMiss || showFosCorrection
+  const hasOptional =
+    showRfOptionals || showAttrs || showReviewStar || showMiss || showFosCorrection
 
   if (!isSelected) {
     return null

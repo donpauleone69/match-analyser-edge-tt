@@ -431,10 +431,10 @@ interface DBRally {
   point_ending: PointEnding
   point_miss_reason: PointMissReason | null // Pass 1 Focus; null until tagged after an error
 
-  // Workflow
+  // Workflow (MA-74 completeness)
   is_highlight: boolean
-  framework_confirmed: boolean
-  detail_complete: boolean
+  framework_confirmed: boolean  // Basic data complete — Pass 1 compulsory gates
+  detail_complete: boolean      // Advanced data complete — RF-class optionals filled
 
   // Manual corrections
   server_corrected: boolean
@@ -451,6 +451,8 @@ interface DBRally {
 - **point_miss_reason:** Optional miss reason after an error ending; default null (Pass 1 Focus)
 - **Service fault / receive error:** Derived — last shot_index 1 + error → service fault; shot 2 + error → receive error
 - **winner_id:** winner/lucky → last-shot player; either error → opponent
+- **framework_confirmed (Basic):** true when Pass 1 compulsory gates are met (contacts · End · Result · FOS/No · FA wing+stroke when FA marked). Pass 1 Save always writes true.
+- **detail_complete (Advanced):** true when every RF-class nullable choice on the phase allow-list is filled for shots 1..end (`derivePass1AdvancedDataComplete`). Boolean toggles (Weak/High/Heavy/Safe/Pivot) never gate Advanced. Incomplete by default after a Basic-only save so extras can be filled later.
 - **Removed:** point_end_type (forced/unforced/serviceFault/receiveError/winnerShot)
 
 ---
@@ -502,8 +504,8 @@ interface DBShot {
 
 **Notes:**
 - **Phase is never stored.** Derive with `deriveShotPhase(shot_index, first_attack_index)`.
-- **Role allow-list** (`deriveShotTagRole` / `allowListForRole`) strips tags the shot's role may not keep. Serve and pre-offensive may set the three switches; first attack may set quality and contact; later shots get neither attributes nor quality.
-- **shot_is_safe:** Pass 1 Focus first-attack toggle; Rally Focus keeps `shot_quality` and leaves this false.
+- **Role allow-list** — Pass 1 save uses `derivePass1ShotTagAllowList` (Pass 1 compulsory ∪ Rally Focus optionals by phase). Legacy RF-only path used `deriveShotTagRole` / `allowListForRole`. Serve and pre-offensive may set spin/placement/depth and Weak/High/Heavy; first attack may set quality and contact (+ Pass 1 Safe); later shots get wing/stroke and initiative when RF allows.
+- **shot_is_safe:** Pass 1 Focus first-attack toggle; quality remains the RF-class Advanced grade on first attack.
 - UI standing maps to `shot_initiative` on save.
 - Do not store `timestamp_end`, `is_rally_end`, or `is_first_attack`.
 

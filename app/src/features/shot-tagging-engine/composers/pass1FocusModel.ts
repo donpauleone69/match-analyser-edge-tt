@@ -1,10 +1,10 @@
 /**
  * Pass 1 Focus tagger model.
  *
- * Contact taps + first-attack stamp + end/ending, then a small set of
- * per-shot tags on the shots that matter: the ball before the attack
- * (High), the first attack (wing, Pivot, stroke, Safe), the reply (wing,
- * Pivot, stroke, standing) and the end shot (wing, Pivot, stroke).
+ * Contact taps + first-attack stamp + end/ending, then per-shot tags:
+ * compulsory FA/End wing·stroke, plus optional-stage Rally Focus fields
+ * (spin/placement/depth/Weak·Heavy, FA contact/quality, later wing/stroke/
+ * initiative) merged into `derivePass1ShotTagAllowList`.
  *
  * Which tags a shot may carry is decided by the pure rules allow-list
  * (`derivePass1ShotTagAllowList`) — the same one the save mapper uses.
@@ -51,12 +51,23 @@ export type EndStroke =
 /** Where the player who was attacked stands after their reply. */
 export type Standing = 'behind' | 'level' | 'ahead'
 
+/** Rally Focus optional — serve spin (UI labels). */
+export type Spin = 'Under' | 'Top' | 'Side'
+/** Rally Focus optional — serve / pre-offensive depth. */
+export type Depth = 'Short' | 'Half' | 'Long'
+/** Rally Focus optional — serve / pre-offensive placement. */
+export type Placement = 'BH' | 'middle' | 'FH'
+/** Rally Focus optional — first-attack table contact. */
+export type TableContact = 'Over' | 'Off'
+/** Rally Focus optional — first-attack quality. */
+export type Quality = 'Good' | 'Normal' | 'Poor'
+
 export type RallyPhase = 'opening' | 'ball' | 'fos' | 'reply' | 'next' | 'after'
 
 export interface ShotTags {
   wing: Wing | null
   stroke: AttackStroke | ReplyStroke | EndStroke | null
-  /** Higher than intended — ball before the attack only. */
+  /** Higher than intended — ball before attack and/or RF serve/pre attrs. */
   isHigh: boolean
   /** Safe first attack — first attack only. */
   isSafe: boolean
@@ -64,10 +75,18 @@ export interface ShotTags {
   isPivot: boolean
   /** Flag for later review; technical also requires wing + stroke. */
   reviewKind: ShotReviewKind | null
-  /** Reply only, while the point is still going. */
+  /** Reply / fos+1·+2 while continuing. */
   standing: Standing | null
   /** Video time of the contact tap (seconds), if captured */
   contactTime: number | null
+  /** MA-74 RF optionals */
+  spin: Spin | null
+  depth: Depth | null
+  placement: Placement | null
+  tableContact: TableContact | null
+  quality: Quality | null
+  isWeak: boolean
+  isHeavy: boolean
 }
 
 export type ShotMap = Record<number, ShotTags>
@@ -233,8 +252,24 @@ function emptyShot(contactTime: number | null = null): ShotTags {
     reviewKind: null,
     standing: null,
     contactTime,
+    spin: null,
+    depth: null,
+    placement: null,
+    tableContact: null,
+    quality: null,
+    isWeak: false,
+    isHeavy: false,
   }
 }
+
+export const SPIN_OPTIONS: Spin[] = ['Under', 'Top', 'Side']
+export const DEPTH_OPTIONS: Depth[] = ['Short', 'Half', 'Long']
+export const PLACEMENT_OPTIONS: Placement[] = ['BH', 'middle', 'FH']
+export const TABLE_CONTACT_OPTIONS: { value: TableContact; label: string }[] = [
+  { value: 'Over', label: 'Over table' },
+  { value: 'Off', label: 'Off table' },
+]
+export const QUALITY_OPTIONS: Quality[] = ['Good', 'Normal', 'Poor']
 
 export function emptyShotMap(count = 0): ShotMap {
   const shots: ShotMap = {}
@@ -593,10 +628,21 @@ function formatContactTime(t: number | null): string | null {
  */
 export function getShotSummary(_n: number, shot: ShotTags): string {
   const fields = [
+    shot.spin,
     shot.wing,
     shot.isPivot ? 'Pivot' : null,
     shot.stroke,
+    shot.placement,
+    shot.depth,
+    shot.tableContact === 'Over'
+      ? 'Over'
+      : shot.tableContact === 'Off'
+        ? 'Off'
+        : null,
+    shot.quality,
+    shot.isWeak ? 'Weak' : null,
     shot.isHigh ? 'High' : null,
+    shot.isHeavy ? 'Heavy' : null,
     shot.isSafe ? 'Safe' : null,
     shot.standing === 'behind'
       ? 'Behind'
@@ -644,9 +690,22 @@ export function describeMissReason(reason: PointMissReason | null): string | nul
 }
 
 /** Choice keys that toggle via mutually exclusive pills. */
-export type ShotChoiceKey = 'wing' | 'stroke' | 'standing'
+export type ShotChoiceKey =
+  | 'wing'
+  | 'stroke'
+  | 'standing'
+  | 'spin'
+  | 'depth'
+  | 'placement'
+  | 'tableContact'
+  | 'quality'
 
-export type ShotAttributeKey = 'isHigh' | 'isSafe' | 'isPivot'
+export type ShotAttributeKey =
+  | 'isHigh'
+  | 'isSafe'
+  | 'isPivot'
+  | 'isWeak'
+  | 'isHeavy'
 
 /** Toggle mutually exclusive optional choice (tap again clears). */
 export function toggleShotChoice(
@@ -1081,6 +1140,13 @@ export function toPass1FocusMapperShot(shot: ShotTags) {
     isPivot: shot.isPivot,
     reviewKind: shot.reviewKind,
     contactTime: shot.contactTime,
+    spin: shot.spin,
+    depth: shot.depth,
+    placement: shot.placement,
+    tableContact: shot.tableContact,
+    quality: shot.quality,
+    isWeak: shot.isWeak,
+    isHeavy: shot.isHeavy,
   }
 }
 

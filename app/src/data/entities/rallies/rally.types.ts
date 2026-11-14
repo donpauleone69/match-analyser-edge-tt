@@ -54,9 +54,11 @@ export interface DBRally {
   point_ending: PointEnding
   point_miss_reason: PointMissReason | null
 
-  // Workflow
+  // Workflow — Basic / Advanced completeness (MA-74)
   is_highlight: boolean
+  /** Basic data complete: Pass 1 compulsory gates met. */
   framework_confirmed: boolean
+  /** Advanced data complete: RF-class optionals filled (`derivePass1AdvancedDataComplete`). */
   detail_complete: boolean
 
   // Manual corrections
