@@ -6,6 +6,21 @@
 
 ## Change Log
 
+### 2026-11-14: MA-112 — Pass 1 rail and dialog polish (v3.149.0)
+
+**Change Type:** UX polish — Pass 1 rally rail + guiding dialog
+
+**What Changed:**
+- **Rail:** End stages lock non-end shots (dimmed / untappable); drop redundant “Rally” label (phase markers remain); No Attack / ★ use `rounded-md` like shot cells; ★ caption → `HL`.
+- **Dialog:** clearer stage verbs; ready state says “Ready — tap Save”; slightly larger type on wide screens.
+- **Tokens:** phase hairlines use `bg-border`.
+
+**Decision Rationale:** Overnight Track E MA-112 — rail/dialog polish after MA-108 interaction; End lock matches dialog copy.
+
+**Key Files:** `Pass1FocusBlock.tsx`, `pass1FocusModel.ts`, timeline tests.
+
+---
+
 ### 2026-11-14: MA-106 — Serve/Receive adopts PlaylistBrowseShell (v3.148.0)
 
 **Change Type:** UX polish — Serve Data / Receive Data curated browse
