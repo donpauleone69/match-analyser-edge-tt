@@ -7,6 +7,7 @@
  * MA-127: sticky chrome — under-review offset tracks Match Review header height
  * (title + tabs), not a hard-coded top-14; quieter strip; open elevates z.
  * MA-131: Summary / Evidence / Rallies arrival trail parity with Work-on.
+ * MA-145: phone trail density — one-row chip+trail, h-9 taps, icon-only return.
  */
 
 import { useEffect, useState, type ReactNode } from 'react'
@@ -154,52 +155,70 @@ export function PlaylistBrowseShellBlock({
 
   const returnTrail = trail.filter((t) => isReturnTrailId(t.id))
   const actionTrail = trail.filter((t) => !isReturnTrailId(t.id))
-  // When arrival chrome is present, Fix is icon-only on phone so the return
-  // path stays readable (MA-121 / MA-131).
-  const compactActions = returnTrail.some(
+  // Arrival chrome → phone trail is icon-first so the chip keeps width (MA-145).
+  const compactPhoneTrail = returnTrail.some(
     (t) => t.id === 'workon' || t.id === 'summary' || t.id === 'rallies' || t.id === 'stay'
   )
 
   const renderTrailButton = (t: PlaylistBrowseTrailLink) => {
-    // Stay is always icon-only; Fix becomes icon-only on phone beside Work on.
-    const forcePhoneIcon = t.iconOnly || (compactActions && t.id === 'fix')
-    if (t.iconOnly) {
+    const phoneIcon =
+      t.iconOnly ||
+      (compactPhoneTrail && (t.id === 'fix' || t.primary || t.id === 'clips'))
+
+    if (t.iconOnly || (phoneIcon && (t.id === 'stay' || t.id === 'fix'))) {
+      const icon =
+        t.id === 'stay' ? (
+          <Icon name="x" size="sm" />
+        ) : t.id === 'fix' ? (
+          <Icon name="edit" size="sm" />
+        ) : (
+          trailIcon(t.id) ?? <Icon name="x" size="sm" />
+        )
       return (
         <Button
           key={t.id}
           size="sm"
           variant="ghost"
-          className="h-10 w-10 shrink-0 px-0 touch-manipulation sm:h-9 sm:w-9"
+          className={cn(
+            'h-9 w-9 shrink-0 px-0 touch-manipulation',
+            // Fix: labelled from sm up when compacted beside arrival chrome.
+            t.id === 'fix' && !t.iconOnly && 'sm:w-auto sm:gap-1 sm:px-2'
+          )}
           onClick={t.onClick}
           aria-label={t.label}
           title={t.label}
         >
-          <Icon name="x" size="sm" />
+          {icon}
+          {t.id === 'fix' && !t.iconOnly ? (
+            <span className="hidden sm:inline text-xs">{t.shortLabel ?? t.label}</span>
+          ) : null}
         </Button>
       )
     }
-    if (forcePhoneIcon && t.id === 'fix') {
+
+    if (phoneIcon && (t.primary || t.id === 'clips')) {
       return (
         <Button
           key={t.id}
           size="sm"
-          variant="ghost"
-          className="h-10 w-10 shrink-0 px-0 touch-manipulation sm:h-9 sm:w-auto sm:gap-1 sm:px-2"
+          variant={t.primary ? 'secondary' : 'ghost'}
+          className="h-9 w-9 shrink-0 px-0 touch-manipulation sm:w-auto sm:gap-1 sm:px-2"
           onClick={t.onClick}
           aria-label={t.label}
           title={t.label}
         >
-          <Icon name="edit" size="sm" />
+          {trailIcon(t.id)}
           <span className="hidden sm:inline text-xs">{t.shortLabel ?? t.label}</span>
         </Button>
       )
     }
+
     return (
       <Button
         key={t.id}
         size="sm"
         variant={t.primary ? 'secondary' : 'ghost'}
-        className="h-10 shrink-0 gap-1 px-2.5 text-xs touch-manipulation sm:h-9 sm:px-2"
+        className="h-9 shrink-0 gap-1 px-2 text-xs touch-manipulation"
         onClick={t.onClick}
       >
         {trailIcon(t.id)}
@@ -212,7 +231,7 @@ export function PlaylistBrowseShellBlock({
   return (
     <div
       className={cn(
-        'sticky -mx-1 space-y-1 border-b border-border bg-bg-surface/95 px-1 py-1.5 backdrop-blur',
+        'sticky -mx-1 space-y-0.5 border-b border-border bg-bg-surface/95 px-1 py-1 backdrop-blur',
         // Open disclosure must clear scrolling stage content; closed sits under review chrome.
         open ? 'z-30' : 'z-20',
         !underTabs && 'top-0',
@@ -221,12 +240,12 @@ export function PlaylistBrowseShellBlock({
       style={underTabs ? { top: underTop } : undefined}
     >
       {/*
-        Phone: chip full-width, trail on a second row so the disclosure never
-        starves. sm+: chip + trail on one row (MA-107 density).
+        MA-145: chip + trail share one row on phone (icon-first trail) so the
+        sticky strip stays a single dense band. sm+ keeps labelled trail.
       */}
-      <div className="flex flex-col gap-1.5 sm:flex-row sm:items-stretch">
+      <div className="flex flex-row items-center gap-1">
         <BrowseDisclosure
-          className="min-w-0 w-full sm:flex-1"
+          className="min-w-0 flex-1"
           fullWidth
           aria-label={ariaLabel}
           label={label}
@@ -234,7 +253,7 @@ export function PlaylistBrowseShellBlock({
           meta={meta}
           open={open}
           onOpenChange={onOpenChange}
-          triggerClassName="rounded-md border-border bg-bg-card py-2.5 text-sm sm:py-2"
+          triggerClassName="rounded-md border-border bg-bg-card py-2 text-sm"
           panelClassName={panelClassName}
         >
           {panel}
@@ -243,18 +262,18 @@ export function PlaylistBrowseShellBlock({
         {trail.length > 0 ? (
           <nav
             aria-label="Playlist trail"
-            className="flex shrink-0 items-center justify-end gap-1 sm:justify-start"
+            className="flex shrink-0 items-center gap-0.5"
           >
             {returnTrail.length > 0 ? (
-              <div className="flex items-center gap-1" role="group" aria-label="Return">
+              <div className="flex items-center gap-0.5" role="group" aria-label="Return">
                 {returnTrail.map(renderTrailButton)}
               </div>
             ) : null}
             {returnTrail.length > 0 && actionTrail.length > 0 ? (
-              <span aria-hidden className="mx-0.5 h-5 w-px shrink-0 bg-border" />
+              <span aria-hidden className="mx-0.5 h-4 w-px shrink-0 bg-border" />
             ) : null}
             {actionTrail.length > 0 ? (
-              <div className="flex items-center gap-1" role="group" aria-label="Clip actions">
+              <div className="flex items-center gap-0.5" role="group" aria-label="Clip actions">
                 {actionTrail.map(renderTrailButton)}
               </div>
             ) : null}

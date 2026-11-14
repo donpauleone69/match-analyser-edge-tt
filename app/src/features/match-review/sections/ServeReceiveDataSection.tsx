@@ -201,7 +201,7 @@ export function ServeReceiveDataSection({
   }
 
   const trail: PlaylistBrowseTrailLink[] = [
-    { id: 'summary', label: 'Summary', shortLabel: 'Summary', onClick: onBack, primary: true },
+    { id: 'summary', label: 'Summary', shortLabel: 'Sum', onClick: onBack, primary: true },
   ]
   if (playlistRallies.length > 0) {
     trail.push({

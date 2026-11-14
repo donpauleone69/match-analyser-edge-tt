@@ -539,10 +539,10 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
   if (embedded && trailFrom) {
     const returnMeta =
       trailFrom === 'summary'
-        ? { id: 'summary', label: 'Summary', shortLabel: 'Summary' }
+        ? { id: 'summary', label: 'Summary', shortLabel: 'Sum' }
         : trailFrom === 'rallies'
-          ? { id: 'rallies', label: 'Rallies', shortLabel: 'Rallies' }
-          : { id: 'workon', label: 'Work on', shortLabel: 'Work on' }
+          ? { id: 'rallies', label: 'Rallies', shortLabel: 'Rally' }
+          : { id: 'workon', label: 'Work on', shortLabel: 'Work' }
     browseTrail.push({
       ...returnMeta,
       onClick: backFromTrailSource,
