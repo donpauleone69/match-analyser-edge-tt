@@ -6,6 +6,19 @@
 
 ## Change Log
 
+### 2026-11-14: MA-110 — List density + empty states (v3.146.0)
+
+**Change Type:** UX declutter — lists and empty states
+
+**What Changed:**
+- Denser empty shells (Home, Find, Clips, Match Review, Rallies, Work on, Scope, Serve/Receive playlist).
+- Tighter list rows: rally rows, Work-on patterns, clip queue/reels, Home continue cards, clip preset spacing.
+- Shorter empty copy; dashed `border-border` empties; pattern/rally rows on `bg-bg-card`.
+
+**Decision Rationale:** MA-110 overnight Track B — list density and empties match tagging chrome after MA-105.
+
+**Key Files:** `HomeComposer.tsx`, `ContinueTaggingBlock.tsx`, `MatchListSection.tsx`, `ClipsComposer.tsx`, `ClipQueueBlock.tsx`, `ReelListBlock.tsx`, `ClipPresetListBlock.tsx`, `MatchReviewComposer.tsx`, `RalliesSection.tsx`, `WorkOnSection.tsx`, `ReviewPatternBlock.tsx`, `RallyRowBlock.tsx`, `SummaryCategoryPlaylistBlock.tsx`, `ServeReceiveDataSection.tsx`, `MatchContextBlock.tsx`, `ScopeReviewComposer.tsx`.
+
 ### 2026-11-14: MA-108 — Pass 1 interaction polish (v3.145.0)
 
 **Change Type:** UX polish — Pass 1 / Simple interaction

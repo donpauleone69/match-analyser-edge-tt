@@ -72,7 +72,7 @@ export function CompareCardBlock({
   villainName,
   rows,
   scoreline,
-  emptyMessage = 'Tag a set to fill this card',
+  emptyMessage = 'Tag a set to fill this',
   activeEvidenceTitle,
   onOpenEvidence,
 }: CompareCardBlockProps) {

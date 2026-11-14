@@ -149,20 +149,20 @@ export function ServeReceiveDataSection({
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <button
         type="button"
         onClick={onBack}
-        className="inline-flex items-center gap-1 text-sm text-neutral-400 hover:text-neutral-100"
+        className="inline-flex items-center gap-1 text-sm text-neutral-500 hover:text-neutral-100"
       >
         <Icon name="arrow-left" size="sm" /> All categories
       </button>
 
       <div>
-        <h2 className="text-xl font-semibold text-neutral-50">{section.title}</h2>
-        <p className="text-sm text-neutral-400">{section.question}</p>
+        <h2 className="text-lg font-semibold text-neutral-50">{section.title}</h2>
+        <p className="text-sm text-neutral-500">{section.question}</p>
         {section.pageStory && (
-          <p className="mt-1.5 text-sm text-neutral-500 max-w-2xl line-clamp-2">{section.pageStory}</p>
+          <p className="mt-1 text-sm text-neutral-500 max-w-2xl line-clamp-2">{section.pageStory}</p>
         )}
       </div>
 
@@ -233,7 +233,7 @@ export function ServeReceiveDataSection({
           multiSet={multiSet}
           activeRallyId={activeRallyId}
           hidePlayAll
-          emptyLabel="No points in this focus yet — try another focus or tap a number above."
+          emptyLabel="No points in this focus yet."
           listHeading={activeFocus?.label ?? 'Points'}
           onPlayAll={() => onPlayPlaylist(playlistTitle, playlistRallies)}
           onWatch={(rally, list) => onWatchRally(rally, list, playlistTitle)}

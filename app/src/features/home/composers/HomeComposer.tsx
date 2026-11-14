@@ -17,8 +17,8 @@ const SHORTCUT_LIMIT = 6
 
 function Panel({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <section className="rounded-lg border border-border bg-bg-card p-3 md:p-4 space-y-2.5">
-      <div className="flex items-center justify-between gap-3">
+    <section className="rounded-lg border border-border bg-bg-card p-3 space-y-2">
+      <div className="flex items-center justify-between gap-2">
         <h2 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">{title}</h2>
         {action}
       </div>
@@ -58,8 +58,8 @@ export function HomeComposer() {
         : `${home.outstandingCount} left to finish`
 
   return (
-    <div className="max-w-4xl mx-auto p-4 md:p-6 space-y-4">
-      <header className="flex flex-wrap items-center justify-between gap-3">
+    <div className="max-w-4xl mx-auto p-4 md:p-5 space-y-3">
+      <header className="flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0">
           <h1 className="text-xl md:text-2xl font-bold text-neutral-50">Home</h1>
           {outstandingLabel ? (
@@ -70,27 +70,27 @@ export function HomeComposer() {
             </p>
           ) : null}
         </div>
-        <Button onClick={() => navigate('/matches/create')}>
+        <Button size="sm" onClick={() => navigate('/matches/create')}>
           <Icon name="plus" size="sm" /> New match
         </Button>
       </header>
 
       {home.totals.matches === 0 ? (
-        <section className="rounded-lg border border-dashed border-border p-6 text-center space-y-3">
+        <section className="rounded-lg border border-dashed border-border p-4 text-center space-y-2">
           <p className="text-neutral-100 font-medium">No matches yet</p>
           <p className="text-sm text-neutral-500">Create a match, load video, tap contacts.</p>
           <div className="flex justify-center gap-2 flex-wrap">
-            <Button onClick={() => navigate('/matches/create')}>
+            <Button size="sm" onClick={() => navigate('/matches/create')}>
               <Icon name="plus" size="sm" /> New match
             </Button>
-            <Button variant="secondary" onClick={() => navigate('/matches')}>
+            <Button size="sm" variant="secondary" onClick={() => navigate('/matches')}>
               <Icon name="search" size="sm" /> Find
             </Button>
-            <Button variant="secondary" onClick={() => navigate('/settings')}>
+            <Button size="sm" variant="secondary" onClick={() => navigate('/settings')}>
               <Icon name="file-up" size="sm" /> Import
             </Button>
             {cloudConfigured && (
-              <Button variant="secondary" onClick={() => navigate('/settings')}>
+              <Button size="sm" variant="secondary" onClick={() => navigate('/settings')}>
                 <Icon name="cloud-download" size="sm" /> Cloud
               </Button>
             )}

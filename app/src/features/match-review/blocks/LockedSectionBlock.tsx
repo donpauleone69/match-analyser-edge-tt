@@ -14,8 +14,8 @@ export interface LockedSectionBlockProps {
 
 export function LockedSectionBlock({ id, title, question, note }: LockedSectionBlockProps) {
   return (
-    <Card className="p-4 md:p-5 border border-dashed border-border bg-bg-card opacity-70">
-      <div className="flex items-center justify-between gap-3">
+    <Card className="p-3 border border-dashed border-border bg-bg-card opacity-70">
+      <div className="flex items-center justify-between gap-2">
         <h3 className="text-base font-semibold text-neutral-300">
           <span className="text-neutral-500 mr-2">{id}</span>
           {title}

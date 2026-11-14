@@ -106,8 +106,8 @@ export function RalliesSection({
       </div>
 
       {inSet.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-border p-6 text-center space-y-3">
-          <p className="text-sm text-neutral-400">No rallies tagged in Set {selectedSetNumber} yet.</p>
+        <div className="rounded-lg border border-dashed border-border p-4 text-center space-y-2">
+          <p className="text-sm text-neutral-500">No rallies in Set {selectedSetNumber} yet.</p>
           {set && (
             <Button size="sm" onClick={() => onTagSet(set)}>
               <Icon name="play" size="sm" /> Start tagging
@@ -115,7 +115,7 @@ export function RalliesSection({
           )}
         </div>
       ) : shown.length === 0 ? (
-        <p className="text-sm text-neutral-500 rounded-lg border border-border px-3 py-3">
+        <p className="text-sm text-neutral-500 rounded-lg border border-border px-3 py-2">
           {filter === 'incomplete' ? 'No incomplete points in this set.' : 'No rallies match this filter.'}
         </p>
       ) : (

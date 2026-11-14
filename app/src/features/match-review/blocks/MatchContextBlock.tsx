@@ -59,15 +59,15 @@ export function MatchContextBlock({
     : THEM_SIDE_LABEL
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <div>
-        <h2 className="text-lg font-semibold text-neutral-50">Optional context</h2>
-        <p className="text-sm text-neutral-400 mt-1">
-          Opponent and tournament help Find and Clips later. Nothing here is required to tag.
+        <h2 className="text-base font-semibold text-neutral-50">Optional context</h2>
+        <p className="text-xs text-neutral-500 mt-0.5">
+          Opponent and tournament help Find and Clips — optional to tag.
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor="match-date">Match date</Label>
           <Input

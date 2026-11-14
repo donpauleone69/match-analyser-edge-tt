@@ -382,15 +382,15 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
 
   if (presets.length === 0 && filter?.kind !== 'rallies' && !clipParam) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-3">
         {header}
-        <Card className="p-6 text-center border border-dashed border-border">
-          <h2 className="text-base font-semibold text-neutral-50">No clips yet</h2>
-          <p className="mt-2 text-sm text-neutral-400 max-w-md mx-auto">
-            Star highlights or flag shots in Pass 1 — playlists show up here.
+        <Card className="p-4 text-center border border-dashed border-border">
+          <h2 className="text-sm font-semibold text-neutral-50">No clips yet</h2>
+          <p className="mt-1 text-sm text-neutral-500 max-w-sm mx-auto">
+            Star highlights or flag shots in Pass 1.
           </p>
           {!embedded && (
-            <Button className="mt-4" onClick={() => navigate('/matches/create')}>
+            <Button className="mt-3" size="sm" onClick={() => navigate('/matches/create')}>
               <Icon name="plus" size="sm" /> New match
             </Button>
           )}

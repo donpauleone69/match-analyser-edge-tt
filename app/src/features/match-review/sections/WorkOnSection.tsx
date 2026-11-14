@@ -76,7 +76,7 @@ function SideCard({
   onPlayPlaylist?: WorkOnSectionProps['onPlayPlaylist']
 }) {
   return (
-    <div className="space-y-4 rounded-lg border border-border px-3 py-3 md:px-4 md:py-4">
+    <div className="space-y-3 rounded-lg border border-border px-3 py-2.5">
       <h3 className="text-sm font-semibold text-neutral-100">
         {side.name}{' '}
         <span className="text-neutral-500 font-normal tabular-nums">· {side.total}</span>
@@ -120,11 +120,11 @@ export function WorkOnSection({
   )
 
   return (
-    <div className="space-y-5">
-      <div className="space-y-3">
+    <div className="space-y-4">
+      <div className="space-y-2.5">
         {workOn.total === 0 ? (
-          <p className="text-sm text-neutral-400">
-            No flagged shots yet — in Pass 1, select a shot → Flag for review.
+          <p className="rounded-lg border border-dashed border-border px-3 py-3 text-sm text-neutral-500 text-center">
+            No flagged shots yet — flag in Pass 1.
           </p>
         ) : (
           heroFocus.length > 0 && (
