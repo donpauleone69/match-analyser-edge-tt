@@ -35,7 +35,8 @@ export function PageHeader({
             {subtitle ? <p className="text-sm text-muted mt-0.5">{subtitle}</p> : null}
           </div>
         </div>
-        <BrandMark className="pt-1" />
+        {/* Brand on phone; md+ brand lives in the top nav bar */}
+        <BrandMark className="pt-1 md:hidden" />
       </div>
     </header>
   )

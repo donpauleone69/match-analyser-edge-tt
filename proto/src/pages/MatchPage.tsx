@@ -1,26 +1,54 @@
 import { useState } from 'react'
-import { Link, Outlet, useMatch, useNavigate, useParams } from 'react-router-dom'
+import { Link, Navigate, Outlet, useMatch, useNavigate, useParams } from 'react-router-dom'
 import { Button, Card, CardDescription, CardTitle, Icon } from '@/ui-mine'
 import { HubTabs } from '@/layout/HubTabs'
 import { PageHeader } from '@/layout/PageHeader'
 import { StickyChrome } from '@/layout/StickyChrome'
-import { WfBadge, WfEmpty, WfField, WfRow } from '@/layout/Wireframe'
-import { DEMO_MATCH, getDemoSet } from '@/data/demoMatch'
+import { WfBadge, WfEmpty, WfField } from '@/layout/Wireframe'
+import { defaultMatchTab, derivePhase, useDemo } from '@/data/demoStore'
+import { InsightsSectionRoute } from '@/features/insights/InsightsScreen'
 
-/** Match hub: Insights · Details · Tag. Header names the match. */
 export function MatchPage() {
-  const { matchId = DEMO_MATCH.id } = useParams()
+  const { matchId = '' } = useParams()
+  const { getMatch, mode } = useDemo()
   const setMatch = useMatch('/matches/:matchId/tag/:setId')
   const setId = setMatch?.params.setId
+  const match = getMatch(matchId)
   const base = `/matches/${matchId}`
   const onSetView = Boolean(setId)
   const backTo = onSetView ? `${base}/tag` : '/home'
   const subtitle = onSetView ? `Set ${setId}` : undefined
 
+  if (mode === 'empty') {
+    return (
+      <div>
+        <StickyChrome>
+          <PageHeader title="Match" backTo="/home" />
+        </StickyChrome>
+        <div className="px-4 sm:px-6 lg:px-8 py-6">
+          <WfEmpty title="No demo data" body="Switch Prototype to Filled on Account." />
+        </div>
+      </div>
+    )
+  }
+
+  if (!match) {
+    return (
+      <div>
+        <StickyChrome>
+          <PageHeader title="Match" backTo="/home" />
+        </StickyChrome>
+        <div className="px-4 sm:px-6 lg:px-8 py-6">
+          <WfEmpty title="Match not found" body="Return to Home." />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div>
       <StickyChrome>
-        <PageHeader title={DEMO_MATCH.name} subtitle={subtitle} backTo={backTo} />
+        <PageHeader title={match.name} subtitle={subtitle} backTo={backTo} />
         <HubTabs
           ariaLabel="Match sections"
           tabs={[
@@ -35,102 +63,84 @@ export function MatchPage() {
   )
 }
 
-function ReelRow({ title, meta }: { title: string; meta: string }) {
-  return (
-    <WfRow
-      title={title}
-      meta={meta}
-      trailing={
-        <div className="flex gap-1">
-          <Button size="sm" disabled>
-            <Icon name="play" size="xs" />
-            Play
-          </Button>
-          <Button size="sm" variant="secondary" disabled>
-            <Icon name="download" size="xs" />
-            Download
-          </Button>
-        </div>
-      }
-    />
-  )
+/** Index redirect by match phase. */
+export function MatchIndexRedirect() {
+  const { matchId = '' } = useParams()
+  const { getMatch } = useDemo()
+  const match = getMatch(matchId)
+  if (!match) return <Navigate to="/home" replace />
+  const tab = defaultMatchTab(derivePhase(match))
+  return <Navigate to={`/matches/${matchId}/${tab}`} replace />
 }
 
-function InsightBlock({
-  title,
-  stats,
-  reels,
-}: {
-  title: string
-  stats: string
-  reels: { title: string; meta: string }[]
-}) {
-  return (
-    <Card className="space-y-3">
-      <CardTitle>{title}</CardTitle>
-      <CardDescription>{stats}</CardDescription>
-      <ul className="space-y-2">
-        {reels.map((r) => (
-          <ReelRow key={r.title} title={r.title} meta={r.meta} />
-        ))}
-      </ul>
-      <Button size="sm" variant="secondary" disabled>
-        <Icon name="download" size="xs" />
-        Download all
-      </Button>
-    </Card>
-  )
+export function MatchInsightsSection() {
+  return <InsightsSectionRoute scope="match" />
 }
 
-/** Summary · Serve · Receive. Each owns its reels. No Work on. */
-export function MatchInsightsStub() {
-  return (
-    <div className="px-4 sm:px-6 lg:px-8 py-6 space-y-4">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <InsightBlock
-          title="Summary"
-          stats="Set 1 11-7 · Set 2 open · FA 58%"
-          reels={[
-            { title: 'Highlight', meta: '8 points' },
-            { title: 'Key winners', meta: '5 points' },
-          ]}
-        />
-        <InsightBlock
-          title="Serve"
-          stats="1st in 62% · short 4 · long 9"
-          reels={[
-            { title: 'Serve +1', meta: '6 points' },
-            { title: 'Serve faults', meta: '2 points' },
-          ]}
-        />
-        <InsightBlock
-          title="Receive"
-          stats="Short receive miss 6 · deep hold 11"
-          reels={[
-            { title: 'Short receive', meta: '6 points' },
-            { title: 'Flick return', meta: '3 points' },
-          ]}
-        />
-      </div>
-      <WfEmpty title="No point data" body="Insights empty until sets are tagged." />
-    </div>
-  )
-}
-
-/** Context + scores (shared with Tag checklist) + source video. */
+/** Details: video attach first when new; per-set video from scores. */
 export function MatchDetailsStub() {
+  const { matchId = '' } = useParams()
+  const navigate = useNavigate()
+  const { getMatch, updateMatch, toggleSetVideo } = useDemo()
+  const match = getMatch(matchId)
+  if (!match) return null
+
+  const phase = derivePhase(match)
+  const hasAnyVideo = match.sets.some((s) => s.videoFile)
+
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-6 space-y-4">
+      <Card className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Icon name="upload" size="sm" className="text-brand" />
+          <CardTitle>Source video by set</CardTitle>
+        </div>
+        <CardDescription>Attach one file per set from the score list.</CardDescription>
+        <ul className="space-y-2">
+          {match.sets.map((s) => (
+            <li
+              key={s.setId}
+              className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-bg-card px-3 py-2"
+            >
+              <div>
+                <p className="text-sm font-medium text-primary">
+                  Set {s.setId} · {s.score}
+                </p>
+                <p className="text-xs text-muted mt-0.5">
+                  {s.videoFile ? s.videoFile : 'No video'}
+                </p>
+              </div>
+              <Button size="sm" variant="secondary" onClick={() => toggleSetVideo(match.id, s.setId)}>
+                {s.videoFile ? 'Remove video (stub)' : 'Attach video (stub)'}
+              </Button>
+            </li>
+          ))}
+        </ul>
+        {hasAnyVideo ? (
+          <Button onClick={() => navigate(`/matches/${match.id}/tag`)}>Next: Tag</Button>
+        ) : (
+          <p className="text-sm text-muted">Attach at least one set video before tagging.</p>
+        )}
+      </Card>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card className="space-y-3">
           <CardTitle>Match context</CardTitle>
           <div className="space-y-2">
-            <WfField label="Opponent" value={DEMO_MATCH.opponent} />
-            <WfField label="Handedness" placeholder="Right / Left" />
-            <WfField label="Tournament / event" value={DEMO_MATCH.event} />
-            <WfField label="Date" value={DEMO_MATCH.date} />
+            <WfField label="Opponent" value={match.opponent || undefined} placeholder="Empty" />
+            <WfField label="Tournament / event" value={match.event || undefined} placeholder="Empty" />
+            <WfField label="Date" value={match.date || undefined} placeholder="Empty" />
           </div>
-          <Button size="sm" disabled>
+          <Button
+            size="sm"
+            disabled
+            onClick={() =>
+              updateMatch(match.id, {
+                opponent: match.opponent || 'Opponent',
+                name: match.name,
+              })
+            }
+          >
             Save context (stub)
           </Button>
         </Card>
@@ -138,10 +148,9 @@ export function MatchDetailsStub() {
         <Card className="space-y-3">
           <CardTitle>Scores</CardTitle>
           <div className="grid grid-cols-2 gap-2">
-            {DEMO_MATCH.sets.map((s) => (
+            {match.sets.map((s) => (
               <WfField key={s.setId} label={`Set ${s.setId}`} value={s.score} />
             ))}
-            <WfField label="Match result" placeholder="Best of 5" />
           </div>
           <Button size="sm" disabled>
             Save scores (stub)
@@ -149,32 +158,11 @@ export function MatchDetailsStub() {
         </Card>
       </div>
 
-      <Card className="space-y-3">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <Icon name="upload" size="sm" className="text-brand" />
-            <CardTitle>Source video</CardTitle>
-          </div>
-          <WfBadge>attach here</WfBadge>
-        </div>
-        <CardDescription>Per-set attach status shows on Tag checklist.</CardDescription>
-        <div className="rounded-lg border border-dashed border-border bg-bg-card px-4 py-8 text-center space-y-2">
-          <p className="text-sm font-semibold text-primary">demo-match.mp4</p>
-          <p className="text-xs text-muted">~42 min · placeholder · sets 1-2</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button disabled>
-            <Icon name="upload" size="xs" />
-            Attach video (stub)
-          </Button>
-          <Button variant="secondary" disabled>
-            Replace video (stub)
-          </Button>
-          <Button variant="ghost" disabled>
-            Remove (stub)
-          </Button>
-        </div>
-      </Card>
+      {phase === 'complete' ? (
+        <Button variant="secondary" onClick={() => navigate(`/matches/${match.id}/insights/summary`)}>
+          Open match Insights
+        </Button>
+      ) : null}
     </div>
   )
 }
@@ -183,18 +171,31 @@ function tagLabel(done: boolean) {
   return done ? 'done' : 'todo'
 }
 
-/** Tag landing: checklist by set from Details scores. */
+/** Tag checklist from the same set data as Details. */
 export function MatchTagStub() {
+  const { matchId = '' } = useParams()
   const navigate = useNavigate()
-  const { matchId = DEMO_MATCH.id } = useParams()
+  const { getMatch } = useDemo()
+  const match = getMatch(matchId)
+  if (!match) return null
+
+  const phase = derivePhase(match)
+  const hasVideo = match.sets.some((s) => s.videoFile)
+
+  if (!hasVideo) {
+    return (
+      <div className="px-4 sm:px-6 lg:px-8 py-6 space-y-3">
+        <WfEmpty title="No video yet" body="Attach a set video on Details first." />
+        <Button onClick={() => navigate(`/matches/${match.id}/details`)}>Go to Details</Button>
+      </div>
+    )
+  }
 
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-6 space-y-4">
-      <p className="text-sm text-muted max-w-prose">
-        Sets from Details scores. Open a set to tag.
-      </p>
+      <p className="text-sm text-muted">Sets from Details scores.</p>
       <ul className="space-y-3">
-        {DEMO_MATCH.sets.map((s) => (
+        {match.sets.map((s) => (
           <li key={s.setId}>
             <Card className="space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
@@ -203,26 +204,23 @@ export function MatchTagStub() {
                     Set {s.setId} · {s.score}
                   </p>
                   <p className="text-xs text-muted mt-0.5">
-                    {s.videoAttached ? (
+                    {s.videoFile ? (
                       'Video attached'
                     ) : (
                       <>
                         No video ·{' '}
-                        <Link
-                          to={`/matches/${matchId}/details`}
-                          className="font-semibold text-brand"
-                        >
+                        <Link to={`/matches/${match.id}/details`} className="font-semibold text-brand">
                           Attach on Details
                         </Link>
                       </>
                     )}
                   </p>
                 </div>
-                {s.videoAttached ? (
+                {s.videoFile ? (
                   <Button
                     size="sm"
                     variant="secondary"
-                    onClick={() => navigate(`/matches/${matchId}/tag/${s.setId}`)}
+                    onClick={() => navigate(`/matches/${match.id}/tag/${s.setId}`)}
                   >
                     Open set
                   </Button>
@@ -241,6 +239,11 @@ export function MatchTagStub() {
           </li>
         ))}
       </ul>
+      {phase === 'complete' ? (
+        <Button variant="ghost" onClick={() => navigate(`/matches/${match.id}/insights/summary`)}>
+          Open match Insights
+        </Button>
+      ) : null}
     </div>
   )
 }
@@ -279,33 +282,28 @@ const STUB_RALLIES = [
   },
 ]
 
-/** Set tagging: player stub + rallies; select rally for shot timeline + nudge. */
 export function MatchTagSetStub() {
   const navigate = useNavigate()
-  const { matchId = DEMO_MATCH.id, setId = '1' } = useParams()
-  const set = getDemoSet(Number(setId))
+  const { matchId = '', setId = '1' } = useParams()
+  const { getMatch } = useDemo()
+  const match = getMatch(matchId)
+  const set = match?.sets.find((s) => s.setId === Number(setId))
   const [selectedId, setSelectedId] = useState(STUB_RALLIES[0].id)
   const selected = STUB_RALLIES.find((r) => r.id === selectedId) ?? STUB_RALLIES[0]
 
-  if (!set) {
+  if (!match || !set) {
     return (
       <div className="px-4 sm:px-6 lg:px-8 py-6">
         <WfEmpty title="Unknown set" body="Back to Tag checklist." />
-        <Button className="mt-3" variant="secondary" onClick={() => navigate(`/matches/${matchId}/tag`)}>
-          Tag checklist
-        </Button>
       </div>
     )
   }
 
-  if (!set.videoAttached) {
+  if (!set.videoFile) {
     return (
       <div className="px-4 sm:px-6 lg:px-8 py-6 space-y-3">
-        <WfEmpty
-          title={`Set ${set.setId} has no video`}
-          body="Attach source video on Details first."
-        />
-        <Button variant="secondary" onClick={() => navigate(`/matches/${matchId}/details`)}>
+        <WfEmpty title={`Set ${set.setId} has no video`} body="Attach on Details first." />
+        <Button variant="secondary" onClick={() => navigate(`/matches/${match.id}/details`)}>
           Go to Details
         </Button>
       </div>
@@ -321,18 +319,15 @@ export function MatchTagSetStub() {
             <div className="text-center space-y-2 px-4">
               <Icon name="film" size="lg" className="mx-auto text-muted" />
               <p className="text-sm font-semibold text-primary">Video stub</p>
-              <p className="text-xs text-muted">Set {set.setId} · no real playback</p>
+              <p className="text-xs text-muted">
+                Set {set.setId} · {set.videoFile}
+              </p>
             </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Button size="sm" disabled>
-              <Icon name="play" size="xs" />
-              Play (stub)
-            </Button>
-            <Button size="sm" variant="ghost" disabled>
-              Pause (stub)
-            </Button>
-          </div>
+          <Button size="sm" disabled>
+            <Icon name="play" size="xs" />
+            Play (stub)
+          </Button>
         </Card>
 
         <Card className="space-y-3">
@@ -362,29 +357,16 @@ export function MatchTagSetStub() {
       </div>
 
       <Card className="space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <CardTitle>
-            {selected.label} · timeline
-          </CardTitle>
-          <WfBadge>shots</WfBadge>
-        </div>
+        <CardTitle>
+          {selected.label} · timeline
+        </CardTitle>
         <CardDescription>
-          Rally {selected.start} to {selected.end}. Select markers to nudge.
+          Rally {selected.start} to {selected.end}.
         </CardDescription>
-
         <div className="relative h-12 rounded-md border border-border bg-bg-card">
           <div className="absolute inset-x-3 top-1/2 h-0.5 bg-border" />
-          {/* Rally start / end */}
-          <div
-            className="absolute top-1 bottom-1 w-0.5 bg-brand-primary"
-            style={{ left: '8%' }}
-            title="Rally start"
-          />
-          <div
-            className="absolute top-1 bottom-1 w-0.5 bg-brand-primary"
-            style={{ left: '92%' }}
-            title="Rally end"
-          />
+          <div className="absolute top-1 bottom-1 w-0.5 bg-brand-primary" style={{ left: '8%' }} />
+          <div className="absolute top-1 bottom-1 w-0.5 bg-brand-primary" style={{ left: '92%' }} />
           {selected.shots.map((shot, i) => {
             const pct = 15 + (i / Math.max(selected.shots.length - 1, 1)) * 70
             return (
@@ -393,28 +375,17 @@ export function MatchTagSetStub() {
                 type="button"
                 className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-brand-primary border-2 border-bg-surface"
                 style={{ left: `${pct}%` }}
-                title={`${shot.label} ${shot.t}`}
                 aria-label={shot.label}
               />
             )
           })}
         </div>
-
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-2 rounded-md border border-border bg-bg-card p-3">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted">Rally bounds</p>
-            <p className="text-sm text-primary">
-              Start {selected.start} · End {selected.end}
-            </p>
             <div className="flex flex-wrap gap-2">
               <Button size="sm" disabled>
                 Start -0.1s (stub)
-              </Button>
-              <Button size="sm" disabled>
-                Start +0.1s (stub)
-              </Button>
-              <Button size="sm" disabled>
-                End -0.1s (stub)
               </Button>
               <Button size="sm" disabled>
                 End +0.1s (stub)
@@ -425,11 +396,8 @@ export function MatchTagSetStub() {
             <p className="text-xs font-semibold uppercase tracking-wide text-muted">Shot markers</p>
             <ul className="space-y-2">
               {selected.shots.map((shot) => (
-                <li
-                  key={shot.id}
-                  className="flex flex-wrap items-center justify-between gap-2 text-sm"
-                >
-                  <span className="text-primary font-medium">
+                <li key={shot.id} className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                  <span className="font-medium text-primary">
                     {shot.label} · {shot.t}
                   </span>
                   <span className="flex gap-1">

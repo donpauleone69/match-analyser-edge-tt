@@ -6,17 +6,13 @@ import { HomePage } from '@/pages/HomePage'
 import { FindPage } from '@/pages/FindPage'
 import {
   MatchPage,
-  MatchInsightsStub,
+  MatchIndexRedirect,
+  MatchInsightsSection,
   MatchDetailsStub,
   MatchTagStub,
   MatchTagSetStub,
 } from '@/pages/MatchPage'
-import {
-  InsightsPage,
-  InsightsStoryStub,
-  InsightsReelsStub,
-  InsightsScopeStub,
-} from '@/pages/InsightsPage'
+import { InsightsPage, InsightsSectionPage } from '@/pages/InsightsPage'
 import { AccountPage } from '@/pages/AccountPage'
 
 export default function App() {
@@ -24,27 +20,32 @@ export default function App() {
     <>
       <ScrollToTop />
       <Routes>
-      <Route path="/" element={<GatePage />} />
-      <Route element={<AppShell />}>
-        <Route path="/home" element={<HomePage />} />
-        <Route path="/find" element={<FindPage />} />
-        <Route path="/matches/:matchId" element={<MatchPage />}>
-          <Route index element={<Navigate to="insights" replace />} />
-          <Route path="insights" element={<MatchInsightsStub />} />
-          <Route path="details" element={<MatchDetailsStub />} />
-          <Route path="tag" element={<MatchTagStub />} />
-          <Route path="tag/:setId" element={<MatchTagSetStub />} />
+        <Route path="/" element={<GatePage />} />
+        <Route element={<AppShell />}>
+          <Route path="/home" element={<HomePage />} />
+          <Route path="/find" element={<FindPage />} />
+          <Route path="/matches/:matchId" element={<MatchPage />}>
+            <Route index element={<MatchIndexRedirect />} />
+            <Route path="insights" element={<Navigate to="summary" replace />} />
+            <Route path="insights/:section" element={<MatchInsightsSection />} />
+            <Route path="details" element={<MatchDetailsStub />} />
+            <Route path="tag" element={<MatchTagStub />} />
+            <Route path="tag/:setId" element={<MatchTagSetStub />} />
+          </Route>
+          <Route path="/insights" element={<InsightsPage />}>
+            <Route index element={<Navigate to="summary" replace />} />
+            <Route path="summary" element={<InsightsSectionPage />} />
+            <Route path="serve" element={<InsightsSectionPage />} />
+            <Route path="receive" element={<InsightsSectionPage />} />
+            <Route path="improve" element={<InsightsSectionPage />} />
+            <Route path="story" element={<Navigate to="/insights/summary" replace />} />
+            <Route path="reels" element={<Navigate to="/insights/summary" replace />} />
+            <Route path="scope" element={<Navigate to="/insights/improve" replace />} />
+          </Route>
+          <Route path="/account" element={<AccountPage />} />
         </Route>
-        <Route path="/insights" element={<InsightsPage />}>
-          <Route index element={<Navigate to="story" replace />} />
-          <Route path="story" element={<InsightsStoryStub />} />
-          <Route path="reels" element={<InsightsReelsStub />} />
-          <Route path="scope" element={<InsightsScopeStub />} />
-        </Route>
-        <Route path="/account" element={<AccountPage />} />
-      </Route>
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </>
   )
 }
