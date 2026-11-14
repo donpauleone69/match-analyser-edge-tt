@@ -16,13 +16,8 @@ export interface SummaryCategoryNavBlockProps {
 export function SummaryCategoryNavBlock({ sections, onSelect }: SummaryCategoryNavBlockProps) {
   if (sections.length === 0) return null
   return (
-    <section className="space-y-3" aria-label="Match story categories">
-      <div>
-        <h2 className="text-xl font-semibold text-primary">Your story</h2>
-        <p className="text-sm text-primary">
-          Pick an area — see your numbers, then the points behind them.
-        </p>
-      </div>
+    <section className="space-y-2" aria-label="Match story categories">
+      <h2 className="text-base font-semibold text-primary">Your story</h2>
       <ul className="grid gap-2 sm:grid-cols-2">
         {sections.map((section) => (
           <li key={section.id}>
@@ -30,18 +25,18 @@ export function SummaryCategoryNavBlock({ sections, onSelect }: SummaryCategoryN
               type="button"
               onClick={() => onSelect(section.id)}
               className={cn(
-                'w-full text-left rounded-xl border border-pill-idle-border bg-bg-card px-4 py-3',
-                'hover:border-neutral-600 hover:bg-bg-elevated transition-colors group'
+                'w-full text-left rounded-lg border border-border bg-bg-card px-3 py-2.5',
+                'hover:border-border-strong hover:bg-bg-elevated transition-colors group'
               )}
             >
-              <div className="flex items-start gap-3">
+              <div className="flex items-start gap-2">
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold text-primary">{section.title}</p>
-                  <p className="mt-1 text-xs text-primary line-clamp-2">
+                  <p className="mt-0.5 text-xs text-neutral-500 line-clamp-2">
                     {deriveCategoryTeaser(section)}
                   </p>
                 </div>
-                <Icon name="chevron-right" size="sm" className="mt-0.5 text-primary" />
+                <Icon name="chevron-right" size="sm" className="mt-0.5 text-neutral-500" />
               </div>
             </button>
           </li>

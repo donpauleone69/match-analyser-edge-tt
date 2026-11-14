@@ -47,7 +47,7 @@ export function HomeComposer() {
   const openDetails = (matchId: string) => navigate(`/matches/${matchId}?tab=details`)
 
   if (isLoading || !home) {
-    return <p className="p-6 text-neutral-400">Loading…</p>
+    return <p className="p-4 text-sm text-neutral-500">Loading…</p>
   }
 
   const outstandingLabel =

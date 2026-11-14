@@ -81,19 +81,19 @@ export function OverviewSection({
   if (activeSection) {
     const playlist = buildCategoryPlaylist(activeSection, rallyById)
     return (
-      <div className="space-y-6">
+      <div className="space-y-4">
         <button
           type="button"
           onClick={() => onSelectCategory(null)}
-          className="inline-flex items-center gap-1 text-sm text-neutral-400 hover:text-neutral-100"
+          className="inline-flex items-center gap-1 text-sm text-neutral-500 hover:text-neutral-100"
         >
           <Icon name="arrow-left" size="sm" /> All categories
         </button>
         <div>
-          <h2 className="text-xl font-semibold text-neutral-50">{activeSection.title}</h2>
-          <p className="text-sm italic text-neutral-400">{activeSection.question}</p>
+          <h2 className="text-lg font-semibold text-neutral-50">{activeSection.title}</h2>
+          <p className="text-sm text-neutral-500">{activeSection.question}</p>
         </div>
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="grid gap-3 lg:grid-cols-2">
           {activeSection.cards.map((card) => (
             <CompareCardBlock
               key={card.id}
@@ -126,7 +126,7 @@ export function OverviewSection({
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4">
       {incompleteCount > 0 && onOpenIncomplete && (
         <button
           type="button"
@@ -136,7 +136,7 @@ export function OverviewSection({
           <p className="text-sm font-medium text-callout-warning">
             {incompleteCount} incomplete · out of stats
           </p>
-          <p className="text-xs text-primary mt-0.5">Open Rallies → Incomplete to finish.</p>
+          <p className="text-xs text-neutral-500 mt-0.5">Rallies → Incomplete</p>
         </button>
       )}
 
@@ -150,25 +150,19 @@ export function OverviewSection({
             {needsOpponent ? 'Add opponent (optional)' : 'Add tournament (optional)'}
           </p>
           <p className="text-xs text-neutral-500 mt-0.5">
-            {needsOpponent ? 'Helps Clips / Find vs player.' : 'Helps Clips / Find by event.'}
+            {needsOpponent ? 'Helps Find / Clips vs player.' : 'Helps Find / Clips by event.'}
           </p>
         </button>
       )}
 
       <TakeawaysBlock takeaways={review.takeaways} onOpenEvidence={onOpenEvidence} />
 
-      {review.hasPointData && (
-        <p className="text-xs text-neutral-500 -mt-4">
-          Tap a category for stats and points. Serve / Receive open a curated playlist. Numbers open evidence.
-        </p>
-      )}
-
       <SummaryCategoryNavBlock sections={review.sections} onSelect={onSelectCategory} />
 
       {review.locked.length > 0 && (
-        <section className="space-y-3">
-          <h2 className="text-xl font-semibold text-neutral-50">Coming next</h2>
-          <div className="grid gap-4 md:grid-cols-3">
+        <section className="space-y-2">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">Coming next</h2>
+          <div className="grid gap-2 md:grid-cols-3">
             {review.locked.map((s) => (
               <LockedSectionBlock key={s.id} id={s.id} title={s.title} question={s.question} note={s.note} />
             ))}

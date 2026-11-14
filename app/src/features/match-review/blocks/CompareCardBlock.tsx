@@ -54,7 +54,7 @@ function ValueCell({
       onClick={() => onOpenEvidence(evidence)}
       title="Show the rallies behind this number"
       className={cn(
-        'rounded-md px-1.5 -mx-1.5 py-0.5 underline decoration-dotted decoration-neutral-600 underline-offset-4 hover:bg-neutral-800 hover:decoration-neutral-300 transition-colors',
+        'rounded-md px-1.5 -mx-1.5 py-0.5 underline decoration-dotted decoration-neutral-600 underline-offset-4 hover:bg-bg-elevated hover:decoration-neutral-300 transition-colors',
         align === 'left' ? 'justify-self-start text-left' : 'justify-self-end text-right',
         active && 'bg-neutral-800 ring-1 ring-brand-primary/60'
       )}
@@ -95,7 +95,7 @@ export function CompareCardBlock({
                 'inline-flex items-baseline gap-1.5 rounded-md border px-2 py-1',
                 s.heroWon === true && 'border-result-winner/60 bg-result-winner-bg',
                 s.heroWon === false && 'border-result-error/60 bg-result-error-bg',
-                s.heroWon === null && 'border-border bg-neutral-900/50'
+                s.heroWon === null && 'border-border bg-bg-elevated'
               )}
             >
               <span className="text-[10px] text-neutral-500">S{s.setNumber}</span>

@@ -22,28 +22,28 @@ export function DataTableBlock({
   className
 }: DataTableBlockProps) {
   const colorClasses = {
-    green: 'bg-green-900/10',
-    blue: 'bg-blue-900/10',
-    neutral: 'bg-neutral-800'
+    green: 'bg-result-winner-bg',
+    blue: 'bg-callout-info-bg',
+    neutral: 'bg-bg-elevated'
   }
   
   if (data.length === 0) {
     return (
-      <div className="p-4 text-sm text-neutral-500 italic border border-neutral-700 rounded">
+      <div className="p-3 text-sm text-neutral-500 italic border border-dashed border-border rounded">
         No data
       </div>
     )
   }
   
   return (
-    <div className={cn("overflow-x-auto border border-neutral-700 rounded", className)}>
+    <div className={cn("overflow-x-auto border border-border rounded", className)}>
       <table className="min-w-full text-xs">
-        <thead className={cn('border-b border-neutral-700', colorClasses[categoryColor])}>
+        <thead className={cn('border-b border-border', colorClasses[categoryColor])}>
           <tr>
             {fields.map(field => (
               <th 
                 key={field.key} 
-                className="px-2 py-2 text-left font-mono text-[10px] whitespace-nowrap text-neutral-300"
+                className="px-2 py-1.5 text-left font-mono text-[10px] whitespace-nowrap text-neutral-500"
               >
                 {field.header}
               </th>
@@ -55,8 +55,8 @@ export function DataTableBlock({
             <tr 
               key={idx} 
               className={cn(
-                'border-t border-neutral-800',
-                highlightLastRow && idx === data.length - 1 && 'bg-yellow-900/20'
+                'border-t border-border',
+                highlightLastRow && idx === data.length - 1 && 'bg-callout-warning-bg'
               )}
             >
               {fields.map(field => (

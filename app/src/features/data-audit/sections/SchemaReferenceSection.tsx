@@ -35,7 +35,7 @@ export function SchemaReferenceSection({
     SHOT_PREPOPULATED_FIELDS.length
   
   return (
-    <div className="mb-6 border border-neutral-700 rounded-lg overflow-hidden">
+    <div className="mb-6 border border-border rounded-lg overflow-hidden">
       <button
         onClick={() => setExpanded(!expanded)}
         className="w-full p-4 bg-neutral-800 flex items-center justify-between hover:bg-neutral-750 transition-colors"
@@ -57,7 +57,7 @@ export function SchemaReferenceSection({
       </button>
       
       {expanded && (
-        <div className="p-6 bg-neutral-900 space-y-6">
+        <div className="p-6 bg-bg-elevated space-y-6">
           {/* MATCH TABLE */}
           <div>
             <h3 className="text-lg font-semibold mb-3 text-neutral-300">
@@ -71,7 +71,7 @@ export function SchemaReferenceSection({
                 Showing actual values from this match
               </div>
             )}
-            <div className="overflow-x-auto border border-neutral-700 rounded">
+            <div className="overflow-x-auto border border-border rounded">
               <table className="min-w-full text-xs">
                 <thead className="bg-neutral-800">
                   <tr>
@@ -85,7 +85,7 @@ export function SchemaReferenceSection({
                   {MATCH_PREPOPULATED_FIELDS.map(field => {
                     const actualValue = matchRecord ? (matchRecord as any)[field.key] : undefined
                     return (
-                      <tr key={field.key} className="border-t border-neutral-800">
+                      <tr key={field.key} className="border-t border-border">
                         <td className="px-3 py-2 font-mono text-neutral-300">{field.key}</td>
                         <td className="px-3 py-2 font-mono text-neutral-500">{field.defaultValue}</td>
                         <td className="px-3 py-2 font-mono text-blue-400">
@@ -110,7 +110,7 @@ export function SchemaReferenceSection({
                 Showing actual values from Set {sampleSet.set_number}
               </div>
             )}
-            <div className="overflow-x-auto border border-neutral-700 rounded">
+            <div className="overflow-x-auto border border-border rounded">
               <table className="min-w-full text-xs">
                 <thead className="bg-neutral-800">
                   <tr>
@@ -124,7 +124,7 @@ export function SchemaReferenceSection({
                   {SET_PREPOPULATED_FIELDS.map(field => {
                     const actualValue = sampleSet ? (sampleSet as any)[field.key] : undefined
                     return (
-                      <tr key={field.key} className="border-t border-neutral-800">
+                      <tr key={field.key} className="border-t border-border">
                         <td className="px-3 py-2 font-mono text-neutral-300">{field.key}</td>
                         <td className="px-3 py-2 font-mono text-neutral-500">{field.defaultValue}</td>
                         <td className="px-3 py-2 font-mono text-blue-400">
@@ -149,7 +149,7 @@ export function SchemaReferenceSection({
                 Showing actual values from Rally {sampleRally.rally_index}
               </div>
             )}
-            <div className="overflow-x-auto border border-neutral-700 rounded">
+            <div className="overflow-x-auto border border-border rounded">
               <table className="min-w-full text-xs">
                 <thead className="bg-neutral-800">
                   <tr>
@@ -163,7 +163,7 @@ export function SchemaReferenceSection({
                   {RALLY_PREPOPULATED_FIELDS.map(field => {
                     const actualValue = sampleRally ? (sampleRally as any)[field.key] : undefined
                     return (
-                      <tr key={field.key} className="border-t border-neutral-800">
+                      <tr key={field.key} className="border-t border-border">
                         <td className="px-3 py-2 font-mono text-neutral-300">{field.key}</td>
                         <td className="px-3 py-2 font-mono text-neutral-500">{field.defaultValue}</td>
                         <td className="px-3 py-2 font-mono text-blue-400">
@@ -188,7 +188,7 @@ export function SchemaReferenceSection({
                 Showing actual values from Shot {sampleShot.shot_index}
               </div>
             )}
-            <div className="overflow-x-auto border border-neutral-700 rounded">
+            <div className="overflow-x-auto border border-border rounded">
               <table className="min-w-full text-xs">
                 <thead className="bg-neutral-800">
                   <tr>
@@ -202,7 +202,7 @@ export function SchemaReferenceSection({
                   {SHOT_PREPOPULATED_FIELDS.map(field => {
                     const actualValue = sampleShot ? (sampleShot as any)[field.key] : undefined
                     return (
-                      <tr key={field.key} className="border-t border-neutral-800">
+                      <tr key={field.key} className="border-t border-border">
                         <td className="px-3 py-2 font-mono text-neutral-300">{field.key}</td>
                         <td className="px-3 py-2 font-mono text-neutral-500">{field.defaultValue}</td>
                         <td className="px-3 py-2 font-mono text-blue-400">
@@ -218,7 +218,7 @@ export function SchemaReferenceSection({
           </div>
           
           {/* Summary */}
-          <div className="pt-4 border-t border-neutral-700 text-sm text-neutral-400">
+          <div className="pt-4 border-t border-border text-sm text-neutral-400">
             <p>
               <strong className="text-neutral-300">Total fields NOT modified by Phase 1:</strong> {totalFields}
             </p>

@@ -20,7 +20,7 @@ export function LockedSectionBlock({ id, title, question, note }: LockedSectionB
           <span className="text-neutral-500 mr-2">{id}</span>
           {title}
         </h3>
-        <Badge variant="outline" className="gap-1 text-neutral-400 border-neutral-600">
+        <Badge variant="outline" className="gap-1 text-neutral-500 border-border">
           <Icon name="clock" size="xs" />
           Coming
         </Badge>
