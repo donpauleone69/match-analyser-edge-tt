@@ -14,13 +14,13 @@ export interface ContinueTaggingBlockProps {
 export function ContinueTaggingBlock({ item, onContinue, onReview }: ContinueTaggingBlockProps) {
   const tone =
     item.kind === 'fix_incomplete' || item.kind === 'in_progress'
-      ? 'border-callout-warning-border bg-callout-warning-bg'
-      : 'border-border'
+      ? 'bg-callout-warning-bg'
+      : 'bg-bg-card'
   const showScore = item.kind === 'in_progress' || item.kind === 'fix_incomplete'
   const actionIcon = item.kind === 'fix_incomplete' ? 'edit' : 'play'
 
   return (
-    <div className={`flex flex-wrap items-center gap-1.5 rounded-md border px-2.5 py-1.5 ${tone}`}>
+    <div className={`flex flex-wrap items-center gap-1.5 rounded-md px-2.5 py-1.5 ${tone}`}>
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold text-primary truncate">{item.title}</p>
         <p className="text-[11px] text-muted mt-0.5">

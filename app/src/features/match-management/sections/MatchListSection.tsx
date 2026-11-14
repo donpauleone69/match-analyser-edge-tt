@@ -153,7 +153,7 @@ export function MatchListSection({
           )
 
           return (
-            <Card key={match.id} className="p-2.5 sm:p-3 border border-border">
+            <Card key={match.id} className="p-2.5 sm:p-3 shadow-sm">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                 <div className="flex-1 min-w-0 space-y-1">
                   <div className="flex flex-wrap items-center gap-1.5">
@@ -161,7 +161,7 @@ export function MatchListSection({
                       {player1Name} vs {player2Name}
                     </h3>
                     {badge?.tone === 'progress' && (
-                      <span className="px-1.5 py-0.5 text-[11px] rounded bg-callout-warning-bg text-callout-warning border border-callout-warning-border">
+                      <span className="px-1.5 py-0.5 text-[11px] rounded bg-callout-warning-bg text-callout-warning">
                         {badge.label}
                       </span>
                     )}
@@ -171,18 +171,18 @@ export function MatchListSection({
                       </span>
                     )}
                     {badge?.tone === 'todo' && (
-                      <span className="px-1.5 py-0.5 text-[11px] rounded border border-border text-muted">
+                      <span className="px-1.5 py-0.5 text-[11px] rounded bg-bg-elevated text-muted">
                         {badge.label}
                       </span>
                     )}
                     {!match.player2_id && (
-                      <span className="px-1.5 py-0.5 text-[11px] rounded border border-border text-muted">
+                      <span className="px-1.5 py-0.5 text-[11px] rounded bg-bg-elevated text-muted">
                         Opponent open
                       </span>
                     )}
                     {showSyncBadges && syncByMatch[match.id] === 'never' && (
                       <span
-                        className="px-1.5 py-0.5 text-[11px] rounded border border-border text-muted"
+                        className="px-1.5 py-0.5 text-[11px] rounded bg-bg-elevated text-muted"
                         title="Not backed up to cloud yet"
                       >
                         Not backed up
@@ -190,7 +190,7 @@ export function MatchListSection({
                     )}
                     {showSyncBadges && syncByMatch[match.id] === 'changed' && (
                       <span
-                        className="px-1.5 py-0.5 text-[11px] rounded bg-callout-warning-bg text-callout-warning border border-callout-warning-border"
+                        className="px-1.5 py-0.5 text-[11px] rounded bg-callout-warning-bg text-callout-warning"
                         title="Local tags changed since last cloud backup"
                       >
                         Backup stale

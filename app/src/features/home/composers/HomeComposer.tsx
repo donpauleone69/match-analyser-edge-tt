@@ -16,8 +16,9 @@ import { ClipShortcutsBlock, type ClipShortcut } from '../blocks/ClipShortcutsBl
 const SHORTCUT_LIMIT = 6
 
 function Panel({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
+  // No outer border — overnight density stacked Panel + row/list frames (MA-155).
   return (
-    <section className="rounded-md border border-border bg-bg-card p-2.5 space-y-1.5">
+    <section className="space-y-1.5">
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-[11px] font-semibold uppercase tracking-wide text-muted">{title}</h2>
         {action}
@@ -152,7 +153,7 @@ export function HomeComposer() {
               </Link>
             }
           >
-            <ul className="divide-y divide-border rounded-md border border-border overflow-hidden">
+            <ul className="divide-y divide-border overflow-hidden rounded-md bg-bg-card">
               {home.recent.map((m) => (
                 <HomeMatchRowBlock key={m.matchId} match={m} onOpen={openMatch} />
               ))}

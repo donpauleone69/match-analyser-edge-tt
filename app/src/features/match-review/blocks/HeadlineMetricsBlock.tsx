@@ -50,8 +50,8 @@ export function HeadlineMetricsBlock({
             <div
               key={h.key}
               className={cn(
-                'rounded-lg border border-border bg-bg-card px-2.5 py-2 flex flex-col',
-                empty && 'border-dashed'
+                'rounded-lg bg-bg-card px-2.5 py-2 flex flex-col',
+                empty && 'opacity-70'
               )}
             >
               {body}
@@ -66,9 +66,9 @@ export function HeadlineMetricsBlock({
             onClick={() => onOpenEvidence(evidence, h)}
             title="Show the points behind this number"
             className={cn(
-              'rounded-lg border border-border bg-bg-card px-2.5 py-2 flex flex-col text-left',
-              'hover:border-border-strong hover:bg-bg-elevated/40 transition-colors',
-              active && 'border-brand-primary/50 bg-bg-elevated/50'
+              'rounded-lg bg-bg-card px-2.5 py-2 flex flex-col text-left',
+              'hover:bg-bg-elevated/60 transition-colors',
+              active && 'ring-1 ring-brand-primary/40 bg-bg-elevated/50'
             )}
           >
             {body}

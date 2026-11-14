@@ -6,6 +6,21 @@
 
 ## Change Log
 
+### 2026-11-14: MA-155 — De-frame nested borders on Home / Find / Summary (v3.184.0)
+
+**Change Type:** UX hotfix — overnight border stacking
+
+**What Changed:**
+- Home: Panel shells lose outer borders; continue/context rows and status chips use wash only; Recent list is divide-y on `bg-card` (no nested frame).
+- Find: match Cards drop extra `border-border` (shadow only); badges wash-only.
+- Summary: headline metric tiles borderless; Compare empty state no dashed inner box.
+
+**Decision Rationale:** Overnight density/token passes framed every nested surface. Paul: borders-around-borders / uglier. Thin de-frame first; tip rollback to `1316612` (+ cherry-pick Clips #124) remains on the table if still wrong.
+
+**Key Files:** `HomeComposer.tsx`, `ContinueTaggingBlock.tsx`, `ContextPolishBlock.tsx`, `HomeMatchRowBlock.tsx`, `MatchListSection.tsx`, `HeadlineMetricsBlock.tsx`, `CompareCardBlock.tsx`.
+
+---
+
 ### 2026-11-14: MA-154 — Clips white-screen hooks crash (v3.183.0)
 
 **Change Type:** Bugfix — Clips blank / crash on open
@@ -9190,6 +9205,7 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v3.184.0 | 2026-11-14 | MA-155: de-frame nested borders on Home / Find / Summary headlines |
 | v3.183.0 | 2026-11-14 | MA-154: Clips white-screen — remove useMemo after early returns (MA-86 hooks crash) |
 | v3.182.0 | 2026-11-14 | MA-145: phone playlist trail density — one-row icon-first trail |
 | v3.181.0 | 2026-11-14 | MA-147: Pass 1 contacts pad polish |
