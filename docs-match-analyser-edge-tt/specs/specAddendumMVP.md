@@ -6,6 +6,21 @@
 
 ## Change Log
 
+### 2026-11-14: MA-76 — No Attack rail toggle restyle (v3.121.0)
+
+**Change Type:** UX polish — Pass 1 Focus No Attack rail cell
+
+**What Changed:**
+- **No Attack** last rail cell uses idle pill look when off (same as other binary toggles); strong red selected look **only** when `noFirstAttack` is true.
+- Caption “Atk” is muted when off; red when selected.
+- Toggle behaviour unchanged: tap sets No Attack → optional; tap again clears → `select_fa` (`setFos(null)` loop).
+
+**Decision Rationale:** Paul MA-76 — looked selected when it wasn’t; too strong vs other row options.
+
+**Key Files:** `Pass1FocusBlock.tsx`.
+
+---
+
 ### 2026-11-14: MA-74 — Pass 1 optional Rally Focus fields + Basic/Advanced (v3.120.0)
 
 **Change Type:** Data model + UX — Pass 1 optional stage absorbs RF phase fields; completeness flags
