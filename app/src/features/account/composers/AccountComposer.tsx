@@ -147,7 +147,7 @@ export function AccountComposer() {
               <p className="text-xs text-neutral-500">Library stays on this browser until you sign in.</p>
             )}
             {error && (
-              <p className="rounded-md border border-callout-danger-border bg-callout-danger-bg px-2.5 py-1.5 text-sm text-callout-danger">
+              <p className="rounded-md border border-callout-danger-border bg-callout-danger-bg px-2.5 py-1.5 text-xs text-callout-danger">
                 {error}
               </p>
             )}
@@ -311,8 +311,8 @@ export function AccountComposer() {
             <p
               className={
                 fileNotice.tone === 'good'
-                  ? 'text-sm text-result-winner'
-                  : 'rounded-md border border-callout-danger-border bg-callout-danger-bg px-2.5 py-1.5 text-sm text-callout-danger'
+                  ? 'text-xs text-result-winner'
+                  : 'rounded-md border border-callout-danger-border bg-callout-danger-bg px-2.5 py-1.5 text-xs text-callout-danger'
               }
             >
               {fileNotice.text}

@@ -123,7 +123,7 @@ export function WorkOnSection({
     <div className="space-y-4">
       <div className="space-y-2.5">
         {workOn.total === 0 ? (
-          <p className="rounded-lg border border-dashed border-border px-3 py-3 text-sm text-neutral-500 text-center">
+          <p className="rounded-md border border-dashed border-border px-2.5 py-2 text-xs text-neutral-500 text-center">
             No flagged shots yet — flag in Pass 1.
           </p>
         ) : (

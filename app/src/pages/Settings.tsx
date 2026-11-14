@@ -76,16 +76,16 @@ export function Settings() {
         <AccountComposer />
 
         <section className="rounded-lg border border-callout-danger-border bg-callout-danger-bg/40 overflow-hidden">
-          <div className="flex items-center gap-2 px-4 py-2.5 border-b border-callout-danger-border">
+          <div className="flex items-center gap-2 px-3 py-2 border-b border-callout-danger-border">
             <Icon name="warning" size="sm" className="text-callout-danger" />
-            <h2 className="text-sm font-semibold text-callout-danger">Danger zone</h2>
+            <h2 className="text-xs font-semibold uppercase tracking-wide text-callout-danger">Danger zone</h2>
           </div>
 
-          <div className="p-4 space-y-4">
+          <div className="p-3 space-y-3">
             <div>
-              <h3 className="text-sm font-medium text-neutral-50 mb-1">Clear all data</h3>
-              <p className="text-xs text-neutral-500 mb-3">
-                Permanently deletes local clubs, players, matches, tags, and videos. Cannot be undone.
+              <h3 className="text-sm font-medium text-neutral-50 mb-0.5">Clear all data</h3>
+              <p className="text-[11px] text-neutral-500 mb-2">
+                Deletes local clubs, players, matches, tags, and videos. Cannot be undone.
               </p>
 
               {!showConfirm ? (
@@ -119,10 +119,10 @@ export function Settings() {
               )}
             </div>
 
-            <div className="pt-3 border-t border-border">
-              <h3 className="text-sm font-medium text-neutral-50 mb-1">Populate dummy data</h3>
-              <p className="text-xs text-neutral-500 mb-3">
-                Dev sample: 4 players, 2 matches. Only when the library is empty.
+            <div className="pt-2.5 border-t border-border">
+              <h3 className="text-sm font-medium text-neutral-50 mb-0.5">Populate dummy data</h3>
+              <p className="text-[11px] text-neutral-500 mb-2">
+                Dev sample: 4 players, 2 matches. Only when empty.
               </p>
               <Button
                 size="sm"

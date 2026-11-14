@@ -129,7 +129,7 @@ export function TrainingLibraryComposer() {
       </header>
 
       {notice && (
-        <p className="rounded-md border border-border bg-bg-card px-3 py-2 text-sm text-neutral-200">{notice}</p>
+        <p className="rounded-md border border-border bg-bg-card px-2.5 py-1.5 text-xs text-neutral-200">{notice}</p>
       )}
 
       <Card className="space-y-2.5 p-4 border border-border">

@@ -131,12 +131,11 @@ export function OverviewSection({
         <button
           type="button"
           onClick={onOpenIncomplete}
-          className="w-full text-left rounded-md border border-callout-warning-border bg-callout-warning-bg px-3 py-2 hover:border-callout-warning"
+          className="w-full text-left rounded-md border border-callout-warning-border bg-callout-warning-bg px-2.5 py-1.5 hover:border-callout-warning"
         >
-          <p className="text-sm font-medium text-callout-warning">
-            {incompleteCount} incomplete · out of stats
+          <p className="text-xs font-medium text-callout-warning">
+            {incompleteCount} incomplete · Rallies → Incomplete
           </p>
-          <p className="text-xs text-neutral-500 mt-0.5">Rallies → Incomplete</p>
         </button>
       )}
 
@@ -144,13 +143,13 @@ export function OverviewSection({
         <button
           type="button"
           onClick={onOpenDetails}
-          className="w-full text-left rounded-md border border-border px-3 py-2 hover:border-border-strong"
+          className="w-full text-left rounded-md border border-border px-2.5 py-1.5 hover:border-border-strong"
         >
-          <p className="text-sm font-medium text-neutral-100">
+          <p className="text-xs font-medium text-neutral-100">
             {needsOpponent ? 'Add opponent (optional)' : 'Add tournament (optional)'}
-          </p>
-          <p className="text-xs text-neutral-500 mt-0.5">
-            {needsOpponent ? 'Helps Find / Clips vs player.' : 'Helps Find / Clips by event.'}
+            <span className="ml-1 font-normal text-neutral-500">
+              {needsOpponent ? '· Find / Clips' : '· Find / Clips'}
+            </span>
           </p>
         </button>
       )}

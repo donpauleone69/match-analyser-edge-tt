@@ -43,10 +43,10 @@ export function TabBarBlock<T extends string>({
               }
               onClick={() => onChange(tab.id)}
               className={cn(
-                'relative h-10 px-2.5 md:px-3.5 text-sm font-medium whitespace-nowrap transition-colors',
+                'relative h-9 px-2 md:px-3 text-sm font-medium whitespace-nowrap transition-colors',
                 tab.id === active
                   ? 'text-neutral-50 after:absolute after:inset-x-2 after:bottom-0 after:h-0.5 after:bg-brand-primary after:rounded-full'
-                  : 'text-neutral-400 hover:text-neutral-100'
+                  : 'text-neutral-500 hover:text-neutral-100'
               )}
             >
               {tab.label}
@@ -67,10 +67,10 @@ export function TabBarBlock<T extends string>({
                       : undefined
                   }
                   className={cn(
-                    'ml-1 inline-flex min-w-[1.1rem] items-center justify-center rounded-md px-1 py-0.5 text-[10px] font-bold tabular-nums',
+                    'ml-1 inline-flex min-w-[1rem] items-center justify-center rounded-md border px-1 py-px text-[10px] font-bold tabular-nums',
                     tab.id === 'rallies'
-                      ? 'bg-callout-warning text-on-accent'
-                      : 'bg-bg-elevated text-primary',
+                      ? 'border-callout-warning-border bg-callout-warning-bg text-callout-warning'
+                      : 'border-border bg-bg-elevated text-primary',
                     onBadgeClick && 'cursor-pointer hover:opacity-90'
                   )}
                 >
