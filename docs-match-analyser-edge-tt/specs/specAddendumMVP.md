@@ -6,7 +6,7 @@
 
 ## Change Log
 
-### 2026-11-14: MA-111 — Video stage cohesion polish (v3.153.0)
+### 2026-11-14: MA-111 — Video stage cohesion polish (v3.155.0)
 
 **Change Type:** UX cohesion — Clip / Rally / Edit stage chrome
 
@@ -18,6 +18,41 @@
 **Decision Rationale:** Overnight Track A MA-111 — stage surfaces read as one product after MA-104 playlist chrome.
 
 **Key Files:** `ClipStageBlock.tsx`, `ClipQueueBlock.tsx`, `RallyPlayerBlock.tsx`, `EvidenceDrawerBlock.tsx`, `RallyEditComposer.tsx`, `themeTokens.test.ts`.
+
+### 2026-11-14: MA-118 — BrowseDisclosure / shell mobile polish (v3.154.0)
+
+**Change Type:** UX polish — mobile browse chrome
+
+**What Changed:**
+- `BrowseDisclosure`: pointerdown (touch) outside dismiss + Escape; listbox id wiring; taller touch targets; safer `max-h` / overscroll on panel.
+- `PlaylistBrowseShellBlock`: phone stacks chip then trail (disclosure never starves); larger trail taps; safe-area padding; Serve/Receive uses `stickyMode="under-tabs"` (drop ad-hoc `top-14` class).
+- Compact preset rows get phone-friendly min height.
+
+**Decision Rationale:** Overnight Track C MA-118 after #85 — mobile polish on the shared primitive + shell.
+
+**Key Files:** `BrowseDisclosure.tsx`, `PlaylistBrowseShellBlock.tsx`, `ClipPresetListBlock.tsx`, `ServeReceiveDataSection.tsx`.
+
+---
+
+---
+
+### 2026-11-14: MA-117 — Video HUD chip token cleanup (v3.153.0)
+
+**Change Type:** Design tokens — VideoPlayer HUD + MatchScoreHud + Pass 1 badge wash
+
+**What Changed:**
+- New video-scrim variants: `strong` / `soft` / `edge` / `wash` / `wash-muted`.
+- VideoPlayer time / shot / Change chips + scrub track → `video-scrim-strong|soft` + `video-scrim-border`.
+- MatchScoreHud set/point cells → `video-scrim-edge` + wash tokens (drop `border-white/15`, `bg-white/10|20`).
+- Pass1ContactCapture server badge wash → `panel-scrim`.
+- Extend `themeTokens.test.ts` gate to these surfaces.
+
+**Decision Rationale:** MA-117 overnight Track F — finish video HUD leftover black/white alpha after MA-114 modal scrims.
+
+**Key Files:** `index.css`, `VideoPlayer.tsx`, `MatchScoreHud.tsx`, `Pass1ContactCaptureBlock.tsx`, `themeTokens.test.ts`.
+
+
+---
 
 ### 2026-11-14: MA-113 — Secondary chrome quiet pass (v3.152.0)
 
@@ -33,6 +68,7 @@
 **Decision Rationale:** MA-113 overnight Track B — secondary chrome after MA-110 lists/empties.
 
 **Key Files:** `OverviewSection.tsx`, `TakeawaysBlock.tsx`, `SummaryCategoryNavBlock.tsx`, `DetailsSection.tsx`, `ClipsComposer.tsx`, `HomeMatchRowBlock.tsx`, `ContextPolishBlock.tsx`, `EvidenceDrawerBlock.tsx`, `CompareCardBlock.tsx`, `MatchStorageBlock.tsx`, `DataTableBlock.tsx`, data-audit sections, `RallyEditComposer.tsx`, `MatchResultEntryModal.tsx`.
+
 
 ### 2026-11-14: MA-107 — Playlist browse shell refine (v3.151.0)
 
@@ -8685,9 +8721,15 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 
 | Version | Date | Changes |
 |---------|------|---------|
-| v3.153.0 | 2026-11-14 | MA-111: Clip/Rally/Edit stage chrome cohesion (muted tokens + edit rail) |
+| v3.155.0 | 2026-11-14 | MA-111: Clip/Rally/Edit stage chrome cohesion (muted tokens + edit rail) |
+<<<<<<< HEAD
 | v3.152.0 | 2026-11-14 | MA-113: secondary Review/Details/audit chrome quiet |
 | v3.151.0 | 2026-11-14 | MA-107: PlaylistBrowseShell density and trail refine |
+=======
+| v3.153.0 | 2026-11-14 | MA-117: Video HUD chips + MatchScoreHud washes → video-scrim variants |
+| v3.152.0 | 2026-11-14 | MA-113: quiet secondary Review/Details/audit chrome |
+| v3.151.0 | 2026-11-14 | MA-107: Refine PlaylistBrowseShell density and trail |
+>>>>>>> origin/main
 | v3.150.0 | 2026-11-14 | MA-114: RallyPlayer + modal overlays → modal-scrim / modal-scrim-strong |
 | v3.149.0 | 2026-11-14 | MA-112: Pass 1 rail and dialog polish |
 | v3.148.0 | 2026-11-14 | MA-106: Serve/Receive adopts PlaylistBrowseShell + Summary/Clips trail |

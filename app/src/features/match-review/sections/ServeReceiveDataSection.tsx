@@ -162,12 +162,13 @@ export function ServeReceiveDataSection({
   }
 
   const trail: PlaylistBrowseTrailLink[] = [
-    { id: 'summary', label: 'Summary', onClick: onBack, primary: true },
+    { id: 'summary', label: 'Summary', shortLabel: 'Summary', onClick: onBack, primary: true },
   ]
   if (playlistRallies.length > 0) {
     trail.push({
       id: 'clips',
       label: 'Clips',
+      shortLabel: 'Clips',
       onClick: () => onPlayPlaylist(playlistTitle, playlistRallies),
     })
   }
@@ -210,7 +211,7 @@ export function ServeReceiveDataSection({
 
       <section ref={playlistRef} className="space-y-2.5" aria-label="Supporting playlist">
         <PlaylistBrowseShellBlock
-          className="top-14"
+          stickyMode="under-tabs"
           open={focusOpen}
           onOpenChange={setFocusOpen}
           label="Focus"

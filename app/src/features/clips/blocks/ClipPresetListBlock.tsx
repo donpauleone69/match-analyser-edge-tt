@@ -48,8 +48,8 @@ export function ClipPresetListBlock({
                   onClick={() => onSelect(p)}
                   aria-pressed={active}
                   className={cn(
-                    'flex w-full items-center justify-between gap-2 rounded-md border text-left text-sm transition-colors',
-                    compact ? 'px-2 py-1.5' : 'px-2.5 py-1.5',
+                    'flex w-full items-center justify-between gap-2 rounded-md border text-left text-sm transition-colors touch-manipulation',
+                    compact ? 'min-h-10 px-2 py-2' : 'min-h-9 px-2.5 py-1.5',
                     active
                       ? 'border-contact-selected bg-contact-selected-bg text-primary'
                       : 'border-border bg-bg-card text-primary hover:border-border-strong'

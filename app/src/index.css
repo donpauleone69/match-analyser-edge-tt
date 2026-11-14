@@ -111,7 +111,12 @@
   --color-no-attack: #dc2626;
   /* Video overlay scrim (Track A transport / HUD chips) */
   --color-video-scrim: rgb(0 0 0 / 0.7);
+  --color-video-scrim-strong: rgb(0 0 0 / 0.9);
+  --color-video-scrim-soft: rgb(0 0 0 / 0.55);
   --color-video-scrim-border: rgb(255 255 255 / 0.25);
+  --color-video-scrim-edge: rgb(255 255 255 / 0.15);
+  --color-video-scrim-wash: rgb(255 255 255 / 0.2);
+  --color-video-scrim-wash-muted: rgb(255 255 255 / 0.1);
   /* Dialog / drawer dimmers (Pass 1 Leave, History panel, stage modals) */
   --color-modal-scrim: rgb(0 0 0 / 0.6);
   --color-modal-scrim-strong: rgb(0 0 0 / 0.8);
