@@ -461,11 +461,11 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
         <div className="w-full h-full flex items-center justify-center">
           {isProcessingFile ? (
             <div className="text-center space-y-4">
-              <div className="w-20 h-20 mx-auto rounded-full bg-neutral-800 flex items-center justify-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-4 border-neutral-600 border-t-brand-primary"></div>
+              <div className="w-20 h-20 mx-auto rounded-full bg-bg-elevated border border-border flex items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-4 border-border border-t-brand-primary"></div>
               </div>
               <p className="text-brand-primary text-lg mt-4 font-medium">Processing video...</p>
-              <p className="text-neutral-400 text-sm max-w-xs mx-auto">
+              <p className="text-muted text-sm max-w-xs mx-auto">
                 iOS may transcode to MP4 locally — no upload.
               </p>
             </div>
@@ -481,18 +481,18 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
                     if (file) handleFileSelect(file)
                   }}
                 />
-                <div className="w-20 h-20 mx-auto rounded-full bg-neutral-800 hover:bg-neutral-700 transition-colors flex items-center justify-center">
+                <div className="w-20 h-20 mx-auto rounded-full bg-bg-elevated border border-border hover:border-border-strong hover:bg-bg-shell transition-colors flex items-center justify-center">
                   <Upload className="w-10 h-10 text-brand-primary" />
                 </div>
                 <p className="text-brand-primary text-lg mt-4 font-medium">Click to load video</p>
               </label>
-              <p className="text-neutral-500 text-sm">Supports MP4, MOV, WebM</p>
-              <p className="text-neutral-600 text-xs max-w-xs mx-auto mt-2">
+              <p className="text-muted text-sm">Supports MP4, MOV, WebM</p>
+              <p className="text-muted text-xs max-w-xs mx-auto mt-2">
                 Videos stay on your device
               </p>
             </div>
           ) : (
-            <div className="text-center text-neutral-400 text-sm px-4">No video loaded</div>
+            <div className="text-center text-muted text-sm px-4">No video loaded</div>
           )}
         </div>
       )}
@@ -501,7 +501,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
         <div className="absolute top-4 left-4 px-3 py-1.5 rounded-lg bg-video-scrim-strong text-white font-mono text-sm">
           {formatTime(currentTime)}
           {constrainedPlayback?.enabled && (
-            <span className="text-neutral-400 ml-2">
+            <span className="text-white/70 ml-2">
               / {formatTime(constrainedPlayback.endTime)}
             </span>
           )}
@@ -638,7 +638,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
               if (file) handleFileSelect(file)
             }}
           />
-          <div className="px-3 py-1.5 rounded-lg bg-video-scrim-strong hover:bg-black border border-video-scrim-border text-white text-sm flex items-center gap-2 transition-colors">
+          <div className="px-3 py-1.5 rounded-lg bg-video-scrim-strong hover:bg-video-scrim border border-video-scrim-border text-white text-sm flex items-center gap-2 transition-colors">
             <Upload className="w-4 h-4" />
             Change
           </div>
