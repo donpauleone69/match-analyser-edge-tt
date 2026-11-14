@@ -68,6 +68,15 @@ describe('buildServeReceiveSections', () => {
     expect(sections[1].playlistFocuses?.find((f) => f.id === 'all')?.count).toBe(2)
   })
 
+  it('marks glance cards with short labels and emphasis', () => {
+    const serveGlance = sections[0].cards[0]
+    const recvGlance = sections[1].cards[0]
+    expect(serveGlance.emphasis).toBe('glance')
+    expect(recvGlance.emphasis).toBe('glance')
+    expect(serveGlance.rows.every((r) => r.label.length <= 12)).toBe(true)
+    expect(recvGlance.rows.every((r) => r.label.length <= 12)).toBe(true)
+  })
+
   it('keeps primary cell % scannable with optional detail + headline focusId', () => {
     const glance = sections[0].cards[0]
     const withDetail = glance.rows.find((r) => r.hero.detail || r.villain.detail)

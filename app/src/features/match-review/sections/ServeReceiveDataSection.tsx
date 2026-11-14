@@ -1,9 +1,9 @@
 /**
- * ServeReceiveDataSection — curated Serve / Receive Data (MA-82 → MA-133).
+ * ServeReceiveDataSection — curated Serve / Receive Data (MA-82 → MA-143).
  *
- * Flow: headlines → ≤2 cards → PlaylistBrowseShell focus → points →
+ * Flow: headlines → glance + detail cards → PlaylistBrowseShell focus → points →
  * watch (RallyPlayer + MatchVideoOverlayBar) or Clips playlist.
- * MA-122: evidence ↔ playlist sync. MA-133: denser empty / focus shells.
+ * MA-122: evidence sync. MA-133: empties. MA-143: featured glance card.
  */
 
 import { useEffect, useMemo, useState } from 'react'
@@ -245,22 +245,27 @@ export function ServeReceiveDataSection({
         />
       )}
 
-      <div className="grid gap-3 lg:grid-cols-2">
-        {section.cards.map((card) => (
-          <CompareCardBlock
-            key={card.id}
-            id={card.id}
-            title={card.title}
-            story={card.id === 'B0' || card.id === 'C0' ? '' : card.story}
-            heroName="You"
-            villainName={villainName}
-            rows={card.rows}
-            scoreline={card.scoreline}
-            emptyMessage={card.emptyMessage}
-            activeEvidenceTitle={activeEvidenceTitle}
-            onOpenEvidence={openEvidenceAndFocus}
-          />
-        ))}
+      <div className="grid gap-2.5 lg:grid-cols-2 lg:gap-3">
+        {section.cards.map((card) => {
+          const glance = card.emphasis === 'glance' || card.id === 'B0' || card.id === 'C0'
+          return (
+            <div key={card.id} className={cn(glance && 'lg:col-span-2')}>
+              <CompareCardBlock
+                id={card.id}
+                title={card.title}
+                story={glance ? '' : card.story}
+                heroName="You"
+                villainName={villainName}
+                rows={card.rows}
+                scoreline={card.scoreline}
+                emptyMessage={card.emptyMessage}
+                emphasis={glance ? 'glance' : 'detail'}
+                activeEvidenceTitle={activeEvidenceTitle}
+                onOpenEvidence={openEvidenceAndFocus}
+              />
+            </div>
+          )
+        })}
       </div>
 
       <section className="space-y-2.5" aria-label="Supporting playlist">
