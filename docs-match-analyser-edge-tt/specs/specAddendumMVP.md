@@ -6,6 +6,21 @@
 
 ## Change Log
 
+### 2026-11-14: MA-120 — Scrub wash + DataViewer token cleanup (v3.156.0)
+
+**Change Type:** Design tokens — scrub elapsed wash + DataViewer debug chrome
+
+**What Changed:**
+- New `--color-video-scrim-wash-strong` (0.25); VideoPlayer scrub elapsed wash → `bg-video-scrim-wash-strong`.
+- DataViewer: borders → `border-border*`; nested tables → `bg-bg-elevated` / `bg-bg-shell` / `panel-scrim`; cyan shot cards → `callout-info*`; null/bool/highlight cells → callout/success tokens.
+- Extend `themeTokens.test.ts` gate to DataViewer (+ ban `bg-white/25`, `bg-black/30`).
+
+**Decision Rationale:** MA-120 overnight Track F — finish scrub + debug-viewer leftover paint after MA-117 HUD chips.
+
+**Key Files:** `index.css`, `VideoPlayer.tsx`, `DataViewer.tsx`, `themeTokens.test.ts`.
+
+---
+
 ### 2026-11-14: MA-115 — Serve/Receive stats card polish (v3.155.0)
 
 **Change Type:** UX polish — curated stats cards + headlines
@@ -8721,6 +8736,7 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v3.156.0 | 2026-11-14 | MA-120: scrub wash-strong + DataViewer borders/callout tokens |
 | v3.155.0 | 2026-11-14 | MA-115: Serve/Receive stats card polish — denser cards + headline detail/focus |
 | v3.154.0 | 2026-11-14 | MA-118: BrowseDisclosure / shell mobile polish |
 | v3.153.0 | 2026-11-14 | MA-117: Video HUD chips + MatchScoreHud washes → video-scrim variants |

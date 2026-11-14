@@ -55,6 +55,7 @@ describe('shared match color tokens', () => {
       '--color-video-scrim-border',
       '--color-video-scrim-edge',
       '--color-video-scrim-wash',
+      '--color-video-scrim-wash-strong',
       '--color-video-scrim-wash-muted',
       '--color-modal-scrim',
       '--color-modal-scrim-strong',
@@ -155,6 +156,7 @@ describe('shared match color tokens', () => {
       './ui-mine/VideoPlayer/VideoPlayer.tsx',
       './ui-mine/VideoPlayer/MatchScoreHud.tsx',
       './features/shot-tagging-engine/blocks/Pass1ContactCaptureBlock.tsx',
+      './pages/DataViewer.tsx',
     ]
 
     for (const path of reviewedSurfaces) {
@@ -173,12 +175,12 @@ describe('shared match color tokens', () => {
       expect(
         source(path),
         `${path} uses raw modal/panel black scrim`
-      ).not.toMatch(/bg-black\/(?:20|50|55|60|80|90|95)\b/)
+      ).not.toMatch(/bg-black\/(?:20|30|50|55|60|80|90|95)\b/)
       expect(
         source(path),
         `${path} uses raw white HUD edge/wash instead of video-scrim-*`
       ).not.toMatch(
-        /border-white\/15|divide-white\/10|bg-white\/(?:10|20)\b/
+        /border-white\/15|divide-white\/10|bg-white\/(?:10|20|25)\b/
       )
     }
   })
