@@ -5,6 +5,7 @@ import {
   applyImpossibleFaAutoSkip,
   canSaveRallyTimeline,
   clearFosDecision,
+  deriveRallyScrubMarks,
   derivePass1Stage,
   isEndAttrsComplete,
   isFaAttrsComplete,
@@ -97,6 +98,43 @@ describe('rallyTimelineViewWindow', () => {
     })
     expect(win.viewStart).toBeGreaterThanOrEqual(0)
     expect(win.viewEnd).toBe(230)
+  })
+})
+
+describe('deriveRallyScrubMarks (MA-83)', () => {
+  it('encodes winner fill + server stripe and focuses the selected rally', () => {
+    const marks = deriveRallyScrubMarks({
+      completed: [
+        {
+          rallyIndex: 1,
+          serveTimestamp: 10,
+          endTimestamp: 14,
+          winnerId: 'player1',
+          serverId: 'player2',
+          winnerName: 'A',
+          serverName: 'B',
+          player1ScoreAfter: 1,
+          player2ScoreAfter: 0,
+        },
+      ],
+      focusedRallyIndex: 1,
+    })
+    expect(marks).toHaveLength(1)
+    expect(marks[0].fillColor).toBe('var(--color-player-1)')
+    expect(marks[0].stripeColor).toBe('var(--color-player-2)')
+    expect(marks[0].focused).toBe(true)
+    expect(marks[0].seekTime).toBe(10)
+    expect(marks[0].kind).toBe('rally')
+  })
+
+  it('adds draft contact ticks while tapping', () => {
+    const marks = deriveRallyScrubMarks({
+      completed: [],
+      draftContactTimes: [3.2, 4.1],
+    })
+    expect(marks).toHaveLength(2)
+    expect(marks.every((m) => m.kind === 'draft')).toBe(true)
+    expect(marks[0].title).toMatch(/Serve/)
   })
 })
 

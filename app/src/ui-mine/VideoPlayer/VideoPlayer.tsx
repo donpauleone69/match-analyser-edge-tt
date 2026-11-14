@@ -19,6 +19,26 @@ export interface ConstrainedPlayback {
   loopOnEnd?: boolean
 }
 
+/** Colour-coded mark on the shared video scrub (rally winner / server, draft ticks). */
+export interface VideoProgressMarker {
+  id: string
+  startTime: number
+  endTime: number
+  /** Winner (or draft) fill — CSS color / var(). */
+  fillColor: string
+  /** Server stripe along the top edge — CSS color / var(). */
+  stripeColor?: string
+  title?: string
+  focused?: boolean
+  /** Rally range vs in-progress contact tick. */
+  kind?: 'rally' | 'draft'
+}
+
+export interface VideoProgressViewWindow {
+  start: number
+  end: number
+}
+
 export interface VideoPlayerHandle {
   play: () => void
   pause: () => void
@@ -43,6 +63,12 @@ interface VideoPlayerProps {
   shotDescription?: string
   /** Window hotkeys (Space/k, arrows, j/l, f). Only the last-activated instance responds. Default true. */
   enableHotkeys?: boolean
+  /** Zoom the scrub to tagged activity so rally marks stay readable. */
+  progressViewWindow?: VideoProgressViewWindow | null
+  /** Colour-coded rally / draft marks on the scrub. */
+  progressMarkers?: ReadonlyArray<VideoProgressMarker>
+  /** Seek when a rally mark is tapped (defaults to marker start). */
+  onProgressMarkerSeek?: (marker: VideoProgressMarker) => void
 }
 
 /** Only one VideoPlayer should own window hotkeys at a time. */
@@ -59,6 +85,9 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
   constrainedBadgeLabel = null,
   shotDescription,
   enableHotkeys = true,
+  progressViewWindow = null,
+  progressMarkers = [],
+  onProgressMarkerSeek,
 }, ref) => {
   const instanceId = useId()
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -365,28 +394,47 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
     duration,
   ])
 
+  const scrubSpan = (() => {
+    if (
+      progressViewWindow &&
+      Number.isFinite(progressViewWindow.start) &&
+      Number.isFinite(progressViewWindow.end) &&
+      progressViewWindow.end > progressViewWindow.start
+    ) {
+      return {
+        start: Math.max(0, progressViewWindow.start),
+        end: progressViewWindow.end,
+      }
+    }
+    return { start: 0, end: duration > 0 ? duration : 1 }
+  })()
+  const scrubLength = Math.max(0.001, scrubSpan.end - scrubSpan.start)
+
+  const timeToScrubPercent = (t: number) =>
+    ((Math.min(scrubSpan.end, Math.max(scrubSpan.start, t)) - scrubSpan.start) /
+      scrubLength) *
+    100
+
   const getProgressBarStyle = () => {
+    const playheadPct = duration > 0 ? timeToScrubPercent(currentTime) : 0
     if (!constrainedPlayback?.enabled || duration <= 0) {
       return {
         left: '0%',
-        width: duration > 0 ? `${(currentTime / duration) * 100}%` : '0%',
+        width: `${playheadPct}%`,
       }
     }
 
     const { startTime, endTime } = constrainedPlayback
-    const startPercent = (startTime / duration) * 100
-    const endPercent = (endTime / duration) * 100
-    const currentPercent = (currentTime / duration) * 100
-    const progressPercent = Math.min(currentPercent, endPercent)
-
     return {
-      constrainedStart: startPercent,
-      constrainedEnd: endPercent,
-      currentProgress: progressPercent,
+      constrainedStart: timeToScrubPercent(startTime),
+      constrainedEnd: timeToScrubPercent(endTime),
+      currentProgress: playheadPct,
+      width: `${playheadPct}%`,
     }
   }
 
   const progressStyle = getProgressBarStyle()
+  const hasRallyMarks = progressMarkers.length > 0
 
   return (
     <div
@@ -475,12 +523,20 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
       {effectiveVideoSrc && showProgressBar && (
         <div className="absolute bottom-0 left-0 right-0 px-2 pb-1.5 z-20">
           <div
-            className="h-1 bg-black/50 rounded-full cursor-pointer relative"
+            className={cn(
+              'bg-black/50 rounded-full cursor-pointer relative',
+              hasRallyMarks ? 'h-2.5' : 'h-1'
+            )}
+            role="slider"
+            aria-label="Video timeline"
+            aria-valuemin={scrubSpan.start}
+            aria-valuemax={scrubSpan.end}
+            aria-valuenow={currentTime}
             onClick={(e) => {
               const rect = e.currentTarget.getBoundingClientRect()
               const percent = (e.clientX - rect.left) / rect.width
               if (duration > 0) {
-                let targetTime = percent * duration
+                let targetTime = scrubSpan.start + percent * scrubLength
 
                 if (constrainedPlayback?.enabled) {
                   const { startTime, endTime } = constrainedPlayback
@@ -501,21 +557,63 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
               />
             )}
 
+            {progressMarkers.map((marker) => {
+              const left = timeToScrubPercent(marker.startTime)
+              const right = timeToScrubPercent(marker.endTime)
+              const rawWidth = Math.max(right - left, marker.kind === 'draft' ? 0.6 : 1.8)
+              const width = Math.min(100 - left, rawWidth)
+              return (
+                <button
+                  key={marker.id}
+                  type="button"
+                  title={marker.title}
+                  aria-label={marker.title ?? 'Rally mark'}
+                  className={cn(
+                    'absolute top-0 bottom-0 rounded-sm touch-manipulation border-0 p-0',
+                    marker.focused && 'ring-1 ring-white z-[1]',
+                    marker.kind === 'draft' ? 'opacity-80' : 'opacity-95'
+                  )}
+                  style={{
+                    left: `${left}%`,
+                    width: `${width}%`,
+                    backgroundColor: marker.fillColor,
+                    minWidth: marker.kind === 'draft' ? 2 : 4,
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    if (onProgressMarkerSeek) {
+                      onProgressMarkerSeek(marker)
+                    } else {
+                      seek(marker.startTime)
+                    }
+                  }}
+                >
+                  {marker.stripeColor && marker.kind !== 'draft' && (
+                    <span
+                      className="absolute inset-x-0 top-0 h-[3px] rounded-t-sm"
+                      style={{ backgroundColor: marker.stripeColor }}
+                      aria-hidden
+                    />
+                  )}
+                </button>
+              )
+            })}
+
             <div
-              className="h-full bg-white rounded-full transition-all absolute top-0 left-0"
+              className="h-full bg-white/90 rounded-full transition-all absolute top-0 left-0 pointer-events-none"
               style={{
-                width: duration > 0 ? `${(currentTime / duration) * 100}%` : '0%',
+                width: progressStyle.width,
               }}
             />
 
             {constrainedPlayback?.enabled && 'constrainedStart' in progressStyle && (
               <>
                 <div
-                  className="absolute top-0 bottom-0 w-1 bg-brand-primary rounded"
+                  className="absolute top-0 bottom-0 w-0.5 bg-brand-primary rounded pointer-events-none"
                   style={{ left: `${progressStyle.constrainedStart}%` }}
                 />
                 <div
-                  className="absolute top-0 bottom-0 w-1 bg-brand-primary rounded"
+                  className="absolute top-0 bottom-0 w-0.5 bg-brand-primary rounded pointer-events-none"
                   style={{ left: `${progressStyle.constrainedEnd}%` }}
                 />
               </>

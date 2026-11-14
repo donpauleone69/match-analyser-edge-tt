@@ -1,5 +1,10 @@
 export { VideoPlayer } from './VideoPlayer'
-export type { VideoPlayerHandle, ConstrainedPlayback } from './VideoPlayer'
+export type {
+  VideoPlayerHandle,
+  ConstrainedPlayback,
+  VideoProgressMarker,
+  VideoProgressViewWindow,
+} from './VideoPlayer'
 export { useVideoPlaybackStore } from './videoPlaybackStore'
 export { TransportCluster } from './TransportCluster'
 export type { TransportClusterProps, TransportVariant } from './TransportCluster'

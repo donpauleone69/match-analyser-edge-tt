@@ -4,7 +4,13 @@
  */
 
 import { forwardRef } from 'react'
-import { VideoPlayer, type VideoPlayerHandle, type ConstrainedPlayback } from '@/ui-mine/VideoPlayer'
+import {
+  VideoPlayer,
+  type VideoPlayerHandle,
+  type ConstrainedPlayback,
+  type VideoProgressMarker,
+  type VideoProgressViewWindow,
+} from '@/ui-mine/VideoPlayer'
 
 export interface VideoPlayerSectionProps {
   videoUrl: string | null
@@ -15,6 +21,9 @@ export interface VideoPlayerSectionProps {
   shotDescription?: string
   allowVideoChange?: boolean
   constrainedBadgeLabel?: string | null
+  progressViewWindow?: VideoProgressViewWindow | null
+  progressMarkers?: ReadonlyArray<VideoProgressMarker>
+  onProgressMarkerSeek?: (marker: VideoProgressMarker) => void
 }
 
 export const VideoPlayerSection = forwardRef<VideoPlayerHandle, VideoPlayerSectionProps>(
@@ -27,6 +36,9 @@ export const VideoPlayerSection = forwardRef<VideoPlayerHandle, VideoPlayerSecti
     shotDescription,
     allowVideoChange = true,
     constrainedBadgeLabel = null,
+    progressViewWindow = null,
+    progressMarkers,
+    onProgressMarkerSeek,
   }, ref) => {
     return (
       <VideoPlayer
@@ -39,6 +51,9 @@ export const VideoPlayerSection = forwardRef<VideoPlayerHandle, VideoPlayerSecti
         constrainedPlayback={constrainedPlayback}
         constrainedBadgeLabel={constrainedBadgeLabel}
         shotDescription={shotDescription}
+        progressViewWindow={progressViewWindow}
+        progressMarkers={progressMarkers}
+        onProgressMarkerSeek={onProgressMarkerSeek}
       />
     )
   }
