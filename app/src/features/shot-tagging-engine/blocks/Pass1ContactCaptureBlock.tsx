@@ -1,9 +1,9 @@
 /**
  * Pass1ContactCaptureBlock — refined contact tap pad for Pass 1 / Simple.
  *
- * Sits flush under the shot rail (not a mid-screen void) so contacts → End/FA
- * reads as one continuous tagging surface with shared chrome language.
+ * Sits flush under the shot rail so contacts → End/FA reads as one surface.
  * Serve edge colour matches the set-bar Serve · player chip.
+ * MA-147: less clunky pad, quieter Undo, clearer viewing-past recovery copy.
  */
 
 import { cn } from '@/helpers/utils'
@@ -30,39 +30,40 @@ export function Pass1ContactCaptureBlock({
   className,
 }: Pass1ContactCaptureBlockProps) {
   const label = previewingPast
-    ? 'Live → to capture'
+    ? 'Viewing past'
     : contactCount === 0
       ? 'Tap serve'
       : 'Tap contact'
 
   const hint = previewingPast
-    ? 'Viewing a past point · Live → in the set bar to capture'
+    ? 'Return live — Live → in the set bar'
     : contactCount === 0
       ? 'Tap contacts · next: End / FA'
-      : `${contactCount} contact${contactCount === 1 ? '' : 's'} · idle 2s → End / FA`
+      : `Idle 2s → End / FA`
 
   return (
     <div
       className={cn(
-        'flex flex-1 min-h-0 flex-col justify-start gap-1.5 bg-bg-card px-2 pt-1.5 pb-2',
+        'flex flex-1 min-h-0 flex-col justify-start gap-1 bg-bg-card px-2 pt-1.5 pb-1.5',
         className
       )}
       data-pass1-capture="contacts"
     >
       <div className="flex items-stretch gap-1.5">
         <Button
-          variant="primary"
+          variant={previewingPast ? 'secondary' : 'primary'}
           onClick={onTap}
           disabled={disabled || previewingPast}
           className={cn(
-            'relative flex-1 min-h-14 h-[min(11dvh,5.25rem)] max-h-[5.5rem]',
-            'text-lg font-bold rounded-[var(--control-radius)]',
-            'active:scale-[0.99] touch-manipulation shadow-sm',
-            'overflow-hidden'
+            'relative flex-1 min-h-12 h-[min(9.5dvh,4.5rem)] max-h-[4.75rem]',
+            'text-base font-bold rounded-[var(--control-radius)]',
+            'active:scale-[0.99] touch-manipulation',
+            'overflow-hidden',
+            previewingPast && 'opacity-90 shadow-none'
           )}
           aria-label={
             previewingPast
-              ? 'Return to live to capture contacts'
+              ? 'Viewing a past point — use Live in the set bar to capture'
               : contactCount === 0
                 ? 'Tap serve contact'
                 : `Tap contact ${contactCount + 1}`
@@ -81,7 +82,7 @@ export function Pass1ContactCaptureBlock({
             <span>{label}</span>
             {contactCount > 0 && !previewingPast && (
               <span
-                className="inline-flex h-6 min-w-6 items-center justify-center rounded-md bg-panel-scrim px-1.5 text-sm font-bold tabular-nums"
+                className="inline-flex h-6 min-w-6 items-center justify-center rounded-md bg-bg-elevated/90 px-1.5 text-sm font-bold tabular-nums text-primary"
                 aria-hidden
               >
                 {contactCount}
@@ -93,7 +94,7 @@ export function Pass1ContactCaptureBlock({
           <button
             type="button"
             onClick={onUndo}
-            className="tag-control shrink-0 self-stretch min-w-[4.5rem] px-3 touch-manipulation"
+            className="tag-control shrink-0 self-stretch min-w-[4.25rem] px-3 touch-manipulation text-muted"
             title="Drop the last contact tap"
             aria-label="Undo last contact tap"
           >
@@ -102,7 +103,10 @@ export function Pass1ContactCaptureBlock({
         )}
       </div>
       <p
-        className="shrink-0 text-center text-[11px] text-muted leading-snug px-1"
+        className={cn(
+          'shrink-0 text-center text-[10px] leading-snug px-1',
+          previewingPast ? 'font-semibold text-brand' : 'text-muted'
+        )}
         role="status"
         aria-live="polite"
       >
