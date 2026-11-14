@@ -3,6 +3,7 @@
  *
  * Clips: preset groups. Serve/Receive: pass focus options as children.
  * MA-118: mobile polish — safe sticky strip, trail wrap, under-tabs sticky.
+ * MA-121: Work-on trail — return cluster vs Fix action; phone Fix icon-only.
  */
 
 import type { ReactNode } from 'react'
@@ -63,6 +64,11 @@ function trailIcon(id: string) {
   return null
 }
 
+/** Arrival / return chrome (Work on, Stay, Summary) vs clip actions (Fix). */
+function isReturnTrailId(id: string) {
+  return id === 'workon' || id === 'stay' || id === 'back' || id === 'summary' || id === 'clips'
+}
+
 function orderGroups(
   groups: ClipPresetGroupModel[],
   priority: ClipPresetGroup | null | undefined
@@ -107,6 +113,61 @@ export function PlaylistBrowseShellBlock({
       />
     ) : null)
 
+  const returnTrail = trail.filter((t) => isReturnTrailId(t.id))
+  const actionTrail = trail.filter((t) => !isReturnTrailId(t.id))
+  // When Work-on arrival chrome is present, Fix is icon-only on phone so the
+  // return path stays readable (MA-121).
+  const compactActions = returnTrail.some((t) => t.id === 'workon' || t.id === 'stay')
+
+  const renderTrailButton = (t: PlaylistBrowseTrailLink) => {
+    // Stay is always icon-only; Fix becomes icon-only on phone beside Work on.
+    const forcePhoneIcon = t.iconOnly || (compactActions && t.id === 'fix')
+    if (t.iconOnly) {
+      return (
+        <Button
+          key={t.id}
+          size="sm"
+          variant="ghost"
+          className="h-10 w-10 shrink-0 px-0 touch-manipulation sm:h-9 sm:w-9"
+          onClick={t.onClick}
+          aria-label={t.label}
+          title={t.label}
+        >
+          <Icon name="x" size="sm" />
+        </Button>
+      )
+    }
+    if (forcePhoneIcon && t.id === 'fix') {
+      return (
+        <Button
+          key={t.id}
+          size="sm"
+          variant="ghost"
+          className="h-10 w-10 shrink-0 px-0 touch-manipulation sm:h-9 sm:w-auto sm:gap-1 sm:px-2"
+          onClick={t.onClick}
+          aria-label={t.label}
+          title={t.label}
+        >
+          <Icon name="edit" size="sm" />
+          <span className="hidden sm:inline text-xs">{t.shortLabel ?? t.label}</span>
+        </Button>
+      )
+    }
+    return (
+      <Button
+        key={t.id}
+        size="sm"
+        variant={t.primary ? 'secondary' : 'ghost'}
+        className="h-10 shrink-0 gap-1 px-2.5 text-xs touch-manipulation sm:h-9 sm:px-2"
+        onClick={t.onClick}
+      >
+        {trailIcon(t.id)}
+        <span className="sm:hidden">{t.shortLabel ?? t.label}</span>
+        <span className="hidden sm:inline">{t.label}</span>
+      </Button>
+    )
+  }
+
   return (
     <div
       className={cn(
@@ -137,38 +198,24 @@ export function PlaylistBrowseShellBlock({
         </BrowseDisclosure>
 
         {trail.length > 0 ? (
-          <div className="flex shrink-0 items-center justify-end gap-1 sm:justify-start">
-            {trail.map((t) => {
-              if (t.iconOnly) {
-                return (
-                  <Button
-                    key={t.id}
-                    size="sm"
-                    variant="ghost"
-                    className="h-10 w-10 shrink-0 px-0 touch-manipulation sm:h-9 sm:w-9"
-                    onClick={t.onClick}
-                    aria-label={t.label}
-                    title={t.label}
-                  >
-                    <Icon name="x" size="sm" />
-                  </Button>
-                )
-              }
-              return (
-                <Button
-                  key={t.id}
-                  size="sm"
-                  variant={t.primary ? 'secondary' : 'ghost'}
-                  className="h-10 shrink-0 gap-1 px-2.5 text-xs touch-manipulation sm:h-9 sm:px-2"
-                  onClick={t.onClick}
-                >
-                  {trailIcon(t.id)}
-                  <span className="sm:hidden">{t.shortLabel ?? t.label}</span>
-                  <span className="hidden sm:inline">{t.label}</span>
-                </Button>
-              )
-            })}
-          </div>
+          <nav
+            aria-label="Playlist trail"
+            className="flex shrink-0 items-center justify-end gap-1 sm:justify-start"
+          >
+            {returnTrail.length > 0 ? (
+              <div className="flex items-center gap-1" role="group" aria-label="Return">
+                {returnTrail.map(renderTrailButton)}
+              </div>
+            ) : null}
+            {returnTrail.length > 0 && actionTrail.length > 0 ? (
+              <span aria-hidden className="mx-0.5 h-5 w-px shrink-0 bg-border" />
+            ) : null}
+            {actionTrail.length > 0 ? (
+              <div className="flex items-center gap-1" role="group" aria-label="Clip actions">
+                {actionTrail.map(renderTrailButton)}
+              </div>
+            ) : null}
+          </nav>
         ) : null}
       </div>
 

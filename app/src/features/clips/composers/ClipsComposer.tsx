@@ -212,6 +212,26 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
     setSearchParams(next, { replace: true })
   }
 
+  /** Fix tags — keep Work-on trail so Done returns to this playlist (MA-121). */
+  const openFixTags = (clip: {
+    matchId: string
+    setNumber: number
+    rallyIndex: number
+    shotIndex?: number | null
+  }) => {
+    const q = new URLSearchParams({
+      set: String(clip.setNumber),
+      rally: String(clip.rallyIndex),
+      from: fromParam === 'workon' ? 'workon' : 'clips',
+    })
+    if (clip.shotIndex != null) q.set('shot', String(clip.shotIndex))
+    // Round-trip playlist context for edit → back into Clips with trail intact.
+    if (activeKey) q.set('clip', activeKey)
+    if (clipTitleParam) q.set('clipTitle', clipTitleParam)
+    if (atParam) q.set('at', atParam)
+    navigate(`/matches/${clip.matchId}/edit-rally?${q.toString()}`)
+  }
+
   const current = rows[Math.min(index, rows.length - 1)] ?? null
   const playWindow = current ? resolveClipPlaybackWindow(current.clip, effectiveMode) : null
   const sourceKey = current ? clipSourceKey(current.clip) : null
@@ -482,25 +502,16 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
       scoreHud={clipScoreHud}
       heroWon={current.heroWon}
       // Download lives once: export strip (desktop) / sticky bar (phone) — never on stage.
-      onEdit={() => {
-        const q = new URLSearchParams({
-          set: String(current.clip.setNumber),
-          rally: String(current.clip.rallyIndex),
-          from: 'clips',
-        })
-        if (current.clip.shotIndex != null) q.set('shot', String(current.clip.shotIndex))
-        navigate(`/matches/${current.clip.matchId}/edit-rally?${q.toString()}`)
-      }}
+      onEdit={() => openFixTags(current.clip)}
     />
   ) : (
     <Card className="p-4 text-sm text-neutral-500 space-y-2 border border-dashed border-border">
       <p>No clips in this playlist.</p>
-      {embedded && fromParam === 'workon' ? (
-        <Button size="sm" variant="secondary" onClick={backFromWorkOn}>
-          <Icon name="arrow-left" size="sm" /> Work on
-        </Button>
-      ) : (
+      {/* Work on return lives on the sticky trail — avoid a second button here. */}
+      {!(embedded && fromParam === 'workon') ? (
         <p className="text-xs text-neutral-500">Switch playlist, or star / flag while tagging.</p>
+      ) : (
+        <p className="text-xs text-neutral-500">Use Work on above to go back, or switch playlist.</p>
       )}
     </Card>
   )
@@ -516,8 +527,7 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
       onClick: backFromWorkOn,
       primary: true,
     })
-  }
-  if (embedded && fromParam === 'workon' && (clipTitleParam || atParam)) {
+    // Stay always available on Work-on arrival — dismiss trail without leaving Clips.
     browseTrail.push({
       id: 'stay',
       label: 'Stay in Clips — clear Work on deep link',
@@ -530,15 +540,7 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
       id: 'fix',
       label: 'Fix tags',
       shortLabel: 'Fix',
-      onClick: () => {
-        const q = new URLSearchParams({
-          set: String(current.clip.setNumber),
-          rally: String(current.clip.rallyIndex),
-          from: 'clips',
-        })
-        if (current.clip.shotIndex != null) q.set('shot', String(current.clip.shotIndex))
-        navigate(`/matches/${current.clip.matchId}/edit-rally?${q.toString()}`)
-      },
+      onClick: () => openFixTags(current.clip),
     })
   }
 

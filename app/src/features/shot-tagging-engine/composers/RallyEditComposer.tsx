@@ -100,6 +100,10 @@ export function RallyEditComposer() {
   const rallyIndex = Number(searchParams.get('rally'))
   const shotParam = Number(searchParams.get('shot'))
   const fromParam = searchParams.get('from') // workon | rallies | clips
+  /** Clips playlist round-trip (MA-121 Work-on trail → Fix → back into playlist). */
+  const returnClip = searchParams.get('clip')
+  const returnClipTitle = searchParams.get('clipTitle')
+  const returnAt = searchParams.get('at')
   const modeParam = searchParams.get('mode')
   const focusShot = Number.isFinite(shotParam) && shotParam > 0 ? shotParam : null
 
@@ -318,9 +322,23 @@ export function RallyEditComposer() {
 
   const backToReview = (notice?: string, opts?: { keepIncompleteFilter?: boolean }) => {
     useVideoPlaybackStore.getState().setVideoUrl(null)
-    const tab =
-      fromParam === 'workon' ? 'workon' : fromParam === 'clips' ? 'clips' : 'rallies'
+    // Work on → Clips → Fix: restore Clips playlist + trail (not Work on tab).
+    // Direct Work on → Fix (no clip param): return to Work on.
+    const viaClipsPlaylist = Boolean(returnClip) && (fromParam === 'workon' || fromParam === 'clips')
+    const tab = viaClipsPlaylist
+      ? 'clips'
+      : fromParam === 'workon'
+        ? 'workon'
+        : fromParam === 'clips'
+          ? 'clips'
+          : 'rallies'
     const q = new URLSearchParams({ tab })
+    if (tab === 'clips' && returnClip) {
+      q.set('clip', returnClip)
+      if (returnClipTitle) q.set('clipTitle', returnClipTitle)
+      if (returnAt) q.set('at', returnAt)
+      if (fromParam === 'workon') q.set('from', 'workon')
+    }
     if (tab === 'rallies') {
       q.set('s', String(setNumber))
       if (opts?.keepIncompleteFilter || current?.isIncomplete) q.set('rf', 'incomplete')
@@ -342,6 +360,9 @@ export function RallyEditComposer() {
     if (!confirmLeave()) return
     const q = new URLSearchParams({ set: String(setNumber), rally: String(index) })
     if (fromParam) q.set('from', fromParam)
+    if (returnClip) q.set('clip', returnClip)
+    if (returnClipTitle) q.set('clipTitle', returnClipTitle)
+    if (returnAt) q.set('at', returnAt)
     q.set('mode', editMode)
     navigate(`/matches/${matchId}/edit-rally?${q.toString()}`, { replace: true })
   }
