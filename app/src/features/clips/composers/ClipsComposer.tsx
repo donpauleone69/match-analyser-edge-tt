@@ -314,6 +314,28 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
     if (autoAdvance) setIndex((i) => (i < rows.length - 1 ? i + 1 : i))
   }, [autoAdvance, rows.length, current, playWindow])
 
+  // Must stay above early returns — loading→ready would otherwise add a hook mid-tree.
+  const clipScoreHud = useMemo((): MatchScoreHudProps | null => {
+    if (!current || !data) return null
+    const pair = parseScorePair(current.clip.scoreBefore)
+    if (!pair) return null
+    const input = data.inputs.find((i) => i.match.id === current.clip.matchId)
+    const byId = new Map(players.map((p) => [p.id, p]))
+    const p1 = input ? byId.get(input.match.player1_id) : undefined
+    const p2 = input?.match.player2_id ? byId.get(input.match.player2_id) : undefined
+    const player1Name = shortPlayerName(p1?.first_name?.trim() || data.names.hero, 'Hero')
+    const player2Name = shortPlayerName(p2?.first_name?.trim() || data.names.villain, 'Opp')
+    return {
+      player1Name,
+      player2Name,
+      player1Score: pair.player1,
+      player2Score: pair.player2,
+      setNumber: current.clip.setNumber,
+      showSets: false,
+      compact: true,
+    }
+  }, [current, data, players])
+
   const handleVideoSelect = async (pickedUrl: string) => {
     if (!current || !sourceKey) return
     try {
@@ -440,27 +462,6 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
   const missingMessage = current
     ? `Set ${current.clip.setNumber} video isn’t on this device${cloudUser ? ' or in your cloud backup' : ''} — load it once and it’s remembered.`
     : ''
-
-  const clipScoreHud = useMemo((): MatchScoreHudProps | null => {
-    if (!current || !data) return null
-    const pair = parseScorePair(current.clip.scoreBefore)
-    if (!pair) return null
-    const input = data.inputs.find((i) => i.match.id === current.clip.matchId)
-    const byId = new Map(players.map((p) => [p.id, p]))
-    const p1 = input ? byId.get(input.match.player1_id) : undefined
-    const p2 = input?.match.player2_id ? byId.get(input.match.player2_id) : undefined
-    const player1Name = shortPlayerName(p1?.first_name?.trim() || data.names.hero, 'Hero')
-    const player2Name = shortPlayerName(p2?.first_name?.trim() || data.names.villain, 'Opp')
-    return {
-      player1Name,
-      player2Name,
-      player1Score: pair.player1,
-      player2Score: pair.player2,
-      setNumber: current.clip.setNumber,
-      showSets: false,
-      compact: true,
-    }
-  }, [current, data, players])
 
   const stage = activeReel ? (
     <ClipStageBlock

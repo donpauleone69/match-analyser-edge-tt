@@ -6,6 +6,20 @@
 
 ## Change Log
 
+### 2026-11-14: Hotfix — Clips hooks-order crash (v3.183.0)
+
+**Change Type:** Bugfix — Clips render crash on load
+
+**What Changed:**
+- Moved `clipScoreHud` `useMemo` in `ClipsComposer` above the `isLoading` / `error` / `!data` early returns.
+- Loading → ready previously added a hook mid-tree and threw `Rendered more hooks than during the previous render`, blanking Clips (standalone and Match Review tab).
+
+**Decision Rationale:** Same class of crash as the earlier Match Review blank-page hooks bug. Introduced by MA-86 / #64 (`clipScoreHud` after early returns); overnight PlaylistBrowseShell polish (#82–#121) was a red herring.
+
+**Key Files:** `ClipsComposer.tsx`.
+
+---
+
 ### 2026-11-14: MA-145 — Phone playlist trail density (v3.182.0)
 
 **Change Type:** UX polish — sticky browse trail on phone
@@ -9176,6 +9190,7 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v3.183.0 | 2026-11-14 | Hotfix: ClipsComposer clipScoreHud useMemo above early returns (hooks-order crash) |
 | v3.182.0 | 2026-11-14 | MA-145: phone playlist trail density — one-row icon-first trail |
 | v3.181.0 | 2026-11-14 | MA-147: Pass 1 contacts pad polish |
 | v3.180.0 | 2026-11-14 | MA-143: Serve/Receive glance card polish |
