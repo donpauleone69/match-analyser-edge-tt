@@ -1,9 +1,10 @@
 /**
  * Pass 1 Focus — shot pills for first-pass capture (Match Review aesthetic).
  *
- * MA-71 staged flow: single info box above Rally drives
+ * MA-71 staged flow (+ MA-73 FA undo / impossible-FA auto-skip):
  * contacts → end Result → end Wing/Stroke (locked) → select FA /
  * No Attack (last rail cell, strong red) → FA details → optional/save.
+ * fa_details: tap FA caption / re-tap shot clears; other ≥2 reassigns.
  * Optional = allow-list attrs by phase + Review/★ only — no fake
  * End/FA/No attack/Review/★ checklist row.
  */
@@ -708,6 +709,12 @@ export function Pass1FocusBlock({
           showNoAttack={showNoAttackRail}
           onNoAttack={onNoAttack}
           noAttackInteractive={stage === 'select_fa' || stage === 'optional'}
+          fosClearInteractive={stage === 'fa_details'}
+          onClearFos={
+            stage === 'fa_details' && onClearFosDecision
+              ? onClearFosDecision
+              : undefined
+          }
         />
       </div>
       <div className="flex flex-col gap-1">
@@ -808,6 +815,8 @@ export function Pass1ShotMarkRail({
   showNoAttack = false,
   onNoAttack,
   noAttackInteractive = false,
+  fosClearInteractive = false,
+  onClearFos,
 }: {
   state: RallyTimelineState
   players: [string, string]
@@ -820,6 +829,9 @@ export function Pass1ShotMarkRail({
   showNoAttack?: boolean
   onNoAttack?: () => void
   noAttackInteractive?: boolean
+  /** MA-73: FA caption clears FA → select_fa while in fa_details. */
+  fosClearInteractive?: boolean
+  onClearFos?: () => void
 }) {
   const slotCount = scrollable
     ? Math.max(1, state.shotCount + 1)
@@ -908,21 +920,36 @@ export function Pass1ShotMarkRail({
                 )}
                 aria-hidden
               />
-              <span
-                className={cn(
-                  'min-h-[0.7rem] text-[7px] font-black uppercase leading-none tracking-wide',
-                  isFos && isEnd
-                    ? 'text-shot-first-attack'
-                    : isFos
+              {isFos && fosClearInteractive && onClearFos ? (
+                <button
+                  type="button"
+                  className="min-h-[0.7rem] text-[7px] font-black uppercase leading-none tracking-wide text-shot-first-attack touch-manipulation"
+                  title="Clear first attack — choose again"
+                  aria-label={`Clear first attack on shot ${n}`}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onClearFos()
+                  }}
+                >
+                  {isEnd ? 'FA·E' : 'FA'}
+                </button>
+              ) : (
+                <span
+                  className={cn(
+                    'min-h-[0.7rem] text-[7px] font-black uppercase leading-none tracking-wide',
+                    isFos && isEnd
                       ? 'text-shot-first-attack'
-                      : isEnd
-                        ? 'text-shot-end'
-                        : 'text-transparent'
-                )}
-                aria-hidden={!isFos && !isEnd}
-              >
-                {isFos && isEnd ? 'FA·E' : isFos ? 'FA' : isEnd ? 'End' : '·'}
-              </span>
+                      : isFos
+                        ? 'text-shot-first-attack'
+                        : isEnd
+                          ? 'text-shot-end'
+                          : 'text-transparent'
+                  )}
+                  aria-hidden={!isFos && !isEnd}
+                >
+                  {isFos && isEnd ? 'FA·E' : isFos ? 'FA' : isEnd ? 'End' : '·'}
+                </span>
+              )}
             </div>
           )
         })}

@@ -46,6 +46,7 @@ import {
   markFos,
   setFos,
   clearFosDecision,
+  applyImpossibleFaAutoSkip,
   markEnd,
   toggleEnding,
   toggleMissReason,
@@ -797,24 +798,35 @@ export function Pass1FocusComposer({
 
   const handleToggleShotChoice = (n: number, key: ShotChoiceKey, value: string) => {
     if (!openRally) {
-      patchTimeline((s) => toggleShotChoice(s, n, key, value))
+      patchTimeline((s) =>
+        applyImpossibleFaAutoSkip(toggleShotChoice(s, n, key, value))
+      )
       return
     }
     const prevStage = derivePass1Stage(openRally.timeline, {
       inForm: true,
       hasContacts: true,
     })
-    const next = toggleShotChoice(openRally.timeline, n, key, value)
+    // MA-73: end=2 defensive → No Attack; end=2 attack → FA=2 (skip select).
+    const next = applyImpossibleFaAutoSkip(
+      toggleShotChoice(openRally.timeline, n, key, value)
+    )
     patchTimeline(() => next)
     const nextStage = derivePass1Stage(next, { inForm: true, hasContacts: true })
-    // End Wing/Stroke complete → select_fa: rally loop.
-    if (prevStage === 'end_shot' && nextStage === 'select_fa') {
+    // End Wing/Stroke complete → select_fa (or auto-skipped optional): rally loop.
+    if (
+      prevStage === 'end_shot' &&
+      (nextStage === 'select_fa' || nextStage === 'optional')
+    ) {
       setFormLoop('rally')
       setMuted(false)
       const { startTime } = constrainedPlayback
       setCurrentTime(startTime)
       videoPlayerRef.current?.seek(startTime, true)
       videoPlayerRef.current?.play()
+      if (nextStage === 'optional' && typeof next.fos === 'number') {
+        setSelectedShot(next.fos)
+      }
     }
     // FA Wing/Stroke complete → optional: rally loop.
     if (prevStage === 'fa_details' && nextStage === 'optional') {
@@ -849,6 +861,8 @@ export function Pass1FocusComposer({
    * Rail or list row tap: select + replay.
    * End stages: locked to End shot.
    * select_fa: tap ≥2 marks / reassigns FA → FA details shot loop.
+   * fa_details (MA-73): re-tap FA shot / FA caption → clear → select_fa;
+   *   tap other ≥2 → reassign FA.
    * optional: from-that-shot-to-rally-end + mute.
    */
   const handleSelectShot = (n: number) => {
@@ -868,6 +882,29 @@ export function Pass1FocusComposer({
     if (stage === 'select_fa' && n >= 2 && openRally.timeline.end !== 1) {
       const contact = openRally.timeline.shots[n]?.contactTime ?? null
       patchTimeline((s) => markFos({ ...s, noFirstAttack: false, fos: null }, n, contact))
+      setSelectedShot(n)
+      setFormLoop('shot')
+      setMuted(true)
+      playFromShot(n)
+      requestAnimationFrame(() => snapPass1ShotIntoView(n))
+      return
+    }
+    // MA-73: undo / reassign FA while still in fa_details (attrs incomplete).
+    if (stage === 'fa_details' && openRally.timeline.end !== 1 && n >= 2) {
+      const currentFos = openRally.timeline.fos
+      if (currentFos === n) {
+        patchTimeline((s) => clearFosDecision(s))
+        setFormLoop('rally')
+        setMuted(false)
+        setSelectedShot(n)
+        playFromShot(n)
+        requestAnimationFrame(() => snapPass1ShotIntoView(n))
+        return
+      }
+      const contact = openRally.timeline.shots[n]?.contactTime ?? null
+      patchTimeline((s) =>
+        markFos({ ...s, noFirstAttack: false, fos: null }, n, contact)
+      )
       setSelectedShot(n)
       setFormLoop('shot')
       setMuted(true)
