@@ -1,11 +1,11 @@
 /**
- * Sections B (Serve) and C (Receive) — pure shaping of calculateServeReceiveStory.
+ * Serve Data + Receive Data — curated cards, headlines, and playlist focuses.
  *
- * Each side shows its own serve (B) or receive (C) points, so rows keep their
- * own denominator: "40% (2/5)".
+ * Fewer cards than the old B0–B3 / C1–C3 wall. Every number still opens
+ * evidence; playlist focuses drive the supporting point list → Clips/player.
  */
 
-import { shareOf, type CountShare, type SidePair, type StorySide } from '@/rules/analytics/calculateMatchStory'
+import { shareOf, type CountShare, type StorySide } from '@/rules/analytics/calculateMatchStory'
 import {
   sumOutcomes,
   SERVE_NEUTRAL,
@@ -16,7 +16,15 @@ import {
   type ServeReceiveResult,
 } from '@/rules/analytics/calculateServeReceiveStory'
 import { deriveCompareTone, type ComparePolarity } from '@/rules/analytics/deriveCompareTone'
-import type { CompareCardModel, CompareRowModel, CompareSectionModel, MetricCellModel } from '../models'
+import type {
+  CellTone,
+  CompareCardModel,
+  CompareRowModel,
+  CompareSectionModel,
+  HeadlineMetricModel,
+  MetricCellModel,
+  PlaylistFocusModel,
+} from '../models'
 
 interface Names {
   heroName: string
@@ -24,7 +32,6 @@ interface Names {
 }
 
 const NO_VALUE = '—'
-const SIDES: StorySide[] = ['hero', 'villain']
 
 const pct = (share: number) => `${Math.round(share * 100)}%`
 
@@ -40,7 +47,6 @@ function missText(m: OutcomeLine['misses']): string {
 interface CellSpec {
   value: CountShare
   won?: CountShare
-  /** Label for the `won` share (default "won") */
   wonLabel?: string
   misses?: OutcomeLine['misses']
 }
@@ -79,28 +85,111 @@ function row(spec: RowSpec, names: Names): CompareRowModel {
   }
 }
 
-function hasAny(lines: SidePair<Record<ServeOutcome, OutcomeLine>>, outcomes: ServeOutcome[]): boolean {
-  return SIDES.some((s) => outcomes.some((o) => lines[s][o].points.count > 0))
+function uniqueIds(ids: string[]): string[] {
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const id of ids) {
+    if (seen.has(id)) continue
+    seen.add(id)
+    out.push(id)
+  }
+  return out
+}
+
+function focus(
+  id: string,
+  label: string,
+  rallyIds: string[],
+  tone: CellTone = 'none'
+): PlaylistFocusModel {
+  return { id, label, count: rallyIds.length, tone, rallyIds: uniqueIds(rallyIds) }
+}
+
+function headline(
+  key: string,
+  label: string,
+  value: CountShare,
+  tone: CellTone,
+  evidenceTitle: string
+): HeadlineMetricModel {
+  if (value.denominator === 0) {
+    return { key, label, text: NO_VALUE, tone: 'none', evidence: null }
+  }
+  return {
+    key,
+    label,
+    text: pct(value.share),
+    tone: value.count === 0 ? 'none' : tone,
+    evidence:
+      value.rallyIds.length > 0
+        ? { title: evidenceTitle, rallyIds: value.rallyIds }
+        : null,
+  }
 }
 
 // ---------------------------------------------------------------------------
-// Section B — Serve
+// Serve Data — 2 cards
 // ---------------------------------------------------------------------------
 
 function buildServeCards(story: ServeReceiveResult, names: Names): CompareCardModel[] {
   const serve = story.serve
   const total = (s: StorySide) => story.servePoints[s]
   const group = (s: StorySide, outcomes: ServeOutcome[]) => sumOutcomes(serve[s], outcomes, total(s))
-  const line = (s: StorySide, o: ServeOutcome): CellSpec => ({ value: serve[s][o].points })
-  const lineWon = (s: StorySide, o: ServeOutcome): CellSpec => ({ value: serve[s][o].points, won: serve[s][o].won })
-  const lineMiss = (s: StorySide, o: ServeOutcome): CellSpec => ({ value: serve[s][o].points, misses: serve[s][o].misses })
-  const attackedServe = (s: StorySide) => group(s, ['return_attack_winner', 'return_attack_missed', 'return_attack_rally_on'])
+  const lineMiss = (s: StorySide, o: ServeOutcome): CellSpec => ({
+    value: serve[s][o].points,
+    misses: serve[s][o].misses,
+  })
+  const lineWon = (s: StorySide, o: ServeOutcome): CellSpec => ({
+    value: serve[s][o].points,
+    won: serve[s][o].won,
+  })
+  const attackedServe = (s: StorySide) =>
+    group(s, ['return_attack_winner', 'return_attack_missed', 'return_attack_rally_on'])
 
-  const summaryRows: CompareRowModel[] = [
-    row({ key: 'serve-worked', label: 'Serve worked', polarity: 'higher', side: (s) => ({ value: group(s, SERVE_WORKED).points }), evidenceTitle: (n) => `${n} · serve worked` }, names),
-    row({ key: 'serve-punished', label: 'Serve punished', polarity: 'lower', side: (s) => ({ value: group(s, SERVE_PUNISHED).points }), evidenceTitle: (n) => `${n} · serve punished` }, names),
-    row({ key: 'serve-neutral', label: 'Neutral', polarity: 'neutral', side: (s) => ({ value: group(s, SERVE_NEUTRAL).points }), evidenceTitle: (n) => `${n} · neutral serves` }, names),
-    row({ key: 'faults', label: 'Faults', polarity: 'lower', side: (s) => lineMiss(s, 'fault'), evidenceTitle: (n) => `${n} · service faults` }, names),
+  const glanceRows: CompareRowModel[] = [
+    row(
+      {
+        key: 'serve-worked',
+        label: 'Serve worked',
+        polarity: 'higher',
+        side: (s) => ({ value: group(s, SERVE_WORKED).points }),
+        evidenceTitle: (n) => `${n} · serve worked`,
+      },
+      names
+    ),
+    row(
+      {
+        key: 'serve-punished',
+        label: 'Serve punished',
+        polarity: 'lower',
+        side: (s) => ({ value: group(s, SERVE_PUNISHED).points }),
+        evidenceTitle: (n) => `${n} · serve punished`,
+      },
+      names
+    ),
+    row(
+      {
+        key: 'serve-neutral',
+        label: 'Neutral',
+        polarity: 'neutral',
+        side: (s) => ({ value: group(s, SERVE_NEUTRAL).points }),
+        evidenceTitle: (n) => `${n} · neutral serves`,
+      },
+      names
+    ),
+    row(
+      {
+        key: 'faults',
+        label: 'Faults',
+        polarity: 'lower',
+        side: (s) => lineMiss(s, 'fault'),
+        evidenceTitle: (n) => `${n} · service faults`,
+      },
+      names
+    ),
+  ]
+
+  const leakRows: CompareRowModel[] = [
     row(
       {
         key: 'serve-attacked',
@@ -109,13 +198,36 @@ function buildServeCards(story: ServeReceiveResult, names: Names): CompareCardMo
         side: (s) => {
           const a = attackedServe(s)
           const missed = serve[s].return_attack_missed.points.rallyIds
-          return { value: a.points, won: shareOf(missed, a.points.count, a.points.rallyIds), wonLabel: 'they missed' }
+          return {
+            value: a.points,
+            won: shareOf(missed, a.points.count, a.points.rallyIds),
+            wonLabel: 'they missed',
+          }
         },
         evidenceTitle: (n) => `${n} · serve attacked`,
       },
       names
     ),
-    row({ key: 'server-attacked-first', label: 'Server attacked first', polarity: 'higher', side: (s) => lineWon(s, 'server_attacked_first'), evidenceTitle: (n) => `${n} · attacked first on serve` }, names),
+    row(
+      {
+        key: 'return-attack-winner',
+        label: 'Return winners against you',
+        polarity: 'lower',
+        side: (s) => ({ value: serve[s].return_attack_winner.points }),
+        evidenceTitle: (n) => `${n} · return winners against`,
+      },
+      names
+    ),
+    row(
+      {
+        key: 'server-attacked-first',
+        label: 'You attacked first',
+        polarity: 'higher',
+        side: (s) => lineWon(s, 'server_attacked_first'),
+        evidenceTitle: (n) => `${n} · attacked first on serve`,
+      },
+      names
+    ),
   ]
 
   const heroWorked = group('hero', SERVE_WORKED).points
@@ -130,54 +242,63 @@ function buildServeCards(story: ServeReceiveResult, names: Names): CompareCardMo
             : ', and none of those attacks missed.'
           : '.') +
         ` ${heroFaults === 0 ? 'No faults.' : `${heroFaults} fault${heroFaults === 1 ? '' : 's'}.`}`
-      : 'The headline on each player’s serve: is it working, and where does it leak points?'
-
-  const totals = (outcomes: ServeOutcome[]) =>
-    `${names.heroName} ${pct(group('hero', outcomes).points.share)} · ${names.villainName} ${pct(group('villain', outcomes).points.share)} of serve points.`
+      : 'Is the serve working, and where does it leak points?'
 
   return [
-    { id: 'B0', title: 'Serve summary', story: summaryStory, rows: summaryRows },
+    { id: 'B0', title: 'Serve at a glance', story: summaryStory, rows: glanceRows },
     {
       id: 'B1',
-      title: 'Serve worked',
-      story: `Won the point, forced a bad return, or set up the server's attack. ${totals(SERVE_WORKED)}`,
-      rows: [
-        ...(hasAny(serve, ['ace']) ? [row({ key: 'ace', label: 'Unreturned serve', polarity: 'higher', side: (s) => line(s, 'ace'), evidenceTitle: (n) => `${n} · unreturned serves` }, names)] : []),
-        row({ key: 'passive-return-missed', label: 'Opponent missed a passive return', polarity: 'higher', side: (s) => lineMiss(s, 'passive_return_missed'), evidenceTitle: (n) => `${n} · passive return missed` }, names),
-        row({ key: 'return-attack-missed', label: 'Opponent attacked the serve and missed', polarity: 'higher', side: (s) => lineMiss(s, 'return_attack_missed'), evidenceTitle: (n) => `${n} · return attack missed` }, names),
-        row({ key: 'b1-server-attacked-first', label: 'Server attacked first', polarity: 'higher', side: (s) => lineWon(s, 'server_attacked_first'), evidenceTitle: (n) => `${n} · attacked first on serve` }, names),
-      ],
-    },
-    {
-      id: 'B2',
-      title: 'Serve punished',
-      story: `Gave the point away, or the serve was attacked. ${totals(SERVE_PUNISHED)}`,
-      rows: [
-        row({ key: 'fault', label: 'Faulted', polarity: 'lower', side: (s) => lineMiss(s, 'fault'), evidenceTitle: (n) => `${n} · service faults` }, names),
-        row({ key: 'return-attack-winner', label: 'Serve attacked for a winner', polarity: 'lower', side: (s) => line(s, 'return_attack_winner'), evidenceTitle: (n) => `${n} · return winners against` }, names),
-        row({ key: 'return-attack-rally-on', label: 'Serve attacked, rally went on', polarity: 'lower', side: (s) => lineWon(s, 'return_attack_rally_on'), evidenceTitle: (n) => `${n} · serve attacked, rally on` }, names),
-      ],
-    },
-    {
-      id: 'B3',
-      title: 'Neutral',
-      story: `The serve neither won nor lost the advantage. ${totals(SERVE_NEUTRAL)}`,
-      rows: [
-        row({ key: 'receiver-attacked-later', label: 'Opponent attacked later', polarity: 'neutral', side: (s) => lineWon(s, 'receiver_attacked_later'), evidenceTitle: (n) => `${n} · opponent attacked later` }, names),
-        row({ key: 'serve-no-attack', label: 'No attack', polarity: 'neutral', side: (s) => lineWon(s, 'no_attack'), evidenceTitle: (n) => `${n} · no attack on serve` }, names),
-        ...(hasAny(serve, ['lucky']) ? [row({ key: 'serve-lucky', label: 'Lucky net or edge', polarity: 'neutral', side: (s) => line(s, 'lucky'), evidenceTitle: (n) => `${n} · lucky on serve/return` }, names)] : []),
-      ],
+      title: 'Where it pays or leaks',
+      story: 'Attack pressure on your serve, and whether you seize the third ball.',
+      rows: leakRows,
     },
   ]
 }
 
+function buildServeHeadlines(story: ServeReceiveResult): HeadlineMetricModel[] {
+  const serve = story.serve.hero
+  const total = story.servePoints.hero
+  const worked = sumOutcomes(serve, SERVE_WORKED, total).points
+  const punished = sumOutcomes(serve, SERVE_PUNISHED, total).points
+  const faults = serve.fault.points
+  return [
+    headline('worked', 'Worked', worked, 'good', 'You · serve worked'),
+    headline('punished', 'Punished', punished, 'bad', 'You · serve punished'),
+    headline('faults', 'Faults', faults, faults.count > 0 ? 'bad' : 'good', 'You · service faults'),
+  ]
+}
+
+function buildServeFocuses(story: ServeReceiveResult, cards: CompareCardModel[]): PlaylistFocusModel[] {
+  const serve = story.serve.hero
+  const total = story.servePoints.hero
+  const worked = sumOutcomes(serve, SERVE_WORKED, total).points.rallyIds
+  const punished = sumOutcomes(serve, SERVE_PUNISHED, total).points.rallyIds
+  const faults = serve.fault.points.rallyIds
+  const attacked = ['return_attack_winner', 'return_attack_missed', 'return_attack_rally_on'].flatMap(
+    (o) => serve[o as ServeOutcome].points.rallyIds
+  )
+  const problemIds = uniqueIds(
+    cards.flatMap((c) =>
+      c.rows.flatMap((r) => (r.hero.tone === 'bad' && r.hero.evidence ? r.hero.evidence.rallyIds : []))
+    )
+  )
+  const chips = [
+    focus('problems', 'Problems', problemIds.length > 0 ? problemIds : punished, 'bad'),
+    focus('worked', 'Worked', worked, 'good'),
+    focus('punished', 'Punished', punished, 'bad'),
+    focus('faults', 'Faults', faults, 'bad'),
+    focus('attacked', 'Attacked', attacked, 'amber'),
+    focus('all', 'All serve points', total, 'none'),
+  ]
+  return chips.filter((c) => c.id === 'all' || c.id === 'problems' || c.count > 0)
+}
+
 // ---------------------------------------------------------------------------
-// Section C — Receive
+// Receive Data — 2 cards
 // ---------------------------------------------------------------------------
 
 const ATTACKED: ServeOutcome[] = ['return_attack_winner', 'return_attack_missed', 'return_attack_rally_on']
 const PASSIVE: ServeOutcome[] = ['ace', 'passive_return_missed', 'server_attacked_first', 'receiver_attacked_later', 'no_attack']
-const NOT_DECIDED: ServeOutcome[] = ['fault', 'lucky']
 
 function buildReceiveCards(story: ServeReceiveResult, names: Names): CompareCardModel[] {
   const recv = story.receive
@@ -189,21 +310,24 @@ function buildReceiveCards(story: ServeReceiveResult, names: Names): CompareCard
   const of = (part: string[], whole: string[]) => shareOf(part, whole.length, whole)
   const misses = (s: StorySide, outcomes: ServeOutcome[]) =>
     outcomes.reduce(
-      (m, o) => ({ net: m.net + recv[s][o].misses.net, long: m.long + recv[s][o].misses.long, wide: m.wide + recv[s][o].misses.wide }),
+      (m, o) => ({
+        net: m.net + recv[s][o].misses.net,
+        long: m.long + recv[s][o].misses.long,
+        wide: m.wide + recv[s][o].misses.wide,
+      }),
       { net: 0, long: 0, wide: 0 }
     )
-  const within = (s: StorySide, outcomes: ServeOutcome[], whole: string[], withWon = false, withMiss = false): CellSpec => ({
+  const within = (
+    s: StorySide,
+    outcomes: ServeOutcome[],
+    whole: string[],
+    withWon = false,
+    withMiss = false
+  ): CellSpec => ({
     value: of(ids(s, outcomes), whole),
     ...(withWon ? { won: of(wonIds(s, outcomes), ids(s, outcomes)) } : {}),
     ...(withMiss ? { misses: misses(s, outcomes) } : {}),
   })
-
-  const notDecidedCell = (s: StorySide): MetricCellModel => {
-    const n = ids(s, NOT_DECIDED)
-    return story.receivePoints[s].length === 0
-      ? { text: NO_VALUE, tone: 'none', evidence: null }
-      : { text: String(n.length), tone: 'none', evidence: n.length > 0 ? { title: `${s === 'hero' ? names.heroName : names.villainName} · not decided by the return`, rallyIds: n } : null }
-  }
 
   const heroAtt = attacked('hero')
   const heroPas = passive('hero')
@@ -223,59 +347,184 @@ function buildReceiveCards(story: ServeReceiveResult, names: Names): CompareCard
         ` Won ${pctOf(wonIds('hero', ATTACKED), heroAtt)} after attacking, ${pctOf(wonIds('hero', PASSIVE), heroPas)} after a passive return.`
       : 'How each player receives — attack or passive — and how well each choice works.'
 
+  const glanceRows: CompareRowModel[] = [
+    row(
+      {
+        key: 'recv-attacked',
+        label: 'Attacked the return',
+        polarity: 'neutral',
+        side: (s) => within(s, ATTACKED, decided(s), true),
+        evidenceTitle: (n) => `${n} · attacked the return`,
+      },
+      names
+    ),
+    row(
+      {
+        key: 'recv-passive',
+        label: 'Passive return',
+        polarity: 'neutral',
+        side: (s) => within(s, PASSIVE, decided(s), true),
+        evidenceTitle: (n) => `${n} · passive return`,
+      },
+      names
+    ),
+    row(
+      {
+        key: 'recv-missed-attacking',
+        label: 'Missed when attacking',
+        polarity: 'lower',
+        side: (s) => ({ value: of(ids(s, ['return_attack_missed']), attacked(s)) }),
+        evidenceTitle: (n) => `${n} · return attack missed`,
+      },
+      names
+    ),
+    row(
+      {
+        key: 'recv-missed-passive',
+        label: 'Missed when passive',
+        polarity: 'lower',
+        side: (s) => ({ value: of(ids(s, ['ace', 'passive_return_missed']), passive(s)) }),
+        evidenceTitle: (n) => `${n} · passive return missed`,
+      },
+      names
+    ),
+  ]
+
+  const detailRows: CompareRowModel[] = [
+    row(
+      {
+        key: 'c2-winner',
+        label: 'Return winner',
+        polarity: 'higher',
+        side: (s) => within(s, ['return_attack_winner'], attacked(s)),
+        evidenceTitle: (n) => `${n} · return winners`,
+      },
+      names
+    ),
+    row(
+      {
+        key: 'c2-missed',
+        label: 'Attacked return missed',
+        polarity: 'lower',
+        side: (s) => within(s, ['return_attack_missed'], attacked(s), false, true),
+        evidenceTitle: (n) => `${n} · return attack missed`,
+      },
+      names
+    ),
+    row(
+      {
+        key: 'c3-server-attacked',
+        label: 'Server attacked after passive',
+        polarity: 'lower',
+        side: (s) => within(s, ['server_attacked_first'], passive(s), true),
+        evidenceTitle: (n) => `${n} · server attacked next`,
+      },
+      names
+    ),
+    row(
+      {
+        key: 'c3-attacked-later',
+        label: 'You attacked later',
+        polarity: 'higher',
+        side: (s) => within(s, ['receiver_attacked_later'], passive(s), true),
+        evidenceTitle: (n) => `${n} · attacked later on receive`,
+      },
+      names
+    ),
+  ]
+
   return [
+    { id: 'C0', title: 'Receive at a glance', story: summaryStory, rows: glanceRows },
     {
       id: 'C1',
-      title: 'Receive summary',
-      story: summaryStory,
-      rows: [
-        row({ key: 'recv-attacked', label: 'Attacked the return', polarity: 'neutral', side: (s) => within(s, ATTACKED, decided(s), true), evidenceTitle: (n) => `${n} · attacked the return` }, names),
-        row({ key: 'recv-passive', label: 'Passive return', polarity: 'neutral', side: (s) => within(s, PASSIVE, decided(s), true), evidenceTitle: (n) => `${n} · passive return` }, names),
-        row({ key: 'recv-missed-attacking', label: 'Missed when attacking', polarity: 'lower', side: (s) => ({ value: of(ids(s, ['return_attack_missed']), attacked(s)) }), evidenceTitle: (n) => `${n} · return attack missed` }, names),
-        row({ key: 'recv-missed-passive', label: 'Missed when passive', polarity: 'lower', side: (s) => ({ value: of(ids(s, ['ace', 'passive_return_missed']), passive(s)) }), evidenceTitle: (n) => `${n} · passive return missed` }, names),
-        row({ key: 'recv-server-attacked', label: 'Server attacked after a passive return', polarity: 'lower', side: (s) => ({ value: of(ids(s, ['server_attacked_first']), passive(s)) }), evidenceTitle: (n) => `${n} · server attacked next` }, names),
-        { key: 'recv-not-decided', label: 'Not decided by the return', hero: notDecidedCell('hero'), villain: notDecidedCell('villain') },
-      ],
-    },
-    {
-      id: 'C2',
-      title: 'When the return is an attack',
-      story: 'Is attacking the return paying off, or missing too much? Share of attacked returns.',
-      rows: [
-        row({ key: 'c2-winner', label: 'Winner', polarity: 'higher', side: (s) => within(s, ['return_attack_winner'], attacked(s)), evidenceTitle: (n) => `${n} · return winners` }, names),
-        row({ key: 'c2-missed', label: 'Missed', polarity: 'lower', side: (s) => within(s, ['return_attack_missed'], attacked(s), false, true), evidenceTitle: (n) => `${n} · return attack missed` }, names),
-        row({ key: 'c2-rally-on', label: 'Rally went on', polarity: 'neutral', side: (s) => within(s, ['return_attack_rally_on'], attacked(s), true), evidenceTitle: (n) => `${n} · attacked return, rally on` }, names),
-      ],
-      emptyMessage: 'No attacked returns marked yet',
-    },
-    {
-      id: 'C3',
-      title: 'When the return is passive',
-      story: 'Does a passive return keep the point safe, or hand the server the attack? Share of passive returns.',
-      rows: [
-        row({ key: 'c3-missed', label: 'Missed', polarity: 'lower', side: (s) => within(s, ['ace', 'passive_return_missed'], passive(s), false, true), evidenceTitle: (n) => `${n} · passive return missed` }, names),
-        row({ key: 'c3-server-attacked', label: 'Server attacked next', polarity: 'lower', side: (s) => within(s, ['server_attacked_first'], passive(s), true), evidenceTitle: (n) => `${n} · server attacked next` }, names),
-        row({ key: 'c3-attacked-later', label: 'Receiver attacked later', polarity: 'higher', side: (s) => within(s, ['receiver_attacked_later'], passive(s), true), evidenceTitle: (n) => `${n} · attacked later on receive` }, names),
-        row({ key: 'c3-no-attack', label: 'No attack', polarity: 'neutral', side: (s) => within(s, ['no_attack'], passive(s), true), evidenceTitle: (n) => `${n} · no attack on receive` }, names),
-      ],
+      title: 'Attack vs passive payoff',
+      story: 'Does attacking the return pay, and does a passive return stay safe?',
+      rows: detailRows,
+      emptyMessage: 'No decided returns marked yet',
     },
   ]
 }
 
+function buildReceiveHeadlines(story: ServeReceiveResult): HeadlineMetricModel[] {
+  const recv = story.receive.hero
+  const attackedIds = ATTACKED.flatMap((o) => recv[o].points.rallyIds)
+  const passiveIds = PASSIVE.flatMap((o) => recv[o].points.rallyIds)
+  const decided = [...attackedIds, ...passiveIds]
+  const missedAtt = recv.return_attack_missed.points.rallyIds
+  const missedPas = [...recv.ace.points.rallyIds, ...recv.passive_return_missed.points.rallyIds]
+  const of = (part: string[], whole: string[]) => shareOf(part, whole.length, whole)
+  return [
+    headline('attacked', 'Attacked', of(attackedIds, decided), 'none', 'You · attacked the return'),
+    headline(
+      'miss-attack',
+      'Miss attacking',
+      of(missedAtt, attackedIds),
+      missedAtt.length > 0 ? 'bad' : 'good',
+      'You · return attack missed'
+    ),
+    headline(
+      'miss-passive',
+      'Miss passive',
+      of(missedPas, passiveIds),
+      missedPas.length > 0 ? 'bad' : 'good',
+      'You · passive return missed'
+    ),
+  ]
+}
+
+function buildReceiveFocuses(story: ServeReceiveResult, cards: CompareCardModel[]): PlaylistFocusModel[] {
+  const recv = story.receive.hero
+  const total = story.receivePoints.hero
+  const attacked = ATTACKED.flatMap((o) => recv[o].points.rallyIds)
+  const passive = PASSIVE.flatMap((o) => recv[o].points.rallyIds)
+  const missedAtt = recv.return_attack_missed.points.rallyIds
+  const missedPas = [...recv.ace.points.rallyIds, ...recv.passive_return_missed.points.rallyIds]
+  const problemIds = uniqueIds(
+    cards.flatMap((c) =>
+      c.rows.flatMap((r) => (r.hero.tone === 'bad' && r.hero.evidence ? r.hero.evidence.rallyIds : []))
+    )
+  )
+  const chips = [
+    focus('problems', 'Problems', problemIds.length > 0 ? problemIds : [...missedAtt, ...missedPas], 'bad'),
+    focus('attacked', 'Attacked', attacked, 'none'),
+    focus('passive', 'Passive', passive, 'none'),
+    focus('miss-attack', 'Miss attacking', missedAtt, 'bad'),
+    focus('miss-passive', 'Miss passive', missedPas, 'bad'),
+    focus('all', 'All receive points', total, 'none'),
+  ]
+  return chips.filter((c) => c.id === 'all' || c.id === 'problems' || c.count > 0)
+}
+
+// ---------------------------------------------------------------------------
+// Sections
+// ---------------------------------------------------------------------------
+
 export function buildServeReceiveSections(story: ServeReceiveResult, names: Names): CompareSectionModel[] {
   if (!story.hasPointData) return []
+
+  const serveCards = buildServeCards(story, names)
+  const receiveCards = buildReceiveCards(story, names)
+  const serveStory = serveCards[0]?.story ?? ''
+  const receiveStory = receiveCards[0]?.story ?? ''
+
   return [
     {
       id: 'B',
-      title: 'Your serve',
-      question: 'Is your serve effective? Does it win points, force mistakes and set up your attack, or get punished?',
-      cards: buildServeCards(story, names),
+      title: 'Serve Data',
+      question: 'Is your serve working — and where does it leak?',
+      pageStory: serveStory,
+      cards: serveCards,
+      headlines: buildServeHeadlines(story),
+      playlistFocuses: buildServeFocuses(story, serveCards),
     },
     {
       id: 'C',
-      title: 'Your receive',
-      question: 'How do you choose to receive — attack or passive — and how well does each work?',
-      cards: buildReceiveCards(story, names),
+      title: 'Receive Data',
+      question: 'Attack or passive — and how well does each choice work?',
+      pageStory: receiveStory,
+      cards: receiveCards,
+      headlines: buildReceiveHeadlines(story),
+      playlistFocuses: buildReceiveFocuses(story, receiveCards),
     },
   ]
 }

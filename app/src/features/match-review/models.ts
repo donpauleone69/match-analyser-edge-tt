@@ -49,11 +49,35 @@ export interface CompareCardModel {
   emptyMessage?: string
 }
 
+/** Big tap-target metric on Serve/Receive Data pages */
+export interface HeadlineMetricModel {
+  key: string
+  label: string
+  text: string
+  tone: CellTone
+  evidence: EvidenceRef | null
+}
+
+/** Chip that swaps the supporting playlist under curated stats */
+export interface PlaylistFocusModel {
+  id: string
+  label: string
+  count: number
+  tone: CellTone
+  rallyIds: string[]
+}
+
 export interface CompareSectionModel {
   id: string
   title: string
   question: string
   cards: CompareCardModel[]
+  /** Serve/Receive Data: short narrative under the question */
+  pageStory?: string
+  /** Serve/Receive Data: curated headline metrics (stats → evidence) */
+  headlines?: HeadlineMetricModel[]
+  /** Serve/Receive Data: playlist focus chips (stats → playlist → shots) */
+  playlistFocuses?: PlaylistFocusModel[]
 }
 
 /** A locked (not yet built) section shell */

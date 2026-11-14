@@ -10,6 +10,7 @@ import { TakeawaysBlock } from '../blocks/TakeawaysBlock'
 import { SummaryCategoryNavBlock } from '../blocks/SummaryCategoryNavBlock'
 import { SummaryCategoryPlaylistBlock } from '../blocks/SummaryCategoryPlaylistBlock'
 import { buildCategoryPlaylist } from '../derive/buildSummaryCategories'
+import { ServeReceiveDataSection } from './ServeReceiveDataSection'
 import type { EvidenceRef, MatchReviewViewModel, RallyRowModel } from '../models'
 
 export interface OverviewSectionProps {
@@ -50,6 +51,26 @@ export function OverviewSection({
   const needsOpponent = review.totalPoints > 0 && !review.context.player2Id
   const needsTournament =
     review.totalPoints > 0 && Boolean(review.context.player2Id) && !review.context.tournamentId
+
+  if (activeSection && (activeSection.id === 'B' || activeSection.id === 'C')) {
+    return (
+      <ServeReceiveDataSection
+        section={activeSection}
+        villainName={review.villainName}
+        heroName={review.heroName}
+        rallies={review.rallies}
+        multiSet={multiSet}
+        activeEvidenceTitle={activeEvidenceTitle}
+        activeRallyId={activeRallyId}
+        onBack={() => onSelectCategory(null)}
+        onOpenEvidence={onOpenEvidence}
+        onPlayPlaylist={onPlayCategoryPlaylist}
+        onWatchRally={onWatchRally}
+        onEditRally={onEditRally}
+        onToggleHighlight={onToggleHighlight}
+      />
+    )
+  }
 
   if (activeSection) {
     const playlist = buildCategoryPlaylist(activeSection, rallyById)
@@ -139,7 +160,8 @@ export function OverviewSection({
 
       {review.hasPointData && (
         <p className="text-xs text-neutral-500 -mt-4">
-          Tap a category for your stats and the points behind them. Underlined numbers open evidence.
+          Tap a category for stats and the points behind them. Serve Data and Receive Data open a curated
+          stats → playlist → shots flow. Underlined numbers open evidence.
         </p>
       )}
 
