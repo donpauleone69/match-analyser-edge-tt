@@ -6,6 +6,22 @@
 
 ## Change Log
 
+### 2026-11-14: MA-142 — Pass 1 Save/Let/Discard form row polish (v3.178.0)
+
+**Change Type:** UX polish — Pass 1 / Simple form action row
+
+**What Changed:**
+- When save-ready: status **Ready — tap Save** (`text-brand`); Save uses filled `tag-control-active`.
+- Incomplete: keep stage/save hint; Let quieter (`text-muted`); actions grouped with a hairline after status.
+- Simple: wires `simpleSaveHint` into the status line (parity with Pass 1).
+- Aria labels on Let / Discard / Save.
+
+**Decision Rationale:** Overnight Track E MA-142 after Leave dialog — form row must shout Save when ready and keep Let/Discard secondary.
+
+**Key Files:** `Pass1FocusComposer.tsx`, `SimpleTaggingComposer.tsx`.
+
+---
+
 ### 2026-11-14: MA-141 — Settings / Training residual quiet (v3.177.0)
 
 **Change Type:** UX declutter — Account page + Training residual density
@@ -9114,7 +9130,9 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 | v3.161.0 | 2026-11-14 | MA-125: evidence drawer rows + Clips landing chrome cohesion |
 | v3.160.0 | 2026-11-14 | MA-123: residual raw paint — player/callout tokens on RallyCard/ShotList/audit |
 | v3.159.0 | 2026-11-14 | MA-121: Playlist shell Work-on trail polish + Fix return continuity |
-| v3.172.0 | 2026-11-14 | MA-138: Pass 1 Leave Keep/Discard dialog polish |
+| v3.174.0 | 2026-11-14 | MA-142: Pass 1 Save/Let/Discard form row polish |
+| v3.173.0 | 2026-11-14 | MA-138: Pass 1 Leave Keep/Discard dialog polish |
+| v3.172.0 | 2026-11-14 | MA-136: Home and Find residual quiet |
 | v3.170.0 | 2026-11-14 | MA-137: Browse shell Fix/Edit round-trip — land on edited clip + Clips back label |
 | v3.157.0 | 2026-11-14 | MA-111: Clip/Rally/Edit stage chrome cohesion (muted tokens + edit rail) |
 | v3.156.1 | 2026-11-14 | MA-116: Done mid-point + History/Delete density |

@@ -83,6 +83,7 @@ import {
   markEndSimple,
   markFosSimple,
   offensiveShotsFromTimeline,
+  simpleSaveHint,
   toggleNoAttackSimple,
   toggleOffensiveShot,
   type SimpleMatrixRow,
@@ -1320,42 +1321,65 @@ export function SimpleTaggingComposer({
     />
   )
 
-  /** Form actions under persistent set bar — Serve / Done / Leave live on setContextBar. */
+  /** Form actions under persistent set bar (MA-142) — Serve / Done / Leave on setContextBar. */
+  const simpleFormHint = openRally ? simpleSaveHint(timeline) : null
+  const formStatusCopy = canSave
+    ? 'Ready — tap Save'
+    : simpleFormHint || 'Matrix · Offensive · End · Review'
   const formChromeRow =
     openRally && phase === 'form' ? (
       <div className="shrink-0 flex min-h-10 items-center gap-1 border-b border-border bg-bg-card px-1.5 py-1 text-[length:var(--control-text)]">
-        <span className="min-w-0 flex-1 truncate px-1 text-[10px] font-semibold text-muted">
-          Matrix · Offensive · End · Review
-        </span>
-        <button
-          type="button"
-          onClick={handleLetRally}
-          className={cn(tagBtn, 'shrink-0 touch-manipulation')}
-          title="Let — clear contacts and re-tap this rally from just before the serve (no score)"
-        >
-          Let
-        </button>
-        <button
-          type="button"
-          onClick={handleDiscardOpen}
-          className={cn(tagBtn, 'tag-control-danger shrink-0 touch-manipulation')}
-          title="Discard this rally draft without saving"
-        >
-          Discard
-        </button>
-        <button
-          type="button"
-          onClick={() => void handleSave()}
-          disabled={!canSave || saving}
+        <span
           className={cn(
-            tagBtn,
-            'shrink-0 touch-manipulation font-bold',
-            canSave ? 'tag-control-accent' : 'opacity-50'
+            'min-w-0 flex-1 truncate px-1 text-[10px] font-semibold',
+            canSave ? 'text-brand' : 'text-muted'
           )}
-          title="Save this rally and move to the next point"
+          role="status"
         >
-          {saving ? 'Saving…' : 'Save'}
-        </button>
+          {formStatusCopy}
+        </span>
+        <div
+          className="flex shrink-0 items-center gap-1 border-l border-border pl-1"
+          role="group"
+          aria-label="Point actions"
+        >
+          <button
+            type="button"
+            onClick={handleLetRally}
+            className={cn(tagBtn, 'shrink-0 touch-manipulation text-muted')}
+            title="Let — clear contacts and re-tap this rally from just before the serve (no score)"
+            aria-label="Let — redo contacts for this point"
+          >
+            Let
+          </button>
+          <button
+            type="button"
+            onClick={handleDiscardOpen}
+            className={cn(tagBtn, 'tag-control-danger shrink-0 touch-manipulation')}
+            title="Discard this rally draft without saving"
+            aria-label="Discard this point draft"
+          >
+            Discard
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleSave()}
+            disabled={!canSave || saving}
+            className={cn(
+              tagBtn,
+              'min-w-[3.25rem] shrink-0 touch-manipulation font-bold',
+              canSave ? 'tag-control-active' : 'opacity-50'
+            )}
+            title="Save this rally and move to the next point"
+            aria-label={
+              canSave
+                ? 'Save this rally and move to the next point'
+                : 'Save disabled — finish required tags first'
+            }
+          >
+            {saving ? 'Saving…' : 'Save'}
+          </button>
+        </div>
       </div>
     ) : null
 
