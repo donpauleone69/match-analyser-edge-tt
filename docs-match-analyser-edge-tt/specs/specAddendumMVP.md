@@ -6,6 +6,21 @@
 
 ## Change Log
 
+### 2026-11-14: MA-143 — Serve/Receive glance card polish (v3.180.0)
+
+**Change Type:** UX polish — Serve/Receive B0/C0 glance cards
+
+**What Changed:**
+- Glance cards: `emphasis="glance"` denser chrome, quieter `—`, short row labels, soft lead-row tint.
+- Featured full-width glance above detail on large screens; drop duplicate glance story (pageStory owns narrative).
+- Filter empty glance rows (both sides `—`); emptyMessage when glance has nothing yet.
+
+**Decision Rationale:** Overnight Track D MA-143 — glance should scan in one beat after headlines, before leak/payoff detail.
+
+**Key Files:** `CompareCardBlock.tsx`, `buildServeReceiveCards.ts`, `ServeReceiveDataSection.tsx`, `models.ts`.
+
+---
+
 ### 2026-11-14: MA-144 — Playlist focus none-tone token (v3.179.0)
 
 **Change Type:** Design tokens — Serve/Receive focus picker dots
@@ -63,6 +78,7 @@
 **Decision Rationale:** Overnight Track C **MA-140** after #112 — History-style disclosure should be fully operable from the keyboard.
 
 **Key Files:** `BrowseDisclosure.tsx`, `ClipPresetListBlock.tsx`, `PlaylistFocusPickerBlock.tsx`.
+
 
 ---
 
@@ -9127,11 +9143,10 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v3.180.0 | 2026-11-14 | MA-143: Serve/Receive glance card polish |
 | v3.179.0 | 2026-11-14 | MA-144: PlaylistFocusPicker none tone → border-strong |
 | v3.176.0 | 2026-11-14 | MA-140: BrowseDisclosure keyboard a11y — Arrow/Home/End, focus restore |
 | v3.172.0 | 2026-11-14 | MA-136: quiet Home and Find residual chrome |
-| v3.171.0 | 2026-11-14 | MA-137: Browse shell Fix/Edit round-trip — land on edited clip + Clips back label |
-| v3.175.0 | 2026-11-14 | MA-139: VideoPlayer empty/loading → elevated/muted tokens; Change hover video-scrim |
 | v3.174.0 | 2026-11-14 | MA-133: Serve/Receive empty + loading polish |
 | v3.171.0 | 2026-11-14 | MA-137: Browse shell Fix/Edit round-trip polish |
 | v3.170.0 | 2026-11-14 | MA-129: Work-on/Summary/Rallies → Clips deep-link — keep trail on preset switch; clear on leave |

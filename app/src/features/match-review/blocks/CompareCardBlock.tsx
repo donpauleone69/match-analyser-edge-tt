@@ -4,6 +4,7 @@
  * Cells with evidence are buttons; clicking opens the Evidence drawer.
  * Colour is on the value only: green = better side, red = worse, amber = warning.
  * MA-115: denser token chrome; primary % + optional detail line.
+ * MA-143: `emphasis="glance"` — tighter rows, quieter dashes, scannable labels.
  */
 
 import { cn } from '@/helpers/utils'
@@ -18,6 +19,8 @@ export interface CompareCardBlockProps {
   rows: CompareRowModel[]
   scoreline?: SetScoreChipModel[]
   emptyMessage?: string
+  /** Serve/Receive glance cards (B0/C0) */
+  emphasis?: 'glance' | 'detail'
   activeEvidenceTitle?: string | null
   onOpenEvidence: (evidence: EvidenceRef) => void
 }
@@ -33,13 +36,16 @@ function ValueCell({
   cell,
   align,
   active,
+  glance,
   onOpenEvidence,
 }: {
   cell: MetricCellModel
   align: 'left' | 'right'
   active: boolean
+  glance: boolean
   onOpenEvidence: (evidence: EvidenceRef) => void
 }) {
+  const empty = cell.text === '—'
   const stack = (
     <span
       className={cn(
@@ -47,7 +53,13 @@ function ValueCell({
         align === 'left' ? 'items-start text-left' : 'items-end text-right'
       )}
     >
-      <span className={cn('text-sm font-semibold tabular-nums leading-tight', TONE_TEXT[cell.tone])}>
+      <span
+        className={cn(
+          'font-semibold tabular-nums leading-tight',
+          glance ? 'text-[13px]' : 'text-sm',
+          empty ? 'text-muted font-medium' : TONE_TEXT[cell.tone]
+        )}
+      >
         {cell.text}
       </span>
       {cell.detail ? (
@@ -77,6 +89,14 @@ function ValueCell({
   )
 }
 
+function rowLeads(row: CompareRowModel): 'hero' | 'villain' | null {
+  if (row.hero.tone === 'good' && row.villain.tone !== 'good') return 'hero'
+  if (row.villain.tone === 'good' && row.hero.tone !== 'good') return 'villain'
+  if (row.hero.tone === 'bad' && row.villain.tone !== 'bad') return 'villain'
+  if (row.villain.tone === 'bad' && row.hero.tone !== 'bad') return 'hero'
+  return null
+}
+
 export function CompareCardBlock({
   id,
   title,
@@ -86,18 +106,28 @@ export function CompareCardBlock({
   rows,
   scoreline,
   emptyMessage = 'Tag a set to fill this',
+  emphasis = 'detail',
   activeEvidenceTitle,
   onOpenEvidence,
 }: CompareCardBlockProps) {
+  const glance = emphasis === 'glance'
   return (
-    <div className="rounded-lg border border-border bg-bg-card px-3 py-2.5 md:px-3.5 md:py-3 space-y-2.5">
-      <div>
-        <h3 className="text-sm font-semibold text-primary">
+    <div
+      className={cn(
+        'rounded-lg border border-border bg-bg-card',
+        glance ? 'px-2.5 py-2 md:px-3 md:py-2.5 space-y-1.5' : 'px-3 py-2.5 md:px-3.5 md:py-3 space-y-2.5'
+      )}
+    >
+      <div className={cn('flex items-baseline justify-between gap-2', glance && 'min-h-0')}>
+        <h3 className={cn('font-semibold text-primary', glance ? 'text-[13px]' : 'text-sm')}>
           <span className="sr-only">{id}</span>
           {title}
         </h3>
-        {story ? <p className="mt-0.5 text-xs text-muted line-clamp-2">{story}</p> : null}
+        {glance ? (
+          <span className="text-[10px] uppercase tracking-wide text-muted shrink-0">Glance</span>
+        ) : null}
       </div>
+      {story ? <p className="mt-0.5 text-xs text-muted line-clamp-2">{story}</p> : null}
 
       {scoreline && scoreline.length > 0 && (
         <div className="flex flex-wrap gap-1.5" aria-label="Set scores">
@@ -127,7 +157,12 @@ export function CompareCardBlock({
         </div>
       ) : (
         <div>
-          <div className="grid grid-cols-[1fr_1.2fr_1fr] gap-2 pb-1 border-b border-border text-[10px] font-semibold uppercase tracking-wide text-muted">
+          <div
+            className={cn(
+              'grid grid-cols-[1fr_1.1fr_1fr] gap-1.5 border-b border-border font-semibold uppercase tracking-wide text-muted',
+              glance ? 'pb-0.5 text-[9px]' : 'gap-2 pb-1 text-[10px]'
+            )}
+          >
             <span className="truncate text-left" title={heroName}>
               {heroName}
             </span>
@@ -137,23 +172,45 @@ export function CompareCardBlock({
             </span>
           </div>
           <ul className="divide-y divide-border">
-            {rows.map((row) => (
-              <li key={row.key} className="grid grid-cols-[1fr_1.2fr_1fr] items-center gap-2 py-1.5">
-                <ValueCell
-                  cell={row.hero}
-                  align="left"
-                  active={Boolean(activeEvidenceTitle && row.hero.evidence?.title === activeEvidenceTitle)}
-                  onOpenEvidence={onOpenEvidence}
-                />
-                <span className="text-center text-[11px] leading-snug text-muted">{row.label}</span>
-                <ValueCell
-                  cell={row.villain}
-                  align="right"
-                  active={Boolean(activeEvidenceTitle && row.villain.evidence?.title === activeEvidenceTitle)}
-                  onOpenEvidence={onOpenEvidence}
-                />
-              </li>
-            ))}
+            {rows.map((row) => {
+              const lead = glance ? rowLeads(row) : null
+              return (
+                <li
+                  key={row.key}
+                  className={cn(
+                    'grid grid-cols-[1fr_1.1fr_1fr] items-center',
+                    glance ? 'gap-1.5 py-1' : 'gap-2 py-1.5',
+                    lead === 'hero' && 'bg-result-winner-bg/40 -mx-1 px-1 rounded-sm',
+                    lead === 'villain' && 'bg-result-error-bg/35 -mx-1 px-1 rounded-sm'
+                  )}
+                >
+                  <ValueCell
+                    cell={row.hero}
+                    align="left"
+                    glance={glance}
+                    active={Boolean(activeEvidenceTitle && row.hero.evidence?.title === activeEvidenceTitle)}
+                    onOpenEvidence={onOpenEvidence}
+                  />
+                  <span
+                    className={cn(
+                      'text-center leading-snug text-muted',
+                      glance ? 'text-[10px] font-medium' : 'text-[11px]'
+                    )}
+                  >
+                    {row.label}
+                  </span>
+                  <ValueCell
+                    cell={row.villain}
+                    align="right"
+                    glance={glance}
+                    active={Boolean(
+                      activeEvidenceTitle && row.villain.evidence?.title === activeEvidenceTitle
+                    )}
+                    onOpenEvidence={onOpenEvidence}
+                  />
+                </li>
+              )
+            })}
           </ul>
         </div>
       )}

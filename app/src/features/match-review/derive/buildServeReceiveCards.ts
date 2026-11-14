@@ -153,11 +153,11 @@ function buildServeCards(story: ServeReceiveResult, names: Names): CompareCardMo
   const attackedServe = (s: StorySide) =>
     group(s, ['return_attack_winner', 'return_attack_missed', 'return_attack_rally_on'])
 
-  const glanceRows: CompareRowModel[] = [
+  const glanceRowsAll: CompareRowModel[] = [
     row(
       {
         key: 'serve-worked',
-        label: 'Serve worked',
+        label: 'Worked',
         polarity: 'higher',
         side: (s) => ({ value: group(s, SERVE_WORKED).points }),
         evidenceTitle: (n) => `${n} · serve worked`,
@@ -167,7 +167,7 @@ function buildServeCards(story: ServeReceiveResult, names: Names): CompareCardMo
     row(
       {
         key: 'serve-punished',
-        label: 'Serve punished',
+        label: 'Punished',
         polarity: 'lower',
         side: (s) => ({ value: group(s, SERVE_PUNISHED).points }),
         evidenceTitle: (n) => `${n} · serve punished`,
@@ -195,6 +195,9 @@ function buildServeCards(story: ServeReceiveResult, names: Names): CompareCardMo
       names
     ),
   ]
+  const glanceRows = glanceRowsAll.filter(
+    (r) => r.hero.text !== NO_VALUE || r.villain.text !== NO_VALUE
+  )
 
   const leakRows: CompareRowModel[] = [
     row(
@@ -256,7 +259,14 @@ function buildServeCards(story: ServeReceiveResult, names: Names): CompareCardMo
   )
 
   return [
-    { id: 'B0', title: 'Serve at a glance', story: summaryStory, rows: glanceRows },
+    {
+      id: 'B0',
+      title: 'Serve at a glance',
+      story: summaryStory,
+      rows: glanceRows,
+      emphasis: 'glance',
+      emptyMessage: 'Tag serves to fill the glance',
+    },
     {
       id: 'B1',
       title: 'Where it pays or leaks',
@@ -359,11 +369,11 @@ function buildReceiveCards(story: ServeReceiveResult, names: Names): CompareCard
         ` Won ${pctOf(wonIds('hero', ATTACKED), heroAtt)} after attacking, ${pctOf(wonIds('hero', PASSIVE), heroPas)} after a passive return.`
       : 'How each player receives — attack or passive — and how well each choice works.'
 
-  const glanceRows: CompareRowModel[] = [
+  const glanceRowsAll: CompareRowModel[] = [
     row(
       {
         key: 'recv-attacked',
-        label: 'Attacked the return',
+        label: 'Attacked',
         polarity: 'neutral',
         side: (s) => within(s, ATTACKED, decided(s), true),
         evidenceTitle: (n) => `${n} · attacked the return`,
@@ -373,7 +383,7 @@ function buildReceiveCards(story: ServeReceiveResult, names: Names): CompareCard
     row(
       {
         key: 'recv-passive',
-        label: 'Passive return',
+        label: 'Passive',
         polarity: 'neutral',
         side: (s) => within(s, PASSIVE, decided(s), true),
         evidenceTitle: (n) => `${n} · passive return`,
@@ -383,7 +393,7 @@ function buildReceiveCards(story: ServeReceiveResult, names: Names): CompareCard
     row(
       {
         key: 'recv-missed-attacking',
-        label: 'Missed when attacking',
+        label: 'Miss attack',
         polarity: 'lower',
         side: (s) => ({ value: of(ids(s, ['return_attack_missed']), attacked(s)) }),
         evidenceTitle: (n) => `${n} · return attack missed`,
@@ -393,7 +403,7 @@ function buildReceiveCards(story: ServeReceiveResult, names: Names): CompareCard
     row(
       {
         key: 'recv-missed-passive',
-        label: 'Missed when passive',
+        label: 'Miss passive',
         polarity: 'lower',
         side: (s) => ({ value: of(ids(s, ['ace', 'passive_return_missed']), passive(s)) }),
         evidenceTitle: (n) => `${n} · passive return missed`,
@@ -401,6 +411,9 @@ function buildReceiveCards(story: ServeReceiveResult, names: Names): CompareCard
       names
     ),
   ]
+  const glanceRows = glanceRowsAll.filter(
+    (r) => r.hero.text !== NO_VALUE || r.villain.text !== NO_VALUE
+  )
 
   const detailRows: CompareRowModel[] = [
     row(
@@ -450,7 +463,14 @@ function buildReceiveCards(story: ServeReceiveResult, names: Names): CompareCard
   )
 
   return [
-    { id: 'C0', title: 'Receive at a glance', story: summaryStory, rows: glanceRows },
+    {
+      id: 'C0',
+      title: 'Receive at a glance',
+      story: summaryStory,
+      rows: glanceRows,
+      emphasis: 'glance',
+      emptyMessage: 'Tag returns to fill the glance',
+    },
     {
       id: 'C1',
       title: 'Attack vs passive payoff',

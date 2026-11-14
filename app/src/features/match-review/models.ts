@@ -50,6 +50,8 @@ export interface CompareCardModel {
   /** Set scorelines shown under the title (A1 only) */
   scoreline?: SetScoreChipModel[]
   emptyMessage?: string
+  /** Serve/Receive B0/C0 — denser scannable chrome (MA-143) */
+  emphasis?: 'glance' | 'detail'
 }
 
 /** Big tap-target metric on Serve/Receive Data pages */
