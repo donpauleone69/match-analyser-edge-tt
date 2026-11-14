@@ -222,7 +222,7 @@ function Pass1StageInfoBox({
   return (
     <div
       className={cn(
-        'relative overflow-hidden rounded-md border px-2 py-1.5 text-[11px] font-semibold leading-snug',
+        'relative overflow-hidden rounded-md border px-2.5 py-1.5 text-[11px] sm:text-xs font-semibold leading-snug',
         ready
           ? 'border-success bg-success-muted text-success'
           : 'border-callout-warning-border bg-callout-warning-bg text-callout-warning'
@@ -755,6 +755,9 @@ export function Pass1FocusBlock({
           selectedShot={selectedShot}
           onSelectShot={handleSelectShot}
           scrollable={scrollableShotRail}
+          lockToShot={
+            endLocked && typeof state.end === 'number' ? state.end : null
+          }
           showNoAttack={showNoAttackRail}
           onNoAttack={onNoAttack}
           noAttackInteractive={stage === 'select_fa' || stage === 'optional'}
@@ -918,7 +921,7 @@ function Pass1RailPhaseMarkers({
                       : 'SRV'}
               </span>
             ) : inGroup ? (
-              <span className="h-px w-3/4 mx-auto bg-pill-idle-border" aria-hidden />
+              <span className="h-px w-3/4 mx-auto bg-border" aria-hidden />
             ) : (
               <span className="h-px w-full bg-transparent" aria-hidden />
             )}
@@ -938,6 +941,8 @@ export function Pass1ShotMarkRail({
   selectedShot,
   onSelectShot,
   scrollable = false,
+  /** When set (End Result / Wing-Stroke), only this shot stays interactive. */
+  lockToShot = null,
   showNoAttack = false,
   onNoAttack,
   noAttackInteractive = false,
@@ -954,6 +959,7 @@ export function Pass1ShotMarkRail({
   selectedShot?: number | null
   onSelectShot?: (n: number) => void
   scrollable?: boolean
+  lockToShot?: number | null
   /** Last cell: No Attack (select_fa / optional undo). */
   showNoAttack?: boolean
   onNoAttack?: () => void
@@ -978,10 +984,10 @@ export function Pass1ShotMarkRail({
         ? RESULT_ROW_BG.air
         : RESULT_ROW_BG.error
   const noAttackSelected = state.noFirstAttack
+  const locked = typeof lockToShot === 'number'
 
   return (
     <div className="space-y-0.5" role="group" aria-label="Rally shot guide">
-      <SectionLabel label="Rally" />
       <Pass1RailPhaseMarkers
         state={state}
         slotCount={slotCount}
@@ -1007,7 +1013,8 @@ export function Pass1ShotMarkRail({
           const flagged = Boolean(state.shots[n]?.reviewKind)
           const active = activeShot === n
           const selected = selectedShot === n
-          const canTap = kind !== 'unused'
+          const lockedOut = locked && n !== lockToShot
+          const canTap = kind !== 'unused' && !lockedOut
 
           return (
             <div
@@ -1021,7 +1028,13 @@ export function Pass1ShotMarkRail({
                 disabled={!canTap}
                 aria-pressed={selected}
                 aria-current={active ? 'true' : undefined}
-                title={!canTap ? `Shot ${n} — no contact yet` : `Select shot ${n}`}
+                title={
+                  lockedOut
+                    ? `Shot ${n} — locked to end shot ${lockToShot}`
+                    : !canTap
+                      ? `Shot ${n} — no contact yet`
+                      : `Select shot ${n}`
+                }
                 onClick={() => {
                   if (!canTap) return
                   onSelectShot?.(n)
@@ -1033,14 +1046,14 @@ export function Pass1ShotMarkRail({
                     : isPlayer1
                       ? 'bg-player-1-bg text-primary'
                       : 'bg-player-2-bg text-primary',
-                  dimmed && 'opacity-45',
+                  (dimmed || lockedOut) && 'opacity-40',
                   isFos && !grey && 'bg-shot-first-attack-bg',
                   isEnd && !grey && (endResultBg ?? 'bg-shot-end-bg'),
                   flagged && !isFos && !isEnd && !grey && 'bg-review-bg',
                   selected
                     ? 'border-2 border-contact-selected shadow-sm'
                     : 'border border-transparent',
-                  active && !selected && !grey && 'ring-1 ring-contact-live/70',
+                  active && !selected && !grey && !lockedOut && 'ring-1 ring-contact-live/70',
                   !canTap && 'cursor-default'
                 )}
               >
@@ -1112,7 +1125,7 @@ export function Pass1ShotMarkRail({
                 onNoAttack?.()
               }}
               className={cn(
-                'relative w-full h-7 rounded font-black text-[9px] leading-none uppercase tracking-wide',
+                'relative w-full h-7 rounded-md font-black text-[9px] leading-none uppercase tracking-wide',
                 'border touch-manipulation',
                 !noAttackInteractive && 'cursor-default opacity-80'
               )}
@@ -1163,8 +1176,8 @@ export function Pass1ShotMarkRail({
               aria-label={isHighlight ? 'Highlight on — tap to clear' : 'Highlight rally'}
               onClick={() => onToggleHighlight()}
               className={cn(
-                'relative w-full h-7 rounded font-bold text-sm leading-none',
-                'border touch-manipulation',
+                'relative w-full h-7 rounded-md font-bold text-sm leading-none',
+                'border touch-manipulation shadow-sm',
                 isHighlight
                   ? 'bg-warning border-warning text-primary'
                   : 'bg-[var(--color-pill-idle)] border-[var(--color-pill-idle-border)] text-warning'
@@ -1179,7 +1192,7 @@ export function Pass1ShotMarkRail({
                 isHighlight ? 'text-warning' : 'text-muted'
               )}
             >
-              ★
+              HL
             </span>
           </div>
         )}

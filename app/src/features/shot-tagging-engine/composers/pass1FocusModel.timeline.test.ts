@@ -179,7 +179,7 @@ describe('first attack mandatory (MA-35 / MA-68 / MA-71)', () => {
     const withEndingOnly = { ...base, ending: 'winner' as const }
     expect(isEndAttrsComplete(withEndingOnly)).toBe(false)
     expect(derivePass1Stage(withEndingOnly)).toBe('end_shot')
-    expect(pass1StageInfo('end_shot').text).toMatch(/Wing and Stroke/i)
+    expect(pass1StageInfo('end_shot').text).toMatch(/End · Wing and Stroke/i)
     expect(pass1SaveHint(withEndingOnly)).toMatch(/Wing and Stroke/i)
     expect(canSaveRallyTimeline(withEndingOnly, 'Ada')).toBe(false)
 
@@ -198,7 +198,7 @@ describe('first attack mandatory (MA-35 / MA-68 / MA-71)', () => {
     expect(pass1SaveHint(marked)).toMatch(/First attack Wing and Stroke/i)
     expect(derivePass1Stage(marked)).toBe('fa_details')
     expect(isFaAttrsComplete(marked)).toBe(false)
-    expect(pass1StageInfo('fa_details').text).toMatch(/tap FA to undo/i)
+    expect(pass1StageInfo('fa_details').text).toMatch(/tap FA caption to undo/i)
 
     const withFaAttrs = toggleShotChoice(
       toggleShotChoice(marked, 3, 'wing', 'FH'),
@@ -210,6 +210,7 @@ describe('first attack mandatory (MA-35 / MA-68 / MA-71)', () => {
     expect(canSaveRallyTimeline(withFaAttrs, 'Ada')).toBe(true)
     expect(derivePass1Stage(withFaAttrs)).toBe('optional')
     expect(pass1StageInfo('optional', { canSave: true }).tone).toBe('ready')
+    expect(pass1StageInfo('optional', { canSave: true }).text).toMatch(/Ready — tap Save/i)
     expect(pass1StageInfo('optional').tone).toBe('pending')
     expect(pass1StageInfo('select_fa').tone).toBe('pending')
 

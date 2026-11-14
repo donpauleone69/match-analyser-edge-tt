@@ -1222,11 +1222,11 @@ export function pass1StageInfo(
   const canSave = Boolean(opts?.canSave)
   switch (stage) {
     case 'contacts':
-      return { text: 'Tap contacts · next: End / FA', tone: 'pending' }
+      return { text: 'Tap contacts · next End / FA', tone: 'pending' }
     case 'end_details':
-      return { text: 'Choose Result on the end shot', tone: 'pending' }
+      return { text: 'Result · winner / error / air on the end shot', tone: 'pending' }
     case 'end_shot':
-      return { text: 'End shot · Wing and Stroke', tone: 'pending' }
+      return { text: 'End · Wing and Stroke on the locked shot', tone: 'pending' }
     case 'select_fa':
       return {
         text: 'First attack · tap a shot, or No Attack',
@@ -1234,14 +1234,14 @@ export function pass1StageInfo(
       }
     case 'fa_details':
       return {
-        text: 'First attack · Wing and Stroke (tap FA to undo)',
+        text: 'FA · Wing and Stroke · tap FA caption to undo',
         tone: 'pending',
       }
     case 'optional':
       return {
         text: canSave
-          ? 'Ready to save · optional details if you want'
-          : 'Optional details · tap a shot on the rail',
+          ? 'Ready — tap Save · optional details anytime'
+          : 'Optional · tap a shot on the rail for details',
         tone: canSave ? 'ready' : 'pending',
       }
   }
