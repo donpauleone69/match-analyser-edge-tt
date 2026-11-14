@@ -1357,7 +1357,7 @@ export function SimpleTaggingComposer({
                   }
                   className={cn(
                     'tag-control tag-control-active h-7 min-w-[3.25rem] px-2 text-[10px] font-bold',
-                    'border-white/30 bg-black/70 text-white backdrop-blur-sm touch-manipulation'
+                    'border-video-scrim-border bg-video-scrim text-white backdrop-blur-sm touch-manipulation'
                   )}
                   title={
                     loopScope === 'rally'
@@ -1374,7 +1374,7 @@ export function SimpleTaggingComposer({
                 mode="simple"
                 onSelect={handleModeSwitch}
                 disabled={phase === 'form' || contactTimes.length > 0}
-                className="border-white/25 bg-black/70 backdrop-blur-sm [&_button]:text-white/90 [&_button[aria-pressed=true]]:bg-brand-primary/40 [&_button[aria-pressed=true]]:text-white"
+                className="border-video-scrim-border bg-video-scrim backdrop-blur-sm [&_button]:text-white/90 [&_button[aria-pressed=true]]:bg-brand-primary/40 [&_button[aria-pressed=true]]:text-white"
               />
             }
             bottomOverlayClassName={MATCH_VIDEO_OVERLAY_BOTTOM_CLASS}

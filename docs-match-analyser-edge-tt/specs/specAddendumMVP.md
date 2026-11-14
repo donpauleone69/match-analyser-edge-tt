@@ -6,6 +6,22 @@
 
 ## Change Log
 
+### 2026-11-14: MA-103 — Theme follow-up on new overnight surfaces (v3.142.0)
+
+**Change Type:** Design tokens — residual paint on #75/#76 surfaces
+
+**What Changed:**
+- Pass 1 / Simple `DetailPill` focus ring → `brand-primary` (drop `outline-sky-500`).
+- Simple + Rally Edit overlay Rally|Shot / mode chips → `video-scrim*`.
+- Simple ★ + Rally Edit highlight / incomplete status → `review` / `callout-warning` (drop amber).
+- Fixed unresolved merge conflict markers left in this addendum after #65/#76 race.
+
+**Decision Rationale:** MA-103 overnight — audit newly landed Home/nav (#75) + Pass 1 polish (#76); thin follow-up so A–E stay one product.
+
+**Key Files:** `Pass1FocusBlock.tsx`, `SimpleTaggingMatrixBlock.tsx`, `SimpleTaggingComposer.tsx`, `RallyEditComposer.tsx`, `specAddendumMVP.md`.
+
+---
+
 ### 2026-11-14: MA-102 — Pass 1 chrome final polish (v3.141.0)
 
 **Change Type:** UX polish — Pass 1 / Simple persistent tagging chrome
@@ -8497,6 +8513,11 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v3.142.0 | 2026-11-14 | MA-103: theme follow-up — video-scrim Simple overlay + brand focus rings |
+| v3.141.0 | 2026-11-14 | MA-102: Pass 1 chrome final polish |
+| v3.140.0 | 2026-11-14 | MA-81: Playlist browse shell on shared BrowseDisclosure |
+| v3.139.0 | 2026-11-14 | MA-98: Serve/Receive focus deep-link + sticky playlist |
+| v3.138.0 | 2026-11-14 | MA-101: quiet Find/create/Account and match shell density |
 | v3.137.0 | 2026-11-14 | MA-100: BrowseDisclosure + scrub marks on Clips/Review stages |
 | v3.136.0 | 2026-11-14 | MA-99: tagging dialog/rail/contacts visual polish + scrub→History |
 | v3.136.0 | 2026-11-14 | MA-84: theme remainder — video-scrim + no-attack + token tests |
