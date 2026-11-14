@@ -17,9 +17,9 @@ const SHORTCUT_LIMIT = 6
 
 function Panel({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <section className="rounded-lg border border-border bg-bg-card p-3 space-y-2">
+    <section className="rounded-md border border-border bg-bg-card p-2.5 space-y-1.5">
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">{title}</h2>
+        <h2 className="text-[11px] font-semibold uppercase tracking-wide text-muted">{title}</h2>
         {action}
       </div>
       {children}
@@ -47,7 +47,7 @@ export function HomeComposer() {
   const openDetails = (matchId: string) => navigate(`/matches/${matchId}?tab=details`)
 
   if (isLoading || !home) {
-    return <p className="p-4 text-sm text-neutral-500">Loading…</p>
+    return <p className="p-4 text-xs text-muted">Loading…</p>
   }
 
   const outstandingLabel =
@@ -58,14 +58,14 @@ export function HomeComposer() {
         : `${home.outstandingCount} left to finish`
 
   return (
-    <div className="max-w-4xl mx-auto p-4 md:p-5 space-y-3">
+    <div className="max-w-4xl mx-auto p-3 md:p-4 space-y-2.5">
       <header className="flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0">
-          <h1 className="text-xl md:text-2xl font-bold text-neutral-50">Home</h1>
+          <h1 className="text-lg md:text-xl font-semibold text-primary">Home</h1>
           {outstandingLabel ? (
-            <p className="text-sm text-callout-warning mt-0.5">{outstandingLabel}</p>
+            <p className="text-xs text-callout-warning mt-0.5">{outstandingLabel}</p>
           ) : home.totals.matches > 0 ? (
-            <p className="text-sm text-neutral-500 mt-0.5 tabular-nums">
+            <p className="text-xs text-muted mt-0.5 tabular-nums">
               {home.totals.matches} matches · {home.totals.rallies} rallies
             </p>
           ) : null}
@@ -76,10 +76,10 @@ export function HomeComposer() {
       </header>
 
       {home.totals.matches === 0 ? (
-        <section className="rounded-lg border border-dashed border-border p-4 text-center space-y-2">
-          <p className="text-neutral-100 font-medium">No matches yet</p>
-          <p className="text-sm text-neutral-500">Create a match, load video, tap contacts.</p>
-          <div className="flex justify-center gap-2 flex-wrap">
+        <section className="rounded-md border border-dashed border-border p-3 text-center space-y-1.5">
+          <p className="text-sm font-medium text-primary">No matches yet</p>
+          <p className="text-xs text-muted">Create a match, load video, tap contacts.</p>
+          <div className="flex justify-center gap-1.5 flex-wrap">
             <Button size="sm" onClick={() => navigate('/matches/create')}>
               <Icon name="plus" size="sm" /> New match
             </Button>
@@ -103,13 +103,13 @@ export function HomeComposer() {
               title="What's left"
               action={
                 home.outstandingCount > home.continueItems.length ? (
-                  <Link to="/matches" className="text-sm text-brand-primary hover:underline">
+                  <Link to="/matches" className="text-xs text-brand-primary hover:underline">
                     See all
                   </Link>
                 ) : null
               }
             >
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {home.continueItems.map((item) => (
                   <ContinueTaggingBlock
                     key={`${item.matchId}-${item.setNumber}`}
@@ -132,7 +132,7 @@ export function HomeComposer() {
 
           {home.contextItems.length > 0 && (
             <Panel title="Context (optional)">
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {home.contextItems.map((item) => (
                   <ContextPolishBlock
                     key={`${item.matchId}-${item.missing}`}
@@ -147,12 +147,12 @@ export function HomeComposer() {
           <Panel
             title="Recent"
             action={
-              <Link to="/matches" className="text-sm text-brand-primary hover:underline">
+              <Link to="/matches" className="text-xs text-brand-primary hover:underline">
                 Find
               </Link>
             }
           >
-            <ul className="divide-y divide-border rounded-lg border border-border overflow-hidden">
+            <ul className="divide-y divide-border rounded-md border border-border overflow-hidden">
               {home.recent.map((m) => (
                 <HomeMatchRowBlock key={m.matchId} match={m} onOpen={openMatch} />
               ))}
@@ -163,7 +163,7 @@ export function HomeComposer() {
             <Panel
               title="Watch"
               action={
-                <Link to="/clips" className="text-sm text-brand-primary hover:underline">
+                <Link to="/clips" className="text-xs text-brand-primary hover:underline">
                   All playlists
                 </Link>
               }
@@ -176,7 +176,7 @@ export function HomeComposer() {
             </Panel>
           )}
 
-          <p className="text-xs text-neutral-500 flex items-center gap-2 flex-wrap">
+          <p className="text-[11px] text-muted flex items-center gap-2 flex-wrap">
             <Icon name="hard-drive" size="sm" />
             On this device
             <Link to="/settings" className="text-brand-primary hover:underline">
@@ -184,7 +184,7 @@ export function HomeComposer() {
             </Link>
             {cloudConfigured && !cloudUser && (
               <>
-                <span className="text-neutral-600">·</span>
+                <span className="text-muted">·</span>
                 <Link to="/settings" className="text-brand-primary hover:underline">
                   Sign in
                 </Link>

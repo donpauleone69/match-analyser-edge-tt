@@ -12,10 +12,10 @@ export interface ContextPolishBlockProps {
 
 export function ContextPolishBlock({ item, onOpenDetails }: ContextPolishBlockProps) {
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-md border border-border px-2.5 py-1.5">
+    <div className="flex flex-wrap items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5">
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold text-neutral-100 truncate">{item.title}</p>
-        <p className="text-xs text-neutral-500 mt-0.5">
+        <p className="text-sm font-semibold text-primary truncate">{item.title}</p>
+        <p className="text-[11px] text-muted mt-0.5">
           {item.dateLabel ? `${item.dateLabel} · ` : ''}
           {item.detailLabel}
         </p>

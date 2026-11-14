@@ -95,19 +95,19 @@ export function MatchListSection({
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-neutral-400">Loading matches...</p>
+      <div className="flex items-center justify-center h-48">
+        <p className="text-xs text-muted">Loading matches…</p>
       </div>
     )
   }
 
   if (matches.length === 0) {
     return (
-      <Card className="p-4 text-center space-y-2 border border-dashed border-border">
+      <Card className="p-3 text-center space-y-1.5 border border-dashed border-border">
         {emptyBecauseFilter ? (
           <>
-            <p className="text-sm font-medium text-neutral-200">Nothing matches these filters</p>
-            <p className="text-xs text-neutral-500">Widen opponent, tournament, or dates.</p>
+            <p className="text-sm font-medium text-primary">Nothing matches these filters</p>
+            <p className="text-xs text-muted">Widen opponent, tournament, or dates.</p>
             {onClearFilters && (
               <Button variant="secondary" size="sm" onClick={onClearFilters}>
                 Clear filters
@@ -116,9 +116,9 @@ export function MatchListSection({
           </>
         ) : (
           <>
-            <p className="text-sm font-medium text-neutral-200">No matches yet</p>
-            <p className="text-xs text-neutral-500">Create from Home, or import under Account.</p>
-            <div className="flex flex-wrap justify-center gap-2">
+            <p className="text-sm font-medium text-primary">No matches yet</p>
+            <p className="text-xs text-muted">Create from Home, or import under Account.</p>
+            <div className="flex flex-wrap justify-center gap-1.5">
               <Button size="sm" onClick={onCreateNew}>
                 New match
               </Button>
@@ -136,8 +136,8 @@ export function MatchListSection({
   }
 
   return (
-    <div className="space-y-3">
-      <div className="grid gap-2">
+    <div className="space-y-2.5">
+      <div className="grid gap-1.5">
         {matches.map((match) => {
           const player1Name = getPlayerName(match.player1_id)
           const player2Name = opponentName(match)
@@ -153,11 +153,11 @@ export function MatchListSection({
           )
 
           return (
-            <Card key={match.id} className="p-3 sm:p-4 border border-border">
-              <div className="flex flex-col gap-2.5 sm:flex-row sm:items-start sm:justify-between">
-                <div className="flex-1 min-w-0 space-y-1.5">
+            <Card key={match.id} className="p-2.5 sm:p-3 border border-border">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <div className="flex-1 min-w-0 space-y-1">
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <h3 className="text-base sm:text-lg font-semibold text-neutral-50">
+                    <h3 className="text-sm sm:text-base font-semibold text-primary">
                       {player1Name} vs {player2Name}
                     </h3>
                     {badge?.tone === 'progress' && (
@@ -171,18 +171,18 @@ export function MatchListSection({
                       </span>
                     )}
                     {badge?.tone === 'todo' && (
-                      <span className="px-1.5 py-0.5 text-[11px] rounded border border-border text-neutral-500">
+                      <span className="px-1.5 py-0.5 text-[11px] rounded border border-border text-muted">
                         {badge.label}
                       </span>
                     )}
                     {!match.player2_id && (
-                      <span className="px-1.5 py-0.5 text-[11px] rounded border border-border text-neutral-500">
+                      <span className="px-1.5 py-0.5 text-[11px] rounded border border-border text-muted">
                         Opponent open
                       </span>
                     )}
                     {showSyncBadges && syncByMatch[match.id] === 'never' && (
                       <span
-                        className="px-1.5 py-0.5 text-[11px] rounded border border-border text-neutral-500"
+                        className="px-1.5 py-0.5 text-[11px] rounded border border-border text-muted"
                         title="Not backed up to cloud yet"
                       >
                         Not backed up
@@ -206,14 +206,14 @@ export function MatchListSection({
                     )}
                   </div>
 
-                  <div className="space-y-0.5 text-sm text-neutral-400">
+                  <div className="space-y-0.5 text-sm text-muted">
                     {match.winner_id ? (
                       <>
                         <p>
                           <span className="text-result-winner font-semibold">
                             {getPlayerName(match.winner_id)}
                           </span>
-                          <span className="ml-1.5 text-neutral-500">
+                          <span className="ml-1.5 text-muted">
                             {match.player1_sets_final}–{match.player2_sets_final}
                           </span>
                         </p>
@@ -223,7 +223,7 @@ export function MatchListSection({
                           )
                           if (setsWithScores.length === 0) return null
                           return (
-                            <p className="text-xs text-neutral-500">
+                            <p className="text-[11px] text-muted">
                               Sets{' '}
                               {setsWithScores
                                 .map((s) => `${s.player1_score_final}–${s.player2_score_final}`)
@@ -237,7 +237,7 @@ export function MatchListSection({
                         Score {match.player1_sets_final}–{match.player2_sets_final}
                       </p>
                     )}
-                    <p className="text-xs text-neutral-500">
+                    <p className="text-[11px] text-muted">
                       Match {new Date(match.match_date).toLocaleDateString()}
                       {taggedLabel ? ` · Tagged ${taggedLabel}` : ''}
                       {tournamentName
@@ -247,7 +247,7 @@ export function MatchListSection({
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-2 sm:ml-4 sm:justify-end">
+                <div className="flex flex-wrap gap-1.5 sm:ml-3 sm:justify-end">
                   <Button onClick={() => navigate(`/matches/${match.id}`)} size="sm">
                     Review
                   </Button>

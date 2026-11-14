@@ -22,9 +22,9 @@ export interface MatchListFiltersBlockProps {
 }
 
 const fieldClass =
-  'w-full rounded-md border border-border bg-bg-surface px-2.5 py-1.5 text-sm text-neutral-100'
+  'w-full rounded-md border border-border bg-bg-surface px-2.5 py-1.5 text-sm text-primary'
 
-const labelClass = 'flex flex-col gap-0.5 text-[11px] font-medium text-neutral-500'
+const labelClass = 'flex flex-col gap-0.5 text-[11px] font-medium text-muted'
 
 export function MatchListFiltersBlock({
   filters,
@@ -38,11 +38,11 @@ export function MatchListFiltersBlock({
   const active = matchListFiltersActive(filters)
 
   return (
-    <section className="rounded-lg border border-border bg-bg-card p-3 space-y-2.5">
+    <section className="rounded-md border border-border bg-bg-card p-2.5 space-y-2">
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Filters</h2>
+        <h2 className="text-[11px] font-semibold uppercase tracking-wide text-muted">Filters</h2>
         <div className="flex items-center gap-2">
-          <p className="text-xs text-neutral-500">
+          <p className="text-[11px] text-muted">
             {active
               ? `${resultCount} of ${totalCount}`
               : `${totalCount} ${totalCount === 1 ? 'match' : 'matches'}`}
@@ -72,7 +72,7 @@ export function MatchListFiltersBlock({
             ))}
           </select>
           {opponents.length === 0 && (
-            <span id="find-opp-hint" className="text-[10px] font-normal text-neutral-500">
+            <span id="find-opp-hint" className="text-[10px] font-normal text-muted">
               Add opponents on Details.
             </span>
           )}
@@ -94,7 +94,7 @@ export function MatchListFiltersBlock({
             ))}
           </select>
           {tournaments.length === 0 && (
-            <span id="find-tour-hint" className="text-[10px] font-normal text-neutral-500">
+            <span id="find-tour-hint" className="text-[10px] font-normal text-muted">
               Add tournaments on Details.
             </span>
           )}
@@ -102,7 +102,7 @@ export function MatchListFiltersBlock({
       </div>
 
       <div className="space-y-1.5">
-        <p className="text-[11px] font-medium text-neutral-500">Match date</p>
+        <p className="text-[11px] font-medium text-muted">Match date</p>
         <div className="grid grid-cols-2 gap-2">
           <label className={labelClass}>
             From
@@ -126,7 +126,7 @@ export function MatchListFiltersBlock({
       </div>
 
       <div className="space-y-1.5">
-        <p className="text-[11px] font-medium text-neutral-500">Date tagged</p>
+        <p className="text-[11px] font-medium text-muted">Date tagged</p>
         <div className="grid grid-cols-2 gap-2">
           <label className={labelClass}>
             From

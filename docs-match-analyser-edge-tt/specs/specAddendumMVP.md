@@ -6,6 +6,21 @@
 
 ## Change Log
 
+### 2026-11-14: MA-136 — Home and Find residual quiet (v3.172.0)
+
+**Change Type:** UX declutter — Home + Find / create residual density
+
+**What Changed:**
+- Home: denser shell + panels; `text-primary` / `text-muted`; quieter empty / continue / context / recent / watch chips.
+- Find: quieter page title; denser filter card + match rows; empties on shared tokens.
+- New match page title density matches Home/Find.
+
+**Decision Rationale:** MA-136 overnight Track B — residual Home/Find quiet after MA-126 Match Review chrome.
+
+**Key Files:** `HomeComposer.tsx`, `HomeMatchRowBlock.tsx`, `ContinueTaggingBlock.tsx`, `ContextPolishBlock.tsx`, `ClipShortcutsBlock.tsx`, `MatchListComposer.tsx`, `MatchListFiltersBlock.tsx`, `MatchListSection.tsx`, `MatchCreationComposer.tsx`.
+
+---
+
 ### 2026-11-14: MA-137 — Browse shell Fix/Edit round-trip polish (v3.171.0)
 
 **Change Type:** UX polish — Clips → Fix tags → back into playlist

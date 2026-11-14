@@ -14,7 +14,7 @@ export interface HomeMatchRowBlockProps {
 const STATUS_STYLE: Record<HomeMatchModel['status'], string> = {
   tagged: 'text-result-winner border-result-winner/60 bg-result-winner-bg',
   in_progress: 'text-callout-warning border-callout-warning-border bg-callout-warning-bg',
-  not_started: 'text-neutral-500 border-border',
+  not_started: 'text-muted border-border',
 }
 
 export function HomeMatchRowBlock({ match, onOpen }: HomeMatchRowBlockProps) {
@@ -26,8 +26,8 @@ export function HomeMatchRowBlock({ match, onOpen }: HomeMatchRowBlockProps) {
         className="w-full flex items-center gap-2 px-2 py-1.5 text-left hover:bg-bg-elevated transition-colors"
       >
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-neutral-100 truncate">{match.title}</p>
-          <p className="text-xs text-neutral-500 mt-0.5">
+          <p className="text-sm font-semibold text-primary truncate">{match.title}</p>
+          <p className="text-[11px] text-muted mt-0.5">
             {match.dateLabel}
             {match.ralliesTagged > 0 &&
               ` · ${match.ralliesTagged === 1 ? '1 rally' : `${match.ralliesTagged} rallies`}`}
@@ -39,7 +39,7 @@ export function HomeMatchRowBlock({ match, onOpen }: HomeMatchRowBlockProps) {
               'font-mono text-sm font-bold tabular-nums',
               match.heroWon === true && 'text-result-winner',
               match.heroWon === false && 'text-result-error',
-              match.heroWon === null && 'text-neutral-200'
+              match.heroWon === null && 'text-primary'
             )}
           >
             {match.setsLabel}
@@ -53,7 +53,7 @@ export function HomeMatchRowBlock({ match, onOpen }: HomeMatchRowBlockProps) {
         >
           {match.statusLabel}
         </span>
-        <Icon name="chevron-right" size="sm" className="text-neutral-500" />
+        <Icon name="chevron-right" size="sm" className="text-muted" />
       </button>
     </li>
   )

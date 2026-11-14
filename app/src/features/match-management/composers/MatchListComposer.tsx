@@ -170,9 +170,9 @@ export function MatchListComposer() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <h1 className="text-xl md:text-2xl font-bold text-neutral-50 flex items-center gap-2">
+    <div className="space-y-3">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <h1 className="text-lg md:text-xl font-semibold text-primary flex items-center gap-2">
           <Icon name="swords" size="md" className="text-brand-primary" />
           Find matches
         </h1>
