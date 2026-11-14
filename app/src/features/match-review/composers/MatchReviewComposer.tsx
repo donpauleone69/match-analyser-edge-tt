@@ -477,8 +477,11 @@ export function MatchReviewComposer() {
 
   return (
     <div className={cn('space-y-3 transition-[margin]', evidence && 'md:mr-[420px]')}>
-      {/* Slim sticky chrome — tabs get the viewport; title is one row */}
-      <header className="sticky top-0 z-20 -mx-0 bg-bg-surface/95 backdrop-blur border-b border-pill-idle-border px-0 py-2 space-y-2">
+      {/* Slim sticky chrome — title + tabs; PlaylistBrowseShell offsets from this node (MA-127). */}
+      <header
+        data-match-review-chrome
+        className="sticky top-0 z-30 -mx-0 bg-bg-surface/95 backdrop-blur border-b border-border px-0 py-2 space-y-2"
+      >
         <div className="flex items-center gap-2 min-w-0">
           <button
             type="button"

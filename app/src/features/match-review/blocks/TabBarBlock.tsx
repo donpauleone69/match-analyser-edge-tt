@@ -1,5 +1,8 @@
 /**
- * TabBarBlock — sticky in-page tabs for Match Review.
+ * TabBarBlock — in-page tabs for Match Review.
+ *
+ * Sticky ownership lives on the Match Review header (`data-match-review-chrome`).
+ * Nested sticky here double-painted borders and fought PlaylistBrowseShell offsets (MA-127).
  */
 
 import { cn } from '@/helpers/utils'
@@ -25,10 +28,7 @@ export function TabBarBlock<T extends string>({
   onBadgeClick,
 }: TabBarBlockProps<T>) {
   return (
-    <nav
-      className="sticky top-0 z-20 -mx-4 md:-mx-6 px-4 md:px-6 bg-bg-surface/95 backdrop-blur border-b border-border"
-      aria-label="Match review sections"
-    >
+    <nav className="-mx-1" aria-label="Match review sections">
       <ul className="flex gap-1 overflow-x-auto" role="tablist">
         {tabs.map((tab) => (
           <li key={tab.id}>
