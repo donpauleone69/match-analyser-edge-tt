@@ -12,7 +12,14 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Button, Card, Icon, type VideoPlayerHandle } from '@/ui-mine'
+import {
+  Button,
+  Card,
+  Icon,
+  parseScorePair,
+  type MatchScoreHudProps,
+  type VideoPlayerHandle,
+} from '@/ui-mine'
 import { useVideoPlaybackStore } from '@/ui-mine/VideoPlayer'
 import { formatFileSize } from '@/helpers/videoFileHelpers'
 import { useCloudStore } from '@/stores/cloudStore'
@@ -407,6 +414,30 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
     ? `Set ${current.clip.setNumber} video isn’t on this device${cloudUser ? ' or in your cloud backup' : ''} — load it once and it’s remembered.`
     : ''
 
+  const clipScoreHud = useMemo((): MatchScoreHudProps | null => {
+    if (!current || !data) return null
+    const pair = parseScorePair(current.clip.scoreBefore)
+    if (!pair) return null
+    const input = data.inputs.find((i) => i.match.id === current.clip.matchId)
+    const byId = new Map(players.map((p) => [p.id, p]))
+    const p1 = input ? byId.get(input.match.player1_id) : undefined
+    const p2 = input?.match.player2_id ? byId.get(input.match.player2_id) : undefined
+    const player1Name =
+      (p1 ? `${p1.first_name}${p1.last_name ? ` ${p1.last_name}` : ''}`.trim() : '') ||
+      data.names.hero
+    const player2Name =
+      (p2 ? `${p2.first_name}${p2.last_name ? ` ${p2.last_name}` : ''}`.trim() : '') ||
+      data.names.villain
+    return {
+      player1Name,
+      player2Name,
+      player1Score: pair.player1,
+      player2Score: pair.player2,
+      setNumber: current.clip.setNumber,
+      compact: true,
+    }
+  }, [current, data, players])
+
   const stage = activeReel ? (
     <ClipStageBlock
       ref={playerRef}
@@ -461,6 +492,7 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
       onPrev={() => setIndex((i) => Math.max(0, i - 1))}
       onNext={() => setIndex((i) => Math.min(rows.length - 1, i + 1))}
       onToggleAutoAdvance={() => setAutoAdvance((a) => !a)}
+      scoreHud={clipScoreHud}
       // Download lives once: export strip (desktop) / sticky bar (phone) — never on stage.
       onEdit={() => {
         const q = new URLSearchParams({
