@@ -2,7 +2,9 @@ import { describe, it, expect } from 'vitest'
 import {
   RALLY_TIMELINE_MIN_WINDOW_SECONDS,
   RALLY_TIMELINE_PAD_SECONDS,
+  applyImpossibleFaAutoSkip,
   canSaveRallyTimeline,
+  clearFosDecision,
   derivePass1Stage,
   isEndAttrsComplete,
   isFaAttrsComplete,
@@ -135,9 +137,12 @@ describe('first attack mandatory (MA-35 / MA-68 / MA-71)', () => {
     expect(marked.fos).toBe(3)
     expect(marked.noFirstAttack).toBe(false)
     expect(isFosDecided(marked)).toBe(true)
-    expect(canSaveRallyTimeline(marked, 'Ada')).toBe(true)
+    // MA-73: Save blocked until FA wing+stroke (aligned with fa_details).
+    expect(canSaveRallyTimeline(marked, 'Ada')).toBe(false)
+    expect(pass1SaveHint(marked)).toMatch(/First attack Wing and Stroke/i)
     expect(derivePass1Stage(marked)).toBe('fa_details')
     expect(isFaAttrsComplete(marked)).toBe(false)
+    expect(pass1StageInfo('fa_details').text).toMatch(/tap FA to undo/i)
 
     const withFaAttrs = toggleShotChoice(
       toggleShotChoice(marked, 3, 'wing', 'FH'),
@@ -146,8 +151,15 @@ describe('first attack mandatory (MA-35 / MA-68 / MA-71)', () => {
       'Loop'
     )
     expect(isFaAttrsComplete(withFaAttrs)).toBe(true)
+    expect(canSaveRallyTimeline(withFaAttrs, 'Ada')).toBe(true)
     expect(derivePass1Stage(withFaAttrs)).toBe('optional')
     expect(pass1StageInfo('optional').tone).toBe('ready')
+
+    // MA-73: clear in fa_details → select_fa (model path used by rail FA tap).
+    const clearedViaDecision = clearFosDecision(marked)
+    expect(clearedViaDecision.fos).toBeNull()
+    expect(clearedViaDecision.noFirstAttack).toBe(false)
+    expect(derivePass1Stage(clearedViaDecision)).toBe('select_fa')
 
     const cleared = markFos(marked, 3, 3)
     expect(cleared.fos).toBeNull()
@@ -179,6 +191,69 @@ describe('first attack mandatory (MA-35 / MA-68 / MA-71)', () => {
     expect(isEndAttrsComplete(ready)).toBe(true)
     expect(canSaveRallyTimeline(ready, 'Ada')).toBe(true)
     expect(derivePass1Stage(ready)).toBe('optional')
+    // Auto-skip helper is a no-op for serve-only.
+    expect(applyImpossibleFaAutoSkip(ready)).toEqual(ready)
+  })
+
+  it('end=2 defensive stroke auto No Attack and skips select_fa (MA-73)', () => {
+    const base = timelineFromContacts([1, 2])
+    expect(base.end).toBe(2)
+    const endReady = toggleShotChoice(
+      toggleShotChoice({ ...base, ending: 'error_net' as const }, 2, 'wing', 'BH'),
+      2,
+      'stroke',
+      'Push'
+    )
+    expect(isEndAttrsComplete(endReady)).toBe(true)
+    expect(isFosDecided(endReady)).toBe(false)
+    expect(derivePass1Stage(endReady)).toBe('select_fa')
+
+    const auto = applyImpossibleFaAutoSkip(endReady)
+    expect(auto.noFirstAttack).toBe(true)
+    expect(auto.fos).toBeNull()
+    expect(isFosDecided(auto)).toBe(true)
+    expect(derivePass1Stage(auto)).toBe('optional')
+    expect(canSaveRallyTimeline(auto, 'Ada')).toBe(true)
+
+    // Undo No Attack → undecided (composer does not re-run helper until End attrs change).
+    const undone = setFos(auto, null)
+    expect(undone.noFirstAttack).toBe(false)
+    expect(isFosDecided(undone)).toBe(false)
+    expect(derivePass1Stage(undone)).toBe('select_fa')
+    // Pure helper would re-apply if called again while undecided — UI only calls it on End attr edits.
+    expect(applyImpossibleFaAutoSkip(undone).noFirstAttack).toBe(true)
+  })
+
+  it('end=2 attack stroke auto FA=2 and skips select + fa_details (MA-73)', () => {
+    const base = timelineFromContacts([1, 2])
+    const endReady = toggleShotChoice(
+      toggleShotChoice({ ...base, ending: 'winner' as const }, 2, 'wing', 'FH'),
+      2,
+      'stroke',
+      'Flick'
+    )
+    expect(isEndAttrsComplete(endReady)).toBe(true)
+
+    const auto = applyImpossibleFaAutoSkip(endReady)
+    expect(auto.fos).toBe(2)
+    expect(auto.noFirstAttack).toBe(false)
+    expect(isFaAttrsComplete(auto)).toBe(true)
+    expect(derivePass1Stage(auto)).toBe('optional')
+    expect(canSaveRallyTimeline(auto, 'Ada')).toBe(true)
+  })
+
+  it('end=FA same shot: fa_details skipped when wing+stroke filled (MA-73)', () => {
+    const base = timelineFromContacts([1, 2, 3, 4])
+    const endReady = toggleShotChoice(
+      toggleShotChoice({ ...base, ending: 'winner' as const }, 4, 'wing', 'FH'),
+      4,
+      'stroke',
+      'Loop'
+    )
+    const marked = markFos(endReady, 4, 4)
+    expect(isFaAttrsComplete(marked)).toBe(true)
+    expect(derivePass1Stage(marked)).toBe('optional')
+    expect(canSaveRallyTimeline(marked, 'Ada')).toBe(true)
   })
 
   it('toggling No attack returns to undecided', () => {

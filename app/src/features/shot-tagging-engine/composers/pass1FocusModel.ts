@@ -177,6 +177,26 @@ export const END_STROKE_OPTIONS_COMPACT: EndStroke[] = [
   'Push',
 ]
 
+/** End strokes that cannot be a first attack (MA-73 impossible-FA). */
+export const DEFENSIVE_END_STROKES: ReadonlySet<string> = new Set([
+  'Push',
+  'Block',
+  'Chop',
+])
+
+export function isDefensiveEndStroke(
+  stroke: string | null | undefined
+): boolean {
+  return stroke != null && DEFENSIVE_END_STROKES.has(stroke)
+}
+
+export function isAttackEndStroke(stroke: string | null | undefined): boolean {
+  return (
+    stroke != null &&
+    (ATTACK_STROKE_OPTIONS as readonly string[]).includes(stroke)
+  )
+}
+
 /** Default capture speed after the serve is tagged */
 export const CAPTURE_PLAYBACK_SPEED = 0.75
 export const NORMAL_PLAYBACK_SPEED = 1
@@ -871,6 +891,15 @@ export function canSaveRallyTimeline(
   if (state.end === null) return false
   if (!state.ending) return false
   if (!isFosDecided(state)) return false
+  // Align save with fa_details stage: FA wing+stroke required when FA marked.
+  if (
+    typeof state.fos === 'number' &&
+    !state.noFirstAttack &&
+    state.end !== 1 &&
+    !isFaAttrsComplete(state)
+  ) {
+    return false
+  }
   return Boolean(winnerName)
 }
 
@@ -908,6 +937,37 @@ export function isEndAttrsComplete(state: RallyTimelineState): boolean {
   if (state.end === 1) return true
   const shot = state.shots[state.end]
   return Boolean(shot?.wing && shot?.stroke)
+}
+
+/**
+ * MA-73: when End is shot 2 and End Wing/Stroke are complete, auto-decide FA
+ * if still undecided:
+ * - defensive end stroke (Push/Block/Chop) → No Attack
+ * - attack end stroke → FA = 2 (End attrs already satisfy FA wing+stroke)
+ *
+ * Only applies while FOS is undecided — undo in optional stays sticky until
+ * the user changes End attrs again.
+ */
+export function applyImpossibleFaAutoSkip(
+  state: RallyTimelineState
+): RallyTimelineState {
+  if (state.end !== 2) return state
+  if (!isEndAttrsComplete(state)) return state
+  if (isFosDecided(state)) return state
+  const stroke = state.shots[2]?.stroke ?? null
+  if (isDefensiveEndStroke(stroke)) {
+    return { ...state, fos: null, noFirstAttack: true, fosTimeSeconds: null }
+  }
+  if (isAttackEndStroke(stroke)) {
+    const contact = state.shots[2]?.contactTime ?? null
+    return {
+      ...state,
+      fos: 2,
+      noFirstAttack: false,
+      fosTimeSeconds: contact,
+    }
+  }
+  return state
 }
 
 /** True while End stages lock selection to the End shot. */
@@ -953,7 +1013,10 @@ export function pass1StageInfo(stage: Pass1Stage): {
         tone: 'neutral',
       }
     case 'fa_details':
-      return { text: 'Enter First attack Wing and Stroke', tone: 'neutral' }
+      return {
+        text: 'Enter First attack Wing and Stroke — or tap FA to undo',
+        tone: 'neutral',
+      }
     case 'optional':
       return {
         text: 'Add additional details if you want',

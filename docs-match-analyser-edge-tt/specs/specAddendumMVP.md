@@ -6,6 +6,22 @@
 
 ## Change Log
 
+### 2026-11-13: MA-73 — Pass 1 FA undo + impossible-FA auto-skip (v3.119.0)
+
+**Change Type:** UX / logic — Pass 1 Focus FA correction + save gate
+
+**What Changed:**
+- **fa_details undo:** tap FA rail caption or re-tap marked FA shot → `clearFosDecision` → `select_fa`; tap other shot ≥2 reassigns FA.
+- **Save gate:** `canSaveRallyTimeline` requires FA wing+stroke when a FA shot is marked (aligned with fa_details stage).
+- **Impossible FA auto-skip:** `end === 2` + defensive End stroke (Push/Block/Chop) → auto No Attack; `end === 2` + attack stroke → auto FA=2 (End attrs skip fa_details). Serve-only (`end === 1`) unchanged. End === FA with attrs filled still skips fa_details.
+- Info copy: fa_details mentions tap FA to undo.
+
+**Decision Rationale:** Paul-approved Pass 1 complete logic plan (MA-72) §5–6; MA-73 brief. Does **not** add Rally Focus optionals / Basic-Advanced flags (MA-74).
+
+**Key Files:** `pass1FocusModel.ts`, `Pass1FocusComposer.tsx`, `Pass1FocusBlock.tsx`, `pass1FocusModel.timeline.test.ts`.
+
+---
+
 ### 2026-11-13: MA-71 — Pass 1 logic + layout correction (v3.118.0)
 
 **Change Type:** UX — Pass 1 Focus stage gates, rail, loops, optional chrome
