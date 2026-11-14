@@ -6,6 +6,23 @@
 
 ## Change Log
 
+### 2026-11-14: MA-117 — Video HUD chip token cleanup (v3.153.0)
+
+**Change Type:** Design tokens — VideoPlayer HUD + MatchScoreHud + Pass 1 badge wash
+
+**What Changed:**
+- New video-scrim variants: `strong` / `soft` / `edge` / `wash` / `wash-muted`.
+- VideoPlayer time / shot / Change chips + scrub track → `video-scrim-strong|soft` + `video-scrim-border`.
+- MatchScoreHud set/point cells → `video-scrim-edge` + wash tokens (drop `border-white/15`, `bg-white/10|20`).
+- Pass1ContactCapture server badge wash → `panel-scrim`.
+- Extend `themeTokens.test.ts` gate to these surfaces.
+
+**Decision Rationale:** MA-117 overnight Track F — finish video HUD leftover black/white alpha after MA-114 modal scrims.
+
+**Key Files:** `index.css`, `VideoPlayer.tsx`, `MatchScoreHud.tsx`, `Pass1ContactCaptureBlock.tsx`, `themeTokens.test.ts`.
+
+---
+
 ### 2026-11-14: MA-113 — Secondary chrome quiet pass (v3.152.0)
 
 **Change Type:** UX declutter — secondary Review / Details / audit chrome
@@ -8672,6 +8689,9 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v3.153.0 | 2026-11-14 | MA-117: Video HUD chips + MatchScoreHud washes → video-scrim variants |
+| v3.152.0 | 2026-11-14 | MA-113: quiet secondary Review/Details/audit chrome |
+| v3.151.0 | 2026-11-14 | MA-107: Refine PlaylistBrowseShell density and trail |
 | v3.150.0 | 2026-11-14 | MA-114: RallyPlayer + modal overlays → modal-scrim / modal-scrim-strong |
 | v3.149.0 | 2026-11-14 | MA-112: Pass 1 rail and dialog polish |
 | v3.148.0 | 2026-11-14 | MA-106: Serve/Receive adopts PlaylistBrowseShell + Summary/Clips trail |
