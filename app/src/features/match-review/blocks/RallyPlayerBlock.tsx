@@ -123,7 +123,7 @@ export const RallyPlayerBlock = forwardRef<VideoPlayerHandle, RallyPlayerBlockPr
       : null
 
     return (
-      <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-2 md:p-6" role="dialog" aria-label="Rally player">
+      <div className="fixed inset-0 z-50 bg-modal-scrim-strong flex items-center justify-center p-2 md:p-6" role="dialog" aria-label="Rally player">
         <div className="w-full max-w-4xl bg-bg-card border border-border rounded-lg overflow-hidden shadow-2xl">
           <div className="flex items-center gap-2 px-3 py-2 border-b border-border">
             <div className="min-w-0 flex-1">

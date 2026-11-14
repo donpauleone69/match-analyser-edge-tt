@@ -23,7 +23,7 @@ export function CompletionModal({
   className
 }: CompletionModalProps) {
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-modal-scrim flex items-center justify-center z-50">
       <div className={cn('bg-bg-card rounded-lg p-6 max-w-md w-full mx-4 border border-border', className)}>
         <div className="text-center space-y-5">
           <div>

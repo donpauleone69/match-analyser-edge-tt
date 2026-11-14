@@ -52,6 +52,7 @@ describe('shared match color tokens', () => {
       '--color-video-scrim',
       '--color-video-scrim-border',
       '--color-modal-scrim',
+      '--color-modal-scrim-strong',
       '--color-panel-scrim',
       '--control-gap',
     ]
@@ -142,6 +143,10 @@ describe('shared match color tokens', () => {
       './features/shot-tagging-engine/blocks/Pass1LeaveDraftChoiceBlock.tsx',
       './features/shot-tagging-engine/blocks/Pass1ChromeProtoBlock.tsx',
       './features/match-review/sections/ServeReceiveDataSection.tsx',
+      './features/shot-tagging-engine/blocks/CompletionModal.tsx',
+      './features/match-management/sections/MatchResultEntryModal.tsx',
+      './components/ui/dialog.tsx',
+      './components/ui/alert-dialog.tsx',
     ]
 
     for (const path of reviewedSurfaces) {
@@ -160,7 +165,7 @@ describe('shared match color tokens', () => {
       expect(
         source(path),
         `${path} uses raw modal/panel black scrim`
-      ).not.toMatch(/bg-black\/(?:20|60)\b/)
+      ).not.toMatch(/bg-black\/(?:20|50|60|80)\b/)
     }
   })
 
