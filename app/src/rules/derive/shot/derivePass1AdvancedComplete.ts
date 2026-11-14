@@ -2,9 +2,9 @@
  * Pass 1 Advanced data completeness (MA-74).
  *
  * Basic = compulsory Pass 1 gates (framework_confirmed on save).
- * Advanced = every RF-class nullable choice field on the phase allow-list
- * is filled for shots 1..end. Boolean toggles (Weak/High/Heavy/Safe/Pivot)
- * never gate Advanced.
+ * Advanced = every nullable choice field on the phase allow-list is filled
+ * for shots 1..end. Boolean toggles (High/Heavy/Safe/Aggressive/Pivot)
+ * never gate Advanced. MA-77: placement / quality / Weak no longer gate.
  *
  * Pure — no React, no IO.
  */

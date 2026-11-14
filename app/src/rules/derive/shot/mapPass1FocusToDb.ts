@@ -4,12 +4,13 @@
  * Pure — no React, no IO.
  * standing (UI) is stored as shot_initiative.
  * The Pass 1 allow-list strips tags that the shot's role may not keep.
- * MA-74: RF optionals (spin/depth/placement/contact/quality/weak/heavy)
- * persist when allow-listed. Previous-shot placement is inferred from
- * wing + pivot when wing is set and prior placement is still null.
+ * MA-74/77: phase optionals (spin/depth/Ball High·Heavy, FA contact,
+ * Safe) persist when allow-listed. Placement / Weak / Quality dropped from
+ * Pass 1 allow-list. Previous-shot placement is inferred from wing + pivot
+ * when wing is set and prior placement is still null.
  *
  * Completeness: framework_confirmed = Basic (compulsory gates met on save);
- * detail_complete = Advanced (RF-class optionals filled — see
+ * detail_complete = Advanced (phase optionals filled — see
  * derivePass1AdvancedDataComplete).
  */
 
@@ -47,6 +48,8 @@ export interface Pass1FocusShotTags {
   standing: string | null
   isHigh: boolean
   isSafe: boolean
+  /** MA-77 exclusive with Safe; not persisted yet (no DB column). */
+  isAggressive?: boolean
   isPivot: boolean
   reviewKind: ShotReviewKind | null
   contactTime: number | null

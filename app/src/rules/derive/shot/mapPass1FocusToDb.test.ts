@@ -120,7 +120,7 @@ describe('mapPass1FocusRallyToDb', () => {
     expect(shots[5].shot_is_safe).toBe(false)
   })
 
-  it('persists RF optionals when allow-listed; keeps explicit placement over wing inference', () => {
+  it('persists MA-77 phase optionals; drops placement/quality/Weak; wing+pivot infers prior placement', () => {
     const { rally, shots } = mapPass1FocusRallyToDb({
       ...base,
       timeline: {
@@ -133,8 +133,8 @@ describe('mapPass1FocusRallyToDb', () => {
           1: tags({
             spin: 'Under',
             depth: 'Short',
-            placement: 'BH',
-            isWeak: true,
+            placement: 'BH', // ignored — not allow-listed (MA-77)
+            isWeak: true, // ignored
             isHeavy: true,
             contactTime: 1,
           }),
@@ -142,13 +142,13 @@ describe('mapPass1FocusRallyToDb', () => {
             wing: 'BH',
             isHigh: true,
             depth: 'Long',
-            placement: 'middle',
+            placement: 'middle', // ignored
             contactTime: 2,
           }),
           3: tags({
             wing: 'FH',
             stroke: 'Loop',
-            quality: 'Good',
+            quality: 'Good', // ignored — replaced by Safe/Aggressive
             tableContact: 'Over',
             isWeak: true,
             isHeavy: true,
@@ -164,19 +164,19 @@ describe('mapPass1FocusRallyToDb', () => {
 
     expect(shots[0].shot_spin).toBe('under')
     expect(shots[0].shot_depth).toBe('short')
-    expect(shots[0].shot_placement).toBe('BH')
-    expect(shots[0].shot_is_weak).toBe(true)
+    expect(shots[0].shot_placement).toBe('BH') // inferred from shot 2 wing BH + pivot off
+    expect(shots[0].shot_is_weak).toBe(false)
     expect(shots[0].shot_is_heavy).toBe(true)
 
     expect(shots[1].shot_wing).toBe('BH')
     expect(shots[1].shot_depth).toBe('long')
-    expect(shots[1].shot_placement).toBe('middle') // explicit wins over FOS wing inference
+    expect(shots[1].shot_placement).toBe('FH') // inferred from FA wing FH
     expect(shots[1].shot_is_high).toBe(true)
 
     expect(shots[2].shot_contact).toBe('over_table')
-    expect(shots[2].shot_quality).toBe('good')
+    expect(shots[2].shot_quality).toBeNull()
     expect(shots[2].shot_is_safe).toBe(true)
-    expect(shots[2].shot_is_weak).toBe(false) // FA role strips attributes
+    expect(shots[2].shot_is_weak).toBe(false)
     expect(shots[2].shot_is_heavy).toBe(false)
     expect(shots[2].shot_placement).toBeNull()
   })

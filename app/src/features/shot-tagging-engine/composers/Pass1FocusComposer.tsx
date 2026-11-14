@@ -4,10 +4,10 @@
  * Setup → tap contacts → 2s idle finalize → timeline while video loops.
  * Each Save writes the rally + shots to IndexedDB.
  * MA-67: Simple video overlay + Let/Discard/Save chrome.
- * MA-71: staged info-box flow — contacts → end Result → end Wing/Stroke
+ * MA-71/77: staged flow — contacts → end Result → end Wing/Stroke
  * (locked) → select FA / No Attack on rail → FA details → optional/save.
- * Single info above Rally; post-compulsory rally / from-shot-to-end loops;
- * mute on shot loops; no Rally|Shot toggle.
+ * Guiding dialog below Rally; mute default for tagging; rally loop when no
+ * shot selected; shot loop only while a shot is selected.
  */
 
 import { useState, useRef, useEffect, useMemo, type ReactNode } from 'react'
@@ -56,7 +56,6 @@ import {
   shotNumberAtTime,
   loopWindowFromContacts,
   shotLoopWindow,
-  shotToRallyEndLoopWindow,
   captureContactTime,
   seekFloorFromCompleted,
   clampSeekTime,
@@ -174,11 +173,7 @@ export function Pass1FocusComposer({
   })
   /** Live element time for form overlay (avoids timeupdate lag). */
   const [liveTime, setLiveTime] = useState(0)
-  /**
-   * Form loop (MA-71): rally | isolated shot (end/FA details) | from-shot-to-end (optional).
-   * Rally|Shot toggle removed.
-   */
-  const [formLoop, setFormLoop] = useState<'rally' | 'shot' | 'from_shot'>('shot')
+  /** MA-77: shot loop iff selectedShot != null; else rally loop. */
   const [selectedShot, setSelectedShot] = useState<number | null>(null)
   const setMuted = useVideoPlaybackStore((s) => s.setMuted)
   /** Which point cube is outlined — past rally index, or 'next' (about to tag / open). */
@@ -322,20 +317,21 @@ export function Pass1FocusComposer({
               inForm: true,
               hasContacts: true,
             })
+            // MA-77: select_fa / optional start with no shot selected (rally loop).
             const restoredSelected =
               stage === 'fa_details' && typeof draftTimeline.fos === 'number'
                 ? draftTimeline.fos
-                : (draft.selectedShot ?? (endN > 0 ? endN : null))
+                : stage === 'end_details' || stage === 'end_shot'
+                  ? endN > 0
+                    ? endN
+                    : null
+                  : stage === 'select_fa' || stage === 'optional'
+                    ? null
+                    : (draft.selectedShot ?? (endN > 0 ? endN : null))
             setOpenRally(draft.openRally)
             setContactTimes([])
             setSelectedShot(restoredSelected)
-            setFormLoop(
-              stage === 'end_details' || stage === 'end_shot' || stage === 'fa_details'
-                ? 'shot'
-                : stage === 'optional'
-                  ? 'rally'
-                  : 'rally'
-            )
+            setMuted(true)
             setFocusedRallyIndex('next')
             setPhase('form')
             setConstrainedPlayback({
@@ -459,16 +455,23 @@ export function Pass1FocusComposer({
 
   const timeline = openRally?.timeline ?? emptyRallyTimelineState()
 
-  // Always keep a shot selected in form (default = End / last contact).
+  // End / FA-detail stages keep a shot selected; select_fa + optional allow none (MA-77).
   useEffect(() => {
     if (phase !== 'form' || !openRally) return
+    const stage = derivePass1Stage(openRally.timeline, {
+      inForm: true,
+      hasContacts: true,
+    })
     if (typeof selectedShot === 'number' && openRally.timeline.shots[selectedShot]) {
       return
     }
+    if (stage === 'select_fa' || stage === 'optional') return
     const endN = openRally.timeline.end
     const fallback =
-      (typeof endN === 'number' ? endN : null) ??
-      (openRally.timeline.shotCount > 0 ? openRally.timeline.shotCount : null)
+      stage === 'fa_details' && typeof openRally.timeline.fos === 'number'
+        ? openRally.timeline.fos
+        : (typeof endN === 'number' ? endN : null) ??
+          (openRally.timeline.shotCount > 0 ? openRally.timeline.shotCount : null)
     if (typeof fallback === 'number') setSelectedShot(fallback)
   }, [phase, openRally, selectedShot])
 
@@ -513,7 +516,6 @@ export function Pass1FocusComposer({
       isHighlight: false,
     })
     setContactTimes([])
-    setFormLoop('shot')
     setMuted(true)
     setSelectedShot(lastShot)
     setFocusedRallyIndex('next')
@@ -813,29 +815,25 @@ export function Pass1FocusComposer({
     )
     patchTimeline(() => next)
     const nextStage = derivePass1Stage(next, { inForm: true, hasContacts: true })
-    // End Wing/Stroke complete → select_fa (or auto-skipped optional): rally loop.
+    // End Wing/Stroke complete → select_fa (or auto-skipped optional): close panel + rally loop.
     if (
       prevStage === 'end_shot' &&
       (nextStage === 'select_fa' || nextStage === 'optional')
     ) {
-      setFormLoop('rally')
-      setMuted(false)
+      setMuted(true)
+      setSelectedShot(null)
       const { startTime } = constrainedPlayback
       setCurrentTime(startTime)
       videoPlayerRef.current?.seek(startTime, true)
       videoPlayerRef.current?.play()
-      if (nextStage === 'optional' && typeof next.fos === 'number') {
-        setSelectedShot(next.fos)
-      }
     }
-    // FA Wing/Stroke complete → optional: rally loop.
+    // FA Wing/Stroke complete → optional: close panel + rally loop (MA-77).
     if (prevStage === 'fa_details' && nextStage === 'optional') {
-      setFormLoop('rally')
-      setMuted(false)
+      setMuted(true)
+      setSelectedShot(null)
     }
     // Entering FA details after FA mark already sets shot loop; keep muted shot loop while editing.
     if (nextStage === 'fa_details') {
-      setFormLoop('shot')
       setMuted(true)
       if (typeof next.fos === 'number') setSelectedShot(next.fos)
     }
@@ -883,7 +881,6 @@ export function Pass1FocusComposer({
       const contact = openRally.timeline.shots[n]?.contactTime ?? null
       patchTimeline((s) => markFos({ ...s, noFirstAttack: false, fos: null }, n, contact))
       setSelectedShot(n)
-      setFormLoop('shot')
       setMuted(true)
       playFromShot(n)
       requestAnimationFrame(() => snapPass1ShotIntoView(n))
@@ -894,11 +891,12 @@ export function Pass1FocusComposer({
       const currentFos = openRally.timeline.fos
       if (currentFos === n) {
         patchTimeline((s) => clearFosDecision(s))
-        setFormLoop('rally')
-        setMuted(false)
-        setSelectedShot(n)
-        playFromShot(n)
-        requestAnimationFrame(() => snapPass1ShotIntoView(n))
+        setMuted(true)
+        setSelectedShot(null)
+        const { startTime } = constrainedPlayback
+        setCurrentTime(startTime)
+        videoPlayerRef.current?.seek(startTime, true)
+        videoPlayerRef.current?.play()
         return
       }
       const contact = openRally.timeline.shots[n]?.contactTime ?? null
@@ -906,18 +904,14 @@ export function Pass1FocusComposer({
         markFos({ ...s, noFirstAttack: false, fos: null }, n, contact)
       )
       setSelectedShot(n)
-      setFormLoop('shot')
       setMuted(true)
       playFromShot(n)
       requestAnimationFrame(() => snapPass1ShotIntoView(n))
       return
     }
     setSelectedShot(n)
-    if (stage === 'optional') {
-      setFormLoop('from_shot')
-      setMuted(true)
-    } else if (stage === 'fa_details') {
-      setFormLoop('shot')
+    // MA-77: shot loop only while a shot is selected; mute stays on.
+    if (stage === 'optional' || stage === 'fa_details') {
       setMuted(true)
     }
     playFromShot(n)
@@ -940,7 +934,6 @@ export function Pass1FocusComposer({
     patchTimeline((s) =>
       markFos({ ...s, noFirstAttack: false, fos: null }, at, contact)
     )
-    setFormLoop('shot')
     setMuted(true)
     playFromShot(at)
   }
@@ -957,20 +950,21 @@ export function Pass1FocusComposer({
     const next = setFos(openRally.timeline, null)
     patchTimeline(() => next)
     const nextStage = derivePass1Stage(next, { inForm: true, hasContacts: true })
-    if (nextStage === 'optional') {
-      setFormLoop('rally')
-      setMuted(false)
-    } else if (nextStage === 'select_fa') {
-      // Undo No attack from optional
-      setFormLoop('rally')
-      setMuted(false)
+    // MA-77: close panel + rally loop (muted) after No Attack or undo.
+    if (nextStage === 'optional' || nextStage === 'select_fa') {
+      setMuted(true)
+      setSelectedShot(null)
+      const { startTime } = constrainedPlayback
+      setCurrentTime(startTime)
+      videoPlayerRef.current?.seek(startTime, true)
+      videoPlayerRef.current?.play()
     }
   }
 
   const handleClearFosDecision = () => {
     patchTimeline((s) => clearFosDecision(s))
-    setFormLoop('rally')
-    setMuted(false)
+    setMuted(true)
+    setSelectedShot(null)
   }
 
   const handleCancelFosPick = () => {
@@ -1116,7 +1110,6 @@ export function Pass1FocusComposer({
 
   const handleMarkEnd = (at: number) => {
     setSelectedShot(at)
-    setFormLoop('shot')
     setMuted(true)
     patchTimeline((s) => markEnd(s, at))
   }
@@ -1126,21 +1119,20 @@ export function Pass1FocusComposer({
     const next = toggleEnding(openRally.timeline, value)
     patchTimeline(() => next)
     // Stay on End shot loop through Result → Wing/Stroke (end_shot).
-    // Rally loop only once End attrs complete and we enter select_fa / optional.
-    if (typeof next.end === 'number') setSelectedShot(next.end)
+    // Rally loop + no selection once End attrs complete → select_fa / optional.
     if (next.ending && isEndAttrsComplete(next) && !isFosDecided(next)) {
-      setFormLoop('rally')
-      setMuted(false)
+      setMuted(true)
+      setSelectedShot(null)
       const { startTime } = constrainedPlayback
       setCurrentTime(startTime)
       videoPlayerRef.current?.seek(startTime, true)
       videoPlayerRef.current?.play()
     } else if (next.ending && isEndAttrsComplete(next) && isFosDecided(next)) {
-      // Serve-only / already decided → optional → rally loop.
-      setFormLoop('rally')
-      setMuted(false)
+      // Serve-only / already decided → optional → close panel + rally loop.
+      setMuted(true)
+      setSelectedShot(null)
     } else {
-      setFormLoop('shot')
+      if (typeof next.end === 'number') setSelectedShot(next.end)
       setMuted(true)
     }
   }
@@ -1160,17 +1152,10 @@ export function Pass1FocusComposer({
       : phase === 'form'
         ? shotNumberAtTime(formContactTimes, liveTime)
         : null
+  // MA-77: shot loop only while a shot is selected; otherwise full rally loop.
   const selectedShotLoop =
     phase === 'form' && openRally && selectedShot !== null
-      ? formLoop === 'shot'
-        ? shotLoopWindow(openRally.timeline, selectedShot, constrainedPlayback)
-        : formLoop === 'from_shot'
-          ? shotToRallyEndLoopWindow(
-              openRally.timeline,
-              selectedShot,
-              constrainedPlayback
-            )
-          : null
+      ? shotLoopWindow(openRally.timeline, selectedShot, constrainedPlayback)
       : null
   const activePlayback = selectedShotLoop
     ? { ...constrainedPlayback, ...selectedShotLoop }
@@ -1468,6 +1453,7 @@ export function Pass1FocusComposer({
                 onToggleReviewFlag={handleToggleReviewFlag}
                 isHighlight={Boolean(openRally?.isHighlight)}
                 onToggleHighlight={handleToggleHighlight}
+                canSave={canSave}
                 scrollableShotRail
               />
             </div>

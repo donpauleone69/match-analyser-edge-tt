@@ -30,6 +30,7 @@ import {
 import { VideoPlayerSection } from '../sections'
 import {
   canSaveRallyTimeline,
+  clearFosDecision,
   contactTimesFromTimeline,
   derivePass1Stage,
   inferWinnerName,
@@ -367,6 +368,7 @@ export function RallyEditComposer() {
             standing: null,
             isHigh: false,
             isSafe: false,
+            isAggressive: false,
             isPivot: false,
             reviewKind: mapped.reviewKind,
             contactTime: mapped.contactTime,
@@ -757,6 +759,8 @@ export function RallyEditComposer() {
             onToggleHighlight={() =>
               setDraft((d) => (d ? { ...d, isHighlight: !d.isHighlight } : d))
             }
+            canSave={canSave}
+            onClearFosDecision={() => patchTimeline((s) => clearFosDecision(s))}
           />
         )}
       </div>

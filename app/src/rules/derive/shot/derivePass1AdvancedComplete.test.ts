@@ -17,7 +17,7 @@ describe('derivePass1AdvancedDataComplete', () => {
     ).toBe(false)
   })
 
-  it('is true when RF optionals are filled for a short attack rally', () => {
+  it('is true when phase optionals are filled for a short attack rally (MA-77)', () => {
     expect(
       derivePass1AdvancedDataComplete({
         end: 3,
@@ -25,19 +25,33 @@ describe('derivePass1AdvancedDataComplete', () => {
         shots: {
           1: {
             spin: 'under',
-            placement: 'BH',
             depth: 'short',
           },
           2: {
             wing: 'BH',
-            placement: 'middle',
             depth: 'long',
           },
           3: {
             wing: 'FH',
             stroke: 'Loop',
             tableContact: 'over_table',
-            quality: 'good',
+          },
+        },
+      })
+    ).toBe(true)
+  })
+
+  it('does not require placement or quality (MA-77)', () => {
+    expect(
+      derivePass1AdvancedDataComplete({
+        end: 2,
+        fos: 2,
+        shots: {
+          1: { spin: 'top', depth: 'half' },
+          2: {
+            wing: 'FH',
+            stroke: 'Flick',
+            tableContact: 'over_table',
           },
         },
       })
@@ -49,12 +63,11 @@ describe('derivePass1AdvancedDataComplete', () => {
       end: 4,
       fos: 2,
       shots: {
-        1: { spin: 'top', placement: 'FH', depth: 'half' },
+        1: { spin: 'top', depth: 'half' },
         2: {
           wing: 'FH',
           stroke: 'Flick',
           tableContact: 'over_table',
-          quality: 'normal',
         },
         3: { wing: 'BH', stroke: 'Block' },
         4: { wing: 'FH', stroke: 'Drive' },
@@ -72,7 +85,7 @@ describe('derivePass1AdvancedDataComplete', () => {
     ).toBe(true)
   })
 
-  it('serve-only needs serve RF optionals only', () => {
+  it('serve-only needs serve optionals only (no placement)', () => {
     expect(
       derivePass1AdvancedDataComplete({
         end: 1,
@@ -85,7 +98,7 @@ describe('derivePass1AdvancedDataComplete', () => {
         end: 1,
         fos: null,
         shots: {
-          1: { spin: 'side', placement: 'middle', depth: 'long' },
+          1: { spin: 'side', depth: 'long' },
         },
       })
     ).toBe(true)

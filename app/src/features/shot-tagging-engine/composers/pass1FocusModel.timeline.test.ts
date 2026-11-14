@@ -153,7 +153,9 @@ describe('first attack mandatory (MA-35 / MA-68 / MA-71)', () => {
     expect(isFaAttrsComplete(withFaAttrs)).toBe(true)
     expect(canSaveRallyTimeline(withFaAttrs, 'Ada')).toBe(true)
     expect(derivePass1Stage(withFaAttrs)).toBe('optional')
-    expect(pass1StageInfo('optional').tone).toBe('ready')
+    expect(pass1StageInfo('optional', { canSave: true }).tone).toBe('ready')
+    expect(pass1StageInfo('optional').tone).toBe('pending')
+    expect(pass1StageInfo('select_fa').tone).toBe('pending')
 
     // MA-73: clear in fa_details → select_fa (model path used by rail FA tap).
     const clearedViaDecision = clearFosDecision(marked)
@@ -195,6 +197,20 @@ describe('first attack mandatory (MA-35 / MA-68 / MA-71)', () => {
     expect(applyImpossibleFaAutoSkip(ready)).toEqual(ready)
   })
 
+  it('end=2 Lob (defensive) auto No Attack (MA-77)', () => {
+    const base = timelineFromContacts([1, 2])
+    const endReady = toggleShotChoice(
+      toggleShotChoice({ ...base, ending: 'error_net' as const }, 2, 'wing', 'BH'),
+      2,
+      'stroke',
+      'Lob'
+    )
+    const auto = applyImpossibleFaAutoSkip(endReady)
+    expect(auto.noFirstAttack).toBe(true)
+    expect(auto.fos).toBeNull()
+    expect(derivePass1Stage(auto)).toBe('optional')
+  })
+
   it('end=2 defensive stroke auto No Attack and skips select_fa (MA-73)', () => {
     const base = timelineFromContacts([1, 2])
     expect(base.end).toBe(2)
@@ -224,7 +240,7 @@ describe('first attack mandatory (MA-35 / MA-68 / MA-71)', () => {
     expect(applyImpossibleFaAutoSkip(undone).noFirstAttack).toBe(true)
   })
 
-  it('end=2 attack stroke auto FA=2 and skips select + fa_details (MA-73)', () => {
+  it('end=2 attack stroke auto FA=2 and skips select + fa_details (MA-73; Lob not attack)', () => {
     const base = timelineFromContacts([1, 2])
     const endReady = toggleShotChoice(
       toggleShotChoice({ ...base, ending: 'winner' as const }, 2, 'wing', 'FH'),

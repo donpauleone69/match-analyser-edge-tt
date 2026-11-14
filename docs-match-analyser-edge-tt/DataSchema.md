@@ -504,8 +504,8 @@ interface DBShot {
 
 **Notes:**
 - **Phase is never stored.** Derive with `deriveShotPhase(shot_index, first_attack_index)`.
-- **Role allow-list** — Pass 1 save uses `derivePass1ShotTagAllowList` (Pass 1 compulsory ∪ Rally Focus optionals by phase). Legacy RF-only path used `deriveShotTagRole` / `allowListForRole`. Serve and pre-offensive may set spin/placement/depth and Weak/High/Heavy; first attack may set quality and contact (+ Pass 1 Safe); later shots get wing/stroke and initiative when RF allows.
-- **shot_is_safe:** Pass 1 Focus first-attack toggle; quality remains the RF-class Advanced grade on first attack.
+- **Role allow-list** — Pass 1 save uses `derivePass1ShotTagAllowList` (Pass 1 compulsory ∪ phase optionals). Legacy RF-only path used `deriveShotTagRole` / `allowListForRole`. **MA-77:** Serve → spin/depth + High/Heavy; Pre-offensive → wing+pivot/depth + High/Heavy; FA → contact + Safe (Aggressive is UI exclusive pair; not a DB column yet); **no** placement / Weak / Quality on Pass 1 optionals. Later shots get wing/stroke and initiative when RF allows. Placement on prior shots still inferred from wing+pivot.
+- **shot_is_safe:** Pass 1 Focus first-attack Safe toggle (exclusive with Aggressive in UI). Quality is legacy RF-only, not Pass 1 optional (MA-77).
 - UI standing maps to `shot_initiative` on save.
 - Do not store `timestamp_end`, `is_rally_end`, or `is_first_attack`.
 
