@@ -134,9 +134,9 @@ export function DetailsSection({
   }
 
   return (
-    <div className="space-y-6">
-      <Card className="p-4 md:p-5 border border-border space-y-3">
-        <h2 className="text-lg font-semibold text-neutral-50">Your match</h2>
+    <div className="space-y-4">
+      <Card className="p-3 md:p-4 border border-border space-y-2.5">
+        <h2 className="text-base font-semibold text-neutral-50">Your match</h2>
         <dl className="grid gap-3 sm:grid-cols-2 text-sm">
           <div>
             <dt className="text-neutral-500">Result</dt>
@@ -181,13 +181,13 @@ export function DetailsSection({
         </dl>
       </Card>
 
-      <Card className="p-4 md:p-5 border border-border space-y-3">
+      <Card className="p-3 md:p-4 border border-border space-y-3">
         {(review.context.player2Id || review.context.tournamentId) && (
           <div className="flex flex-wrap gap-2">
             {review.context.player2Id && (
               <Link
                 to={`/clips?scope=opponent&id=${encodeURIComponent(review.context.player2Id)}`}
-                className="inline-flex items-center gap-1 rounded-md border border-neutral-600 bg-bg-card px-3 py-2 text-sm text-neutral-100 hover:border-neutral-400"
+                className="inline-flex items-center gap-1 rounded-md border border-border bg-bg-card px-2.5 py-1.5 text-sm text-neutral-100 hover:border-border-strong"
               >
                 <Icon name="film" size="sm" /> Clips vs opponent
               </Link>
@@ -195,7 +195,7 @@ export function DetailsSection({
             {review.context.tournamentId && (
               <Link
                 to={`/clips?scope=tournament&id=${encodeURIComponent(review.context.tournamentId)}`}
-                className="inline-flex items-center gap-1 rounded-md border border-neutral-600 bg-bg-card px-3 py-2 text-sm text-neutral-100 hover:border-neutral-400"
+                className="inline-flex items-center gap-1 rounded-md border border-border bg-bg-card px-2.5 py-1.5 text-sm text-neutral-100 hover:border-border-strong"
               >
                 <Icon name="film" size="sm" /> Clips in tournament
               </Link>
@@ -232,8 +232,8 @@ export function DetailsSection({
       </Card>
 
       <section className="space-y-2">
-        <h2 className="text-lg font-semibold text-neutral-50">Your sets</h2>
-        <p className="text-sm text-neutral-400">Start, continue, or clear a set. Browse opens the Rallies tab.</p>
+        <h2 className="text-base font-semibold text-neutral-50">Your sets</h2>
+        <p className="text-xs text-neutral-500">Start, continue, or clear a set.</p>
         <SetsPanelSection
           sets={review.sets}
           onTag={onTag}
@@ -245,11 +245,8 @@ export function DetailsSection({
 
       {storage && (
         <section className="space-y-2">
-          <h2 className="text-lg font-semibold text-neutral-50">Video &amp; backup</h2>
-          <p className="text-sm text-neutral-400">
-            Jump markers (first serve / set end / gaps), trim dead air, or archive the device copy after
-            cloud backup.
-          </p>
+          <h2 className="text-base font-semibold text-neutral-50">Video &amp; backup</h2>
+          <p className="text-xs text-neutral-500">Trim, archive after cloud backup, or save a match file.</p>
           <MatchStorageBlock
             storage={storage}
             setMarkers={jumpMarkers.sets}

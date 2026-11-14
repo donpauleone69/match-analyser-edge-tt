@@ -75,7 +75,7 @@ export function ScopeReviewComposer() {
   }, [scope, navigate])
 
   if (scope.kind === 'match' && scope.id) {
-    return <p className="p-6 text-neutral-400">Opening match review…</p>
+    return <p className="p-4 text-sm text-neutral-500">Opening match review…</p>
   }
 
   const setScope = (next: ReviewScope) => {

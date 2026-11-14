@@ -423,8 +423,8 @@ export function RallyEditComposer() {
   if (loadError) {
     return (
       <div className="h-dvh flex items-center justify-center bg-bg-surface p-4">
-        <div className="max-w-md text-center bg-bg-card border border-border rounded-lg p-8">
-          <h2 className="text-xl font-semibold text-primary mb-2">Can’t open this rally</h2>
+        <div className="max-w-md text-center bg-bg-card border border-border rounded-lg p-5">
+          <h2 className="text-lg font-semibold text-primary mb-2">Can’t open this rally</h2>
           <p className="text-sm text-muted mb-6">{loadError}</p>
           <Button onClick={() => navigate(matchId ? `/matches/${matchId}` : '/matches')}>
             Back to match review
@@ -521,7 +521,7 @@ export function RallyEditComposer() {
         </div>
       </div>
 
-      <div className="shrink-0 border-y border-border bg-bg-card px-2 py-1.5 flex flex-wrap items-center gap-1.5">
+      <div className="shrink-0 border-y border-border bg-bg-elevated px-2 py-1.5 flex flex-wrap items-center gap-1.5">
         <button
           type="button"
           onClick={() => confirmLeave() && backToReview()}

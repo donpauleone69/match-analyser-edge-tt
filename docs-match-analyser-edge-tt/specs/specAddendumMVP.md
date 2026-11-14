@@ -6,7 +6,7 @@
 
 ## Change Log
 
-### 2026-11-14: MA-111 — Video stage cohesion polish (v3.152.0)
+### 2026-11-14: MA-111 — Video stage cohesion polish (v3.153.0)
 
 **Change Type:** UX cohesion — Clip / Rally / Edit stage chrome
 
@@ -18,6 +18,21 @@
 **Decision Rationale:** Overnight Track A MA-111 — stage surfaces read as one product after MA-104 playlist chrome.
 
 **Key Files:** `ClipStageBlock.tsx`, `ClipQueueBlock.tsx`, `RallyPlayerBlock.tsx`, `EvidenceDrawerBlock.tsx`, `RallyEditComposer.tsx`, `themeTokens.test.ts`.
+
+### 2026-11-14: MA-113 — Secondary chrome quiet pass (v3.152.0)
+
+**Change Type:** UX declutter — secondary Review / Details / audit chrome
+
+**What Changed:**
+- Overview denser (drop instructional blurb; quieter Coming next / category drill-in).
+- Takeaways + story nav denser; Details cards/links/copy quieter.
+- Clips empty playlist + Home rows / context polish / evidence drawer on shared borders.
+- MatchStorage trim fields, CompareCard hover, data-audit tables → `border-border` / callout fills.
+- Rally Edit error shell + chrome bars on `border-border` / `bg-bg-elevated` (no overlay retune).
+
+**Decision Rationale:** MA-113 overnight Track B — secondary chrome after MA-110 lists/empties.
+
+**Key Files:** `OverviewSection.tsx`, `TakeawaysBlock.tsx`, `SummaryCategoryNavBlock.tsx`, `DetailsSection.tsx`, `ClipsComposer.tsx`, `HomeMatchRowBlock.tsx`, `ContextPolishBlock.tsx`, `EvidenceDrawerBlock.tsx`, `CompareCardBlock.tsx`, `MatchStorageBlock.tsx`, `DataTableBlock.tsx`, data-audit sections, `RallyEditComposer.tsx`, `MatchResultEntryModal.tsx`.
 
 ### 2026-11-14: MA-107 — Playlist browse shell refine (v3.151.0)
 
@@ -8670,7 +8685,8 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 
 | Version | Date | Changes |
 |---------|------|---------|
-| v3.152.0 | 2026-11-14 | MA-111: Clip/Rally/Edit stage chrome cohesion (muted tokens + edit rail) |
+| v3.153.0 | 2026-11-14 | MA-111: Clip/Rally/Edit stage chrome cohesion (muted tokens + edit rail) |
+| v3.152.0 | 2026-11-14 | MA-113: secondary Review/Details/audit chrome quiet |
 | v3.151.0 | 2026-11-14 | MA-107: PlaylistBrowseShell density and trail refine |
 | v3.150.0 | 2026-11-14 | MA-114: RallyPlayer + modal overlays → modal-scrim / modal-scrim-strong |
 | v3.149.0 | 2026-11-14 | MA-112: Pass 1 rail and dialog polish |

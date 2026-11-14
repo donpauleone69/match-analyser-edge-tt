@@ -369,7 +369,7 @@ export function MatchStorageBlock({
                           setTrimStart(e.target.value)
                           setTrimError(null)
                         }}
-                        className="w-20 rounded border border-neutral-600 bg-neutral-900 px-2 py-1.5 text-sm text-neutral-100"
+                        className="w-20 rounded border border-border bg-bg-surface px-2 py-1.5 text-sm text-neutral-100"
                       />
                     </label>
                     <label className="flex flex-col gap-0.5 text-[11px] text-neutral-400">
@@ -383,7 +383,7 @@ export function MatchStorageBlock({
                           setTrimEnd(e.target.value)
                           setTrimError(null)
                         }}
-                        className="w-20 rounded border border-neutral-600 bg-neutral-900 px-2 py-1.5 text-sm text-neutral-100"
+                        className="w-20 rounded border border-border bg-bg-surface px-2 py-1.5 text-sm text-neutral-100"
                         placeholder={v.durationS ? String(Math.floor(v.durationS)) : 'end'}
                       />
                     </label>

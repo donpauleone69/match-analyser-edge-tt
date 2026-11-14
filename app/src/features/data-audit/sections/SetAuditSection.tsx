@@ -24,9 +24,9 @@ export function SetAuditSection({
   const taggedRallies = rallies.filter(r => !r.is_stub_rally && r.framework_confirmed)
   
   return (
-    <div className={cn("mb-12", !isFirst && "pt-12 border-t-4 border-neutral-800")}>
+    <div className={cn("mb-12", !isFirst && "pt-12 border-t-4 border-border")}>
       {/* Set Header */}
-      <div className="mb-6 p-4 bg-neutral-900 border border-neutral-700 rounded-lg">
+      <div className="mb-6 p-4 bg-bg-elevated border border-border rounded-lg">
         <h2 className="text-2xl font-bold mb-1">SET {set.set_number}</h2>
         <div className="text-sm text-neutral-400 flex flex-wrap gap-4">
           <span>Phase: <span className="text-neutral-300">{set.tagging_phase || 'not_started'}</span></span>
