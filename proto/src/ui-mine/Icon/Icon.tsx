@@ -6,8 +6,10 @@ import { forwardRef, type SVGProps } from 'react'
 import {
   BarChart2,
   Calendar,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
   Cloud,
   Download,
   Film,
@@ -45,6 +47,8 @@ const icons = {
   play: Play,
   'chevron-left': ChevronLeft,
   'chevron-right': ChevronRight,
+  'chevron-up': ChevronUp,
+  'chevron-down': ChevronDown,
 } as const
 
 export type IconName = keyof typeof icons

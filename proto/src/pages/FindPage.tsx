@@ -51,12 +51,10 @@ export function FindPage() {
                     className="block space-y-1"
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <CardTitle>{m.name}</CardTitle>
+                      <CardTitle>{m.name || m.opponent || 'New match'}</CardTitle>
                       <WfBadge>{phaseLabel(phase)}</WfBadge>
                     </div>
-                    <CardDescription>
-                      {m.event || 'No event'} · {phaseLabel(phase)}
-                    </CardDescription>
+                    <CardDescription>{m.event || 'No event'}</CardDescription>
                   </Link>
                 </Card>
               )

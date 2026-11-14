@@ -34,13 +34,10 @@ export default function App() {
           </Route>
           <Route path="/insights" element={<InsightsPage />}>
             <Route index element={<Navigate to="summary" replace />} />
-            <Route path="summary" element={<InsightsSectionPage />} />
-            <Route path="serve" element={<InsightsSectionPage />} />
-            <Route path="receive" element={<InsightsSectionPage />} />
-            <Route path="improve" element={<InsightsSectionPage />} />
             <Route path="story" element={<Navigate to="/insights/summary" replace />} />
             <Route path="reels" element={<Navigate to="/insights/summary" replace />} />
             <Route path="scope" element={<Navigate to="/insights/improve" replace />} />
+            <Route path=":section" element={<InsightsSectionPage />} />
           </Route>
           <Route path="/account" element={<AccountPage />} />
         </Route>

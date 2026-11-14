@@ -1,12 +1,18 @@
-import { useMemo, useState } from 'react'
-import { Link, NavLink, useNavigate, useParams } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Button, Card, CardDescription, Icon } from '@/ui-mine'
 import { cn } from '@/helpers/utils'
 import { WfBadge, WfEmpty } from '@/layout/Wireframe'
-import { derivePhase, useDemo, type MatchRecord } from '@/data/demoStore'
+import {
+  derivePhase,
+  taggedSetIds,
+  useDemo,
+  type MatchRecord,
+} from '@/data/demoStore'
+import { useInsightsFilters } from '@/features/insights/insightsFilterContext'
 
 export type InsightsScope = 'global' | 'match'
-type SectionId = 'summary' | 'serve' | 'receive' | 'improve'
+export type SectionId = 'summary' | 'serve' | 'receive' | 'improve'
 
 const GLOBAL_SECTIONS: { id: SectionId; label: string }[] = [
   { id: 'summary', label: 'Summary' },
@@ -19,96 +25,133 @@ const MATCH_SECTIONS = GLOBAL_SECTIONS.filter((s) => s.id !== 'improve')
 
 type Reel = { id: string; title: string; meta: string }
 
+type ImproveItem = {
+  rank: number
+  title: string
+  why: string
+  reel: Reel
+}
+
 function sectionData(
   section: SectionId,
   scope: InsightsScope,
   match?: MatchRecord
-): { stats: string; reels: Reel[] } {
+): { stats: string; reels: Reel[]; improve?: ImproveItem[] } {
   const prefix = scope === 'match' && match ? match.name : 'All matches'
-  const map: Record<SectionId, { stats: string; reels: Reel[] }> = {
-    summary: {
+  const cover =
+    scope === 'match' && match
+      ? (() => {
+          const ids = taggedSetIds(match)
+          return ids.length ? `Covers set ${ids.join(', set ')}` : ''
+        })()
+      : ''
+
+  if (section === 'summary') {
+    return {
       stats:
-        scope === 'match' ? 'Set scores · FA 58%' : 'Across scope · FA 54% · 3 matches',
+        scope === 'match'
+          ? `${cover} · FA 58% · 12 winners`
+          : 'Across scope · FA 54% · 3 matches · 41 points',
       reels: [
         { id: 'sum-1', title: 'Highlight', meta: `${prefix} · 8 points` },
         { id: 'sum-2', title: 'Key winners', meta: `${prefix} · 5 points` },
       ],
-    },
-    serve: {
-      stats: '1st in 62% · short 4 · long 9',
-      reels: [
-        { id: 'srv-1', title: 'Serve +1', meta: '6 points' },
-        { id: 'srv-2', title: 'Serve faults', meta: '2 points' },
-      ],
-    },
-    receive: {
-      stats: 'Short miss 6 · deep hold 11',
-      reels: [
-        { id: 'rcv-1', title: 'Short receive', meta: '6 points' },
-        { id: 'rcv-2', title: 'Flick return', meta: '3 points' },
-      ],
-    },
-    improve: {
-      stats: 'Priority cues this week',
-      reels: [
-        { id: 'imp-1', title: 'Short-ball receive', meta: '18 points · 3 matches' },
-        { id: 'imp-2', title: 'Push depth on BH', meta: '9 points' },
-      ],
-    },
+    }
   }
-  return map[section]
+  if (section === 'serve') {
+    return {
+      stats:
+        scope === 'match'
+          ? `${cover} · 1st in 64% · short 3 · long 7`
+          : '1st in 62% · short 4 · long 9 · fault 3%',
+      reels: [
+        { id: 'srv-1', title: 'Serve +1', meta: `${prefix} · 6 points` },
+        { id: 'srv-2', title: 'Serve faults', meta: `${prefix} · 2 points` },
+        { id: 'srv-3', title: 'Long serve hold', meta: `${prefix} · 4 points` },
+      ],
+    }
+  }
+  if (section === 'receive') {
+    return {
+      stats:
+        scope === 'match'
+          ? `${cover} · short miss 2 · deep hold 5`
+          : 'Short miss 6 · deep hold 11 · flick 4',
+      reels: [
+        { id: 'rcv-1', title: 'Short receive', meta: `${prefix} · 6 points` },
+        { id: 'rcv-2', title: 'Flick return', meta: `${prefix} · 3 points` },
+        { id: 'rcv-3', title: 'Deep push', meta: `${prefix} · 5 points` },
+      ],
+    }
+  }
+  const improve: ImproveItem[] = [
+    {
+      rank: 1,
+      title: 'Short-ball receive',
+      why: '6 misses · 3 matches',
+      reel: {
+        id: 'imp-1',
+        title: 'Short-ball receive',
+        meta: '18 points · 3 matches',
+      },
+    },
+    {
+      rank: 2,
+      title: 'Push depth on BH',
+      why: '9 floats long',
+      reel: { id: 'imp-2', title: 'Push depth on BH', meta: '9 points' },
+    },
+    {
+      rank: 3,
+      title: 'Serve variation',
+      why: 'Same long serve 71%',
+      reel: { id: 'imp-3', title: 'Serve variation', meta: '11 points' },
+    },
+  ]
+  return {
+    stats: 'Ranked work-ons this week',
+    reels: improve.map((i) => i.reel),
+    improve,
+  }
 }
 
-function FilterBar({
-  filters,
-  setFilters,
+/** Segmented pills inside page content (not header tabs). */
+export function SectionPills({
+  sections,
+  section,
+  basePath,
 }: {
-  filters: { matches: string; opponent: string; tournament: string; dates: string }
-  setFilters: (next: typeof filters) => void
+  sections: { id: SectionId; label: string }[]
+  section: SectionId
+  basePath: string
 }) {
-  const active = [
-    filters.matches !== 'All' ? `Matches: ${filters.matches}` : null,
-    filters.opponent !== 'Any' ? `Opponent: ${filters.opponent}` : null,
-    filters.tournament !== 'Any' ? `Tournament: ${filters.tournament}` : null,
-    filters.dates !== 'Any' ? `Dates: ${filters.dates}` : null,
-  ].filter(Boolean) as string[]
-
+  const navigate = useNavigate()
   return (
-    <div className="space-y-3 border-b border-border bg-bg-surface px-4 sm:px-6 lg:px-8 py-3">
-      <p className="text-xs font-semibold uppercase tracking-wide text-muted">Filters</p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
-        {(
-          [
-            ['matches', 'Matches', ['All', 'Last 3', 'This month']],
-            ['opponent', 'Opponent', ['Any', 'Sam', 'Pat', 'Lee']],
-            ['tournament', 'Tournament', ['Any', 'Club night', 'Club league']],
-            ['dates', 'Dates', ['Any', 'This week', 'Last 30 days']],
-          ] as const
-        ).map(([key, label, options]) => (
-          <label key={key} className="block space-y-1">
-            <span className="text-xs font-semibold text-muted">{label}</span>
-            <select
-              className="w-full rounded-md border border-border bg-bg-card px-2 py-1.5 text-sm text-primary"
-              value={filters[key]}
-              onChange={(e) => setFilters({ ...filters, [key]: e.target.value })}
-            >
-              {options.map((o) => (
-                <option key={o} value={o}>
-                  {o}
-                </option>
-              ))}
-            </select>
-          </label>
-        ))}
-      </div>
-      <div className="flex flex-wrap items-center gap-2 text-sm text-muted">
-        <span>Active:</span>
-        {active.length === 0 ? (
-          <span className="font-medium text-primary">All matches</span>
-        ) : (
-          active.map((a) => <WfBadge key={a}>{a}</WfBadge>)
-        )}
-      </div>
+    <div
+      className="inline-flex flex-nowrap gap-1 p-1 rounded-lg bg-bg-elevated border border-border"
+      role="tablist"
+      aria-label="Insight sections"
+    >
+      {sections.map((s) => {
+        const active = s.id === section
+        return (
+          <button
+            key={s.id}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            onClick={() => navigate(`${basePath}/${s.id}`)}
+            className={cn(
+              'shrink-0 px-3 py-1.5 text-xs font-semibold rounded-md transition-colors',
+              active
+                ? 'bg-bg-surface text-brand-primary shadow-sm border border-border'
+                : 'text-muted hover:text-primary border border-transparent'
+            )}
+          >
+            {s.label}
+          </button>
+        )
+      })}
     </div>
   )
 }
@@ -127,42 +170,55 @@ function SectionBody({
   const navigate = useNavigate()
   const data = sectionData(section, scope, match)
   const [playingId, setPlayingId] = useState<string | null>(null)
-  const phase = match ? derivePhase(match) : 'complete'
 
-  if (scope === 'match' && phase !== 'complete') {
-    return (
-      <div className="px-4 sm:px-6 lg:px-8 py-6 space-y-3">
-        <WfEmpty
-          title="Nothing tagged yet"
-          body={
-            phase === 'new'
-              ? 'Tag this match to unlock reels.'
-              : 'Finish tagging to unlock reels.'
-          }
-        />
-        <Button onClick={() => navigate(`/matches/${match!.id}/tag`)}>Go to Tag</Button>
-      </div>
-    )
+  useEffect(() => {
+    setPlayingId(null)
+  }, [section])
+
+  if (scope === 'match' && match) {
+    const tagged = taggedSetIds(match)
+    if (tagged.length === 0) {
+      const phase = derivePhase(match)
+      return (
+        <div className="space-y-3">
+          <WfEmpty
+            title="Nothing tagged yet"
+            body={
+              phase === 'new'
+                ? 'Add video on Details, then tag.'
+                : 'Tag a rally to unlock reels for this match.'
+            }
+          />
+          <Button onClick={() => navigate(`/matches/${match.id}/tag`)}>Go to Tag</Button>
+        </div>
+      )
+    }
   }
 
   const playing = data.reels.find((r) => r.id === playingId) ?? null
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-6 space-y-4">
+    <div className="space-y-4">
       {filterNote ? <p className="text-xs text-muted">Showing: {filterNote}</p> : null}
+      {scope === 'match' && match && taggedSetIds(match).length > 0 ? (
+        <p className="text-xs text-muted">
+          Covers set {taggedSetIds(match).join(', set ')}.
+        </p>
+      ) : null}
+
       <Card className="space-y-3">
         <CardDescription>{data.stats}</CardDescription>
 
         {playing ? (
-          <div className="rounded-lg border border-border bg-bg-card p-4 space-y-3">
+          <div className="rounded-lg border border-border bg-bg-card p-3 space-y-2">
             <div className="flex items-center justify-between gap-2">
               <p className="text-sm font-semibold text-primary">Reel · {playing.title}</p>
               <Button size="sm" variant="ghost" onClick={() => setPlayingId(null)}>
                 Close
               </Button>
             </div>
-            <div className="aspect-video rounded-md border border-dashed border-border flex items-center justify-center">
-              <div className="text-center space-y-1">
+            <div className="max-h-48 md:max-h-56 w-full rounded-md border border-dashed border-border flex items-center justify-center bg-bg-elevated">
+              <div className="text-center space-y-1 py-6 px-4">
                 <Icon name="film" size="lg" className="mx-auto text-muted" />
                 <p className="text-sm text-muted">Player stub</p>
                 <p className="text-xs text-muted">{playing.meta}</p>
@@ -171,29 +227,61 @@ function SectionBody({
           </div>
         ) : null}
 
-        <ul className="space-y-2">
-          {data.reels.map((r) => (
-            <li
-              key={r.id}
-              className="flex items-center justify-between gap-3 rounded-md border border-border bg-bg-card px-3 py-2"
-            >
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-primary">{r.title}</p>
-                <p className="text-xs text-muted mt-0.5">{r.meta}</p>
-              </div>
-              <div className="flex gap-1 shrink-0">
-                <Button size="sm" onClick={() => setPlayingId(r.id)}>
-                  <Icon name="play" size="xs" />
-                  Play
-                </Button>
-                <Button size="sm" variant="secondary" disabled>
-                  <Icon name="download" size="xs" />
-                  Download
-                </Button>
-              </div>
-            </li>
-          ))}
-        </ul>
+        {section === 'improve' && data.improve ? (
+          <ol className="space-y-3">
+            {data.improve.map((item) => (
+              <li
+                key={item.reel.id}
+                className="rounded-md border border-border bg-bg-card px-3 py-3 space-y-2"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-primary">
+                      {item.rank}. {item.title}
+                    </p>
+                    <p className="text-xs text-muted mt-0.5">{item.why}</p>
+                  </div>
+                  <WfBadge>work on</WfBadge>
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  <Button size="sm" onClick={() => setPlayingId(item.reel.id)}>
+                    <Icon name="play" size="xs" />
+                    Play evidence
+                  </Button>
+                  <Button size="sm" variant="secondary" disabled>
+                    <Icon name="download" size="xs" />
+                    Download
+                  </Button>
+                </div>
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <ul className="space-y-2">
+            {data.reels.map((r) => (
+              <li
+                key={r.id}
+                className="flex items-center justify-between gap-3 rounded-md border border-border bg-bg-card px-3 py-2"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-primary">{r.title}</p>
+                  <p className="text-xs text-muted mt-0.5">{r.meta}</p>
+                </div>
+                <div className="flex gap-1 shrink-0">
+                  <Button size="sm" onClick={() => setPlayingId(r.id)}>
+                    <Icon name="play" size="xs" />
+                    Play
+                  </Button>
+                  <Button size="sm" variant="secondary" disabled>
+                    <Icon name="download" size="xs" />
+                    Download
+                  </Button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+
         <Button size="sm" variant="secondary" disabled>
           <Icon name="download" size="xs" />
           Download all
@@ -208,41 +296,18 @@ export function InsightsScreen({
   matchId,
   section,
   basePath,
+  chrome = 'full',
 }: {
   scope: InsightsScope
   matchId?: string
   section: SectionId
   basePath: string
+  /** full = pills + body (match). body = content only (global chrome on InsightsPage). */
+  chrome?: 'full' | 'body'
 }) {
-  const { mode, matches, getMatch } = useDemo()
+  const { getMatch } = useDemo()
   const match = matchId ? getMatch(matchId) : undefined
   const sections = scope === 'global' ? GLOBAL_SECTIONS : MATCH_SECTIONS
-  const [filters, setFilters] = useState({
-    matches: 'All',
-    opponent: 'Any',
-    tournament: 'Any',
-    dates: 'Any',
-  })
-
-  const filterNote = useMemo(() => {
-    if (scope !== 'global') return undefined
-    return [
-      filters.matches === 'All' ? 'All matches' : filters.matches,
-      filters.opponent !== 'Any' ? filters.opponent : null,
-      filters.tournament !== 'Any' ? filters.tournament : null,
-      filters.dates !== 'Any' ? filters.dates : null,
-    ]
-      .filter(Boolean)
-      .join(' · ')
-  }, [filters, scope])
-
-  if (mode === 'empty' || (scope === 'global' && matches.length === 0)) {
-    return (
-      <div className="px-4 sm:px-6 lg:px-8 py-6">
-        <WfEmpty title="No insights yet" body="Tag matches first, or switch Prototype to Filled." />
-      </div>
-    )
-  }
 
   if (scope === 'match' && !match) {
     return (
@@ -257,36 +322,64 @@ export function InsightsScreen({
     )
   }
 
+  if (chrome === 'body') {
+    return <GlobalBody section={section} scope={scope} match={match} />
+  }
+
   return (
     <div>
-      {scope === 'global' ? <FilterBar filters={filters} setFilters={setFilters} /> : null}
-      <nav
-        className="flex gap-1 overflow-x-auto border-b border-border bg-bg-surface px-4 sm:px-6 lg:px-8 pt-2"
-        aria-label={scope === 'global' ? 'Insights sections' : 'Match insight sections'}
-      >
-        {sections.map((s) => (
-          <NavLink
-            key={s.id}
-            to={`${basePath}/${s.id}`}
-            className={({ isActive }) =>
-              cn(
-                'px-3 py-2 text-sm font-semibold border-b-2 -mb-px transition-colors',
-                isActive
-                  ? 'border-brand-primary text-brand-primary'
-                  : 'border-transparent text-muted hover:text-primary'
-              )
-            }
-          >
-            {s.label}
-          </NavLink>
-        ))}
-      </nav>
-      <SectionBody section={section} scope={scope} match={match} filterNote={filterNote} />
+      <div className="px-4 sm:px-6 lg:px-8 pt-3 pb-2">
+        <SectionPills sections={sections} section={section} basePath={basePath} />
+      </div>
+      <div className="px-4 sm:px-6 lg:px-8 py-4">
+        <SectionBody key={section} section={section} scope={scope} match={match} />
+      </div>
     </div>
   )
 }
 
-export function InsightsSectionRoute({ scope }: { scope: InsightsScope }) {
+function GlobalBody({
+  section,
+  scope,
+  match,
+}: {
+  section: SectionId
+  scope: InsightsScope
+  match?: MatchRecord
+}) {
+  const { filters } = useInsightsFilters()
+  const filterNote = useMemo(
+    () =>
+      [
+        filters.matches === 'All' ? 'All matches' : filters.matches,
+        filters.opponent !== 'Any' ? filters.opponent : null,
+        filters.tournament !== 'Any' ? filters.tournament : null,
+        filters.dates !== 'Any' ? filters.dates : null,
+      ]
+        .filter(Boolean)
+        .join(' · '),
+    [filters]
+  )
+  return (
+    <div className="px-4 sm:px-6 lg:px-8 py-4">
+      <SectionBody
+        key={section}
+        section={section}
+        scope={scope}
+        match={match}
+        filterNote={filterNote}
+      />
+    </div>
+  )
+}
+
+export function InsightsSectionRoute({
+  scope,
+  chrome = 'full',
+}: {
+  scope: InsightsScope
+  chrome?: 'full' | 'body'
+}) {
   const { matchId, section = 'summary' } = useParams()
   const base = scope === 'global' ? '/insights' : `/matches/${matchId}/insights`
   const allowed =
@@ -295,6 +388,12 @@ export function InsightsSectionRoute({ scope }: { scope: InsightsScope }) {
       : ['summary', 'serve', 'receive']
   const safe = (allowed.includes(section) ? section : 'summary') as SectionId
   return (
-    <InsightsScreen scope={scope} matchId={matchId} section={safe} basePath={base} />
+    <InsightsScreen
+      scope={scope}
+      matchId={matchId}
+      section={safe}
+      basePath={base}
+      chrome={chrome}
+    />
   )
 }

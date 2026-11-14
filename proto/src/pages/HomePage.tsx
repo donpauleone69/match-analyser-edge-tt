@@ -16,6 +16,7 @@ export function HomePage() {
 
   const continueMatch =
     matches.find((m) => derivePhase(m) === 'partial') ??
+    matches.find((m) => derivePhase(m) === 'ready') ??
     matches.find((m) => derivePhase(m) === 'new') ??
     matches[0]
 
@@ -51,13 +52,17 @@ export function HomePage() {
               <WfBadge>{phaseLabel(derivePhase(continueMatch))}</WfBadge>
             </div>
             <div className="rounded-md border border-border bg-bg-card px-3 py-3 space-y-1">
-              <p className="text-sm font-semibold text-primary">{continueMatch.name}</p>
+              <p className="text-sm font-semibold text-primary">
+                {continueMatch.name || continueMatch.opponent || 'New match'}
+              </p>
               <p className="text-sm text-muted">
                 {derivePhase(continueMatch) === 'partial'
                   ? 'Resume tagging'
-                  : derivePhase(continueMatch) === 'new'
-                    ? 'Attach video on Details'
-                    : 'Review match Insights'}
+                  : derivePhase(continueMatch) === 'ready'
+                    ? 'Start tagging'
+                    : derivePhase(continueMatch) === 'new'
+                      ? 'Add video on Details'
+                      : 'Review match Insights'}
               </p>
             </div>
             <Button
@@ -102,10 +107,10 @@ export function HomePage() {
                         className="flex items-center justify-between rounded-md border border-border bg-bg-card px-3 py-2 hover:bg-bg-elevated"
                       >
                         <div className="min-w-0">
-                          <p className="text-sm font-medium text-primary">{m.name}</p>
-                          <p className="text-xs text-muted mt-0.5">
-                            {m.event || 'No event'} · {phaseLabel(phase)}
+                          <p className="text-sm font-medium text-primary">
+                            {m.name || m.opponent || 'New match'}
                           </p>
+                          <p className="text-xs text-muted mt-0.5">{m.event || 'No event'}</p>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
                           <WfBadge>{phaseLabel(phase)}</WfBadge>
@@ -126,7 +131,9 @@ export function HomePage() {
                 </div>
                 <WfBadge>peek</WfBadge>
               </div>
-              {matches.some((m) => derivePhase(m) === 'complete') ? (
+              {matches.some(
+                (m) => derivePhase(m) === 'complete' || derivePhase(m) === 'partial'
+              ) ? (
                 <>
                   <CardDescription>Notables across matches.</CardDescription>
                   <ul className="space-y-2 text-sm text-primary">
