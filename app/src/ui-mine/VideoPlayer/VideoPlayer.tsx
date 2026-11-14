@@ -559,7 +559,7 @@ export const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(({
 
             {/* Soft elapsed wash under marks — marks stay colour-readable. */}
             <div
-              className="absolute top-0 bottom-0 left-0 rounded-full bg-white/25 pointer-events-none"
+              className="absolute top-0 bottom-0 left-0 rounded-full bg-video-scrim-wash-strong pointer-events-none"
               style={{ width: progressStyle.width }}
             />
 
