@@ -43,7 +43,7 @@ export function TabBarBlock<T extends string>({
               }
               onClick={() => onChange(tab.id)}
               className={cn(
-                'relative h-11 px-3 md:px-4 text-sm font-medium whitespace-nowrap transition-colors',
+                'relative h-10 px-2.5 md:px-3.5 text-sm font-medium whitespace-nowrap transition-colors',
                 tab.id === active
                   ? 'text-neutral-50 after:absolute after:inset-x-2 after:bottom-0 after:h-0.5 after:bg-brand-primary after:rounded-full'
                   : 'text-neutral-400 hover:text-neutral-100'
@@ -67,7 +67,7 @@ export function TabBarBlock<T extends string>({
                       : undefined
                   }
                   className={cn(
-                    'ml-1.5 inline-flex min-w-[1.15rem] items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums',
+                    'ml-1 inline-flex min-w-[1.1rem] items-center justify-center rounded-md px-1 py-0.5 text-[10px] font-bold tabular-nums',
                     tab.id === 'rallies'
                       ? 'bg-amber-600 text-neutral-950'
                       : 'bg-neutral-700 text-neutral-200',
