@@ -8722,14 +8722,9 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 | Version | Date | Changes |
 |---------|------|---------|
 | v3.155.0 | 2026-11-14 | MA-111: Clip/Rally/Edit stage chrome cohesion (muted tokens + edit rail) |
-<<<<<<< HEAD
-| v3.152.0 | 2026-11-14 | MA-113: secondary Review/Details/audit chrome quiet |
-| v3.151.0 | 2026-11-14 | MA-107: PlaylistBrowseShell density and trail refine |
-=======
 | v3.153.0 | 2026-11-14 | MA-117: Video HUD chips + MatchScoreHud washes → video-scrim variants |
 | v3.152.0 | 2026-11-14 | MA-113: quiet secondary Review/Details/audit chrome |
 | v3.151.0 | 2026-11-14 | MA-107: Refine PlaylistBrowseShell density and trail |
->>>>>>> origin/main
 | v3.150.0 | 2026-11-14 | MA-114: RallyPlayer + modal overlays → modal-scrim / modal-scrim-strong |
 | v3.149.0 | 2026-11-14 | MA-112: Pass 1 rail and dialog polish |
 | v3.148.0 | 2026-11-14 | MA-106: Serve/Receive adopts PlaylistBrowseShell + Summary/Clips trail |
