@@ -376,7 +376,7 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
     }
   }
 
-  if (isLoading) return <p className="text-neutral-400">Loading clips…</p>
+  if (isLoading) return <p className="text-muted">Loading clips…</p>
   if (error) return <p className="text-result-error">{error}</p>
   if (!data) return null
 
@@ -386,7 +386,7 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
   const header = !embedded && (
     <header className="space-y-3">
       <div>
-        <h1 className="text-xl md:text-2xl font-bold text-neutral-50">Clips</h1>
+        <h1 className="text-xl md:text-2xl font-bold text-primary">Clips</h1>
       </div>
       {standalone && (
         <ScopeControlBlock
@@ -405,8 +405,8 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
       <div className="space-y-3">
         {header}
         <Card className="p-4 text-center border border-dashed border-border">
-          <h2 className="text-sm font-semibold text-neutral-50">No clips yet</h2>
-          <p className="mt-1 text-sm text-neutral-500 max-w-sm mx-auto">
+          <h2 className="text-sm font-semibold text-primary">No clips yet</h2>
+          <p className="mt-1 text-sm text-muted max-w-sm mx-auto">
             Star highlights or flag shots in Pass 1.
           </p>
           {!embedded && (
@@ -505,13 +505,13 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
       onEdit={() => openFixTags(current.clip)}
     />
   ) : (
-    <Card className="p-4 text-sm text-neutral-500 space-y-2 border border-dashed border-border">
+    <Card className="p-4 text-sm text-muted space-y-2 border border-dashed border-border">
       <p>No clips in this playlist.</p>
-      {/* Work on return lives on the sticky trail — avoid a second button here. */}
+{/* Work on return lives on the sticky trail — avoid a second button here. */}
       {!(embedded && fromParam === 'workon') ? (
-        <p className="text-xs text-neutral-500">Switch playlist, or star / flag while tagging.</p>
+        <p className="text-xs text-muted">Switch playlist, or star / flag while tagging.</p>
       ) : (
-        <p className="text-xs text-neutral-500">Use Work on above to go back, or switch playlist.</p>
+        <p className="text-xs text-muted">Use Work on above to go back, or switch playlist.</p>
       )}
     </Card>
   )
@@ -567,17 +567,17 @@ export function ClipsComposer({ matchId = null, matchIds = null, embedded = fals
   const exportStrip = showExportBar && (
     <div className="hidden md:flex flex-wrap items-center gap-2 rounded-lg border border-border bg-bg-card px-2.5 py-2">
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold text-neutral-100 truncate">
+        <p className="text-sm font-semibold text-primary truncate">
           {isHighlightReel ? `★ ${playlistLabel}` : playlistLabel}
         </p>
-        <p className="text-[11px] text-neutral-500 tabular-nums">
+        <p className="text-[11px] text-muted tabular-nums">
           {isHighlightReel
             ? `${rows.length} starred`
             : `${rows.length} clip${rows.length === 1 ? '' : 's'} · ${formatSeconds(edl.duration)}`}
         </p>
       </div>
       {exporting ? (
-        <p className="flex items-center gap-2 text-sm text-neutral-300">
+        <p className="flex items-center gap-2 text-sm text-primary">
           <Icon name="loader" size="sm" className="animate-spin" />
           {STAGE_LABEL[exporting.stage]}
           {exporting.stage === 'cutting' && ` ${exporting.done + 1}/${exporting.total}`}

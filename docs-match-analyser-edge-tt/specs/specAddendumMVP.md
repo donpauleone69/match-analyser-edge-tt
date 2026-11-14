@@ -6,6 +6,21 @@
 
 ## Change Log
 
+### 2026-11-14: MA-125 — Clips evidence drawer cohesion (v3.161.0)
+
+**Change Type:** UX cohesion — evidence rows + Clips landing chrome
+
+**What Changed:**
+- Evidence drawer rows (`RallyRowBlock`): labels / scores / summary on `text-primary` / `text-muted` (Clip queue parity after MA-111 shell tokens).
+- Summary category playlist heading + empty copy on the same tokens.
+- Clips landing chrome from evidence “Clips” CTA: page title, empty states, export strip → primary/muted (keeps MA-119 denser export strip + MA-121 empty Work-on copy).
+
+**Decision Rationale:** Overnight Track A MA-125 — evidence → Clips handoff reads as one list language after #89 stage polish.
+
+**Key Files:** `RallyRowBlock.tsx`, `SummaryCategoryPlaylistBlock.tsx`, `ClipsComposer.tsx`, `themeTokens.test.ts`.
+
+---
+
 ### 2026-11-14: MA-123 — Residual raw paint audit (v3.160.0)
 
 **Change Type:** Design tokens — leftover palette outliers
@@ -8816,9 +8831,12 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 
 | Version | Date | Changes |
 |---------|------|---------|
-| v3.159.0 | 2026-11-14 | MA-121: Playlist shell Work-on trail polish + Fix return continuity |
+| v3.161.0 | 2026-11-14 | MA-125: evidence drawer rows + Clips landing chrome cohesion |
 | v3.160.0 | 2026-11-14 | MA-123: residual raw paint — player/callout tokens on RallyCard/ShotList/audit |
+| v3.159.0 | 2026-11-14 | MA-121: Playlist shell Work-on trail polish + Fix return continuity |
+| v3.158.0 | 2026-11-14 | MA-119: quiet notices and status banners |
 | v3.157.0 | 2026-11-14 | MA-111: Clip/Rally/Edit stage chrome cohesion (muted tokens + edit rail) |
+| v3.156.1 | 2026-11-14 | MA-116: Done mid-point + History/Delete density |
 | v3.156.0 | 2026-11-14 | MA-120: scrub wash-strong + DataViewer borders/callout tokens |
 | v3.155.0 | 2026-11-14 | MA-115: Serve/Receive stats card polish — denser cards + headline detail/focus |
 | v3.154.0 | 2026-11-14 | MA-118: BrowseDisclosure / shell mobile polish |

@@ -38,7 +38,7 @@ export function SummaryCategoryPlaylistBlock({
 }: SummaryCategoryPlaylistBlockProps) {
   if (rallies.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed border-border px-3 py-3 text-sm text-neutral-500 text-center">
+      <div className="rounded-lg border border-dashed border-border px-3 py-3 text-sm text-muted text-center">
         {emptyLabel}
       </div>
     )
@@ -48,8 +48,8 @@ export function SummaryCategoryPlaylistBlock({
       {!hidePlayAll && (
         <div className="flex flex-wrap items-center gap-2">
           <div className="min-w-0 flex-1">
-            <h3 className="text-sm font-semibold text-neutral-50">{listHeading}</h3>
-            <p className="text-xs text-neutral-500">
+            <h3 className="text-sm font-semibold text-primary">{listHeading}</h3>
+            <p className="text-xs text-muted">
               {rallies.length} point{rallies.length === 1 ? '' : 's'}
             </p>
           </div>

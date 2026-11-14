@@ -45,12 +45,12 @@ export function RallyRowBlock({
         title={rally.loop ? 'Watch this rally' : 'No contact times — open to view tags'}
       >
         <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-sm font-semibold text-neutral-100">
-            {showSet && <span className="text-neutral-500 font-normal">S{rally.setNumber} · </span>}
+          <span className="text-sm font-semibold text-primary">
+            {showSet && <span className="text-muted font-normal">S{rally.setNumber} · </span>}
             R{rally.rallyIndex}
           </span>
-          <span className="font-mono text-xs text-neutral-400 tabular-nums">
-            {rally.scoreBefore}→<span className="text-neutral-200">{rally.scoreAfter}</span>
+          <span className="font-mono text-xs text-muted tabular-nums">
+            {rally.scoreBefore}→<span className="text-primary">{rally.scoreAfter}</span>
           </span>
           {!rally.isIncomplete && (
             <span
@@ -87,7 +87,7 @@ export function RallyRowBlock({
             </span>
           )}
         </div>
-        <p className="text-xs text-neutral-500 mt-0.5 truncate group-hover:text-neutral-300">
+        <p className="text-xs text-muted mt-0.5 truncate group-hover:text-primary">
           {rally.serverName.split(' ')[0]} · {rally.summary}
         </p>
       </button>
@@ -128,7 +128,7 @@ export function RallyRowBlock({
           aria-label={`Re-tag from rally ${rally.rallyIndex}`}
           title="Re-tag from this rally onwards (earlier rallies are kept)"
           onClick={() => onRetagFrom(rally)}
-          className={cn(iconBtn, 'text-neutral-500 hover:text-review hover:border-review')}
+          className={cn(iconBtn, 'text-muted hover:text-review hover:border-review')}
         >
           <Icon name="rotate-ccw" size="sm" />
         </button>
