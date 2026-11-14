@@ -1,28 +1,31 @@
 @import "tailwindcss";
 
-/* Proto theme — subset of app/src/index.css tokens (light default) */
+/*
+  Proto theme tokens — @theme maps Tailwind color names to CSS vars.
+  Flip packs via html[data-theme="…"] (see ThemeProvider).
+*/
 
 @theme {
-  --color-brand-primary: #14b8a6;
-  --color-brand-primary-hover: #0d9488;
-  --color-brand-primary-muted: rgb(20 184 166 / 0.15);
+  --color-brand-primary: var(--theme-brand);
+  --color-brand-primary-hover: var(--theme-brand-hover);
+  --color-brand-primary-muted: var(--theme-brand-muted);
 
-  --color-text: #0f172a;
-  --color-text-muted: #475569;
-  --color-text-on-accent: #f8fafc;
+  --color-text: var(--theme-text);
+  --color-text-muted: var(--theme-text-muted);
+  --color-text-on-accent: var(--theme-text-on-accent);
 
-  --color-neutral-950: #f8fafc;
-  --color-neutral-900: #f1f5f9;
-  --color-neutral-850: #e8edf3;
-  --color-neutral-800: #e2e8f0;
-  --color-neutral-700: #cbd5e1;
-  --color-neutral-600: #94a3b8;
-  --color-neutral-500: #64748b;
-  --color-neutral-400: #475569;
-  --color-neutral-300: #334155;
-  --color-neutral-200: #1e293b;
-  --color-neutral-100: #0f172a;
-  --color-neutral-50: #020617;
+  --color-neutral-950: var(--theme-n950);
+  --color-neutral-900: var(--theme-n900);
+  --color-neutral-850: var(--theme-n850);
+  --color-neutral-800: var(--theme-n800);
+  --color-neutral-700: var(--theme-n700);
+  --color-neutral-600: var(--theme-n600);
+  --color-neutral-500: var(--theme-n500);
+  --color-neutral-400: var(--theme-n400);
+  --color-neutral-300: var(--theme-n300);
+  --color-neutral-200: var(--theme-n200);
+  --color-neutral-100: var(--theme-n100);
+  --color-neutral-50: var(--theme-n50);
 
   --control-height: 1.625rem;
   --control-px: 0.35rem;
@@ -35,16 +38,16 @@
   --color-danger: #ef4444;
   --color-info: #3b82f6;
 
-  --color-border: #cbd5e1;
-  --color-border-strong: #94a3b8;
-  --color-pill-idle: #eef2f7;
-  --color-pill-idle-border: #cbd5e1;
+  --color-border: var(--theme-border);
+  --color-border-strong: var(--theme-border-strong);
+  --color-pill-idle: var(--theme-pill-idle);
+  --color-pill-idle-border: var(--theme-pill-idle-border);
 
-  --color-bg-app: #f4f6f9;
-  --color-bg-shell: #eef1f5;
-  --color-bg-surface: #ffffff;
-  --color-bg-card: #f8fafc;
-  --color-bg-elevated: #e8edf3;
+  --color-bg-app: var(--theme-bg-app);
+  --color-bg-shell: var(--theme-bg-shell);
+  --color-bg-surface: var(--theme-bg-surface);
+  --color-bg-card: var(--theme-bg-card);
+  --color-bg-elevated: var(--theme-bg-elevated);
 
   --font-sans: "Plus Jakarta Sans", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", "Fira Code", monospace;
@@ -72,6 +75,112 @@
   --shadow-lg: 0 10px 15px rgba(15, 23, 42, 0.12);
 
   --animate-micro: 150ms ease-out;
+}
+
+/* Pack: Slate Teal (default) */
+:root,
+[data-theme="slate-teal"] {
+  --theme-brand: #14b8a6;
+  --theme-brand-hover: #0d9488;
+  --theme-brand-muted: rgb(20 184 166 / 0.15);
+
+  --theme-text: #0f172a;
+  --theme-text-muted: #475569;
+  --theme-text-on-accent: #f8fafc;
+
+  --theme-n950: #f8fafc;
+  --theme-n900: #f1f5f9;
+  --theme-n850: #e8edf3;
+  --theme-n800: #e2e8f0;
+  --theme-n700: #cbd5e1;
+  --theme-n600: #94a3b8;
+  --theme-n500: #64748b;
+  --theme-n400: #475569;
+  --theme-n300: #334155;
+  --theme-n200: #1e293b;
+  --theme-n100: #0f172a;
+  --theme-n50: #020617;
+
+  --theme-border: #cbd5e1;
+  --theme-border-strong: #94a3b8;
+  --theme-pill-idle: #eef2f7;
+  --theme-pill-idle-border: #cbd5e1;
+
+  --theme-bg-app: #f4f6f9;
+  --theme-bg-shell: #eef1f5;
+  --theme-bg-surface: #ffffff;
+  --theme-bg-card: #f8fafc;
+  --theme-bg-elevated: #e8edf3;
+}
+
+/* Pack: Ink Lime — cool paper + court lime */
+[data-theme="ink-lime"] {
+  --theme-brand: #65a30d;
+  --theme-brand-hover: #4d7c0f;
+  --theme-brand-muted: rgb(101 163 13 / 0.16);
+
+  --theme-text: #141714;
+  --theme-text-muted: #4b5548;
+  --theme-text-on-accent: #f7faf3;
+
+  --theme-n950: #f7f8f5;
+  --theme-n900: #eef1ea;
+  --theme-n850: #e4e9df;
+  --theme-n800: #d8dfd1;
+  --theme-n700: #c2cdb8;
+  --theme-n600: #8f9c87;
+  --theme-n500: #66715f;
+  --theme-n400: #4b5548;
+  --theme-n300: #333a31;
+  --theme-n200: #1f241e;
+  --theme-n100: #141714;
+  --theme-n50: #0a0c09;
+
+  --theme-border: #c2cdb8;
+  --theme-border-strong: #8f9c87;
+  --theme-pill-idle: #eef1ea;
+  --theme-pill-idle-border: #c2cdb8;
+
+  --theme-bg-app: #f3f5f0;
+  --theme-bg-shell: #e9ede4;
+  --theme-bg-surface: #fbfcf9;
+  --theme-bg-card: #f4f6f1;
+  --theme-bg-elevated: #e4e9df;
+}
+
+/* Pack: Harbor — blue-gray + deep cyan */
+[data-theme="harbor"] {
+  --theme-brand: #0e7490;
+  --theme-brand-hover: #155e75;
+  --theme-brand-muted: rgb(14 116 144 / 0.15);
+
+  --theme-text: #0c1929;
+  --theme-text-muted: #3d5166;
+  --theme-text-on-accent: #f0f9ff;
+
+  --theme-n950: #f3f7fb;
+  --theme-n900: #e8eef5;
+  --theme-n850: #dde6f0;
+  --theme-n800: #d0dbe8;
+  --theme-n700: #b4c3d4;
+  --theme-n600: #8499b0;
+  --theme-n500: #5a718a;
+  --theme-n400: #3d5166;
+  --theme-n300: #2a3a4d;
+  --theme-n200: #1a2838;
+  --theme-n100: #0c1929;
+  --theme-n50: #061018;
+
+  --theme-border: #b4c3d4;
+  --theme-border-strong: #8499b0;
+  --theme-pill-idle: #e8eef5;
+  --theme-pill-idle-border: #b4c3d4;
+
+  --theme-bg-app: #eef3f8;
+  --theme-bg-shell: #e2eaf2;
+  --theme-bg-surface: #f8fafc;
+  --theme-bg-card: #f0f5fa;
+  --theme-bg-elevated: #dde6f0;
 }
 
 html {
