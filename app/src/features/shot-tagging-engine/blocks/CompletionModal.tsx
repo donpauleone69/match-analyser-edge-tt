@@ -24,10 +24,10 @@ export function CompletionModal({
 }: CompletionModalProps) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className={cn('bg-bg-card rounded-lg p-8 max-w-md w-full mx-4 border border-neutral-700', className)}>
-        <div className="text-center space-y-6">
+      <div className={cn('bg-bg-card rounded-lg p-6 max-w-md w-full mx-4 border border-border', className)}>
+        <div className="text-center space-y-5">
           <div>
-            <h2 className="text-3xl font-bold text-neutral-50">Set {setNumber} Complete!</h2>
+            <h2 className="text-2xl font-bold text-neutral-50">Set {setNumber} complete</h2>
             <div className="mt-3 text-xl text-neutral-300">
               Final Score: <span className="font-semibold text-success">{player1Name} {finalScore.player1}</span>
               {' - '}

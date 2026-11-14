@@ -6,6 +6,20 @@
 
 ## Change Log
 
+### 2026-11-14: MA-105 — Settings / match IA quiet (v3.143.0)
+
+**Change Type:** UX declutter — Settings, Training, Scope, set-select IA
+
+**What Changed:**
+- **Settings:** denser Account header; danger zone on `callout-danger*`; drop long wipe lists / emoji alerts; ui-mine Button/Icon.
+- **Training:** quieter header/copy; list borders → `border-border`.
+- **Match IA:** Scope review denser; Match Review empty state shorter; set-select / completion / leave-draft / setup chrome on shared borders + result/callout tones; page padding tightened.
+- Rally player dialog chrome → `border-border`.
+
+**Decision Rationale:** MA-105 overnight Track B — settings + match entry IA match Review/Clips density after MA-101.
+
+**Key Files:** `Settings.tsx`, `TrainingLibraryComposer.tsx`, `ScopeReviewComposer.tsx`, `MatchReviewComposer.tsx`, `SetSetupBlock.tsx`, `CompletionModal.tsx`, `Pass1LeaveDraftChoiceBlock.tsx`, `SetupControlsBlock.tsx`, `RallyPlayerBlock.tsx`, match page wrappers.
+
 ### 2026-11-14: MA-103 — Theme follow-up on new overnight surfaces (v3.142.0)
 
 **Change Type:** Design tokens — residual paint on #75/#76 surfaces

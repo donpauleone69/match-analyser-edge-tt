@@ -59,7 +59,7 @@ export function SetupControlsBlock({
   }
   
   return (
-    <div className={cn('bg-bg-card border-t border-neutral-700', className)}>
+    <div className={cn('bg-bg-card border-t border-border', className)}>
       <ButtonGrid columns={4}>
         {/* Column 1: Labels */}
         <div className="w-full h-full flex flex-col items-start justify-center gap-1 p-1 px-2">

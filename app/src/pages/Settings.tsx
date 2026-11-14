@@ -4,9 +4,9 @@ import { useClubStore } from '@/data/entities/clubs/club.store'
 import { useTournamentStore } from '@/data/entities/tournaments/tournament.store'
 import { usePlayerStore } from '@/data/entities/players/player.store'
 import { useMatchStore } from '@/data/entities/matches/match.store'
-import { AlertTriangle, Trash2, Database } from 'lucide-react'
 import { populateDummyData } from '@/features/populate-dummy-data'
 import { AccountComposer } from '@/features/account'
+import { Button, Icon } from '@/ui-mine'
 
 export function Settings() {
   const [isClearing, setIsClearing] = useState(false)
@@ -20,7 +20,6 @@ export function Settings() {
   const playerStore = usePlayerStore()
   const matchStore = useMatchStore()
 
-  // Check if database is empty on mount and after clear
   const checkDatabaseEmpty = async () => {
     const stats = await getDatabaseStats()
     const isEmpty = stats.players === 0 && stats.matches === 0
@@ -34,27 +33,21 @@ export function Settings() {
   const handleClearData = async () => {
     setIsClearing(true)
     try {
-      // Get stats before clearing
       const beforeStats = await getDatabaseStats()
       setStats(beforeStats)
-
-      // Clear all data from IndexedDB
       await clearAllData()
-
-      // Reload all stores to sync with empty DB
       await Promise.all([
         clubStore.load(),
         tournamentStore.load(),
         playerStore.load(),
         matchStore.load(),
       ])
-
       setShowConfirm(false)
-      await checkDatabaseEmpty() // Check if database is now empty
-      alert('✅ All data cleared successfully!')
+      await checkDatabaseEmpty()
+      alert('All data cleared.')
     } catch (error) {
       console.error('Failed to clear data:', error)
-      alert('❌ Failed to clear data. Check console for details.')
+      alert('Failed to clear data. Check console for details.')
     } finally {
       setIsClearing(false)
     }
@@ -64,18 +57,12 @@ export function Settings() {
     setIsPopulating(true)
     try {
       await populateDummyData()
-      
-      // Reload all stores to sync with new data
-      await Promise.all([
-        playerStore.load(),
-        matchStore.load(),
-      ])
-
-      await checkDatabaseEmpty() // Update database empty status
-      alert('✅ Dummy data populated successfully!')
+      await Promise.all([playerStore.load(), matchStore.load()])
+      await checkDatabaseEmpty()
+      alert('Dummy data populated.')
     } catch (error) {
       console.error('Failed to populate dummy data:', error)
-      alert('❌ Failed to populate dummy data. Check console for details.')
+      alert('Failed to populate dummy data. Check console for details.')
     } finally {
       setIsPopulating(false)
     }
@@ -83,112 +70,76 @@ export function Settings() {
 
   return (
     <div className="w-full">
-      <div className="max-w-4xl mx-auto p-4 md:p-6">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-neutral-50">Account & data</h1>
-          <p className="text-neutral-400 mt-2">
-            Cloud backup, device storage and moving matches between devices
-          </p>
-        </div>
+      <div className="max-w-4xl mx-auto p-4 md:p-5 space-y-4">
+        <h1 className="text-xl md:text-2xl font-bold text-neutral-50">Account</h1>
 
-        <div className="mb-6">
-          <AccountComposer />
-        </div>
+        <AccountComposer />
 
-        {/* Danger Zone */}
-        <div className="bg-bg-card rounded-lg border border-red-500/30 overflow-hidden">
-          <div className="p-6 bg-red-500/10 border-b border-red-500/30">
-            <div className="flex items-center gap-3">
-              <AlertTriangle className="h-6 w-6 text-red-400" />
-              <h2 className="text-xl font-semibold text-red-400">Danger Zone</h2>
-            </div>
+        <section className="rounded-lg border border-callout-danger-border bg-callout-danger-bg/40 overflow-hidden">
+          <div className="flex items-center gap-2 px-4 py-2.5 border-b border-callout-danger-border">
+            <Icon name="warning" size="sm" className="text-callout-danger" />
+            <h2 className="text-sm font-semibold text-callout-danger">Danger zone</h2>
           </div>
 
-          <div className="p-6">
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-lg font-medium text-neutral-50 mb-2">
-                  Clear All Data
-                </h3>
-                <p className="text-neutral-400 text-sm mb-4">
-                  This will permanently delete all clubs, tournaments, players, matches,
-                  sets, rallies, and shots from your local database. This action cannot be
-                  undone.
-                </p>
+          <div className="p-4 space-y-4">
+            <div>
+              <h3 className="text-sm font-medium text-neutral-50 mb-1">Clear all data</h3>
+              <p className="text-xs text-neutral-500 mb-3">
+                Permanently deletes local clubs, players, matches, tags, and videos. Cannot be undone.
+              </p>
 
-                {!showConfirm ? (
-                  <button
-                    onClick={() => setShowConfirm(true)}
-                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors flex items-center gap-2"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    Clear All Data
-                  </button>
-                ) : (
-                  <div className="bg-bg-shell rounded-lg p-4 border border-neutral-700">
-                    <p className="text-neutral-300 mb-4 font-medium">
-                      Are you absolutely sure? This will delete:
-                    </p>
-                    <ul className="text-sm text-neutral-400 space-y-1 mb-4 ml-4">
-                      <li>• All clubs</li>
-                      <li>• All tournaments</li>
-                      <li>• All players</li>
-                      <li>• All matches</li>
-                      <li>• All match videos</li>
-                      <li>• All sets</li>
-                      <li>• All rallies</li>
-                      <li>• All shots</li>
-                    </ul>
-                    <div className="flex gap-3">
-                      <button
-                        onClick={handleClearData}
-                        disabled={isClearing}
-                        className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-800 disabled:cursor-not-allowed text-white rounded-lg transition-colors font-medium"
-                      >
-                        {isClearing ? 'Clearing...' : 'Yes, Delete Everything'}
-                      </button>
-                      <button
-                        onClick={() => setShowConfirm(false)}
-                        disabled={isClearing}
-                        className="px-4 py-2 bg-neutral-700 hover:bg-neutral-600 disabled:bg-neutral-800 disabled:cursor-not-allowed text-neutral-200 rounded-lg transition-colors"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Populate Dummy Data */}
-              <div className="mt-6 pt-6 border-t border-neutral-700">
-                <h3 className="text-lg font-medium text-neutral-50 mb-2">
-                  Populate Dummy Data
-                </h3>
-                <p className="text-neutral-400 text-sm mb-4">
-                  Add test data to the database for development and testing purposes.
-                  This includes 4 players and 2 matches. This button is only enabled
-                  when the database is empty.
-                </p>
-                <button
-                  onClick={handlePopulateDummyData}
-                  disabled={!isDatabaseEmpty || isPopulating}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-neutral-700 disabled:cursor-not-allowed disabled:text-neutral-500 text-white rounded-lg transition-colors flex items-center gap-2"
+              {!showConfirm ? (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setShowConfirm(true)}
+                  className="border-callout-danger-border text-callout-danger"
                 >
-                  <Database className="h-4 w-4" />
-                  {isPopulating ? 'Populating...' : 'Populate Dummy Data'}
-                </button>
-                {!isDatabaseEmpty && (
-                  <p className="text-neutral-500 text-xs mt-2">
-                    ⚠️ Database must be cleared first before populating dummy data
+                  <Icon name="trash" size="sm" /> Clear all data
+                </Button>
+              ) : (
+                <div className="rounded-md border border-border bg-bg-surface p-3 space-y-3">
+                  <p className="text-sm text-neutral-200">
+                    Delete everything on this device?
                   </p>
-                )}
-              </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button size="sm" onClick={handleClearData} disabled={isClearing}>
+                      {isClearing ? 'Clearing…' : 'Yes, delete everything'}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => setShowConfirm(false)}
+                      disabled={isClearing}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="pt-3 border-t border-border">
+              <h3 className="text-sm font-medium text-neutral-50 mb-1">Populate dummy data</h3>
+              <p className="text-xs text-neutral-500 mb-3">
+                Dev sample: 4 players, 2 matches. Only when the library is empty.
+              </p>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={handlePopulateDummyData}
+                disabled={!isDatabaseEmpty || isPopulating}
+              >
+                <Icon name="database" size="sm" />
+                {isPopulating ? 'Populating…' : 'Populate dummy data'}
+              </Button>
+              {!isDatabaseEmpty && (
+                <p className="text-[11px] text-neutral-500 mt-2">Clear data first.</p>
+              )}
             </div>
           </div>
-        </div>
-
+        </section>
       </div>
     </div>
   )
 }
-
