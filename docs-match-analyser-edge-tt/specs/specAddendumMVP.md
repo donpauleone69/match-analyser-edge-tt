@@ -6,6 +6,21 @@
 
 ## Change Log
 
+### 2026-11-14: MA-135 — Addendum tip cleanup after overnight merge races (v3.169.0)
+
+**Change Type:** Docs — changelog / version history hygiene
+
+**What Changed:**
+- Removed duplicate MA-122 changelog entries left from #100 / #108 races.
+- Restored tip version history order: MA-132 (3.168) → MA-131 (3.167) → MA-126 (3.166) → MA-122 (3.165) → MA-124 (3.164) → …
+- Fixed concatenated `v3.158`/`v3.157` VH row; stripped overnight rows from the legacy persistence VH table.
+
+**Decision Rationale:** Overnight Track F MA-135 — keep `specAddendumMVP.md` mergeable for A–E agents after parallel tip landings.
+
+**Key Files:** `specAddendumMVP.md`.
+
+---
+
 ### 2026-11-14: MA-132 — Pass 1 Viewing / Live set-bar recovery (v3.168.0)
 
 **Change Type:** UX polish — Pass 1 / Simple past-preview recovery
@@ -88,40 +103,7 @@
 
 ---
 
-### 2026-11-14: MA-122 — Serve/Receive playlist evidence polish (v3.167.0)
-
-**Change Type:** UX polish — evidence ↔ Focus playlist continuity
-
-**What Changed:**
-- Evidence drawer: optional `playlistHint` when on Serve/Receive; quieter denser header.
-- Serve/Receive: picking another focus clears evidence; closing evidence drops synthetic focus; shell context shows evidence sync.
-- Playlist rows soft-highlight when in the open evidence set; cover-match focuses when evidence is a subset.
-- Clear-evidence + evidenceRallyIds wired through Summary/Overview.
-
-**Decision Rationale:** Overnight Track D MA-122 — numbers → evidence → playlist should feel one continuous audit.
-
-**Key Files:** `EvidenceDrawerBlock.tsx`, `ServeReceiveDataSection.tsx`, `SummaryCategoryPlaylistBlock.tsx`, `RallyRowBlock.tsx`, `MatchReviewComposer.tsx`.
-
 ---
-
-
-
-
----
-
-### 2026-11-14: MA-122 — Serve/Receive playlist evidence polish (v3.164.0)
-
-**Change Type:** UX polish — evidence ↔ Focus playlist continuity
-
-**What Changed:**
-- Evidence drawer: optional `playlistHint` when on Serve/Receive; quieter denser header.
-- Serve/Receive: picking another focus clears evidence; closing evidence drops synthetic focus; shell context shows evidence sync.
-- Playlist rows soft-highlight when in the open evidence set; cover-match focuses when evidence is a subset.
-- Clear-evidence + evidenceRallyIds wired through Summary/Overview.
-
-**Decision Rationale:** Overnight Track D MA-122 — numbers → evidence → playlist should feel one continuous audit.
-
-**Key Files:** `EvidenceDrawerBlock.tsx`, `ServeReceiveDataSection.tsx`, `SummaryCategoryPlaylistBlock.tsx`, `RallyRowBlock.tsx`, `MatchReviewComposer.tsx`.
 
 ---
 
@@ -8624,8 +8606,6 @@ rally_end_role → errorType
 
 | Version | Date | Changes |
 |---------|------|---------|
-| v3.165.0 | 2026-11-14 | MA-122: Serve/Receive playlist evidence polish |
-| v3.158.0 | 2026-11-14 | MA-119: quiet notices and status banners |
 | v2.1.0 | 2025-12-06 | Initial persistence layer implementation |
 | v2.1.1 | 2025-12-06 | Critical bug fixes for resume functionality |
 | v2.1.2 | 2025-12-06 | Comprehensive persistence refinement with full logging |
@@ -8986,18 +8966,18 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v3.169.0 | 2026-11-14 | MA-135: addendum tip cleanup — dup MA-122 removed, VH order restored |
 | v3.168.0 | 2026-11-14 | MA-132: Pass 1 Viewing / Live set-bar recovery |
-| v3.165.0 | 2026-11-14 | MA-131: Summary/Evidence/Rallies → Clips return trail parity with Work-on |
+| v3.167.0 | 2026-11-14 | MA-131: Summary/Evidence/Rallies → Clips return trail parity with Work-on |
+| v3.166.0 | 2026-11-14 | MA-126: Match Review chrome quiet (header/Summary/Details/Scope) |
+| v3.165.0 | 2026-11-14 | MA-122: Serve/Receive playlist evidence polish |
 | v3.164.0 | 2026-11-14 | MA-124: Pass 1 History sheet polish (dialog, Escape, ordinals, ★) |
-| v3.164.0 | 2026-11-14 | MA-122: Serve/Receive playlist evidence polish |
 | v3.163.0 | 2026-11-14 | MA-127: Playlist shell sticky chrome — under-review offset + single sticky header |
 | v3.162.0 | 2026-11-14 | MA-128: DesignSystem SoT sync — callout + video-scrim + modal/panel families |
 | v3.161.0 | 2026-11-14 | MA-125: evidence drawer rows + Clips landing chrome cohesion |
 | v3.160.0 | 2026-11-14 | MA-123: residual raw paint — player/callout tokens on RallyCard/ShotList/audit |
 | v3.159.0 | 2026-11-14 | MA-121: Playlist shell Work-on trail polish + Fix return continuity |
-| v3.168.0 | 2026-11-14 | MA-132: Pass 1 Viewing / Live set-bar recovery |
-| v3.167.0 | 2026-11-14 | MA-131: Summary/Evidence/Rallies → Clips return trail parity with Work-on |
-| v3.158.0 | 2026-11-14 | MA-119: notice and banner quiet pass || v3.157.0 | 2026-11-14 | MA-111: Clip/Rally/Edit stage chrome cohesion (muted tokens + edit rail) |
+| v3.158.0 | 2026-11-14 | MA-119: quiet notices and status banners |
 | v3.157.0 | 2026-11-14 | MA-111: Clip/Rally/Edit stage chrome cohesion (muted tokens + edit rail) |
 | v3.156.1 | 2026-11-14 | MA-116: Done mid-point + History/Delete density |
 | v3.156.0 | 2026-11-14 | MA-120: scrub wash-strong + DataViewer borders/callout tokens |
@@ -9021,7 +9001,6 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 | v3.138.0 | 2026-11-14 | MA-101: quiet Find/create/Account and match shell density |
 | v3.137.0 | 2026-11-14 | MA-100: BrowseDisclosure + scrub marks on Clips/Review stages |
 | v3.136.0 | 2026-11-14 | MA-99: tagging dialog/rail/contacts visual polish + scrub→History |
-| v3.136.0 | 2026-11-14 | MA-84: theme remainder — video-scrim + no-attack + token tests |
 | v3.135.0 | 2026-11-14 | MA-97: quiet Home/nav IA and list border tokens |
 | v3.134.0 | 2026-11-14 | MA-95: mute policy + score HUD cohesion across surfaces |
 | v3.133.0 | 2026-11-14 | MA-96: contacts pad server edge + scrub draft stripe/pastel + drop duplicate stage banner |
@@ -9073,7 +9052,6 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 | v3.42.0 | 2026-11-12 | Account gate + focal-player scope for library/review/tagging |
 | v3.41.0 | 2026-11-12 | Shared match color tokens; Pass 1 player/role/result scanability; Review + Clips semantic alignment |
 | v3.40.0 | 2026-11-12 | Match Details context: date (video lastModified / manual), opponent player link+create, tournament+round; list Details → Review |
-| v3.40.0 | 2026-11-12 | Match Details context: date (video lastModified / manual), opponent player pick/create, tournament+round; create/list simplified |
 | v3.39.0 | 2026-11-12 | Player-perspective principle; Clips whole-rally/shot + slow-mo; Summary/Details IA; category playlists; Pass 1 Review row + Air + dark restyle |
 | v3.38.0 | 2026-11-12 | Video assets (OPFS), clips + reels, Supabase sync + TUS upload, Home/nav reset, re-tag from rally, Serve/Receive cards |
 | v3.37.0 | 2026-11-11 | FOS number picker, shot Review technical/tactical, Match Review list |
@@ -9084,21 +9062,6 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 | v3.31.0 | 2026-11-11 | Shot tag alignment: shot_* columns, quality + is_* toggles, role allow-list, Dexie v5 clear |
 | v3.33.0 | 2026-11-11 | Rally Focus seek floor, colored rally/dead-time timeline, ±10s overlay, Delete last |
 | v3.30.0 | 2026-11-10 | Rally Focus schema pivot: Dexie v4 shot/rally tags, per-rally Save, derived phase/end class, analytics readers |
-| v2.1.0 | 2025-12-06 | Initial persistence layer implementation |
-| v2.1.1 | 2025-12-06 | Critical bug fixes for resume functionality |
-| v2.1.2 | 2025-12-06 | Comprehensive persistence refinement with full logging |
-| v2.2.0 | 2025-12-06 | Statistics dashboard and multi-level inference engine |
-| v2.2.1 | 2025-12-07 | Bug fix: Double direction buttons on service fault |
-| v2.2.2 | 2025-12-07 | Bug fixes: Phase 1 winner derivation, Phase 2 save error; Enhanced Phase 2 shot log |
-| v2.2.3 | 2025-12-07 | Bug fixes: Shot counter, shot quality logging; Enhanced save error diagnostics |
-| v2.2.4 | 2025-12-07 | CRITICAL: Fixed Phase 2 save error, shot quality race condition, player names |
-| v2.2.5 | 2025-12-07 | Enhanced debugging for inconsistent data saves |
-| v2.2.6 | 2025-12-07 | Comprehensive save debugging - Phase 1 & Phase 2, DB verification |
-| v2.2.7 | 2025-12-07 | CRITICAL: Fixed winner_id and point_end_type always null in Phase 1 |
-| v2.2.8 | 2025-12-07 | CRITICAL: Fixed stale state causing data loss (spin, intent, quality) |
-| v2.2.9 | 2025-12-07 | Error question flow & shotQuality explicit setting |
-| v2.2.10 | 2025-12-07 | Complete database table viewer with all fields |
-| v2.3.0 | 2025-12-06 | Rules layer reorganization & derivation extraction |
 | v3.0.0 | 2025-12-08 | Database refactor - Slug-based IDs & shot inference tracking |
 | v3.0.1 | 2025-12-08 | Critical bug fixes - ID generation & data duplication |
 | v3.0.2 | 2025-12-08 | Fixed slug ID generation for all entities |
