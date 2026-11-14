@@ -6,6 +6,22 @@
 
 ## Change Log
 
+### 2026-11-14: MA-114 — Modal overlay token cleanup (v3.150.0)
+
+**Change Type:** Design tokens — RallyPlayer + remaining modal dimmers
+
+**What Changed:**
+- New `--color-modal-scrim-strong` (0.8) for stage-level overlays.
+- Rally watch dialog + shadcn `dialog` / `alert-dialog` overlays → `modal-scrim-strong` (drop `bg-black/80`).
+- Completion + Match Result entry modals → `modal-scrim` (drop `bg-black/50`).
+- Extend `themeTokens.test.ts` gate to these surfaces (+ ban raw `bg-black/50|80`).
+
+**Decision Rationale:** MA-114 overnight Track F — finish modal dimmers after MA-109 Leave/History scrims so every dialog shares one token family.
+
+**Key Files:** `index.css`, `RallyPlayerBlock.tsx`, `CompletionModal.tsx`, `MatchResultEntryModal.tsx`, `dialog.tsx`, `alert-dialog.tsx`, `themeTokens.test.ts`.
+
+---
+
 ### 2026-11-14: MA-112 — Pass 1 rail and dialog polish (v3.149.0)
 
 **Change Type:** UX polish — Pass 1 rally rail + guiding dialog
@@ -8620,6 +8636,8 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v3.150.0 | 2026-11-14 | MA-114: RallyPlayer + modal overlays → modal-scrim / modal-scrim-strong |
+| v3.149.0 | 2026-11-14 | MA-112: Pass 1 rail and dialog polish |
 | v3.148.0 | 2026-11-14 | MA-106: Serve/Receive adopts PlaylistBrowseShell + Summary/Clips trail |
 | v3.147.0 | 2026-11-14 | MA-109: modal/panel scrims + themeTokens gate for newest surfaces |
 | v3.146.0 | 2026-11-14 | MA-110: list density + empty states |
