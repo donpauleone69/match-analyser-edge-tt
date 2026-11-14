@@ -6,7 +6,22 @@
 
 ## Change Log
 
-### 2026-11-14: MA-80 — Quiet Work on + Rallies chrome (v3.123.0)
+### 2026-11-14: MA-88 — Quiet Clips export/banner chrome (v3.124.0)
+
+**Change Type:** UX declutter — Clips reads like tagging chrome
+
+**What Changed:**
+- Drop standalone Clips blurb; shorter empty state.
+- Phone: export strip hidden (sticky Download / Save as reel only); sticky loses duplicate playlist caption.
+- Desktop export strip kept, without “Download one clip or Save as reel” helper text.
+- Work on → Clips deep-link: thin back row + optional clear (×), no banner Card.
+- Stage chrome: softer border, compact `n/total`, md origin badge.
+
+**Decision Rationale:** Overnight Track B / Paul — Clips / Work on / Rallies one app with tagging chrome.
+
+**Key Files:** `ClipsComposer.tsx`, `ClipStageBlock.tsx`.
+
+### 2026-11-14: MA-87 — Quiet Work on + Rallies chrome (v3.123.0)
 
 **Change Type:** UX declutter — Match Review Work on / Rallies feel like tagging chrome
 
