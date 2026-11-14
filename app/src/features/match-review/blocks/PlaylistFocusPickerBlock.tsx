@@ -24,7 +24,7 @@ const TONE_DOT: Record<PlaylistFocusModel['tone'], string> = {
   good: 'bg-result-winner',
   bad: 'bg-result-error',
   amber: 'bg-warning',
-  none: 'bg-neutral-500',
+  none: 'bg-border-strong',
 }
 
 function FocusOptionsList({
