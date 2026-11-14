@@ -6,6 +6,22 @@
 
 ## Change Log
 
+### 2026-11-14: MA-81 — Playlist browse shell (v3.140.0)
+
+**Change Type:** UX — fuller Clips playlist browse on shared BrowseDisclosure
+
+**What Changed:**
+- `PlaylistBrowseShellBlock` wraps tip-of-main `BrowseDisclosure` (from #77 / MA-100) — sticky Playlists chip + Work on / Stay / Fix tags trail (playlists ↔ video ↔ tags).
+- Drop deep-link auto-expand + `scrollIntoView` (remaining click-scroll-up hell after MA-100).
+- Compact preset density inside the disclosure; desktop rail kept for Spotify-class scan.
+- Same chrome language as Serve/Receive `PlaylistFocusPickerBlock`.
+
+**Decision Rationale:** Overnight Track C / Paul usability — continuous browse pattern, not a second BrowseDisclosure.
+
+**Key Files:** `PlaylistBrowseShellBlock.tsx`, `ClipPresetListBlock.tsx`, `ClipsComposer.tsx`.
+
+---
+
 ### 2026-11-14: MA-98 — Serve/Receive focus deep-link + sticky playlist (v3.139.0)
 
 **Change Type:** UX polish — Serve Data / Receive Data
