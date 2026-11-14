@@ -154,17 +154,17 @@ export function Pass1SetContextBlock({
         </div>
       )}
       {navigationLocked ? (
-        <span className="min-w-0 flex-1 truncate px-1 text-center text-[10px] font-semibold text-primary">
+        <span className="min-w-0 flex-1 truncate px-1 text-center text-[10px] font-medium text-muted">
           Point in progress
         </span>
       ) : viewingPast ? (
         <button
           type="button"
           onClick={onSelectNext}
-          className="tag-control tag-control-accent min-w-0 flex-1 justify-center"
+          className="tag-control tag-control-accent min-w-0 flex-1 justify-center gap-1.5"
           title={
             viewed
-              ? `Viewing ${viewed.player1ScoreAfter}–${viewed.player2ScoreAfter} · ${nameOfSide(viewed.serverId, player1Name, player2Name)} served — tap for live`
+              ? `Viewing ${viewed.player1ScoreAfter}–${viewed.player2ScoreAfter} · ${nameOfSide(viewed.serverId, player1Name, player2Name)} served — tap to return live`
               : 'Back to live tagging'
           }
           aria-label={
@@ -173,9 +173,24 @@ export function Pass1SetContextBlock({
               : 'Return to live tagging'
           }
         >
-          {viewed
-            ? `${viewed.player1ScoreAfter}–${viewed.player2ScoreAfter} · Live →`
-            : 'Live →'}
+          {viewed && (
+            <span
+              className={cn(
+                'h-1.5 w-1.5 shrink-0 rounded-full',
+                viewed.winnerId === 'player1' ? 'bg-player-1' : 'bg-player-2'
+              )}
+              aria-hidden
+            />
+          )}
+          <span className="min-w-0 truncate">
+            <span className="font-semibold text-muted">Viewing </span>
+            <span className="tabular-nums font-bold text-primary">
+              {viewed
+                ? `${viewed.player1ScoreAfter}–${viewed.player2ScoreAfter}`
+                : 'past'}
+            </span>
+          </span>
+          <span className="shrink-0 font-black text-brand">Live →</span>
         </button>
       ) : last ? (
         <button
