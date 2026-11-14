@@ -69,18 +69,12 @@ export interface Pass1SetContextBlockProps {
   onToggleServer?: () => void
   onSelectLast: () => void
   onSelectNext: () => void
-  /** Jump video to first tagged serve (skip intro / warm-up) */
-  onJumpFirstServe?: () => void
-  /** Multi-set: jump into between-set gap (or estimated start). Seek-only. */
-  onJumpPrevSetEnd?: () => void
-  /** True when Gap seeks with pre-contact estimate (no first serve yet). */
-  gapJumpIsEstimate?: boolean
-  prevSetNumber?: number | null
   onToggleHistory: () => void
   /**
    * Done finishes the set → Match Review (between points only).
    * Leave soft-exits anytime, including mid-rally with confirm (draft kept).
    * Leave is not video Pause.
+   * Gap / 1st seek jumps live in History (MA-108) so this bar stays tappable.
    */
   canEndSet?: boolean
   onEndSet?: () => void
@@ -101,10 +95,6 @@ export function Pass1SetContextBlock({
   onToggleServer,
   onSelectLast,
   onSelectNext,
-  onJumpFirstServe,
-  onJumpPrevSetEnd,
-  gapJumpIsEstimate = false,
-  prevSetNumber = null,
   onToggleHistory,
   canEndSet = false,
   onEndSet,
@@ -122,42 +112,6 @@ export function Pass1SetContextBlock({
 
   return (
     <div className="shrink-0 flex min-h-10 items-center gap-1 border-t border-border bg-bg-card px-1.5 py-1">
-      {onJumpPrevSetEnd && !navigationLocked && (
-        <button
-          type="button"
-          onClick={onJumpPrevSetEnd}
-          className="tag-control shrink-0 gap-1"
-          title={
-            gapJumpIsEstimate
-              ? prevSetNumber
-                ? `Jump toward estimated set start (dead air after set ${prevSetNumber})`
-                : 'Jump toward estimated set start (between-set dead air)'
-              : prevSetNumber
-                ? `Jump to end of set ${prevSetNumber} (start of between-set gap)`
-                : 'Jump to previous set end (between-set gap)'
-          }
-          aria-label={
-            gapJumpIsEstimate
-              ? 'Jump toward estimated set start in between-set gap'
-              : 'Jump to previous set end'
-          }
-        >
-          <Icon name="skip-forward" size="xs" />
-          <span>Gap</span>
-        </button>
-      )}
-      {onJumpFirstServe && completed.length > 0 && !navigationLocked && (
-        <button
-          type="button"
-          onClick={onJumpFirstServe}
-          className="tag-control shrink-0 gap-1"
-          title="Jump to first serve (skip intro / warm-up)"
-          aria-label="Jump to first serve"
-        >
-          <Icon name="skip-forward" size="xs" />
-          <span>1st</span>
-        </button>
-      )}
       {canToggleServer && onToggleServer ? (
         <button
           type="button"
@@ -203,10 +157,24 @@ export function Pass1SetContextBlock({
           Point in progress
         </span>
       ) : viewingPast ? (
-        <button type="button" onClick={onSelectNext} className="tag-control tag-control-accent min-w-0">
+        <button
+          type="button"
+          onClick={onSelectNext}
+          className="tag-control tag-control-accent min-w-0 flex-1 justify-center"
+          title={
+            viewed
+              ? `Viewing ${viewed.player1ScoreAfter}–${viewed.player2ScoreAfter} · ${nameOfSide(viewed.serverId, player1Name, player2Name)} served — tap for live`
+              : 'Back to live tagging'
+          }
+          aria-label={
+            viewed
+              ? `Viewing ${viewed.player1ScoreAfter}–${viewed.player2ScoreAfter}. Return to live tagging`
+              : 'Return to live tagging'
+          }
+        >
           {viewed
-            ? `Viewing ${viewed.player1ScoreAfter}–${viewed.player2ScoreAfter} · ${nameOfSide(viewed.serverId, player1Name, player2Name)} served · Live →`
-            : 'Back to live →'}
+            ? `${viewed.player1ScoreAfter}–${viewed.player2ScoreAfter} · Live →`
+            : 'Live →'}
         </button>
       ) : last ? (
         <button
@@ -306,11 +274,19 @@ export interface Pass1PointLedgerBlockProps {
   /** Rare undo — lives in History, not on the crowded form row. */
   onDeleteLast?: () => void
   canDeleteLast?: boolean
+  /** Jump video to first tagged serve (skip intro / warm-up). */
+  onJumpFirstServe?: () => void
+  /** Multi-set: jump into between-set gap (or estimated start). Seek-only. */
+  onJumpPrevSetEnd?: () => void
+  /** True when Gap seeks with pre-contact estimate (no first serve yet). */
+  gapJumpIsEstimate?: boolean
+  prevSetNumber?: number | null
 }
 
 /**
  * Prototype: point history is a deliberate, vertically scalable ledger.
  * Score pairs are labelled as scores; sequential numbered cells remain exclusive to shots.
+ * Seek jumps (Gap / 1st) live here so the set bar stays tappable (MA-108).
  */
 export function Pass1PointLedgerBlock({
   open,
@@ -325,10 +301,15 @@ export function Pass1PointLedgerBlock({
   onSelectNext,
   onDeleteLast,
   canDeleteLast = false,
+  onJumpFirstServe,
+  onJumpPrevSetEnd,
+  gapJumpIsEstimate = false,
+  prevSetNumber = null,
 }: Pass1PointLedgerBlockProps) {
   if (!open) return null
 
   const nameOf = (side: PlayerSide) => (side === 'player1' ? player1Name : player2Name)
+  const showJumps = Boolean(onJumpFirstServe || onJumpPrevSetEnd)
 
   return (
     <div
@@ -346,6 +327,46 @@ export function Pass1PointLedgerBlock({
             <p className="text-[9px] text-muted">Winner, score after, and server</p>
           </div>
           <div className="flex-1" />
+          {showJumps && (
+            <div className="flex items-center gap-1" role="group" aria-label="Seek jumps">
+              {onJumpPrevSetEnd && (
+                <button
+                  type="button"
+                  onClick={onJumpPrevSetEnd}
+                  className="tag-control shrink-0 gap-1"
+                  title={
+                    gapJumpIsEstimate
+                      ? prevSetNumber
+                        ? `Jump toward estimated set start (dead air after set ${prevSetNumber})`
+                        : 'Jump toward estimated set start (between-set dead air)'
+                      : prevSetNumber
+                        ? `Jump to end of set ${prevSetNumber} (start of between-set gap)`
+                        : 'Jump to previous set end (between-set gap)'
+                  }
+                  aria-label={
+                    gapJumpIsEstimate
+                      ? 'Jump toward estimated set start in between-set gap'
+                      : 'Jump to previous set end'
+                  }
+                >
+                  <Icon name="skip-forward" size="xs" />
+                  <span>Gap</span>
+                </button>
+              )}
+              {onJumpFirstServe && completed.length > 0 && (
+                <button
+                  type="button"
+                  onClick={onJumpFirstServe}
+                  className="tag-control shrink-0 gap-1"
+                  title="Jump to first serve (skip intro / warm-up)"
+                  aria-label="Jump to first serve"
+                >
+                  <Icon name="skip-forward" size="xs" />
+                  <span>1st</span>
+                </button>
+              )}
+            </div>
+          )}
           {onDeleteLast && (
             <button
               type="button"

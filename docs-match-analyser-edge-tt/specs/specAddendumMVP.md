@@ -6,6 +6,22 @@
 
 ## Change Log
 
+### 2026-11-14: MA-108 — Pass 1 interaction polish (v3.145.0)
+
+**Change Type:** UX polish — Pass 1 / Simple interaction
+
+**What Changed:**
+- **Set bar:** Gap / 1st seek jumps move into History header so Serve · Last · History · Done · Leave stay tappable on phone.
+- **Past preview:** Live→ chip shortened to `score · Live →` (full detail in title).
+- **Let / Discard:** confirm before clearing an open point draft.
+- **Tokens:** leave dialog + phase hairline / ★ selected use `text-primary` / `text-muted` / `bg-border`.
+
+**Decision Rationale:** Overnight Track E MA-108 — interaction polish after MA-102 chrome; fewer mis-taps, clearer exits.
+
+**Key Files:** `Pass1ChromeProtoBlock.tsx`, Pass1/Simple composers, `Pass1LeaveDraftChoiceBlock.tsx`, `Pass1FocusBlock.tsx`.
+
+---
+
 ### 2026-11-14: MA-104 — Video / playlist chrome leftovers (v3.144.0)
 
 **Change Type:** UX cohesion — BrowseDisclosure + stage shells
@@ -18,6 +34,8 @@
 **Decision Rationale:** Overnight Track A MA-104 — leftover video/playlist chrome after MA-100 / MA-81 shell landed.
 
 **Key Files:** `BrowseDisclosure.tsx`, `PlaylistFocusPickerBlock.tsx`, `ServeReceiveDataSection.tsx`, `RallyPlayerBlock.tsx`.
+
+---
 
 ### 2026-11-14: MA-105 — Settings / match IA quiet (v3.143.0)
 
