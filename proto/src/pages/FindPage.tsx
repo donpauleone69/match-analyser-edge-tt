@@ -9,7 +9,7 @@ export function FindPage() {
 
   return (
     <div>
-      <PageHeader title="Find" subtitle="Locate a match." backTo="/home" />
+      <PageHeader title="Find" backTo="/home" />
       <div className="px-4 sm:px-6 lg:px-8 pb-6 space-y-4">
         <Card className="space-y-3">
           <div className="flex items-center justify-between gap-2">

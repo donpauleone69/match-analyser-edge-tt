@@ -8,7 +8,7 @@ import { WfBadge, WfEmpty, WfField, WfRow } from '@/layout/Wireframe'
 export function InsightsPage() {
   return (
     <div>
-      <PageHeader title="Insights" subtitle="Cross-match viewing." />
+      <PageHeader title="Insights" />
       <HubTabs
         ariaLabel="Insights sections"
         tabs={[
@@ -27,14 +27,6 @@ export function InsightsStoryStub() {
 
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-6 space-y-4">
-      <div className="max-w-prose space-y-2">
-        <div className="flex items-center gap-2">
-          <h2 className="text-lg font-semibold text-primary">Story / Work on</h2>
-          <WfBadge>cross-match</WfBadge>
-        </div>
-        <p className="text-sm text-muted">Patterns and cues across scope.</p>
-      </div>
-
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         <Card className="space-y-2">
           <CardTitle>Patterns</CardTitle>
@@ -82,14 +74,6 @@ export function InsightsStoryStub() {
 export function InsightsReelsStub() {
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-6 space-y-4">
-      <div className="max-w-prose space-y-2">
-        <div className="flex items-center gap-2">
-          <h2 className="text-lg font-semibold text-primary">Reels</h2>
-          <WfBadge>watch + download</WfBadge>
-        </div>
-        <p className="text-sm text-muted">Playlists from tags. Download here.</p>
-      </div>
-
       <Card className="space-y-3">
         <div className="flex items-center gap-2">
           <Icon name="film" size="sm" className="text-brand" />
@@ -164,14 +148,6 @@ export function InsightsReelsStub() {
 export function InsightsScopeStub() {
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-6 space-y-4">
-      <div className="max-w-prose space-y-2">
-        <div className="flex items-center gap-2">
-          <h2 className="text-lg font-semibold text-primary">Scope</h2>
-          <WfBadge>filters</WfBadge>
-        </div>
-        <p className="text-sm text-muted">Filters Story and Reels.</p>
-      </div>
-
       <Card className="space-y-3">
         <CardTitle>Active scope</CardTitle>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">

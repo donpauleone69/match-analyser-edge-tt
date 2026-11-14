@@ -14,6 +14,7 @@ import {
   HardDrive,
   Home,
   LogIn,
+  Play,
   Plus,
   Search,
   Settings,
@@ -41,6 +42,7 @@ const icons = {
   download: Download,
   'hard-drive': HardDrive,
   'log-in': LogIn,
+  play: Play,
   'chevron-left': ChevronLeft,
   'chevron-right': ChevronRight,
 } as const

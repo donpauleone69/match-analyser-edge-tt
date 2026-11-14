@@ -8,6 +8,7 @@ import {
   MatchInsightsStub,
   MatchDetailsStub,
   MatchTagStub,
+  MatchTagSetStub,
 } from '@/pages/MatchPage'
 import {
   InsightsPage,
@@ -29,6 +30,7 @@ export default function App() {
           <Route path="insights" element={<MatchInsightsStub />} />
           <Route path="details" element={<MatchDetailsStub />} />
           <Route path="tag" element={<MatchTagStub />} />
+          <Route path="tag/:setId" element={<MatchTagSetStub />} />
         </Route>
         <Route path="/insights" element={<InsightsPage />}>
           <Route index element={<Navigate to="story" replace />} />

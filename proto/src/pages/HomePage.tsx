@@ -11,7 +11,7 @@ export function HomePage() {
 
   return (
     <div>
-      <PageHeader title="Home" subtitle="Continue, matches, insights peek." />
+      <PageHeader title="Home" />
 
       <div className="px-4 sm:px-6 lg:px-8 pb-6 space-y-4">
         <Card className="space-y-3">
@@ -26,7 +26,7 @@ export function HomePage() {
             <p className="text-sm font-semibold text-primary">Demo vs Opponent · Set 2</p>
             <p className="text-sm text-muted">4 rallies left · last at 12:41 · resume Contacts</p>
           </div>
-          <Button fullWidth onClick={() => navigate(`/matches/${DEMO_MATCH_ID}/tag`)}>
+          <Button fullWidth onClick={() => navigate(`/matches/${DEMO_MATCH_ID}/tag/2`)}>
             Continue tagging
           </Button>
           <Button
