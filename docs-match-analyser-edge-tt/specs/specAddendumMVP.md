@@ -6,6 +6,21 @@
 
 ## Change Log
 
+### 2026-11-14: MA-140 — BrowseDisclosure keyboard a11y (v3.176.0)
+
+**Change Type:** A11y — playlist / focus picker keyboard
+
+**What Changed:**
+- `BrowseDisclosure`: ArrowDown on closed trigger opens; ArrowUp/Down/Home/End move among `[role=option]`; open focuses the selected (or first) option and scrolls it into the panel; Escape closes and restores focus to the trigger.
+- Compact `ClipPresetListBlock` rows expose `role="option"` + `aria-selected` for the listbox.
+- Serve/Receive focus options drop nested `role="listbox"` (shell disclosure owns it).
+
+**Decision Rationale:** Overnight Track C **MA-140** after #112 — History-style disclosure should be fully operable from the keyboard.
+
+**Key Files:** `BrowseDisclosure.tsx`, `ClipPresetListBlock.tsx`, `PlaylistFocusPickerBlock.tsx`.
+
+---
+
 ### 2026-11-14: MA-139 — VideoPlayer empty/loading chrome (v3.175.0)
 
 **Change Type:** Design tokens — shared VideoPlayer empty / load / Change chrome
@@ -37,6 +52,7 @@
 
 **Key Files:** `ServeReceiveDataSection.tsx`, `CompareCardBlock.tsx`, `SummaryCategoryPlaylistBlock.tsx`, `HeadlineMetricsBlock.tsx`, `buildServeReceiveCards.ts`, `MatchReviewComposer.tsx`.
 
+
 ---
 
 ### 2026-11-14: MA-138 — Pass 1 Leave Keep/Discard polish (v3.173.0)
@@ -51,6 +67,7 @@
 **Decision Rationale:** Overnight Track E MA-138 after Viewing/Live — Keep vs Discard must be unmistakable before leaving mid-point.
 
 **Key Files:** `Pass1LeaveDraftChoiceBlock.tsx`.
+
 
 ---
 
@@ -9065,6 +9082,9 @@ Created `DUPLICATE_LOGIC_AUDIT.md` documenting findings:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v3.176.0 | 2026-11-14 | MA-140: BrowseDisclosure keyboard a11y — Arrow/Home/End, focus restore |
+| v3.172.0 | 2026-11-14 | MA-136: quiet Home and Find residual chrome |
+| v3.171.0 | 2026-11-14 | MA-137: Browse shell Fix/Edit round-trip — land on edited clip + Clips back label |
 | v3.175.0 | 2026-11-14 | MA-139: VideoPlayer empty/loading → elevated/muted tokens; Change hover video-scrim |
 | v3.174.0 | 2026-11-14 | MA-133: Serve/Receive empty + loading polish |
 | v3.171.0 | 2026-11-14 | MA-137: Browse shell Fix/Edit round-trip polish |

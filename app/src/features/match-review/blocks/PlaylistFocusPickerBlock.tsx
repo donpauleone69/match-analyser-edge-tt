@@ -38,26 +38,26 @@ function FocusOptionsList({
 }) {
   const active = focuses.find((f) => f.id === activeId) ?? focuses[0]
   if (!active) return null
+  // Parent BrowseDisclosure owns role="listbox" (MA-140) — avoid nested listboxes.
   return (
-    <ul role="listbox" aria-label="Playlist focus">
+    <div>
       {focuses.map((f) => {
         const selected = f.id === active.id
         return (
-          <li key={f.id}>
-            <BrowseDisclosureOption
-              selected={selected}
-              leading={
-                <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', TONE_DOT[f.tone])} />
-              }
-              meta={f.count}
-              onSelect={() => onSelect(f)}
-            >
-              {f.label}
-            </BrowseDisclosureOption>
-          </li>
+          <BrowseDisclosureOption
+            key={f.id}
+            selected={selected}
+            leading={
+              <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', TONE_DOT[f.tone])} />
+            }
+            meta={f.count}
+            onSelect={() => onSelect(f)}
+          >
+            {f.label}
+          </BrowseDisclosureOption>
         )
       })}
-    </ul>
+    </div>
   )
 }
 
