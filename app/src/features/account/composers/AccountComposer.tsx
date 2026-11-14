@@ -102,7 +102,7 @@ export function AccountComposer() {
 
   return (
     <div className="space-y-3">
-      <Card className="p-2.5 md:p-3 space-y-2.5 border border-border">
+      <Card className="p-2.5 md:p-3 space-y-2.5 shadow-sm">
         <div className="flex items-center gap-2.5">
           <Icon name="cloud" size="md" className="text-brand-primary shrink-0" />
           <div className="min-w-0">
@@ -129,7 +129,7 @@ export function AccountComposer() {
         ) : (
           <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-bg-surface px-2.5 py-1 text-sm text-primary">
+              <span className="inline-flex items-center gap-1.5 rounded-md bg-bg-elevated px-2.5 py-1 text-sm text-primary">
                 <Icon name="user" size="sm" />{' '}
                 {sessionKind === 'local' ? 'This device' : user.email}
               </span>
@@ -147,7 +147,7 @@ export function AccountComposer() {
               <p className="text-xs text-muted">Library stays on this browser until you sign in.</p>
             )}
             {error && (
-              <p className="rounded-md border border-callout-danger-border bg-callout-danger-bg px-2.5 py-1.5 text-xs text-callout-danger">
+              <p className="rounded-md bg-callout-danger-bg px-2.5 py-1.5 text-xs text-callout-danger">
                 {error}
               </p>
             )}
@@ -174,7 +174,7 @@ export function AccountComposer() {
                 Sync pushes match tags. Videos stay opt-in from Details.
               </p>
             )}
-            <div className="rounded-md border border-border bg-bg-surface p-2.5 space-y-2">
+            <div className="rounded-md bg-bg-elevated/50 p-2.5 space-y-2">
               <div>
                 <h3 className="text-sm font-semibold text-primary">Reviewing as</h3>
                 <p className="text-xs text-muted">Library and “you” follow this player.</p>
@@ -258,7 +258,7 @@ export function AccountComposer() {
         )}
       </Card>
 
-      <Card className="p-2.5 border border-border">
+      <Card className="p-2.5 shadow-sm">
         <div className="flex items-center gap-2.5">
           <Icon name="target" size="md" className="text-muted shrink-0" />
           <div className="min-w-0 flex-1">
@@ -271,7 +271,7 @@ export function AccountComposer() {
         </div>
       </Card>
 
-      <Card className="p-2.5 space-y-2 border border-border">
+      <Card className="p-2.5 space-y-2 shadow-sm">
         <div className="flex items-center gap-2.5">
           <Icon name="hard-drive" size="md" className="text-muted shrink-0" />
           <div>
@@ -312,7 +312,7 @@ export function AccountComposer() {
               className={
                 fileNotice.tone === 'good'
                   ? 'text-xs text-result-winner'
-                  : 'rounded-md border border-callout-danger-border bg-callout-danger-bg px-2.5 py-1.5 text-xs text-callout-danger'
+                  : 'rounded-md bg-callout-danger-bg px-2.5 py-1.5 text-xs text-callout-danger'
               }
             >
               {fileNotice.text}

@@ -37,11 +37,11 @@ export function ReelListBlock({
 }: ReelListBlockProps) {
   if (reels.length === 0) return null
   const iconBtn =
-    'h-8 w-8 shrink-0 rounded-md border border-border flex items-center justify-center text-primary hover:border-border-strong disabled:opacity-40 disabled:pointer-events-none'
+    'h-8 w-8 shrink-0 rounded-md flex items-center justify-center text-primary hover:bg-bg-elevated disabled:opacity-40 disabled:pointer-events-none'
   return (
     <section className="space-y-2">
       <h3 className="text-xs font-semibold uppercase tracking-wide text-muted">Saved reels</h3>
-      <ul className="divide-y divide-border rounded-lg border border-border overflow-hidden bg-bg-card">
+      <ul className="divide-y divide-border rounded-lg overflow-hidden bg-bg-card">
         {reels.map((r) => {
           const a = AVAILABILITY[r.availability]
           const busy = busyAssetId === r.assetId

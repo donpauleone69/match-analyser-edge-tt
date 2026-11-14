@@ -75,8 +75,8 @@ export function Settings() {
 
         <AccountComposer />
 
-        <section className="rounded-lg border border-callout-danger-border bg-callout-danger-bg/40 overflow-hidden">
-          <div className="flex items-center gap-2 px-3 py-2 border-b border-callout-danger-border">
+        <section className="rounded-lg bg-callout-danger-bg/40 overflow-hidden">
+          <div className="flex items-center gap-2 px-3 py-2 border-b border-callout-danger-border/50">
             <Icon name="warning" size="sm" className="text-callout-danger" />
             <h2 className="text-xs font-semibold uppercase tracking-wide text-callout-danger">Danger zone</h2>
           </div>
@@ -98,7 +98,7 @@ export function Settings() {
                   <Icon name="trash" size="sm" /> Clear all data
                 </Button>
               ) : (
-                <div className="rounded-md border border-border bg-bg-surface p-3 space-y-3">
+                <div className="rounded-md bg-bg-surface p-3 space-y-3">
                   <p className="text-sm text-primary">
                     Delete everything on this device?
                   </p>

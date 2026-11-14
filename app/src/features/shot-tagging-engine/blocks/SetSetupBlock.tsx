@@ -23,7 +23,7 @@ export function SetSetupBlock({
   return (
     <div className="w-full min-h-screen flex items-center justify-center bg-bg-surface p-4">
       <div className="max-w-2xl w-full">
-        <div className="bg-bg-card border border-border rounded-lg p-4 space-y-4">
+        <div className="bg-bg-card rounded-lg p-4 space-y-4 shadow-sm">
           <div>
             <h1 className="text-xl md:text-2xl font-bold text-neutral-50 flex items-center gap-2">
               <Icon name="list-video" size="md" className="text-brand-primary" />
@@ -40,7 +40,7 @@ export function SetSetupBlock({
               return (
                 <div
                   key={setNum}
-                  className="flex items-center justify-between gap-3 p-3 bg-bg-shell rounded-lg border border-border hover:border-border-strong transition-colors flex-wrap md:flex-nowrap"
+                  className="flex items-center justify-between gap-3 p-3 bg-bg-shell rounded-lg hover:bg-bg-elevated transition-colors flex-wrap md:flex-nowrap"
                 >
                   <div className="flex items-center gap-2.5 flex-1 min-w-0">
                     {isCompleted ? (
@@ -57,7 +57,7 @@ export function SetSetupBlock({
                       </span>
                     )}
                     {isNext && !isCompleted && (
-                      <span className="px-1.5 py-0.5 rounded-md bg-callout-info-bg text-callout-info border border-callout-info-border text-[11px] font-medium">
+                      <span className="px-1.5 py-0.5 rounded-md bg-callout-info-bg text-callout-info text-[11px] font-medium">
                         Next
                       </span>
                     )}
@@ -77,7 +77,7 @@ export function SetSetupBlock({
           </div>
 
           {hasCompletedAll && (
-            <div className="p-3 bg-result-winner-bg border border-result-winner/40 rounded-lg">
+            <div className="p-3 bg-result-winner-bg rounded-lg">
               <p className="text-result-winner font-medium text-sm text-center">
                 All {totalSets} sets tagged
               </p>
