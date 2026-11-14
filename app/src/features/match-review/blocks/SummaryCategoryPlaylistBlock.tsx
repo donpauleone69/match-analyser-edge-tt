@@ -1,6 +1,7 @@
 /**
  * SummaryCategoryPlaylistBlock — Clips-like list of points for a Summary category.
  * MA-122: quieter tokens; optional evidence-linked row highlight.
+ * MA-133: denser empty shell (title + hint) for Serve/Receive focus empties.
  */
 
 import { Button, Icon } from '@/ui-mine'
@@ -21,6 +22,8 @@ export interface SummaryCategoryPlaylistBlockProps {
   hidePlayAll?: boolean
   listHeading?: string
   emptyLabel?: string
+  /** Quieter supporting line under emptyLabel (Serve/Receive focus empties). */
+  emptyHint?: string | null
   /** Soft-highlight rows that belong to the open evidence set */
   evidenceRallyIds?: string[] | null
 }
@@ -38,6 +41,7 @@ export function SummaryCategoryPlaylistBlock({
   hidePlayAll = false,
   listHeading = 'Points for you',
   emptyLabel = 'No points in this focus yet.',
+  emptyHint = null,
   evidenceRallyIds = null,
 }: SummaryCategoryPlaylistBlockProps) {
   const evidenceSet =
@@ -45,8 +49,9 @@ export function SummaryCategoryPlaylistBlock({
 
   if (rallies.length === 0) {
     return (
-      <div className="rounded-md border border-dashed border-border px-2.5 py-2 text-xs text-muted text-center">
-        {emptyLabel}
+      <div className="rounded-md border border-dashed border-border px-2.5 py-2 text-center">
+        <p className="text-xs font-medium text-primary">{emptyLabel}</p>
+        {emptyHint ? <p className="mt-0.5 text-[11px] text-muted">{emptyHint}</p> : null}
       </div>
     )
   }

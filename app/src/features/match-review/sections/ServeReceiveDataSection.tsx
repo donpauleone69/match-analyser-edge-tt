@@ -1,9 +1,9 @@
 /**
- * ServeReceiveDataSection — curated Serve / Receive Data (MA-82 → MA-122).
+ * ServeReceiveDataSection — curated Serve / Receive Data (MA-82 → MA-133).
  *
  * Flow: headlines → ≤2 cards → PlaylistBrowseShell focus → points →
  * watch (RallyPlayer + MatchVideoOverlayBar) or Clips playlist.
- * MA-122: evidence ↔ playlist sync (clear, hint, soft-highlight).
+ * MA-122: evidence ↔ playlist sync. MA-133: denser empty / focus shells.
  */
 
 import { useEffect, useMemo, useState } from 'react'
@@ -51,7 +51,7 @@ const TONE_DOT: Record<PlaylistFocusModel['tone'], string> = {
   good: 'bg-result-winner',
   bad: 'bg-result-error',
   amber: 'bg-warning',
-  none: 'bg-neutral-500',
+  none: 'bg-border-strong',
 }
 
 function resolveFocus(
@@ -213,9 +213,19 @@ export function ServeReceiveDataSection({
   }
 
   const evidenceOpen = Boolean(activeEvidenceTitle)
+  const focusEmpty = playlistRallies.length === 0
   const shellContext = evidenceOpen
     ? `Evidence · ${shortEvidenceLabel(activeEvidenceTitle!)} · playlist synced`
-    : `${section.title} · watch or open Clips`
+    : focusEmpty
+      ? `${section.title} · pick another focus`
+      : `${section.title} · watch or open Clips`
+
+  const emptyLabel = activeFocus
+    ? `No points in “${activeFocus.label}”`
+    : 'No points in this focus yet.'
+  const emptyHint = evidenceOpen
+    ? 'Close evidence or pick a focus that covers those points.'
+    : 'Switch Focus above, or tag more points in this set.'
 
   return (
     <div className="space-y-4">
@@ -277,15 +287,19 @@ export function ServeReceiveDataSection({
           trail={trail}
           panelClassName="py-1 max-h-[min(42dvh,22rem)] overflow-y-auto overscroll-contain"
         >
-          <PlaylistFocusPickerBlock
-            chrome="options"
-            focuses={focuses}
-            activeId={activeFocus?.id ?? ''}
-            onSelect={(f) => {
-              selectFocus(f)
-              setFocusOpen(false)
-            }}
-          />
+          {focuses.length === 0 ? (
+            <p className="px-2.5 py-2 text-xs text-muted">No focuses yet — tag serve/receive points.</p>
+          ) : (
+            <PlaylistFocusPickerBlock
+              chrome="options"
+              focuses={focuses}
+              activeId={activeFocus?.id ?? ''}
+              onSelect={(f) => {
+                selectFocus(f)
+                setFocusOpen(false)
+              }}
+            />
+          )}
         </PlaylistBrowseShellBlock>
         <SummaryCategoryPlaylistBlock
           title={playlistTitle}
@@ -295,7 +309,8 @@ export function ServeReceiveDataSection({
           activeRallyId={activeRallyId}
           evidenceRallyIds={evidenceOpen ? evidenceRallyIds : null}
           hidePlayAll
-          emptyLabel="No points in this focus yet."
+          emptyLabel={emptyLabel}
+          emptyHint={emptyHint}
           listHeading={activeFocus?.label ?? 'Points'}
           onPlayAll={() => onPlayPlaylist(playlistTitle, playlistRallies)}
           onWatch={(rally, list) => onWatchRally(rally, list, playlistTitle)}

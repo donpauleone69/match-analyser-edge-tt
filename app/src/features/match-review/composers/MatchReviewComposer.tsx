@@ -218,19 +218,19 @@ export function MatchReviewComposer() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-neutral-400">Loading match…</p>
+      <div className="flex items-center justify-center h-64" aria-busy="true" aria-live="polite">
+        <p className="text-sm text-muted">Loading match…</p>
       </div>
     )
   }
 
   if (error || notFound || !data || !review || !matchId) {
     return (
-      <Card className="p-5 text-center max-w-lg mx-auto border border-border">
-        <h2 className="text-lg font-semibold text-neutral-50 mb-1">
+      <Card className="p-4 text-center max-w-lg mx-auto border border-dashed border-border">
+        <h2 className="text-sm font-semibold text-primary mb-0.5">
           {error ? 'Could not load match' : 'Match not found'}
         </h2>
-        {error && <p className="text-sm text-neutral-500 mb-3">{error}</p>}
+        {error && <p className="text-xs text-muted mb-2.5">{error}</p>}
         <Button size="sm" variant="secondary" onClick={() => navigate('/')}>
           Home
         </Button>

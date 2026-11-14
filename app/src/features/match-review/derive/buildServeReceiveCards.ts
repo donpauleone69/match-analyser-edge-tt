@@ -261,7 +261,8 @@ function buildServeCards(story: ServeReceiveResult, names: Names): CompareCardMo
       id: 'B1',
       title: 'Where it pays or leaks',
       story: 'Attack pressure on your serve, and whether you seize the third ball.',
-      rows: leakWithData.length > 0 ? leakWithData : leakRows.slice(0, 2),
+      rows: leakWithData,
+      emptyMessage: 'Tag decided serves to fill leak / payoff rows',
     },
   ]
 }
@@ -454,7 +455,7 @@ function buildReceiveCards(story: ServeReceiveResult, names: Names): CompareCard
       id: 'C1',
       title: 'Attack vs passive payoff',
       story: 'Does attacking the return pay, and does a passive return stay safe?',
-      rows: detailWithData.length > 0 ? detailWithData : detailRows.slice(0, 2),
+      rows: detailWithData,
       emptyMessage: 'No decided returns marked yet',
     },
   ]

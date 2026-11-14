@@ -121,7 +121,10 @@ export function CompareCardBlock({
       )}
 
       {rows.length === 0 ? (
-        <p className="py-2 text-center text-sm text-muted">{emptyMessage}</p>
+        <div className="rounded-md border border-dashed border-border px-2.5 py-2 text-center">
+          <p className="text-xs font-medium text-primary">Nothing to compare yet</p>
+          <p className="mt-0.5 text-[11px] text-muted">{emptyMessage}</p>
+        </div>
       ) : (
         <div>
           <div className="grid grid-cols-[1fr_1.2fr_1fr] gap-2 pb-1 border-b border-border text-[10px] font-semibold uppercase tracking-wide text-muted">
