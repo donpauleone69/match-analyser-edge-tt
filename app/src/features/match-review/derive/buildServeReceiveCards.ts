@@ -62,9 +62,13 @@ interface RowSpec {
 function cellOf(spec: CellSpec, tone: MetricCellModel['tone'], title: string): MetricCellModel {
   const { value, won, wonLabel = 'won', misses } = spec
   if (value.denominator === 0) return { text: NO_VALUE, tone: 'none', evidence: null }
-  const extra = (misses ? missText(misses) : '') + (won && value.count > 0 ? ` · ${wonLabel} ${pct(won.share)}` : '')
+  const details: string[] = []
+  const miss = misses ? missText(misses).replace(/^ · /, '') : ''
+  if (miss) details.push(miss)
+  if (won && value.count > 0) details.push(`${wonLabel} ${pct(won.share)}`)
   return {
-    text: base(value) + extra,
+    text: base(value),
+    detail: details.length > 0 ? details.join(' · ') : undefined,
     tone: value.count === 0 ? 'none' : tone,
     evidence:
       value.rallyIds.length > 0
@@ -110,16 +114,19 @@ function headline(
   label: string,
   value: CountShare,
   tone: CellTone,
-  evidenceTitle: string
+  evidenceTitle: string,
+  focusId: string = key
 ): HeadlineMetricModel {
   if (value.denominator === 0) {
-    return { key, label, text: NO_VALUE, tone: 'none', evidence: null }
+    return { key, label, text: NO_VALUE, tone: 'none', evidence: null, focusId }
   }
   return {
     key,
     label,
     text: pct(value.share),
+    detail: `${value.count}/${value.denominator}`,
     tone: value.count === 0 ? 'none' : tone,
+    focusId,
     evidence:
       value.rallyIds.length > 0
         ? { title: evidenceTitle, rallyIds: value.rallyIds }

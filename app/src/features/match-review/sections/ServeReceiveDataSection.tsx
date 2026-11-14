@@ -1,5 +1,5 @@
 /**
- * ServeReceiveDataSection — curated Serve / Receive Data (MA-82 → MA-106).
+ * ServeReceiveDataSection — curated Serve / Receive Data (MA-82 → MA-115).
  *
  * Flow: headlines → ≤2 cards → PlaylistBrowseShell focus → points →
  * watch (RallyPlayer + MatchVideoOverlayBar) or Clips playlist.
@@ -18,6 +18,7 @@ import { SummaryCategoryPlaylistBlock } from '../blocks/SummaryCategoryPlaylistB
 import type {
   CompareSectionModel,
   EvidenceRef,
+  HeadlineMetricModel,
   PlaylistFocusModel,
   RallyRowModel,
 } from '../models'
@@ -132,13 +133,16 @@ export function ServeReceiveDataSection({
     }
   }
 
-  const openEvidenceAndFocus = (evidence: EvidenceRef) => {
+  const openEvidenceAndFocus = (evidence: EvidenceRef, headline?: HeadlineMetricModel) => {
     onOpenEvidence(evidence)
-    const match = baseFocuses.find(
+    const byFocusId =
+      headline?.focusId && baseFocuses.find((f) => f.id === headline.focusId && f.count > 0)
+    const byRallySet = baseFocuses.find(
       (f) =>
         f.rallyIds.length === evidence.rallyIds.length &&
         evidence.rallyIds.every((id) => f.rallyIds.includes(id))
     )
+    const match = byFocusId ?? byRallySet
     if (match) {
       setEvidenceFocus(null)
       setFocusId(match.id)
@@ -176,10 +180,10 @@ export function ServeReceiveDataSection({
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-lg font-semibold text-neutral-50">{section.title}</h2>
-        <p className="text-sm text-neutral-500">{section.question}</p>
+        <h2 className="text-lg font-semibold text-primary">{section.title}</h2>
+        <p className="text-sm text-muted">{section.question}</p>
         {section.pageStory && (
-          <p className="mt-1 text-sm text-neutral-500 max-w-2xl line-clamp-2">{section.pageStory}</p>
+          <p className="mt-1 text-sm text-muted max-w-2xl line-clamp-2">{section.pageStory}</p>
         )}
       </div>
 
