@@ -730,6 +730,10 @@ export function SimpleTaggingComposer({
    */
   const handleLetRally = () => {
     if (!openRally && contactTimes.length === 0) return
+    const ok = window.confirm(
+      'Let — clear contacts and re-tap this point from just before the serve? No score is recorded.'
+    )
+    if (!ok) return
     const seekSource =
       openRally?.serveTimestamp ??
       (contactTimes.length > 0 ? contactTimes[0] : null)
@@ -757,6 +761,10 @@ export function SimpleTaggingComposer({
 
   const handleDiscardOpen = () => {
     if (!openRally) return
+    const ok = window.confirm(
+      'Discard this point draft? Contacts and tags for this rally are cleared (not saved).'
+    )
+    if (!ok) return
     const endAt = openRally.endTimestamp
     setOpenRally(null)
     setContactTimes([])
@@ -1266,6 +1274,24 @@ export function SimpleTaggingComposer({
       onDeleteLast={() => {
         void handleDeleteLastRally()
       }}
+      onJumpFirstServe={
+        completed.length > 0
+          ? () => {
+              handleJumpToFirstServe()
+              setPointLedgerOpen(false)
+            }
+          : undefined
+      }
+      onJumpPrevSetEnd={
+        showBetweenSetGapJump
+          ? () => {
+              handleJumpPrevSetEnd()
+              setPointLedgerOpen(false)
+            }
+          : undefined
+      }
+      gapJumpIsEstimate={gapJumpIsEstimate}
+      prevSetNumber={setNumber > 1 ? setNumber - 1 : null}
     />
   )
   const canEndSet = completed.length > 0 && focusedRallyIndex === 'next'
@@ -1285,10 +1311,6 @@ export function SimpleTaggingComposer({
       }
       onSelectLast={handleJumpToLastRallyEnd}
       onSelectNext={handleSelectNextRally}
-      onJumpFirstServe={handleJumpToFirstServe}
-      onJumpPrevSetEnd={showBetweenSetGapJump ? handleJumpPrevSetEnd : undefined}
-      gapJumpIsEstimate={gapJumpIsEstimate}
-      prevSetNumber={setNumber > 1 ? setNumber - 1 : null}
       onToggleHistory={() => setPointLedgerOpen((open) => !open)}
       canEndSet={canEndSet}
       onEndSet={() => void handleEndSession()}

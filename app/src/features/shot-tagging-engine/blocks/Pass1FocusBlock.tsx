@@ -800,7 +800,7 @@ export function Pass1FocusBlock({
                     style={{ background: visual.stripeColor }}
                   />
                   <span>{phaseName}</span>
-                  <span className="flex-1 min-w-2 h-px bg-neutral-700" />
+                  <span className="flex-1 min-w-2 h-px bg-border" />
                 </div>
               )}
 
@@ -1166,7 +1166,7 @@ export function Pass1ShotMarkRail({
                 'relative w-full h-7 rounded font-bold text-sm leading-none',
                 'border touch-manipulation',
                 isHighlight
-                  ? 'bg-warning border-warning text-neutral-950'
+                  ? 'bg-warning border-warning text-primary'
                   : 'bg-[var(--color-pill-idle)] border-[var(--color-pill-idle-border)] text-warning'
               )}
             >

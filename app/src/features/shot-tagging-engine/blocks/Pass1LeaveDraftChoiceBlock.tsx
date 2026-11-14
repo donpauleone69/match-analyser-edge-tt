@@ -39,11 +39,11 @@ export function Pass1LeaveDraftChoiceBlock({
       >
         <h2
           id="pass1-leave-draft-title"
-          className="text-base font-semibold text-neutral-50"
+          className="text-base font-semibold text-primary"
         >
           Leave tagging?
         </h2>
-        <p id="pass1-leave-draft-desc" className="mt-1.5 text-sm text-neutral-500">
+        <p id="pass1-leave-draft-desc" className="mt-1.5 text-sm text-muted">
           Soft exit — keep the open point as a draft, or discard it.
         </p>
         <div className="mt-5 flex flex-col gap-2">
