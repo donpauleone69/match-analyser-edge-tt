@@ -26,8 +26,9 @@ import { VideoPlayerSection } from '../sections'
 import {
   type VideoPlayerHandle,
   useVideoPlaybackStore,
-  TransportCluster,
   VideoStageChrome,
+  MatchVideoOverlayBar,
+  MATCH_VIDEO_OVERLAY_BOTTOM_CLASS,
   nudgePlaybackSpeed as nudgeSharedSpeed,
   SEEK_STEP_SECONDS as SHARED_SEEK_STEP,
 } from '@/ui-mine/VideoPlayer'
@@ -1312,24 +1313,18 @@ export function Pass1FocusComposer({
       <div className="relative shrink-0 w-full bg-black overflow-hidden max-h-[42dvh] flex justify-center">
         <div className="relative w-full aspect-video max-h-[42dvh]">
           <VideoStageChrome
-            bottomOverlayClassName="!bottom-4"
+            bottomOverlayClassName={MATCH_VIDEO_OVERLAY_BOTTOM_CLASS}
             bottomOverlay={
               videoUrl ? (
-                <div className="flex h-7 min-w-0 items-end justify-between gap-1.5">
-                  <div className="flex h-7 min-w-0 shrink items-end">{scoreBadge}</div>
-                  <TransportCluster
-                    variant="overlay"
-                    overlayLayout="cluster"
-                    isPlaying={isPlaying}
-                    playbackSpeed={playbackSpeed}
-                    seekStepSeconds={SHARED_SEEK_STEP}
-                    onTogglePlay={() => videoPlayerRef.current?.togglePlay()}
-                    onSeekBy={handleSeekBy}
-                    onNudgeSpeed={nudgePlaybackSpeed}
-                    trailing={undefined}
-                    className="h-7 shrink-0 gap-0.5 [&_button]:h-7 [&_button]:min-w-7 [&_button]:w-7 [&_span]:inline-flex [&_span]:h-7 [&_span]:min-w-7 [&_span]:items-center [&_span]:justify-center [&_span]:px-1 [&_span]:py-0 [&_span]:text-[10px]"
-                  />
-                </div>
+                <MatchVideoOverlayBar
+                  score={scoreBadge}
+                  isPlaying={isPlaying}
+                  playbackSpeed={playbackSpeed}
+                  seekStepSeconds={SHARED_SEEK_STEP}
+                  onTogglePlay={() => videoPlayerRef.current?.togglePlay()}
+                  onSeekBy={handleSeekBy}
+                  onNudgeSpeed={nudgePlaybackSpeed}
+                />
               ) : null
             }
           >

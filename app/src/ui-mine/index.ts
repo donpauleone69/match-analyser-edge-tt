@@ -31,6 +31,10 @@ export {
   VideoPlayer,
   TransportCluster,
   VideoStageChrome,
+  MatchScoreHud,
+  parseScorePair,
+  MatchVideoOverlayBar,
+  MATCH_VIDEO_OVERLAY_BOTTOM_CLASS,
   MATCH_PLAYBACK_SPEED_STEPS,
   DEFAULT_PLAYBACK_SPEED,
   SEEK_STEP_SECONDS,
@@ -45,6 +49,9 @@ export type {
   TransportClusterProps,
   TransportVariant,
   VideoStageChromeProps,
+  MatchScoreHudProps,
+  MatchScoreSide,
+  MatchVideoOverlayBarProps,
 } from './VideoPlayer'
 
 // Table Tennis Buttons (for shot-tagging-engine)

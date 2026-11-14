@@ -2,11 +2,10 @@
  * TransportCluster — shared rewind / speed / mute / play controls for match video.
  *
  * Variants:
- * - overlay: compact chips on the video (Pass 1 / Simple style)
- * - footer: bordered buttons under the video (review / clips)
+ * - overlay: compact chips on the video (canonical — prefer MatchVideoOverlayBar)
+ * - footer: bordered buttons under the video (legacy; migrate stages off this)
  *
- * Mute reads/writes videoPlaybackStore so Simple + Pass 1 + footer stages
- * share one control without per-composer wiring.
+ * Mute reads/writes videoPlaybackStore so all stages share one mute toggle.
  */
 
 import type { ReactNode } from 'react'
