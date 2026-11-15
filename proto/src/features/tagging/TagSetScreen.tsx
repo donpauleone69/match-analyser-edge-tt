@@ -163,7 +163,7 @@ type Toast = { text: string; undo: () => void; extra?: { label: string; run: () 
 const GUARD_AFTER_CLOSE_MS = 1000
 const GUARD_AFTER_SWAP_MS = 600
 const GUARD_PANEL_AFTER_CLOSE_MS = 500
-/** A control that is ignoring presses looks it. */
+/** The guard after the idle close looks it. A slot swap ignores presses and does not dim. */
 const BUSY = 'opacity-40'
 const HINT_MS = 2500
 /** Back, between rallies: far enough to see a serve again. */
@@ -269,15 +269,18 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
 
   const slotGuard = useRef(0)
   const panelGuard = useRef(0)
+  /** Dim until this moment. Only the guard after the idle close sets it. */
+  const closeGrey = useRef(0)
   /** The speed chosen for watching between rallies. Tapping, Save and the next set do not lose it. */
   const watchRate = useRef<number>(watchRates.get(match.id) ?? NORMAL_SPEED)
   const listResume = useRef(false)
   const body = useRef<HTMLDivElement>(null)
-  const arm = (slotMs: number, panelMs = 0) => {
+  const arm = (slotMs: number, panelMs = 0, greyMs = 0) => {
     const now = Date.now()
     slotGuard.current = Math.max(slotGuard.current, now + slotMs)
     panelGuard.current = Math.max(panelGuard.current, now + panelMs)
-    for (const ms of [slotMs, panelMs]) {
+    if (greyMs > 0) closeGrey.current = Math.max(closeGrey.current, now + greyMs)
+    for (const ms of [slotMs, panelMs, greyMs]) {
       if (ms > 0) guardTimers.current.push(window.setTimeout(() => setGuardTick((t) => t + 1), ms + 20))
     }
     setGuardTick((t) => t + 1)
@@ -537,7 +540,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     setSelected(end)
     setLastTap(null)
     // A tap that comes late never lands on Save, Re-tap, Discard or a chip.
-    arm(GUARD_AFTER_CLOSE_MS, GUARD_PANEL_AFTER_CLOSE_MS)
+    arm(GUARD_AFTER_CLOSE_MS, GUARD_PANEL_AFTER_CLOSE_MS, GUARD_AFTER_CLOSE_MS)
   }
 
   /**
@@ -565,6 +568,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     // The pad is back for the same rally: the next tap may follow at once.
     slotGuard.current = 0
     panelGuard.current = 0
+    closeGrey.current = 0
     lastSlot.current = 'pad'
     setLastTap(now)
   }
@@ -866,10 +870,12 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     }
     const off = offsetOf(active.videoId)
     const w = addContactWindow(active, fenceOf(active))
+    // Same fence as the tap: not behind the previous rally, and before the next one.
+    const end = Math.min(w.b, ceilOf(active))
     setAdding({ contacts: active.contacts, rate: player.rate })
     setLate(null)
     p.setRate(CAPTURE_SPEED)
-    p.setLoop({ a: off + w.a, b: off + Math.min(durationOf(active.videoId), w.b) })
+    p.setLoop({ a: off + w.a, b: off + end })
     p.seek(off + w.a)
     p.play()
   }
@@ -1490,7 +1496,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const finishCard = canFinishNow && (mode === 'setPoint' || atEnd)
   /** After Keep tagging, while the score is still a winning one, Finish stays in reach. */
   const finishKept = canFinish && mode === 'watch' && setWon && !atEnd
-  const slotBusy = Date.now() < slotGuard.current
+  const slotGrey = Date.now() < closeGrey.current
   const panelBusy = Date.now() < panelGuard.current
   const setLine = `Set ${set.setId} · ${formatScore(score)}`
   /** The shot on screen while a closed rally loops. */
@@ -1611,15 +1617,15 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     !readOnly && (mode === 'watch' || mode === 'tagging') && !atEnd && padServer !== expected
   const switchWarnRally = gap ? gap.index + 1 : set.rallies.length + 1
   const switchOn = !readOnly && !atEnd && (mode === 'watch' || mode === 'tagging' || mode === 'edit')
-  const rowButton = cn('h-11 lg:h-9 px-3 shrink-0', slotBusy && BUSY)
+  const rowButton = cn('h-11 lg:h-9 px-3 shrink-0', slotGrey && BUSY)
   /** The right end of the status row always means "go back": 5 seconds, or one tap. One width, so the spot does not shift. Let never sits there. */
   const endButton = cn(rowButton, 'w-24 lg:w-36')
   /** The four rally actions: one width each, the label on two lines where it needs them. */
-  const actionButton = cn('w-14 shrink-0 px-0.5 text-xs leading-tight text-center', slotBusy && BUSY)
+  const actionButton = cn('w-14 shrink-0 px-0.5 text-xs leading-tight text-center', slotGrey && BUSY)
   /** Slot controls never change size, not even while pressed. */
   const slotButton = cn(
     'h-20 rounded-lg text-lg active:scale-100 active:brightness-90',
-    slotBusy && !late && BUSY
+    slotGrey && !late && BUSY
   )
 
   return (
@@ -2172,7 +2178,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               disabled={atEnd || mode === 'blocked'}
               className={cn(
                 'relative flex-1 min-w-0 h-20 rounded-lg text-lg font-bold overflow-hidden touch-manipulation select-none active:brightness-90 border-l-8 inline-flex items-center justify-center gap-2',
-                slotBusy && BUSY,
+                slotGrey && BUSY,
                 'disabled:bg-disabled-bg disabled:text-disabled-text disabled:active:brightness-100',
                 mode === 'setPoint'
                   ? 'bg-pill-idle text-primary border border-pill-idle-border'
@@ -2208,7 +2214,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               className={cn(
                 'btn-kind-tap-pad flex-1 min-w-0 rounded-lg px-2 text-lg font-bold leading-tight touch-manipulation select-none active:brightness-90',
                 'inline-flex items-center justify-center gap-2 bg-brand-primary text-on-accent',
-                slotBusy && BUSY
+                slotGrey && BUSY
               )}
             >
               Tap the missed contact
@@ -2219,7 +2225,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
             <Button
               kind="tapPad"
               data-tag-fa
-              className={cn('flex-1 min-w-0 text-lg active:scale-100', slotBusy && !late && BUSY)}
+              className={cn('flex-1 min-w-0 text-lg active:scale-100', slotGrey && !late && BUSY)}
               disabled={liveShot === 1}
               onClick={onPickFa}
             >
@@ -2230,7 +2236,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
             <Button
               kind="tapPad"
               data-tag-save
-              className={cn('flex-1 min-w-0 rounded-lg text-lg active:scale-100', slotBusy && !late && BUSY)}
+              className={cn('flex-1 min-w-0 rounded-lg text-lg active:scale-100', slotGrey && !late && BUSY)}
               disabled={!ready}
               onClick={onSave}
             >
@@ -2247,7 +2253,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               <Button
                 kind="tapPad"
                 data-tag-fa
-                className={cn('flex-1 min-w-0 text-lg active:scale-100', slotBusy && BUSY)}
+                className={cn('flex-1 min-w-0 text-lg active:scale-100', slotGrey && BUSY)}
                 disabled={liveShot === 1}
                 onClick={onPickFa}
               >
@@ -2257,7 +2263,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               <Button
                 kind="tapPad"
                 data-tag-save
-                className={cn('flex-1 min-w-0 rounded-lg text-lg active:scale-100', slotBusy && BUSY)}
+                className={cn('flex-1 min-w-0 rounded-lg text-lg active:scale-100', slotGrey && BUSY)}
                 disabled={!ready || !edit.dirty}
                 onClick={onSaveEdit}
               >
@@ -2281,7 +2287,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                 'h-20 w-20 shrink-0 rounded-lg border text-xs font-semibold touch-manipulation select-none active:brightness-90',
                 'inline-flex flex-col items-center justify-center gap-1 disabled:opacity-40',
                 padServer === 'me' ? 'bg-side-me/15 border-side-me/50' : 'bg-side-them/15 border-side-them/50',
-                (mode === 'tapping' || addOn || (slotBusy && !late)) && BUSY
+                (mode === 'tapping' || addOn || (slotGrey && !late)) && BUSY
               )}
             >
               <span className="inline-flex items-center gap-1.5 max-w-full px-1">
@@ -2301,7 +2307,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               set={set}
               locked={readOnly}
               videoOver={player.atEnd}
-              busy={slotBusy}
+              busy={slotGrey}
               onGo={(to) => navigate(to)}
               onFinishMatch={() => mutateMatch(match.id, finishMatch)}
             />
