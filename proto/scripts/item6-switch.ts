@@ -12,6 +12,7 @@ import {
   markFa,
   noAttackOffered,
   patchShot,
+  rallyFromDraft,
   setEnding,
   showsStroke,
   strokeCells,
@@ -228,8 +229,8 @@ function pressFlip(d: Draft, shot: number, shown: StrokeSide): { d: Draft; shown
   ok('S16 Push leaves No attack', still.noAttack === true && still.fa === null)
 }
 
-// S17 Moving the first attack later clears strokes now hidden before it. Wing stays.
-// There is no undo on the move. The draft passed in is left as it was, which is what a restore brings back.
+// S17 Moving the first attack later keeps the strokes already answered in the draft.
+// The shots now before it show no stroke row, and Save leaves their strokes out. Moving it back brings them back.
 {
   const before = draft({
     contacts: [1, 2, 3, 4, 5],
@@ -245,22 +246,33 @@ function pressFlip(d: Draft, shot: number, shown: StrokeSide): { d: Draft; shown
   const after = markFa(before, 5)
   ok('S17 first attack is shot 5', after.fa === 5 && after.noAttack === false)
   ok(
-    'S17 strokes before it are cleared and wings stay',
-    after.shots[2]?.stroke === undefined &&
+    'S17 strokes before it stay in the draft with their wings, and have no row',
+    after.shots[2]?.stroke === 'Loop' &&
       after.shots[2]?.wing === 'FH' &&
-      after.shots[3]?.stroke === undefined &&
+      after.shots[3]?.stroke === 'Drive' &&
       after.shots[3]?.wing === 'BH' &&
       !showsStroke(after, 3) &&
       !showsStroke(after, 4)
   )
   ok('S17 the new first attack keeps Smash', after.shots[4]?.stroke === 'Smash' && showsStroke(after, 5))
+  const saved = rallyFromDraft(after, 'r')
   ok(
-    'S17 no undo on the move; the draft going in still has Loop and Drive',
-    before.fa === 3 && before.shots[2]?.stroke === 'Loop' && before.shots[3]?.stroke === 'Drive'
+    'S17 Save leaves out the strokes with no row and keeps the wings',
+    saved !== null &&
+      !('stroke' in saved.shots[2]) &&
+      saved.shots[2].wing === 'FH' &&
+      !('stroke' in saved.shots[3]) &&
+      saved.shots[3].wing === 'BH' &&
+      saved.shots[4].stroke === 'Smash'
+  )
+  const back = markFa(after, 3)
+  ok(
+    'S17 moved back to shot 3: every answer is as it was',
+    back.fa === 3 && JSON.stringify(back.shots) === JSON.stringify(before.shots)
   )
 }
 
-// S18 No attack on three or more shots clears strokes that no longer have a row. The end shot keeps its stroke.
+// S18 No attack on three or more shots keeps the strokes in the draft. Save keeps only the end shot's.
 {
   const before = draft({
     contacts: [1, 2, 3, 4],
@@ -271,20 +283,27 @@ function pressFlip(d: Draft, shot: number, shown: StrokeSide): { d: Draft; shown
   const after = toggleNoAttack(before)
   ok('S18 No attack, fa cleared', after.noAttack === true && after.fa === null)
   ok(
-    'S18 hidden strokes cleared, wings stay, end stroke stays',
-    after.shots[1]?.stroke === undefined &&
-      after.shots[1]?.wing === 'BH' &&
-      after.shots[2]?.stroke === undefined &&
-      after.shots[2]?.wing === 'FH' &&
-      after.shots[3]?.stroke === 'Chop' &&
-      after.shots[3]?.wing === 'BH' &&
+    'S18 strokes stay in the draft, only the end shot has a row',
+    JSON.stringify(after.shots) === JSON.stringify(before.shots) &&
       !showsStroke(after, 2) &&
       !showsStroke(after, 3) &&
       showsStroke(after, 4)
   )
+  const saved = rallyFromDraft(after, 'r')
   ok(
-    'S18 no undo on the choice; the draft going in still has Push and Loop',
-    before.noAttack === false && before.fa === 3 && before.shots[1]?.stroke === 'Push' && before.shots[2]?.stroke === 'Loop'
+    'S18 Save leaves out the strokes with no row, wings stay, end stroke stays',
+    saved !== null &&
+      !('stroke' in saved.shots[1]) &&
+      saved.shots[1].wing === 'BH' &&
+      !('stroke' in saved.shots[2]) &&
+      saved.shots[2].wing === 'FH' &&
+      saved.shots[3].stroke === 'Chop' &&
+      saved.shots[3].wing === 'BH'
+  )
+  const back = markFa(toggleNoAttack(after), 3)
+  ok(
+    'S18 No attack taken back and shot 3 picked again: every answer is as it was',
+    back.fa === 3 && back.noAttack === false && JSON.stringify(back.shots) === JSON.stringify(before.shots)
   )
 }
 
