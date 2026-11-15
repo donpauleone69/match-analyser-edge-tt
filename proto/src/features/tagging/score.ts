@@ -33,11 +33,6 @@ export function leader(score: Points): Side | null {
   return score.me > score.them ? 'me' : 'them'
 }
 
-/** Sets won that could be a finished match: best of 3, 5 or 7. */
-export function isPlausibleMatchWin(sets: Points): boolean {
-  return Math.max(sets.me, sets.them) >= 2 && sets.me !== sets.them
-}
-
 /** Later sets alternate the first server from set 1. */
 export function firstServerForSet(setOneServer: Side, setId: number): Side {
   return setId % 2 === 1 ? setOneServer : otherSide(setOneServer)

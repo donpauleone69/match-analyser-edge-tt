@@ -4,6 +4,8 @@ import { segmentAt, segmentsOf, totalDuration, type Segment } from './timeline'
 
 export type PlayerVideo = { id: string; kind: 'demo' | 'file'; durationS: number; src?: string }
 export type Window = { a: number; b: number }
+/** Why a seek fell short: the last saved rally, the loop being tagged, or the end. */
+export type SeekStop = 'fence' | 'loop' | 'end' | null
 
 type Snapshot = {
   time: number
@@ -102,11 +104,12 @@ export function usePlayer(videos: PlayerVideo[]) {
           jump(w.a)
           time = w.a
         } else if (edge && time >= edge.at) {
-          time = Math.max(0, edge.at - 0.02)
           playing.current = false
           boundary.current = null
-          t.current = time
+          t.current = Math.max(0, edge.at - 0.02)
+          // The callback may seek and play again: carry on from where it left the clock.
           edge.cb()
+          time = t.current
         }
       }
       if (total > 0 && time >= total) {
@@ -156,13 +159,19 @@ export function usePlayer(videos: PlayerVideo[]) {
       pause: () => {
         playing.current = false
       },
-      /** Stays behind the fence, and inside the loop when one is set. */
-      seek: (g: number) => {
+      /**
+       * Stays behind the fence, and inside the loop when one is set. Says what
+       * held it back, so the screen can tell the user why it stopped.
+       */
+      seek: (g: number): SeekStop => {
         const total = totalDuration(segsRef.current)
         const w = loop.current
         const lo = w ? w.a : floor.current
         const hi = w ? w.b : total
         jump(Math.min(Math.max(g, lo), Math.max(lo, hi)))
+        if (g < lo - 0.05) return w ? 'loop' : lo > 0 ? 'fence' : null
+        if (g > hi + 0.05) return w ? 'loop' : 'end'
+        return null
       },
       setRate: (r: number) => {
         rate.current = r

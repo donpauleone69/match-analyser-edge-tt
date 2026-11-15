@@ -20,18 +20,40 @@ import {
   type ShotTags,
   type Side,
 } from './rally'
+import { NO_ATTACK_KEY, PIVOT_KEY, RESULT_KEYS, STROKE_KEYS, WING_KEYS } from './shotKeys'
 import { formatClock } from './timeline'
+
+/** A key printed on its control. Desktop only: a phone has no keys. */
+export function KeyHint({ k, className }: { k: string; className?: string }) {
+  return (
+    <kbd
+      aria-hidden
+      className={cn(
+        'hidden lg:inline-flex h-4 min-w-4 px-1 items-center justify-center rounded-sm border border-current/40 font-sans text-[9px] font-bold uppercase leading-none opacity-70',
+        className
+      )}
+    >
+      {k}
+    </kbd>
+  )
+}
+
+/** Thumb-sized on a phone, compact with a mouse. */
+const chip =
+  'h-11 px-3.5 text-sm lg:h-8 lg:px-2.5 lg:text-xs rounded-md border font-semibold inline-flex items-center gap-1.5'
 
 function Pill({
   on,
   onClick,
   children,
   tone = 'brand',
+  hint,
 }: {
   on: boolean
   onClick: () => void
   children: ReactNode
   tone?: 'brand' | 'good' | 'bad'
+  hint?: string
 }) {
   return (
     <button
@@ -39,7 +61,7 @@ function Pill({
       aria-pressed={on}
       onClick={onClick}
       className={cn(
-        'h-8 px-2.5 rounded-md border text-xs font-semibold',
+        chip,
         on
           ? tone === 'good'
             ? 'bg-success text-white border-success'
@@ -50,6 +72,7 @@ function Pill({
       )}
     >
       {children}
+      {hint ? <KeyHint k={hint} /> : null}
     </button>
   )
 }
@@ -58,7 +81,7 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="space-y-1">
       <p className="text-[10px] font-bold uppercase tracking-wide text-muted">{label}</p>
-      <div className="flex flex-wrap gap-1">{children}</div>
+      <div className="flex flex-wrap gap-1.5 lg:gap-1">{children}</div>
     </div>
   )
 }
@@ -76,18 +99,20 @@ export function TimeRow({
   const name =
     mark.kind === 'start' ? 'Rally start' : mark.kind === 'end' ? 'Rally end' : `Shot ${mark.shot} time`
   const step =
-    'h-8 w-12 rounded-md border border-pill-idle-border bg-pill-idle text-xs font-semibold text-primary hover:bg-bg-elevated'
+    'h-11 w-14 lg:h-8 lg:w-16 rounded-md border border-pill-idle-border bg-pill-idle text-xs font-semibold text-primary hover:bg-bg-elevated inline-flex items-center justify-center gap-1.5'
   return (
     <div className="flex items-center gap-2" role="group" aria-label={name}>
       <p className="text-[10px] font-bold uppercase tracking-wide text-muted flex-1">{name}</p>
       <button type="button" className={step} aria-label="Earlier by 0.1 seconds" onClick={() => onNudge(-NUDGE_STEP_S)}>
         - 0.1
+        <KeyHint k="-" />
       </button>
       <span className="w-16 text-center text-sm font-semibold text-primary tabular-nums" data-mark-time>
         {formatClock(markTime(draft, mark), true)}
       </span>
       <button type="button" className={step} aria-label="Later by 0.1 seconds" onClick={() => onNudge(NUDGE_STEP_S)}>
         + 0.1
+        <KeyHint k="=" />
       </button>
     </div>
   )
@@ -149,11 +174,12 @@ export function ShotPanel({
 
       {fields.result ? (
         <Row label="Result">
-          {ENDINGS.map((e) => (
+          {ENDINGS.map((e, i) => (
             <Pill
               key={e}
               on={draft.ending === e}
               tone={isError(e) ? 'bad' : 'good'}
+              hint={RESULT_KEYS[i]}
               onClick={() => onChange(setEnding(draft, e))}
             >
               {e}
@@ -164,19 +190,23 @@ export function ShotPanel({
 
       {fields.wing && showShotRow ? (
         <Row label="Shot">
-          {WINGS.map((w) => (
-            <Pill key={w} on={tags.wing === w} onClick={() => set('wing', w)}>
+          {WINGS.map((w, i) => (
+            <Pill key={w} on={tags.wing === w} hint={WING_KEYS[i]} onClick={() => set('wing', w)}>
               {w}
             </Pill>
           ))}
           {fields.pivot ? (
-            <Pill on={Boolean(tags.pivot)} onClick={() => onChange(patchShot(draft, shot, { pivot: !tags.pivot }))}>
+            <Pill
+              on={Boolean(tags.pivot)}
+              hint={PIVOT_KEY}
+              onClick={() => onChange(patchShot(draft, shot, { pivot: !tags.pivot }))}
+            >
               Pivot
             </Pill>
           ) : null}
           {fields.strokes ? <span className="w-2" aria-hidden /> : null}
-          {fields.strokes?.map((s) => (
-            <Pill key={s} on={tags.stroke === s} onClick={() => set('stroke', s)}>
+          {fields.strokes?.map((s, i) => (
+            <Pill key={s} on={tags.stroke === s} hint={STROKE_KEYS[i]} onClick={() => set('stroke', s)}>
               {s}
             </Pill>
           ))}
@@ -196,7 +226,7 @@ export function ShotPanel({
           ) : null}
           {fields.depth ? (
             <Row label="Depth">
-              {['Short', 'Half', 'Long'].map((v) => (
+              {['Short', 'Half', 'Deep'].map((v) => (
                 <Pill key={v} on={tags.depth === v} onClick={() => set('depth', v)}>
                   {v}
                 </Pill>
@@ -261,6 +291,54 @@ export function ShotPanel({
           ) : null}
         </div>
       ) : null}
+    </div>
+  )
+}
+
+const faTint: Record<Side, string> = {
+  me: 'bg-side-me/15 border-side-me/50 text-primary',
+  them: 'bg-side-them/15 border-side-them/50 text-primary',
+}
+
+/**
+ * The first attack, picked where the thumb is: one button per shot it could
+ * be, and No attack. Pressing the lit one clears it.
+ */
+export function FirstAttackRow({
+  draft,
+  onPick,
+  onNoAttack,
+}: {
+  draft: Draft
+  onPick: (shot: number) => void
+  onNoAttack: () => void
+}) {
+  const shots = draft.contacts.map((_, i) => i + 1).slice(1)
+  return (
+    <div className="rounded-md border border-border bg-bg-surface p-3" role="group" aria-label="First attack">
+      <Row label="First attack">
+        {shots.map((shot) => (
+          <button
+            key={shot}
+            type="button"
+            aria-label={`First attack on shot ${shot}`}
+            aria-pressed={draft.fa === shot}
+            onClick={() => onPick(shot)}
+            className={cn(
+              chip,
+              'min-w-11 lg:min-w-8 justify-center tabular-nums',
+              draft.fa === shot
+                ? 'bg-shot-fa text-white border-shot-fa'
+                : faTint[hitterOf(draft.server, shot)]
+            )}
+          >
+            {shot}
+          </button>
+        ))}
+        <Pill on={draft.noAttack} tone="bad" hint={NO_ATTACK_KEY} onClick={onNoAttack}>
+          No attack
+        </Pill>
+      </Row>
     </div>
   )
 }

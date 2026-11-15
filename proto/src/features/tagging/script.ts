@@ -49,19 +49,31 @@ function rng(seed: number) {
 
 const pick = <T,>(r: () => number, list: readonly T[]): T => list[Math.floor(r() * list.length)]
 
-/** Point winners for a set that ends exactly `me` to `them` (no deuce). */
+/**
+ * Point winners for a set that ends exactly `me` to `them`. Nobody reaches a
+ * winning score early: past 10 all the points trade until the last two.
+ */
 export function setWinners(seed: number, me: number, them: number): Side[] {
   const r = rng(seed)
   const winner: Side = me > them ? 'me' : 'them'
-  const body: Side[] = [
-    ...Array<Side>(Math.max(me, them) - 1).fill(winner),
-    ...Array<Side>(Math.min(me, them)).fill(otherSide(winner)),
-  ]
+  const loser = otherSide(winner)
+  const high = Math.max(me, them)
+  const low = Math.min(me, them)
+  const deuce = low >= 10
+  const body: Side[] = deuce
+    ? [...Array<Side>(10).fill(winner), ...Array<Side>(10).fill(loser)]
+    : [...Array<Side>(high - 1).fill(winner), ...Array<Side>(low).fill(loser)]
   for (let i = body.length - 1; i > 0; i--) {
     const j = Math.floor(r() * (i + 1))
     ;[body[i], body[j]] = [body[j], body[i]]
   }
-  return [...body, winner]
+  if (!deuce) return [...body, winner]
+  const pairs: Side[] = []
+  for (let i = 10; i < low; i++) {
+    const first = r() < 0.5 ? winner : loser
+    pairs.push(first, otherSide(first))
+  }
+  return [...body, ...pairs, winner, winner]
 }
 
 const LENGTHS = [1, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 6, 7]
@@ -139,12 +151,66 @@ export function buildScripts(seed: number, sets: ScriptSet[], cuts: number[] = [
   return videos
 }
 
-/** A generic two-set script for a demo video added by hand. */
-export function genericScript(seed: number): VideoScript {
-  return buildScripts(seed, [
-    { firstServer: 'me', winners: setWinners(seed + 1, 11, 6 + (seed % 4)) },
-    { firstServer: 'them', winners: setWinners(seed + 2, 7 + (seed % 3), 11) },
-  ])[0]
+/** One listed set of a match, as far as the demo video needs to know it. */
+export type SetPlan = {
+  firstServer: Side
+  /** The entered score, when it is one a set can end on. */
+  score: Points | null
+  /** Not filmed sets count towards the result but are not in the video. */
+  filmed: boolean
+}
+
+const canEndOn = (p: Points | null): p is Points =>
+  p !== null && Math.max(p.me, p.them) >= 11 && Math.abs(p.me - p.them) >= 2
+
+/**
+ * The demo video for a match: a whole decided match, so the end of the video
+ * is the end of the match. With a result entered the sets follow it, and any
+ * entered set score that a set can end on is played out exactly. With no
+ * result it is three sets ending 2 - 1.
+ */
+export function matchScript(seed: number, result: Points | null = null, plan: SetPlan[] = []): VideoScript {
+  const decided = result !== null && result.me !== result.them && result.me + result.them > 0
+  const target: Points = decided ? result : { me: 2, them: 1 }
+  const champion: Side = target.me > target.them ? 'me' : 'them'
+  const count = target.me + target.them
+
+  const fixed: (Side | null)[] = Array.from({ length: count }, (_, i) => {
+    const score = plan[i]?.score ?? null
+    return canEndOn(score) ? (score.me > score.them ? 'me' : 'them') : null
+  })
+  const left: Points = { ...target }
+  for (const side of fixed) if (side) left[side] -= 1
+  // The last set goes to the match winner, the rest are dealt from what is left.
+  const winners: Side[] = fixed.map((side) => side ?? champion)
+  for (let i = count - 1; i >= 0; i--) {
+    if (fixed[i]) continue
+    const side: Side =
+      i === count - 1 && left[champion] > 0
+        ? champion
+        : left[otherSide(champion)] > 0
+          ? otherSide(champion)
+          : champion
+    winners[i] = side
+    left[side] -= 1
+  }
+
+  const sets: ScriptSet[] = []
+  winners.forEach((side, i) => {
+    if (plan[i] && !plan[i].filmed) return
+    const entered = plan[i]?.score ?? null
+    const lost = 5 + ((seed + i * 3) % 5)
+    const score: Points = canEndOn(entered)
+      ? entered
+      : side === 'me'
+        ? { me: 11, them: lost }
+        : { me: lost, them: 11 }
+    sets.push({
+      firstServer: plan[i]?.firstServer ?? (i % 2 === 0 ? 'me' : 'them'),
+      winners: setWinners(seed + i + 1, score.me, score.them),
+    })
+  })
+  return buildScripts(seed, sets)[0]
 }
 
 /** Saved rallies made from scripted ones, for seeded matches. */

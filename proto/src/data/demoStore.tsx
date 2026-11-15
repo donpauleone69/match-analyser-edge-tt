@@ -10,7 +10,7 @@ import {
 import { emptyDraft, type Draft, type RallyData, type Side } from '@/features/tagging/rally'
 import {
   buildScripts,
-  genericScript,
+  matchScript,
   ralliesFromScript,
   setWinners,
   type VideoScript,
@@ -361,6 +361,16 @@ export function isUntouched(match: MatchRecord): boolean {
 
 const ARCHIVE_RATIO = 0.12
 
+/** Use demo video: a whole decided match that follows what Details says. */
+function demoScriptFor(m: MatchRecord): VideoScript {
+  const { me, them } = m.result
+  return matchScript(
+    Date.now() % 9973,
+    me === null || them === null ? null : { me, them },
+    m.sets.map((s) => ({ firstServer: s.firstServer, score: parseEntered(s.entered), filmed: !s.skipped }))
+  )
+}
+
 function demoVideo(id: string, fileName: string, script: VideoScript): VideoAsset {
   return {
     id,
@@ -416,7 +426,7 @@ const SEED: MatchRecord[] = [
     event: 'County open',
     date: '2026-11-13',
     result: { me: null, them: null },
-    videos: [demoVideo('v-county', 'county-open.mp4', genericScript(31))],
+    videos: [demoVideo('v-county', 'county-open.mp4', matchScript(31))],
     sets: [emptySet(1)],
     tagDone: false,
   },
@@ -675,7 +685,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
             }
           : lost && lost.video.kind === 'demo'
             ? { ...lost.video, archived: false }
-            : demoVideo(id, `demo-video-${m.videos.length + 1}.mp4`, genericScript(Date.now() % 9973))
+            : demoVideo(id, `demo-video-${m.videos.length + 1}.mp4`, demoScriptFor(m))
         const videos = [...m.videos]
         videos.splice(lostId ? Math.min(lost?.index ?? 0, videos.length) : videos.length, 0, video)
         return { ...m, videos }

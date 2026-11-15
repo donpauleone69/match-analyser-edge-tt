@@ -321,7 +321,7 @@ export function statusText(d: Draft): string {
     case 'endShot':
       return `Wing and stroke of shot ${n}`
     case 'pickFa':
-      return 'First attack: tap a shot, or No attack'
+      return 'Pick the first attack'
     case 'faShot':
       return `Wing and stroke of shot ${d.fa}`
     default:

@@ -1,24 +1,33 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MouseEvent,
+  type ReactNode,
+  type RefObject,
+} from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Button, Icon } from '@/ui-mine'
 import { WfEmpty } from '@/layout/Wireframe'
 import {
   derivePhase,
   formatScore,
+  matchSetsWon,
   parseEntered,
   resultSetCount,
+  setBlockingFinish,
+  setHasTagProgress,
   setRalliesWithoutVideo,
   setScoresDiffer,
-  setState,
-  taggedResult,
   taggedScore,
-  taggedSetsWon,
   useDemo,
   type MatchRecord,
   type SetData,
 } from '@/data/demoStore'
 import { AddVideoChoice } from '@/features/match/AddVideoChoice'
-import { matchLabel } from '@/features/match/matchChecks'
+import { isRealResult, matchLabel } from '@/features/match/matchChecks'
 import { cn } from '@/helpers/utils'
 import {
   applyTaggedResult,
@@ -34,12 +43,14 @@ import {
   restoreSet,
   saveRally,
   setDraft,
+  setInProgress,
 } from './matchOps'
 import {
   CAPTURE_SPEED,
   CONTACT_IDLE_MS,
   MARK_LOOP_HALF_S,
   NORMAL_SPEED,
+  NUDGE_STEP_S,
   addContact,
   canSave,
   captureContactTime,
@@ -65,8 +76,9 @@ import {
   type Side,
   type Stage,
 } from './rally'
-import { ZERO, addPoint, isPlausibleMatchWin, isSetWon, serverAt, type Points } from './score'
-import { ShotPanel, TimeRow } from './ShotPanel'
+import { ZERO, addPoint, isSetWon, serverAt, type Points } from './score'
+import { NO_ATTACK_KEY, applyShotKey } from './shotKeys'
+import { FirstAttackRow, KeyHint, ShotPanel, TimeRow } from './ShotPanel'
 import { ShotRail } from './ShotRail'
 import { TAG_LOCK_LINE, useTagLock, type TagLock } from './tagLock'
 import { segmentAt, segmentsOf, toGlobal, type Segment } from './timeline'
@@ -106,6 +118,30 @@ export function TagSetScreen() {
 }
 
 type Toast = { text: string; undo: () => void }
+
+/**
+ * Presses are ignored for a moment after the control under the thumb changes,
+ * so a tap meant for what was there never lands on what replaced it.
+ */
+const GUARD_AFTER_CLOSE_MS = 1000
+const GUARD_AFTER_SWAP_MS = 600
+const GUARD_PANEL_AFTER_CLOSE_MS = 500
+const GUARD_PANEL_MS = 250
+const HINT_MS = 2500
+
+/** Watching speed per match, kept while the app is open. */
+const watchRates = new Map<string, number>()
+
+const scoreKey = (p: Points) => `${p.me}-${p.them}`
+
+function guardClicks(until: RefObject<number>) {
+  return (e: MouseEvent) => {
+    if (Date.now() < until.current) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+  }
+}
 type Editing = { id: string; index: number; draft: Draft; dirty: boolean }
 type SetHeaderProps = { match: MatchRecord; set: SetData; children?: ReactNode }
 
@@ -131,10 +167,26 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const [tight, setTight] = useState(false)
   const [edit, setEdit] = useState<Editing | null>(null)
   const [toast, setToast] = useState<Toast | null>(null)
-  const [keepTaggingAt, setKeepTaggingAt] = useState<number | null>(null)
+  /** The score at which the user chose to keep tagging past a won set. */
+  const [keptAt, setKeptAt] = useState<string | null>(null)
   const [keptEntered, setKeptEntered] = useState(false)
   const [listOpen, setListOpen] = useState(false)
   const [lastTap, setLastTap] = useState<number | null>(null)
+  const [hint, setHint] = useState<string | null>(null)
+  /** Bumped when a rally closes, so the panel that appears fades in as it arms. */
+  const [armKey, setArmKey] = useState(0)
+
+  const slotGuard = useRef(0)
+  const panelGuard = useRef(0)
+  /** The speed chosen for watching between rallies. Tapping, Save and the next set do not lose it. */
+  const watchRate = useRef<number>(watchRates.get(match.id) ?? NORMAL_SPEED)
+  const listResume = useRef(false)
+  const body = useRef<HTMLDivElement>(null)
+  const arm = (slotMs: number, panelMs = 0) => {
+    const now = Date.now()
+    slotGuard.current = Math.max(slotGuard.current, now + slotMs)
+    panelGuard.current = Math.max(panelGuard.current, now + panelMs)
+  }
 
   const have = new Set(match.videos.map((v) => v.id))
   /** Rallies of this set whose video has been removed: tags kept, nothing to play. */
@@ -161,9 +213,11 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
         ? live.closed
           ? 'tagging'
           : 'tapping'
-        : setWon && keepTaggingAt !== set.rallies.length
+        : setWon && keptAt !== scoreKey(score)
           ? 'setPoint'
           : 'watch'
+  /** What sits in the bottom slot. A change of it guards the slot for a moment. */
+  const slotKind = mode === 'tagging' ? 'save' : mode === 'edit' || mode === 'finished' ? mode : 'pad'
 
   const latest = useRef({ live, set, match, floorG, segs, mode, selected, tight, edit, nextServer, stage })
   useEffect(() => {
@@ -210,13 +264,16 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     if (draft && draft.closed && !finished && have.has(draft.videoId)) {
       const st = stageOf(draft)
       const sel = selectionAfter('contacts', st, draft, null)
-      const w = windowFor(draft, null, st, false)
+      const w = windowFor(draft, sel, st, false)
       p.setRate(CAPTURE_SPEED)
       p.setLoop(w)
-      p.seek(Math.max(w.a, offsetOf(draft.videoId) + draft.contacts[draft.contacts.length - 1] - 1))
+      const last = offsetOf(draft.videoId) + draft.contacts[draft.contacts.length - 1]
+      p.seek(st === 'result' ? Math.max(w.a, last - 1) : w.a)
+      // An open rally loops as soon as it is on screen, as it did when it was left.
+      p.play()
       setSelected(sel)
     } else {
-      p.setRate(NORMAL_SPEED)
+      p.setRate(watchRate.current)
       p.setLoop(null)
       p.seek(floor)
       setSelected(null)
@@ -239,9 +296,48 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
 
   useEffect(() => {
     if (!toast) return
-    const id = setTimeout(() => setToast(null), 5000)
+    const id = setTimeout(() => setToast(null), 6000)
     return () => clearTimeout(id)
   }, [toast])
+
+  useEffect(() => {
+    if (!hint) return
+    const id = setTimeout(() => setHint(null), HINT_MS)
+    return () => clearTimeout(id)
+  }, [hint])
+
+  // The slot and the panel guard themselves whenever what they hold changes.
+  const lastSlot = useRef(slotKind)
+  const lastStep = useRef(`${mode}:${stage}`)
+  useLayoutEffect(() => {
+    if (lastSlot.current !== slotKind) arm(GUARD_AFTER_SWAP_MS)
+    lastSlot.current = slotKind
+    const step = `${mode}:${stage}`
+    if (lastStep.current !== step) arm(0, GUARD_PANEL_MS)
+    lastStep.current = step
+  }, [slotKind, mode, stage])
+
+  // The row being asked for sits just above Save. An opened shot starts at its top.
+  useLayoutEffect(() => {
+    const el = body.current
+    if (el) el.scrollTop = stage === 'ready' && selected ? 0 : el.scrollHeight
+  }, [mode, stage, selected])
+
+  /** Seeks for the user, and says in a few words when one is held back. */
+  const seekTo = (g: number) => {
+    const stop = playerRef.current.seek(g)
+    if (stop === 'fence') setHint('Stops at the last saved rally')
+    else if (stop === 'loop') setHint('Stays in this rally')
+    else setHint(null)
+  }
+
+  const onRate = (rate: number) => {
+    playerRef.current.setRate(rate)
+    if (!live && !edit) {
+      watchRate.current = rate
+      watchRates.set(match.id, rate)
+    }
+  }
 
   /** Writes the rally being worked on: the past rally in edit, else the draft. */
   const writeDraft = (next: Draft) => {
@@ -276,6 +372,9 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     p.play()
     setSelected(end)
     setLastTap(null)
+    // A tap that comes late lands on nothing: the slot and the new panel wait.
+    arm(GUARD_AFTER_CLOSE_MS, GUARD_PANEL_AFTER_CLOSE_MS)
+    setArmKey((k) => k + 1)
   }
 
   // Two seconds with no tap closes the rally.
@@ -289,10 +388,16 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   /** The pad: plays when paused with nothing tapped, otherwise records a contact. */
   const onPad = () => {
     const p = playerRef.current
+    if (mode === 'setPoint') {
+      onKeepTagging()
+      return
+    }
     if (mode !== 'watch' && mode !== 'tapping') return
     const tapped = live?.contacts.length ?? 0
     if (!p.isPlaying() && tapped === 0) {
       p.play()
+      // The pad now means Tap serve: a double press on Play is not a serve.
+      arm(GUARD_AFTER_SWAP_MS)
       return
     }
     const g = p.getTime()
@@ -323,7 +428,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     const next = undoContact(live)
     if (next.contacts.length === 0) {
       mutateMatch(match.id, (m) => setDraft(m, set.setId, null))
-      p.setRate(NORMAL_SPEED)
+      p.setRate(watchRate.current)
       p.setBoundary(null)
       setLastTap(null)
     } else {
@@ -382,7 +487,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     mutateMatch(match.id, (m) => setDraft(m, set.setId, null))
     p.setLoop(null)
     p.setBoundary(null)
-    p.setRate(NORMAL_SPEED)
+    p.setRate(watchRate.current)
     p.seek(offsetOf(live.videoId) + rallyStart(live))
     p.play()
     setSelected(null)
@@ -404,7 +509,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     mutateMatch(match.id, (m) => setDraft(m, set.setId, null))
     p.setLoop(null)
     p.setBoundary(null)
-    p.setRate(NORMAL_SPEED)
+    p.setRate(watchRate.current)
     p.seek(offsetOf(live.videoId) + live.contacts[live.contacts.length - 1])
     p.play()
     setSelected(null)
@@ -423,7 +528,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     const after = addPoint(score, rally.winner)
     p.setLoop(null)
     p.setBoundary(null)
-    p.setRate(NORMAL_SPEED)
+    p.setRate(watchRate.current)
     p.setFloor(Math.max(floorG, endG))
     p.seek(endG)
     const atEntered =
@@ -432,7 +537,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     else p.play()
     setSelected(null)
     setTight(false)
-    setKeepTaggingAt(null)
+    setKeptAt(null)
   }
 
   const onServer = () => {
@@ -441,33 +546,52 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     else if (!live) mutateMatch(match.id, (m) => flipFirstServer(m, set.setId))
   }
 
-  const openRally = (r: RallyData, index: number) => {
-    if (!have.has(r.videoId)) return
-    const d = draftFromRally(r)
-    setEdit({ id: r.id, index, draft: d, dirty: false })
+  const showEdit = (next: Editing) => {
+    setEdit(next)
     setSelected(null)
     setTight(false)
     setListOpen(false)
+    listResume.current = false
     const p = playerRef.current
     p.setBoundary(null)
     p.setRate(NORMAL_SPEED)
-    const w = windowFor(d, null, 'ready', false)
+    const w = windowFor(next.draft, null, 'ready', false)
     p.setLoop(w)
     p.seek(w.a)
     p.play()
   }
 
-  const closeEdit = () => {
+  const openRally = (r: RallyData, index: number) => {
+    if (!have.has(r.videoId)) return
+    showEdit({ id: r.id, index, draft: draftFromRally(r), dirty: false })
+  }
+
+  const leaveEdit = () => {
     setEdit(null)
     park(live, set.finished, floorG)
   }
 
+  /** Back to live. Unsaved changes are dropped, with Undo to pick them up again. */
+  const closeEdit = () => {
+    const dropped = edit
+    leaveEdit()
+    if (dropped && dropped.dirty && !readOnly) {
+      setToast({
+        text: `Rally ${dropped.index + 1}: changes dropped`,
+        undo: () => {
+          setToast(null)
+          showEdit(dropped)
+        },
+      })
+    }
+  }
+
   const onSaveEdit = () => {
-    if (!edit || readOnly) return
+    if (!edit || readOnly || !edit.dirty) return
     const rally = rallyFromDraft(edit.draft, edit.id)
     if (!rally) return
     mutateMatch(match.id, (m) => replaceRally(m, set.setId, rally))
-    closeEdit()
+    leaveEdit()
   }
 
   const onDeleteEdit = () => {
@@ -484,65 +608,154 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     withUndo('Rally deleted', before)
   }
 
+  const level = score.me === score.them
+  /** A set can be finished once it has a rally, nothing is open, and one side leads. */
+  const canFinishNow = !set.finished && !live && !draftGone && !edit && set.rallies.length > 0
+  const canFinish = canFinishNow && !level
+
   const onFinishSet = () => {
+    if (!canFinish) return
     setListOpen(false)
+    listResume.current = false
     playerRef.current.pause()
     mutateMatch(match.id, (m) => finishSet(m, set.setId))
     setKeptEntered(false)
   }
 
   const onKeepTagging = () => {
-    setKeepTaggingAt(set.rallies.length)
+    setKeptAt(scoreKey(score))
     playerRef.current.play()
+    arm(GUARD_AFTER_SWAP_MS)
   }
 
   const onReopenSet = () => {
     if (readOnly) return
     mutateMatch(match.id, (m) => reopenSet(m, set.setId))
-    setKeepTaggingAt(set.rallies.length)
+    setKeptAt(scoreKey(score))
     park(null, false, floorG)
   }
 
-  // Keys (desktop): Space is the pad, Backspace undoes a tap, Enter saves,
-  // 1 to 9 pick a shot, K plays or pauses, arrows step 10 seconds.
-  const keys = useRef({ onPad, onUndoTap, onSave, onSaveEdit, onShot })
+  /** The Rallies sheet covers the panel, so the video waits while it is open. */
+  const openList = () => {
+    if (mode === 'tapping') closeContacts()
+    const p = playerRef.current
+    listResume.current = p.isPlaying()
+    p.pause()
+    setListOpen(true)
+  }
+
+  const closeList = () => {
+    setListOpen(false)
+    if (listResume.current) playerRef.current.play()
+    listResume.current = false
+  }
+
+  const onFa = (shot: number) => {
+    if (active && !readOnly) change(markFa(active, shot))
+  }
+
+  const onNoAttack = () => {
+    if (active && !readOnly) change(toggleNoAttack(active))
+  }
+
+  const n = active ? active.contacts.length : 0
+  /** The first attack is asked from three shots up. On two it follows the stroke. */
+  const showFa =
+    active !== null &&
+    active.closed &&
+    !readOnly &&
+    n >= 3 &&
+    (stage === 'pickFa' || stage === 'faShot' || (stage === 'ready' && !selected))
+
+  // Keys (desktop). Space is the pad. Backspace undoes a tap. Enter saves
+  // whenever Save is lit, whatever has focus, and never presses a button.
+  // 1 to 9 pick a shot, 0 is No attack. Top row is the result, home row the
+  // wing, bottom row the stroke. [ and ] pick the marks, - and = nudge.
+  // K plays or pauses, arrows step 10 seconds.
+  const handlers = {
+    onPad,
+    onUndoTap,
+    onSave,
+    onSaveEdit,
+    onShot,
+    onMark,
+    onNudge,
+    onNoAttack,
+    change,
+    seekTo,
+    showFa,
+    readOnly,
+    active,
+  }
+  const keys = useRef(handlers)
   useEffect(() => {
-    keys.current = { onPad, onUndoTap, onSave, onSaveEdit, onShot }
+    keys.current = handlers
   })
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
+    const typing = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null
-      if (target && /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return
-      if (e.metaKey || e.ctrlKey || e.altKey) return
+      return Boolean(target && /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if (typing(e) || e.metaKey || e.ctrlKey || e.altKey) return
       const p = playerRef.current
       const now = latest.current
       const k = keys.current
+      const rally = now.mode === 'tagging' || now.mode === 'edit'
       const toggle = () => (p.isPlaying() ? p.pause() : p.play())
-      if (e.key === ' ') {
+      const key = e.key.length === 1 ? e.key.toLowerCase() : e.key
+      if (key === ' ') {
         e.preventDefault()
-        if (now.mode === 'watch' || now.mode === 'tapping') k.onPad()
+        if (e.repeat || Date.now() < slotGuard.current) return
+        if (now.mode === 'watch' || now.mode === 'tapping' || now.mode === 'setPoint') k.onPad()
         else toggle()
-      } else if (e.key === 'k' || e.key === 'K') {
+      } else if (key === 'Enter') {
+        if (!rally) return
+        // Enter is Save here. It must not click whatever the mouse last pressed.
+        e.preventDefault()
+        if (e.repeat || Date.now() < slotGuard.current) return
+        if (now.mode === 'tagging') k.onSave()
+        else k.onSaveEdit()
+      } else if (key === 'k') {
         toggle()
-      } else if (e.key === 'Backspace') {
+      } else if (key === 'Backspace') {
         if (now.mode === 'tapping') {
           e.preventDefault()
           k.onUndoTap()
         }
-      } else if (e.key === 'Enter') {
-        if (target && target.tagName === 'BUTTON') return
-        if (now.mode === 'tagging') k.onSave()
-        else if (now.mode === 'edit') k.onSaveEdit()
-      } else if (e.key === 'ArrowLeft') {
-        p.seek(p.getTime() - 10)
-      } else if (e.key === 'ArrowRight') {
-        p.seek(p.getTime() + 10)
-      } else if (/^[1-9]$/.test(e.key) && (now.mode === 'tagging' || now.mode === 'edit')) {
-        k.onShot(Number(e.key))
+      } else if (key === 'ArrowLeft') {
+        k.seekTo(p.getTime() - 10)
+      } else if (key === 'ArrowRight') {
+        k.seekTo(p.getTime() + 10)
+      } else if (!rally || !k.active || !k.active.closed) {
+        return
+      } else if (/^[1-9]$/.test(key)) {
+        k.onShot(Number(key))
+      } else if (k.readOnly) {
+        return
+      } else if (key === NO_ATTACK_KEY) {
+        if (k.showFa) k.onNoAttack()
+      } else if (key === '[' || key === ']') {
+        if (now.stage !== 'result' && now.stage !== 'endShot') {
+          k.onMark({ kind: key === '[' ? 'start' : 'end' })
+        }
+      } else if (key === '-' || key === '=') {
+        if (now.selected) k.onNudge(key === '-' ? -NUDGE_STEP_S : NUDGE_STEP_S)
+      } else if (now.selected?.kind === 'shot') {
+        const next = applyShotKey(k.active, now.selected.shot, key)
+        if (next) k.change(next)
       }
     }
+    // Space clicks a focused button on key up: stop that too.
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.key === ' ' && !typing(e)) e.preventDefault()
+    }
     window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    window.addEventListener('keyup', onKeyUp)
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      window.removeEventListener('keyup', onKeyUp)
+    }
   }, [])
 
   // Timeline: every saved rally of the match, this set's at full strength.
@@ -572,11 +785,13 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     : null
   const shownScore = editScore ?? score
   const shownServer = edit ? edit.draft.server : (live?.server ?? nextServer)
-  const setsWon = taggedSetsWon(match)
+  const setsWon = matchSetsWon(match)
   const atEnd = player.atEnd && (mode === 'watch' || mode === 'setPoint')
   const ready = stage === 'ready'
-  const canFinishNow = !set.finished && !live && !draftGone && !edit && set.rallies.length > 0
   const tapped = live && !live.closed ? live.contacts.length : 0
+  /** Finish is offered in the panel at set point and when the video runs out. */
+  const finishCard = canFinishNow && (mode === 'setPoint' || atEnd)
+  const setLine = `Set ${set.setId} · ${formatScore(score)}`
 
   const status =
     mode === 'finished'
@@ -584,18 +799,16 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       : mode === 'setPoint'
         ? `Set ${set.setId} reached ${formatScore(score)}`
         : mode === 'blocked'
-          ? 'Open rally · video removed'
+          ? setLine
           : mode === 'edit' && edit
             ? readOnly || (ready && !edit.dirty)
               ? `Rally ${edit.index + 1} · ${edit.draft.contacts.length} ${edit.draft.contacts.length === 1 ? 'shot' : 'shots'}`
               : `Rally ${edit.index + 1} · ${ready ? 'Ready to save changes' : statusText(edit.draft)}`
           : active
             ? statusText(active)
-            : atEnd
-              ? 'End of video'
-              : player.playing
-                ? 'Tap each contact'
-                : `Set ${set.setId} · ${formatScore(score)}`
+            : player.playing && !atEnd
+              ? 'Tap each contact'
+              : setLine
 
   const rallyList = (
     <RallyList
@@ -605,11 +818,15 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       editingId={edit?.id ?? null}
       hasVideo={(id) => have.has(id)}
       onOpen={openRally}
-      canFinish={canFinishNow}
+      finish={!canFinishNow || finishCard ? null : level ? 'level' : 'ok'}
       score={score}
       onFinish={onFinishSet}
     />
   )
+  const padServer = live?.server ?? nextServer
+  const rowButton = 'h-11 lg:h-9 px-3 shrink-0'
+  /** Slot controls never change size, not even while pressed. */
+  const slotButton = 'h-20 rounded-lg text-lg active:scale-100 active:brightness-90'
 
   return (
     <div
@@ -628,7 +845,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
             variant="secondary"
             className="lg:hidden"
             aria-expanded={listOpen}
-            onClick={() => setListOpen((v) => !v)}
+            onClick={() => (listOpen ? closeList() : openList())}
           >
             <Icon name="list" size="xs" />
             Rallies {set.rallies.length}
@@ -641,38 +858,41 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
           bug={{ sets: setsWon, points: shownScore, server: shownServer, setId: set.setId }}
           blocks={blocks}
           open={openRange}
+          hint={hint}
+          onSeek={seekTo}
+          onRate={onRate}
           className="lg:shrink-0 lg:[&>div:first-child]:max-h-[52vh] lg:[&>div:first-child]:mx-auto"
         />
         <div className="hidden lg:block flex-1 min-h-0 overflow-y-auto">{rallyList}</div>
       </div>
 
-      {/* Right on desktop, below on phone: rail, status, shot panel, pad or Save. */}
+      {/* Right on desktop, below on phone: rail, status, panel, then one slot for the pad or Save. */}
       <div className="relative flex-1 min-h-0 flex flex-col lg:flex-[2] lg:min-w-[360px]">
         <div className="shrink-0 px-2 pt-1.5 border-b border-border bg-bg-app">
           <div className="flex items-start gap-2">
             {mode === 'finished' || mode === 'setPoint' ? null : (
-            <div className="flex flex-col items-center shrink-0 py-1">
-              <button
-                type="button"
-                onClick={onServer}
-                disabled={mode === 'tagging' || mode === 'tapping' || mode === 'blocked' || readOnly}
-                aria-label={`${servesText(names, shownServer)}. Switch server`}
-                className={cn(
-                  'h-9 px-2 rounded-md border text-xs font-semibold inline-flex items-center gap-1.5 disabled:opacity-100',
-                  shownServer === 'me'
-                    ? 'bg-side-me/15 border-side-me/50'
-                    : 'bg-side-them/15 border-side-them/50'
-                )}
-              >
-                <span
-                  className={cn('h-2 w-2 rounded-full', shownServer === 'me' ? 'bg-side-me' : 'bg-side-them')}
-                />
-                <span className="max-w-20 truncate text-primary">{names[shownServer]}</span>
-              </button>
-              <span className="h-4 text-[9px] font-bold uppercase tracking-wide leading-4 text-muted">
-                Serves
-              </span>
-            </div>
+              <div className="flex flex-col items-center shrink-0 py-1">
+                <button
+                  type="button"
+                  onClick={onServer}
+                  disabled={mode === 'tagging' || mode === 'tapping' || mode === 'blocked' || readOnly}
+                  aria-label={`${servesText(names, shownServer)}. Switch server`}
+                  className={cn(
+                    'h-10 lg:h-9 px-2 rounded-md border text-xs font-semibold inline-flex items-center gap-1.5 disabled:opacity-100',
+                    shownServer === 'me'
+                      ? 'bg-side-me/15 border-side-me/50'
+                      : 'bg-side-them/15 border-side-them/50'
+                  )}
+                >
+                  <span
+                    className={cn('h-2 w-2 rounded-full', shownServer === 'me' ? 'bg-side-me' : 'bg-side-them')}
+                  />
+                  <span className="max-w-20 truncate text-primary">{names[shownServer]}</span>
+                </button>
+                <span className="h-4 text-[9px] font-bold uppercase tracking-wide leading-4 text-muted">
+                  Serves
+                </span>
+              </div>
             )}
             <div className="min-w-0 flex-1">
               {active ? (
@@ -681,228 +901,254 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                   selected={selected}
                   onShot={onShot}
                   onMark={onMark}
-                  onClearFa={() => active.fa !== null && change(markFa(active, active.fa))}
-                  onNoAttack={() => change(toggleNoAttack(active))}
                   onHighlight={() => writeDraft({ ...active, highlight: !active.highlight })}
                   readOnly={readOnly}
                 />
               ) : mode !== 'watch' ? null : (
                 <div className="py-1 flex" aria-label="Shots in this rally">
-                  <span className="h-9 min-w-9 rounded-md border border-dashed border-border text-sm font-bold text-muted opacity-60 inline-flex items-center justify-center">
+                  <span className="h-10 min-w-10 lg:h-9 lg:min-w-9 rounded-md border border-dashed border-border text-sm font-bold text-muted opacity-60 inline-flex items-center justify-center">
                     1
                   </span>
                 </div>
               )}
             </div>
           </div>
-          <p
-            role="status"
-            data-tag-status
-            className={cn(
-              'mb-1.5 rounded-md border-l-4 px-2 py-1 text-sm font-semibold',
-              ready || mode === 'finished'
-                ? 'border-success bg-success/15 text-primary'
-                : active && active.closed
-                  ? 'border-warning bg-warning/15 text-primary'
-                  : 'border-border-strong bg-bg-card text-primary'
-            )}
-          >
-            {status}
-          </p>
-        </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto px-2 py-2 space-y-2">
-          {goneCount > 0 ? (
-            <div className="rounded-md border border-dashed border-border bg-bg-card px-3 py-2 space-y-2" role="status">
-              <p className="text-sm text-primary">
-                {draftGone && goneCount === 1
-                  ? 'The video for the open rally was removed.'
-                  : `The video for ${goneCount} ${goneCount === 1 ? 'rally' : 'rallies'} was removed. Tags and score are kept.`}
-              </p>
-              <AddVideoChoice matchId={match.id} />
-            </div>
-          ) : null}
-          {lock && mode !== 'finished' ? (
-            <p className="text-xs text-muted" role="status">
-              {TAG_LOCK_LINE[lock]}
+          {/* Status, with the rally's second-rank actions beside it, away from the thumb. */}
+          <div className="mb-1.5 flex items-stretch gap-1.5" onClickCapture={guardClicks(slotGuard)}>
+            <p
+              role="status"
+              data-tag-status
+              className={cn(
+                'flex-1 min-w-0 min-h-11 lg:min-h-9 flex items-center rounded-md border-l-4 px-2 py-1 text-sm font-semibold leading-tight',
+                ready || mode === 'finished'
+                  ? 'border-success bg-success/15 text-primary'
+                  : active && active.closed
+                    ? 'border-warning bg-warning/15 text-primary'
+                    : 'border-border-strong bg-bg-card text-primary'
+              )}
+            >
+              {status}
             </p>
-          ) : null}
-          {mode === 'finished' ? (
-            <FinishedPanel
-              match={match}
-              set={set}
-              score={score}
-              keptEntered={keptEntered}
-              onKeepEntered={() => setKeptEntered(true)}
-              onReopen={onReopenSet}
-              lock={lock}
-            />
-          ) : null}
-          {active && active.closed && selected?.kind === 'shot' && !readOnly ? (
-            <ShotPanel draft={active} shot={selected.shot} names={names} onChange={change} onNudge={onNudge} />
-          ) : null}
-          {active && active.closed && selected && selected.kind !== 'shot' && !readOnly ? (
-            <div className="rounded-md border border-border bg-bg-surface p-3">
-              <TimeRow draft={active} mark={selected} onNudge={onNudge} />
-            </div>
-          ) : null}
-          {active && active.closed && (readOnly || (ready && !selected)) ? (
-            <ul className="space-y-1" aria-label="Rally summary">
-              {active.contacts.map((_, i) => (
-                <li key={i}>
-                  <button
-                    type="button"
-                    onClick={() => onShot(i + 1)}
-                    aria-pressed={selected?.kind === 'shot' && selected.shot === i + 1}
-                    className={cn(
-                      'w-full flex items-center justify-between gap-2 rounded-md border bg-bg-card px-2 py-1.5 text-left text-xs',
-                      selected?.kind === 'shot' && selected.shot === i + 1
-                        ? 'border-brand-primary'
-                        : 'border-border'
-                    )}
-                  >
-                    <span className="font-semibold text-primary">
-                      {i + 1} · {names[i % 2 === 0 ? active.server : otherSide(active.server)]}
-                    </span>
-                    <span className="text-muted truncate">
-                      {[
-                        active.fa === i + 1 ? 'First attack' : '',
-                        i + 1 === active.contacts.length ? (active.ending ?? '') : '',
-                        shotSummary(active.shots[i] ?? {}),
-                      ]
-                        .filter(Boolean)
-                        .join(' · ') || (readOnly ? '' : 'Add detail')}
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-        </div>
-
-        {toast ? (
-          <div
-            role="status"
-            className="absolute left-2 right-2 bottom-28 z-20 flex items-center justify-between gap-3 rounded-md bg-neutral-100 text-neutral-950 px-3 py-2 text-sm shadow-lg"
-          >
-            <span>{toast.text}</span>
-            <button type="button" className="font-bold underline" onClick={toast.undo}>
-              Undo
-            </button>
-          </div>
-        ) : null}
-
-        {/* Bottom bar: the two controls pressed on every rally sit at the thumb. */}
-        <div className="shrink-0 border-t border-border bg-bg-shell px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
-          {mode === 'watch' || mode === 'tapping' ? (
-            <div className="space-y-2">
-              <div className="flex items-stretch gap-2">
-                <button
-                  type="button"
-                  data-tap-pad
-                  onClick={onPad}
-                  disabled={atEnd}
-                  className={cn(
-                    'relative flex-1 h-20 rounded-lg text-lg font-bold text-on-accent bg-brand-primary overflow-hidden active:scale-[0.99] border-l-8',
-                    (live?.server ?? nextServer) === 'me' ? 'border-l-side-me' : 'border-l-side-them'
-                  )}
-                >
-                  {atEnd
-                    ? 'End of video'
-                    : tapped > 0
-                      ? `Tap shot ${tapped + 1}`
-                      : player.playing
-                        ? 'Tap serve'
-                        : 'Play'}
-                  {tapped > 0 && lastTap !== null ? (
-                    <span
-                      key={lastTap}
-                      className="tag-idle-bar absolute left-0 right-0 bottom-0 h-1.5 bg-white/70"
-                      aria-hidden
-                    />
-                  ) : null}
-                </button>
-                {tapped > 0 ? (
-                  <Button variant="secondary" className="h-20 px-4" onClick={onUndoTap}>
-                    <Icon name="undo" size="sm" />
-                    Undo
-                  </Button>
-                ) : null}
-              </div>
-              {atEnd && canFinishNow ? (
-                <Button fullWidth size="lg" onClick={onFinishSet}>
-                  Finish at {formatScore(score)}
+            {mode === 'tapping' && tapped > 0 ? (
+              <Button variant="secondary" className={rowButton} onClick={onUndoTap}>
+                <Icon name="undo" size="sm" />
+                Undo
+                <KeyHint k="Bksp" />
+              </Button>
+            ) : null}
+            {mode === 'tagging' ? (
+              <>
+                <Button variant="secondary" className={rowButton} onClick={onRetap}>
+                  Re-tap
                 </Button>
-              ) : null}
-            </div>
-          ) : null}
-
-          {mode === 'tagging' ? (
-            <div className="flex items-stretch gap-2">
-              <Button variant="secondary" className="h-12" onClick={onRetap}>
-                Re-tap
-              </Button>
-              <Button variant="secondary" className="h-12" onClick={onDiscard}>
-                Discard
-              </Button>
-              <Button className="h-12 flex-1 text-base" disabled={!ready} onClick={onSave}>
-                Save
-              </Button>
-            </div>
-          ) : null}
-
-          {mode === 'blocked' ? (
-            <div className="flex items-stretch gap-2">
-              <Button variant="secondary" className="h-12" onClick={onDiscardGone}>
+                <Button variant="secondary" className={rowButton} onClick={onDiscard}>
+                  Discard
+                </Button>
+              </>
+            ) : null}
+            {mode === 'blocked' ? (
+              <Button variant="secondary" className={rowButton} onClick={onDiscardGone}>
                 Discard rally
               </Button>
-              <Button
-                variant="ghost"
-                className="h-12 flex-1"
-                onClick={() => navigate(`/matches/${match.id}/tag`)}
+            ) : null}
+            {mode === 'edit' && !readOnly ? (
+              <>
+                <Button variant="secondary" className={rowButton} onClick={closeEdit}>
+                  Back to live
+                </Button>
+                <Button variant="secondary" className={rowButton} aria-label="Delete rally" onClick={onDeleteEdit}>
+                  <Icon name="trash" size="sm" />
+                  Delete
+                </Button>
+              </>
+            ) : null}
+          </div>
+
+          {toast ? (
+            <div
+              role="status"
+              data-tag-toast
+              className="mb-1.5 flex items-center justify-between gap-3 rounded-md bg-neutral-100 text-neutral-950 pl-3 pr-1 text-sm shadow-lg"
+            >
+              <span>{toast.text}</span>
+              <button
+                type="button"
+                className="h-11 lg:h-9 min-w-16 px-3 rounded-md font-bold underline hover:bg-neutral-300"
+                onClick={toast.undo}
               >
-                Back to sets
-              </Button>
+                Undo
+              </button>
             </div>
           ) : null}
+        </div>
 
-          {mode === 'edit' && edit && readOnly ? (
-            <Button fullWidth variant="secondary" className="h-12" onClick={closeEdit}>
-              Back to set
+        {/* The panel. What is asked for next sits at its foot, straight above the slot. */}
+        <div
+          ref={body}
+          className="flex-1 min-h-0 overflow-y-auto px-2 py-2 flex flex-col"
+          onClickCapture={guardClicks(panelGuard)}
+        >
+          <div key={armKey} className={cn('mt-auto space-y-2', armKey > 0 && 'tag-arm')}>
+            {goneCount > 0 ? (
+              <div className="rounded-md border border-dashed border-border bg-bg-card px-3 py-2 space-y-2" role="status">
+                <p className="text-sm text-primary">
+                  {draftGone && goneCount === 1
+                    ? 'The video for the open rally was removed.'
+                    : `The video for ${goneCount} ${goneCount === 1 ? 'rally' : 'rallies'} was removed. Tags and score are kept.`}
+                </p>
+                <AddVideoChoice matchId={match.id} />
+              </div>
+            ) : null}
+            {lock && mode !== 'finished' ? (
+              <p className="text-xs text-muted" role="status">
+                {TAG_LOCK_LINE[lock]}
+              </p>
+            ) : null}
+            {mode === 'finished' ? (
+              <FinishedPanel
+                match={match}
+                set={set}
+                score={score}
+                keptEntered={keptEntered}
+                onKeepEntered={() => setKeptEntered(true)}
+                onReopen={onReopenSet}
+                lock={lock}
+              />
+            ) : null}
+            {active && active.closed && (readOnly || (ready && !selected)) ? (
+              <ul className="space-y-1" aria-label="Rally summary">
+                {active.contacts.map((_, i) => (
+                  <li key={i}>
+                    <button
+                      type="button"
+                      onClick={() => onShot(i + 1)}
+                      aria-pressed={selected?.kind === 'shot' && selected.shot === i + 1}
+                      className={cn(
+                        'w-full min-h-11 lg:min-h-0 flex items-center justify-between gap-2 rounded-md border bg-bg-card px-2 py-1.5 text-left text-xs',
+                        selected?.kind === 'shot' && selected.shot === i + 1
+                          ? 'border-brand-primary'
+                          : 'border-border'
+                      )}
+                    >
+                      <span className="font-semibold text-primary">
+                        {i + 1} · {names[i % 2 === 0 ? active.server : otherSide(active.server)]}
+                      </span>
+                      <span className="text-muted truncate">
+                        {[
+                          active.fa === i + 1 ? 'First attack' : '',
+                          i + 1 === active.contacts.length ? (active.ending ?? '') : '',
+                          shotSummary(active.shots[i] ?? {}),
+                        ]
+                          .filter(Boolean)
+                          .join(' · ') || (readOnly ? '' : 'Add detail')}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            {showFa && active ? <FirstAttackRow draft={active} onPick={onFa} onNoAttack={onNoAttack} /> : null}
+            {active && active.closed && selected?.kind === 'shot' && !readOnly ? (
+              <ShotPanel draft={active} shot={selected.shot} names={names} onChange={change} onNudge={onNudge} />
+            ) : null}
+            {active && active.closed && selected && selected.kind !== 'shot' && !readOnly ? (
+              <div className="rounded-md border border-border bg-bg-surface p-3">
+                <TimeRow draft={active} mark={selected} onNudge={onNudge} />
+              </div>
+            ) : null}
+            {finishCard ? (
+              <div data-finish-card>
+                {level ? (
+                  <p className="rounded-md border border-border bg-bg-card px-3 py-2 text-sm text-primary" role="status">
+                    Level at {formatScore(score)}. A set cannot finish level.
+                  </p>
+                ) : (
+                  <Button
+                    fullWidth
+                    variant={setWon ? 'primary' : 'secondary'}
+                    className="h-12 text-base"
+                    onClick={onFinishSet}
+                  >
+                    {setWon ? 'Finish set' : `Finish set at ${formatScore(score)}`}
+                  </Button>
+                )}
+              </div>
+            ) : null}
+          </div>
+        </div>
+
+        {/*
+          The slot. It holds one control at one size: the pad, then Save. Nothing
+          else ever appears here while a rally is tapped or tagged.
+        */}
+        <div
+          data-tag-slot={slotKind}
+          className="shrink-0 border-t border-border bg-bg-shell px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
+          onClickCapture={guardClicks(slotGuard)}
+        >
+          {slotKind === 'pad' ? (
+            <button
+              type="button"
+              data-tap-pad
+              onClick={onPad}
+              disabled={atEnd || mode === 'blocked'}
+              className={cn(
+                'relative w-full h-20 rounded-lg text-lg font-bold overflow-hidden touch-manipulation select-none active:brightness-90 border-l-8 inline-flex items-center justify-center gap-2',
+                'disabled:bg-disabled-bg disabled:text-disabled-text disabled:active:brightness-100',
+                mode === 'setPoint'
+                  ? 'bg-pill-idle text-primary border border-pill-idle-border'
+                  : 'bg-brand-primary text-on-accent',
+                padServer === 'me' ? 'border-l-side-me' : 'border-l-side-them'
+              )}
+            >
+              {atEnd
+                ? 'End of video'
+                : mode === 'setPoint'
+                  ? 'Keep tagging'
+                  : tapped > 0
+                    ? `Tap shot ${tapped + 1}`
+                    : player.playing || mode === 'blocked'
+                      ? 'Tap serve'
+                      : 'Play'}
+              {atEnd || mode === 'blocked' ? null : <KeyHint k="Space" />}
+              {tapped > 0 && lastTap !== null ? (
+                <span
+                  key={lastTap}
+                  className="tag-idle-bar absolute left-0 right-0 bottom-0 h-1.5 bg-white/70"
+                  aria-hidden
+                />
+              ) : null}
+            </button>
+          ) : null}
+
+          {slotKind === 'save' ? (
+            <Button fullWidth data-tag-save className={slotButton} disabled={!ready} onClick={onSave}>
+              Save
+              <KeyHint k="Enter" />
             </Button>
           ) : null}
 
-          {mode === 'edit' && edit && !readOnly ? (
-            <div className="flex items-stretch gap-2">
-              <Button variant="secondary" className="h-12" onClick={closeEdit}>
-                Back to live
+          {slotKind === 'edit' && edit ? (
+            readOnly ? (
+              <Button fullWidth variant="secondary" className={slotButton} onClick={leaveEdit}>
+                Back to set
               </Button>
-              <Button variant="secondary" className="h-12" onClick={onDeleteEdit}>
-                <Icon name="trash" size="sm" />
-                Delete rally
-              </Button>
+            ) : (
               <Button
-                className="h-12 flex-1 text-base"
+                fullWidth
+                data-tag-save
+                className={slotButton}
                 disabled={!ready || !edit.dirty}
                 onClick={onSaveEdit}
               >
                 Save changes
+                <KeyHint k="Enter" />
               </Button>
-            </div>
+            )
           ) : null}
 
-          {mode === 'setPoint' ? (
-            <div className="flex items-stretch gap-2">
-              <Button className="h-12 flex-1 text-base" onClick={onFinishSet}>
-                Finish set
-              </Button>
-              <Button variant="secondary" className="h-12" onClick={onKeepTagging}>
-                Keep tagging
-              </Button>
-            </div>
-          ) : null}
-
-          {mode === 'finished' ? (
+          {slotKind === 'finished' ? (
             <FinishedActions
               match={match}
               set={set}
@@ -916,13 +1162,13 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
         {/* Phone: the rally list opens over the panel. Desktop shows it on the left. */}
         {listOpen ? (
           <div className="lg:hidden absolute inset-0 z-30 bg-bg-app flex flex-col" role="dialog" aria-label="Rallies">
-            <div className="h-10 px-2 flex items-center justify-between border-b border-border">
+            <div className="h-11 px-2 flex items-center justify-between border-b border-border">
               <p className="text-sm font-semibold text-primary">Set {set.setId}</p>
               <button
                 type="button"
                 aria-label="Close rallies"
-                className="h-8 w-8 inline-flex items-center justify-center rounded-md hover:bg-pill-idle"
-                onClick={() => setListOpen(false)}
+                className="h-11 w-11 inline-flex items-center justify-center rounded-md hover:bg-pill-idle"
+                onClick={closeList}
               >
                 <Icon name="x" size="sm" />
               </button>
@@ -943,7 +1189,7 @@ function RallyList({
   editingId,
   hasVideo,
   onOpen,
-  canFinish,
+  finish,
   score,
   onFinish,
 }: {
@@ -954,7 +1200,8 @@ function RallyList({
   /** False for a rally whose video was removed: listed, not playable. */
   hasVideo: (videoId: string) => boolean
   onOpen: (r: RallyData, index: number) => void
-  canFinish: boolean
+  /** Finish at the score so far. Null while the panel offers it, or it cannot be. */
+  finish: 'ok' | 'level' | null
   score: Points
   onFinish: () => void
 }) {
@@ -971,10 +1218,12 @@ function RallyList({
         <p className="text-[10px] font-bold uppercase tracking-wide text-muted">
           {set.rallies.length} {set.rallies.length === 1 ? 'rally' : 'rallies'}
         </p>
-        {canFinish ? (
-          <Button size="sm" variant="ghost" onClick={onFinish}>
+        {finish === 'ok' ? (
+          <Button size="sm" variant="ghost" className="min-h-11 lg:min-h-0" onClick={onFinish}>
             Finish at {formatScore(score)}
           </Button>
+        ) : finish === 'level' ? (
+          <p className="text-xs text-muted">Level, so it cannot finish</p>
         ) : null}
       </div>
       {!set.finished ? (
@@ -999,7 +1248,7 @@ function RallyList({
           aria-label={`Rally ${index + 1}`}
           aria-pressed={editingId === r.id}
           className={cn(
-            'w-full flex items-center gap-2 rounded-md border px-2 py-1.5 text-left text-xs disabled:opacity-60',
+            'w-full min-h-11 lg:min-h-0 flex items-center gap-2 rounded-md border px-2 py-1.5 text-left text-xs disabled:opacity-60',
             editingId === r.id
               ? 'border-brand-primary bg-brand-primary-muted'
               : 'border-border bg-bg-card hover:bg-bg-elevated'
@@ -1045,9 +1294,9 @@ function FinishedPanel({
   const differs = setScoresDiffer(set)
   const tagged = derivePhase(match) === 'complete'
   const noResult = resultSetCount(match) === null
-  const won = taggedSetsWon(match)
+  const won = matchSetsWon(match)
   /** Only a result a match can end on is offered: not 1 - 0, not 1 - 1. */
-  const realResult = isPlausibleMatchWin(taggedResult(match) ?? won)
+  const realResult = isRealResult(won)
 
   return (
     <div className="space-y-2">
@@ -1107,10 +1356,10 @@ function FinishedPanel({
 }
 
 /**
- * After Finish set: Start the next set, or Finish match. Start leads until
- * the tagged sets could be a finished match, then Finish match leads.
- * With a result entered the result alone decides Tagged, so Finish match
- * is not offered.
+ * After Finish set: carry on with the next set, or Finish match. The next set
+ * leads until the tagged sets could be a finished match, then Finish match
+ * leads. With a result entered the result alone decides Tagged, so Finish
+ * match is not offered. Nor is it while the sets count is level.
  */
 function FinishedActions({
   match,
@@ -1126,10 +1375,13 @@ function FinishedActions({
   onFinishMatch: () => void
 }) {
   const tagged = derivePhase(match) === 'complete'
-  const next = nextSetToTag(match, set.setId)
+  /** A set already under way comes before a fresh one. */
+  const next = setInProgress(match) ?? nextSetToTag(match, set.setId)
+  const won = matchSetsWon(match)
+  /** A match cannot end level, so at 1 - 1 (or with no set won) there is nothing to finish. */
   const canFinishMatch =
-    resultSetCount(match) === null && !match.sets.some((s) => setState(s) === 'progress')
-  const finishLeads = canFinishMatch && isPlausibleMatchWin(taggedSetsWon(match))
+    resultSetCount(match) === null && setBlockingFinish(match) === null && won.me !== won.them
+  const finishLeads = canFinishMatch && isRealResult(won)
   const base = `/matches/${match.id}`
 
   if (tagged || locked) {
@@ -1152,7 +1404,7 @@ function FinishedActions({
           className={cn('h-12 text-base', !finishLeads && 'flex-1')}
           onClick={() => onGo(`${base}/tag/${next.setId}`)}
         >
-          Start set {next.setId}
+          {setHasTagProgress(next) ? 'Continue' : 'Start'} set {next.setId}
         </Button>
       ) : null}
       {canFinishMatch ? (
@@ -1230,7 +1482,7 @@ function SetWithoutVideo({ match, set, removed }: { match: MatchRecord; set: Set
                 editingId={null}
                 hasVideo={() => false}
                 onOpen={() => undefined}
-                canFinish={false}
+                finish={null}
                 score={score}
                 onFinish={() => undefined}
               />

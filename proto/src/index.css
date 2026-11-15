@@ -303,3 +303,16 @@ button[disabled] {
   transform-origin: left;
   animation: tag-idle-drain 2s linear forwards;
 }
+
+/* A rally has just closed: the panel fades in while late taps are ignored. */
+@keyframes tag-arm {
+  from {
+    opacity: 0.3;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.tag-arm {
+  animation: tag-arm 0.5s ease-out;
+}

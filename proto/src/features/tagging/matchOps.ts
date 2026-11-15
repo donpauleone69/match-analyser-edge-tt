@@ -1,10 +1,9 @@
 /** Pure changes tagging makes to a match. Applied through the store's mutateMatch. */
 
 import {
+  matchSetsWon,
   setScoresDiffer,
-  taggedResult,
   taggedScore,
-  taggedSetsWon,
   type MatchRecord,
   type SetData,
 } from '@/data/demoStore'
@@ -41,14 +40,12 @@ function scoreText(s: SetData) {
   return t ? { me: String(t.me), them: String(t.them) } : s.entered
 }
 
-/** Finishing fills an empty entered score from the tagged one. */
+/**
+ * Finishing never touches the entered score: that is only what the user typed
+ * in Details, or took over with Use tagged score.
+ */
 export const finishSet = (m: MatchRecord, setId: number) =>
-  inSet(m, setId, (s) => ({
-    ...s,
-    finished: true,
-    draft: null,
-    entered: s.entered.me === '' && s.entered.them === '' ? scoreText(s) : s.entered,
-  }))
+  inSet(m, setId, (s) => ({ ...s, finished: true, draft: null }))
 
 export const reopenSet = (m: MatchRecord, setId: number): MatchRecord => ({
   ...inSet(m, setId, (s) => ({ ...s, finished: false })),
@@ -68,7 +65,7 @@ export const applyTaggedScores = (m: MatchRecord): MatchRecord => ({
 
 export const applyTaggedResult = (m: MatchRecord): MatchRecord => ({
   ...m,
-  result: taggedResult(m) ?? taggedSetsWon(m),
+  result: matchSetsWon(m),
 })
 
 /**

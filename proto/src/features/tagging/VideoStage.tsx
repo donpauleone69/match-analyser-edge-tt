@@ -100,13 +100,24 @@ function StandIn({
 
 export type TimelineBlock = { a: number; b: number; winner: Side; current: boolean }
 
-function Transport({ onClick, label, children }: { onClick: () => void; label: string; children: ReactNode }) {
+function Transport({
+  onClick,
+  label,
+  disabled = false,
+  children,
+}: {
+  onClick: () => void
+  label: string
+  disabled?: boolean
+  children: ReactNode
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-label={label}
-      className="h-8 min-w-8 px-1.5 inline-flex items-center justify-center rounded-md bg-black/60 text-white text-xs font-semibold hover:bg-black/80"
+      disabled={disabled}
+      className="h-10 min-w-10 lg:h-8 lg:min-w-8 px-1.5 inline-flex items-center justify-center rounded-md bg-black/60 text-white text-xs font-semibold hover:bg-black/80 disabled:opacity-40 disabled:hover:bg-black/60"
     >
       {children}
     </button>
@@ -125,6 +136,9 @@ export function VideoStage({
   bug,
   blocks,
   open,
+  hint,
+  onSeek,
+  onRate,
   className,
 }: {
   player: Player
@@ -133,6 +147,11 @@ export function VideoStage({
   bug: { sets: Record<Side, number>; points: Record<Side, number>; server: Side; setId: number }
   blocks: TimelineBlock[]
   open: { a: number; b: number; ticks: number[] } | null
+  /** A few words over the picture, such as why a step back stopped short. */
+  hint: string | null
+  /** Seeks go through the screen so it can say why one stopped short. */
+  onSeek: (g: number) => void
+  onRate: (rate: number) => void
   className?: string
 }) {
   const segs: Segment[] = player.segs
@@ -185,22 +204,37 @@ export function VideoStage({
           {formatClock(player.time - (seg?.offset ?? 0))}
         </p>
 
+        {hint ? (
+          <p
+            role="status"
+            data-video-hint
+            className="absolute left-2 bottom-2 max-w-[55%] rounded-md bg-black/75 px-2 py-1 text-xs font-semibold text-white"
+          >
+            {hint}
+          </p>
+        ) : null}
+
         <div className="absolute right-2 bottom-2 flex items-center gap-1">
-          <Transport label="Back 10 seconds" onClick={() => player.seek(player.getTime() - 10)}>
+          <Transport label="Back 10 seconds" onClick={() => onSeek(player.getTime() - 10)}>
             <Icon name="rewind" size="sm" />
           </Transport>
           <Transport
             label={player.playing ? 'Pause' : 'Play video'}
+            disabled={player.atEnd && !player.playing}
             onClick={() => (player.playing ? player.pause() : player.play())}
           >
             <Icon name={player.playing ? 'pause' : 'play'} size="sm" />
           </Transport>
-          <Transport label="Forward 10 seconds" onClick={() => player.seek(player.getTime() + 10)}>
+          <Transport
+            label="Forward 10 seconds"
+            disabled={player.atEnd}
+            onClick={() => onSeek(player.getTime() + 10)}
+          >
             <Icon name="forward" size="sm" />
           </Transport>
           <Transport
             label={`Speed ${player.rate}x`}
-            onClick={() => player.setRate(SPEED_STEPS[(speedIndex + 1) % SPEED_STEPS.length])}
+            onClick={() => onRate(SPEED_STEPS[(speedIndex + 1) % SPEED_STEPS.length])}
           >
             {player.rate}x
           </Transport>
@@ -221,7 +255,7 @@ export function VideoStage({
         className="relative block h-5 w-full bg-bg-elevated border-b border-border overflow-hidden cursor-pointer"
         onClick={(e) => {
           const box = e.currentTarget.getBoundingClientRect()
-          player.seek(((e.clientX - box.left) / box.width) * total)
+          onSeek(((e.clientX - box.left) / box.width) * total)
         }}
       >
         {blocks.map((b, i) => (
