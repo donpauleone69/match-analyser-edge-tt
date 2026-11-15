@@ -5,9 +5,11 @@ import {
   derivePhase,
   formatScore,
   isSpareSet,
+  missingVideoIds,
   parseEntered,
   resultDiffers,
   resultSetCount,
+  setRalliesWithoutVideo,
   setScoresDiffer,
   setState,
   taggedResult,
@@ -24,6 +26,7 @@ import {
   reopenMatch,
   setInProgress,
 } from '@/features/tagging/matchOps'
+import { TAG_LOCK_LINE, useTagLock } from '@/features/tagging/tagLock'
 import { AddVideoChoice } from '@/features/match/AddVideoChoice'
 
 const flagClass =
@@ -56,12 +59,15 @@ export function MatchTagChecklist() {
   const navigate = useNavigate()
   const { getMatch, patchSet, mutateMatch } = useDemo()
   const match = getMatch(matchId)
+  const lock = useTagLock(matchId, match)
   if (!match) return null
 
   const phase = derivePhase(match)
   const hasVideo = match.videos.length > 0
   const tagged = phase === 'complete'
-  const resume = hasVideo ? setInProgress(match) : null
+  const resume = hasVideo && !lock ? setInProgress(match) : null
+  /** A video that rallies were tagged on has been removed. */
+  const videoGone = missingVideoIds(match).length > 0
   const anyFinished = match.sets.some((s) => setState(s) === 'finished')
   const anyOpen = match.sets.some((s) => setState(s) === 'progress')
   const openSet = (setId: number) => navigate(`/matches/${match.id}/tag/${setId}`)
@@ -87,8 +93,21 @@ export function MatchTagChecklist() {
           {videoLine}
         </p>
       ) : (
-        <NoVideo match={match} />
+        <NoVideo match={match} removed={videoGone} />
       )}
+
+      {hasVideo && videoGone ? (
+        <div className="rounded-md border border-dashed border-border bg-bg-card px-3 py-2 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sm text-primary">A video was removed. Its rallies keep their tags and score.</p>
+          <AddVideoChoice matchId={match.id} />
+        </div>
+      ) : null}
+
+      {lock ? (
+        <p className="rounded-md border border-border bg-bg-card px-3 py-2 text-sm text-primary" role="status">
+          {TAG_LOCK_LINE[lock]}
+        </p>
+      ) : null}
 
       {resume ? (
         <Button fullWidth size="lg" onClick={() => openSet(resume.setId)}>
@@ -103,6 +122,7 @@ export function MatchTagChecklist() {
         {match.sets.map((s) => {
           const state = setState(s)
           const differs = setScoresDiffer(s)
+          const gone = setRalliesWithoutVideo(match, s)
           return (
             <li key={s.setId}>
               <Card className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
@@ -112,10 +132,13 @@ export function MatchTagChecklist() {
                     {state === 'finished' ? <WfBadge>Finished</WfBadge> : null}
                     {differs ? <span className={differsBadge}>Differs</span> : null}
                   </p>
-                  <p className="text-sm text-muted mt-0.5">{setLine(s)}</p>
+                  <p className="text-sm text-muted mt-0.5">
+                    {setLine(s)}
+                    {gone > 0 ? ' · video removed' : ''}
+                  </p>
                 </div>
                 <div className="flex flex-wrap gap-1">
-                  {state === 'skipped' ? (
+                  {state === 'skipped' && !lock ? (
                     <Button
                       size="sm"
                       variant="ghost"
@@ -124,7 +147,7 @@ export function MatchTagChecklist() {
                       Undo
                     </Button>
                   ) : null}
-                  {state === 'none' && !isSpareSet(match, s) ? (
+                  {state === 'none' && !isSpareSet(match, s) && !lock ? (
                     <Button
                       size="sm"
                       variant="ghost"
@@ -142,17 +165,17 @@ export function MatchTagChecklist() {
                       Use tagged score
                     </Button>
                   ) : null}
-                  {state === 'none' && hasVideo ? (
+                  {state === 'none' && hasVideo && !lock ? (
                     <Button size="sm" variant="secondary" onClick={() => openSet(s.setId)}>
                       Start
                     </Button>
                   ) : null}
-                  {state === 'progress' && hasVideo ? (
+                  {state === 'progress' && hasVideo && !lock ? (
                     <Button size="sm" onClick={() => openSet(s.setId)}>
                       Continue
                     </Button>
                   ) : null}
-                  {state === 'finished' ? (
+                  {state === 'finished' || (state === 'progress' && !hasVideo) ? (
                     <Button size="sm" variant="secondary" onClick={() => openSet(s.setId)}>
                       Open
                     </Button>
@@ -167,7 +190,8 @@ export function MatchTagChecklist() {
       <MatchEnd
         match={match}
         tagged={tagged}
-        canFinish={anyFinished && !anyOpen}
+        canFinish={anyFinished && !anyOpen && !lock}
+        locked={Boolean(lock)}
         onFinish={() => mutateMatch(match.id, finishMatch)}
         onReopen={() => mutateMatch(match.id, reopenMatch)}
         onUseResult={() => mutateMatch(match.id, applyTaggedResult)}
@@ -185,12 +209,16 @@ export function MatchTagChecklist() {
   )
 }
 
-function NoVideo({ match }: { match: MatchRecord }) {
+function NoVideo({ match, removed = false }: { match: MatchRecord; removed?: boolean }) {
   return (
     <div className="rounded-lg border border-dashed border-border bg-bg-card px-4 py-6 text-center space-y-3">
       <div className="space-y-1">
-        <p className="text-sm font-semibold text-primary">No video yet</p>
-        <p className="text-sm text-muted">Add the match video to start tagging.</p>
+        <p className="text-sm font-semibold text-primary">{removed ? 'Video removed' : 'No video yet'}</p>
+        <p className="text-sm text-muted">
+          {removed
+            ? 'Tags and scores are kept. Add the video back to play or tag.'
+            : 'Add the match video to start tagging.'}
+        </p>
       </div>
       <AddVideoChoice matchId={match.id} align="center" />
     </div>
@@ -219,6 +247,7 @@ function MatchEnd({
   match,
   tagged,
   canFinish,
+  locked,
   onFinish,
   onReopen,
   onUseResult,
@@ -226,6 +255,7 @@ function MatchEnd({
   match: MatchRecord
   tagged: boolean
   canFinish: boolean
+  locked: boolean
   onFinish: () => void
   onReopen: () => void
   onUseResult: () => void
@@ -246,7 +276,7 @@ function MatchEnd({
               Use tagged result
             </Button>
           ) : null}
-          {match.tagDone ? (
+          {match.tagDone && !locked ? (
             <Button size="sm" variant="ghost" onClick={onReopen}>
               Reopen match
             </Button>
@@ -255,6 +285,7 @@ function MatchEnd({
       </div>
     )
   }
+  if (locked) return null
   return (
     <div className="flex flex-wrap items-center justify-between gap-2">
       <p className="text-xs text-muted">

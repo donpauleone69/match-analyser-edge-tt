@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Button, Icon } from '@/ui-mine'
 import { WfEmpty } from '@/layout/Wireframe'
@@ -7,6 +7,7 @@ import {
   formatScore,
   parseEntered,
   resultSetCount,
+  setRalliesWithoutVideo,
   setScoresDiffer,
   taggedScore,
   taggedSetsWon,
@@ -14,6 +15,7 @@ import {
   type MatchRecord,
   type SetData,
 } from '@/data/demoStore'
+import { AddVideoChoice } from '@/features/match/AddVideoChoice'
 import { matchLabel } from '@/features/match/matchChecks'
 import { cn } from '@/helpers/utils'
 import {
@@ -64,40 +66,46 @@ import {
 import { ZERO, addPoint, isPlausibleMatchWin, isSetWon, serverAt, type Points } from './score'
 import { ShotPanel, TimeRow } from './ShotPanel'
 import { ShotRail } from './ShotRail'
+import { TAG_LOCK_LINE, useTagLock, type TagLock } from './tagLock'
 import { segmentAt, segmentsOf, toGlobal, type Segment } from './timeline'
 import { usePlayer, type Window } from './usePlayer'
 import { VideoStage, type TimelineBlock } from './VideoStage'
 
-/** Route entry: checks the set can be tagged, then mounts the tagger per set. */
+/** Route entry: checks the set can be shown, then mounts the tagger per set. */
 export function TagSetScreen() {
   const navigate = useNavigate()
   const { matchId = '', setId = '1' } = useParams()
   const { getMatch } = useDemo()
   const match = getMatch(matchId)
+  const lock = useTagLock(matchId, match)
   const set = match?.sets.find((s) => s.setId === Number(setId))
 
-  if (!match || !set || set.skipped || match.videos.length === 0) {
-    const title = !match || !set ? 'Unknown set' : set.skipped ? `Set ${set.setId} not filmed` : 'No video yet'
-    const body =
-      !match || !set
-        ? 'Back to the Tag checklist.'
-        : set.skipped
-          ? 'Undo it on the Tag checklist.'
-          : 'Add the video on the Tag checklist.'
-    return (
-      <div className="px-4 sm:px-6 lg:px-8 py-6 space-y-3">
-        <WfEmpty title={title} body={body} />
-        <Button variant="secondary" onClick={() => navigate(`/matches/${matchId}/tag`)}>
-          Back to Tag
-        </Button>
-      </div>
-    )
+  const stop = (title: string, body: string) => (
+    <div className="px-4 sm:px-6 lg:px-8 py-6 space-y-3">
+      <WfEmpty title={title} body={body} />
+      <Button variant="secondary" onClick={() => navigate(`/matches/${matchId}/tag`)}>
+        Back to Tag
+      </Button>
+    </div>
+  )
+  if (!match || !set) return stop('Unknown set', 'Back to the Tag checklist.')
+  if (set.skipped) return stop(`Set ${set.setId} not filmed`, 'Undo it on the Tag checklist.')
+  if (lock && !set.finished) return stop(`Set ${set.setId} cannot be tagged`, TAG_LOCK_LINE[lock])
+
+  // Nothing of this set can be played: no video at all, or a finished set
+  // whose rallies were all tagged on a video that has been removed.
+  const tags = set.rallies.length + (set.draft ? 1 : 0)
+  const unplayable = setRalliesWithoutVideo(match, set)
+  if (match.videos.length === 0 || (set.finished && tags > 0 && unplayable === tags)) {
+    return <SetWithoutVideo match={match} set={set} removed={tags > 0} />
   }
-  return <TagSet key={`${match.id}:${set.setId}`} match={match} set={set} />
+  const videoKey = match.videos.map((v) => v.id).join(',')
+  return <TagSet key={`${match.id}:${set.setId}:${videoKey}`} match={match} set={set} lock={lock} />
 }
 
 type Toast = { text: string; undo: () => void }
 type Editing = { id: string; index: number; draft: Draft; dirty: boolean }
+type SetHeaderProps = { match: MatchRecord; set: SetData; children?: ReactNode }
 
 /** The stage-driven choice of what is selected after a change. */
 function selectionAfter(prev: Stage, next: Stage, d: Draft, current: Mark | null): Mark | null {
@@ -108,7 +116,7 @@ function selectionAfter(prev: Stage, next: Stage, d: Draft, current: Mark | null
   return current
 }
 
-function TagSet({ match, set }: { match: MatchRecord; set: SetData }) {
+function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: TagLock }) {
   const navigate = useNavigate()
   const { mutateMatch } = useDemo()
   const player = usePlayer(match.videos)
@@ -126,7 +134,13 @@ function TagSet({ match, set }: { match: MatchRecord; set: SetData }) {
   const [listOpen, setListOpen] = useState(false)
   const [lastTap, setLastTap] = useState<number | null>(null)
 
-  const live = set.draft
+  const have = new Set(match.videos.map((v) => v.id))
+  /** Rallies of this set whose video has been removed: tags kept, nothing to play. */
+  const goneCount = setRalliesWithoutVideo(match, set)
+  /** The open rally sits on a removed video: it cannot be tagged or tapped over. */
+  const draftGone = set.draft !== null && !have.has(set.draft.videoId)
+  const live = draftGone ? null : set.draft
+  const readOnly = lock !== null
   const active = edit ? edit.draft : live
   const stage = active ? stageOf(active) : null
   const score = taggedScore(set) ?? ZERO
@@ -139,7 +153,9 @@ function TagSet({ match, set }: { match: MatchRecord; set: SetData }) {
     ? 'edit'
     : set.finished
       ? 'finished'
-      : live
+      : draftGone
+        ? 'blocked'
+        : live
         ? live.closed
           ? 'tagging'
           : 'tapping'
@@ -189,7 +205,7 @@ function TagSet({ match, set }: { match: MatchRecord; set: SetData }) {
     p.setBoundary(null)
     p.setFloor(floor)
     p.pause()
-    if (draft && draft.closed && !finished) {
+    if (draft && draft.closed && !finished && have.has(draft.videoId)) {
       const st = stageOf(draft)
       const sel = selectionAfter('contacts', st, draft, null)
       const w = windowFor(draft, null, st, false)
@@ -209,7 +225,7 @@ function TagSet({ match, set }: { match: MatchRecord; set: SetData }) {
   // On arrival: a rally left mid-tap reopens with its contacts closed, and the
   // video is parked on the frame where tagging stopped.
   useEffect(() => {
-    let draft = live
+    let draft = set.draft
     if (draft && !draft.closed) {
       draft = draft.contacts.length > 0 ? { ...draft, closed: true } : null
       const fixed = draft
@@ -227,6 +243,7 @@ function TagSet({ match, set }: { match: MatchRecord; set: SetData }) {
 
   /** Writes the rally being worked on: the past rally in edit, else the draft. */
   const writeDraft = (next: Draft) => {
+    if (readOnly) return
     if (edit) setEdit({ ...edit, draft: next, dirty: true })
     else mutateMatch(match.id, (m) => setDraft(m, set.setId, next))
   }
@@ -317,8 +334,8 @@ function TagSet({ match, set }: { match: MatchRecord; set: SetData }) {
   const onShot = (shot: number) => {
     if (!active || !stage) return
     const mark: Mark = { kind: 'shot', shot }
-    if (stage === 'result' || stage === 'endShot') return
-    if (stage === 'pickFa' || stage === 'faShot') {
+    if (!readOnly && (stage === 'result' || stage === 'endShot')) return
+    if (!readOnly && (stage === 'pickFa' || stage === 'faShot')) {
       if (shot >= 2) change(markFa(active, shot))
       return
     }
@@ -338,7 +355,7 @@ function TagSet({ match, set }: { match: MatchRecord; set: SetData }) {
   }
 
   const onNudge = (delta: number) => {
-    if (!active || !stage || !selected) return
+    if (!active || !stage || !selected || readOnly) return
     const next = nudgeMark(active, selected, delta, durationOf(active.videoId))
     writeDraft(next)
     setTight(true)
@@ -369,6 +386,13 @@ function TagSet({ match, set }: { match: MatchRecord; set: SetData }) {
     setSelected(null)
     setLastTap(null)
     withUndo('Rally cleared', before, () => park(before.draft, false, floorG))
+  }
+
+  /** Drop an open rally whose video is gone. */
+  const onDiscardGone = () => {
+    const before = set
+    mutateMatch(match.id, (m) => setDraft(m, set.setId, null))
+    withUndo('Rally discarded', before)
   }
 
   const onDiscard = () => {
@@ -410,11 +434,13 @@ function TagSet({ match, set }: { match: MatchRecord; set: SetData }) {
   }
 
   const onServer = () => {
+    if (readOnly) return
     if (edit) writeDraft({ ...edit.draft, server: otherSide(edit.draft.server) })
     else if (!live) mutateMatch(match.id, (m) => flipFirstServer(m, set.setId))
   }
 
   const openRally = (r: RallyData, index: number) => {
+    if (!have.has(r.videoId)) return
     const d = draftFromRally(r)
     setEdit({ id: r.id, index, draft: d, dirty: false })
     setSelected(null)
@@ -435,7 +461,7 @@ function TagSet({ match, set }: { match: MatchRecord; set: SetData }) {
   }
 
   const onSaveEdit = () => {
-    if (!edit) return
+    if (!edit || readOnly) return
     const rally = rallyFromDraft(edit.draft, edit.id)
     if (!rally) return
     mutateMatch(match.id, (m) => replaceRally(m, set.setId, rally))
@@ -443,7 +469,7 @@ function TagSet({ match, set }: { match: MatchRecord; set: SetData }) {
   }
 
   const onDeleteEdit = () => {
-    if (!edit) return
+    if (!edit || readOnly) return
     const before = set
     mutateMatch(match.id, (m) => deleteRally(m, set.setId, edit.id))
     setEdit(null)
@@ -469,6 +495,7 @@ function TagSet({ match, set }: { match: MatchRecord; set: SetData }) {
   }
 
   const onReopenSet = () => {
+    if (readOnly) return
     mutateMatch(match.id, (m) => reopenSet(m, set.setId))
     setKeepTaggingAt(set.rallies.length)
     park(null, false, floorG)
@@ -546,7 +573,7 @@ function TagSet({ match, set }: { match: MatchRecord; set: SetData }) {
   const setsWon = taggedSetsWon(match)
   const atEnd = player.atEnd && (mode === 'watch' || mode === 'setPoint')
   const ready = stage === 'ready'
-  const canFinishNow = !set.finished && !live && !edit && set.rallies.length > 0
+  const canFinishNow = !set.finished && !live && !draftGone && !edit && set.rallies.length > 0
   const tapped = live && !live.closed ? live.contacts.length : 0
 
   const status =
@@ -554,8 +581,12 @@ function TagSet({ match, set }: { match: MatchRecord; set: SetData }) {
       ? `Set ${set.setId} finished · ${formatScore(score)}`
       : mode === 'setPoint'
         ? `Set ${set.setId} reached ${formatScore(score)}`
-        : mode === 'edit' && edit
-          ? `Rally ${edit.index + 1} · ${statusText(edit.draft)}`
+        : mode === 'blocked'
+          ? 'Open rally · video removed'
+          : mode === 'edit' && edit
+            ? readOnly
+              ? `Rally ${edit.index + 1} · ${edit.draft.contacts.length} ${edit.draft.contacts.length === 1 ? 'shot' : 'shots'}`
+              : `Rally ${edit.index + 1} · ${statusText(edit.draft)}`
           : active
             ? statusText(active)
             : atEnd
@@ -570,6 +601,7 @@ function TagSet({ match, set }: { match: MatchRecord; set: SetData }) {
       names={names}
       nextServer={nextServer}
       editingId={edit?.id ?? null}
+      hasVideo={(id) => have.has(id)}
       onOpen={openRally}
       canFinish={canFinishNow}
       score={score}
@@ -588,18 +620,7 @@ function TagSet({ match, set }: { match: MatchRecord; set: SetData }) {
     >
       {/* Left on desktop, top on phone: header, picture, timeline, rally list. */}
       <div className="shrink-0 lg:flex-[3] lg:min-w-0 lg:min-h-0 lg:flex lg:flex-col lg:border-r lg:border-border">
-        <header className="h-11 px-2 flex items-center gap-2 border-b border-border bg-bg-app">
-          <Link
-            to={`/matches/${match.id}/tag`}
-            aria-label="Back"
-            className="inline-flex items-center justify-center w-8 h-8 rounded-md text-brand hover:bg-pill-idle"
-          >
-            <Icon name="chevron-left" size="sm" />
-          </Link>
-          <div className="min-w-0 flex-1 flex items-baseline gap-2">
-            <h1 className="text-base font-bold text-primary">Set {set.setId}</h1>
-            <p className="text-xs text-muted truncate">{matchLabel(match)}</p>
-          </div>
+        <SetHeader match={match} set={set}>
           <Button
             size="sm"
             variant="secondary"
@@ -610,7 +631,7 @@ function TagSet({ match, set }: { match: MatchRecord; set: SetData }) {
             <Icon name="list" size="xs" />
             Rallies {set.rallies.length}
           </Button>
-        </header>
+        </SetHeader>
         <VideoStage
           player={player}
           videos={match.videos}
@@ -632,7 +653,7 @@ function TagSet({ match, set }: { match: MatchRecord; set: SetData }) {
               <button
                 type="button"
                 onClick={onServer}
-                disabled={mode === 'tagging' || mode === 'tapping'}
+                disabled={mode === 'tagging' || mode === 'tapping' || mode === 'blocked' || readOnly}
                 aria-label={`${servesText(names, shownServer)}. Switch server`}
                 className={cn(
                   'h-9 px-2 rounded-md border text-xs font-semibold inline-flex items-center gap-1.5 disabled:opacity-100',
@@ -661,6 +682,7 @@ function TagSet({ match, set }: { match: MatchRecord; set: SetData }) {
                   onClearFa={() => active.fa !== null && change(markFa(active, active.fa))}
                   onNoAttack={() => change(toggleNoAttack(active))}
                   onHighlight={() => writeDraft({ ...active, highlight: !active.highlight })}
+                  readOnly={readOnly}
                 />
               ) : mode !== 'watch' ? null : (
                 <div className="py-1 flex" aria-label="Shots in this rally">
@@ -688,6 +710,21 @@ function TagSet({ match, set }: { match: MatchRecord; set: SetData }) {
         </div>
 
         <div className="flex-1 min-h-0 overflow-y-auto px-2 py-2 space-y-2">
+          {goneCount > 0 ? (
+            <div className="rounded-md border border-dashed border-border bg-bg-card px-3 py-2 space-y-2" role="status">
+              <p className="text-sm text-primary">
+                {draftGone && goneCount === 1
+                  ? 'The video for the open rally was removed.'
+                  : `The video for ${goneCount} ${goneCount === 1 ? 'rally' : 'rallies'} was removed. Tags and score are kept.`}
+              </p>
+              <AddVideoChoice matchId={match.id} />
+            </div>
+          ) : null}
+          {lock && mode !== 'finished' ? (
+            <p className="text-xs text-muted" role="status">
+              {TAG_LOCK_LINE[lock]}
+            </p>
+          ) : null}
           {mode === 'finished' ? (
             <FinishedPanel
               match={match}
@@ -696,24 +733,31 @@ function TagSet({ match, set }: { match: MatchRecord; set: SetData }) {
               keptEntered={keptEntered}
               onKeepEntered={() => setKeptEntered(true)}
               onReopen={onReopenSet}
+              lock={lock}
             />
           ) : null}
-          {active && active.closed && selected?.kind === 'shot' ? (
+          {active && active.closed && selected?.kind === 'shot' && !readOnly ? (
             <ShotPanel draft={active} shot={selected.shot} names={names} onChange={change} onNudge={onNudge} />
           ) : null}
-          {active && active.closed && selected && selected.kind !== 'shot' ? (
+          {active && active.closed && selected && selected.kind !== 'shot' && !readOnly ? (
             <div className="rounded-md border border-border bg-bg-surface p-3">
               <TimeRow draft={active} mark={selected} onNudge={onNudge} />
             </div>
           ) : null}
-          {active && active.closed && ready && !selected ? (
+          {active && active.closed && (readOnly || (ready && !selected)) ? (
             <ul className="space-y-1" aria-label="Rally summary">
               {active.contacts.map((_, i) => (
                 <li key={i}>
                   <button
                     type="button"
                     onClick={() => onShot(i + 1)}
-                    className="w-full flex items-center justify-between gap-2 rounded-md border border-border bg-bg-card px-2 py-1.5 text-left text-xs"
+                    aria-pressed={selected?.kind === 'shot' && selected.shot === i + 1}
+                    className={cn(
+                      'w-full flex items-center justify-between gap-2 rounded-md border bg-bg-card px-2 py-1.5 text-left text-xs',
+                      selected?.kind === 'shot' && selected.shot === i + 1
+                        ? 'border-brand-primary'
+                        : 'border-border'
+                    )}
                   >
                     <span className="font-semibold text-primary">
                       {i + 1} · {names[i % 2 === 0 ? active.server : otherSide(active.server)]}
@@ -725,7 +769,7 @@ function TagSet({ match, set }: { match: MatchRecord; set: SetData }) {
                         shotSummary(active.shots[i] ?? {}),
                       ]
                         .filter(Boolean)
-                        .join(' · ') || 'Add detail'}
+                        .join(' · ') || (readOnly ? '' : 'Add detail')}
                     </span>
                   </button>
                 </li>
@@ -805,7 +849,28 @@ function TagSet({ match, set }: { match: MatchRecord; set: SetData }) {
             </div>
           ) : null}
 
-          {mode === 'edit' && edit ? (
+          {mode === 'blocked' ? (
+            <div className="flex items-stretch gap-2">
+              <Button variant="secondary" className="h-12" onClick={onDiscardGone}>
+                Discard rally
+              </Button>
+              <Button
+                variant="ghost"
+                className="h-12 flex-1"
+                onClick={() => navigate(`/matches/${match.id}/tag`)}
+              >
+                Back to sets
+              </Button>
+            </div>
+          ) : null}
+
+          {mode === 'edit' && edit && readOnly ? (
+            <Button fullWidth variant="secondary" className="h-12" onClick={closeEdit}>
+              Back to set
+            </Button>
+          ) : null}
+
+          {mode === 'edit' && edit && !readOnly ? (
             <div className="flex items-stretch gap-2">
               <Button variant="secondary" className="h-12" onClick={closeEdit}>
                 Back to live
@@ -839,6 +904,7 @@ function TagSet({ match, set }: { match: MatchRecord; set: SetData }) {
             <FinishedActions
               match={match}
               set={set}
+              locked={readOnly}
               onGo={(to) => navigate(to)}
               onFinishMatch={() => mutateMatch(match.id, finishMatch)}
             />
@@ -873,6 +939,7 @@ function RallyList({
   names,
   nextServer,
   editingId,
+  hasVideo,
   onOpen,
   canFinish,
   score,
@@ -882,6 +949,8 @@ function RallyList({
   names: Record<Side, string>
   nextServer: Side
   editingId: string | null
+  /** False for a rally whose video was removed: listed, not playable. */
+  hasVideo: (videoId: string) => boolean
   onOpen: (r: RallyData, index: number) => void
   canFinish: boolean
   score: Points
@@ -910,7 +979,13 @@ function RallyList({
         <div className="flex items-center gap-2 rounded-md border border-dashed border-border px-2 py-1.5 text-xs text-muted">
           <span className="w-5 text-center tabular-nums">{set.rallies.length + 1}</span>
           <span className={dot(set.draft?.server ?? nextServer)} />
-          <span>{set.draft ? 'Rally open' : `Next rally · ${servesText(names, nextServer)}`}</span>
+          <span>
+            {set.draft
+              ? hasVideo(set.draft.videoId)
+                ? 'Rally open'
+                : 'Rally open · video removed'
+              : `Next rally · ${servesText(names, nextServer)}`}
+          </span>
         </div>
       ) : null}
       {[...rows].reverse().map(({ r, index, after }) => (
@@ -918,10 +993,11 @@ function RallyList({
           key={r.id}
           type="button"
           onClick={() => onOpen(r, index)}
+          disabled={!hasVideo(r.videoId)}
           aria-label={`Rally ${index + 1}`}
           aria-pressed={editingId === r.id}
           className={cn(
-            'w-full flex items-center gap-2 rounded-md border px-2 py-1.5 text-left text-xs',
+            'w-full flex items-center gap-2 rounded-md border px-2 py-1.5 text-left text-xs disabled:opacity-60',
             editingId === r.id
               ? 'border-brand-primary bg-brand-primary-muted'
               : 'border-border bg-bg-card hover:bg-bg-elevated'
@@ -952,6 +1028,7 @@ function FinishedPanel({
   keptEntered,
   onKeepEntered,
   onReopen,
+  lock,
 }: {
   match: MatchRecord
   set: SetData
@@ -959,6 +1036,7 @@ function FinishedPanel({
   keptEntered: boolean
   onKeepEntered: () => void
   onReopen: () => void
+  lock: TagLock
 }) {
   const { mutateMatch } = useDemo()
   const entered = parseEntered(set.entered)
@@ -973,10 +1051,17 @@ function FinishedPanel({
         <p className="text-sm text-primary">
           {set.rallies.length} {set.rallies.length === 1 ? 'rally' : 'rallies'} · sets {formatScore(won)}
         </p>
-        <Button size="sm" variant="ghost" onClick={onReopen}>
-          Reopen set
-        </Button>
+        {lock ? null : (
+          <Button size="sm" variant="ghost" onClick={onReopen}>
+            Reopen set
+          </Button>
+        )}
       </div>
+      {lock ? (
+        <p className="rounded-md border border-border bg-bg-card px-3 py-2 text-sm text-primary" role="status">
+          {TAG_LOCK_LINE[lock]} Rallies still play.
+        </p>
+      ) : null}
 
       {differs && entered ? (
         <div className={flagClass} role="alert">
@@ -1022,11 +1107,13 @@ function FinishedPanel({
 function FinishedActions({
   match,
   set,
+  locked,
   onGo,
   onFinishMatch,
 }: {
   match: MatchRecord
   set: SetData
+  locked: boolean
   onGo: (to: string) => void
   onFinishMatch: () => void
 }) {
@@ -1035,7 +1122,7 @@ function FinishedActions({
   const finishLeads = isPlausibleMatchWin(taggedSetsWon(match))
   const base = `/matches/${match.id}`
 
-  if (tagged) {
+  if (tagged || locked) {
     return (
       <div className="flex items-stretch gap-2">
         <Button className="h-12 flex-1 text-base" onClick={() => onGo(`${base}/insights/summary`)}>
@@ -1068,6 +1155,73 @@ function FinishedActions({
       <Button variant="ghost" className="h-12" onClick={() => onGo(`${base}/tag`)}>
         Sets
       </Button>
+    </div>
+  )
+}
+
+function SetHeader({ match, set, children }: SetHeaderProps) {
+  return (
+    <header className="h-11 px-2 flex items-center gap-2 border-b border-border bg-bg-app">
+      <Link
+        to={`/matches/${match.id}/tag`}
+        aria-label="Back"
+        className="inline-flex items-center justify-center w-8 h-8 rounded-md text-brand hover:bg-pill-idle"
+      >
+        <Icon name="chevron-left" size="sm" />
+      </Link>
+      <div className="min-w-0 flex-1 flex items-baseline gap-2">
+        <h1 className="text-base font-bold text-primary">Set {set.setId}</h1>
+        <p className="text-xs text-muted truncate">{matchLabel(match)}</p>
+      </div>
+      {children}
+    </header>
+  )
+}
+
+/**
+ * A set with nothing to play: its video was removed, or none was added yet.
+ * Tags and score stay. Adding the video back brings the player with it.
+ */
+function SetWithoutVideo({ match, set, removed }: { match: MatchRecord; set: SetData; removed: boolean }) {
+  const names: Record<Side, string> = { me: 'You', them: match.opponent.trim() || 'Opponent' }
+  const score = taggedScore(set) ?? ZERO
+  return (
+    <div className="h-full flex flex-col bg-bg-app" data-tag-mode="no-video">
+      <SetHeader match={match} set={set} />
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        <div className="mx-auto max-w-2xl px-3 py-4 space-y-3">
+          <div className="rounded-lg border border-dashed border-border bg-bg-card px-4 py-5 text-center space-y-3">
+            <div className="space-y-1">
+              <p className="text-sm font-semibold text-primary">{removed ? 'Video removed' : 'No video yet'}</p>
+              <p className="text-sm text-muted">
+                {removed
+                  ? 'Tags and score are kept. Add the video back to play or tag.'
+                  : 'Add the match video to start tagging.'}
+              </p>
+            </div>
+            <AddVideoChoice matchId={match.id} align="center" />
+          </div>
+          {removed ? (
+            <>
+              <p className="text-sm font-semibold text-primary" role="status">
+                Set {set.setId}
+                {set.finished ? ' finished' : ''} · {formatScore(score)}
+              </p>
+              <RallyList
+                set={set}
+                names={names}
+                nextServer={serverAt(set.firstServer, score)}
+                editingId={null}
+                hasVideo={() => false}
+                onOpen={() => undefined}
+                canFinish={false}
+                score={score}
+                onFinish={() => undefined}
+              />
+            </>
+          ) : null}
+        </div>
+      </div>
     </div>
   )
 }

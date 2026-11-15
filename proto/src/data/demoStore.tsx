@@ -3,6 +3,7 @@ import {
   useCallback,
   useContext,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react'
@@ -296,6 +297,35 @@ export function resultDiffers(match: MatchRecord): boolean {
   if (me === null || them === null || !isMatchTagged(match)) return false
   const tagged = taggedResult(match)
   return tagged !== null && (tagged.me !== me || tagged.them !== them)
+}
+
+/**
+ * An archive keeps only the tagged rallies, so once any video is the archived
+ * copy the match cannot be tagged further.
+ */
+export function isArchived(match: MatchRecord): boolean {
+  return match.videos.some((v) => v.archived)
+}
+
+/** Removed videos that saved or open rallies still point at, in set order. */
+export function missingVideoIds(match: MatchRecord): string[] {
+  const have = new Set(match.videos.map((v) => v.id))
+  const out: string[] = []
+  for (const s of match.sets) {
+    const ids = s.rallies.map((r) => r.videoId)
+    if (s.draft) ids.push(s.draft.videoId)
+    for (const id of ids) if (!have.has(id) && !out.includes(id)) out.push(id)
+  }
+  return out
+}
+
+/** How many of a set's rallies (saved or open) sit on a removed video. */
+export function setRalliesWithoutVideo(match: MatchRecord, s: SetData): number {
+  const have = new Set(match.videos.map((v) => v.id))
+  return (
+    s.rallies.filter((r) => !have.has(r.videoId)).length +
+    (s.draft && !have.has(s.draft.videoId) ? 1 : 0)
+  )
 }
 
 /** A new match nobody has put anything into. Discarded when left. */
@@ -601,10 +631,23 @@ export function DemoProvider({ children }: { children: ReactNode }) {
     [patchSet]
   )
 
+  /**
+   * Removed videos, kept in memory so tags that still point at one line up
+   * again when it is added back.
+   */
+  const removedVideos = useRef(new Map<string, { video: VideoAsset; index: number }>())
+
+  /**
+   * While rallies point at a removed video, the next video added takes its
+   * place (same id and position), so those rallies play again. The demo video
+   * comes back as it was; a chosen file is trusted to be the same footage.
+   */
   const addVideo = useCallback(
     (matchId: string, file?: LocalVideo) =>
       change(matchId, (m) => {
-        const id = `v-${matchId}-${Date.now()}`
+        const lostId = missingVideoIds(m)[0]
+        const lost = lostId ? removedVideos.current.get(lostId) : undefined
+        const id = lostId ?? `v-${matchId}-${Date.now()}`
         const video: VideoAsset = file
           ? {
               id,
@@ -615,8 +658,12 @@ export function DemoProvider({ children }: { children: ReactNode }) {
               durationS: file.durationS,
               src: file.src,
             }
-          : demoVideo(id, `demo-video-${m.videos.length + 1}.mp4`, genericScript(Date.now() % 9973))
-        return { ...m, videos: [...m.videos, video] }
+          : lost && lost.video.kind === 'demo'
+            ? { ...lost.video, archived: false }
+            : demoVideo(id, `demo-video-${m.videos.length + 1}.mp4`, genericScript(Date.now() % 9973))
+        const videos = [...m.videos]
+        videos.splice(lostId ? Math.min(lost?.index ?? 0, videos.length) : videos.length, 0, video)
+        return { ...m, videos }
       }),
     [change]
   )
@@ -636,10 +683,11 @@ export function DemoProvider({ children }: { children: ReactNode }) {
 
   const removeVideo = useCallback(
     (matchId: string, videoId: string) =>
-      change(matchId, (m) => ({
-        ...m,
-        videos: m.videos.filter((v) => v.id !== videoId),
-      })),
+      change(matchId, (m) => {
+        const index = m.videos.findIndex((v) => v.id === videoId)
+        if (index >= 0) removedVideos.current.set(videoId, { video: m.videos[index], index })
+        return { ...m, videos: m.videos.filter((v) => v.id !== videoId) }
+      }),
     [change]
   )
 

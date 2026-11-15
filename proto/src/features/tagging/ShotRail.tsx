@@ -29,6 +29,7 @@ export function ShotRail({
   onClearFa,
   onNoAttack,
   onHighlight,
+  readOnly = false,
 }: {
   draft: Draft
   selected: Mark | null
@@ -37,18 +38,21 @@ export function ShotRail({
   onClearFa: () => void
   onNoAttack: () => void
   onHighlight: () => void
+  /** Shots can be picked to watch them; nothing can be changed. */
+  readOnly?: boolean
 }) {
   const stage = stageOf(draft)
   const n = draft.contacts.length
   const tapping = stage === 'contacts'
   /** While the result and end shot are entered, only the end shot is live. */
   const locked = stage === 'result' || stage === 'endShot'
-  const marksOff = tapping || locked
+  const marksOff = tapping || locked || readOnly
   const showNoAttack = !tapping && n > 1 && (stage === 'pickFa' || draft.noAttack)
+  const marks = !tapping && !readOnly
 
   return (
     <div className="flex items-start gap-1 overflow-x-auto py-1" aria-label="Shots in this rally">
-      {!tapping ? (
+      {marks ? (
         <div className="flex flex-col items-center shrink-0">
           <button
             type="button"
@@ -91,7 +95,7 @@ export function ShotRail({
             >
               {shot}
             </button>
-            {isFa && !locked ? (
+            {isFa && !locked && !readOnly ? (
               <button
                 type="button"
                 onClick={onClearFa}
@@ -114,7 +118,7 @@ export function ShotRail({
           <span className={cn(cell, 'border-dashed border-border text-muted opacity-60')}>{n + 1}</span>
           <span className={caption} />
         </div>
-      ) : (
+      ) : !marks ? null : (
         <div className="flex flex-col items-center shrink-0">
           <button
             type="button"
@@ -139,6 +143,7 @@ export function ShotRail({
           <button
             type="button"
             aria-pressed={draft.noAttack}
+            disabled={readOnly}
             onClick={onNoAttack}
             className={cn(
               cell,
@@ -154,13 +159,13 @@ export function ShotRail({
         </div>
       ) : null}
 
-      {!tapping ? (
+      {!tapping && (!readOnly || draft.highlight) ? (
         <div className="flex flex-col items-center shrink-0">
           <button
             type="button"
             aria-label="Highlight rally"
             aria-pressed={draft.highlight}
-            disabled={locked}
+            disabled={locked || readOnly}
             onClick={onHighlight}
             className={cn(
               cell,
