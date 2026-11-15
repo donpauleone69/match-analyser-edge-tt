@@ -88,6 +88,7 @@ import {
 } from './rally'
 import { RallyList, type RallyListActions } from './RallyList'
 import { ZERO, addPoint, isSetWon, type Points } from './score'
+import { AnswerKeyPanel } from './AnswerKeyPanel'
 import { NO_ATTACK_KEY, applyShotKey } from './shotKeys'
 import { FirstAttackRow, KeyHint, ShotPanel, TimeRow, TrimRow } from './ShotPanel'
 import { ShotRail } from './ShotRail'
@@ -1122,6 +1123,8 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                 : setLine
 
   const rallyList = (
+    <>
+    <AnswerKeyPanel videos={match.videos} rallies={set.rallies} names={names} />
     <RallyList
       set={set}
       names={names}
@@ -1138,6 +1141,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       onFinish={onFinishSet}
       actions={listActions}
     />
+    </>
   )
   const padServer = live?.server ?? nextServer
   const switchOn = !readOnly && !atEnd && (mode === 'watch' || mode === 'tagging')
