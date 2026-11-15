@@ -1,6 +1,7 @@
 import { forwardRef, type ButtonHTMLAttributes } from 'react'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/helpers/utils'
+import { buttonKindClass, type ButtonKind } from '@/ui-mine/buttonKinds'
 
 const buttonVariants = cva(
   `inline-flex items-center justify-center gap-1.5 font-semibold
@@ -38,14 +39,19 @@ export interface ButtonProps
   extends ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   fullWidth?: boolean
+  /** Item 14 height — tapPad, main, or control (device decides finger vs mouse). */
+  kind?: ButtonKind
 }
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, fullWidth, children, ...props }, ref) => (
+  ({ className, variant, size, kind, fullWidth, children, ...props }, ref) => (
     <button
       ref={ref}
       className={cn(
-        buttonVariants({ variant, size }),
+        buttonVariants({ variant, size: kind ? undefined : size }),
+        !kind && size === undefined && 'h-9 px-3 text-sm rounded-md',
+        kind && buttonKindClass[kind],
+        kind && 'px-3 text-sm rounded-md',
         disabledSurface,
         fullWidth && 'w-full',
         className

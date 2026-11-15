@@ -33,6 +33,11 @@
   --control-radius: 0.25rem;
   --control-gap: 0.2rem;
 
+  /* Item 14: button kinds — mouse (fine pointer) defaults */
+  --btn-kind-tap-pad: 5rem; /* 80px */
+  --btn-kind-main: 2.75rem; /* 44px */
+  --btn-kind-control: 2.25rem; /* 36px */
+
   --color-success: #22c55e;
   --color-warning: #f59e0b;
   --color-danger: #ef4444;
@@ -242,6 +247,43 @@
   --theme-bg-surface: #111827;
   --theme-bg-card: #0f172a;
   --theme-bg-elevated: #1e293b;
+}
+
+/* Item 14: finger targets; tap pad 64 below 700px viewport height, else 80 */
+@media (pointer: coarse) {
+  :root {
+    --btn-kind-main: 3rem; /* 48px */
+    --btn-kind-control: 2.75rem; /* 44px */
+    --btn-kind-tap-pad: 4rem; /* 64px */
+  }
+  @media (min-height: 700px) {
+    :root {
+      --btn-kind-tap-pad: 5rem; /* 80px */
+    }
+  }
+}
+
+.btn-kind-tap-pad {
+  height: var(--btn-kind-tap-pad);
+  min-height: var(--btn-kind-tap-pad);
+}
+.btn-kind-main {
+  height: var(--btn-kind-main);
+  min-height: var(--btn-kind-main);
+}
+.btn-kind-control {
+  height: var(--btn-kind-control);
+  min-height: var(--btn-kind-control);
+}
+.btn-kind-square {
+  width: var(--btn-kind-control);
+  min-width: var(--btn-kind-control);
+  padding-inline: 0;
+}
+.btn-kind-tap-pad-square {
+  width: var(--btn-kind-tap-pad);
+  min-width: var(--btn-kind-tap-pad);
+  padding-inline: 0;
 }
 
 html {
