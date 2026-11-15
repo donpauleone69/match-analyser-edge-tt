@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { cn } from '@/helpers/utils'
 import {
   ENDINGS,
@@ -7,6 +7,7 @@ import {
   ROLE_LABEL,
   WINGS,
   fieldsFor,
+  flipSwitch,
   hitterOf,
   isError,
   markTime,
@@ -14,13 +15,17 @@ import {
   roleOf,
   setEnding,
   stageOf,
+  strokeCells,
+  strokeSide,
+  switchOf,
   toggleShotField,
   type Draft,
   type Mark,
   type ShotTags,
   type Side,
+  type StrokeSide,
 } from './rally'
-import { PIVOT_KEY, RESULT_KEYS, STROKE_KEYS, WING_KEYS } from './shotKeys'
+import { PIVOT_KEY, RESULT_KEYS, STROKE_KEYS, SWITCH_KEY, WING_KEYS, bindStrokeSide } from './shotKeys'
 import { formatClock } from './timeline'
 
 /** A key printed on its control. Desktop only: a phone has no keys. */
@@ -81,15 +86,6 @@ function Pill({
   )
 }
 
-function Row({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className="space-y-1">
-      <p className="text-[10px] font-bold uppercase tracking-wide text-muted">{label}</p>
-      <div className="flex flex-wrap gap-1.5 lg:gap-1">{children}</div>
-    </div>
-  )
-}
-
 /** Step a mark's time by a tenth of a second. The video loops around it. */
 export function TimeRow({
   draft,
@@ -124,9 +120,70 @@ export function TimeRow({
 
 const sideBar: Record<Side, string> = { me: 'border-l-side-me', them: 'border-l-side-them' }
 
+/** Equal cells, one line, full text size. Height comes from the control kind. */
+const cell =
+  'btn-kind-control min-w-0 flex-1 basis-0 px-0 text-sm font-semibold rounded-md border inline-flex items-center justify-center whitespace-nowrap overflow-hidden'
+
 /**
- * One shot's tags. The required rows come first (result, wing, stroke), then
- * the optional rows its role allows. Optional rows never block Save.
+ * Switch words. Both fit a 76px cell at 375, full text size, so the long names stay.
+ * The cell can grow when a key hint is showing. Stroke cells share what is left.
+ */
+const SWITCH_WORD: Record<StrokeSide, string> = { offensive: 'Offensive', defensive: 'Defensive' }
+const SWITCH_BASIS = '76px'
+
+function Line({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div role="group" aria-label={label} data-row={label} className="flex gap-1">
+      {children}
+    </div>
+  )
+}
+
+function Cell({
+  on,
+  onClick,
+  children,
+  tone = 'brand',
+  hint,
+  disabled = false,
+  label,
+}: {
+  on: boolean
+  onClick: () => void
+  children: ReactNode
+  tone?: 'brand' | 'good' | 'bad'
+  hint?: string
+  disabled?: boolean
+  label: string
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={on}
+      disabled={disabled}
+      onClick={onClick}
+      data-cell={label}
+      className={cn(
+        cell,
+        'disabled:pointer-events-none',
+        on
+          ? tone === 'good'
+            ? 'bg-success text-white border-success'
+            : tone === 'bad'
+              ? 'bg-danger text-white border-danger'
+              : 'bg-brand-primary text-on-accent border-brand-primary'
+          : 'bg-pill-idle border-pill-idle-border text-primary'
+      )}
+    >
+      <span data-cell-label>{children}</span>
+      {hint ? <KeyHint k={hint} /> : null}
+    </button>
+  )
+}
+
+/**
+ * One shot's tags. One line per row, equal cells, no headings.
+ * Order: result, wing, stroke, the extras for that shot, miss reason, then Review and the shot time.
  */
 export function ShotPanel({
   draft,
@@ -145,13 +202,15 @@ export function ShotPanel({
   const fields = fieldsFor(draft, shot)
   const hitter = hitterOf(draft.server, shot)
   const stage = stageOf(draft)
-  /** Until the required steps are done, only the row being asked for shows. */
+  /** Until the required steps are done, only the rows being asked show. */
   const requiredOnly = stage !== 'ready'
-  /**
-   * The wing and stroke row is there from the start, waiting for the result,
-   * so picking a result never moves another chip under the pointer.
-   */
+  /** Wing and stroke stay put while the result is asked, so a press cannot land on a row that just moved. */
   const shotRowOff = stage === 'result'
+  const rule = switchOf(draft, shot)
+  const [held, setHeld] = useState<{ shot: number; side: StrokeSide } | null>(null)
+  const own = strokeSide(tags.stroke)
+  const shown: StrokeSide = own ?? (held?.shot === shot ? held.side : rule.side)
+  useEffect(() => bindStrokeSide(shot, shown, (side) => setHeld({ shot, side })), [shot, shown])
   const set = <K extends keyof ShotTags>(key: K, value: ShotTags[K]) =>
     onChange(toggleShotField(draft, shot, key, value))
   const isEnd = shot === draft.contacts.length
@@ -165,146 +224,188 @@ export function ShotPanel({
     : plainRole === 'before' && shot > 2
       ? 'Before attack'
       : ROLE_LABEL[plainRole]
+  const word = SWITCH_WORD[shown]
+  const onFlip = () => {
+    if (rule.fixed || shotRowOff) return
+    const next: StrokeSide = shown === 'offensive' ? 'defensive' : 'offensive'
+    setHeld({ shot, side: next })
+    if (tags.stroke !== 'Block') onChange(flipSwitch(draft, shot))
+  }
+
+  const choice = (label: string, on: boolean, onClick: () => void) => ({ label, on, onClick })
+  const spin = ['Under', 'Top', 'Side'].map((v) => choice(v, tags.spin === v, () => set('spin', v)))
+  const depth = ['Short', 'Half', 'Deep'].map((v) => choice(v, tags.depth === v, () => set('depth', v)))
+  const ball = [
+    choice('High', Boolean(tags.high), () => onChange(patchShot(draft, shot, { high: !tags.high }))),
+    choice('Heavy', Boolean(tags.heavy), () => onChange(patchShot(draft, shot, { heavy: !tags.heavy }))),
+  ]
+  const extras: { label: string; cells: { label: string; on: boolean; onClick: () => void }[] }[] = []
+  if (fields.spin && fields.depth) extras.push({ label: 'Serve', cells: [...spin, ...depth] })
+  else if (fields.spin) extras.push({ label: 'Spin', cells: spin })
+  if (fields.depth && fields.ball && !fields.spin) extras.push({ label: 'Depth', cells: [...depth, ...ball] })
+  else if (fields.depth && !fields.spin) extras.push({ label: 'Depth', cells: depth })
+  if (fields.ball && !(fields.depth && !fields.spin)) extras.push({ label: 'Ball', cells: ball })
+  if (fields.contact || fields.intent) {
+    const cells = [
+      ...(fields.contact
+        ? ['Over table', 'Off table'].map((v) => choice(v, tags.contact === v, () => set('contact', v)))
+        : []),
+      ...(fields.intent
+        ? ['Safe', 'Aggressive'].map((v) => choice(v, tags.intent === v, () => set('intent', v)))
+        : []),
+    ]
+    extras.push({ label: 'Contact', cells })
+  }
+  if (fields.initiative) {
+    extras.push({
+      label: 'Initiative',
+      cells: ['Behind', 'Level', 'Ahead'].map((v) => choice(v, tags.initiative === v, () => set('initiative', v))),
+    })
+  }
+  const strokes = fields.stroke ? strokeCells(shown, draft.fa === shot) : null
 
   return (
     <div
-      className={cn('rounded-md border border-border border-l-4 bg-bg-surface p-3 space-y-3', sideBar[hitter])}
+      className={cn('rounded-md border border-border border-l-4 bg-bg-surface p-3 flex flex-col gap-1.5', sideBar[hitter])}
       aria-label={`Shot ${shot}`}
+      data-shot-panel
     >
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-sm font-semibold text-primary">
-          {shot} · {names[hitter]}
-          <span className="ml-2 text-[10px] font-bold uppercase tracking-wide text-muted">{role}</span>
-        </p>
-      </div>
-
-      {!requiredOnly ? <TimeRow draft={draft} mark={{ kind: 'shot', shot }} onNudge={onNudge} /> : null}
+      <p className="text-sm font-semibold text-primary">
+        {shot} · {names[hitter]}
+        <span className="ml-2 text-[10px] font-bold uppercase tracking-wide text-muted">{role}</span>
+      </p>
 
       {fields.result ? (
-        <Row label="Result">
+        <Line label="Result">
           {ENDINGS.map((e, i) => (
-            <Pill
+            <Cell
               key={e}
+              label={e}
               on={draft.ending === e}
               tone={isError(e) ? 'bad' : 'good'}
               hint={RESULT_KEYS[i]}
               onClick={() => onChange(setEnding(draft, e))}
             >
               {e}
-            </Pill>
+            </Cell>
           ))}
-        </Row>
+        </Line>
       ) : null}
 
       {fields.wing ? (
-        <Row label="Shot">
+        <Line label="Wing">
           {WINGS.map((w, i) => (
-            <Pill key={w} on={tags.wing === w} hint={WING_KEYS[i]} disabled={shotRowOff} onClick={() => set('wing', w)}>
+            <Cell
+              key={w}
+              label={w}
+              on={tags.wing === w}
+              hint={WING_KEYS[i]}
+              disabled={shotRowOff}
+              onClick={() => set('wing', w)}
+            >
               {w}
-            </Pill>
+            </Cell>
           ))}
           {fields.pivot ? (
-            <Pill
+            <Cell
+              label="Pivot"
               on={Boolean(tags.pivot)}
               hint={PIVOT_KEY}
               disabled={shotRowOff}
               onClick={() => onChange(patchShot(draft, shot, { pivot: !tags.pivot }))}
             >
               Pivot
-            </Pill>
+            </Cell>
           ) : null}
-          {fields.strokes ? <span className="w-2" aria-hidden /> : null}
-          {fields.strokes?.map((s, i) => (
-            <Pill
-              key={s}
-              on={tags.stroke === s}
-              hint={STROKE_KEYS[i]}
-              disabled={shotRowOff}
-              onClick={() => set('stroke', s)}
-            >
-              {s}
-            </Pill>
+        </Line>
+      ) : null}
+
+      {strokes ? (
+        <Line label="Stroke">
+          <button
+            type="button"
+            data-cell={word}
+            data-side={shown}
+            data-fixed={rule.fixed ? 'true' : 'false'}
+            aria-disabled={rule.fixed || shotRowOff}
+            onClick={onFlip}
+            className={cn(
+              'btn-kind-control shrink-0 px-1 text-sm font-semibold rounded-md border inline-flex items-center justify-center whitespace-nowrap overflow-hidden text-white',
+              shown === 'offensive' ? 'bg-shot-fa border-shot-fa' : 'bg-info border-info'
+            )}
+            style={{ flex: '0 0 auto', minWidth: SWITCH_BASIS }}
+          >
+            <span data-cell-label>{word}</span>
+            <KeyHint k={SWITCH_KEY} />
+          </button>
+          {strokes.map((name, i) =>
+            name ? (
+              <Cell
+                key={STROKE_KEYS[i]}
+                label={name}
+                on={tags.stroke === name}
+                hint={STROKE_KEYS[i]}
+                disabled={shotRowOff}
+                onClick={() => set('stroke', name)}
+              >
+                {name}
+              </Cell>
+            ) : (
+              <span
+                key={STROKE_KEYS[i]}
+                className="btn-kind-control min-w-0 flex-1 basis-0 border border-transparent"
+                data-cell=""
+                aria-hidden
+              />
+            )
+          )}
+        </Line>
+      ) : null}
+
+      {!requiredOnly
+        ? extras.map((row) => (
+            <Line key={row.label} label={row.label}>
+              {row.cells.map((c) => (
+                <Cell key={c.label} label={c.label} on={c.on} onClick={c.onClick}>
+                  {c.label}
+                </Cell>
+              ))}
+            </Line>
+          ))
+        : null}
+
+      {!requiredOnly && fields.missReason ? (
+        <Line label="Miss reason">
+          {MISS_REASONS.map((v) => (
+            <Cell key={v} label={v} on={tags.missReason === v} onClick={() => set('missReason', v)}>
+              {v}
+            </Cell>
           ))}
-        </Row>
+        </Line>
       ) : null}
 
       {!requiredOnly ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {fields.spin ? (
-            <Row label="Spin">
-              {['Under', 'Top', 'Side'].map((v) => (
-                <Pill key={v} on={tags.spin === v} onClick={() => set('spin', v)}>
-                  {v}
-                </Pill>
-              ))}
-            </Row>
-          ) : null}
-          {fields.depth ? (
-            <Row label="Depth">
-              {['Short', 'Half', 'Deep'].map((v) => (
-                <Pill key={v} on={tags.depth === v} onClick={() => set('depth', v)}>
-                  {v}
-                </Pill>
-              ))}
-            </Row>
-          ) : null}
-          {fields.contact ? (
-            <Row label="Contact">
-              {['Over table', 'Off table'].map((v) => (
-                <Pill key={v} on={tags.contact === v} onClick={() => set('contact', v)}>
-                  {v}
-                </Pill>
-              ))}
-            </Row>
-          ) : null}
-          {fields.intent ? (
-            <Row label="Attributes">
-              {['Safe', 'Aggressive'].map((v) => (
-                <Pill key={v} on={tags.intent === v} onClick={() => set('intent', v)}>
-                  {v}
-                </Pill>
-              ))}
-            </Row>
-          ) : null}
-          {fields.initiative ? (
-            <Row label="Initiative">
-              {['Behind', 'Level', 'Ahead'].map((v) => (
-                <Pill key={v} on={tags.initiative === v} onClick={() => set('initiative', v)}>
-                  {v}
-                </Pill>
-              ))}
-            </Row>
-          ) : null}
-          {fields.ball ? (
-            <Row label="Ball">
-              <Pill on={Boolean(tags.high)} onClick={() => onChange(patchShot(draft, shot, { high: !tags.high }))}>
-                High
-              </Pill>
-              <Pill on={Boolean(tags.heavy)} onClick={() => onChange(patchShot(draft, shot, { heavy: !tags.heavy }))}>
-                Heavy
-              </Pill>
-            </Row>
-          ) : null}
-          <Row label="Tag">
-            <Pill
-              on={Boolean(tags.review)}
-              onClick={() =>
-                onChange(patchShot(draft, shot, { review: !tags.review, missReason: undefined }))
-              }
-            >
-              Review
-            </Pill>
-          </Row>
-          {fields.missReason ? (
-            <Row label="Miss reason">
-              {MISS_REASONS.map((v) => (
-                <Pill key={v} on={tags.missReason === v} onClick={() => set('missReason', v)}>
-                  {v}
-                </Pill>
-              ))}
-            </Row>
-          ) : null}
-        </div>
+        <Line label="Review">
+          <Cell
+            label="Review"
+            on={Boolean(tags.review)}
+            onClick={() => onChange(patchShot(draft, shot, { review: !tags.review, missReason: undefined }))}
+          >
+            Review
+          </Cell>
+          <Cell label="- 0.1" on={false} hint="-" onClick={() => onNudge(-NUDGE_STEP_S)}>
+            - 0.1
+          </Cell>
+          <span
+            className="btn-kind-control min-w-0 flex-1 basis-0 px-0 text-sm font-semibold rounded-md border border-pill-idle-border bg-pill-idle inline-flex items-center justify-center whitespace-nowrap overflow-hidden tabular-nums text-primary"
+            data-cell="time"
+          >
+            <span data-cell-label>{formatClock(markTime(draft, { kind: 'shot', shot }), true)}</span>
+          </span>
+          <Cell label="+ 0.1" on={false} hint="=" onClick={() => onNudge(NUDGE_STEP_S)}>
+            + 0.1
+          </Cell>
+        </Line>
       ) : null}
     </div>
   )

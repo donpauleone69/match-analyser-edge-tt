@@ -84,6 +84,7 @@ import {
   insertContact,
   loopShotOf,
   markFa,
+  noAttackOffered,
   markTime,
   nudgeMark,
   otherSide,
@@ -1281,7 +1282,13 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
 
   const n = active ? active.contacts.length : 0
   /** No attack is the one row at the pick step, from three shots up. */
-  const askNoAttack = active !== null && active.closed && !readOnly && n >= 3 && stage === 'pickFa'
+  const askNoAttack =
+    active !== null &&
+    active.closed &&
+    !readOnly &&
+    n >= 3 &&
+    stage === 'pickFa' &&
+    noAttackOffered(active)
 
   // Keys (desktop). Space is the pad. Backspace undoes a tap. Enter saves
   // whenever Save is lit, whatever has focus, and never presses a button.
