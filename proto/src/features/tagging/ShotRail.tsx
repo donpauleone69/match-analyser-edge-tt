@@ -4,7 +4,7 @@ import { cn } from '@/helpers/utils'
 import { hitterOf, stageOf, type Draft, type Mark, type Side } from './rally'
 
 export const railCell =
-  'relative h-10 min-w-10 lg:h-9 lg:min-w-9 px-1 rounded-md border text-sm font-bold tabular-nums inline-flex items-center justify-center disabled:opacity-40'
+  'relative h-11 min-w-11 lg:h-9 lg:min-w-9 px-1 rounded-md border text-sm font-bold tabular-nums inline-flex items-center justify-center disabled:opacity-40'
 
 const sideTint: Record<Side, string> = {
   me: 'bg-side-me/15 border-side-me/50 text-primary',

@@ -707,7 +707,13 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
    * rallies after it follow from it. Before a set has a rally it sets who serves first.
    */
   const onSwitch = () => {
-    if (readOnly || edit || (mode !== 'watch' && mode !== 'tagging')) return
+    if (readOnly) return
+    // Editing a saved rally: the same Switch, for that rally only.
+    if (edit) {
+      writeDraft({ ...edit.draft, server: otherSide(edit.draft.server) })
+      return
+    }
+    if (mode !== 'watch' && mode !== 'tagging') return
     if (set.rallies.length === 0) mutateMatch(match.id, (m) => flipFirstServer(m, set.setId))
     else if (!live) setServerPick(nextServer === expected ? otherSide(expected) : null)
     if (live) writeDraft({ ...live, server: otherSide(live.server) })
@@ -1144,10 +1150,10 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     </>
   )
   const padServer = live?.server ?? nextServer
-  const switchOn = !readOnly && !atEnd && (mode === 'watch' || mode === 'tagging')
+  const switchOn = !readOnly && !atEnd && (mode === 'watch' || mode === 'tagging' || mode === 'edit')
   const rowButton = cn('h-11 lg:h-9 px-3 shrink-0', slotBusy && BUSY)
-  /** The right end of the status row always means "go back": 5 seconds, or one tap. Let never sits there. */
-  const endButton = cn(rowButton, 'min-w-24 lg:min-w-32')
+  /** The right end of the status row always means "go back": 5 seconds, or one tap. One width, so the spot does not shift. Let never sits there. */
+  const endButton = cn(rowButton, 'w-24 lg:w-36')
   /** Slot controls never change size, not even while pressed. */
   const slotButton = cn(
     'h-20 rounded-lg text-lg active:scale-100 active:brightness-90',
@@ -1169,7 +1175,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
           <Button
             size="sm"
             variant="secondary"
-            className="lg:hidden"
+            className="lg:hidden h-11 px-3"
             aria-expanded={listOpen}
             onClick={() => (listOpen ? closeList() : openList())}
           >
@@ -1415,7 +1421,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                 )}
               </div>
             ) : null}
-            {(mode === 'watch' || mode === 'tapping') && !atEnd ? (
+            {(mode === 'watch' || mode === 'tapping' || mode === 'setPoint') && !atEnd ? (
               <p
                 data-tag-where
                 className="h-5 px-1 text-xs leading-5 text-muted tabular-nums truncate"
@@ -1533,7 +1539,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
             Switch, beside the big button and always in the same place. While
             tapping it is part of the pad: a tap that lands on it is a contact.
           */}
-          {(slotKind === 'pad' || slotKind === 'save') && !readOnly ? (
+          {(slotKind === 'pad' || slotKind === 'save' || slotKind === 'edit') && !readOnly ? (
             <button
               type="button"
               data-tag-switch
@@ -1559,14 +1565,16 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
 
           {slotKind === 'edit' && edit ? (
             readOnly ? (
-              <Button fullWidth variant="secondary" className={slotButton} onClick={leaveEdit}>
-                Back to set
-              </Button>
+              <>
+                <Button variant="secondary" className={cn(slotButton, 'flex-1 min-w-0')} onClick={leaveEdit}>
+                  Back to set
+                </Button>
+                <span className="h-20 w-20 shrink-0" aria-hidden />
+              </>
             ) : (
               <Button
-                fullWidth
                 data-tag-save
-                className={slotButton}
+                className={cn(slotButton, 'flex-1 min-w-0')}
                 disabled={!ready || !edit.dirty}
                 onClick={onSaveEdit}
               >
@@ -1781,7 +1789,7 @@ function SetHeader({ match, set, children }: SetHeaderProps) {
       <Link
         to={`/matches/${match.id}/tag`}
         aria-label="Back"
-        className="inline-flex items-center justify-center w-8 h-8 rounded-md text-brand hover:bg-pill-idle"
+        className="inline-flex items-center justify-center w-11 h-11 rounded-md text-brand hover:bg-pill-idle"
       >
         <Icon name="chevron-left" size="sm" />
       </Link>

@@ -280,7 +280,7 @@ export function RallyList({
                 <Button
                   size="sm"
                   variant="ghost"
-                  className={small}
+                  className={cn(small, 'h-11 w-11 shrink-0')}
                   aria-label={`Delete point ${index + 1}`}
                   onClick={() => actions.onDeletePoint(r.id)}
                 >

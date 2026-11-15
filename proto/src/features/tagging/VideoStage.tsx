@@ -334,12 +334,14 @@ export function VideoStage({
       <button
         type="button"
         aria-label="Match timeline"
-        className="relative block h-5 w-full bg-bg-elevated border-b border-border overflow-hidden cursor-pointer"
+        className="relative block h-11 w-full cursor-pointer"
         onClick={(e) => {
           const box = e.currentTarget.getBoundingClientRect()
           onSeek(((e.clientX - box.left) / box.width) * total)
         }}
       >
+        {/* The stripe stays 20px. The rest of the button is the tap area. */}
+        <span className="relative block h-5 bg-bg-elevated border-b border-border overflow-hidden">
         {blocks.map((b, i) => (
           <span
             key={i}
@@ -373,6 +375,7 @@ export function VideoStage({
           className="absolute top-0 bottom-0 w-0.5 bg-brand-primary"
           style={{ left: pct(player.time) }}
         />
+        </span>
       </button>
     </div>
   )
