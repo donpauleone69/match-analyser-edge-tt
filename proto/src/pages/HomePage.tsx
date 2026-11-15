@@ -4,10 +4,12 @@ import { PageHeader } from '@/layout/PageHeader'
 import { StickyChrome } from '@/layout/StickyChrome'
 import { WfBadge, WfEmpty, WfWarnBadge } from '@/layout/Wireframe'
 import { matchDiffers, matchLabel } from '@/features/match/matchChecks'
+import { setInProgress } from '@/features/tagging/matchOps'
 import {
   defaultMatchTab,
   derivePhase,
   hasTaggedRallies,
+  isArchived,
   matchMeta,
   phaseLabel,
   useDemo,
@@ -23,6 +25,15 @@ export function HomePage() {
     matches.find((m) => derivePhase(m) === 'new') ??
     matches[0]
 
+  // A match with a set under way goes straight back into that set.
+  const resumeSet =
+    continueMatch &&
+    derivePhase(continueMatch) === 'partial' &&
+    continueMatch.videos.length > 0 &&
+    !isArchived(continueMatch)
+      ? setInProgress(continueMatch)
+      : null
+
   const onNew = () => {
     const created = createMatch()
     navigate(`/matches/${created.id}/details`)
@@ -34,7 +45,7 @@ export function HomePage() {
         <PageHeader title="Home" />
       </StickyChrome>
 
-      <div className="px-4 sm:px-6 lg:px-8 pb-6 space-y-4">
+      <div className="px-4 sm:px-6 lg:px-8 py-6 space-y-4">
         {matches.length === 0 ? (
           <div className="space-y-3">
             <WfEmpty title="No matches" body="Create a match or switch Prototype to Filled." />
@@ -50,7 +61,7 @@ export function HomePage() {
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <Icon name="target" size="sm" className="text-brand" />
-                <CardTitle>Next / Continue</CardTitle>
+                <CardTitle>Up next</CardTitle>
               </div>
               <WfBadge>{phaseLabel(derivePhase(continueMatch))}</WfBadge>
             </div>
@@ -72,11 +83,13 @@ export function HomePage() {
               fullWidth
               onClick={() =>
                 navigate(
-                  `/matches/${continueMatch.id}/${defaultMatchTab(derivePhase(continueMatch))}`
+                  resumeSet
+                    ? `/matches/${continueMatch.id}/tag/${resumeSet.setId}`
+                    : `/matches/${continueMatch.id}/${defaultMatchTab(derivePhase(continueMatch))}`
                 )
               }
             >
-              Continue
+              {resumeSet ? `Continue set ${resumeSet.setId}` : 'Continue'}
             </Button>
           </Card>
         ) : null}
@@ -133,13 +146,12 @@ export function HomePage() {
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <Icon name="chart" size="sm" className="text-brand" />
-                  <CardTitle>Insights tease</CardTitle>
+                  <CardTitle>Insights</CardTitle>
                 </div>
-                <WfBadge>peek</WfBadge>
               </div>
               {matches.some(hasTaggedRallies) ? (
                 <>
-                  <CardDescription>Notables across matches.</CardDescription>
+                  <CardDescription>From your tagged matches.</CardDescription>
                   <ul className="space-y-2 text-sm text-primary">
                     <li className="rounded-md border border-border bg-bg-card px-3 py-2">
                       Short-ball receive · Improve

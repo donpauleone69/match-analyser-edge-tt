@@ -5,6 +5,7 @@ import {
   derivePhase,
   formatScore,
   isSpareSet,
+  matchSetsWon,
   missingVideoIds,
   parseEntered,
   resultDiffers,
@@ -13,9 +14,7 @@ import {
   setRalliesWithoutVideo,
   setScoresDiffer,
   setState,
-  taggedResult,
   taggedScore,
-  taggedSetsWon,
   useDemo,
   type MatchRecord,
   type SetData,
@@ -224,9 +223,9 @@ function NoVideo({ match, removed = false }: { match: MatchRecord; removed?: boo
 
 function ResultFlag({ match }: { match: MatchRecord }) {
   const { mutateMatch } = useDemo()
-  const tagged = taggedResult(match)
+  const tagged = matchSetsWon(match)
   const { me, them } = match.result
-  if (!tagged || me === null || them === null) return null
+  if (me === null || them === null) return null
   return (
     <div className={flagClass}>
       <span>
@@ -262,7 +261,7 @@ function MatchEnd({
 }) {
   const noResult = resultSetCount(match) === null
   const resultHref = `/matches/${match.id}/details#result`
-  const won = taggedSetsWon(match)
+  const won = matchSetsWon(match)
 
   if (tagged) {
     return (
@@ -275,7 +274,7 @@ function MatchEnd({
         </p>
         {noResult ? (
           <div className="flex flex-wrap items-center gap-1">
-            {isRealResult(taggedResult(match) ?? won) ? (
+            {isRealResult(won) ? (
               <Button size="sm" variant="secondary" onClick={onUseResult}>
                 Use tagged result
               </Button>

@@ -15,7 +15,7 @@ export function AccountPage() {
       <StickyChrome>
         <PageHeader title="Account" />
       </StickyChrome>
-      <div className="px-4 sm:px-6 lg:px-8 pb-6 space-y-4">
+      <div className="px-4 sm:px-6 lg:px-8 py-6 space-y-4">
         {empty ? (
           <Card className="space-y-3">
             <CardTitle>Profile</CardTitle>
@@ -149,7 +149,7 @@ export function AccountPage() {
             <WfBadge>demo data</WfBadge>
           </div>
           <CardDescription>
-            Empty shows only empty states. Filled restores the three seed matches.
+            Empty shows only empty states. Filled restores the seed matches.
           </CardDescription>
           <div className="grid grid-cols-2 gap-2" role="group" aria-label="Demo data">
             {(['empty', 'filled'] as DemoMode[]).map((opt) => (

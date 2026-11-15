@@ -177,19 +177,24 @@ export function isSpareSet(match: MatchRecord, s: SetData): boolean {
   )
 }
 
-/** Sets won, counted from finished sets. */
-export function taggedSetsWon(match: MatchRecord): Score {
-  return match.sets.reduce<Score>(
-    (won, s) => {
-      const score = setState(s) === 'finished' ? taggedScore(s) : null
-      const side = score ? leader(score) : null
-      if (side === 'me') return { ...won, me: won.me + 1 }
-      if (side === 'them') return { ...won, them: won.them + 1 }
-      return won
-    },
-    { me: 0, them: 0 }
-  )
+/**
+ * The one sets count, used wherever the app says "sets X - Y". A finished set
+ * counts from its tagged score. A Not filmed set counts from its entered
+ * score. A set that is part way through, not started, or not filmed with no
+ * entered score counts for nobody.
+ */
+export function matchSetsWon(match: MatchRecord): Score {
+  const won = { me: 0, them: 0 }
+  for (const s of match.sets) {
+    const score = s.skipped ? parseEntered(s.entered) : s.finished ? taggedScore(s) : null
+    const side = score ? leader(score) : null
+    if (side) won[side] += 1
+  }
+  return won
 }
+
+/** Old name for matchSetsWon, kept so every caller shows the same count. */
+export const taggedSetsWon = matchSetsWon
 
 /**
  * Tagged comes from tagging. With a result entered, the result decides: every
@@ -243,14 +248,15 @@ export function hasTaggedRallies(match: MatchRecord): boolean {
   return match.sets.some((s) => !s.skipped && s.rallies.length > 0)
 }
 
-/** The title is made from event and opponent; there is no separate name. */
+/**
+ * The title is made from event and opponent; there is no separate name.
+ * "Club night vs Sam". With no event it reads "Match vs Sam".
+ */
 export function matchTitle(match: MatchRecord): string {
+  const event = match.event.trim()
   const opponent = match.opponent.trim()
-  return (
-    [match.event.trim(), opponent ? `vs ${opponent}` : '']
-      .filter(Boolean)
-      .join(' ') || 'New match'
-  )
+  if (!opponent) return event || 'New match'
+  return `${event || 'Match'} vs ${opponent}`
 }
 
 export function formatScore(score: Score): string {
@@ -284,8 +290,9 @@ export function setScoresDiffer(s: SetData): boolean {
 }
 
 /**
- * Sets won as tagging sees them: tagged winners for finished sets, the
- * entered score for sets not filmed. Null while any listed set gives neither.
+ * matchSetsWon, but only once every listed set gives a winner. Null while any
+ * set is still open or is not filmed with no entered score, so the result is
+ * not compared against half a match.
  */
 export function taggedResult(match: MatchRecord): Score | null {
   const won = { me: 0, them: 0 }

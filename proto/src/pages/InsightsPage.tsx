@@ -9,6 +9,7 @@ import {
   useInsightsFilters,
   activeFilterLabels,
   DEFAULT_INSIGHTS_FILTERS,
+  filterChoices,
   type InsightsFilters,
 } from '@/features/insights/insightsFilterContext'
 import { hasTaggedRallies, useDemo } from '@/data/demoStore'
@@ -38,16 +39,21 @@ function FilterPickers({
   draft: InsightsFilters
   setDraft: (next: InsightsFilters) => void
 }) {
+  // Opponents and events come from the tagged matches, so every choice finds one.
+  const { matches } = useDemo()
+  const { opponents, events } = filterChoices(matches.filter(hasTaggedRallies))
+  // A choice saved earlier stays listed even if its match is gone.
+  const withSaved = (options: string[], saved: string) =>
+    options.includes(saved) ? options : [...options, saved]
+  const pickers: [keyof InsightsFilters, string, string[]][] = [
+    ['matches', 'Matches', ['All', 'Last 3', 'This month']],
+    ['opponent', 'Opponent', withSaved(['Any', ...opponents], draft.opponent)],
+    ['tournament', 'Tournament', withSaved(['Any', ...events], draft.tournament)],
+    ['dates', 'Dates', ['Any', 'This week', 'Last 30 days']],
+  ]
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-      {(
-        [
-          ['matches', 'Matches', ['All', 'Last 3', 'This month']],
-          ['opponent', 'Opponent', ['Any', 'Sam', 'Pat', 'Lee']],
-          ['tournament', 'Tournament', ['Any', 'Club night', 'Club league']],
-          ['dates', 'Dates', ['Any', 'This week', 'Last 30 days']],
-        ] as const
-      ).map(([key, label, options]) => (
+      {pickers.map(([key, label, options]) => (
         <label key={key} className="block space-y-1">
           <span className="text-xs font-semibold text-muted">{label}</span>
           <select
@@ -131,7 +137,7 @@ function PillRowWithFilter({ section }: { section: SectionId }) {
           <Button
             size="sm"
             variant="secondary"
-            className="shrink-0"
+            className="shrink-0 min-h-11 min-w-11 md:min-h-0 md:min-w-0"
             data-filter-surface
             onClick={() => setOpen((v) => !v)}
             aria-expanded={open}

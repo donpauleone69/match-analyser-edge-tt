@@ -26,7 +26,7 @@ export function FindPage() {
       <StickyChrome>
         <PageHeader title="Find" backTo="/home" />
       </StickyChrome>
-      <div className="px-4 sm:px-6 lg:px-8 pb-6 space-y-4">
+      <div className="px-4 sm:px-6 lg:px-8 py-6 space-y-4">
         <Card className="space-y-3">
           <CardTitle>Filters</CardTitle>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

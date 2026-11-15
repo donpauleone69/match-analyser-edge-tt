@@ -8,13 +8,12 @@ import {
   formatSize,
   isUntouched,
   lastTaggedSetId,
+  matchSetsWon,
   resultDiffers,
   resultSetCount,
   setScoresDiffer,
   setState,
-  taggedResult,
   taggedScore,
-  taggedSetsWon,
   useDemo,
   type MatchRecord,
   type MatchResult,
@@ -497,7 +496,7 @@ function ResultCard({ match }: { match: MatchRecord }) {
   const lastTagged = lastTaggedSetId(match)
   const differing = match.sets.filter(setScoresDiffer).length
   const them = match.opponent.trim() || 'Opponent'
-  const fromTagging = taggedResult(match) ?? taggedSetsWon(match)
+  const fromTagging = matchSetsWon(match)
   const tagged = derivePhase(match) === 'complete'
   const saved =
     match.result.me !== null && match.result.them !== null
