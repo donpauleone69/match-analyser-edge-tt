@@ -9,6 +9,8 @@ import {
   resultSetCount,
   setRalliesWithoutVideo,
   setScoresDiffer,
+  setState,
+  taggedResult,
   taggedScore,
   taggedSetsWon,
   useDemo,
@@ -1044,6 +1046,8 @@ function FinishedPanel({
   const tagged = derivePhase(match) === 'complete'
   const noResult = resultSetCount(match) === null
   const won = taggedSetsWon(match)
+  /** Only a result a match can end on is offered: not 1 - 0, not 1 - 1. */
+  const realResult = isPlausibleMatchWin(taggedResult(match) ?? won)
 
   return (
     <div className="space-y-2">
@@ -1089,9 +1093,11 @@ function FinishedPanel({
           {noResult ? (
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs text-muted">No result entered.</span>
-              <Button size="sm" variant="secondary" onClick={() => mutateMatch(match.id, applyTaggedResult)}>
-                Use tagged result
-              </Button>
+              {realResult ? (
+                <Button size="sm" variant="secondary" onClick={() => mutateMatch(match.id, applyTaggedResult)}>
+                  Use tagged result
+                </Button>
+              ) : null}
             </div>
           ) : null}
         </div>
@@ -1103,6 +1109,8 @@ function FinishedPanel({
 /**
  * After Finish set: Start the next set, or Finish match. Start leads until
  * the tagged sets could be a finished match, then Finish match leads.
+ * With a result entered the result alone decides Tagged, so Finish match
+ * is not offered.
  */
 function FinishedActions({
   match,
@@ -1119,7 +1127,9 @@ function FinishedActions({
 }) {
   const tagged = derivePhase(match) === 'complete'
   const next = nextSetToTag(match, set.setId)
-  const finishLeads = isPlausibleMatchWin(taggedSetsWon(match))
+  const canFinishMatch =
+    resultSetCount(match) === null && !match.sets.some((s) => setState(s) === 'progress')
+  const finishLeads = canFinishMatch && isPlausibleMatchWin(taggedSetsWon(match))
   const base = `/matches/${match.id}`
 
   if (tagged || locked) {
@@ -1145,15 +1155,21 @@ function FinishedActions({
           Start set {next.setId}
         </Button>
       ) : null}
+      {canFinishMatch ? (
+        <Button
+          variant={finishLeads || !next ? 'primary' : 'secondary'}
+          className={cn('h-12 text-base', (finishLeads || !next) && 'flex-1')}
+          onClick={onFinishMatch}
+        >
+          Finish match
+        </Button>
+      ) : null}
       <Button
-        variant={finishLeads || !next ? 'primary' : 'secondary'}
-        className={cn('h-12 text-base', (finishLeads || !next) && 'flex-1')}
-        onClick={onFinishMatch}
+        variant={next || canFinishMatch ? 'ghost' : 'primary'}
+        className={cn('h-12', !next && !canFinishMatch && 'flex-1 text-base')}
+        onClick={() => onGo(`${base}/tag`)}
       >
-        Finish match
-      </Button>
-      <Button variant="ghost" className="h-12" onClick={() => onGo(`${base}/tag`)}>
-        Sets
+        {next || canFinishMatch ? 'Sets' : 'Back to sets'}
       </Button>
     </div>
   )

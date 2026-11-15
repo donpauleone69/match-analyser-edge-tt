@@ -40,7 +40,10 @@ function StandIn({
       }
       for (const side of ['me', 'them'] as const) {
         const bat = bats.current[side]
-        if (bat) bat.style.transform = `translateY(-50%) scale(${scene.hit === side ? 1.5 : 1})`
+        if (bat) {
+          bat.style.transform = `translateY(-50%) scale(${scene.hit === side ? 1.6 : 1})`
+          bat.style.filter = scene.hit === side ? 'brightness(1.8)' : ''
+        }
       }
       if (label.current) label.current.textContent = scene.label ?? ''
       frame = requestAnimationFrame(draw)
@@ -79,12 +82,17 @@ function StandIn({
       ))}
       <div
         ref={ball}
-        className="absolute h-[5.5%] aspect-square rounded-full bg-white shadow"
-        style={{ opacity: 0 }}
+        data-ball
+        className="absolute z-10 h-[10%] aspect-square rounded-full bg-white"
+        style={{
+          opacity: 0,
+          boxShadow: '0 0 0 2px #fde047, 0 0 12px 4px rgba(253, 224, 71, 0.75)',
+        }}
       />
       <p
         ref={label}
-        className="absolute left-1/2 top-[9%] -translate-x-1/2 text-xs font-semibold text-white/80"
+        data-scene-label
+        className="absolute left-1/2 top-[7%] -translate-x-1/2 rounded bg-black/40 px-1.5 text-xs font-semibold text-white empty:hidden"
       />
     </div>
   )

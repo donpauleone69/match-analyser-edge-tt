@@ -170,7 +170,7 @@ export function ralliesFromScript(
 }
 
 export type Scene = {
-  /** Ball position in 0..1 of the picture, or null between points. */
+  /** Ball position in 0..1 of the picture. Null only after the last point. */
   ball: { x: number; y: number; opacity: number; scale: number } | null
   /** Side whose bat is at the ball right now. */
   hit: Side | null
@@ -192,14 +192,23 @@ export function sceneAt(script: VideoScript, t: number): Scene {
     const c = rally.contacts
     const first = c[0]
     const last = c[c.length - 1]
-    if (t < first - TOSS_S) break
+    if (t < first - TOSS_S) {
+      // The pause between points: the ball waits, dimmed, at the next server's bat.
+      return {
+        ball: { x: END_X[rally.server], y: 0.5, opacity: 0.45, scale: 0.8 },
+        hit: null,
+        label: inBreak ? 'Break between sets' : 'Between points',
+        setNo: setNo ?? rally.setNo,
+      }
+    }
     setNo = rally.setNo
     if (t > last + TAIL_S) continue
 
     if (t < first) {
+      // The toss: up and back down, landing on the bat at the serve contact.
       const p = (t - (first - TOSS_S)) / TOSS_S
       return {
-        ball: { x: END_X[rally.server], y: 0.5, opacity: 1, scale: 1 + 0.3 * Math.sin(p * Math.PI * 3) },
+        ball: { x: END_X[rally.server], y: 0.5 - 0.3 * Math.sin(p * Math.PI), opacity: 1, scale: 1 },
         hit: null,
         label: 'Serve coming',
         setNo,
@@ -212,7 +221,7 @@ export function sceneAt(script: VideoScript, t: number): Scene {
     const from = END_X[hitter]
     const to = END_X[otherSide(hitter)]
     const dir = (i + k) % 2 === 0 ? 1 : -1
-    const hit = t - c[i] < 0.14 ? hitter : null
+    const hit = t - c[i] < 0.2 ? hitter : null
 
     if (i < c.length - 1) {
       const p = (t - c[i]) / (c[i + 1] - c[i])
@@ -237,7 +246,7 @@ export function sceneAt(script: VideoScript, t: number): Scene {
       x = lerp(from, to, p)
       y = 0.5 + dir * 0.48 * p
     }
-    return { ball: { x, y, opacity: Math.max(0.15, fade), scale: 1 }, hit, label: null, setNo }
+    return { ball: { x, y, opacity: Math.max(0.15, fade), scale: 1 }, hit, label: p > 0.6 ? 'Point over' : null, setNo }
   }
   return { ball: null, hit: null, label: inBreak ? 'Break between sets' : null, setNo }
 }
