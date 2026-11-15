@@ -1710,7 +1710,10 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               data-switch-warning
               className="mb-2 rounded-md border border-warning bg-warning/15 px-2 py-1.5 text-xs font-semibold text-primary leading-snug"
             >
-              {names[dueServer]} was due to serve. Rallies since rally {switchWarnRally} will be marked to check.
+              {dueServer === 'me'
+                ? 'You were due to serve.'
+                : `${names[dueServer]} was due to serve.`}{' '}
+              Rallies since rally {switchWarnRally} will be marked to check.
             </p>
           ) : null}
           <div className="flex items-stretch gap-2">
