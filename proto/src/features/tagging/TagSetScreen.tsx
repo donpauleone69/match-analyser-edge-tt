@@ -138,7 +138,6 @@ type Toast = { text: string; undo: () => void; extra?: { label: string; run: () 
 const GUARD_AFTER_CLOSE_MS = 1000
 const GUARD_AFTER_SWAP_MS = 600
 const GUARD_PANEL_AFTER_CLOSE_MS = 500
-const GUARD_PANEL_MS = 600
 /** Re-tap starts this long before the serve, so the thumb has time to get back to the pad. */
 const RETAP_LEAD_S = 2.5
 /** A control that is ignoring presses looks it. */
@@ -392,7 +391,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   useLayoutEffect(() => {
     if (lastSlot.current !== slotKind) arm(GUARD_AFTER_SWAP_MS)
     lastSlot.current = slotKind
-    if (lastStep.current !== stepKey) arm(0, GUARD_PANEL_MS)
     lastStep.current = stepKey
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slotKind, stepKey])
