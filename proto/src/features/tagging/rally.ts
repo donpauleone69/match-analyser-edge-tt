@@ -96,6 +96,11 @@ export type Draft = {
   noAttack: boolean
   shots: ShotTags[]
   highlight: boolean
+  /**
+   * The server was chosen or confirmed: Switch, or either press in Review serves.
+   * Absent means the app's proposal was kept.
+   */
+  serveChecked?: boolean
 }
 
 export type Stage = 'contacts' | 'result' | 'endShot' | 'pickFa' | 'faShot' | 'ready'
@@ -540,6 +545,8 @@ export type RallyData = {
   point?: true
   /** Continuity marks the user chose to leave as they are. */
   left?: MarkKind[]
+  /** The server was chosen or confirmed. See `isKnownGood` in continuity.ts. */
+  serveChecked?: boolean
 }
 
 /** A point with no video, placed at `at` so it keeps its place in video order. */
@@ -580,6 +587,7 @@ export function rallyFromDraft(d: Draft, id: string): RallyData | null {
     shots: d.shots,
     winner,
     highlight: d.highlight,
+    ...(d.serveChecked ? { serveChecked: true as const } : {}),
   }
 }
 
@@ -596,6 +604,7 @@ export function draftFromRally(r: RallyData): Draft {
     noAttack: r.fa === null && r.contacts.length > 1,
     shots: r.shots,
     highlight: r.highlight,
+    ...(r.serveChecked ? { serveChecked: true as const } : {}),
   }
 }
 

@@ -75,6 +75,20 @@ export const restoreRally = (m: MatchRecord, setId: number, rallyId: string) =>
 export const swapRallyPlayers = (m: MatchRecord, setId: number, rallyId: string) =>
   inSet(m, setId, (s) => ({ ...s, rallies: s.rallies.map((r) => (r.id === rallyId ? swapPlayers(r) : r)) }))
 
+/**
+ * A press in Review serves. `swap` is the other player: server and winner flip.
+ * Either press only checks this rally. No other rally is written.
+ */
+export const confirmServe = (m: MatchRecord, setId: number, rallyId: string, swap: boolean) =>
+  inSet(m, setId, (s) => ({
+    ...s,
+    rallies: s.rallies.map((r) => {
+      if (r.id !== rallyId) return r
+      const next = swap ? swapPlayers(r) : r
+      return { ...next, serveChecked: true }
+    }),
+  }))
+
 /** Leave a continuity mark as it is. */
 export const leaveMark = (m: MatchRecord, setId: number, rallyId: string, kind: MarkKind) =>
   inSet(m, setId, (s) => ({
