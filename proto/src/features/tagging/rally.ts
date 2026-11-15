@@ -361,14 +361,15 @@ export type FaRefusal =
 /**
  * Null when `shot` can be picked as the first attack (or is the first attack,
  * where a press clears it). Otherwise the reason: it is the serve, it is not a
- * shot of this rally, or it is tagged Block, Lob, Push or Chop.
+ * shot of this rally, or it shows Block, Lob, Push or Chop. A stroke kept on a
+ * shot with no stroke row is not a reason: nobody can see it.
  */
 export function faRefusal(d: Draft, shot: number): FaRefusal | null {
   if (shot === 1) return { kind: 'serve' }
   if (!Number.isInteger(shot) || shot < 1 || shot > endShot(d)) return { kind: 'noShot' }
   if (d.fa === shot) return null
   const stroke = d.shots[shot - 1]?.stroke ?? ''
-  return NO_FIRST_ATTACK.has(stroke) ? { kind: 'stroke', shot, stroke } : null
+  return NO_FIRST_ATTACK.has(stroke) && showsStroke(d, shot) ? { kind: 'stroke', shot, stroke } : null
 }
 
 /** One short line for a refusal, for the screen to show. */
@@ -380,15 +381,47 @@ export function faRefusalText(r: FaRefusal): string {
 
 /**
  * Mark, move or clear the first attack. Shot 1 can never be it, nor can a
- * shot tagged Block, Lob, Push or Chop: `faRefusal` says why. A refused press
- * gives the same draft back. Strokes already answered are kept wherever the
- * first attack goes, so moving it back brings them back. Save leaves out the
- * ones that have no row (`rallyFromDraft`).
+ * shot that shows Block, Lob, Push or Chop: `faRefusal` says why. A refused
+ * press gives the same draft back. Strokes already answered are kept wherever
+ * the first attack goes, so moving it back brings them back. Save leaves out
+ * the ones that have no row (`rallyFromDraft`).
+ *
+ * The one stroke that goes: Block, Lob, Push or Chop kept on the picked shot
+ * while it had no stroke row. The pick is taken and that shot's stroke row
+ * opens empty. No other shot is touched.
  */
 export function markFa(d: Draft, shot: number): Draft {
   if (faRefusal(d, shot)) return d
   if (d.fa === shot) return { ...d, fa: null }
-  return { ...d, fa: shot, noAttack: false }
+  const next = { ...d, fa: shot, noAttack: false }
+  if (!NO_FIRST_ATTACK.has(d.shots[shot - 1]?.stroke ?? '')) return next
+  const shots = d.shots.map((s, i) => {
+    if (i !== shot - 1) return s
+    const open = { ...s }
+    delete open.stroke
+    return open
+  })
+  return { ...next, shots }
+}
+
+/** Change first attack: back to the pick step. Every answer stays. Nothing to reopen on a serve and return. */
+export function reopenFaPick(d: Draft): Draft {
+  if (d.contacts.length < 3) return d
+  return { ...d, fa: null, noAttack: false }
+}
+
+/** How far past the playhead a contact still counts as reached, in seconds. */
+export const SHOT_REACHED_SLACK_S = 0.05
+
+/**
+ * The shot whose contact the playhead has reached, or null before shot 2:
+ * never the serve. `localTime` is seconds in this rally's video. `lag` is
+ * video time taken off first, the allowance a press gets (`TAP_LATENCY_S`).
+ */
+export function shotAtTime(d: Draft, localTime: number, lag = 0): number | null {
+  const at = localTime - lag
+  const reached = d.contacts.filter((c) => c <= at + SHOT_REACHED_SLACK_S).length
+  return reached >= 2 ? reached : null
 }
 
 /** No attack is not offered once the end shot is Flick, Loop, Drive or Smash. */
