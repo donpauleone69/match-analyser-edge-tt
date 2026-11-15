@@ -68,7 +68,7 @@ export const SHOT_LOOP_AFTER_MIN_S = 1
 export const SHOT_LOOP_AFTER_MAX_S = 2
 /** Hold on the last frame of a shot loop before it repeats. */
 export const SHOT_LOOP_HOLD_S = 0.3
-/** The shot-number badge stays this long after that shot's contact. */
+/** The shot-number badge stays this long on the clock after that shot's contact. */
 export const SHOT_BADGE_S = 0.4
 export const SPEED_STEPS = [0.5, 0.75, 1, 1.25, 1.5, 2] as const
 

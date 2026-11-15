@@ -72,6 +72,7 @@ import {
   NUDGE_STEP_S,
   SHOT_BADGE_S,
   SHOT_LOOP_HOLD_S,
+  TAP_LATENCY_S,
   addContact,
   addContactWindow,
   addedContactText,
@@ -1254,17 +1255,20 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     listResume.current = false
   }
 
-  /** The shot whose contact the playhead has reached. Never the serve. */
-  const shotOnScreen = (d: Draft): number | null => {
-    const local = playerRef.current.getTime() - offsetOf(d.videoId)
+  /**
+   * The shot whose contact the playhead has reached. Never the serve.
+   * `lag` is video time taken off, the same allowance a tap gets.
+   */
+  const shotOnScreen = (d: Draft, lag = 0): number | null => {
+    const local = playerRef.current.getTime() - offsetOf(d.videoId) - lag
     const reached = d.contacts.filter((c) => c <= local + 0.05).length
     return reached >= 2 ? reached : null
   }
 
-  /** Pick step: the shot on screen becomes the first attack. */
+  /** Pick step: the shot on screen a reaction earlier becomes the first attack. */
   const onPickFa = () => {
     if (!active || readOnly || stageOf(active) !== 'pickFa') return
-    const shot = shotOnScreen(active)
+    const shot = shotOnScreen(active, TAP_LATENCY_S)
     if (!shot) return
     change(markFa(active, shot))
   }
@@ -1475,8 +1479,39 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     active && active.closed ? active.contacts.filter((c) => c <= playLocal + 0.05).length || null : null
   const asked = active && stage ? loopShotOf(active, stage, selected) : null
   const askedAt = asked && active ? active.contacts[asked - 1] : null
+  /**
+   * The badge is armed before the contact and starts when the playhead reaches it.
+   * It stays for SHOT_BADGE_S on the clock, whatever the video speed.
+   */
+  const badgeClock = useRef<{ shot: number; contact: number; until: number; armed: boolean }>({
+    shot: 0,
+    contact: -1,
+    until: 0,
+    armed: true,
+  })
+  const [badgeTick, setBadgeTick] = useState(0)
+  useEffect(() => {
+    const clock = badgeClock.current
+    if (!asked || askedAt === null) {
+      clock.until = 0
+      clock.armed = true
+      return
+    }
+    if (clock.shot !== asked || clock.contact !== askedAt) {
+      clock.shot = asked
+      clock.contact = askedAt
+      clock.until = 0
+      clock.armed = true
+    }
+    if (playLocal < askedAt - 0.15) clock.armed = true
+    if (!clock.armed || playLocal < askedAt - 0.05) return
+    clock.armed = false
+    clock.until = performance.now() + SHOT_BADGE_S * 1000
+    setBadgeTick((n) => n + 1)
+    window.setTimeout(() => setBadgeTick((n) => n + 1), SHOT_BADGE_S * 1000)
+  }, [asked, askedAt, playLocal])
   const shotBadge =
-    active && asked && askedAt !== null && playLocal >= askedAt - 0.02 && playLocal < askedAt + SHOT_BADGE_S
+    active && asked && badgeTick >= 0 && badgeClock.current.shot === asked && performance.now() < badgeClock.current.until
       ? { shot: asked, side: hitterOf(active.server, asked) }
       : null
   const loopNow =
@@ -1877,7 +1912,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                 ))}
               </ul>
             ) : null}
-            {ready && active && n >= 3 && (active.fa !== null || active.noAttack) ? (
+            {ready && active && n >= 2 && (active.fa !== null || active.noAttack) ? (
               <div
                 data-fa-summary
                 className="rounded-md border border-border bg-bg-surface px-3 py-1.5 flex items-center justify-between gap-2"
@@ -1885,7 +1920,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                 <p className="text-sm font-semibold text-primary">
                   {active.fa !== null ? `First attack: shot ${active.fa}` : 'No attack'}
                 </p>
-                {readOnly ? null : (
+                {readOnly || n < 3 ? null : (
                   <Button kind="control" variant="secondary" onClick={onChangeFa}>
                     Change
                   </Button>
@@ -2165,6 +2200,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               kind="tapPad"
               data-tag-fa
               className={cn('flex-1 min-w-0 text-lg active:scale-100', slotBusy && !late && BUSY)}
+              disabled={liveShot === 1}
               onClick={onPickFa}
             >
               First attack
@@ -2192,6 +2228,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                 kind="tapPad"
                 data-tag-fa
                 className={cn('flex-1 min-w-0 text-lg active:scale-100', slotBusy && BUSY)}
+                disabled={liveShot === 1}
                 onClick={onPickFa}
               >
                 First attack
