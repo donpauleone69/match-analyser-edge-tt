@@ -14,7 +14,8 @@ import {
 } from '@/features/insights/insightsFilterContext'
 import { hasTaggedRallies, useDemo } from '@/data/demoStore'
 import { WfEmpty } from '@/layout/Wireframe'
-import { Button } from '@/ui-mine'
+import { Button, buttonKindControlSquare } from '@/ui-mine'
+import { cn } from '@/helpers/utils'
 
 const GLOBAL_SECTIONS: { id: SectionId; label: string }[] = [
   { id: 'summary', label: 'Summary' },
@@ -137,9 +138,9 @@ function PillRowWithFilter({ section }: { section: SectionId }) {
             <SectionPills sections={GLOBAL_SECTIONS} section={section} basePath="/insights" />
           </div>
           <Button
-            size="sm"
+            kind="control"
             variant="secondary"
-            className="shrink-0 min-h-11 min-w-11 md:min-h-0 md:min-w-0"
+            className={cn(buttonKindControlSquare, 'shrink-0 px-2')}
             data-filter-surface
             onClick={() => setOpen((v) => !v)}
             aria-expanded={open}
@@ -152,7 +153,7 @@ function PillRowWithFilter({ section }: { section: SectionId }) {
             key={a}
             type="button"
             onClick={() => clearOne(a)}
-            className="inline-flex items-center gap-1 rounded border border-border bg-pill-idle px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted hover:bg-bg-elevated"
+            className="btn-kind-control inline-flex items-center gap-1 rounded border border-border bg-pill-idle px-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted hover:bg-bg-elevated"
             aria-label={`Remove ${a}`}
           >
             {a}
@@ -171,10 +172,10 @@ function PillRowWithFilter({ section }: { section: SectionId }) {
         >
           <FilterPickers draft={draft} setDraft={setDraft} />
           <div className="flex justify-end gap-2">
-            <Button size="sm" variant="ghost" onClick={clear}>
+            <Button kind="control" variant="ghost" onClick={clear}>
               Clear
             </Button>
-            <Button size="sm" onClick={apply}>
+            <Button kind="control" onClick={apply}>
               Apply
             </Button>
           </div>
@@ -208,10 +209,10 @@ function PillRowWithFilter({ section }: { section: SectionId }) {
             </div>
             <FilterPickers draft={draft} setDraft={setDraft} />
             <div className="flex gap-2">
-              <Button fullWidth variant="ghost" onClick={clear}>
+              <Button fullWidth kind="control" variant="ghost" onClick={clear}>
                 Clear
               </Button>
-              <Button fullWidth onClick={apply}>
+              <Button fullWidth kind="control" onClick={apply}>
                 Apply
               </Button>
             </div>

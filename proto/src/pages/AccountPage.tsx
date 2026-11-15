@@ -43,10 +43,10 @@ export function AccountPage() {
                 <WfField label="Email" placeholder="Cloud email" />
               </div>
               <div className="flex flex-wrap gap-2">
-                <Button size="sm" disabled>
+                <Button kind="control" disabled>
                   Save profile (stub)
                 </Button>
-                <Button size="sm" variant="secondary" disabled>
+                <Button kind="control" variant="secondary" disabled>
                   Sign out (stub)
                 </Button>
               </div>
@@ -70,7 +70,7 @@ export function AccountPage() {
                 />
                 <WfRow title="Club teammate" meta="Shared later" />
               </ul>
-              <Button size="sm" disabled>
+              <Button kind="control" disabled>
                 Change reviewing-as (stub)
               </Button>
             </Card>
@@ -101,19 +101,19 @@ export function AccountPage() {
               </div>
               <CardDescription>Bundle and sync. Reel download stays on Insights.</CardDescription>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
-                <Button disabled>
+                <Button kind="control" disabled>
                   <Icon name="upload" size="xs" />
                   Import (stub)
                 </Button>
-                <Button variant="secondary" disabled>
+                <Button kind="control" variant="secondary" disabled>
                   <Icon name="download" size="xs" />
                   Export (stub)
                 </Button>
-                <Button variant="secondary" disabled>
+                <Button kind="control" variant="secondary" disabled>
                   <Icon name="cloud" size="xs" />
                   Sync (stub)
                 </Button>
-                <Button variant="ghost" disabled>
+                <Button kind="control" variant="ghost" disabled>
                   <Icon name="hard-drive" size="xs" />
                   Storage (stub)
                 </Button>
@@ -158,7 +158,7 @@ export function AccountPage() {
                 type="button"
                 onClick={() => setMode(opt)}
                 className={cn(
-                  'rounded-md border px-3 py-2 text-sm font-semibold capitalize',
+                  'btn-kind-control rounded-md border px-3 text-sm font-semibold capitalize',
                   mode === opt
                     ? 'border-brand-primary bg-brand-primary-muted text-primary'
                     : 'border-border bg-bg-card text-muted hover:bg-bg-elevated'

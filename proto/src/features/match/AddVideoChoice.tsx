@@ -67,7 +67,7 @@ export function AddVideoChoice({
       >
         {label ? <span className="mr-1 text-sm font-medium text-primary">Add video</span> : null}
         <Button
-          size="sm"
+          kind="control"
           variant="secondary"
           disabled={disabled || state === 'reading'}
           onClick={() => input.current?.click()}
@@ -76,7 +76,7 @@ export function AddVideoChoice({
           {state === 'reading' ? 'Reading' : 'Choose file'}
         </Button>
         <Button
-          size="sm"
+          kind="control"
           variant="ghost"
           className="border border-dashed border-border"
           disabled={disabled}

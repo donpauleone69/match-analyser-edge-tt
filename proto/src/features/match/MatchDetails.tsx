@@ -64,6 +64,7 @@ export function MatchDetails() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         {phase === 'complete' || phase === 'partial' ? (
           <Button
+            kind="control"
             variant="secondary"
             onClick={() => navigate(`/matches/${match.id}/insights/summary`)}
           >
@@ -173,10 +174,10 @@ function RemoveVideoConfirm({
         </p>
       )}
       <div className="flex flex-wrap gap-2">
-        <Button size="sm" onClick={onRemove}>
+        <Button kind="control" onClick={onRemove}>
           {video.archived ? 'Remove the only copy' : 'Remove video'}
         </Button>
-        <Button size="sm" variant="ghost" onClick={onCancel}>
+        <Button kind="control" variant="ghost" onClick={onCancel}>
           {video.archived ? 'Keep it' : 'Cancel'}
         </Button>
       </div>
@@ -248,7 +249,7 @@ function VideosCard({ match }: { match: MatchRecord }) {
           role="status"
         >
           <span className="min-w-0 truncate">Removed {removed.video.fileName}</span>
-          <Button size="sm" variant="secondary" onClick={undoRemove}>
+          <Button kind="control" variant="secondary" onClick={undoRemove}>
             Undo
           </Button>
         </p>
@@ -276,7 +277,7 @@ function VideosCard({ match }: { match: MatchRecord }) {
                     {many ? (
                       <>
                         <Button
-                          size="sm"
+                          kind="control"
                           variant="secondary"
                           aria-label={`Move ${v.fileName} up`}
                           disabled={running || i === 0}
@@ -285,7 +286,7 @@ function VideosCard({ match }: { match: MatchRecord }) {
                           <Icon name="chevron-up" size="xs" />
                         </Button>
                         <Button
-                          size="sm"
+                          kind="control"
                           variant="secondary"
                           aria-label={`Move ${v.fileName} down`}
                           disabled={running || i === match.videos.length - 1}
@@ -296,7 +297,7 @@ function VideosCard({ match }: { match: MatchRecord }) {
                       </>
                     ) : null}
                     <Button
-                      size="sm"
+                      kind="control"
                       variant="ghost"
                       disabled={running || asking === v.id}
                       onClick={() => onRemove(v, i)}
@@ -339,7 +340,7 @@ function VideosCard({ match }: { match: MatchRecord }) {
           ) : phase !== 'complete' ? (
             <p className="text-xs text-muted">Archive comes once tagging is finished.</p>
           ) : !confirmArchive ? (
-            <Button size="sm" variant="secondary" onClick={() => setConfirmArchive(true)}>
+            <Button kind="control" variant="secondary" onClick={() => setConfirmArchive(true)}>
               Archive
             </Button>
           ) : (
@@ -352,7 +353,7 @@ function VideosCard({ match }: { match: MatchRecord }) {
               <p className="font-semibold">This cannot be undone.</p>
               <div className="flex flex-wrap gap-2">
                 <Button
-                  size="sm"
+                  kind="control"
                   onClick={() => {
                     setConfirmArchive(false)
                     setAsking(null)
@@ -361,7 +362,7 @@ function VideosCard({ match }: { match: MatchRecord }) {
                 >
                   Archive
                 </Button>
-                <Button size="sm" variant="ghost" onClick={() => setConfirmArchive(false)}>
+                <Button kind="control" variant="ghost" onClick={() => setConfirmArchive(false)}>
                   Cancel
                 </Button>
               </div>
@@ -371,7 +372,9 @@ function VideosCard({ match }: { match: MatchRecord }) {
       ) : null}
 
       {phase === 'ready' || phase === 'partial' ? (
-        <Button onClick={() => navigate(`/matches/${match.id}/tag`)}>Next: Tag</Button>
+        <Button kind="main" onClick={() => navigate(`/matches/${match.id}/tag`)}>
+          Next: Tag
+        </Button>
       ) : null}
     </Card>
   )
@@ -464,7 +467,7 @@ function TaggedCell({
       {setScoresDiffer(set) ? (
         <>
           <WfWarnBadge>Differs</WfWarnBadge>
-          <Button size="sm" variant="secondary" onClick={onUseTagged}>
+          <Button kind="control" variant="secondary" onClick={onUseTagged}>
             Use tagged
           </Button>
           <Link to={tagHref} className="text-xs font-semibold text-brand underline">
@@ -539,7 +542,7 @@ function ResultCard({ match }: { match: MatchRecord }) {
   })
 
   const useTaggedResult = isRealResult(fromTagging) ? (
-    <Button size="sm" variant="secondary" onClick={() => pick(fromTagging)}>
+    <Button kind="control" variant="secondary" onClick={() => pick(fromTagging)}>
       Use tagged result
     </Button>
   ) : null
@@ -555,10 +558,10 @@ function ResultCard({ match }: { match: MatchRecord }) {
           removed.
         </p>
         <div className="flex flex-wrap gap-2">
-          <Button size="sm" onClick={commitPending}>
+          <Button kind="control" onClick={commitPending}>
             Change to {formatScore({ me: waiting.me ?? 0, them: waiting.them ?? 0 })}
           </Button>
-          <Button size="sm" variant="ghost" onClick={() => setPending(null)}>
+          <Button kind="control" variant="ghost" onClick={() => setPending(null)}>
             {saved ? `Keep ${formatScore(saved)}` : 'Cancel'}
           </Button>
         </div>
@@ -590,7 +593,7 @@ function ResultCard({ match }: { match: MatchRecord }) {
       <div className={flagRowClass}>
         <span>{differing} sets differ from tagging.</span>
         <Button
-          size="sm"
+          kind="control"
           variant="secondary"
           onClick={() => mutateMatch(match.id, applyTaggedScores)}
         >
@@ -681,6 +684,7 @@ function DeleteMatch({ match }: { match: MatchRecord }) {
   if (!confirming || archiving) {
     return (
       <Button
+        kind="control"
         variant="ghost"
         disabled={archiving}
         onClick={() => (isUntouched(match) ? remove() : setConfirming(true))}
@@ -694,10 +698,10 @@ function DeleteMatch({ match }: { match: MatchRecord }) {
     <ConfirmBox label="Delete match">
       <p>Delete this match and its tagging? This cannot be undone.</p>
       <div className="flex flex-wrap gap-2">
-        <Button size="sm" onClick={remove}>
+        <Button kind="control" onClick={remove}>
           Delete
         </Button>
-        <Button size="sm" variant="ghost" onClick={() => setConfirming(false)}>
+        <Button kind="control" variant="ghost" onClick={() => setConfirming(false)}>
           Cancel
         </Button>
       </div>

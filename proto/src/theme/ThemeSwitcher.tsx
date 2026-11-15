@@ -18,7 +18,7 @@ export function ThemeSwitcher() {
               type="button"
               onClick={() => setTheme(pack.id)}
               className={cn(
-                'w-full rounded-md border px-3 py-2 text-left transition-colors',
+                'btn-kind-control w-full rounded-md border px-3 text-left transition-colors',
                 active
                   ? 'border-brand-primary bg-brand-primary-muted'
                   : 'border-border bg-bg-card hover:bg-bg-elevated'

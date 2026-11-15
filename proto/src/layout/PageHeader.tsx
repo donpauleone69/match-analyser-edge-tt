@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
-import { Icon } from '@/ui-mine'
+import { Icon, buttonKindControlSquare } from '@/ui-mine'
+import { cn } from '@/helpers/utils'
 import { BrandMark } from '@/layout/BrandMark'
 
 /**
@@ -19,11 +20,16 @@ export function PageHeader({
     <header className="px-4 sm:px-6 lg:px-8 pt-4 pb-2">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex items-start gap-2">
-          <div className="w-8 h-8 shrink-0 flex items-center justify-center mt-0.5">
+          <div
+            className={cn(
+              buttonKindControlSquare,
+              'shrink-0 flex items-center justify-center mt-0.5'
+            )}
+          >
             {backTo ? (
               <Link
                 to={backTo}
-                className="inline-flex items-center justify-center w-8 h-8 rounded-md text-brand hover:bg-pill-idle"
+                className="inline-flex h-full w-full items-center justify-center rounded-md text-brand hover:bg-pill-idle"
                 aria-label="Back"
               >
                 <Icon name="chevron-left" size="sm" />

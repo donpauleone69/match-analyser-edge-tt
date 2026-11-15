@@ -23,7 +23,7 @@ export function HubTabs({ tabs, ariaLabel }: { tabs: HubTab[]; ariaLabel: string
           end={tab.end}
           className={({ isActive }) =>
             cn(
-              'inline-flex shrink-0 items-center gap-1.5 px-3 py-2 text-sm font-semibold border-b-2 -mb-px transition-colors',
+              'btn-kind-control inline-flex shrink-0 items-center gap-1.5 px-3 text-sm font-semibold border-b-2 -mb-px transition-colors',
               isActive
                 ? 'border-brand-primary text-brand-primary'
                 : 'border-transparent text-muted hover:text-primary'

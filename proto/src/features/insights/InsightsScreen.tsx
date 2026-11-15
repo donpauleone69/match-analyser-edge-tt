@@ -176,7 +176,7 @@ export function SectionPills({
             aria-selected={active}
             onClick={() => navigate(`${basePath}/${s.id}`)}
             className={cn(
-              'shrink-0 px-3 py-1.5 text-xs font-semibold rounded-md transition-colors',
+              'btn-kind-control shrink-0 px-3 text-xs font-semibold rounded-md transition-colors',
               active
                 ? 'bg-bg-surface text-brand-primary shadow-sm border border-border'
                 : 'text-muted hover:text-primary border border-transparent'
@@ -240,7 +240,9 @@ function SectionBody({
                 : 'Tag a rally to see insights for this match.'
             }
           />
-          <Button onClick={() => navigate(`/matches/${match.id}/tag`)}>Go to Tag</Button>
+          <Button kind="main" onClick={() => navigate(`/matches/${match.id}/tag`)}>
+            Go to Tag
+          </Button>
         </div>
       )
     }
@@ -305,7 +307,7 @@ function SectionBody({
           <div className="rounded-lg border border-border bg-bg-card p-3 space-y-2">
             <div className="flex items-center justify-between gap-2">
               <p className="text-sm font-semibold text-primary">Reel · {playing.title}</p>
-              <Button size="sm" variant="ghost" onClick={() => setPlayingId(null)}>
+              <Button kind="control" variant="ghost" onClick={() => setPlayingId(null)}>
                 Close
               </Button>
             </div>
@@ -337,11 +339,11 @@ function SectionBody({
                 </div>
                 {videoGone ? null : (
                   <div className="flex flex-wrap gap-1">
-                    <Button size="sm" onClick={() => setPlayingId(item.reel.id)}>
+                    <Button kind="control" onClick={() => setPlayingId(item.reel.id)}>
                       <Icon name="play" size="xs" />
                       Play evidence
                     </Button>
-                    <Button size="sm" variant="secondary" disabled>
+                    <Button kind="control" variant="secondary" disabled>
                       <Icon name="download" size="xs" />
                       Download
                     </Button>
@@ -363,11 +365,11 @@ function SectionBody({
                 </div>
                 {videoGone ? null : (
                   <div className="flex gap-1 shrink-0">
-                    <Button size="sm" onClick={() => setPlayingId(r.id)}>
+                    <Button kind="control" onClick={() => setPlayingId(r.id)}>
                       <Icon name="play" size="xs" />
                       Play
                     </Button>
-                    <Button size="sm" variant="secondary" disabled>
+                    <Button kind="control" variant="secondary" disabled>
                       <Icon name="download" size="xs" />
                       Download
                     </Button>
@@ -381,7 +383,7 @@ function SectionBody({
         {data.reels.length === 0 ? (
           <p className="text-sm text-muted">No reels yet. Save a rally to fill them.</p>
         ) : videoGone ? null : (
-          <Button size="sm" variant="secondary" disabled>
+          <Button kind="control" variant="secondary" disabled>
             <Icon name="download" size="xs" />
             Download all
           </Button>

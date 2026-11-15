@@ -33,10 +33,10 @@ export function GatePage() {
               <WfField label="Email" placeholder="you@example.com" />
               <WfField label="Password" placeholder="••••••••" />
             </div>
-            <Button fullWidth disabled>
+            <Button fullWidth kind="main" disabled>
               Sign in (stub)
             </Button>
-            <Button fullWidth variant="secondary" onClick={enter}>
+            <Button fullWidth kind="main" variant="secondary" onClick={enter}>
               Fake sign-in
             </Button>
           </Card>
@@ -55,10 +55,10 @@ export function GatePage() {
               <WfField label="Email" placeholder="you@example.com" />
               <WfField label="Password" placeholder="••••••••" />
             </div>
-            <Button fullWidth disabled>
+            <Button fullWidth kind="main" disabled>
               Create account (stub)
             </Button>
-            <Button fullWidth variant="secondary" onClick={enter}>
+            <Button fullWidth kind="main" variant="secondary" onClick={enter}>
               Fake register
             </Button>
           </Card>
@@ -77,7 +77,7 @@ export function GatePage() {
               <li>Data stays on device</li>
               <li>Import / export in Account</li>
             </ul>
-            <Button fullWidth variant="ghost" onClick={enter}>
+            <Button fullWidth kind="main" variant="ghost" onClick={enter}>
               Continue on this device
             </Button>
           </Card>

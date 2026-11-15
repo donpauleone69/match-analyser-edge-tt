@@ -37,9 +37,7 @@ const differsBadge =
 
 const linkClass = 'text-sm font-semibold text-brand underline'
 
-/** Row buttons are a full finger tall on the phone. */
-const rowButton = 'min-h-11 md:min-h-0'
-const rowAction = `${rowButton} min-w-16 md:min-w-0`
+const rowAction = 'min-w-16 md:min-w-0'
 
 function rallyCount(n: number) {
   return `${n} ${n === 1 ? 'rally' : 'rallies'}`
@@ -125,7 +123,7 @@ export function MatchTagChecklist() {
       ) : null}
 
       {resume ? (
-        <Button fullWidth size="lg" onClick={() => openSet(resume.setId)}>
+        <Button fullWidth kind="main" onClick={() => openSet(resume.setId)}>
           <Icon name="play" size="sm" />
           Continue set {resume.setId}
         </Button>
@@ -155,9 +153,8 @@ export function MatchTagChecklist() {
                 <div className="flex flex-wrap gap-1">
                   {state === 'skipped' && !lock ? (
                     <Button
-                      size="sm"
+                      kind="control"
                       variant="ghost"
-                      className={rowButton}
                       onClick={() => patchSet(match.id, s.setId, { skipped: false })}
                     >
                       Undo
@@ -165,9 +162,8 @@ export function MatchTagChecklist() {
                   ) : null}
                   {state === 'none' && !isSpareSet(match, s) && !lock ? (
                     <Button
-                      size="sm"
+                      kind="control"
                       variant="ghost"
-                      className={rowButton}
                       onClick={() => patchSet(match.id, s.setId, { skipped: true })}
                     >
                       Mark not filmed
@@ -175,9 +171,8 @@ export function MatchTagChecklist() {
                   ) : null}
                   {differs ? (
                     <Button
-                      size="sm"
+                      kind="control"
                       variant="ghost"
-                      className={rowButton}
                       onClick={() => mutateMatch(match.id, (m) => applyTaggedScore(m, s.setId))}
                     >
                       Use tagged score
@@ -185,7 +180,7 @@ export function MatchTagChecklist() {
                   ) : null}
                   {state === 'none' && hasVideo && !lock ? (
                     <Button
-                      size="sm"
+                      kind="control"
                       variant={nextStart?.setId === s.setId ? 'primary' : 'secondary'}
                       className={rowAction}
                       onClick={() => openSet(s.setId)}
@@ -195,7 +190,7 @@ export function MatchTagChecklist() {
                   ) : null}
                   {state === 'finished' || state === 'progress' ? (
                     <Button
-                      size="sm"
+                      kind="control"
                       variant="secondary"
                       className={rowAction}
                       onClick={() => openSet(s.setId)}
@@ -221,6 +216,7 @@ export function MatchTagChecklist() {
 
       {phase === 'complete' || phase === 'partial' ? (
         <Button
+          kind="control"
           variant="ghost"
           onClick={() => navigate(`/matches/${match.id}/insights/summary`)}
         >
@@ -258,7 +254,7 @@ function ResultFlag({ match }: { match: MatchRecord }) {
         Result entered {formatScore({ me, them })} · tagged sets give {formatScore(tagged)}
       </span>
       {isRealResult(tagged) ? (
-        <Button size="sm" variant="secondary" onClick={() => mutateMatch(match.id, applyTaggedResult)}>
+        <Button kind="control" variant="secondary" onClick={() => mutateMatch(match.id, applyTaggedResult)}>
           Use tagged result
         </Button>
       ) : null}
@@ -301,7 +297,7 @@ function MatchEnd({
         {noResult ? (
           <div className="flex flex-wrap items-center gap-1">
             {isRealResult(won) ? (
-              <Button size="sm" variant="secondary" onClick={onUseResult}>
+              <Button kind="control" variant="secondary" onClick={onUseResult}>
                 Use tagged result
               </Button>
             ) : (
@@ -311,7 +307,7 @@ function MatchEnd({
             )}
             {/* Only Finish match can be reopened. A result decides for itself. */}
             {match.tagDone && !locked ? (
-              <Button size="sm" variant="ghost" onClick={onReopen}>
+              <Button kind="control" variant="ghost" onClick={onReopen}>
                 Reopen match
               </Button>
             ) : null}
@@ -343,6 +339,7 @@ function MatchEnd({
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
           <Button
             // Leads once the tagged sets could be a whole match.
+            kind="main"
             variant={!blocking && isRealResult(won) ? 'primary' : 'secondary'}
             className="w-full sm:w-auto"
             disabled={blocking !== null}

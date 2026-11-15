@@ -35,10 +35,10 @@ export function FindPage() {
             <WfField label="Date range" placeholder="Any date" />
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button size="sm" disabled>
+            <Button kind="control" disabled>
               Apply filters (stub)
             </Button>
-            <Button size="sm" variant="secondary" onClick={onNew}>
+            <Button kind="main" variant="secondary" onClick={onNew}>
               <Icon name="plus" size="xs" />
               New match
             </Button>

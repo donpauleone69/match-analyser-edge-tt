@@ -49,7 +49,7 @@ export function HomePage() {
         {matches.length === 0 ? (
           <div className="space-y-3">
             <WfEmpty title="No matches" body="Create a match or switch Prototype to Filled." />
-            <Button fullWidth onClick={onNew}>
+            <Button fullWidth kind="main" onClick={onNew}>
               <Icon name="plus" size="xs" />
               New match
             </Button>
@@ -81,6 +81,7 @@ export function HomePage() {
             </div>
             <Button
               fullWidth
+              kind="main"
               onClick={() =>
                 navigate(
                   resumeSet
@@ -107,11 +108,11 @@ export function HomePage() {
                   <CardTitle>Matches</CardTitle>
                 </div>
                 <div className="flex gap-2">
-                  <Button size="sm" variant="secondary" onClick={onNew}>
+                  <Button kind="control" variant="secondary" onClick={onNew}>
                     <Icon name="plus" size="xs" />
                     New
                   </Button>
-                  <Button size="sm" variant="ghost" onClick={() => navigate('/find')}>
+                  <Button kind="control" variant="ghost" onClick={() => navigate('/find')}>
                     <Icon name="search" size="xs" />
                     Find
                   </Button>
@@ -168,6 +169,7 @@ export function HomePage() {
                   </ul>
                   <Button
                     fullWidth
+                    kind="main"
                     variant="secondary"
                     onClick={() => navigate('/insights/summary')}
                   >
