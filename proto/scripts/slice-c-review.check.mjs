@@ -37,7 +37,7 @@ async function pressText(page, label) {
 
 async function main() {
   const browser = await chromium.launch({
-    executablePath: '/usr/bin/google-chrome',
+    executablePath: '/usr/local/bin/google-chrome',
     headless: true,
     args: ['--no-sandbox', '--disable-dev-shm-usage'],
   })
@@ -120,7 +120,7 @@ async function main() {
     }
   })
   console.log('two shot block', JSON.stringify(two))
-  note(two.text === 'No attack' && !two.change, `two shots, Block: "${two.text}" change=${two.change}`)
+  note(two.text === '2 shots · No attack' && !two.change, `two shots, Block: "${two.text}" change=${two.change}`)
   await page.screenshot({ path: `${OUT}/slice-c-two-shot-390.png` })
 
   await page.click('[data-tag-save]')
@@ -151,7 +151,10 @@ async function main() {
     }
   })
   console.log('two shot loop', JSON.stringify(twoLoop))
-  note(twoLoop.text === 'First attack: shot 2' && !twoLoop.change, `two shots, Loop: "${twoLoop.text}" change=${twoLoop.change}`)
+  note(
+    twoLoop.text === '2 shots · First attack shot 2' && !twoLoop.change,
+    `two shots, Loop: "${twoLoop.text}" change=${twoLoop.change}`
+  )
 
   await page.click('[data-tag-save]')
   await page.waitForTimeout(400)
