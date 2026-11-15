@@ -152,6 +152,81 @@ export function addServe(d: Draft, floor: number): Draft {
   return applyAutoSkip(d.noAttack && d.contacts.length >= 3 ? { ...next, noAttack: true } : next)
 }
 
+/** Add contact loops from this long before the first tap. A serve earlier than that is out of reach. */
+export const ADD_CONTACT_LEAD_S = 4
+/** Re-tap starts this long before the serve, so the thumb has time to get back to the pad. */
+export const RETAP_LEAD_S = 2.5
+/** Two contacts are never closer than this. */
+const CONTACT_GAP_S = 0.05
+
+const round2 = (v: number) => Math.round(v * 100) / 100
+
+/**
+ * Where a missed contact lands for a press at `videoTime`: reaction time off,
+ * inside the video, never on top of a tap already there, and never behind
+ * `fence` (the last contact of the rally saved before this one).
+ */
+export function addedContactTime(d: Draft, videoTime: number, fence: number | null, maxTime: number): number {
+  const low = fence === null ? 0 : fence + CONTACT_GAP_S
+  let t = round2(Math.max(low, Math.min(maxTime, videoTime - TAP_LATENCY_S)))
+  const i = d.contacts.findIndex((c) => Math.abs(c - t) < CONTACT_GAP_S - 1e-6)
+  if (i < 0) return t
+  // Too close to a tap: it goes 0.05 from it, on the side it fell.
+  const c = d.contacts[i]
+  if (t >= c) {
+    const next = d.contacts[i + 1]
+    t = next !== undefined && next - c < 2 * CONTACT_GAP_S ? (c + next) / 2 : c + CONTACT_GAP_S
+  } else {
+    const prev = Math.max(low, d.contacts[i - 1] ?? low)
+    t = c - prev < 2 * CONTACT_GAP_S ? (c + prev) / 2 : c - CONTACT_GAP_S
+  }
+  return round2(t)
+}
+
+/**
+ * Add contact: a missed contact goes in at `t`, in time order. In front of
+ * shot 1 it is the serve. The shots after it move up one and keep their tags,
+ * and the first attack moves with its shot. The hitters after it swap, so the
+ * winner may change. After the old end shot it is the new end shot and the
+ * result is asked again.
+ */
+export function insertContact(d: Draft, t: number): { draft: Draft; shot: number } {
+  const n = d.contacts.length
+  const i = d.contacts.filter((c) => c < t).length
+  const next: Draft = {
+    ...d,
+    contacts: [...d.contacts.slice(0, i), t, ...d.contacts.slice(i)],
+    shots: [...d.shots.slice(0, i), {}, ...d.shots.slice(i)],
+    fa: d.fa !== null && d.fa - 1 >= i ? d.fa + 1 : d.fa,
+    // No attack chosen on three shots or more still holds. A shorter rally is asked again.
+    noAttack: d.noAttack && n >= 3,
+    start: i === 0 ? null : d.start,
+    ending: i === n ? null : d.ending,
+    end: i === n ? null : d.end,
+  }
+  return { draft: applyAutoSkip(next), shot: i + 1 }
+}
+
+/** What Add contact loops: 4 seconds before the first tap (not behind the fence) to the rally end. */
+export function addContactWindow(d: Draft, fence: number | null): { a: number; b: number } {
+  const first = d.contacts[0] ?? 0
+  return { a: Math.max(0, fence ?? 0, first - ADD_CONTACT_LEAD_S), b: rallyEnd(d) }
+}
+
+/** Where Re-tap puts the video: 2.5 seconds before the serve, never behind the fence. */
+export function retapStart(d: Pick<Draft, 'contacts'>, fence: number | null): number {
+  return Math.max(0, fence ?? 0, (d.contacts[0] ?? 0) - RETAP_LEAD_S)
+}
+
+/** "Shot 3 added", and the new winner when the added contact changed it. */
+export function addedContactText(before: Draft, after: Draft, shot: number, names: Record<Side, string>): string {
+  const was = winnerOf(before)
+  const now = winnerOf(after)
+  const base = `Shot ${shot} added`
+  if (!now || now === was) return base
+  return `${base} · ${names[now]} ${now === 'me' ? 'win' : 'wins'} now`
+}
+
 export const endShot = (d: Draft): number => d.contacts.length
 
 /** The server hits shot 1, then the players alternate. */
