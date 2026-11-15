@@ -56,10 +56,10 @@ const FH_FLICK: ShotTags = { wing: 'FH', stroke: 'Flick' }
 const D = () =>
   draft({ contacts: [10.0, 10.9, 11.8, 12.7], ending: 'Long', fa: 3, shots: [{}, {}, FH_LOOP, BH_BLOCK] })
 const NO_ATTACK_3 = () =>
-  draft({ contacts: [10.0, 10.9, 11.8], ending: 'In-Net', noAttack: true, shots: [{}, {}, BH_PUSH] })
+  draft({ contacts: [10.0, 10.9, 11.8], ending: 'Net', noAttack: true, shots: [{}, {}, BH_PUSH] })
 const TWO_ATTACK = () => draft({ contacts: [10.0, 10.9], ending: 'Winner', fa: 2, shots: [{}, FH_FLICK] })
 const TWO_NO_ATTACK = () =>
-  draft({ contacts: [10.0, 10.9], ending: 'In-Net', noAttack: true, shots: [{}, BH_PUSH] })
+  draft({ contacts: [10.0, 10.9], ending: 'Net', noAttack: true, shots: [{}, BH_PUSH] })
 
 type Want = {
   contacts: number[]
@@ -164,7 +164,7 @@ addCase('C6 no attack rally', NO_ATTACK_3, 9.4, null, {
   shots: [{}, {}, {}, BH_PUSH],
   fa: null,
   noAttack: true,
-  ending: 'In-Net',
+  ending: 'Net',
   winner: 'me',
   stage: 'ready',
   shot: 1,
@@ -190,7 +190,7 @@ addCase('C8 two shots, no attack', TWO_NO_ATTACK, 9.4, null, {
   shots: [{}, {}, BH_PUSH],
   fa: null,
   noAttack: false,
-  ending: 'In-Net',
+  ending: 'Net',
   winner: 'them',
   stage: 'pickFa',
   shot: 1,

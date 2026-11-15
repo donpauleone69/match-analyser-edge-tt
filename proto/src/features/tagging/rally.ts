@@ -8,7 +8,7 @@ export type Side = 'me' | 'them'
 
 export const otherSide = (s: Side): Side => (s === 'me' ? 'them' : 'me')
 
-export const ENDINGS = ['Winner', 'Lucky', 'In-Net', 'Long', 'Wide', 'Air'] as const
+export const ENDINGS = ['Winner', 'Lucky', 'Net', 'Long', 'Wide', 'Air'] as const
 export type Ending = (typeof ENDINGS)[number]
 
 export const WINGS = ['BH', 'FH'] as const
@@ -277,7 +277,7 @@ export function hitterOf(server: Side, shot: number): Side {
 }
 
 export const isError = (e: Ending | null): boolean =>
-  e === 'In-Net' || e === 'Long' || e === 'Wide' || e === 'Air'
+  e === 'Net' || e === 'Long' || e === 'Wide' || e === 'Air'
 
 /** Winner or Lucky: the end shot's hitter. Any error: the other player. */
 export function winnerOf(d: Pick<Draft, 'server' | 'contacts' | 'ending'>): Side | null {

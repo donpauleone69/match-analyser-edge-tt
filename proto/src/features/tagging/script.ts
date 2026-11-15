@@ -177,7 +177,7 @@ function playOf(d: () => number, rally: Omit<ScriptRally, 'play'>): ShotPlay[] {
       const reach = Math.min(Math.abs(to.x - NET_X) - 0.05, 0.33)
       const x = NET_X + out * reach * (isAttack(stroke) ? 0.7 + u * 0.3 : 0.4 + u * 0.6)
       bounce = { x, y: lerp(from.y, to.y, (x - from.x) / (to.x - from.x)) }
-    } else if (rally.ending === 'In-Net') {
+    } else if (rally.ending === 'Net') {
       bounce = null
     } else if (rally.ending === 'Long') {
       bounce = { x: END_X[far] + out * (0.05 + u * 0.03), y: 0.5 + (v - 0.5) * 0.3 }
@@ -222,7 +222,7 @@ function scriptRally(
       ? r() < 0.15
         ? 'Lucky'
         : 'Winner'
-      : pick(r, ['In-Net', 'Long', 'Wide'] as const)
+      : pick(r, ['Net', 'Long', 'Wide'] as const)
 
   const shots: ShotTags[] = contacts.map(() => ({}))
   let fa: number | null = null
@@ -452,7 +452,7 @@ function legOf(rally: ScriptRally, i: number): Leg {
   const far = otherSide(hitterOf(rally.server, i + 1))
   const out = outward(far)
   const at = (p: number) => t0 + p * TAIL_S
-  if (rally.ending === 'In-Net') {
+  if (rally.ending === 'Net') {
     const net = { x: NET_X - out * 0.012, y: lerp(from.y, 0.5, 0.6) }
     const drop = { x: net.x - out * 0.035, y: net.y }
     return {
@@ -589,7 +589,7 @@ export function sceneAt(script: VideoScript, t: number): Scene {
     const fly = flightAt(leg, t)
     const ending = i === c.length - 1
     const p = ending ? Math.min(1, (t - last) / TAIL_S) : 0
-    const stopped = rally.ending === 'In-Net' || rally.ending === 'Lucky'
+    const stopped = rally.ending === 'Net' || rally.ending === 'Lucky'
     const fade = stopped ? 1 : 1 - Math.max(0, p - 0.8) * 4
 
     const landed = [...(i > 0 ? legOf(rally, i - 1).marks : []), ...leg.marks]

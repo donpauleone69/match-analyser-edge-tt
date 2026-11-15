@@ -116,7 +116,7 @@ const cells = (d: Draft, shot: number, side?: StrokeSide) =>
 
 // S7
 {
-  const d = draft({ contacts: [1, 2], ending: 'In-Net', shots: [{}, {}] })
+  const d = draft({ contacts: [1, 2], ending: 'Net', shots: [{}, {}] })
   const end = sw(d, 2)
   ok('S7 Defensive, can flip', end.side === 'defensive' && !end.fixed)
 }
@@ -161,7 +161,7 @@ function pressFlip(d: Draft, shot: number, shown: StrokeSide): { d: Draft; shown
 // S12
 {
   const pushed = patchShot(
-    draft({ contacts: [1, 2], ending: 'In-Net', shots: [{}, { ...wing }] }),
+    draft({ contacts: [1, 2], ending: 'Net', shots: [{}, { ...wing }] }),
     2,
     { stroke: 'Push' }
   )
@@ -217,7 +217,7 @@ function pressFlip(d: Draft, shot: number, shown: StrokeSide): { d: Draft; shown
     two.contacts.length === 2 && two.noAttack === true && two.ending === null && two.fa === null
   )
   for (const stroke of ATTACK_STROKES) {
-    const withResult = setEnding(two, 'In-Net')
+    const withResult = setEnding(two, 'Net')
     const entered = patchShot(withResult, 2, { stroke })
     ok(
       `S16 enter ${stroke} clears No attack and sets fa 2`,
@@ -225,7 +225,7 @@ function pressFlip(d: Draft, shot: number, shown: StrokeSide): { d: Draft; shown
       `noAttack=${entered.noAttack} fa=${entered.fa}`
     )
   }
-  const still = patchShot(setEnding(two, 'In-Net'), 2, { stroke: 'Push' })
+  const still = patchShot(setEnding(two, 'Net'), 2, { stroke: 'Push' })
   ok('S16 Push leaves No attack', still.noAttack === true && still.fa === null)
 }
 
