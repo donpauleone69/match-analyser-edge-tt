@@ -25,8 +25,12 @@ function setShown(next: boolean) {
   listeners.forEach((fn) => fn())
 }
 
-const signed = (late: number) =>
-  Math.abs(late) < 0.005 ? 'on time' : `${Math.abs(late).toFixed(2)}s ${late > 0 ? 'late' : 'early'}`
+const signed = (late: number) => {
+  const hundredths = Math.round(Math.abs(late) * 100)
+  if (hundredths < 1) return 'on time'
+  const text = hundredths % 10 === 0 ? (hundredths / 100).toFixed(1) : (hundredths / 100).toFixed(2)
+  return `${text}s ${late > 0 ? 'late' : 'early'}`
+}
 
 function RallyRow({ k, names }: { k: RallyKey; names: Record<Side, string> }) {
   const wrong = k.checks.filter((c) => !c.ok)
@@ -50,13 +54,22 @@ function RallyRow({ k, names }: { k: RallyKey; names: Record<Side, string> }) {
           {k.right} of {k.of}
         </span>
       </p>
-      {wrong.map((c) => (
-        <p key={c.field} className="mt-0.5 text-xs text-muted" data-key-wrong={c.field}>
-          <span className="font-semibold text-primary">{KEY_FIELD_LABEL[c.field]}</span>{' '}
-          {c.field === 'timing' ? `${c.got}, ${signed(k.timing.late)}` : `was ${c.want}, tagged ${c.got}`}
-        </p>
-      ))}
-      {k.taggedWinner !== null && k.taggedWinner !== k.winner ? (
+      {wrong.flatMap((c) => {
+        const lines = c.notes?.length ? c.notes : [`was ${c.want}, tagged ${c.got}`]
+        const bare = Boolean(c.notes?.length)
+        return lines.map((line, i) => (
+          <p key={`${c.field}-${i}`} className="mt-0.5 text-xs text-muted" data-key-wrong={c.field}>
+            {bare ? (
+              line
+            ) : (
+              <>
+                <span className="font-semibold text-primary">{KEY_FIELD_LABEL[c.field]}</span> {line}
+              </>
+            )}
+          </p>
+        ))
+      })}
+      {k.checks.every((c) => c.field !== 'taps' || c.ok) && k.taggedWinner !== null && k.taggedWinner !== k.winner ? (
         <p className="mt-0.5 text-xs text-muted" data-key-wrong="point">
           <span className="font-semibold text-primary">Point</span> was {names[k.winner]}, tagged{' '}
           {names[k.taggedWinner]}
@@ -131,7 +144,7 @@ export function AnswerKeyPanel({
             </p>
             {key.timing ? (
               <p className="text-xs text-muted tabular-nums" data-key-timing>
-                Taps {key.timing.off.toFixed(2)}s off on average, {signed(key.timing.late)}
+                Timing {signed(key.timing.late)} at worst
               </p>
             ) : null}
             {key.missed.length > 0 ? (

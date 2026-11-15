@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Icon } from '@/ui-mine'
 import type { VideoAsset } from '@/data/demoStore'
 import { cn } from '@/helpers/utils'
@@ -13,25 +13,27 @@ const MARK_SHOWN_S = 0.9
 
 /**
  * Drawn table, players and ball that follow the script. Stands in for real
- * footage. Seen from above. Everything a tagger needs is shown the way a
- * camera would show it, never in words: the bat goes to the ball on the
- * forehand or backhand side, the ball is red when it is attacked, a mark
- * shows where it lands, and the net shakes when it is hit.
+ * footage. Seen from above: the bat goes to the ball, the ball is red on an
+ * attack, a mark shows where it lands, and the net shakes when it is hit.
+ * A caption by the hitter names the wing and stroke while the bat flashes.
  */
 function StandIn({
   script,
   offset,
   getTime,
   names,
+  showCaptions,
 }: {
   script: VideoScript
   offset: number
   getTime: () => number
   names: Record<Side, string>
+  showCaptions: boolean
 }) {
   const ball = useRef<HTMLDivElement>(null)
   const net = useRef<HTMLDivElement>(null)
   const label = useRef<HTMLParagraphElement>(null)
+  const caption = useRef<HTMLParagraphElement>(null)
   const bats = useRef<Record<Side, HTMLDivElement | null>>({ me: null, them: null })
   const bodies = useRef<Record<Side, HTMLDivElement | null>>({ me: null, them: null })
   const marks = useRef<(HTMLDivElement | null)[]>([])
@@ -91,11 +93,25 @@ function StandIn({
         net.current.dataset.hit = hit ? 'yes' : 'no'
       }
       if (label.current) label.current.textContent = scene.label ?? ''
+      const cap = caption.current
+      if (cap) {
+        if (showCaptions && scene.caption) {
+          const at = scene.bats[scene.caption.side]
+          cap.textContent = scene.caption.text
+          cap.style.opacity = '1'
+          cap.style.top = `${at.y * 100}%`
+          cap.style.left = scene.caption.side === 'me' ? '16%' : 'auto'
+          cap.style.right = scene.caption.side === 'them' ? '16%' : 'auto'
+        } else {
+          cap.textContent = ''
+          cap.style.opacity = '0'
+        }
+      }
       frame = requestAnimationFrame(draw)
     }
     frame = requestAnimationFrame(draw)
     return () => cancelAnimationFrame(frame)
-  }, [script, offset, getTime])
+  }, [script, offset, getTime, showCaptions])
 
   return (
     <div className="absolute inset-0 bg-[#123524] overflow-hidden" aria-label="Demo video">
@@ -151,7 +167,7 @@ function StandIn({
           />
           <p
             className={cn(
-              'absolute top-[80%] w-[14%] truncate text-center text-[10px] font-semibold text-white/80',
+              'absolute top-[64%] w-[14%] truncate text-center text-[10px] font-semibold text-white/80',
               side === 'me' ? 'left-0' : 'right-0'
             )}
           >
@@ -167,6 +183,11 @@ function StandIn({
           opacity: 0,
           boxShadow: '0 0 0 2px #fde047, 0 0 12px 4px rgba(253, 224, 71, 0.75)',
         }}
+      />
+      <p
+        ref={caption}
+        data-caption
+        className="absolute z-20 -translate-y-1/2 rounded bg-black/75 px-1.5 py-0.5 text-[11px] font-semibold text-white empty:hidden"
       />
       <p
         ref={label}
@@ -196,7 +217,7 @@ function Transport({
       onClick={onClick}
       aria-label={label}
       disabled={disabled}
-      className="h-10 min-w-10 lg:h-8 lg:min-w-8 px-1.5 inline-flex items-center justify-center rounded-md bg-black/60 text-white text-xs font-semibold hover:bg-black/80 disabled:opacity-40 disabled:hover:bg-black/60"
+      className="h-11 w-11 lg:h-8 lg:w-8 inline-flex items-center justify-center rounded-md bg-black/60 text-white text-xs font-semibold hover:bg-black/80 disabled:opacity-40 disabled:hover:bg-black/60"
     >
       {children}
     </button>
@@ -242,6 +263,7 @@ export function VideoStage({
   const video = videos[player.segIndex]
   const pct = (g: number) => `${Math.min(100, Math.max(0, (g / total) * 100))}%`
   const speedIndex = Math.max(0, SPEED_STEPS.indexOf(player.rate as (typeof SPEED_STEPS)[number]))
+  const [captions, setCaptions] = useState(true)
 
   return (
     <div className={className}>
@@ -258,7 +280,13 @@ export function VideoStage({
             className="absolute inset-0 h-full w-full object-contain"
           />
         ) : video?.script && seg ? (
-          <StandIn script={video.script} offset={seg.offset} getTime={player.getTime} names={names} />
+          <StandIn
+            script={video.script}
+            offset={seg.offset}
+            getTime={player.getTime}
+            names={names}
+            showCaptions={captions}
+          />
         ) : null}
 
         <div
@@ -296,6 +324,16 @@ export function VideoStage({
           </p>
         ) : null}
 
+        <button
+          type="button"
+          role="switch"
+          aria-checked={captions}
+          aria-label="Captions"
+          onClick={() => setCaptions((on) => !on)}
+          className="absolute left-2 bottom-2 h-11 min-w-11 px-2 lg:h-8 lg:min-w-0 lg:px-1.5 inline-flex items-center justify-center rounded-md bg-black/60 text-[11px] font-semibold text-white hover:bg-black/80"
+        >
+          Captions
+        </button>
         <div className="absolute right-2 bottom-2 flex items-center gap-1">
           <Transport label="Back 10 seconds" onClick={() => onSeek(player.getTime() - 10)}>
             <Icon name="rewind" size="sm" />

@@ -1130,7 +1130,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
 
   const rallyList = (
     <>
-    <AnswerKeyPanel videos={match.videos} rallies={set.rallies} names={names} />
     <RallyList
       set={set}
       names={names}
@@ -1147,6 +1146,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       onFinish={onFinishSet}
       actions={listActions}
     />
+    <AnswerKeyPanel videos={match.videos} rallies={set.rallies} names={names} />
     </>
   )
   const padServer = live?.server ?? nextServer

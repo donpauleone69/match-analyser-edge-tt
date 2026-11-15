@@ -379,6 +379,8 @@ export type Scene = {
   marks: { x: number; y: number; age: number; floor: boolean }[]
   /** Seconds since the ball hit the net, while it still shakes. */
   net: number | null
+  /** Wing and stroke beside the hitter, for as long as the bat flashes. */
+  caption: { side: Side; text: string } | null
   label: string | null
   setNo: number | null
 }
@@ -556,6 +558,7 @@ export function sceneAt(script: VideoScript, t: number): Scene {
           .filter((m) => t >= m.t && t - m.t < MARK_S)
           .map((m) => ({ x: m.x, y: m.y, age: t - m.t, floor: m.floor })),
         net: null,
+        caption: null,
         label: inBreak ? 'Break between sets' : 'Between points',
         setNo: setNo ?? rally.setNo,
       }
@@ -573,6 +576,7 @@ export function sceneAt(script: VideoScript, t: number): Scene {
         bats: { me: batAt(rally, 'me', t), them: batAt(rally, 'them', t) },
         marks: [],
         net: null,
+        caption: null,
         label: 'Serve coming',
         setNo,
       }
@@ -601,15 +605,18 @@ export function sceneAt(script: VideoScript, t: number): Scene {
       bats[far] = { x: bats[far].x, y: lerp(bats[far].y, end.y, 0.45 * ease(clamp01((p - 0.15) / 0.5))) }
     }
 
+    const flashed = t - c[i] < 0.2
+    const shot = rally.play[i]
     return {
-      ball: { x: fly.x, y: fly.y, opacity: Math.max(0.15, fade), scale: 0.7 + 0.5 * fly.h, attack: rally.play[i].attack },
-      hit: t - c[i] < 0.2 ? hitter : null,
+      ball: { x: fly.x, y: fly.y, opacity: Math.max(0.15, fade), scale: 0.7 + 0.5 * fly.h, attack: shot.attack },
+      hit: flashed ? hitter : null,
       bats,
       marks,
       net: leg.netAt !== null && t >= leg.netAt && t - leg.netAt < NET_S ? t - leg.netAt : null,
+      caption: flashed ? { side: hitter, text: `${shot.wing} ${shot.stroke}` } : null,
       label: ending && p > 0.6 ? 'Point over' : null,
       setNo,
     }
   }
-  return { ball: null, hit: null, bats: idle, marks: [], net: null, label: inBreak ? 'Break between sets' : null, setNo }
+  return { ball: null, hit: null, bats: idle, marks: [], net: null, caption: null, label: inBreak ? 'Break between sets' : null, setNo }
 }

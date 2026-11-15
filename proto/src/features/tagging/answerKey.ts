@@ -36,7 +36,7 @@ export const KEY_FIELD_LABEL: Record<KeyField, string> = {
   timing: 'Timing',
 }
 
-/** A tap this close to the real contact, on average, counts as right. */
+/** A tap this close to the real contact counts as right. The report names the worst one. */
 export const TIMING_OK_S = 0.2
 /** How far either side of its contacts a rally still counts as that rally. */
 const MATCH_PAD_S = 0.5
@@ -48,13 +48,17 @@ export type KeyCheck = {
   want: string
   /** What was tagged. */
   got: string
+  /** Lines to show when this is wrong. Each line is the whole sentence. */
+  notes?: string[]
 }
 
 export type KeyTiming = {
-  /** Mean distance from the real contacts, in seconds. */
+  /** Distance of the worst tap from its contact, in seconds. */
   off: number
-  /** Mean signed error: above zero is late, below is early. */
+  /** Signed error of that tap: above zero is late, below is early. */
   late: number
+  /** 1-based shot of the worst tap. */
+  shot: number
   taps: number
 }
 
@@ -107,19 +111,44 @@ function winnerOfTags(r: Pick<KeyRally, 'server' | 'contacts' | 'ending'>): Side
   return isError(r.ending) ? otherSide(hitter) : hitter
 }
 
-/** Tap errors against the real contacts: by position when the count is right, else to the nearest. */
-function timingOf(tagged: number[], real: number[]): KeyTiming {
-  const errors = tagged.map((t, i) => {
-    if (tagged.length === real.length) return t - real[i]
-    const nearest = real.reduce((best, c) => (Math.abs(c - t) < Math.abs(best - t) ? c : best), real[0])
-    return t - nearest
-  })
-  const n = Math.max(1, errors.length)
+/** How far apart two taps can be and still count as the same lateness. */
+const SAME_LATE_S = 0.15
+
+const spoken = (seconds: number) => {
+  const hundredths = Math.round(Math.abs(seconds) * 100)
+  const text = hundredths % 10 === 0 ? (hundredths / 100).toFixed(1) : (hundredths / 100).toFixed(2)
+  return `${text}s`
+}
+const lateness = (late: number) => `${spoken(late)} ${late > 0 ? 'late' : 'early'}`
+
+/** One error per shot, only when the tap count matches. Shot numbers are 1-based. */
+function tapErrors(tagged: number[], real: number[]): { shot: number; late: number }[] {
+  if (tagged.length !== real.length || real.length === 0) return []
+  return tagged.map((t, i) => ({ shot: i + 1, late: t - real[i] }))
+}
+
+/**
+ * The worst tap decides. One tap over the bar is its own line. When every tap
+ * is off by about the same amount, the rally gets one line.
+ */
+function timingNotes(errors: { shot: number; late: number }[]): { ok: boolean; notes: string[] } {
+  if (errors.length === 0) return { ok: true, notes: [] }
+  const worst = errors.reduce((a, b) => (Math.abs(b.late) > Math.abs(a.late) ? b : a))
+  if (Math.abs(worst.late) <= TIMING_OK_S) return { ok: true, notes: [] }
+  const lates = errors.map((e) => e.late)
+  const spread = Math.max(...lates) - Math.min(...lates)
+  if (spread <= SAME_LATE_S) return { ok: false, notes: [lateness(worst.late)] }
   return {
-    off: errors.reduce((sum, e) => sum + Math.abs(e), 0) / n,
-    late: errors.reduce((sum, e) => sum + e, 0) / n,
-    taps: errors.length,
+    ok: false,
+    notes: errors
+      .filter((e) => Math.abs(e.late) > TIMING_OK_S)
+      .map((e) => `Shot ${e.shot} tapped ${lateness(e.late)}`),
   }
+}
+
+function timingOf(errors: { shot: number; late: number }[]): KeyTiming {
+  const worst = errors.reduce((a, b) => (Math.abs(b.late) > Math.abs(a.late) ? b : a), errors[0])
+  return { off: Math.abs(worst?.late ?? 0), late: worst?.late ?? 0, shot: worst?.shot ?? 0, taps: errors.length }
 }
 
 const DEFAULT_NAMES: Record<Side, string> = { me: 'You', them: 'Opponent' }
@@ -134,47 +163,72 @@ export function compareRally(
 ): KeyCheck[] {
   const n = real.contacts.length
   const m = tagged.contacts.length
+  const countOk = m === n
   const checks: KeyCheck[] = [
-    { field: 'taps', ok: m === n, want: String(n), got: String(m) },
+    {
+      field: 'taps',
+      ok: countOk,
+      want: String(n),
+      got: String(m),
+      notes: countOk ? undefined : [`${m} taps, video has ${n}`],
+    },
     {
       field: 'server',
       ok: tagged.server === real.server,
       want: names[real.server],
       got: names[tagged.server],
     },
-    { field: 'result', ok: tagged.ending === real.ending, want: real.ending, got: tagged.ending ?? 'None' },
   ]
 
-  // Wing and stroke are asked for on the end shot and on the first attack.
-  const pairs: { real: number; tagged: number }[] = []
-  if (n > 1 && m > 1) pairs.push({ real: n, tagged: m })
-  const sameFa = real.fa !== null && tagged.fa === real.fa && real.fa <= m
-  if (sameFa && real.fa !== n && real.fa !== null) pairs.push({ real: real.fa, tagged: real.fa })
-  if (pairs.length > 0) {
-    for (const field of ['wing', 'stroke'] as const) {
-      const want = pairs.map((p) => `shot ${p.real} ${real.play[p.real - 1][field]}`)
-      const got = pairs.map((p) => `shot ${p.tagged} ${tagged.shots[p.tagged - 1]?.[field] ?? 'none'}`)
-      const ok = pairs.every((p) => tagged.shots[p.tagged - 1]?.[field] === real.play[p.real - 1][field])
-      checks.push({ field, ok, want: want.join(', '), got: got.join(', ') })
-    }
-  }
-
-  if (n > 1) {
+  // An odd count shifts the last shot, so the result, wing, stroke and first
+  // attack are not compared: the count line is the mistake. They are asked
+  // again once the count matches.
+  if (countOk) {
     checks.push({
-      field: 'firstAttack',
-      ok: tagged.fa === real.fa,
-      want: faWord(real.fa),
-      got: faWord(tagged.fa),
+      field: 'result',
+      ok: tagged.ending === real.ending,
+      want: real.ending,
+      got: tagged.ending ?? 'None',
+    })
+    const pairs: { real: number; tagged: number }[] = []
+    if (n > 1) pairs.push({ real: n, tagged: m })
+    const sameFa = real.fa !== null && tagged.fa === real.fa && real.fa <= m
+    if (sameFa && real.fa !== n && real.fa !== null) pairs.push({ real: real.fa, tagged: real.fa })
+    if (pairs.length > 0) {
+      for (const field of ['wing', 'stroke'] as const) {
+        const bad = pairs.filter(
+          (p) => tagged.shots[p.tagged - 1]?.[field] !== real.play[p.real - 1][field]
+        )
+        checks.push({
+          field,
+          ok: bad.length === 0,
+          want: pairs.map((p) => real.play[p.real - 1][field]).join(', '),
+          got: pairs.map((p) => tagged.shots[p.tagged - 1]?.[field] ?? 'none').join(', '),
+          notes: bad.map(
+            (p) =>
+              `Shot ${p.real} was ${real.play[p.real - 1][field]}, tagged ${tagged.shots[p.tagged - 1]?.[field] ?? 'none'}`
+          ),
+        })
+      }
+    }
+    if (n > 1) {
+      checks.push({
+        field: 'firstAttack',
+        ok: tagged.fa === real.fa,
+        want: faWord(real.fa),
+        got: faWord(tagged.fa),
+      })
+    }
+    const errors = tapErrors(tagged.contacts, real.contacts)
+    const timing = timingNotes(errors)
+    checks.push({
+      field: 'timing',
+      ok: timing.ok,
+      want: `within ${seconds(TIMING_OK_S)}`,
+      got: timing.notes[0] ?? '',
+      notes: timing.notes,
     })
   }
-
-  const timing = timingOf(tagged.contacts, real.contacts)
-  checks.push({
-    field: 'timing',
-    ok: timing.off <= TIMING_OK_S,
-    want: `within ${seconds(TIMING_OK_S)}`,
-    got: `${seconds(timing.off)} off`,
-  })
   return checks
 }
 
@@ -217,7 +271,7 @@ export function answerKey(
     KeyTotal
   >
   const total: KeyTotal = { right: 0, of: 0 }
-  const allTaps: KeyTiming = { off: 0, late: 0, taps: 0 }
+  let worst: KeyTiming | null = null
   const keyed: RallyKey[] = []
   const extra: KeyReport['extra'] = []
 
@@ -236,10 +290,9 @@ export function answerKey(
         total.right += 1
       }
     }
-    const timing = timingOf(r.contacts, s.rally.contacts)
-    allTaps.off += timing.off * timing.taps
-    allTaps.late += timing.late * timing.taps
-    allTaps.taps += timing.taps
+    const errors = tapErrors(r.contacts, s.rally.contacts)
+    const timing = timingOf(errors)
+    if (errors.length > 0 && (!worst || timing.off > worst.off)) worst = timing
     keyed.push({
       id: r.id,
       index,
@@ -267,9 +320,6 @@ export function answerKey(
     extra,
     total,
     byField,
-    timing:
-      allTaps.taps > 0
-        ? { off: allTaps.off / allTaps.taps, late: allTaps.late / allTaps.taps, taps: allTaps.taps }
-        : null,
+    timing: worst,
   }
 }
