@@ -34,7 +34,7 @@ export function KeyHint({ k, className }: { k: string; className?: string }) {
     <kbd
       aria-hidden
       className={cn(
-        'hidden lg:inline-flex h-4 min-w-4 px-1 items-center justify-center rounded-sm border border-current/40 font-sans text-[9px] font-bold uppercase leading-none opacity-70',
+        'key-hint h-4 min-w-4 px-1 items-center justify-center rounded-sm border border-current/40 font-sans text-[9px] font-bold uppercase leading-none opacity-70',
         className
       )}
     >
@@ -43,9 +43,9 @@ export function KeyHint({ k, className }: { k: string; className?: string }) {
   )
 }
 
-/** Thumb-sized on a phone, compact with a mouse. */
+/** Height comes from the control kind. A mouse is 36, a finger is 44. */
 const chip =
-  'h-11 px-3.5 text-sm lg:h-8 lg:px-2.5 lg:text-xs rounded-md border font-semibold inline-flex items-center gap-1.5'
+  'btn-kind-control px-2 text-sm rounded-md border font-semibold inline-flex items-center gap-1.5'
 
 function Pill({
   on,
@@ -99,7 +99,7 @@ export function TimeRow({
   const name =
     mark.kind === 'start' ? 'Rally start' : mark.kind === 'end' ? 'Rally end' : `Shot ${mark.shot} time`
   const step =
-    'h-11 w-14 lg:h-8 lg:w-16 rounded-md border border-pill-idle-border bg-pill-idle text-xs font-semibold text-primary hover:bg-bg-elevated inline-flex items-center justify-center gap-1.5'
+    'btn-kind-control w-14 rounded-md border border-pill-idle-border bg-pill-idle text-xs font-semibold text-primary hover:bg-bg-elevated inline-flex items-center justify-center gap-1.5'
   return (
     <div className="flex items-center gap-2" role="group" aria-label={name}>
       <p className="text-[10px] font-bold uppercase tracking-wide text-muted flex-1">{name}</p>
@@ -191,12 +191,15 @@ export function ShotPanel({
   names,
   onChange,
   onNudge,
+  fit = 'all',
 }: {
   draft: Draft
   shot: number
   names: Record<Side, string>
   onChange: (next: Draft) => void
   onNudge: (delta: number) => void
+  /** Six rows when the box has the room, otherwise the first three and More. */
+  fit?: 'all' | 'three'
 }) {
   const tags: ShotTags = draft.shots[shot - 1] ?? {}
   const fields = fieldsFor(draft, shot)
@@ -208,6 +211,8 @@ export function ShotPanel({
   const shotRowOff = stage === 'result'
   const rule = switchOf(draft, shot)
   const [held, setHeld] = useState<{ shot: number; side: StrokeSide } | null>(null)
+  const [more, setMore] = useState(false)
+  useEffect(() => setMore(false), [shot, fit])
   const own = strokeSide(tags.stroke)
   const shown: StrokeSide = own ?? (held?.shot === shot ? held.side : rule.side)
   useEffect(() => bindStrokeSide(shot, shown, (side) => setHeld({ shot, side })), [shot, shown])
@@ -263,18 +268,21 @@ export function ShotPanel({
     })
   }
   const strokes = fields.stroke ? strokeCells(shown, draft.fa === shot) : null
+  const primaryRows = (fields.result ? 1 : 0) + (fields.wing ? 1 : 0) + (strokes ? 1 : 0)
+  const extraRows = requiredOnly ? 0 : extras.length + (fields.missReason ? 1 : 0) + 1
+  const paged = fit === 'three' && primaryRows + extraRows > 3
+  const page = paged ? (more ? 'rest' : 'first') : 'all'
 
   return (
     <div
-      className={cn('rounded-md border border-border border-l-4 bg-bg-surface p-3 flex flex-col gap-1.5', sideBar[hitter])}
-      aria-label={`Shot ${shot}`}
+      className={cn(
+        'rounded-md border-r border-l-4 border-border bg-bg-surface py-2 px-2 flex flex-col gap-1.5',
+        sideBar[hitter]
+      )}
+      aria-label={`Shot ${shot}, ${names[hitter]}, ${role}`}
       data-shot-panel
+      data-page={page}
     >
-      <p className="text-sm font-semibold text-primary">
-        {shot} · {names[hitter]}
-        <span className="ml-2 text-[10px] font-bold uppercase tracking-wide text-muted">{role}</span>
-      </p>
-
       {fields.result ? (
         <Line label="Result">
           {ENDINGS.map((e, i) => (
@@ -406,6 +414,17 @@ export function ShotPanel({
             + 0.1
           </Cell>
         </Line>
+      ) : null}
+      {paged ? (
+        <button
+          type="button"
+          className="btn-kind-control w-full rounded-md border border-pill-idle-border bg-pill-idle text-sm font-semibold text-primary"
+          data-more-rows
+          aria-expanded={more}
+          onClick={() => setMore((open) => !open)}
+        >
+          {more ? 'Less' : 'More'}
+        </button>
       ) : null}
     </div>
   )

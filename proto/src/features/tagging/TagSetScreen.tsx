@@ -9,7 +9,7 @@ import {
   type RefObject,
 } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { Button, Icon, buttonKindTapPadSquare } from '@/ui-mine'
+import { Button, Icon, buttonKindTapPadSquare, buttonKindTextLink } from '@/ui-mine'
 import { WfEmpty } from '@/layout/Wireframe'
 import {
   derivePhase,
@@ -99,7 +99,6 @@ import {
   rallyStart,
   retapStart,
   servesText,
-  shotSummary,
   shotWindow,
   stageOf,
   statusText,
@@ -457,34 +456,25 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slotKind, stepKey])
 
-  // The row being asked for sits just above Save. An opened shot starts at its top.
-  // A toast shortens the panel. Keep the result chips in reach, and when the
-  // toast comes or goes put them back so a tap does not land somewhere new.
-  // Result and wing/stroke are one step, so picking a result does not scroll.
-  const chipTop = useRef<number | null>(null)
+  // The details box is pinned to the top of its area. Its top does not move
+  // between steps, and the area does not scroll.
+  const [detailFit, setDetailFit] = useState<'all' | 'three'>('all')
+  const [detailTight, setDetailTight] = useState(false)
   useLayoutEffect(() => {
     const el = body.current
     if (!el) return
-    if (stage === 'ready' && selected) {
-      el.scrollTop = 0
-      chipTop.current = null
-      return
+    const apply = () => {
+      const h = el.clientHeight
+      const nextFit = h >= 310 ? 'all' : 'three'
+      const nextTight = h < 240
+      setDetailFit((prev) => (prev === nextFit ? prev : nextFit))
+      setDetailTight((prev) => (prev === nextTight ? prev : nextTight))
     }
-    el.scrollTop = el.scrollHeight
-    const chip = el.querySelector('[data-tag-panel] button[aria-pressed]')
-    if (!chip) return
-    const hidden = el.getBoundingClientRect().top - chip.getBoundingClientRect().top
-    if (hidden > 0) el.scrollTop -= hidden + 4
-    chipTop.current = chip.getBoundingClientRect().top
-  }, [stepKey])
-  useLayoutEffect(() => {
-    const el = body.current
-    const chip = el?.querySelector<HTMLElement>('[data-tag-panel] button[aria-pressed]')
-    if (!el || !chip || chipTop.current === null) return
-    const delta = chip.getBoundingClientRect().top - chipTop.current
-    if (Math.abs(delta) > 0.5) el.scrollTop += delta
-    chipTop.current = chip.getBoundingClientRect().top
-  }, [toast])
+    apply()
+    const watch = new ResizeObserver(apply)
+    watch.observe(el)
+    return () => watch.disconnect()
+  }, [])
 
   /** Seeks for the user, and says in a few words when one is held back. */
   const seekTo = (g: number) => {
@@ -1626,20 +1616,17 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     !readOnly && (mode === 'watch' || mode === 'tagging') && !atEnd && padServer !== expected
   const switchWarnRally = gap ? gap.index + 1 : set.rallies.length + 1
   const switchOn = !readOnly && !atEnd && (mode === 'watch' || mode === 'tagging' || mode === 'edit')
-  const rowButton = cn('h-11 lg:h-9 px-3 shrink-0', slotGrey && BUSY)
+  const rowButton = cn('px-3 shrink-0', slotGrey && BUSY)
   /** The right end of the status row always means "go back": 5 seconds, or one tap. One width, so the spot does not shift. Let never sits there. */
-  const endButton = cn(rowButton, 'w-24 lg:w-36')
+  const endButton = cn(rowButton, 'w-24')
   /** The four rally actions: one width each, the label on two lines where it needs them. */
   const actionButton = cn('w-14 shrink-0 px-0.5 text-xs leading-tight text-center', slotGrey && BUSY)
-  /** Slot controls never change size, not even while pressed. */
-  const slotButton = cn(
-    'h-20 rounded-lg text-lg active:scale-100 active:brightness-90',
-    slotGrey && !late && BUSY
-  )
+  /** Slot controls never change size, not even while pressed. The height is the tap pad. */
+  const slotButton = cn('rounded-lg text-lg active:scale-100 active:brightness-90', slotGrey && !late && BUSY)
 
   return (
     <div
-      className="h-full flex flex-col lg:flex-row bg-bg-app"
+      className="tag-set bg-bg-app"
       data-tag-mode={mode}
       data-tag-stage={stage ?? ''}
       data-tag-adding={addOn ? '' : undefined}
@@ -1654,12 +1641,12 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       data-no-attack={active?.noAttack ? 'yes' : 'no'}
     >
       {/* Left on desktop, top on phone: header, picture, timeline, rally list. */}
-      <div className="shrink-0 lg:flex-[3] lg:min-w-0 lg:min-h-0 lg:flex lg:flex-col lg:border-r lg:border-border">
+      <div className="tag-media">
         <SetHeader match={match} set={set}>
           <Button
-            size="sm"
+            kind="control"
             variant="secondary"
-            className="lg:hidden h-11 px-3"
+            className="tag-narrow-only px-3"
             aria-expanded={listOpen}
             onClick={() => (listOpen ? closeList() : openList())}
           >
@@ -1688,14 +1675,13 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
           onHighlight={() => active && writeDraft({ ...active, highlight: !active.highlight })}
           readOnlyHighlight={readOnly || stage === 'result' || stage === 'endShot'}
           badge={shotBadge}
-          className="lg:shrink-0 lg:[&>div:first-child]:max-h-[52vh] lg:[&>div:first-child]:mx-auto"
         />
-        <div className="hidden lg:block flex-1 min-h-0 overflow-y-auto">{rallyList}</div>
+        <div className="tag-side-list">{rallyList}</div>
       </div>
 
-      {/* Right on desktop, below on phone: rail, status, panel, then one slot for the pad or Save. */}
-      <div className="relative flex-1 min-h-0 flex flex-col lg:flex-[2] lg:min-w-[360px]">
-        <div className="shrink-0 px-2 pt-1.5 border-b border-border bg-bg-app">
+      {/* Right on a wide screen, below on a phone: rail, status, panel, then one slot. */}
+      <div className="tag-entry">
+        <div className="shrink-0 px-2 border-b border-border bg-bg-app">
           {/* The shot row. Shots only, from the first tap to Save. */}
           {active || mode === 'watch' ? (
             <ShotRail
@@ -1707,28 +1693,34 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
           ) : null}
 
           {/* Status, with the rally's second-rank actions beside it, away from the thumb. */}
-          <div className="mb-1.5 flex items-stretch gap-1.5" onClickCapture={guardClicks(slotGuard)}>
-            <p
-              role="status"
-              data-tag-status
-              className={cn(
-                'flex-1 min-w-0 min-h-11 lg:min-h-9 flex items-center rounded-md border-l-4 px-2 py-1 text-sm font-semibold leading-tight',
-                ready || mode === 'finished'
+          <p
+            role="status"
+            data-tag-status
+            data-switch-warning={switchWarn ? '' : undefined}
+            className={cn(
+              'h-8 flex items-center overflow-hidden rounded-md border-l-4 px-2 text-sm font-semibold leading-4',
+              switchWarn || (active && active.closed && !ready && mode !== 'finished')
+                ? 'border-warning bg-warning/15 text-primary'
+                : ready || mode === 'finished'
                   ? 'border-success bg-success/15 text-primary'
-                  : active && active.closed
-                    ? 'border-warning bg-warning/15 text-primary'
-                    : 'border-border-strong bg-bg-card text-primary'
-              )}
-            >
-              {status}
-            </p>
+                  : 'border-border-strong bg-bg-card text-primary'
+            )}
+          >
+            <span className="min-w-0 leading-4">
+              {switchWarn
+                ? `${expected === 'me' ? 'You were due to serve.' : `${names[expected]} was due to serve.`} Rallies since rally ${switchWarnRally} will be marked to check.`
+                : status}
+            </span>
+          </p>
+          <div className="flex items-center justify-end gap-1.5 py-1" onClickCapture={guardClicks(slotGuard)}>
             {mode === 'watch' && gap ? (
-              <Button variant="secondary" className={rowButton} onClick={leaveGap}>
+              <Button kind="control" variant="secondary" className={rowButton} onClick={leaveGap}>
                 Back to live
               </Button>
             ) : null}
             {mode === 'watch' && !atEnd ? (
               <Button
+                kind="control"
                 variant="secondary"
                 className={endButton}
                 aria-label="Back 5 seconds"
@@ -1813,7 +1805,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               </div>
             ) : null}
             {mode === 'blocked' ? (
-              <Button variant="secondary" className={rowButton} onClick={onDiscardGone}>
+              <Button kind="control" variant="secondary" className={rowButton} onClick={onDiscardGone}>
                 Discard rally
               </Button>
             ) : null}
@@ -1829,7 +1821,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               {toast.extra ? (
                 <button
                   type="button"
-                  className="h-11 lg:h-9 min-w-16 px-3 rounded-md font-bold underline hover:bg-neutral-300"
+                  className="btn-kind-control min-w-16 px-3 rounded-md font-bold underline hover:bg-neutral-300"
                   onClick={toast.extra.run}
                 >
                   {toast.extra.label}
@@ -1838,7 +1830,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               {toast.undo ? (
                 <button
                   type="button"
-                  className="h-11 lg:h-9 min-w-16 px-3 rounded-md font-bold underline hover:bg-neutral-300"
+                  className="btn-kind-control min-w-16 px-3 rounded-md font-bold underline hover:bg-neutral-300"
                   onClick={toast.undo}
                 >
                   Undo
@@ -1851,10 +1843,13 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
         {/* The panel. What is asked for next sits at its foot, straight above the slot. */}
         <div
           ref={body}
-          className="flex-1 min-h-0 overflow-y-auto px-2 py-2 flex flex-col [overflow-anchor:none]"
+          data-tag-body
+          data-fit={detailFit}
+          data-tight={detailTight ? 'yes' : 'no'}
+          className="flex-1 min-h-0 overflow-hidden px-2 flex flex-col"
           onClickCapture={guardClicks(panelGuard)}
         >
-          <div className={cn('mt-auto space-y-2', panelBusy && BUSY)} data-tag-panel>
+          <div className={cn('space-y-2', panelBusy && BUSY)} data-tag-panel data-details-box>
             {review ? (
               <div data-review-panel className="rounded-md border border-border bg-bg-surface px-3 py-2 space-y-2">
                 {review.kind === 'gaps' && review.pointAsk ? (
@@ -1918,46 +1913,16 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               />
             ) : null}
             {active && active.closed && (readOnly || (ready && !selected)) ? (
-              <ul className="space-y-1" aria-label="Rally summary">
-                {active.contacts.map((_, i) => (
-                  <li key={i}>
-                    <button
-                      type="button"
-                      onClick={() => onShot(i + 1)}
-                      aria-pressed={selected?.kind === 'shot' && selected.shot === i + 1}
-                      className={cn(
-                        'w-full min-h-11 lg:min-h-0 flex items-center justify-between gap-2 rounded-md border bg-bg-card px-2 py-1.5 text-left text-xs',
-                        selected?.kind === 'shot' && selected.shot === i + 1
-                          ? 'border-brand-primary'
-                          : 'border-border'
-                      )}
-                    >
-                      <span className="font-semibold text-primary">
-                        {i + 1} · {names[i % 2 === 0 ? active.server : otherSide(active.server)]}
-                      </span>
-                      <span className="text-muted truncate">
-                        {[
-                          active.fa === i + 1 ? 'First attack' : '',
-                          i + 1 === active.contacts.length ? (active.ending ?? '') : '',
-                          shotSummary(active.shots[i] ?? {}),
-                        ]
-                          .filter(Boolean)
-                          .join(' · ') || (readOnly ? '' : 'Add detail')}
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-            {ready && active && n >= 2 && (active.fa !== null || active.noAttack) ? (
               <div
                 data-fa-summary
-                className="rounded-md border border-border bg-bg-surface px-3 py-1.5 flex items-center justify-between gap-2"
+                data-ready-summary
+                className="rounded-md border border-border bg-bg-surface px-3 flex items-center justify-between gap-2"
               >
-                <p className="text-sm font-semibold text-primary">
-                  {active.fa !== null ? `First attack: shot ${active.fa}` : 'No attack'}
+                <p className="min-w-0 flex-1 truncate text-sm font-semibold text-primary">
+                  {active.contacts.length} {active.contacts.length === 1 ? 'shot' : 'shots'}
+                  {active.fa !== null ? ` · First attack shot ${active.fa}` : active.noAttack ? ' · No attack' : ''}
                 </p>
-                {readOnly || n < 3 ? null : (
+                {readOnly || !(ready && n >= 3 && (active.fa !== null || active.noAttack)) ? null : (
                   <Button kind="control" variant="secondary" onClick={onChangeFa}>
                     Change
                   </Button>
@@ -1973,7 +1938,14 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               </div>
             ) : null}
             {active && active.closed && selected?.kind === 'shot' && !readOnly ? (
-              <ShotPanel draft={active} shot={selected.shot} names={names} onChange={change} onNudge={onNudge} />
+              <ShotPanel
+                draft={active}
+                shot={selected.shot}
+                names={names}
+                onChange={change}
+                onNudge={onNudge}
+                fit={detailFit}
+              />
             ) : null}
             {active && active.closed && selected && selected.kind !== 'shot' && !readOnly ? (
               <div className="rounded-md border border-border bg-bg-surface p-3">
@@ -2020,9 +1992,9 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                 </div>
                 {lastSaved.point || !have.has(lastSaved.videoId) ? null : (
                   <Button
-                    size="sm"
+                    kind="control"
                     variant="secondary"
-                    className="h-11 min-w-11 px-3 lg:h-7 lg:min-w-0 lg:px-2.5 shrink-0"
+                    className="px-3 shrink-0"
                     onClick={() => openRally(lastSaved, lastSavedIndex)}
                   >
                     Edit
@@ -2040,7 +2012,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
             ) : null}
             {finishKept ? (
               <div data-finish-card>
-                <Button fullWidth variant="secondary" className="h-11" onClick={onFinishSet}>
+                <Button kind="main" fullWidth variant="secondary" onClick={onFinishSet}>
                   Finish set at {formatScore(score)}
                 </Button>
               </div>
@@ -2062,7 +2034,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                     Level at {formatScore(score)}, so the set is not over.{' '}
                     <Link
                       to={`/matches/${match.id}/details`}
-                      className="font-semibold text-brand underline underline-offset-2"
+                      className={cn('font-semibold text-brand underline underline-offset-2', buttonKindTextLink)}
                     >
                       Add the next video
                     </Link>
@@ -2070,9 +2042,10 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                   </p>
                 ) : (
                   <Button
+                    kind="main"
                     fullWidth
                     variant={setWon ? 'primary' : 'secondary'}
-                    className="h-12 text-base"
+                    className="text-base"
                     onClick={onFinishSet}
                   >
                     {setWon ? 'Finish set' : `Finish set at ${formatScore(score)}`}
@@ -2168,18 +2141,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               )}
             </div>
           ) : null}
-          {switchWarn && !review ? (
-            <p
-              role="status"
-              data-switch-warning
-              className="mb-2 rounded-md border border-warning bg-warning/15 px-2 py-1.5 text-xs font-semibold text-primary leading-snug"
-            >
-              {expected === 'me'
-                ? 'You were due to serve.'
-                : `${names[expected]} was due to serve.`}{' '}
-              Rallies since rally {switchWarnRally} will be marked to check.
-            </p>
-          ) : null}
           <div className="flex items-stretch gap-2">
           {slotKind === 'pad' ? (
             <button
@@ -2188,7 +2149,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               onClick={onPad}
               disabled={atEnd || mode === 'blocked'}
               className={cn(
-                'relative flex-1 min-w-0 h-20 rounded-lg text-lg font-bold overflow-hidden touch-manipulation select-none active:brightness-90 border-l-8 inline-flex items-center justify-center gap-2',
+                'btn-kind-tap-pad relative flex-1 min-w-0 rounded-lg text-lg font-bold overflow-hidden touch-manipulation select-none active:brightness-90 border-l-8 inline-flex items-center justify-center gap-2',
                 slotGrey && BUSY,
                 'disabled:bg-disabled-bg disabled:text-disabled-text disabled:active:brightness-100',
                 mode === 'setPoint'
@@ -2257,7 +2218,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
           ) : null}
           {slotKind === 'edit' && edit ? (
             readOnly ? (
-              <Button variant="secondary" className={cn(slotButton, 'flex-1 min-w-0')} onClick={leaveEdit}>
+              <Button kind="tapPad" variant="secondary" className={cn(slotButton, 'flex-1 min-w-0')} onClick={leaveEdit}>
                 Back to set
               </Button>
             ) : stage === 'pickFa' ? (
@@ -2295,7 +2256,8 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               onClick={mode === 'tapping' ? onPad : addOn ? onAddTap : onSwitch}
               disabled={!switchOn && mode !== 'tapping'}
               className={cn(
-                'h-20 w-20 shrink-0 rounded-lg border text-xs font-semibold touch-manipulation select-none active:brightness-90',
+                buttonKindTapPadSquare,
+                'shrink-0 rounded-lg border text-xs font-semibold touch-manipulation select-none active:brightness-90',
                 'inline-flex flex-col items-center justify-center gap-1 disabled:opacity-40',
                 padServer === 'me' ? 'bg-side-me/15 border-side-me/50' : 'bg-side-them/15 border-side-them/50',
                 (mode === 'tapping' || addOn || (slotGrey && !late)) && BUSY
@@ -2309,7 +2271,9 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               <KeyHint k="P" />
             </button>
           ) : null}
-          {slotKind === 'edit' && readOnly ? <span className="h-20 w-20 shrink-0" aria-hidden /> : null}
+          {slotKind === 'edit' && readOnly ? (
+            <span className="btn-kind-tap-pad w-[var(--btn-kind-tap-pad)] shrink-0" aria-hidden />
+          ) : null}
           </div>
 
           {slotKind === 'finished' ? (
@@ -2327,13 +2291,13 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
 
         {/* Phone: the rally list opens over the panel. Desktop shows it on the left. */}
         {listOpen ? (
-          <div className="lg:hidden absolute inset-0 z-30 bg-bg-app flex flex-col" role="dialog" aria-label="Rallies">
-            <div className="h-11 px-2 flex items-center justify-between border-b border-border">
+          <div className="tag-narrow-only absolute inset-0 z-30 bg-bg-app flex flex-col" role="dialog" aria-label="Rallies">
+            <div className="px-2 flex items-center justify-between border-b border-border">
               <p className="text-sm font-semibold text-primary">Set {set.setId}</p>
               <button
                 type="button"
                 aria-label="Close rallies"
-                className="h-11 w-11 inline-flex items-center justify-center rounded-md hover:bg-pill-idle"
+                className="btn-kind-control btn-kind-square inline-flex items-center justify-center rounded-md hover:bg-pill-idle"
                 onClick={closeList}
               >
                 <Icon name="x" size="sm" />
@@ -2383,7 +2347,7 @@ function FinishedPanel({
           {set.rallies.length} {set.rallies.length === 1 ? 'rally' : 'rallies'} · sets {formatScore(won)}
         </p>
         {lock ? null : (
-          <Button size="sm" variant="ghost" onClick={onReopen}>
+          <Button kind="control" variant="ghost" onClick={onReopen}>
             Reopen set
           </Button>
         )}
@@ -2403,10 +2367,10 @@ function FinishedPanel({
             <p className="text-xs text-muted">Kept. The set stays flagged in Details and on the checklist.</p>
           ) : (
             <div className="flex flex-wrap gap-2">
-              <Button size="sm" onClick={() => mutateMatch(match.id, (m) => applyTaggedScore(m, set.setId))}>
+              <Button kind="control" onClick={() => mutateMatch(match.id, (m) => applyTaggedScore(m, set.setId))}>
                 Use tagged score
               </Button>
-              <Button size="sm" variant="ghost" onClick={onKeepEntered}>
+              <Button kind="control" variant="ghost" onClick={onKeepEntered}>
                 Keep entered
               </Button>
             </div>
@@ -2421,7 +2385,7 @@ function FinishedPanel({
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs text-muted">No result entered.</span>
               {realResult ? (
-                <Button size="sm" variant="secondary" onClick={() => mutateMatch(match.id, applyTaggedResult)}>
+                <Button kind="control" variant="secondary" onClick={() => mutateMatch(match.id, applyTaggedResult)}>
                   Use tagged result
                 </Button>
               ) : null}
@@ -2471,10 +2435,10 @@ function FinishedActions({
   if (tagged || locked) {
     return (
       <div className={cn('flex items-stretch gap-2', busy && BUSY)}>
-        <Button className="h-12 flex-1 text-base" onClick={() => onGo(`${base}/insights/summary`)}>
+        <Button kind="main" className="flex-1 text-base" onClick={() => onGo(`${base}/insights/summary`)}>
           Open match Insights
         </Button>
-        <Button variant="secondary" className="h-12" onClick={() => onGo(`${base}/tag`)}>
+        <Button kind="main" variant="secondary" onClick={() => onGo(`${base}/tag`)}>
           Back to sets
         </Button>
       </div>
@@ -2484,8 +2448,9 @@ function FinishedActions({
     <div className={cn('flex items-stretch gap-2', busy && BUSY)}>
       {offerNext ? (
         <Button
+          kind="main"
           variant={finishLeads ? 'secondary' : 'primary'}
-          className={cn('h-12 text-base', !finishLeads && 'flex-1')}
+          className={cn('text-base', !finishLeads && 'flex-1')}
           onClick={() => onGo(`${base}/tag/${next.setId}`)}
         >
           {setHasTagProgress(next) ? 'Continue' : 'Start'} set {next.setId}
@@ -2493,16 +2458,18 @@ function FinishedActions({
       ) : null}
       {canFinishMatch ? (
         <Button
+          kind="main"
           variant={finishLeads || !offerNext ? 'primary' : 'secondary'}
-          className={cn('h-12 text-base', (finishLeads || !offerNext) && 'flex-1')}
+          className={cn('text-base', (finishLeads || !offerNext) && 'flex-1')}
           onClick={onFinishMatch}
         >
           Finish match
         </Button>
       ) : null}
       <Button
+        kind="main"
         variant={offerNext || canFinishMatch ? 'ghost' : 'primary'}
-        className={cn('h-12', !offerNext && !canFinishMatch && 'flex-1 text-base')}
+        className={cn(!offerNext && !canFinishMatch && 'flex-1 text-base')}
         onClick={() => onGo(`${base}/tag`)}
       >
         {offerNext || canFinishMatch ? 'Sets' : 'Back to sets'}
@@ -2517,7 +2484,7 @@ function SetHeader({ match, set, children }: SetHeaderProps) {
       <Link
         to={`/matches/${match.id}/tag`}
         aria-label="Back"
-        className="inline-flex items-center justify-center w-11 h-11 rounded-md text-brand hover:bg-pill-idle"
+        className="btn-kind-control btn-kind-square inline-flex items-center justify-center rounded-md text-brand hover:bg-pill-idle"
       >
         <Icon name="chevron-left" size="sm" />
       </Link>

@@ -218,7 +218,7 @@ function Transport({
       onClick={onClick}
       aria-label={label}
       disabled={disabled}
-      className="h-11 w-11 lg:h-8 lg:w-8 inline-flex items-center justify-center rounded-md bg-black/60 text-white text-xs font-semibold hover:bg-black/80 disabled:opacity-40 disabled:hover:bg-black/60"
+      className="btn-kind-control btn-kind-square inline-flex items-center justify-center rounded-md bg-black/60 text-white text-xs font-semibold hover:bg-black/80 disabled:opacity-40 disabled:hover:bg-black/60"
     >
       {children}
     </button>
@@ -280,7 +280,8 @@ export function VideoStage({
 
   return (
     <div className={className}>
-      <div className="relative w-full aspect-video bg-black overflow-hidden" data-video-kind={video?.kind}>
+      <div className="tag-picture-slot">
+      <div className="tag-picture" data-video-kind={video?.kind}>
         {video?.kind === 'file' && video.src ? (
           <video
             key={video.id}
@@ -369,17 +370,18 @@ export function VideoStage({
           </p>
         ) : null}
 
-        <button
-          type="button"
-          role="switch"
-          aria-checked={captions}
-          aria-label={captions ? 'Captions on' : 'Captions off'}
-          onClick={() => setCaptions((on) => !on)}
-          className="absolute left-2 bottom-2 h-11 min-w-11 px-2 lg:h-8 lg:min-w-0 lg:px-1.5 inline-flex items-center justify-center rounded-md bg-black/60 text-[11px] font-semibold text-white hover:bg-black/80"
-        >
-          {captions ? 'Captions on' : 'Captions off'}
-        </button>
-        <div className="absolute right-2 bottom-2 flex items-center gap-1">
+      </div>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={captions}
+        aria-label={captions ? 'Captions on' : 'Captions off'}
+        onClick={() => setCaptions((on) => !on)}
+        className="btn-kind-control absolute left-2 bottom-2 z-10 px-2 inline-flex items-center justify-center rounded-md bg-black/60 text-[11px] font-semibold text-white hover:bg-black/80"
+      >
+        {captions ? 'Captions on' : 'Captions off'}
+      </button>
+      <div className="absolute right-2 bottom-2 z-10 flex items-center gap-1">
           <Transport label="Back 10 seconds" onClick={() => onSeek(player.getTime() - 10)}>
             <Icon name="rewind" size="sm" />
           </Transport>
@@ -417,7 +419,7 @@ export function VideoStage({
       <button
         type="button"
         aria-label="Match timeline"
-        className="relative block h-11 w-full cursor-pointer"
+        className="btn-kind-control relative block w-full shrink-0 cursor-pointer"
         onClick={(e) => {
           const box = e.currentTarget.getBoundingClientRect()
           onSeek(((e.clientX - box.left) / box.width) * total)

@@ -3,7 +3,7 @@ import { cn } from '@/helpers/utils'
 import { hitterOf, stageOf, type Draft, type Mark, type Side } from './rally'
 
 export const railCell =
-  'relative h-11 min-w-11 lg:h-9 lg:min-w-9 px-1 rounded-md border text-sm font-bold tabular-nums inline-flex items-center justify-center disabled:opacity-40'
+  'btn-kind-control relative w-full px-1 rounded-md border text-sm font-bold tabular-nums inline-flex items-center justify-center disabled:opacity-40'
 
 const sideTint: Record<Side, string> = {
   me: 'bg-side-me/15 border-side-me/50 text-primary',
@@ -70,7 +70,7 @@ export function ShotRail({
     <div className="flex w-full min-w-0 items-start overflow-hidden" data-rail-row>
       <div
         ref={scroller}
-        className="relative flex min-w-0 flex-1 items-start gap-1 overflow-x-auto py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="relative flex min-w-0 flex-1 items-start gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         aria-label="Shots in this rally"
       >
         {draft
@@ -83,7 +83,7 @@ export function ShotRail({
               return (
                 <div
                   key={shot}
-                  className="flex w-11 lg:w-9 flex-col items-center shrink-0"
+                  className="flex w-[var(--btn-kind-control)] flex-col items-center shrink-0"
                   data-rail={`shot-${shot}`}
                 >
                   <button
@@ -103,6 +103,11 @@ export function ShotRail({
                     )}
                   >
                     {shot}
+                    {isFa || isEnd || shot === 1 ? (
+                      <span className={cn(caption, 'absolute inset-x-0 bottom-0', isFa ? 'text-shot-fa' : 'text-muted')}>
+                        {isFa ? 'FA' : isEnd ? (draft.ending ?? '') : 'Srv'}
+                      </span>
+                    ) : null}
                     {live ? (
                       <span
                         data-rail-live
@@ -111,18 +116,14 @@ export function ShotRail({
                       />
                     ) : null}
                   </button>
-                  <span className={cn(caption, isFa ? 'text-shot-fa' : 'text-muted')}>
-                    {isFa ? 'FA' : isEnd ? (draft.ending ?? '') : shot === 1 ? 'Srv' : ''}
-                  </span>
                 </div>
               )
             })
           : null}
 
         {tapping ? (
-          <div className="flex w-11 lg:w-9 flex-col items-center shrink-0" data-rail={`next-${n}`}>
+          <div className="flex w-[var(--btn-kind-control)] flex-col items-center shrink-0" data-rail={`next-${n}`}>
             <span className={cn(railCell, 'w-full border-dashed border-border text-muted opacity-60')}>{n + 1}</span>
-            <span className={caption} />
           </div>
         ) : null}
       </div>

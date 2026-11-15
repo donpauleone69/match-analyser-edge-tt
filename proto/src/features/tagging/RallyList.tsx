@@ -22,7 +22,7 @@ export type RallyListActions = {
   onDeletePoint: (rallyId: string) => void
 }
 
-const small = 'h-11 lg:h-7 px-2.5 text-xs'
+const small = 'px-2.5 text-xs'
 
 /**
  * Saved rallies, newest first, in video order. A serve break is one band for
@@ -141,7 +141,7 @@ export function RallyList({
             </span>
             <span>Deleted</span>
             {actions ? (
-              <Button size="sm" variant="secondary" className={small} onClick={() => actions.onRestore(d.id)}>
+              <Button kind="control" variant="secondary" className={small} onClick={() => actions.onRestore(d.id)}>
                 Restore
               </Button>
             ) : null}
@@ -165,7 +165,7 @@ export function RallyList({
             </Button>
           ) : null}
           {finish === 'ok' ? (
-            <Button size="sm" variant="ghost" className="min-h-11 lg:min-h-0" onClick={onFinish}>
+            <Button kind="control" variant="ghost" onClick={onFinish}>
               Finish at {formatScore(score)}
             </Button>
           ) : finish === 'level' ? (
@@ -202,7 +202,7 @@ export function RallyList({
             <div
               data-point
               aria-label={`Rally ${index + 1}`}
-              className="w-full min-h-11 lg:min-h-0 flex items-center gap-2 rounded-md border border-border bg-bg-card px-2 py-1.5 text-xs"
+              className="btn-kind-control w-full flex items-center gap-2 rounded-md border border-border bg-bg-card px-2 text-xs"
             >
               <span className="w-5 text-center tabular-nums text-muted">{index + 1}</span>
               <span className={dot(r.winner)} />
@@ -210,9 +210,9 @@ export function RallyList({
               <span className="flex-1 min-w-0 truncate text-muted">Point, no video · {names[r.server]} served</span>
               {actions ? (
                 <Button
-                  size="sm"
+                  kind="control"
                   variant="ghost"
-                  className={cn(small, 'h-11 w-11 shrink-0')}
+                  className={cn(small, 'btn-kind-square shrink-0')}
                   aria-label={`Delete point ${index + 1}`}
                   onClick={() => actions.onDeletePoint(r.id)}
                 >
@@ -229,7 +229,7 @@ export function RallyList({
               aria-label={`Rally ${index + 1}`}
               aria-pressed={editingId === r.id}
               className={cn(
-                'w-full min-h-11 lg:min-h-0 flex items-center gap-2 rounded-md border px-2 py-1.5 text-left text-xs disabled:opacity-60',
+                'btn-kind-control w-full flex items-center gap-2 rounded-md border px-2 text-left text-xs disabled:opacity-60',
                 editingId === r.id
                   ? 'border-brand-primary bg-brand-primary-muted'
                   : 'border-border bg-bg-card hover:bg-bg-elevated'

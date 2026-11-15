@@ -108,7 +108,7 @@ export function AnswerKeyPanel({
         role="switch"
         aria-checked={on}
         onClick={() => setShown(!on)}
-        className="flex min-h-11 lg:min-h-8 w-full items-center justify-between gap-2 text-left"
+        className="btn-kind-control flex w-full items-center justify-between gap-2 px-1 text-left"
       >
         <span className="text-[10px] font-bold uppercase tracking-wide text-muted">Answer key</span>
         <span

@@ -33,6 +33,8 @@ const ROUTES = [
   { screen: 'Tag page', path: '/matches/m-partial/tag' },
   { screen: 'Tag page (Start)', path: '/matches/m-ready/tag' },
   { screen: 'Match Insights', path: '/matches/m-partial/insights/summary' },
+  { screen: 'Tag set', path: '/matches/m-ready/tag/1', manyMains: true },
+  { screen: 'Tag set finished', path: '/matches/m-partial/tag/1', manyMains: true },
 ]
 
 const browser = await chromium.launch({
@@ -135,7 +137,7 @@ for (const vp of VIEWPORTS) {
     allFails.push(...result.fails)
 
     // One main action per page (Sign in is a multi-card stub and is exempt).
-    if (route.path !== '/') {
+    if (route.path !== '/' && !route.manyMains) {
       const mainCount = await page.evaluate(() =>
         [...document.querySelectorAll('.btn-kind-main')].filter((el) => {
           const r = el.getBoundingClientRect()
