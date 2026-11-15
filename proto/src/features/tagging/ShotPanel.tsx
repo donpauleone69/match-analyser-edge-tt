@@ -366,10 +366,13 @@ export function TrimRow({
   draft,
   selected,
   onMark,
+  action,
 }: {
   draft: Draft
   selected: Mark | null
   onMark: (mark: Mark) => void
+  /** Sits at the end of the line: Delete rally. */
+  action?: ReactNode
 }) {
   const marks: { mark: Mark; label: string; hint: string }[] = [
     { mark: { kind: 'start' }, label: 'Start', hint: '[' },
@@ -383,6 +386,7 @@ export function TrimRow({
             {label} {formatClock(markTime(draft, mark), true)}
           </Pill>
         ))}
+        {action}
       </Row>
     </div>
   )

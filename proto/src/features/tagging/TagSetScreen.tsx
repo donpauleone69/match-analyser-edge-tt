@@ -34,6 +34,7 @@ import {
   applyTaggedResult,
   applyTaggedScore,
   deleteRally,
+  earlierSetsEnd,
   finishMatch,
   finishSet,
   flipFirstServer,
@@ -58,11 +59,14 @@ import {
   NORMAL_SPEED,
   NUDGE_STEP_S,
   addContact,
-  addServe,
+  addContactWindow,
+  addedContactText,
+  addedContactTime,
   canSave,
   captureContactTime,
   draftFromRally,
   emptyDraft,
+  insertContact,
   markFa,
   markTime,
   nudgeMark,
@@ -71,6 +75,7 @@ import {
   rallyEnd,
   rallyFromDraft,
   rallyStart,
+  retapStart,
   servesText,
   shotSummary,
   shotWindow,
@@ -93,7 +98,7 @@ import { NO_ATTACK_KEY, applyShotKey } from './shotKeys'
 import { FirstAttackRow, KeyHint, ShotPanel, TimeRow, TrimRow } from './ShotPanel'
 import { ShotRail } from './ShotRail'
 import { TAG_LOCK_LINE, useTagLock, type TagLock } from './tagLock'
-import { segmentAt, segmentsOf, toGlobal, totalDuration, type Segment } from './timeline'
+import { lastContactG, segmentAt, segmentsOf, toGlobal, totalDuration, type Segment } from './timeline'
 import { usePlayer, type Window } from './usePlayer'
 import { VideoStage, type TimelineBlock } from './VideoStage'
 
@@ -138,8 +143,6 @@ type Toast = { text: string; undo: () => void; extra?: { label: string; run: () 
 const GUARD_AFTER_CLOSE_MS = 1000
 const GUARD_AFTER_SWAP_MS = 600
 const GUARD_PANEL_AFTER_CLOSE_MS = 500
-/** Re-tap starts this long before the serve, so the thumb has time to get back to the pad. */
-const RETAP_LEAD_S = 2.5
 /** A control that is ignoring presses looks it. */
 const BUSY = 'opacity-40'
 const HINT_MS = 2500
@@ -218,7 +221,8 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   /** Switch pressed before the first tap: the server of the next rally only. */
   const [serverPick, setServerPick] = useState<Side | null>(null)
   const [lastSavedId, setLastSavedId] = useState<string | null>(null)
-  const serveAddedAt = useRef(0)
+  /** Add contact is on: the taps it was started on, and the speed to go back to. */
+  const [adding, setAdding] = useState<{ contacts: number[]; rate: number } | null>(null)
 
   const slotGuard = useRef(0)
   const panelGuard = useRef(0)
@@ -271,8 +275,11 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
         : setWon && !gap && keptAt !== scoreKey(score)
           ? 'setPoint'
           : 'watch'
+  /** Add contact holds only for the taps it was started on. Any other rally on screen ends it. */
+  const addOn =
+    adding !== null && active !== null && active.closed && !readOnly && adding.contacts === active.contacts
   /** What sits in the bottom slot. A change of it guards the slot for a moment. */
-  const slotKind = mode === 'tagging' ? 'save' : mode === 'edit' || mode === 'finished' ? mode : 'pad'
+  const slotKind = addOn ? 'add' : mode === 'tagging' ? 'save' : mode === 'edit' || mode === 'finished' ? mode : 'pad'
 
   const latest = useRef({ live, set, match, floorG, segs, mode, selected, tight, edit, nextServer, stage })
   useEffect(() => {
@@ -375,6 +382,10 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     const id = setTimeout(() => setHint(null), HINT_MS)
     return () => clearTimeout(id)
   }, [hint])
+
+  useEffect(() => {
+    if (adding && !addOn) setAdding(null)
+  }, [adding, addOn])
 
   useEffect(() => {
     if (!late) return
@@ -557,10 +568,16 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   }
 
   /**
-   * Undo takes the last tap back, while tapping and after the rally closes.
+   * Delete last takes the last tap back, while tapping and after the rally closes.
    * After the close the tap before becomes the end shot and its result is asked.
    */
   const onUndoTap = () => {
+    if (addOn) return
+    if (edit) {
+      // A saved rally keeps its serve: taking that away is Delete rally.
+      if (!readOnly && edit.draft.contacts.length > 1) change(undoClosedContact(edit.draft))
+      return
+    }
     if (!live || live.contacts.length === 0) return
     const p = playerRef.current
     const removed = live.contacts[live.contacts.length - 1]
@@ -646,15 +663,13 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
 
   /**
    * Let: the taps are dropped, no point is counted, and the video carries on.
-   * It is also the way out of a rally tapped by mistake. Undo brings it back;
-   * Re-tap goes to just before the serve to tap it again.
+   * It is also the way out of a rally tapped by mistake. Undo brings it back.
    */
   const onLet = () => {
-    if (!live) return
+    if (!live || addOn) return
     const p = playerRef.current
     const before = set.draft && !set.draft.closed ? { ...set, draft: { ...set.draft, closed: true } } : set
     const off = offsetOf(live.videoId)
-    const first = off + live.contacts[0]
     mutateMatch(match.id, (m) => setDraft(m, set.setId, null))
     p.setLoop(null)
     p.setBoundary(null)
@@ -672,13 +687,37 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
         setToast(null)
         park(before.draft, false, floorG)
       },
-      extra: {
-        label: 'Re-tap',
-        run: () => {
-          setToast(null)
-          p.seek(Math.max(off, floorG, first - RETAP_LEAD_S))
-          p.play()
-        },
+    })
+  }
+
+  /**
+   * Re-tap: the taps are dropped and the video goes back to just before the
+   * serve, to tap the same rally again. Undo brings the taps back.
+   */
+  const onRetap = () => {
+    if (!live || live.contacts.length === 0 || addOn) return
+    const p = playerRef.current
+    const before = set.draft && !set.draft.closed ? { ...set, draft: { ...set.draft, closed: true } } : set
+    const off = offsetOf(live.videoId)
+    const at = off + retapStart(live, floorG > off ? floorG - off : null)
+    mutateMatch(match.id, (m) => setDraft(m, set.setId, null))
+    p.setLoop(null)
+    p.setBoundary(null)
+    p.setRate(watchRate.current)
+    p.seek(at)
+    p.play()
+    setSelected(null)
+    setTight(false)
+    setLastTap(null)
+    setLate(null)
+    // The same rally is tapped again, so it keeps the server it had.
+    if (set.rallies.length > 0) setServerPick(live.server === expected ? null : live.server)
+    setToast({
+      text: 'Taps cleared',
+      undo: () => {
+        mutateMatch(match.id, (m) => restoreSet(m, before))
+        setToast(null)
+        park(before.draft, false, floorG)
       },
     })
   }
@@ -740,26 +779,73 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     if (live) writeDraft({ ...live, server: otherSide(live.server) })
   }
 
-  /** The first tap was late: one press puts the serve in front of it. */
-  const onAddServe = () => {
-    if (!active || !active.closed || readOnly) return
-    // The cells move up one: a second press right after is not another serve.
-    if (Date.now() - serveAddedAt.current < GUARD_AFTER_SWAP_MS) return
-    serveAddedAt.current = Date.now()
+  /**
+   * The last contact of the rally saved before the open one, in the open
+   * rally's own video. An added contact never goes behind it.
+   */
+  const fenceOf = (d: Draft): number | null => {
+    const prev = edit && edit.index > 0 ? set.rallies[edit.index - 1] : null
+    const g = edit ? (prev ? (lastContactG(segs, prev) ?? 0) : earlierSetsEnd(match, set.setId)) : floorG
+    const off = offsetOf(d.videoId)
+    return g > off ? g - off : null
+  }
+
+  /**
+   * Add contact, for a missed serve or a missed contact anywhere in the rally.
+   * The whole rally loops from 4 seconds before the first tap and the big
+   * button takes one tap. Pressed again it is off, and nothing has changed.
+   */
+  const onAddContact = () => {
+    if (!active || !active.closed || !stage || readOnly) return
+    const p = playerRef.current
+    if (addOn && adding) {
+      setAdding(null)
+      p.setRate(adding.rate)
+      applyLoop(windowFor(active, selected, stage, tight))
+      return
+    }
+    const off = offsetOf(active.videoId)
+    const w = addContactWindow(active, fenceOf(active))
+    setAdding({ contacts: active.contacts, rate: player.rate })
+    setLate(null)
+    p.setRate(CAPTURE_SPEED)
+    p.setLoop({ a: off + w.a, b: off + Math.min(durationOf(active.videoId), w.b) })
+    p.seek(off + w.a)
+    p.play()
+  }
+
+  /** The tap while Add contact is on: one contact goes in, in time order, and tagging carries on. */
+  const onAddTap = () => {
+    if (!addOn || !adding || !active || readOnly) return
+    const p = playerRef.current
     const was = active
     const wasEdit = edit
-    const off = offsetOf(active.videoId)
-    change(addServe(active, edit ? 0 : Math.max(0, floorG - off)))
+    const wasSelected = selected
+    const t = addedContactTime(was, p.getTime() - offsetOf(was.videoId), fenceOf(was), durationOf(was.videoId))
+    const { draft: next, shot } = insertContact(was, t)
+    const st = stageOf(next)
+    // Ready: the new shot opens, so its time can be stepped. While a step is asked, that step's shot stays.
+    const sel: Mark | null = st === 'ready' ? { kind: 'shot', shot } : selectionAfter('contacts', st, next, null)
+    setAdding(null)
+    p.setRate(adding.rate)
+    writeDraft(next)
+    setSelected(sel)
+    setTight(false)
+    setLate(null)
+    applyLoop(windowFor(next, sel, st, false))
     setToast({
-      text: 'Serve added',
+      text: addedContactText(was, next, shot, names),
       undo: () => {
         setToast(null)
+        // Only while that rally is still the one open.
+        const now = latest.current
+        const open = now.edit ? now.edit.draft : now.live
+        if (!open || open.videoId !== was.videoId || !open.contacts.includes(t)) return
         if (wasEdit) setEdit(wasEdit)
         else mutateMatch(match.id, (m) => setDraft(m, set.setId, was))
-        const st = stageOf(was)
-        const sel = selectionAfter('contacts', st, was, null)
-        setSelected(sel)
-        applyLoop(windowFor(was, sel, st, false))
+        setSelected(wasSelected)
+        setTight(false)
+        applyLoop(windowFor(was, wasSelected, stageOf(was), false))
       },
     })
   }
@@ -981,6 +1067,9 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     onMark,
     onNudge,
     onNoAttack,
+    onAddContact,
+    onAddTap,
+    adding: addOn,
     change,
     seekTo,
     showFa,
@@ -1004,6 +1093,18 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       const rally = now.mode === 'tagging' || now.mode === 'edit'
       const toggle = () => (p.isPlaying() ? p.pause() : p.play())
       const key = e.key.length === 1 ? e.key.toLowerCase() : e.key
+      if (k.adding) {
+        // Add contact is on: Space is the tap, Escape leaves it, and no other key reaches the rally.
+        if (key === ' ') {
+          e.preventDefault()
+          if (!e.repeat && Date.now() >= slotGuard.current) k.onAddTap()
+        } else if (key === 'Escape') {
+          k.onAddContact()
+        } else if (key === 'Backspace' || key === 'Enter') {
+          e.preventDefault()
+        }
+        return
+      }
       if (key === ' ') {
         e.preventDefault()
         if (e.repeat) return
@@ -1138,11 +1239,15 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
         : mode === 'blocked'
           ? setLine
           : mode === 'edit' && edit
-            ? readOnly || (ready && !edit.dirty)
+            ? addOn
+              ? `Rally ${edit.index + 1} · Adding a contact`
+              : readOnly || (ready && !edit.dirty)
               ? `Rally ${edit.index + 1} · ${edit.draft.contacts.length} ${edit.draft.contacts.length === 1 ? 'shot' : 'shots'}`
               : `Rally ${edit.index + 1} · ${ready ? 'Ready to save changes' : statusText(edit.draft)}`
           : active
-            ? statusText(active)
+            ? addOn
+              ? 'Adding a contact'
+              : statusText(active)
             : gap
               ? `Add rally before rally ${gap.index + 1}`
               : player.playing && !atEnd
@@ -1184,6 +1289,8 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const rowButton = cn('h-11 lg:h-9 px-3 shrink-0', slotBusy && BUSY)
   /** The right end of the status row always means "go back": 5 seconds, or one tap. One width, so the spot does not shift. Let never sits there. */
   const endButton = cn(rowButton, 'w-24 lg:w-36')
+  /** The four rally actions: one width each, the label on two lines where it needs them. */
+  const actionButton = cn('w-14 shrink-0 px-0.5 text-xs leading-tight text-center', slotBusy && BUSY)
   /** Slot controls never change size, not even while pressed. */
   const slotButton = cn(
     'h-20 rounded-lg text-lg active:scale-100 active:brightness-90',
@@ -1195,6 +1302,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       className="h-full flex flex-col lg:flex-row bg-bg-app"
       data-tag-mode={mode}
       data-tag-stage={stage ?? ''}
+      data-tag-adding={addOn ? '' : undefined}
       data-playing={player.playing}
       data-rate={player.rate}
       data-time={player.time}
@@ -1248,7 +1356,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               selected={selected}
               liveShot={liveShot}
               onShot={onShot}
-              onAddServe={active && active.closed && !readOnly ? onAddServe : undefined}
               readOnly={readOnly}
             />
           ) : null}
@@ -1286,34 +1393,83 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                 <KeyHint k="Bksp" />
               </Button>
             ) : null}
-            {(mode === 'tapping' && tapped > 0) || mode === 'tagging' ? (
-              <>
-                <Button variant="secondary" className={rowButton} onClick={onLet}>
-                  Let
-                  <KeyHint k="L" />
-                </Button>
-                <Button variant="secondary" className={endButton} aria-label="Undo tap" onClick={onUndoTap}>
-                  <Icon name="undo" size="sm" />
-                  Undo
-                  <KeyHint k="Bksp" />
-                </Button>
-              </>
+            {/*
+              Two pairs, always in the same places. Let and Re-tap act on the
+              whole rally, Delete last and Add contact on one contact.
+            */}
+            {mode === 'tapping' || mode === 'tagging' || (mode === 'edit' && !readOnly) ? (
+              <div className="flex shrink-0 items-stretch gap-2" data-tag-actions>
+                <div className="flex items-stretch gap-1">
+                  {mode === 'edit' ? (
+                    <Button
+                      kind="control"
+                      variant="secondary"
+                      className={cn(actionButton, 'w-[7.25rem]')}
+                      onClick={closeEdit}
+                    >
+                      Back to live
+                    </Button>
+                  ) : (
+                    <>
+                      <Button
+                        kind="control"
+                        variant="secondary"
+                        className={actionButton}
+                        data-action="let"
+                        title="Let, no point (L)"
+                        disabled={addOn}
+                        onClick={onLet}
+                      >
+                        Let
+                      </Button>
+                      <Button
+                        kind="control"
+                        variant="secondary"
+                        className={actionButton}
+                        data-action="retap"
+                        title="Tap this rally again"
+                        disabled={addOn}
+                        onClick={onRetap}
+                      >
+                        <span className="whitespace-nowrap">Re-tap</span>
+                      </Button>
+                    </>
+                  )}
+                </div>
+                <div className="flex items-stretch gap-1">
+                  <Button
+                    kind="control"
+                    variant="secondary"
+                    className={actionButton}
+                    data-action="delete-last"
+                    title="Delete the last contact (Backspace)"
+                    disabled={addOn || (mode === 'edit' && n <= 1)}
+                    onClick={onUndoTap}
+                  >
+                    Delete last
+                  </Button>
+                  {mode === 'tapping' ? (
+                    <span className="w-14 shrink-0" aria-hidden />
+                  ) : (
+                    <Button
+                      kind="control"
+                      variant={addOn ? 'primary' : 'secondary'}
+                      className={actionButton}
+                      data-action="add-contact"
+                      title="Add a missed contact"
+                      aria-pressed={addOn}
+                      onClick={onAddContact}
+                    >
+                      Add contact
+                    </Button>
+                  )}
+                </div>
+              </div>
             ) : null}
             {mode === 'blocked' ? (
               <Button variant="secondary" className={rowButton} onClick={onDiscardGone}>
                 Discard rally
               </Button>
-            ) : null}
-            {mode === 'edit' && !readOnly ? (
-              <>
-                <Button variant="secondary" className={rowButton} onClick={closeEdit}>
-                  Back to live
-                </Button>
-                <Button variant="secondary" className={rowButton} aria-label="Delete rally" onClick={onDeleteEdit}>
-                  <Icon name="trash" size="sm" />
-                  Delete
-                </Button>
-              </>
             ) : null}
           </div>
 
@@ -1419,7 +1575,23 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               </div>
             ) : null}
             {mode === 'edit' && edit && !readOnly && ready && selected?.kind !== 'shot' ? (
-              <TrimRow draft={edit.draft} selected={selected} onMark={onMark} />
+              <TrimRow
+                draft={edit.draft}
+                selected={selected}
+                onMark={onMark}
+                action={
+                  <Button
+                    kind="control"
+                    variant="secondary"
+                    className="ml-auto shrink-0"
+                    data-action="delete-rally"
+                    onClick={onDeleteEdit}
+                  >
+                    <Icon name="trash" size="sm" />
+                    Delete rally
+                  </Button>
+                }
+              />
             ) : null}
             {mode === 'watch' && !gap && !atEnd && lastSaved ? (
               <div
@@ -1571,6 +1743,21 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
             </button>
           ) : null}
 
+          {slotKind === 'add' ? (
+            <button
+              type="button"
+              data-tap-add
+              onClick={onAddTap}
+              className={cn(
+                'btn-kind-tap-pad flex-1 min-w-0 rounded-lg px-2 text-lg font-bold leading-tight touch-manipulation select-none active:brightness-90',
+                'inline-flex items-center justify-center gap-2 bg-brand-primary text-on-accent',
+                slotBusy && BUSY
+              )}
+            >
+              Tap the missed contact
+              <KeyHint k="Space" />
+            </button>
+          ) : null}
           {slotKind === 'save' ? (
             <Button data-tag-save className={cn(slotButton, 'flex-1 min-w-0')} disabled={!ready} onClick={onSave}>
               Save
@@ -1598,18 +1785,18 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
             Switch, beside the big button and always in the same place. While
             tapping it is part of the pad: a tap that lands on it is a contact.
           */}
-          {(slotKind === 'pad' || slotKind === 'save' || slotKind === 'edit') && !readOnly ? (
+          {(slotKind === 'pad' || slotKind === 'add' || slotKind === 'save' || slotKind === 'edit') && !readOnly ? (
             <button
               type="button"
               data-tag-switch
               aria-label={`${servesText(names, padServer)}. Switch server`}
-              onClick={mode === 'tapping' ? onPad : onSwitch}
+              onClick={mode === 'tapping' ? onPad : addOn ? onAddTap : onSwitch}
               disabled={!switchOn && mode !== 'tapping'}
               className={cn(
                 'h-20 w-20 shrink-0 rounded-lg border text-xs font-semibold touch-manipulation select-none active:brightness-90',
                 'inline-flex flex-col items-center justify-center gap-1 disabled:opacity-40',
                 padServer === 'me' ? 'bg-side-me/15 border-side-me/50' : 'bg-side-them/15 border-side-them/50',
-                (mode === 'tapping' || (slotBusy && !late)) && BUSY
+                (mode === 'tapping' || addOn || (slotBusy && !late)) && BUSY
               )}
             >
               <span className="inline-flex items-center gap-1.5 max-w-full px-1">

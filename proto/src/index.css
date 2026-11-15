@@ -358,3 +358,12 @@ button[disabled] {
 .tag-arm {
   animation: tag-arm 0.5s ease-out;
 }
+
+/* Add contact is on: only the big button takes a press. The details wait, and look it. */
+[data-tag-adding] [data-tag-panel] {
+  pointer-events: none;
+  opacity: 0.4;
+}
+[data-tag-adding] [data-rail-row] {
+  pointer-events: none;
+}
