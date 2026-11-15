@@ -89,7 +89,11 @@ export function HomePage() {
                 )
               }
             >
-              {resumeSet ? `Continue set ${resumeSet.setId}` : 'Continue'}
+              {resumeSet
+                ? `Continue set ${resumeSet.setId}`
+                : derivePhase(continueMatch) === 'complete'
+                  ? 'Open match Insights'
+                  : 'Continue'}
             </Button>
           </Card>
         ) : null}

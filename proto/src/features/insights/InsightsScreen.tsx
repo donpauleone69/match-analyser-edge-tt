@@ -46,9 +46,13 @@ function pointsIn(matches: MatchRecord[]): number {
   )
 }
 
+/** Points tagged at which the stand-in counts show at full size. */
+const FULL_SAMPLE = 20
+
 /**
  * Stub numbers and reels. What is real: the matches covered, their point
  * count, and the name on each reel, so a filter visibly changes the page.
+ * Stand-in counts are cut down to fit, so none is more than the points tagged.
  */
 function sectionData(
   section: SectionId,
@@ -56,72 +60,88 @@ function sectionData(
   /** What the reels are cut from: a match title, "All matches" or "2 matches". */
   prefix: string,
   /** Global only: the matches the numbers cover. */
-  covered: MatchRecord[]
+  covered: MatchRecord[],
+  /** Points tagged in what the page covers. */
+  total: number,
+  /** Points tagged in what the reels are cut from. */
+  reelTotal: number
 ): { stats: string; reels: Reel[]; improve?: ImproveItem[] } {
   const matchCount = countOf(covered.length, 'match', 'matches')
+  const fit = (n: number) => Math.min(n, Math.round((n * total) / FULL_SAMPLE))
+  // A reel with nothing in it is left out. The first reel of a section keeps
+  // a point while there is one to show.
+  const reelSize = (n: number, lead: boolean) =>
+    Math.max(
+      Math.min(n, Math.floor((n * reelTotal) / FULL_SAMPLE)),
+      lead ? Math.min(1, reelTotal) : 0
+    )
+  const reels = (list: [id: string, title: string, points: number][]): Reel[] =>
+    list.flatMap(([id, title, points], i) => {
+      const size = reelSize(points, i === 0)
+      return size > 0 ? [{ id, title, meta: `${prefix} · ${countOf(size, 'point', 'points')}` }] : []
+    })
 
   if (section === 'summary') {
     return {
       stats:
         scope === 'match'
-          ? 'FA 58% · 12 winners'
-          : `${countOf(pointsIn(covered), 'point', 'points')} · FA 54%`,
-      reels: [
-        { id: 'sum-1', title: 'Highlight', meta: `${prefix} · 8 points` },
-        { id: 'sum-2', title: 'Key winners', meta: `${prefix} · 5 points` },
-      ],
+          ? `FA 58% · ${countOf(fit(12), 'winner', 'winners')}`
+          : `${countOf(total, 'point', 'points')} · FA 54%`,
+      reels: reels([
+        ['sum-1', 'Highlight', 8],
+        ['sum-2', 'Key winners', 5],
+      ]),
     }
   }
   if (section === 'serve') {
     return {
       stats:
         scope === 'match'
-          ? '1st in 64% · short 3 · long 7'
-          : '1st in 62% · short 4 · long 9 · fault 3%',
-      reels: [
-        { id: 'srv-1', title: 'Serve +1', meta: `${prefix} · 6 points` },
-        { id: 'srv-2', title: 'Serve faults', meta: `${prefix} · 2 points` },
-        { id: 'srv-3', title: 'Long serve hold', meta: `${prefix} · 4 points` },
-      ],
+          ? `1st in 64% · short ${fit(3)} · long ${fit(7)}`
+          : `1st in 62% · short ${fit(4)} · long ${fit(9)} · fault 3%`,
+      reels: reels([
+        ['srv-1', 'Serve +1', 6],
+        ['srv-2', 'Serve faults', 2],
+        ['srv-3', 'Long serve hold', 4],
+      ]),
     }
   }
   if (section === 'receive') {
     return {
       stats:
         scope === 'match'
-          ? 'Short miss 2 · deep hold 5'
-          : 'Short miss 6 · deep hold 11 · flick 4',
-      reels: [
-        { id: 'rcv-1', title: 'Short receive', meta: `${prefix} · 6 points` },
-        { id: 'rcv-2', title: 'Flick return', meta: `${prefix} · 3 points` },
-        { id: 'rcv-3', title: 'Deep push', meta: `${prefix} · 5 points` },
-      ],
+          ? `Short miss ${fit(2)} · deep hold ${fit(5)}`
+          : `Short miss ${fit(6)} · deep hold ${fit(11)} · flick ${fit(4)}`,
+      reels: reels([
+        ['rcv-1', 'Short receive', 6],
+        ['rcv-2', 'Flick return', 3],
+        ['rcv-3', 'Deep push', 5],
+      ]),
     }
   }
-  const improve: ImproveItem[] = [
-    {
-      rank: 1,
-      title: 'Short-ball receive',
-      why: `6 misses · ${matchCount}`,
-      reel: {
-        id: 'imp-1',
-        title: 'Short-ball receive',
-        meta: `18 points · ${prefix}`,
-      },
-    },
-    {
-      rank: 2,
-      title: 'Push depth on BH',
-      why: '9 floats long',
-      reel: { id: 'imp-2', title: 'Push depth on BH', meta: '9 points' },
-    },
-    {
-      rank: 3,
-      title: 'Serve variation',
-      why: 'Same long serve 71%',
-      reel: { id: 'imp-3', title: 'Serve variation', meta: '11 points' },
-    },
+  const workOns: [id: string, title: string, points: number, why: (size: number) => string][] = [
+    [
+      'imp-1',
+      'Short-ball receive',
+      18,
+      (size) => `${countOf(Math.min(6, size), 'miss', 'misses')} · ${matchCount}`,
+    ],
+    ['imp-2', 'Push depth on BH', 9, (size) => `${countOf(size, 'float', 'floats')} long`],
+    ['imp-3', 'Serve variation', 11, () => 'Same long serve 71%'],
   ]
+  const improve: ImproveItem[] = workOns
+    .map(([id, title, points, why], i) => ({ id, title, why, size: reelSize(points, i === 0) }))
+    .filter((w) => w.size > 0)
+    .map((w, i) => ({
+      rank: i + 1,
+      title: w.title,
+      why: w.why(w.size),
+      reel: {
+        id: w.id,
+        title: w.title,
+        meta: `${countOf(w.size, 'point', 'points')} · ${prefix}`,
+      },
+    }))
   return {
     stats: 'Ranked work-ons this week',
     reels: improve.map((i) => i.reel),
@@ -198,7 +218,9 @@ function SectionBody({
         : inReels.length === tagged.length
           ? 'All matches'
           : countOf(inReels.length, 'match', 'matches')
-  const data = sectionData(section, scope, prefix, covered)
+  const total = scope === 'match' && match ? pointsIn([match]) : pointsIn(covered)
+  const reelTotal = scope === 'match' ? total : pointsIn(inReels)
+  const data = sectionData(section, scope, prefix, covered, total, reelTotal)
 
   useEffect(() => {
     setPlayingId(null)
@@ -352,7 +374,9 @@ function SectionBody({
           </ul>
         )}
 
-        {videoGone ? null : (
+        {data.reels.length === 0 ? (
+          <p className="text-sm text-muted">No reels yet. Save a rally to fill them.</p>
+        ) : videoGone ? null : (
           <Button size="sm" variant="secondary" disabled>
             <Icon name="download" size="xs" />
             Download all

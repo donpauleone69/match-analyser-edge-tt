@@ -343,12 +343,20 @@ export function setRalliesWithoutVideo(match: MatchRecord, s: SetData): number {
   )
 }
 
+/** Today as the date field holds it. A new match starts with it. */
+export function todayDate(): string {
+  const d = new Date()
+  const two = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${two(d.getMonth() + 1)}-${two(d.getDate())}`
+}
+
 /** A new match nobody has put anything into. Discarded when left. */
 export function isUntouched(match: MatchRecord): boolean {
   return (
     !match.opponent.trim() &&
     !match.event.trim() &&
-    !match.date.trim() &&
+    // The date a new match starts with does not count as put in.
+    (!match.date.trim() || match.date === todayDate()) &&
     match.result.me === null &&
     match.result.them === null &&
     match.videos.length === 0 &&
@@ -544,6 +552,23 @@ function mergeMatches(extra: MatchRecord[], deleted: string[]): MatchRecord[] {
   return [...merged, ...onlyExtra]
 }
 
+/**
+ * Newest first, with no date sorting as newest. On the same date a created
+ * match comes before a seed, and the latest created comes first.
+ */
+function newestFirst(list: MatchRecord[]): MatchRecord[] {
+  const at = new Map(list.map((m, i) => [m.id, i]))
+  const index = (m: MatchRecord) => at.get(m.id) ?? 0
+  return [...list].sort((a, b) => {
+    if (a.date !== b.date) {
+      if (!a.date || !b.date) return a.date ? 1 : -1
+      return b.date.localeCompare(a.date)
+    }
+    const created = !SEED_IDS.has(a.id) || !SEED_IDS.has(b.id)
+    return created ? index(b) - index(a) : index(a) - index(b)
+  })
+}
+
 function findCurrent(
   mode: DemoMode,
   extra: MatchRecord[],
@@ -576,8 +601,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
   const catalog = useMemo(() => mergeMatches(extra, deleted), [extra, deleted])
 
   const matches = useMemo(() => {
-    if (mode === 'empty') return extra.filter((m) => !SEED_IDS.has(m.id))
-    return catalog
+    return newestFirst(mode === 'empty' ? extra.filter((m) => !SEED_IDS.has(m.id)) : catalog)
   }, [mode, extra, catalog])
 
   const getMatch = useCallback(
@@ -608,7 +632,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
       id: `m-new-${Date.now()}`,
       opponent: '',
       event: '',
-      date: '',
+      date: todayDate(),
       result: { me: null, them: null },
       videos: [],
       sets: [emptySet(1)],
