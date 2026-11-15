@@ -47,3 +47,27 @@ export function formatClock(seconds: number, tenths = false): string {
   const base = `${String(m).padStart(2, '0')}:${String(whole).padStart(2, '0')}`
   return tenths ? `${base}.${t % 10}` : base
 }
+
+type Placed = { videoId: string; contacts: number[]; start: number; end: number }
+
+/** Where a saved rally's play starts on the match clock: its first contact, or its place for a point with no video. */
+export function firstContactG(segs: Segment[], r: Placed): number | null {
+  return toGlobal(segs, r.videoId, r.contacts[0] ?? r.start)
+}
+
+/** Where a saved rally's play ends on the match clock: its last contact. */
+export function lastContactG(segs: Segment[], r: Placed): number | null {
+  return toGlobal(segs, r.videoId, r.contacts[r.contacts.length - 1] ?? r.end)
+}
+
+/**
+ * Where a rally starting at `g` goes in a list kept in video order: before
+ * the first rally that starts later. Rallies on a removed video hold their place.
+ */
+export function insertIndex(segs: Segment[], rallies: Placed[], g: number): number {
+  for (let i = 0; i < rallies.length; i++) {
+    const at = firstContactG(segs, rallies[i])
+    if (at !== null && at > g) return i
+  }
+  return rallies.length
+}

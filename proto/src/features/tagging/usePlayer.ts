@@ -4,8 +4,8 @@ import { segmentAt, segmentsOf, totalDuration, type Segment } from './timeline'
 
 export type PlayerVideo = { id: string; kind: 'demo' | 'file'; durationS: number; src?: string }
 export type Window = { a: number; b: number }
-/** Why a seek fell short: the last saved rally, the loop being tagged, or the end. */
-export type SeekStop = 'fence' | 'loop' | 'end' | null
+/** Why a seek fell short: the saved rally behind, the loop being tagged, the saved rally ahead, or the end. */
+export type SeekStop = 'fence' | 'loop' | 'next' | 'end' | null
 
 type Snapshot = {
   time: number
@@ -30,6 +30,8 @@ export function usePlayer(videos: PlayerVideo[]) {
   const muted = useRef(true)
   const loop = useRef<Window | null>(null)
   const floor = useRef(0)
+  /** With the floor, the window a rally added between two saved ones has to stay in. */
+  const ceil = useRef<{ at: number; cb: () => void } | null>(null)
   const boundary = useRef<{ at: number; cb: () => void } | null>(null)
   const el = useRef<HTMLVideoElement | null>(null)
   /** Seconds within the file to jump to once its element is ready. */
@@ -110,6 +112,11 @@ export function usePlayer(videos: PlayerVideo[]) {
           // The callback may seek and play again: carry on from where it left the clock.
           edge.cb()
           time = t.current
+        } else if (!w && ceil.current && time >= ceil.current.at) {
+          playing.current = false
+          t.current = ceil.current.at
+          ceil.current.cb()
+          time = t.current
         }
       }
       if (total > 0 && time >= total) {
@@ -166,11 +173,12 @@ export function usePlayer(videos: PlayerVideo[]) {
       seek: (g: number): SeekStop => {
         const total = totalDuration(segsRef.current)
         const w = loop.current
+        const top = ceil.current ? Math.min(total, ceil.current.at) : total
         const lo = w ? w.a : floor.current
-        const hi = w ? w.b : total
+        const hi = w ? w.b : top
         jump(Math.min(Math.max(g, lo), Math.max(lo, hi)))
         if (g < lo - 0.05) return w ? 'loop' : lo > 0 ? 'fence' : null
-        if (g > hi + 0.05) return w ? 'loop' : 'end'
+        if (g > hi + 0.05) return w ? 'loop' : top < total ? 'next' : 'end'
         return null
       },
       setRate: (r: number) => {
@@ -187,6 +195,10 @@ export function usePlayer(videos: PlayerVideo[]) {
       /** Seeking never goes back past this point. */
       setFloor: (g: number) => {
         floor.current = g
+      },
+      /** Play and seeking never go past this point, and `cb` runs each time play reaches it. Null lifts it. */
+      setCeil: (at: number | null, cb?: () => void) => {
+        ceil.current = at !== null ? { at, cb: cb ?? (() => undefined) } : null
       },
       /** Stops at `at` and calls back once. Used at the end of a video. */
       setBoundary: (at: number | null, cb?: () => void) => {

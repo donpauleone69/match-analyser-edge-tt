@@ -43,6 +43,10 @@ export const NORMAL_SPEED = 1
 export const TAP_LATENCY_S = 0.3
 export const CONTACT_IDLE_MS = 2000
 export const RALLY_PAD_S = 1
+/** A rally starts this long before the serve contact, which has no toss or routine in it. */
+export const RALLY_LEAD_S = 2
+/** A serve added in front of a late first tap sits this long before it. */
+export const ADD_SERVE_GAP_S = 0.9
 export const NUDGE_STEP_S = 0.1
 export const MARK_LOOP_HALF_S = 0.5
 export const SPEED_STEPS = [0.5, 0.75, 1, 1.25, 1.5, 2] as const
@@ -109,6 +113,43 @@ export function addContact(d: Draft, t: number): Draft {
 
 export function undoContact(d: Draft): Draft {
   return { ...d, contacts: d.contacts.slice(0, -1), shots: d.shots.slice(0, -1) }
+}
+
+/**
+ * Undo the last tap of a closed rally: the tap before becomes the end shot.
+ * The result went with the shot that is gone, so it is asked again.
+ */
+export function undoClosedContact(d: Draft): Draft {
+  const n = d.contacts.length - 1
+  return {
+    ...d,
+    contacts: d.contacts.slice(0, -1),
+    shots: d.shots.slice(0, -1),
+    ending: null,
+    fa: d.fa !== null && d.fa > n ? null : d.fa,
+    noAttack: n >= 2 ? d.noAttack : false,
+    end: null,
+  }
+}
+
+/**
+ * The first tap was late: put the serve in front of it. Every shot moves up
+ * one, so the hitters and the winner come right without a re-tap.
+ */
+export function addServe(d: Draft, floor: number): Draft {
+  if (d.contacts.length === 0) return d
+  const first = d.contacts[0]
+  const at = Math.round(Math.max(floor, Math.max(0, first - ADD_SERVE_GAP_S)) * 100) / 100
+  const next: Draft = {
+    ...d,
+    contacts: [Math.min(at, first), ...d.contacts],
+    shots: [{}, ...d.shots],
+    fa: d.fa !== null ? d.fa + 1 : null,
+    noAttack: false,
+    start: null,
+  }
+  // No attack chosen on three shots or more still holds. A shorter rally is asked again.
+  return applyAutoSkip(d.noAttack && d.contacts.length >= 3 ? { ...next, noAttack: true } : next)
 }
 
 export const endShot = (d: Draft): number => d.contacts.length
@@ -267,7 +308,7 @@ export function fieldsFor(d: Draft, shot: number): ShotFields {
 }
 
 export function rallyStart(d: Pick<Draft, 'start' | 'contacts'>): number {
-  return d.start ?? Math.max(0, (d.contacts[0] ?? 0) - RALLY_PAD_S)
+  return d.start ?? Math.max(0, (d.contacts[0] ?? 0) - RALLY_LEAD_S)
 }
 
 export function rallyEnd(d: Pick<Draft, 'end' | 'contacts'>): number {
@@ -349,7 +390,13 @@ export function shotSummary(s: ShotTags): string {
     .join(' · ')
 }
 
-/** A saved rally. Times are seconds within `videoId`; the score is counted, not stored. */
+export type MarkKind = 'serve' | 'gap'
+
+/**
+ * A saved rally. Times are seconds within `videoId`. It keeps the server and
+ * winner it was tagged with: nothing done to another rally ever changes them.
+ * The score is counted from the winners, not stored.
+ */
 export type RallyData = {
   id: string
   videoId: string
@@ -357,11 +404,39 @@ export type RallyData = {
   contacts: number[]
   start: number
   end: number
-  ending: Ending
+  /** Null only on a point added without video. */
+  ending: Ending | null
   fa: number | null
   shots: ShotTags[]
   winner: Side
   highlight: boolean
+  /** A point added without video: no contacts, `start` is its place in the video. */
+  point?: true
+  /** Continuity marks the user chose to leave as they are. */
+  left?: MarkKind[]
+}
+
+/** A point with no video, placed at `at` so it keeps its place in video order. */
+export function pointRally(id: string, videoId: string, at: number, server: Side, winner: Side): RallyData {
+  return {
+    id,
+    videoId,
+    server,
+    contacts: [],
+    start: at,
+    end: at,
+    ending: null,
+    fa: null,
+    shots: [],
+    winner,
+    highlight: false,
+    point: true,
+  }
+}
+
+/** The other player served: the hitters follow the server, and so does the winner. */
+export function swapPlayers(r: RallyData): RallyData {
+  return { ...r, server: otherSide(r.server), winner: otherSide(r.winner) }
 }
 
 export function rallyFromDraft(d: Draft, id: string): RallyData | null {
