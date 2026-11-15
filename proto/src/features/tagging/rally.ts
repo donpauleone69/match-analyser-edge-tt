@@ -337,15 +337,30 @@ export function toggleShotField<K extends keyof ShotTags>(
   return patchShot(d, shot, { [key]: current === value ? undefined : value } as Partial<ShotTags>)
 }
 
+/**
+ * A shot that no longer shows a stroke row must not keep a stroke.
+ * Wing and the other tags stay. The draft passed in is not changed.
+ */
+function clearHiddenStrokes(d: Draft): Draft {
+  let changed = false
+  const shots = d.shots.map((s, i) => {
+    if (!s?.stroke || showsStroke(d, i + 1)) return s
+    changed = true
+    return { ...s, stroke: undefined }
+  })
+  return changed ? { ...d, shots } : d
+}
+
 /** Mark, move or clear the first attack. Shot 1 can never be it.
  * Block, Lob, Push and Chop cannot be picked as the first attack.
+ * Strokes on shots that are now before the first attack are cleared.
  */
 export function markFa(d: Draft, shot: number): Draft {
   if (shot < 2 || shot > endShot(d)) return d
   if (d.fa === shot) return { ...d, fa: null }
   const stroke = d.shots[shot - 1]?.stroke ?? ''
   if (NO_FIRST_ATTACK.has(stroke)) return d
-  return { ...d, fa: shot, noAttack: false }
+  return clearHiddenStrokes({ ...d, fa: shot, noAttack: false })
 }
 
 /** No attack is not offered once the end shot is Flick, Loop, Drive or Smash. */
@@ -357,7 +372,9 @@ export function noAttackOffered(d: Draft): boolean {
 export function toggleNoAttack(d: Draft): Draft {
   if (d.noAttack) return { ...d, noAttack: false }
   if (!noAttackOffered(d)) return d
-  return { ...d, noAttack: true, fa: null }
+  const next: Draft = { ...d, noAttack: true, fa: null }
+  // Three shots or more: only the end shot still shows a stroke row.
+  return endShot(d) >= 3 ? clearHiddenStrokes(next) : next
 }
 
 /** The end shot of a two shot rally: its stroke is the first attack answer, so the switch can still flip. */

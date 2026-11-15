@@ -1,5 +1,5 @@
 /**
- * Item 6 switch cases S1 to S16. Run: npm run check:item6
+ * Item 6 switch cases S1 to S18. Run: npm run check:item6
  * Prints one line per case and exits 1 on a miss.
  */
 import { buildScripts } from '../src/features/tagging/script'
@@ -226,6 +226,66 @@ function pressFlip(d: Draft, shot: number, shown: StrokeSide): { d: Draft; shown
   }
   const still = patchShot(setEnding(two, 'In-Net'), 2, { stroke: 'Push' })
   ok('S16 Push leaves No attack', still.noAttack === true && still.fa === null)
+}
+
+// S17 Moving the first attack later clears strokes now hidden before it. Wing stays.
+// There is no undo on the move. The draft passed in is left as it was, which is what a restore brings back.
+{
+  const before = draft({
+    contacts: [1, 2, 3, 4, 5],
+    fa: 3,
+    shots: [
+      {},
+      { wing: 'BH' },
+      { wing: 'FH', stroke: 'Loop' },
+      { wing: 'BH', stroke: 'Drive' },
+      { wing: 'FH', stroke: 'Smash' },
+    ],
+  })
+  const after = markFa(before, 5)
+  ok('S17 first attack is shot 5', after.fa === 5 && after.noAttack === false)
+  ok(
+    'S17 strokes before it are cleared and wings stay',
+    after.shots[2]?.stroke === undefined &&
+      after.shots[2]?.wing === 'FH' &&
+      after.shots[3]?.stroke === undefined &&
+      after.shots[3]?.wing === 'BH' &&
+      !showsStroke(after, 3) &&
+      !showsStroke(after, 4)
+  )
+  ok('S17 the new first attack keeps Smash', after.shots[4]?.stroke === 'Smash' && showsStroke(after, 5))
+  ok(
+    'S17 no undo on the move; the draft going in still has Loop and Drive',
+    before.fa === 3 && before.shots[2]?.stroke === 'Loop' && before.shots[3]?.stroke === 'Drive'
+  )
+}
+
+// S18 No attack on three or more shots clears strokes that no longer have a row. The end shot keeps its stroke.
+{
+  const before = draft({
+    contacts: [1, 2, 3, 4],
+    fa: 3,
+    ending: 'Long',
+    shots: [{}, { wing: 'BH', stroke: 'Push' }, { wing: 'FH', stroke: 'Loop' }, { wing: 'BH', stroke: 'Chop' }],
+  })
+  const after = toggleNoAttack(before)
+  ok('S18 No attack, fa cleared', after.noAttack === true && after.fa === null)
+  ok(
+    'S18 hidden strokes cleared, wings stay, end stroke stays',
+    after.shots[1]?.stroke === undefined &&
+      after.shots[1]?.wing === 'BH' &&
+      after.shots[2]?.stroke === undefined &&
+      after.shots[2]?.wing === 'FH' &&
+      after.shots[3]?.stroke === 'Chop' &&
+      after.shots[3]?.wing === 'BH' &&
+      !showsStroke(after, 2) &&
+      !showsStroke(after, 3) &&
+      showsStroke(after, 4)
+  )
+  ok(
+    'S18 no undo on the choice; the draft going in still has Push and Loop',
+    before.noAttack === false && before.fa === 3 && before.shots[1]?.stroke === 'Push' && before.shots[2]?.stroke === 'Loop'
+  )
 }
 
 // Keys
