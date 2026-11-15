@@ -282,6 +282,14 @@ export function bandLine(band: ServeBand, rallies?: Served[], firstServer?: Side
     : `Serve order out between rally ${start} and rally ${end}`
 }
 
+/**
+ * Review serves and Check gaps stay shut while a rally is open and not saved.
+ * A saved rally with unsaved changes is the same. Nothing is dropped or saved.
+ */
+export function reviewHold(state: { draftOpen: boolean; editDirty: boolean }): string | null {
+  return state.draftOpen || state.editDirty ? 'Save the open rally first' : null
+}
+
 /** What a review press tells the tagger when a server changes. Rally 1 sets who starts. */
 export function reviewSwapLine(
   rally: number,

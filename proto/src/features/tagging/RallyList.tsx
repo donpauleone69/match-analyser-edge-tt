@@ -17,6 +17,8 @@ export type RallyListActions = {
   onCheckGaps: () => void
   /** Play the one gap in front of the rally at `index`. */
   onCheckGap: (index: number) => void
+  /** Set while a rally is open and not saved. Review serves and Check gaps stay shut. */
+  hold: string | null
   onLeave: (rallyId: string, kind: MarkKind) => void
   onRestore: (rallyId: string) => void
   onDeletePoint: (rallyId: string) => void
@@ -92,8 +94,13 @@ export function RallyList({
           >
             <p className="text-xs font-semibold text-primary">{bandLine(band, set.rallies, set.firstServer)}</p>
             {actions ? (
-              <div className="flex flex-wrap gap-1.5">
-                <Button kind="control" variant="secondary" onClick={() => actions.onReview(band)}>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <Button
+                  kind="control"
+                  variant="secondary"
+                  disabled={Boolean(actions.hold)}
+                  onClick={() => actions.onReview(band)}
+                >
                   Review serves
                 </Button>
                 <Button
@@ -105,6 +112,11 @@ export function RallyList({
                 >
                   Leave it
                 </Button>
+                {actions.hold ? (
+                  <p className="text-xs text-muted" data-review-hold>
+                    {actions.hold}
+                  </p>
+                ) : null}
               </div>
             ) : null}
           </div>
@@ -116,7 +128,12 @@ export function RallyList({
           >
             <p className="text-xs text-muted">{Math.round(hint.seconds)}s before this rally</p>
             {actions ? (
-              <Button kind="control" variant="ghost" onClick={() => actions.onCheckGap(hint.index)}>
+              <Button
+                kind="control"
+                variant="ghost"
+                disabled={Boolean(actions.hold)}
+                onClick={() => actions.onCheckGap(hint.index)}
+              >
                 Check
               </Button>
             ) : null}
@@ -158,11 +175,16 @@ export function RallyList({
           {n} {n === 1 ? 'rally' : 'rallies'}
           {bands.length > 0 ? ` · ${bands.length} to check` : ''}
         </p>
-        <div className="flex items-center gap-1">
+        <div className="flex flex-wrap items-center justify-end gap-1">
           {actions && n > 1 ? (
-            <Button kind="control" variant="ghost" onClick={actions.onCheckGaps}>
+            <Button kind="control" variant="ghost" disabled={Boolean(actions.hold)} onClick={actions.onCheckGaps}>
               Check gaps
             </Button>
+          ) : null}
+          {actions?.hold ? (
+            <p className="text-xs text-muted" data-review-hold>
+              {actions.hold}
+            </p>
           ) : null}
           {finish === 'ok' ? (
             <Button kind="control" variant="ghost" onClick={onFinish}>

@@ -44,6 +44,7 @@ import {
   longerFirst,
   openReview,
   pressReview,
+  reviewHold,
   type ReviewState,
 } from './continuity'
 import {
@@ -1040,8 +1041,10 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     p.play()
   }
 
+  const reviewHoldLine = reviewHold({ draftOpen: set.draft !== null, editDirty: Boolean(edit?.dirty) })
+
   const openReviewRun = (run: ReviewRun) => {
-    if (readOnly || set.finished || (live && !live.closed)) return false
+    if (readOnly || set.finished || reviewHoldLine) return false
     setEdit(null)
     setAdding(null)
     setGap(null)
@@ -1177,6 +1180,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
           onReview,
           onCheckGaps,
           onCheckGap,
+          hold: reviewHoldLine,
           onLeave: (id: string, kind: MarkKind) => mutateMatch(match.id, (m) => leaveMark(m, set.setId, id, kind)),
           onRestore: (id) => {
             leaveGap()

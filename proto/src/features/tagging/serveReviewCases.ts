@@ -12,6 +12,7 @@ import {
   longerFirst,
   openReview,
   pressReview,
+  reviewHold,
   reviewSwapLine,
   serveBands,
   type ReviewPress,
@@ -248,6 +249,20 @@ function hintRow(): CaseResult {
   return { id: 'hints', ok: fails.length === 0, detail: fails.join('; ') }
 }
 
+/** A rally left open, ready or edited, keeps Review serves shut. A saved rally does not. */
+function holdRow(): CaseResult {
+  const line = 'Save the open rally first'
+  const ready = reviewHold({ draftOpen: true, editDirty: false })
+  const dirty = reviewHold({ draftOpen: false, editDirty: true })
+  const clean = reviewHold({ draftOpen: false, editDirty: false })
+  const fails: string[] = []
+  if (ready !== line) fails.push(`ready draft: ${ready}`)
+  if (dirty !== line) fails.push(`unsaved edit: ${dirty}`)
+  if (ready !== dirty) fails.push('two different lines')
+  if (clean !== null) fails.push('clean rally was blocked')
+  return { id: 'hold', ok: fails.length === 0, detail: fails.join('; ') }
+}
+
 /** Every case the plan named, plus the gap hint staying out of the count. */
 export function runServeReviewCases(): CaseResult[] {
   return [
@@ -336,5 +351,6 @@ export function runServeReviewCases(): CaseResult[] {
       addServers: 'Y Y S S Y Y S',
     }, [4]),
     hintRow(),
+    holdRow(),
   ]
 }
