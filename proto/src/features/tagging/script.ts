@@ -5,11 +5,13 @@
 
 import {
   ATTACK_STROKES,
+  DEFENSIVE_STROKES_ROW,
   END_STROKES,
   REPLY_STROKES,
   RALLY_LEAD_S,
   RALLY_PAD_S,
   hitterOf,
+  isAttackStroke,
   otherSide,
   type Ending,
   type RallyData,
@@ -108,7 +110,7 @@ const END_X: Record<Side, number> = { me: 0.15, them: 0.85 }
 const outward = (side: Side) => (side === 'me' ? -1 : 1)
 /** Both players are right handed: the forehand is on the right as each one faces the net. */
 const wingSign = (side: Side, wing: Wing) => (side === 'me' ? 1 : -1) * (wing === 'FH' ? 1 : -1)
-const isAttack = (stroke: string) => (ATTACK_STROKES as readonly string[]).includes(stroke)
+const isAttack = isAttackStroke
 
 /** How far behind the end line a stroke is played. Negative is over the table. */
 const CONTACT_DEPTH: Record<string, number> = {
@@ -145,12 +147,10 @@ function playOf(d: () => number, rally: Omit<ScriptRally, 'play'>): ShotPlay[] {
   const wings: Wing[] = []
   for (let shot = 1; shot <= n; shot++) {
     const asked = rally.shots[shot - 1]
-    const free = pick(d, ANSWERS[strokes[shot - 2]] ?? ANSWERS.Push)
-    strokes.push(
-      shot === 1
-        ? 'Serve'
-        : (asked.stroke ?? (rally.fa === null || shot < rally.fa ? 'Push' : free))
-    )
+    // Before the first attack, and on a rally with no attack, only a defensive stroke.
+    const beforeFa = rally.fa === null || shot < rally.fa
+    const free = pick(d, beforeFa ? DEFENSIVE_STROKES_ROW : (ANSWERS[strokes[shot - 2]] ?? ANSWERS.Push))
+    strokes.push(shot === 1 ? 'Serve' : (asked.stroke ?? free))
     const fh = d() < (shot === 1 ? 0.75 : 0.5)
     wings.push(asked.wing ?? (fh ? 'FH' : 'BH'))
   }
@@ -229,7 +229,7 @@ function scriptRally(
   if (n === 2) {
     const stroke = pick(r, END_STROKES)
     shots[1] = { wing: pick(r, ['BH', 'FH'] as const), stroke }
-    fa = ['Push', 'Block', 'Chop', 'Lob'].includes(stroke) ? null : 2
+    fa = isAttackStroke(stroke) ? 2 : null
   } else if (n > 2) {
     fa = r() < 0.25 ? null : 2 + Math.floor(r() * (n - 1))
     shots[n - 1] = {

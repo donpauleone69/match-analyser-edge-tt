@@ -15,27 +15,34 @@ export const WINGS = ['BH', 'FH'] as const
 export type Wing = (typeof WINGS)[number]
 
 export const ATTACK_STROKES = ['Flick', 'Loop', 'Drive', 'Smash'] as const
-export const REPLY_STROKES = ['Block', 'Push', 'Chop', 'Loop', 'Drive', 'Smash', 'Lob'] as const
-export const END_STROKES = [
-  'Flick',
-  'Loop',
-  'Drive',
-  'Smash',
-  'Lob',
-  'Block',
-  'Push',
-  'Chop',
-] as const
-const DEFENSIVE_STROKES = new Set(['Push', 'Block', 'Chop', 'Lob'])
+/** Cell order on the Offensive side. Block is first so it stays in one place. */
+export const OFFENSIVE_STROKES = ['Block', 'Flick', 'Loop', 'Drive', 'Smash'] as const
+/** Cell order on the Defensive side. The fifth cell is left empty. */
+export const DEFENSIVE_STROKES_ROW = ['Block', 'Lob', 'Push', 'Chop'] as const
+/** Offensive and Defensive lists joined. Replies and end shots draw from this. */
+export const ALL_STROKES = ['Block', 'Flick', 'Loop', 'Drive', 'Smash', 'Lob', 'Push', 'Chop'] as const
+export const REPLY_STROKES = ALL_STROKES
+export const END_STROKES = ALL_STROKES
+/** Block has no side. The other three are the Defensive side only. */
+const PURE_DEFENSIVE = new Set<string>(['Lob', 'Push', 'Chop'])
+const DEFENSIVE_STROKES = new Set<string>(['Push', 'Block', 'Chop', 'Lob'])
+/** A shot tagged with one of these cannot be the first attack. */
+const NO_FIRST_ATTACK = DEFENSIVE_STROKES
 
-export const MISS_REASONS = [
-  'Technical',
-  'Timing',
-  'Footwork',
-  'Positioning',
-  'Misread',
-  'Forced',
-] as const
+export type StrokeSide = 'offensive' | 'defensive'
+
+export const isAttackStroke = (stroke: string): boolean =>
+  (ATTACK_STROKES as readonly string[]).includes(stroke)
+
+/** The side a stroke belongs to. Block has none. */
+export function strokeSide(stroke: string | undefined): StrokeSide | null {
+  if (!stroke || stroke === 'Block') return null
+  if (isAttackStroke(stroke)) return 'offensive'
+  if (PURE_DEFENSIVE.has(stroke)) return 'defensive'
+  return null
+}
+
+export const MISS_REASONS = ['Forced', 'Position', 'Technical', 'Misread'] as const
 
 /** Speed while contacts are tapped, and the reaction time taken off each tap. */
 export const CAPTURE_SPEED = 0.75
@@ -297,11 +304,15 @@ export const canSave = (d: Draft): boolean => stageOf(d) === 'ready'
 /**
  * End on shot 2: once its wing and stroke are in, a defensive stroke means
  * No attack and an attacking stroke makes shot 2 the first attack. Not asked.
+ * An attacking stroke on the end shot also clears No attack, on any length,
+ * so Delete last cannot leave No attack beside Flick, Loop, Drive or Smash.
+ * On two shots the first attack is then decided again from that stroke.
  */
 export function applyAutoSkip(d: Draft): Draft {
+  const stroke = d.shots[endShot(d) - 1]?.stroke ?? ''
+  if (d.noAttack && isAttackStroke(stroke)) d = { ...d, noAttack: false }
   if (endShot(d) !== 2 || !endAttrsComplete(d) || faDecided(d)) return d
-  const stroke = d.shots[1]?.stroke ?? ''
-  return DEFENSIVE_STROKES.has(stroke) ? { ...d, noAttack: true } : { ...d, fa: 2 }
+  return DEFENSIVE_STROKES.has(stroke) ? { ...d, noAttack: true, fa: null } : { ...d, fa: 2 }
 }
 
 /** A result is changed by picking another. Pressing the lit one again does nothing. */
@@ -326,15 +337,85 @@ export function toggleShotField<K extends keyof ShotTags>(
   return patchShot(d, shot, { [key]: current === value ? undefined : value } as Partial<ShotTags>)
 }
 
-/** Mark, move or clear the first attack. Shot 1 can never be it. */
+/** Mark, move or clear the first attack. Shot 1 can never be it.
+ * Block, Lob, Push and Chop cannot be picked as the first attack.
+ */
 export function markFa(d: Draft, shot: number): Draft {
   if (shot < 2 || shot > endShot(d)) return d
   if (d.fa === shot) return { ...d, fa: null }
+  const stroke = d.shots[shot - 1]?.stroke ?? ''
+  if (NO_FIRST_ATTACK.has(stroke)) return d
   return { ...d, fa: shot, noAttack: false }
 }
 
+/** No attack is not offered once the end shot is Flick, Loop, Drive or Smash. */
+export function noAttackOffered(d: Draft): boolean {
+  const stroke = d.shots[endShot(d) - 1]?.stroke ?? ''
+  return !isAttackStroke(stroke)
+}
+
 export function toggleNoAttack(d: Draft): Draft {
-  return d.noAttack ? { ...d, noAttack: false } : { ...d, noAttack: true, fa: null }
+  if (d.noAttack) return { ...d, noAttack: false }
+  if (!noAttackOffered(d)) return d
+  return { ...d, noAttack: true, fa: null }
+}
+
+/** The end shot of a two shot rally: its stroke is the first attack answer, so the switch can still flip. */
+function twoShotEnd(d: Draft, shot: number): boolean {
+  return endShot(d) === 2 && shot === 2
+}
+
+export type SwitchState = { side: StrokeSide; fixed: boolean }
+
+/**
+ * Which side the stroke switch shows, and whether it can flip.
+ * Shots before the first attack are Defensive and fixed. The first attack is
+ * Offensive and fixed, except on two shots, where the stroke decides and a
+ * flip clears that answer. No attack is Defensive and fixed, with the same
+ * two shot exception. Block does not change the side: the shot after it
+ * follows the shot before it.
+ */
+export function switchOf(d: Draft, shot: number): SwitchState {
+  if (d.fa !== null) {
+    if (shot < d.fa) return { side: 'defensive', fixed: true }
+    if (shot === d.fa) return { side: 'offensive', fixed: !twoShotEnd(d, shot) }
+    const own = strokeSide(d.shots[shot - 1]?.stroke)
+    if (own) return { side: own, fixed: false }
+    return { side: switchOf(d, shot - 1).side, fixed: false }
+  }
+  if (d.noAttack) return { side: 'defensive', fixed: !twoShotEnd(d, shot) }
+  const own = strokeSide(d.shots[shot - 1]?.stroke)
+  if (own) return { side: own, fixed: false }
+  const offensive = d.ending === 'Winner' || d.contacts.length >= 3
+  return { side: offensive ? 'offensive' : 'defensive', fixed: false }
+}
+
+/** Five cells after the switch. Null keeps an empty place so nothing moves. */
+export function strokeCells(side: StrokeSide, firstAttack: boolean): readonly (string | null)[] {
+  if (firstAttack) return [null, 'Flick', 'Loop', 'Drive', 'Smash']
+  if (side === 'defensive') return ['Block', 'Lob', 'Push', 'Chop', null]
+  return ['Block', 'Flick', 'Loop', 'Drive', 'Smash']
+}
+
+/** The stroke row is asked on the end shot, the first attack, and shots after it. Not on the serve, and not before the first attack. */
+export function showsStroke(d: Draft, shot: number): boolean {
+  if (shot <= 1 || shot > endShot(d)) return false
+  if (shot === endShot(d)) return true
+  return roleOf(d, shot) !== 'before'
+}
+
+/**
+ * Flip the switch. Clears the stroke, unless it is Block, which stays.
+ * On a two shot rally the first attack answer is cleared too, and the new
+ * stroke decides it again. Block's flip is not stored: the draft is unchanged.
+ */
+export function flipSwitch(d: Draft, shot: number): Draft {
+  if (!showsStroke(d, shot) || switchOf(d, shot).fixed) return d
+  if (d.shots[shot - 1]?.stroke === 'Block') return d
+  const shots = d.shots.map((s, i) => (i === shot - 1 ? { ...s, stroke: undefined } : s))
+  const cleared: Draft = { ...d, shots }
+  if (twoShotEnd(d, shot)) return { ...cleared, fa: null, noAttack: false }
+  return cleared
 }
 
 export type ShotRole = 'serve' | 'before' | 'firstAttack' | 'reply' | 'later'
@@ -361,7 +442,8 @@ export type ShotFields = {
   result: boolean
   wing: boolean
   pivot: boolean
-  strokes: readonly string[] | null
+  /** The stroke row, with the switch. Shots before the first attack do not have it. */
+  stroke: boolean
   spin: boolean
   depth: boolean
   ball: boolean
@@ -377,20 +459,11 @@ export function fieldsFor(d: Draft, shot: number): ShotFields {
   const isEnd = shot === endShot(d)
   const serve = role === 'serve'
   const fa = role === 'firstAttack'
-  const strokes = serve
-    ? null
-    : isEnd
-      ? END_STROKES
-      : fa
-        ? ATTACK_STROKES
-        : role === 'before'
-          ? null
-          : REPLY_STROKES
   return {
     result: isEnd,
     wing: !serve,
     pivot: !serve && (fa || role === 'before' || isEnd),
-    strokes,
+    stroke: showsStroke(d, shot),
     spin: serve,
     depth: serve || role === 'before',
     ball: serve || role === 'before',
