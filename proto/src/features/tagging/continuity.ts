@@ -181,6 +181,10 @@ export function checkSet(
  * break is left, it sits just after the only serve of a turn. The missing
  * rally is in the gap before that serve or the gap after it. Leave it marks
  * every break in that band, and no rally in another band.
+ *
+ * The band line stays "between rally A and rally B" while the stretch covers
+ * more than one rally. Once a review has narrowed it to one rally, and the
+ * hole can sit in either of the two gaps, the line names both places.
  */
 
 /** How much of the serve Review serves plays: 1s before the contact, 0.5s after. */
@@ -262,12 +266,31 @@ export function leaveIds(rallies: Array<ServeRally>, firstServer: Side, breakId:
   return band.breaks.map((index) => rallies[index].id)
 }
 
-export function bandLine(band: ServeBand): string {
+/**
+ * The line on a serve band. A stretch of one rally whose hole can sit in
+ * either of two gaps names both. A longer stretch keeps "between".
+ */
+export function bandLine(band: ServeBand, rallies?: Served[], firstServer?: Side): string {
+  if (rallies && firstServer && band.from === band.to) {
+    const gaps = [...gapPair(rallies, firstServer, band.to)].sort((a, b) => a - b)
+    if (gaps.length >= 2) return `Rally missing before rally ${gaps[0] + 1} or ${gaps[1] + 1}`
+  }
   const start = band.from + 1
   const end = band.to + 1
   return start === end
     ? `Serve order changed at rally ${start}`
     : `Serve order out between rally ${start} and rally ${end}`
+}
+
+/** What a review press tells the tagger when a server changes. Rally 1 sets who starts. */
+export function reviewSwapLine(
+  rally: number,
+  serverName: string,
+  scoreText: string,
+  firstServerChanged: boolean
+): string {
+  if (rally === 1 && firstServerChanged) return `Set starts with ${serverName} serving`
+  return `Rally ${rally}: ${serverName} served. Score ${scoreText}`
 }
 
 export type StopReason = 'no-break' | 'two-fit' | 'known-good' | 'set-start'

@@ -35,6 +35,8 @@ import {
   SERVE_REVIEW_BEFORE_S,
   bandLine,
   breakForReview,
+  reviewSwapLine,
+  walkServes,
   breakIndexes,
   checkSet,
   expectedServer,
@@ -154,7 +156,7 @@ export function TagSetScreen() {
   return <TagSet key={`${match.id}:${set.setId}:${videoKey}`} match={match} set={set} lock={lock} />
 }
 
-type Toast = { text: string; undo: () => void; extra?: { label: string; run: () => void } }
+type Toast = { text: string; undo?: () => void; extra?: { label: string; run: () => void } }
 
 /**
  * Presses are ignored for a moment after the control under the thumb changes,
@@ -1049,6 +1051,13 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     const before = run.rule.rallies[cursor]
     const next = pressReview(run.rule, press)
     const swapped = before.server !== next.rallies[cursor].server
+    const firstChanged = next.firstServer !== run.rule.firstServer
+    if (swapped || firstChanged) {
+      const points = walkServes(next.rallies, next.firstServer).score
+      setToast({
+        text: reviewSwapLine(cursor + 1, names[next.rallies[cursor].server], formatScore(points), firstChanged),
+      })
+    }
     mutateMatch(match.id, (m) => {
       const confirmed = confirmServe(m, set.setId, before.id, swapped)
       if (next.firstServer === run.rule.firstServer) return confirmed
@@ -1826,13 +1835,15 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                   {toast.extra.label}
                 </button>
               ) : null}
-              <button
-                type="button"
-                className="h-11 lg:h-9 min-w-16 px-3 rounded-md font-bold underline hover:bg-neutral-300"
-                onClick={toast.undo}
-              >
-                Undo
-              </button>
+              {toast.undo ? (
+                <button
+                  type="button"
+                  className="h-11 lg:h-9 min-w-16 px-3 rounded-md font-bold underline hover:bg-neutral-300"
+                  onClick={toast.undo}
+                >
+                  Undo
+                </button>
+              ) : null}
             </div>
           ) : null}
         </div>
@@ -2003,7 +2014,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                   {noteBand ? (
                     <p className="text-xs font-semibold text-primary" data-mark-note>
                       <span className="mr-1 inline-block h-2 w-2 rounded-full bg-warning" aria-hidden />
-                      Check in Rallies: {bandLine(noteBand)}
+                      Check in Rallies: {bandLine(noteBand, set.rallies, set.firstServer)}
                     </p>
                   ) : null}
                 </div>

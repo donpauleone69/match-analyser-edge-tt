@@ -90,7 +90,7 @@ export function RallyList({
             data-serve-band
             className="rounded-md border border-warning bg-warning/15 px-2 py-1.5 space-y-1.5"
           >
-            <p className="text-xs font-semibold text-primary">{bandLine(band)}</p>
+            <p className="text-xs font-semibold text-primary">{bandLine(band, set.rallies, set.firstServer)}</p>
             {actions ? (
               <div className="flex flex-wrap gap-1.5">
                 <Button kind="control" variant="secondary" onClick={() => actions.onReview(band)}>

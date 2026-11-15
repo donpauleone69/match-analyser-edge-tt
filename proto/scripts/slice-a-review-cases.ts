@@ -1,5 +1,5 @@
 import {
-  breakIndexes, serveBands, bandLine, openReview, pressReview, breakForReview, leaveIds, walkServes, expectedServer, checkSet, gapMarks,
+  breakIndexes, serveBands, bandLine, openReview, pressReview, breakForReview, leaveIds, reviewSwapLine, walkServes, expectedServer, checkSet, gapMarks,
   type ServeRally, type ReviewPress,
 } from '@/features/tagging/continuity'
 import { deleteRally, restoreRally, confirmServe, insertRallyAt, leaveMark, saveRally } from '@/features/tagging/matchOps'
@@ -55,6 +55,21 @@ const rep = (x: ReturnType<typeof review>, f: Side = Y) =>
   // so this copy reads the first server the review stored.
   const leftAt = br(x.st.rallies, x.st.firstServer)
   check('no break is left', leftAt.length === 0, leftAt.length ? `break left r${leftAt} under first ${L(x.st.firstServer)}` : '')
+  let told = ''
+  {
+    let st = openReview(rs, Y, 2)
+    const truth = truthOf(rs, 'S S Y Y S S')
+    while (st.cursor !== null && !st.stopped) {
+      const cursor = st.cursor
+      const wasFirst = st.firstServer
+      const press: ReviewPress = truth[st.rallies[cursor].id] === st.rallies[cursor].server ? 'same' : 'other'
+      st = pressReview(st, press)
+      if (cursor === 0) {
+        told = reviewSwapLine(1, 'Kim', '0 - 0', st.firstServer !== wasFirst)
+      }
+    }
+  }
+  check('rally 1 press says who starts the set', told === 'Set starts with Kim serving', told)
   // C1b: user Switched r1 itself
   const rb = tag('S S Y Y', [1])
   show('C1b first server wrong, Switch on r1, all rallies right', rb)

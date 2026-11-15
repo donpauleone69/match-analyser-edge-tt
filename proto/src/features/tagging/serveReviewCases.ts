@@ -12,6 +12,7 @@ import {
   longerFirst,
   openReview,
   pressReview,
+  reviewSwapLine,
   serveBands,
   type ReviewPress,
   type ServeRally,
@@ -90,6 +91,12 @@ function finish(
     addServer?: Side
     addServers?: string
     leaveBreak?: number
+    /** The band line once the review has stopped. */
+    afterLine?: string
+    /** The band line before any press. */
+    beforeLine?: string
+    /** The toast for the first press that swaps a server. */
+    swapLine?: string
   }
 ): string[] {
   const fails = play(start, steps)
@@ -150,6 +157,32 @@ function finish(
   for (const index of state.shown) {
     if (!state.rallies[index].serveChecked) fails.push(`shown r${index + 1} is not checked`)
   }
+  if (expect.afterLine || expect.beforeLine) {
+    const lineOf = (rows: ServeRally[], first: Side) =>
+      serveBands(rows, first).map((band) => bandLine(band, rows, first)).join(' | ')
+    if (expect.beforeLine && lineOf(start, Y) !== expect.beforeLine) {
+      fails.push(`before line ${lineOf(start, Y)}, wanted ${expect.beforeLine}`)
+    }
+    if (expect.afterLine && lineOf(state.rallies, state.firstServer) !== expect.afterLine) {
+      fails.push(`after line ${lineOf(state.rallies, state.firstServer) || 'none'}, wanted ${expect.afterLine}`)
+    }
+  }
+  if (expect.swapLine) {
+    let walked = openReview(start, Y, steps[0].rally - 1)
+    let line = ''
+    for (const step of steps) {
+      const cursor = walked.cursor
+      if (cursor === null) break
+      const wasFirst = walked.firstServer
+      walked = pressReview(walked, step.press)
+      if (step.press !== 'other') continue
+      const points = countPoints(walked.rallies.map((r) => r.winner))
+      const name = walked.rallies[cursor].server === Y ? 'You' : 'Kim'
+      line = reviewSwapLine(cursor + 1, name, `${points.me} - ${points.them}`, walked.firstServer !== wasFirst)
+      break
+    }
+    if (line !== expect.swapLine) fails.push(`swap line ${line || 'none'}, wanted ${expect.swapLine}`)
+  }
   return fails
 }
 
@@ -208,6 +241,9 @@ function hintRow(): CaseResult {
   if (bandLine({ from: 6, to: 6, breakId: 'x', breaks: [6] }) !== 'Serve order changed at rally 7') {
     fails.push('one-rally line')
   }
+  if (bandLine({ from: 0, to: 14, breakId: 'x', breaks: [14] }) !== 'Serve order out between rally 1 and rally 15') {
+    fails.push('late stretch line')
+  }
   if (longerFirst([0, 1], (i) => (i === 0 ? 4 : 12)).join(',') !== '1,0') fails.push('longer first')
   return { id: 'hints', ok: fails.length === 0, detail: fails.join('; ') }
 }
@@ -224,6 +260,8 @@ export function runServeReviewCases(): CaseResult[] {
       addBefore: 6,
       addServer: Y,
       addServers: 'Y Y S S Y Y S',
+      beforeLine: 'Serve order out between rally 1 and rally 6',
+      afterLine: 'Rally missing before rally 5 or 6',
     }),
     caseR('R2', [Y, Y, S, Y], [same(4, 4), same(3, 4), same(2, 4)], {
       stop: 'two-fit',
@@ -260,6 +298,7 @@ export function runServeReviewCases(): CaseResult[] {
       gaps: [],
       servers: 'Y Y S S',
       changed: [4],
+      swapLine: 'Rally 4: Kim served. Score 3 - 1',
     }),
     caseR('R6', [Y, Y, S, Y, Y], [same(4, 4), same(3, 4), same(2, 4)], {
       stop: 'two-fit',
