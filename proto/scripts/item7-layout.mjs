@@ -267,18 +267,17 @@ async function driveRally(page, fails, vp) {
   if (stage === 'pickFa') {
     await snap('pick first attack')
     await page.waitForFunction(() => !document.querySelector('[data-late-tap]'), { timeout: 3000 }).catch(() => {})
-    // The press marks the shot on screen. Wait until that is past the serve.
+    // The press marks the shot a reaction (0.3s) earlier than the playhead.
     await page.waitForFunction(() => {
       const root = document.querySelector('[data-tag-stage]')
+      const stageNow = root?.dataset.tagStage
+      if (stageNow === 'faShot' || stageNow === 'ready') return true
       const time = Number(root?.dataset.time || 0)
       const contacts = (root?.dataset.contacts || '').split(',').filter(Boolean).map(Number)
-      return contacts.filter((c) => c <= time + 0.05).length >= 2
+      const reached = contacts.filter((c) => c <= time - 0.3 + 0.05).length
+      if (reached >= 2) document.querySelector('[data-tag-fa]')?.click()
+      return false
     }, { timeout: 4000 }).catch(() => {})
-    await page.locator('[data-tag-fa]').click()
-    await page.waitForFunction(() => {
-      const s = document.querySelector('[data-tag-stage]')?.dataset.tagStage
-      return s === 'faShot' || s === 'ready'
-    }, { timeout: 3000 }).catch(() => {})
     stage = await readStage(page)
   } else {
     await snap('pick first attack')

@@ -35,6 +35,18 @@ const ROUTES = [
   { screen: 'Match Insights', path: '/matches/m-partial/insights/summary' },
   { screen: 'Tag set', path: '/matches/m-ready/tag/1', manyMains: true },
   { screen: 'Tag set finished', path: '/matches/m-partial/tag/1', manyMains: true },
+  { screen: 'Tag set insights', path: '/matches/m-complete/tag/1', manyMains: true },
+  {
+    screen: 'Tag set finish match',
+    path: '/matches/m-complete/details',
+    manyMains: true,
+    after: async (page) => {
+      await page.locator('select[aria-label="Result"]').selectOption('')
+      await page.getByRole('link', { name: 'Tag' }).click()
+      await page.getByRole('button', { name: 'Open' }).first().click()
+      await page.waitForSelector('text=Finish match')
+    },
+  },
 ]
 
 const browser = await chromium.launch({
