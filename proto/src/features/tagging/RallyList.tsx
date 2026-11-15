@@ -20,7 +20,7 @@ export type RallyListActions = {
   onDeletePoint: (rallyId: string) => void
 }
 
-const small = 'min-h-11 lg:min-h-0 lg:h-7 px-2.5 text-xs'
+const small = 'h-11 lg:h-7 px-2.5 text-xs'
 
 function markText(m: RallyMark, names: Record<Side, string>): string {
   if (m.kind === 'gap') return `${Math.round(m.seconds)}s of video before this rally`

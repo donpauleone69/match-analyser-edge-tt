@@ -328,11 +328,11 @@ export function VideoStage({
           type="button"
           role="switch"
           aria-checked={captions}
-          aria-label="Captions"
+          aria-label={captions ? 'Captions on' : 'Captions off'}
           onClick={() => setCaptions((on) => !on)}
           className="absolute left-2 bottom-2 h-11 min-w-11 px-2 lg:h-8 lg:min-w-0 lg:px-1.5 inline-flex items-center justify-center rounded-md bg-black/60 text-[11px] font-semibold text-white hover:bg-black/80"
         >
-          Captions
+          {captions ? 'Captions on' : 'Captions off'}
         </button>
         <div className="absolute right-2 bottom-2 flex items-center gap-1">
           <Transport label="Back 10 seconds" onClick={() => onSeek(player.getTime() - 10)}>

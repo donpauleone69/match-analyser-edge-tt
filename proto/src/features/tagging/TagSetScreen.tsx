@@ -582,7 +582,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       setSelected(null)
       setLate(null)
       setServerPick(null)
-      withUndo('Rally cleared', before, () => park(before.draft, false, floorG))
+      withUndo('Unsaved rally cleared', before, () => park(before.draft, false, floorG))
       return
     }
     const next = undoContact(live)
@@ -1436,7 +1436,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                   <Button
                     size="sm"
                     variant="secondary"
-                    className="min-h-11 lg:min-h-0 shrink-0"
+                    className="h-11 min-w-11 px-3 lg:h-7 lg:min-w-0 lg:px-2.5 shrink-0"
                     onClick={() => openRally(lastSaved, lastSavedIndex)}
                   >
                     Edit

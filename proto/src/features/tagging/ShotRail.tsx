@@ -74,8 +74,14 @@ export function ShotRail({
   const starOn = Boolean(draft && !tapping && (!readOnly || draft.highlight))
 
   return (
-    <div className="flex items-start gap-1" data-rail-row>
-      <div className={cn('flex flex-col items-center shrink-0 py-1', !serveOn && 'invisible')} data-rail="add-serve">
+    <div className="flex w-full min-w-0 items-start gap-1 overflow-hidden" data-rail-row>
+      <div
+        className={cn(
+          'relative z-10 flex w-11 lg:w-9 flex-col items-center shrink-0 overflow-hidden bg-bg-app py-1',
+          !serveOn && 'invisible'
+        )}
+        data-rail="add-serve"
+      >
         <button
           type="button"
           aria-label="Add serve"
@@ -142,7 +148,12 @@ export function ShotRail({
         ) : null}
       </div>
 
-      <div className={cn('flex flex-col items-center shrink-0 py-1', !starOn && 'invisible')}>
+      <div
+        className={cn(
+          'relative z-10 flex w-11 lg:w-9 flex-col items-center shrink-0 overflow-hidden bg-bg-app py-1',
+          !starOn && 'invisible'
+        )}
+      >
         <button
           type="button"
           aria-label="Highlight rally"
