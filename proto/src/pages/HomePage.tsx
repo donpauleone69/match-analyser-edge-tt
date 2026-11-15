@@ -3,7 +3,7 @@ import { Button, Card, CardDescription, CardTitle, Icon } from '@/ui-mine'
 import { PageHeader } from '@/layout/PageHeader'
 import { StickyChrome } from '@/layout/StickyChrome'
 import { WfBadge, WfEmpty, WfWarnBadge } from '@/layout/Wireframe'
-import { matchDiffers, matchLabel } from '@/features/match/matchChecks'
+import { hasPlayableRallies, matchDiffers, matchLabel } from '@/features/match/matchChecks'
 import { setInProgress } from '@/features/tagging/matchOps'
 import {
   defaultMatchTab,
@@ -156,9 +156,11 @@ export function HomePage() {
                     <li className="rounded-md border border-border bg-bg-card px-3 py-2">
                       Short-ball receive · Improve
                     </li>
-                    <li className="rounded-md border border-border bg-bg-card px-3 py-2">
-                      Highlight reel ready
-                    </li>
+                    {matches.some(hasPlayableRallies) ? (
+                      <li className="rounded-md border border-border bg-bg-card px-3 py-2">
+                        Highlight reel ready
+                      </li>
+                    ) : null}
                   </ul>
                   <Button
                     fullWidth

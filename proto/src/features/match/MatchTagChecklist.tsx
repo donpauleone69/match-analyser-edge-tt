@@ -305,9 +305,15 @@ function MatchEnd({
 
   const anyFinished = match.sets.some((s) => setState(s) === 'finished')
   const blocking = setBlockingFinish(match)
+  // A match cannot end level, so there is nothing to finish yet.
+  const level = !blocking && won.me === won.them
   return (
     <div className="space-y-2">
-      {anyFinished ? (
+      {anyFinished && level ? (
+        <p className="text-sm text-muted">
+          Sets are level at {formatScore(won)}, so the match is not over yet.
+        </p>
+      ) : anyFinished ? (
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
           <Button
             // Leads once the tagged sets could be a whole match.

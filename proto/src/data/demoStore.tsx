@@ -455,7 +455,7 @@ const SEED: MatchRecord[] = [
     id: 'm-complete',
     opponent: 'Pat',
     event: 'League final',
-    date: '2026-11-08',
+    date: '2026-10-04',
     result: { me: 2, them: 1 },
     videos: [FINAL_VIDEO],
     sets: [

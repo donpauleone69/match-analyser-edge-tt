@@ -45,12 +45,14 @@ function FilterPickers({
   // A choice saved earlier stays listed even if its match is gone.
   const withSaved = (options: string[], saved: string) =>
     options.includes(saved) ? options : [...options, saved]
-  const pickers: [keyof InsightsFilters, string, string[]][] = [
+  const all: [keyof InsightsFilters, string, string[]][] = [
     ['matches', 'Matches', ['All', 'Last 3', 'This month']],
     ['opponent', 'Opponent', withSaved(['Any', ...opponents], draft.opponent)],
     ['tournament', 'Tournament', withSaved(['Any', ...events], draft.tournament)],
     ['dates', 'Dates', ['Any', 'This week', 'Last 30 days']],
   ]
+  // A picker with nothing to pick is left out.
+  const pickers = all.filter(([, , options]) => options.length > 1)
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
       {pickers.map(([key, label, options]) => (

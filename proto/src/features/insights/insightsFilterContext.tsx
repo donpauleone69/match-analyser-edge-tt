@@ -85,7 +85,11 @@ export function filterMatches(matches: MatchRecord[], f: InsightsFilters): Match
     out = out.filter((m) => newest && m.date.slice(0, 7) === newest.slice(0, 7))
   }
   if (f.matches === 'Last 3') {
-    const last = new Set(byDate.slice(0, 3).map((m) => m.id))
+    // Not a date question: a match with no date yet counts as the newest.
+    const recent = [...matches].sort((a, b) =>
+      a.date && b.date ? b.date.localeCompare(a.date) : Number(!!a.date) - Number(!!b.date)
+    )
+    const last = new Set(recent.slice(0, 3).map((m) => m.id))
     out = out.filter((m) => last.has(m.id))
   }
   return out
