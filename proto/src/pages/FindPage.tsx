@@ -2,12 +2,12 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Button, Card, CardDescription, CardTitle, Icon } from '@/ui-mine'
 import { PageHeader } from '@/layout/PageHeader'
 import { StickyChrome } from '@/layout/StickyChrome'
-import { WfBadge, WfEmpty, WfField } from '@/layout/Wireframe'
+import { WfBadge, WfEmpty, WfField, WfWarnBadge } from '@/layout/Wireframe'
+import { matchDiffers, matchLabel } from '@/features/match/matchChecks'
 import {
   defaultMatchTab,
   derivePhase,
   matchMeta,
-  matchTitle,
   phaseLabel,
   useDemo,
 } from '@/data/demoStore'
@@ -58,10 +58,13 @@ export function FindPage() {
                     className="block space-y-1"
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <CardTitle>{matchTitle(m)}</CardTitle>
+                      <CardTitle>{matchLabel(m)}</CardTitle>
                       <WfBadge>{phaseLabel(phase)}</WfBadge>
                     </div>
-                    <CardDescription>{matchMeta(m)}</CardDescription>
+                    <CardDescription className="flex flex-wrap items-center gap-1.5">
+                      {matchMeta(m)}
+                      {matchDiffers(m) ? <WfWarnBadge>Differs</WfWarnBadge> : null}
+                    </CardDescription>
                   </Link>
                 </Card>
               )

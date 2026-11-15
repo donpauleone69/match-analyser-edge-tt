@@ -83,13 +83,22 @@ function PillRowWithFilter({ section }: { section: SectionId }) {
     if (open) setDraft(filters)
   }, [open, filters])
 
+  // Closes on Escape and on a press anywhere outside the button and the pickers.
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setOpen(false)
     }
+    const onPress = (e: PointerEvent) => {
+      const el = e.target instanceof Element ? e.target : null
+      if (!el?.closest('[data-filter-surface]')) setOpen(false)
+    }
     window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    document.addEventListener('pointerdown', onPress)
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      document.removeEventListener('pointerdown', onPress)
+    }
   }, [open])
 
   const apply = () => {
@@ -123,6 +132,7 @@ function PillRowWithFilter({ section }: { section: SectionId }) {
             size="sm"
             variant="secondary"
             className="shrink-0"
+            data-filter-surface
             onClick={() => setOpen((v) => !v)}
             aria-expanded={open}
           >
@@ -147,6 +157,7 @@ function PillRowWithFilter({ section }: { section: SectionId }) {
       {open ? (
         <div
           className="hidden md:block rounded-lg border border-border bg-bg-surface p-4 space-y-3"
+          data-filter-surface
           role="group"
           aria-label="Filters"
         >
@@ -164,7 +175,12 @@ function PillRowWithFilter({ section }: { section: SectionId }) {
 
       {/* Phone bottom sheet */}
       {open ? (
-        <div className="md:hidden fixed inset-0 z-50" role="dialog" aria-label="Filters">
+        <div
+          className="md:hidden fixed inset-0 z-50"
+          data-filter-surface
+          role="dialog"
+          aria-label="Filters"
+        >
           <button
             type="button"
             className="absolute inset-0 bg-neutral-50/60"

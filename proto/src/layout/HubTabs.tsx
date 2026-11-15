@@ -1,10 +1,13 @@
 import { NavLink } from 'react-router-dom'
+import { WfWarnBadge } from '@/layout/Wireframe'
 import { cn } from '@/helpers/utils'
 
 export interface HubTab {
   to: string
   label: string
   end?: boolean
+  /** Small amber mark after the label, for something on that tab needing a look. */
+  mark?: string
 }
 
 export function HubTabs({ tabs, ariaLabel }: { tabs: HubTab[]; ariaLabel: string }) {
@@ -20,7 +23,7 @@ export function HubTabs({ tabs, ariaLabel }: { tabs: HubTab[]; ariaLabel: string
           end={tab.end}
           className={({ isActive }) =>
             cn(
-              'px-3 py-2 text-sm font-semibold border-b-2 -mb-px transition-colors',
+              'inline-flex shrink-0 items-center gap-1.5 px-3 py-2 text-sm font-semibold border-b-2 -mb-px transition-colors',
               isActive
                 ? 'border-brand-primary text-brand-primary'
                 : 'border-transparent text-muted hover:text-primary'
@@ -28,6 +31,7 @@ export function HubTabs({ tabs, ariaLabel }: { tabs: HubTab[]; ariaLabel: string
           }
         >
           {tab.label}
+          {tab.mark ? <WfWarnBadge>{tab.mark}</WfWarnBadge> : null}
         </NavLink>
       ))}
     </nav>

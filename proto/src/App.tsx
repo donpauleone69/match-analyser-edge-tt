@@ -12,6 +12,7 @@ import {
 import { TagSetScreen } from '@/features/tagging/TagSetScreen'
 import { MatchDetails } from '@/features/match/MatchDetails'
 import { MatchTagChecklist } from '@/features/match/MatchTagChecklist'
+import { ArchiveRunner } from '@/features/match/archiveJobs'
 import { DiscardUntouched } from '@/layout/DiscardUntouched'
 import { InsightsPage, InsightsSectionPage } from '@/pages/InsightsPage'
 import { AccountPage } from '@/pages/AccountPage'
@@ -21,6 +22,7 @@ export default function App() {
     <>
       <ScrollToTop />
       <DiscardUntouched />
+      <ArchiveRunner />
       <Routes>
         <Route path="/" element={<GatePage />} />
         <Route element={<AppShell />}>

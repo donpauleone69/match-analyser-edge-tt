@@ -2,13 +2,13 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Button, Card, CardDescription, CardTitle, Icon } from '@/ui-mine'
 import { PageHeader } from '@/layout/PageHeader'
 import { StickyChrome } from '@/layout/StickyChrome'
-import { WfBadge, WfEmpty } from '@/layout/Wireframe'
+import { WfBadge, WfEmpty, WfWarnBadge } from '@/layout/Wireframe'
+import { matchDiffers, matchLabel } from '@/features/match/matchChecks'
 import {
   defaultMatchTab,
   derivePhase,
   hasTaggedRallies,
   matchMeta,
-  matchTitle,
   phaseLabel,
   useDemo,
 } from '@/data/demoStore'
@@ -56,7 +56,7 @@ export function HomePage() {
             </div>
             <div className="rounded-md border border-border bg-bg-card px-3 py-3 space-y-1">
               <p className="text-sm font-semibold text-primary">
-                {matchTitle(continueMatch)}
+                {matchLabel(continueMatch)}
               </p>
               <p className="text-sm text-muted">
                 {derivePhase(continueMatch) === 'partial'
@@ -111,9 +111,12 @@ export function HomePage() {
                       >
                         <div className="min-w-0">
                           <p className="text-sm font-medium text-primary">
-                            {matchTitle(m)}
+                            {matchLabel(m)}
                           </p>
-                          <p className="text-xs text-muted mt-0.5">{matchMeta(m)}</p>
+                          <p className="text-xs text-muted mt-0.5 flex flex-wrap items-center gap-1.5">
+                            {matchMeta(m)}
+                            {matchDiffers(m) ? <WfWarnBadge>Differs</WfWarnBadge> : null}
+                          </p>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
                           <WfBadge>{phaseLabel(phase)}</WfBadge>
