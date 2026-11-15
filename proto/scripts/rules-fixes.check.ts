@@ -1,8 +1,9 @@
 // Rule fixes after the pass 3 rule review: faults 1, 2, 3, 6 and 7, the rule side of fault 5,
-// and the pick on a shot whose kept stroke has no row. No browser.
+// the pick on a shot whose kept stroke has no row, and the minimum gap between live taps. No browser.
 // Then the reviewer's own cases (rules-review-cases.ts). Run: sh proto/scripts/rules-fixes.sh
 import {
   ATTACK_STROKES,
+  MIN_TAP_GAP_S,
   SHOT_REACHED_SLACK_S,
   TAP_LATENCY_S,
   addContact,
@@ -23,6 +24,7 @@ import {
   showsStroke,
   stageOf,
   switchOf,
+  tapIgnored,
   toggleNoAttack,
   toggleShotField,
   undoClosedContact,
@@ -433,6 +435,59 @@ console.log('\nFault 5: shotAtTime and reopenFaPick')
     return reopenFaPick(two) === two && two.fa === 2 && reopenFaPick(one) === one
   })())
   check('the draft that went in is not touched', d.fa === 3 && n.noAttack)
+}
+
+// ---------- A second live tap inside 150 ms is ignored
+console.log('\nLive taps: the minimum gap')
+{
+  const one = addContact(emptyDraft('v', 'me'), 10)
+  check('the constant is 0.15s', MIN_TAP_GAP_S === 0.15)
+  check('the first tap always counts', one.contacts.length === 1 && !tapIgnored(emptyDraft('v', 'me'), 0))
+  for (const ms of [60, 120, 149]) {
+    const t = 10 + ms / 1000
+    const got = addContact(one, t)
+    check(`a second tap ${ms} ms after the first is ignored: the same draft comes back`, got === one && tapIgnored(one, t) && J(got.contacts) === J([10]) && got.shots.length === 1)
+  }
+  for (const ms of [150, 200]) {
+    const t = 10 + ms / 1000
+    const got = addContact(one, t)
+    check(`a second tap ${ms} ms after the first counts`, !tapIgnored(one, t) && J(got.contacts) === J([10, t]) && got.shots.length === 2 && one.contacts.length === 1)
+  }
+  check('a tap at the very time of the last contact is ignored', addContact(one, 10) === one)
+  check('two real contacts 0.3s apart both count', (() => {
+    const two = addContact(one, 10.3)
+    const three = addContact(two, 10.6)
+    return J(three.contacts) === J([10, 10.3, 10.6]) && three.shots.length === 3
+  })())
+  check('the gap is from the last contact, not the first: 10, 10.3, then 10.4 is ignored and 10.45 counts', (() => {
+    const two = addContact(one, 10.3)
+    return addContact(two, 10.4) === two && addContact(two, 10.45).contacts.length === 3
+  })())
+  check('exactly 150 ms counts wherever the last contact sits, as the pad stores hundredths', (() => {
+    for (let i = 0; i < 20000; i++) {
+      const last = i / 100
+      const d = addContact(emptyDraft('v', 'me'), last)
+      const at = Math.round((last + 0.15) * 100) / 100
+      const before = Math.round((last + 0.14) * 100) / 100
+      if (addContact(d, at).contacts.length !== 2 || addContact(d, before) !== d) return false
+    }
+    return true
+  })())
+  check('a burst of taps 60 ms apart leaves one contact every 180 ms', (() => {
+    let d = emptyDraft('v', 'me')
+    for (let i = 0; i < 10; i++) d = addContact(d, Math.round((10 + i * 0.06) * 100) / 100)
+    return J(d.contacts) === J([10, 10.18, 10.36, 10.54])
+  })())
+  check('an ignored tap leaves a rally with tags as it was', (() => {
+    const d = ws(tapped(3), 3, 'FH', 'Loop')
+    const live = { ...d, closed: false }
+    return addContact(live, 11.7) === live
+  })())
+  check('Add contact is not held to it: a missed contact 0.1s after a tap still goes in', (() => {
+    const d = tapped(4, 'Long')
+    const { draft, shot } = insertContact(d, 10.9)
+    return draft.contacts.length === 5 && shot === 3
+  })())
 }
 
 // ---------- Seeded rallies hold nothing that Save would drop
