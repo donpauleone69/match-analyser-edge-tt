@@ -8,14 +8,23 @@ import {
   formatSize,
   isUntouched,
   lastTaggedSetId,
+  resultDiffers,
   resultSetCount,
-  setFullyTagged,
-  setHasTagProgress,
   setScoresDiffer,
+  setState,
+  taggedResult,
+  taggedScore,
+  taggedSetsWon,
   useDemo,
   type MatchRecord,
   type SetData,
 } from '@/data/demoStore'
+import {
+  applyTaggedResult,
+  applyTaggedScore,
+  applyTaggedScores,
+} from '@/features/tagging/matchOps'
+import { AddVideoChoice } from '@/features/match/AddVideoChoice'
 import { cn } from '@/helpers/utils'
 
 const labelClass = 'text-xs font-semibold uppercase tracking-wide text-muted'
@@ -102,7 +111,7 @@ const ARCHIVE_STEP_MS = 1100
 /** Ordered, sequential videos for the match. No mapping of sets to videos. */
 function VideosCard({ match }: { match: MatchRecord }) {
   const navigate = useNavigate()
-  const { addVideo, moveVideo, removeVideo, archiveVideos } = useDemo()
+  const { moveVideo, removeVideo, archiveVideos } = useDemo()
   const phase = derivePhase(match)
   const many = match.videos.length > 1
   const anyOriginal = match.videos.some((v) => !v.archived)
@@ -126,20 +135,12 @@ function VideosCard({ match }: { match: MatchRecord }) {
 
   return (
     <Card className="space-y-3">
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="flex items-center gap-2">
           <Icon name="film" size="sm" className="text-brand" />
           <CardTitle>Videos</CardTitle>
         </div>
-        <Button
-          size="sm"
-          variant="secondary"
-          disabled={running}
-          onClick={() => addVideo(match.id)}
-        >
-          <Icon name="plus" size="xs" />
-          Add video
-        </Button>
+        <AddVideoChoice matchId={match.id} disabled={running} />
       </div>
 
       {match.videos.length === 0 ? (
@@ -302,19 +303,27 @@ function ScoreInput({
   )
 }
 
-function TaggedCell({ set }: { set: SetData }) {
-  if (set.skipped) return <span className="text-muted">Not filmed</span>
-  if (!set.tagged || !setHasTagProgress(set)) return <span className="text-muted">Not tagged</span>
-  if (!setFullyTagged(set)) {
-    return <span className="text-muted">{formatScore(set.tagged)} so far</span>
+function TaggedCell({ set, onUseTagged }: { set: SetData; onUseTagged: () => void }) {
+  const state = setState(set)
+  const tagged = taggedScore(set)
+  if (state === 'skipped') return <span className="text-muted">Not filmed</span>
+  if (state === 'none') return <span className="text-muted">Not tagged</span>
+  if (!tagged) return <span className="text-muted">Started</span>
+  if (state === 'progress') {
+    return <span className="text-muted">{formatScore(tagged)} so far</span>
   }
   return (
     <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
-      <span className="font-semibold text-primary">{formatScore(set.tagged)}</span>
+      <span className="font-semibold text-primary">{formatScore(tagged)}</span>
       {setScoresDiffer(set) ? (
-        <span className="inline-flex items-center rounded border border-warning bg-warning/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
-          Differs
-        </span>
+        <>
+          <span className="inline-flex items-center rounded border border-warning bg-warning/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+            Differs
+          </span>
+          <Button size="sm" variant="secondary" onClick={onUseTagged}>
+            Use tagged
+          </Button>
+        </>
       ) : null}
     </span>
   )
@@ -322,11 +331,14 @@ function TaggedCell({ set }: { set: SetData }) {
 
 /** Result and set scores as one area. The result dictates the number of sets. */
 function ResultCard({ match }: { match: MatchRecord }) {
-  const { setResult, setEnteredScore } = useDemo()
+  const { setResult, setEnteredScore, mutateMatch } = useDemo()
   const count = resultSetCount(match)
   const lastTagged = lastTaggedSetId(match)
   const differing = match.sets.filter(setScoresDiffer).length
   const them = match.opponent.trim() || 'Opponent'
+  const fromTagging = taggedResult(match) ?? taggedSetsWon(match)
+  // Tagged with no result: offer the result tagging gives. Never automatic.
+  const offerResult = count === null && derivePhase(match) === 'complete'
 
   return (
     <Card className="space-y-3">
@@ -355,10 +367,43 @@ function ResultCard({ match }: { match: MatchRecord }) {
           The result gives {count} {count === 1 ? 'set' : 'sets'} but set {lastTagged} is tagged.
         </p>
       ) : null}
+      {offerResult ? (
+        <div className={cn(flagClass, 'flex flex-wrap items-center justify-between gap-2')}>
+          <span>No result entered. Tagged sets give {formatScore(fromTagging)}.</span>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => mutateMatch(match.id, applyTaggedResult)}
+          >
+            Use tagged result
+          </Button>
+        </div>
+      ) : null}
+      {resultDiffers(match) ? (
+        <div className={cn(flagClass, 'flex flex-wrap items-center justify-between gap-2')}>
+          <span>The result differs from tagging. Tagged sets give {formatScore(fromTagging)}.</span>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => mutateMatch(match.id, applyTaggedResult)}
+          >
+            Use tagged result
+          </Button>
+        </div>
+      ) : null}
       {differing > 0 ? (
-        <p className={flagClass}>
-          {differing === 1 ? '1 set differs' : `${differing} sets differ`} from tagging.
-        </p>
+        <div className={cn(flagClass, 'flex flex-wrap items-center justify-between gap-2')}>
+          <span>{differing === 1 ? '1 set differs' : `${differing} sets differ`} from tagging.</span>
+          {differing > 1 ? (
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => mutateMatch(match.id, applyTaggedScores)}
+            >
+              Use tagged scores
+            </Button>
+          ) : null}
+        </div>
       ) : null}
 
       <table className="w-full text-sm">
@@ -395,7 +440,10 @@ function ResultCard({ match }: { match: MatchRecord }) {
                   </span>
                 </td>
                 <td className="py-2">
-                  <TaggedCell set={s} />
+                  <TaggedCell
+                    set={s}
+                    onUseTagged={() => mutateMatch(match.id, (m) => applyTaggedScore(m, s.setId))}
+                  />
                 </td>
               </tr>
             )

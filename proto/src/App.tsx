@@ -8,8 +8,8 @@ import {
   MatchPage,
   MatchIndexRedirect,
   MatchInsightsSection,
-  MatchTagSetStub,
 } from '@/pages/MatchPage'
+import { TagSetScreen } from '@/features/tagging/TagSetScreen'
 import { MatchDetails } from '@/features/match/MatchDetails'
 import { MatchTagChecklist } from '@/features/match/MatchTagChecklist'
 import { DiscardUntouched } from '@/layout/DiscardUntouched'
@@ -32,7 +32,7 @@ export default function App() {
             <Route path="insights/:section" element={<MatchInsightsSection />} />
             <Route path="details" element={<MatchDetails />} />
             <Route path="tag" element={<MatchTagChecklist />} />
-            <Route path="tag/:setId" element={<MatchTagSetStub />} />
+            <Route path="tag/:setId" element={<TagSetScreen />} />
           </Route>
           <Route path="/insights" element={<InsightsPage />}>
             <Route index element={<Navigate to="summary" replace />} />

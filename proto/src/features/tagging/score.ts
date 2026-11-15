@@ -1,0 +1,44 @@
+/** Score, server and set-end rules, ported from the real app (pure). */
+
+import { otherSide, type Side } from './rally'
+
+export type Points = { me: number; them: number }
+
+export const ZERO: Points = { me: 0, them: 0 }
+
+export function addPoint(score: Points, winner: Side): Points {
+  return winner === 'me' ? { ...score, me: score.me + 1 } : { ...score, them: score.them + 1 }
+}
+
+export function countPoints(winners: Side[]): Points {
+  return winners.reduce(addPoint, ZERO)
+}
+
+/** Two serves each, then one each from 10 all. */
+export function serverAt(firstServer: Side, score: Points): Side {
+  const total = score.me + score.them
+  if (score.me >= 10 && score.them >= 10) {
+    return (total - 20) % 2 === 0 ? firstServer : otherSide(firstServer)
+  }
+  return Math.floor(total / 2) % 2 === 0 ? firstServer : otherSide(firstServer)
+}
+
+/** 11 or more, two clear. */
+export function isSetWon(score: Points): boolean {
+  return Math.max(score.me, score.them) >= 11 && Math.abs(score.me - score.them) >= 2
+}
+
+export function leader(score: Points): Side | null {
+  if (score.me === score.them) return null
+  return score.me > score.them ? 'me' : 'them'
+}
+
+/** Sets won that could be a finished match: best of 3, 5 or 7. */
+export function isPlausibleMatchWin(sets: Points): boolean {
+  return Math.max(sets.me, sets.them) >= 2 && sets.me !== sets.them
+}
+
+/** Later sets alternate the first server from set 1. */
+export function firstServerForSet(setOneServer: Side, setId: number): Side {
+  return setId % 2 === 1 ? setOneServer : otherSide(setOneServer)
+}

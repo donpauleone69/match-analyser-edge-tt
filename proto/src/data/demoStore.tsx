@@ -6,19 +6,26 @@ import {
   useState,
   type ReactNode,
 } from 'react'
+import { emptyDraft, type Draft, type RallyData, type Side } from '@/features/tagging/rally'
+import {
+  buildScripts,
+  genericScript,
+  ralliesFromScript,
+  setWinners,
+  type VideoScript,
+} from '@/features/tagging/script'
+import {
+  countPoints,
+  firstServerForSet,
+  leader,
+  type Points,
+} from '@/features/tagging/score'
+
+export type { RallyData } from '@/features/tagging/rally'
 
 export type DemoMode = 'filled' | 'empty'
 
-export type RallyData = {
-  id: string
-  label: string
-  meta: string
-  start: string
-  end: string
-  shots: { id: string; label: string; t: string }[]
-}
-
-export type Score = { me: number; them: number }
+export type Score = Points
 
 /** Typed on Details. Strings so a half-typed score survives. */
 export type EnteredScore = { me: string; them: string }
@@ -27,24 +34,32 @@ export type SetData = {
   setId: number
   /** Entered on Details. */
   entered: EnteredScore
-  /** Counted from tagging; null until the set has tagged points. */
-  tagged: Score | null
   /** "Not filmed": the user chose to skip this set on the Tag checklist. */
   skipped: boolean
-  contacts: boolean
-  keyMoments: boolean
-  shotDetails: boolean
-  optionalExtras: boolean
+  /** The user pressed Finish set. */
+  finished: boolean
+  firstServer: Side
+  /** Saved rallies, in order. The tagged score is counted from them. */
   rallies: RallyData[]
+  /** The rally being tagged, kept without asking. */
+  draft: Draft | null
 }
 
-/** One source video. A match's videos play in list order; no set mapping. */
+/**
+ * One source video. A match's videos play in list order; no set mapping.
+ * demo = the scripted stand-in. file = a local file through a blob URL,
+ * in memory only, never uploaded or stored.
+ */
 export type VideoAsset = {
   id: string
   fileName: string
   sizeMb: number
   /** Rallies only, joined, lower quality. Cannot be undone. */
   archived: boolean
+  kind: 'demo' | 'file'
+  durationS: number
+  script?: VideoScript
+  src?: string
 }
 
 /** Sets won by each side. Both set means the result is entered. */
@@ -58,28 +73,39 @@ export type MatchRecord = {
   result: MatchResult
   videos: VideoAsset[]
   sets: SetData[]
+  /** The user pressed Finish match. */
+  tagDone: boolean
 }
 
 /**
- * new = no video yet
+ * new = no video and nothing tagged
  * ready = video added, nothing tagged
- * partial = at least one rally tagged
- * complete = every set is fully tagged or marked not filmed
+ * partial = tagging started, match not finished
+ * complete = Tagged: a result is entered and every set it lists is finished
+ *   or not filmed, or the user pressed Finish match
  */
 export type MatchPhase = 'new' | 'ready' | 'partial' | 'complete'
 
+/** Counted from the saved rallies; null until the set has one. */
+export function taggedScore(s: SetData): Score | null {
+  return s.rallies.length > 0 ? countPoints(s.rallies.map((r) => r.winner)) : null
+}
+
+/** A set is finished when the user says so, not when its rallies have tags. */
 export function setFullyTagged(s: SetData): boolean {
-  return s.contacts && s.keyMoments && s.shotDetails
+  return s.finished
 }
 
 export function setHasTagProgress(s: SetData): boolean {
-  return (
-    s.rallies.length > 0 ||
-    s.contacts ||
-    s.keyMoments ||
-    s.shotDetails ||
-    s.optionalExtras
-  )
+  return s.rallies.length > 0 || s.draft !== null || s.finished
+}
+
+export type SetState = 'skipped' | 'finished' | 'progress' | 'none'
+
+export function setState(s: SetData): SetState {
+  if (s.skipped) return 'skipped'
+  if (s.finished) return 'finished'
+  return setHasTagProgress(s) ? 'progress' : 'none'
 }
 
 /** Number of sets the result dictates (3 - 2 means 5), or null if not entered. */
@@ -103,43 +129,84 @@ function emptySet(setId: number): SetData {
   return {
     setId,
     entered: { me: '', them: '' },
-    tagged: null,
     skipped: false,
-    contacts: false,
-    keyMoments: false,
-    shotDetails: false,
-    optionalExtras: false,
+    finished: false,
+    firstServer: firstServerForSet('me', setId),
     rallies: [],
+    draft: null,
   }
 }
 
 /**
- * The result dictates the set list. With no result yet, list every set that
- * has been tagged or marked not filmed, plus the next one. Sets that already
- * hold an entered score are kept.
+ * The result dictates the set list. With no result, list every set that is
+ * tagged, not filmed or has an entered score, then one spare set to start
+ * next. Finish match drops the spare.
  */
-function normalizeSets(match: MatchRecord): MatchRecord {
+function normalizeMatch(match: MatchRecord): MatchRecord {
+  const open = match.sets.some((s) => setState(s) === 'progress')
+  const tagDone = match.tagDone && !open && match.sets.some((s) => setState(s) === 'finished')
   const fromResult = resultSetCount(match)
+  const used = Math.max(
+    lastSetId(match.sets, (s) => setHasTagProgress(s) || s.skipped),
+    lastSetId(match.sets, (s) => s.entered.me !== '' || s.entered.them !== '')
+  )
   const count =
     fromResult !== null
       ? Math.max(fromResult, lastTaggedSetId(match))
-      : Math.max(
-          lastSetId(match.sets, (s) => setHasTagProgress(s) || s.skipped) + 1,
-          lastSetId(match.sets, (s) => s.entered.me !== '' || s.entered.them !== '')
+      : Math.max(1, tagDone ? used : used + 1)
+  const sets =
+    count === match.sets.length
+      ? match.sets
+      : Array.from(
+          { length: count },
+          (_, i) => match.sets.find((s) => s.setId === i + 1) ?? emptySet(i + 1)
         )
-  if (count === match.sets.length) return match
-  const sets = Array.from(
-    { length: count },
-    (_, i) => match.sets.find((s) => s.setId === i + 1) ?? emptySet(i + 1)
+  return sets === match.sets && tagDone === match.tagDone ? match : { ...match, sets, tagDone }
+}
+
+/** With no result the last listed set is a spare: it can be started, not skipped. */
+export function isSpareSet(match: MatchRecord, s: SetData): boolean {
+  return (
+    resultSetCount(match) === null &&
+    s.setId === match.sets.length &&
+    setState(s) === 'none' &&
+    s.entered.me === '' &&
+    s.entered.them === ''
   )
-  return { ...match, sets }
+}
+
+/** Sets won, counted from finished sets. */
+export function taggedSetsWon(match: MatchRecord): Score {
+  return match.sets.reduce<Score>(
+    (won, s) => {
+      const score = setState(s) === 'finished' ? taggedScore(s) : null
+      const side = score ? leader(score) : null
+      if (side === 'me') return { ...won, me: won.me + 1 }
+      if (side === 'them') return { ...won, them: won.them + 1 }
+      return won
+    },
+    { me: 0, them: 0 }
+  )
+}
+
+/**
+ * Tagged comes from tagging: a result is entered and every set it lists is
+ * finished or not filmed, or the user pressed Finish match. Never while a
+ * set is part way through.
+ */
+export function isMatchTagged(match: MatchRecord): boolean {
+  if (match.sets.some((s) => setState(s) === 'progress')) return false
+  if (!match.sets.some((s) => setState(s) === 'finished')) return false
+  if (match.tagDone) return true
+  const count = resultSetCount(match)
+  if (count === null) return false
+  return match.sets.filter((s) => s.setId <= count).every((s) => s.skipped || s.finished)
 }
 
 export function derivePhase(match: MatchRecord): MatchPhase {
-  if (match.videos.length === 0) return 'new'
-  const active = match.sets.filter((s) => !s.skipped)
-  if (!active.some(setHasTagProgress)) return 'ready'
-  return active.every(setFullyTagged) ? 'complete' : 'partial'
+  const tagged = match.sets.some((s) => !s.skipped && setHasTagProgress(s))
+  if (!tagged) return match.videos.length === 0 ? 'new' : 'ready'
+  return isMatchTagged(match) ? 'complete' : 'partial'
 }
 
 export function phaseLabel(phase: MatchPhase): string {
@@ -199,11 +266,36 @@ export function parseEntered(entered: EnteredScore): Score | null {
   return { me: Number(entered.me), them: Number(entered.them) }
 }
 
-/** Entered and tagged scores are only compared once the set is fully tagged. */
+/** Entered and tagged scores are only compared once the set is finished. */
 export function setScoresDiffer(s: SetData): boolean {
   const entered = parseEntered(s.entered)
-  if (!entered || !s.tagged || s.skipped || !setFullyTagged(s)) return false
-  return entered.me !== s.tagged.me || entered.them !== s.tagged.them
+  const tagged = taggedScore(s)
+  if (!entered || !tagged || s.skipped || !s.finished) return false
+  return entered.me !== tagged.me || entered.them !== tagged.them
+}
+
+/**
+ * Sets won as tagging sees them: tagged winners for finished sets, the
+ * entered score for sets not filmed. Null while any listed set gives neither.
+ */
+export function taggedResult(match: MatchRecord): Score | null {
+  const won = { me: 0, them: 0 }
+  for (const s of match.sets) {
+    if (isSpareSet(match, s)) continue
+    const score = s.skipped ? parseEntered(s.entered) : s.finished ? taggedScore(s) : null
+    const side = score ? leader(score) : null
+    if (!side) return null
+    won[side] += 1
+  }
+  return won.me + won.them > 0 ? won : null
+}
+
+/** The entered result disagrees with the set winners from tagging. */
+export function resultDiffers(match: MatchRecord): boolean {
+  const { me, them } = match.result
+  if (me === null || them === null || !isMatchTagged(match)) return false
+  const tagged = taggedResult(match)
+  return tagged !== null && (tagged.me !== me || tagged.them !== them)
 }
 
 /** A new match nobody has put anything into. Discarded when left. */
@@ -224,6 +316,43 @@ export function isUntouched(match: MatchRecord): boolean {
 
 const ARCHIVE_RATIO = 0.12
 
+function demoVideo(id: string, fileName: string, script: VideoScript): VideoAsset {
+  return {
+    id,
+    fileName,
+    sizeMb: Math.round(script.duration * 6),
+    archived: false,
+    kind: 'demo',
+    durationS: script.duration,
+    script,
+  }
+}
+
+/** Club night vs Sam: two videos. The second starts ten points into set 2. */
+const CLUB_SETS = [
+  { firstServer: 'me' as Side, winners: setWinners(11, 11, 7) },
+  { firstServer: 'them' as Side, winners: setWinners(12, 9, 11) },
+  { firstServer: 'me' as Side, winners: setWinners(13, 11, 8) },
+]
+const CLUB_SCRIPTS = buildScripts(101, CLUB_SETS, [28])
+const CLUB_VIDEOS = [
+  demoVideo('v-club-1', 'club-night-part-1.mp4', CLUB_SCRIPTS[0]),
+  demoVideo('v-club-2', 'club-night-part-2.mp4', CLUB_SCRIPTS[1]),
+]
+/** The rally left open in set 2: contacts tapped, waiting for its result. */
+const CLUB_OPEN = CLUB_SCRIPTS[0].rallies[25]
+
+/** League final vs Pat: one video, three sets. Set 2 is tagged 8 - 11. */
+const FINAL_SETS = [
+  { firstServer: 'me' as Side, winners: setWinners(21, 11, 7) },
+  { firstServer: 'them' as Side, winners: setWinners(22, 8, 11) },
+  { firstServer: 'me' as Side, winners: setWinners(23, 11, 5) },
+]
+const FINAL_SCRIPT = buildScripts(202, FINAL_SETS)[0]
+const FINAL_VIDEO = demoVideo('v-final', 'league-final.mp4', FINAL_SCRIPT)
+const finalSet = (from: number, count: number) =>
+  ralliesFromScript('v-final', FINAL_SCRIPT, from, count)
+
 const SEED: MatchRecord[] = [
   {
     id: 'm-new',
@@ -233,66 +362,49 @@ const SEED: MatchRecord[] = [
     result: { me: null, them: null },
     videos: [],
     sets: [emptySet(1)],
+    tagDone: false,
   },
   {
+    // Video added, nothing tagged.
+    id: 'm-ready',
+    opponent: 'Kim',
+    event: 'County open',
+    date: '2026-11-13',
+    result: { me: null, them: null },
+    videos: [demoVideo('v-county', 'county-open.mp4', genericScript(31))],
+    sets: [emptySet(1)],
+    tagDone: false,
+  },
+  {
+    // Part way through set 2 with a rally left open. Set 4 skipped by choice.
     id: 'm-partial',
     opponent: 'Sam',
     event: 'Club night',
     date: '2026-11-11',
     result: { me: 3, them: 1 },
-    // Two videos in order. Set 4 was skipped by choice (Not filmed).
-    videos: [
-      { id: 'v-club-1', fileName: 'club-night-part-1.mp4', sizeMb: 1600, archived: false },
-      { id: 'v-club-2', fileName: 'club-night-part-2.mp4', sizeMb: 1200, archived: false },
-    ],
+    videos: CLUB_VIDEOS,
     sets: [
       {
-        setId: 1,
+        ...emptySet(1),
         entered: { me: '11', them: '7' },
-        tagged: { me: 11, them: 7 },
-        skipped: false,
-        contacts: true,
-        keyMoments: true,
-        shotDetails: true,
-        optionalExtras: true,
-        rallies: [
-          {
-            id: 'r1',
-            label: 'R1 · 0-0',
-            meta: 'Won · FA',
-            start: '04:12.0',
-            end: '04:18.2',
-            shots: [
-              { id: 's1', label: 'Contact 1', t: '04:12.3' },
-              { id: 's2', label: 'Contact 2', t: '04:13.8' },
-              { id: 's3', label: 'End', t: '04:18.0' },
-            ],
-          },
-        ],
+        finished: true,
+        rallies: ralliesFromScript('v-club-1', CLUB_SCRIPTS[0], 0, 18),
       },
       {
-        setId: 2,
+        ...emptySet(2),
         entered: { me: '9', them: '11' },
-        tagged: { me: 4, them: 3 },
-        skipped: false,
-        contacts: true,
-        keyMoments: false,
-        shotDetails: false,
-        optionalExtras: false,
-        rallies: [
-          {
-            id: 'r1',
-            label: 'R1 · 0-0',
-            meta: 'Open',
-            start: '01:02.0',
-            end: '01:05.0',
-            shots: [{ id: 's1', label: 'Contact 1', t: '01:02.4' }],
-          },
-        ],
+        rallies: ralliesFromScript('v-club-1', CLUB_SCRIPTS[0], 18, 7),
+        draft: {
+          ...emptyDraft('v-club-1', CLUB_OPEN.server),
+          contacts: CLUB_OPEN.contacts,
+          shots: CLUB_OPEN.contacts.map(() => ({})),
+          closed: true,
+        },
       },
       { ...emptySet(3), entered: { me: '11', them: '8' } },
       { ...emptySet(4), entered: { me: '11', them: '6' }, skipped: true },
     ],
+    tagDone: false,
   },
   {
     id: 'm-complete',
@@ -300,81 +412,34 @@ const SEED: MatchRecord[] = [
     event: 'League final',
     date: '2026-11-08',
     result: { me: 2, them: 1 },
-    videos: [{ id: 'v-final', fileName: 'league-final.mp4', sizeMb: 2400, archived: false }],
+    videos: [FINAL_VIDEO],
     sets: [
       {
-        setId: 1,
+        ...emptySet(1),
         entered: { me: '11', them: '7' },
-        tagged: { me: 11, them: 7 },
-        skipped: false,
-        contacts: true,
-        keyMoments: true,
-        shotDetails: true,
-        optionalExtras: true,
-        rallies: [
-          {
-            id: 'r1',
-            label: 'R1 · 0-0',
-            meta: 'Won · FA',
-            start: '02:10.0',
-            end: '02:14.0',
-            shots: [
-              { id: 's1', label: 'Contact 1', t: '02:10.2' },
-              { id: 's2', label: 'End', t: '02:13.8' },
-            ],
-          },
-        ],
+        finished: true,
+        rallies: finalSet(0, 18),
       },
       {
-        setId: 2,
         // Entered and tagged disagree on purpose, to show the flag.
+        ...emptySet(2),
         entered: { me: '9', them: '11' },
-        tagged: { me: 8, them: 11 },
-        skipped: false,
-        contacts: true,
-        keyMoments: true,
-        shotDetails: true,
-        optionalExtras: false,
-        rallies: [
-          {
-            id: 'r1',
-            label: 'R1 · 0-0',
-            meta: 'Lost',
-            start: '03:01.0',
-            end: '03:06.0',
-            shots: [
-              { id: 's1', label: 'Contact 1', t: '03:01.3' },
-              { id: 's2', label: 'End', t: '03:05.7' },
-            ],
-          },
-        ],
+        finished: true,
+        rallies: finalSet(18, 19),
       },
       {
-        setId: 3,
+        ...emptySet(3),
         entered: { me: '11', them: '5' },
-        tagged: { me: 11, them: 5 },
-        skipped: false,
-        contacts: true,
-        keyMoments: true,
-        shotDetails: true,
-        optionalExtras: true,
-        rallies: [
-          {
-            id: 'r1',
-            label: 'R1 · 0-0',
-            meta: 'Won · FA',
-            start: '05:20.0',
-            end: '05:24.0',
-            shots: [
-              { id: 's1', label: 'Contact 1', t: '05:20.1' },
-              { id: 's2', label: 'End', t: '05:23.6' },
-            ],
-          },
-        ],
+        finished: true,
+        rallies: finalSet(37, 16),
       },
     ],
+    tagDone: false,
   },
 ]
+
+/** A local file picked by the user. Held in memory only; never uploaded. */
+export type LocalVideo = { fileName: string; sizeMb: number; durationS: number; src: string }
 
 const SEED_IDS = new Set(SEED.map((s) => s.id))
 
@@ -392,7 +457,10 @@ type DemoContextValue = {
   updateMatch: (id: string, patch: MatchFields) => void
   setResult: (matchId: string, result: MatchResult) => void
   setEnteredScore: (matchId: string, setId: number, entered: EnteredScore) => void
-  addVideo: (matchId: string) => void
+  /** Adds the scripted demo video, or the given local file video. */
+  addVideo: (matchId: string, file?: LocalVideo) => void
+  /** Applies any change to the latest copy of a match (tagging uses this). */
+  mutateMatch: (id: string, fn: (current: MatchRecord) => MatchRecord) => void
   moveVideo: (matchId: string, videoId: string, by: -1 | 1) => void
   removeVideo: (matchId: string, videoId: string) => void
   archiveVideos: (matchId: string) => void
@@ -471,7 +539,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
         const current =
           prev.find((m) => m.id === id) ?? (isSeed ? SEED.find((m) => m.id === id) : undefined)
         if (!current) return prev
-        const next = normalizeSets(fn(current))
+        const next = normalizeMatch(fn(current))
         return prev.some((m) => m.id === id)
           ? prev.map((m) => (m.id === id ? next : m))
           : [...prev, next]
@@ -489,6 +557,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
       result: { me: null, them: null },
       videos: [],
       sets: [emptySet(1)],
+      tagDone: false,
     }
     setExtra((prev) => [...prev, created])
     return created
@@ -533,19 +602,22 @@ export function DemoProvider({ children }: { children: ReactNode }) {
   )
 
   const addVideo = useCallback(
-    (matchId: string) =>
-      change(matchId, (m) => ({
-        ...m,
-        videos: [
-          ...m.videos,
-          {
-            id: `v-${matchId}-${Date.now()}`,
-            fileName: `match-video-${m.videos.length + 1}.mp4`,
-            sizeMb: 1400,
-            archived: false,
-          },
-        ],
-      })),
+    (matchId: string, file?: LocalVideo) =>
+      change(matchId, (m) => {
+        const id = `v-${matchId}-${Date.now()}`
+        const video: VideoAsset = file
+          ? {
+              id,
+              fileName: file.fileName,
+              sizeMb: file.sizeMb,
+              archived: false,
+              kind: 'file',
+              durationS: file.durationS,
+              src: file.src,
+            }
+          : demoVideo(id, `demo-video-${m.videos.length + 1}.mp4`, genericScript(Date.now() % 9973))
+        return { ...m, videos: [...m.videos, video] }
+      }),
     [change]
   )
 
@@ -597,6 +669,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
       setResult,
       setEnteredScore,
       addVideo,
+      mutateMatch: change,
       moveVideo,
       removeVideo,
       archiveVideos,
@@ -614,6 +687,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
       setResult,
       setEnteredScore,
       addVideo,
+      change,
       moveVideo,
       removeVideo,
       archiveVideos,
