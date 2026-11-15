@@ -1070,7 +1070,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
           className="flex-1 min-h-0 overflow-y-auto px-2 py-2 flex flex-col"
           onClickCapture={guardClicks(panelGuard)}
         >
-          <div className={cn('mt-auto space-y-2 transition-opacity duration-100', panelBusy && BUSY)} data-tag-panel>
+          <div className={cn('mt-auto space-y-2', panelBusy && BUSY)} data-tag-panel>
             {goneCount > 0 ? (
               <div className="rounded-md border border-dashed border-border bg-bg-card px-3 py-2 space-y-2" role="status">
                 <p className="text-sm text-primary">
