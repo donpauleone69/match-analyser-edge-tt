@@ -11,6 +11,7 @@ import {
   useDemo,
   type MatchRecord,
 } from '@/data/demoStore'
+import { hasPlayableRallies } from '@/features/match/matchChecks'
 
 export type InsightsScope = 'global' | 'match'
 export type SectionId = 'summary' | 'serve' | 'receive' | 'improve'
@@ -189,7 +190,13 @@ function SectionBody({
     }
   }
 
-  const playing = data.reels.find((r) => r.id === playingId) ?? null
+  // A match whose video was removed keeps its numbers, but nothing can play.
+  const videoGone =
+    scope === 'match' &&
+    match !== undefined &&
+    hasTaggedRallies(match) &&
+    !hasPlayableRallies(match)
+  const playing = videoGone ? null : (data.reels.find((r) => r.id === playingId) ?? null)
 
   return (
     <div className="space-y-4">
@@ -201,6 +208,16 @@ function SectionBody({
 
       <Card className="space-y-3">
         <CardDescription>{data.stats}</CardDescription>
+
+        {videoGone && match ? (
+          <p className="rounded-md border border-dashed border-border bg-bg-card px-3 py-2 text-sm text-primary">
+            The video was removed, so these reels cannot play.{' '}
+            <Link to={`/matches/${match.id}/details`} className="font-semibold text-brand underline">
+              Add it back in Details
+            </Link>
+            .
+          </p>
+        ) : null}
 
         {playing ? (
           <div className="rounded-lg border border-border bg-bg-card p-3 space-y-2">
@@ -260,25 +277,29 @@ function SectionBody({
                   <p className="text-sm font-medium text-primary">{r.title}</p>
                   <p className="text-xs text-muted mt-0.5">{r.meta}</p>
                 </div>
-                <div className="flex gap-1 shrink-0">
-                  <Button size="sm" onClick={() => setPlayingId(r.id)}>
-                    <Icon name="play" size="xs" />
-                    Play
-                  </Button>
-                  <Button size="sm" variant="secondary" disabled>
-                    <Icon name="download" size="xs" />
-                    Download
-                  </Button>
-                </div>
+                {videoGone ? null : (
+                  <div className="flex gap-1 shrink-0">
+                    <Button size="sm" onClick={() => setPlayingId(r.id)}>
+                      <Icon name="play" size="xs" />
+                      Play
+                    </Button>
+                    <Button size="sm" variant="secondary" disabled>
+                      <Icon name="download" size="xs" />
+                      Download
+                    </Button>
+                  </div>
+                )}
               </li>
             ))}
           </ul>
         )}
 
-        <Button size="sm" variant="secondary" disabled>
-          <Icon name="download" size="xs" />
-          Download all
-        </Button>
+        {videoGone ? null : (
+          <Button size="sm" variant="secondary" disabled>
+            <Icon name="download" size="xs" />
+            Download all
+          </Button>
+        )}
       </Card>
     </div>
   )

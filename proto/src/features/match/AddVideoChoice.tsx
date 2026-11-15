@@ -17,17 +17,21 @@ function probeDuration(src: string): Promise<number> {
 }
 
 /**
- * Add video offers two sources: the scripted demo video, or a file from this
- * device. A chosen file plays through a blob URL held in memory only.
+ * Add video offers two sources: a file from this device, which is the real
+ * way in, or the scripted demo video, which only stands in for one in this
+ * prototype. A chosen file plays through a blob URL held in memory only.
  */
 export function AddVideoChoice({
   matchId,
   align = 'start',
   disabled = false,
+  label = true,
 }: {
   matchId: string
   align?: 'start' | 'center'
   disabled?: boolean
+  /** Shows the words "Add video". Off where the text around it already says so. */
+  label?: boolean
 }) {
   const { addVideo } = useDemo()
   const input = useRef<HTMLInputElement>(null)
@@ -56,11 +60,12 @@ export function AddVideoChoice({
 
   return (
     <div className={cn('space-y-1', align === 'center' && 'flex flex-col items-center')}>
-      <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Add video">
-        <Button size="sm" variant="secondary" disabled={disabled} onClick={() => addVideo(matchId)}>
-          <Icon name="plus" size="xs" />
-          Demo video
-        </Button>
+      <div
+        className={cn('flex flex-wrap items-center gap-1.5', align === 'center' && 'justify-center')}
+        role="group"
+        aria-label="Add video"
+      >
+        {label ? <span className="mr-1 text-sm font-medium text-primary">Add video</span> : null}
         <Button
           size="sm"
           variant="secondary"
@@ -69,6 +74,15 @@ export function AddVideoChoice({
         >
           <Icon name="upload" size="xs" />
           {state === 'reading' ? 'Reading' : 'Choose file'}
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="border border-dashed border-border"
+          disabled={disabled}
+          onClick={() => addVideo(matchId)}
+        >
+          Use demo video
         </Button>
         <input
           ref={input}
@@ -84,7 +98,9 @@ export function AddVideoChoice({
           That file could not be played here.
         </p>
       ) : (
-        <p className="text-xs text-muted">A chosen file stays on this device.</p>
+        <p className="text-xs text-muted">
+          A chosen file stays on this device. The demo video is a prototype stand-in.
+        </p>
       )}
     </div>
   )

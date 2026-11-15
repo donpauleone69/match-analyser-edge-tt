@@ -14,9 +14,25 @@ import {
   type SetData,
 } from '@/data/demoStore'
 
-/** Both sides picked and equal. A match cannot end level. */
-export function isLevelResult(result: MatchResult): boolean {
-  return result.me !== null && result.them !== null && result.me === result.them
+/** Sets needed to win a best of 3, 5 or 7. */
+const SETS_TO_WIN = [2, 3, 4]
+
+/** Every way a match can end, grouped by its length. Wins first. */
+export const REAL_RESULTS: { label: string; results: Score[] }[] = SETS_TO_WIN.map((n) => {
+  const losing = Array.from({ length: n }, (_, k) => k)
+  return {
+    label: `Best of ${n * 2 - 1}`,
+    results: [
+      ...losing.map((k) => ({ me: n, them: k })),
+      ...losing.reverse().map((k) => ({ me: k, them: n })),
+    ],
+  }
+})
+
+/** A result a best of 3, 5 or 7 can end on. 1 - 1 and 1 - 0 are not. */
+export function isRealResult(score: Score): boolean {
+  const high = Math.max(score.me, score.them)
+  return score.me !== score.them && SETS_TO_WIN.includes(high)
 }
 
 /** Sets won by each side, counted from the entered set scores. */
@@ -38,11 +54,18 @@ export function enteredScoresMissResult(match: MatchRecord): boolean {
   return won.me > me || won.them > them
 }
 
-/** Any score or result mismatch. Shown as a Differs mark outside Details. */
+/**
+ * Tagging disagrees with what was entered: a set score or the result. Shown
+ * as a Differs mark outside Details. Nothing else earns the mark.
+ */
 export function matchDiffers(match: MatchRecord): boolean {
-  return (
-    match.sets.some(setScoresDiffer) || resultDiffers(match) || enteredScoresMissResult(match)
-  )
+  return match.sets.some(setScoresDiffer) || resultDiffers(match)
+}
+
+/** Some tagged rally sits on a video that is still in the match. */
+export function hasPlayableRallies(match: MatchRecord): boolean {
+  const have = new Set(match.videos.map((v) => v.id))
+  return match.sets.some((s) => !s.skipped && s.rallies.some((r) => have.has(r.videoId)))
 }
 
 function hasEntered(s: SetData): boolean {

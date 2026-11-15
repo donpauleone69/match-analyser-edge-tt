@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Button, Card, CardDescription, CardTitle, Icon } from '@/ui-mine'
 import { WfBadge, WfWarnBadge } from '@/layout/Wireframe'
 import {
@@ -27,7 +27,8 @@ import { ARCHIVE_STEPS, startArchive, useArchiveStep } from '@/features/match/ar
 import {
   enteredScoresMissResult,
   enteredSetsWon,
-  isLevelResult,
+  isRealResult,
+  REAL_RESULTS,
   setsLostByResult,
   videoRallyCount,
 } from '@/features/match/matchChecks'
@@ -39,6 +40,8 @@ const inputClass =
 const flagClass =
   'rounded-md border border-warning bg-warning/15 px-3 py-2 text-sm text-primary'
 const flagRowClass = cn(flagClass, 'flex flex-wrap items-center justify-between gap-2')
+const noteRowClass =
+  'rounded-md border border-border bg-bg-card px-3 py-2 text-sm text-primary flex flex-wrap items-center justify-between gap-2'
 
 /** Details: who and when, the videos in order, then result and set scores as one area. */
 export function MatchDetails() {
@@ -375,29 +378,40 @@ function VideosCard({ match }: { match: MatchRecord }) {
   )
 }
 
-const RESULT_OPTIONS = [0, 1, 2, 3, 4]
+const resultKey = (r: MatchResult) =>
+  r.me !== null && r.them !== null ? `${r.me}-${r.them}` : ''
 
+/** One picker that lists only results a match can end on. */
 function ResultSelect({
   value,
-  label,
   onChange,
 }: {
-  value: number | null
-  label: string
-  onChange: (next: number | null) => void
+  value: MatchResult
+  onChange: (next: MatchResult) => void
 }) {
+  const key = resultKey(value)
+  const listed = REAL_RESULTS.some((g) => g.results.some((r) => resultKey(r) === key))
   return (
     <select
-      aria-label={label}
+      aria-label="Result"
       className="rounded-md border border-border bg-bg-card px-2 py-1.5 text-sm font-semibold text-primary"
-      value={value ?? ''}
-      onChange={(e) => onChange(e.target.value === '' ? null : Number(e.target.value))}
+      value={key}
+      onChange={(e) => {
+        const [me, them] = e.target.value.split('-').map(Number)
+        onChange(e.target.value === '' ? { me: null, them: null } : { me, them })
+      }}
     >
-      <option value="">-</option>
-      {RESULT_OPTIONS.map((n) => (
-        <option key={n} value={n}>
-          {n}
-        </option>
+      <option value="">Not entered</option>
+      {/* A result saved from tagging that no match can end on still shows as it is. */}
+      {key !== '' && !listed ? <option value={key}>{key.replace('-', ' - ')}</option> : null}
+      {REAL_RESULTS.map((group) => (
+        <optgroup key={group.label} label={group.label}>
+          {group.results.map((r) => (
+            <option key={resultKey(r)} value={resultKey(r)}>
+              {formatScore(r)}
+            </option>
+          ))}
+        </optgroup>
       ))}
     </select>
   )
@@ -472,7 +486,11 @@ function setList(sets: SetData[]): string {
   return text.charAt(0).toUpperCase() + text.slice(1)
 }
 
-/** Result and set scores as one area. The result dictates the number of sets. */
+/**
+ * Result and set scores as one area. The result dictates the number of sets.
+ * At most two lines sit above the scores: one about the result, one about
+ * the set scores.
+ */
 function ResultCard({ match }: { match: MatchRecord }) {
   const { setResult, setEnteredScore, mutateMatch } = useDemo()
   const count = resultSetCount(match)
@@ -480,22 +498,29 @@ function ResultCard({ match }: { match: MatchRecord }) {
   const differing = match.sets.filter(setScoresDiffer).length
   const them = match.opponent.trim() || 'Opponent'
   const fromTagging = taggedResult(match) ?? taggedSetsWon(match)
-  // Tagged with no result: offer the result tagging gives. Never automatic.
-  const offerResult = count === null && derivePhase(match) === 'complete'
-
-  // A pick that cannot be saved as it stands: a level result, or one that
-  // would stop listing sets that hold scores. It waits here, not in the match.
-  const [pending, setPending] = useState<{ base: MatchResult; next: MatchResult } | null>(null)
-  const waiting = pending && pending.base === match.result ? pending.next : null
-  const shown = waiting ?? match.result
-  const lost = waiting ? setsLostByResult(match, waiting) : []
+  const tagged = derivePhase(match) === 'complete'
   const saved =
     match.result.me !== null && match.result.them !== null
-      ? formatScore({ me: match.result.me, them: match.result.them })
+      ? { me: match.result.me, them: match.result.them }
       : null
 
+  // A lower result that would stop listing sets that hold scores waits here,
+  // not in the match, until it is confirmed.
+  const [pending, setPending] = useState<{ base: MatchResult; next: MatchResult } | null>(null)
+  const waiting = pending && pending.base === match.result ? pending.next : null
+  const lost = waiting ? setsLostByResult(match, waiting) : []
+
+  // Links that say "enter the result" land on the picker.
+  const { hash } = useLocation()
+  const cardRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (hash !== '#result') return
+    cardRef.current?.scrollIntoView({ block: 'center' })
+    cardRef.current?.querySelector('select')?.focus({ preventScroll: true })
+  }, [hash])
+
   const pick = (next: MatchResult) => {
-    if (isLevelResult(next) || setsLostByResult(match, next).length > 0) {
+    if (setsLostByResult(match, next).length > 0) {
       setPending({ base: match.result, next })
     } else {
       setResult(match.id, next)
@@ -509,103 +534,90 @@ function ResultCard({ match }: { match: MatchRecord }) {
   }
 
   // Nothing left in the way (the scores it would have dropped were cleared): save it.
-  const clear = waiting !== null && !isLevelResult(waiting) && lost.length === 0
+  const clear = waiting !== null && lost.length === 0
   useEffect(() => {
     if (clear) commitPending()
   })
 
+  const useTaggedResult = isRealResult(fromTagging) ? (
+    <Button size="sm" variant="secondary" onClick={() => pick(fromTagging)}>
+      Use tagged result
+    </Button>
+  ) : null
+
+  // One line about the result. The first that applies.
+  const resultLine =
+    waiting && lost.length > 0 ? (
+      <ConfirmBox label="Change result">
+        <p>
+          {formatScore({ me: waiting.me ?? 0, them: waiting.them ?? 0 })} gives{' '}
+          {(waiting.me ?? 0) + (waiting.them ?? 0)} sets. {setList(lost)}{' '}
+          {lost.length === 1 ? 'has' : 'have'} entered scores or a Not filmed mark that will be
+          removed.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" onClick={commitPending}>
+            Change to {formatScore({ me: waiting.me ?? 0, them: waiting.them ?? 0 })}
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => setPending(null)}>
+            {saved ? `Keep ${formatScore(saved)}` : 'Cancel'}
+          </Button>
+        </div>
+      </ConfirmBox>
+    ) : resultDiffers(match) ? (
+      <div className={flagRowClass}>
+        <span className="inline-flex flex-wrap items-center gap-2">
+          <WfWarnBadge>Differs</WfWarnBadge>
+          Tagged sets give {formatScore(fromTagging)}.
+        </span>
+        {useTaggedResult}
+      </div>
+    ) : saved && !isRealResult(saved) ? (
+      <p className={flagClass}>A match cannot end {formatScore(saved)}. Pick the result.</p>
+    ) : count !== null && lastTagged > count ? (
+      <p className={flagClass}>
+        {formatScore(saved ?? fromTagging)} gives {count} sets. Set {lastTagged} is tagged.
+      </p>
+    ) : count === null && tagged ? (
+      <div className={noteRowClass}>
+        <span>Tagged sets give {formatScore(fromTagging)}.</span>
+        {useTaggedResult}
+      </div>
+    ) : null
+
+  // One line about the set scores. A single differing set is said on its row.
+  const scoresLine =
+    differing > 1 ? (
+      <div className={flagRowClass}>
+        <span>{differing} sets differ from tagging.</span>
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={() => mutateMatch(match.id, applyTaggedScores)}
+        >
+          Use tagged scores
+        </Button>
+      </div>
+    ) : saved && enteredScoresMissResult(match) && !resultDiffers(match) ? (
+      <p className={flagClass}>
+        Entered set scores add up to {formatScore(enteredSetsWon(match))}, not {formatScore(saved)}.
+      </p>
+    ) : null
+
   return (
-    <Card className="space-y-3">
+    <Card ref={cardRef} id="result" className="space-y-3">
       <CardTitle>Result</CardTitle>
       <div className="flex flex-wrap items-center gap-2 text-sm text-primary">
         <span>You</span>
-        <ResultSelect
-          label="Sets you won"
-          value={shown.me}
-          onChange={(me) => pick({ ...shown, me })}
-        />
-        <span>-</span>
-        <ResultSelect
-          label={`Sets ${them} won`}
-          value={shown.them}
-          onChange={(next) => pick({ ...shown, them: next })}
-        />
+        <ResultSelect value={waiting ?? match.result} onChange={pick} />
         <span className="min-w-0 truncate">{them}</span>
         <span className="ml-auto text-xs text-muted">
           {count ? `${count} ${count === 1 ? 'set' : 'sets'}` : 'Sets follow the result'}
         </span>
       </div>
 
-      {waiting && isLevelResult(waiting) ? (
-        <div className={flagRowClass} role="alert">
-          <span>
-            A match cannot end {waiting.me} - {waiting.them}.{' '}
-            {saved ? `The result is still ${saved}.` : 'No result is saved.'}
-          </span>
-          <Button size="sm" variant="secondary" onClick={() => setPending(null)}>
-            {saved ? `Keep ${saved}` : 'Undo'}
-          </Button>
-        </div>
-      ) : waiting && lost.length > 0 ? (
-        <ConfirmBox label="Change result">
-          <p>
-            {waiting.me} - {waiting.them} gives {(waiting.me ?? 0) + (waiting.them ?? 0)} sets.{' '}
-            {setList(lost)} {lost.length === 1 ? 'has' : 'have'} entered scores or a Not filmed
-            mark that will be removed.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <Button size="sm" onClick={commitPending}>
-              Change to {waiting.me} - {waiting.them}
-            </Button>
-            <Button size="sm" variant="ghost" onClick={() => setPending(null)}>
-              {saved ? `Keep ${saved}` : 'Cancel'}
-            </Button>
-          </div>
-        </ConfirmBox>
-      ) : null}
-      {!waiting && isLevelResult(match.result) && count !== null ? (
-        <p className={flagClass}>A match cannot end {saved}. Pick the result again.</p>
-      ) : null}
-      {count !== null && lastTagged > count ? (
-        <p className={flagClass}>
-          The result gives {count} {count === 1 ? 'set' : 'sets'} but set {lastTagged} is tagged.
-        </p>
-      ) : null}
-      {enteredScoresMissResult(match) ? (
-        <p className={flagClass}>
-          The entered set scores give {formatScore(enteredSetsWon(match))}. The result says {saved}.
-        </p>
-      ) : null}
-      {offerResult ? (
-        <div className={flagRowClass}>
-          <span>No result entered. Tagged sets give {formatScore(fromTagging)}.</span>
-          <Button size="sm" variant="secondary" onClick={() => pick(fromTagging)}>
-            Use tagged result
-          </Button>
-        </div>
-      ) : null}
-      {resultDiffers(match) ? (
-        <div className={flagRowClass}>
-          <span>The result differs from tagging. Tagged sets give {formatScore(fromTagging)}.</span>
-          <Button size="sm" variant="secondary" onClick={() => pick(fromTagging)}>
-            Use tagged result
-          </Button>
-        </div>
-      ) : null}
-      {differing > 0 ? (
-        <div className={flagRowClass}>
-          <span>{differing === 1 ? '1 set differs' : `${differing} sets differ`} from tagging.</span>
-          {differing > 1 ? (
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={() => mutateMatch(match.id, applyTaggedScores)}
-            >
-              Use tagged scores
-            </Button>
-          ) : null}
-        </div>
-      ) : null}
+      {resultLine}
+      {scoresLine}
 
       <table className="w-full text-sm">
         <thead>

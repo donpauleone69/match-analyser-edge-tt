@@ -82,8 +82,8 @@ export type MatchRecord = {
  * new = no video and nothing tagged
  * ready = video added, nothing tagged
  * partial = tagging started, match not finished
- * complete = Tagged: a result is entered and every set it lists is finished
- *   or not filmed, or the user pressed Finish match
+ * complete = Tagged: with a result, every set it lists is finished or not
+ *   filmed. With no result, the user pressed Finish match.
  */
 export type MatchPhase = 'new' | 'ready' | 'partial' | 'complete'
 
@@ -141,16 +141,17 @@ function emptySet(setId: number): SetData {
 /**
  * The result dictates the set list. With no result, list every set that is
  * tagged, not filmed or has an entered score, then one spare set to start
- * next. Finish match drops the spare.
+ * next. Finish match drops the spare, and only holds while every set that is
+ * left is finished or not filmed.
  */
 function normalizeMatch(match: MatchRecord): MatchRecord {
-  const open = match.sets.some((s) => setState(s) === 'progress')
-  const tagDone = match.tagDone && !open && match.sets.some((s) => setState(s) === 'finished')
   const fromResult = resultSetCount(match)
   const used = Math.max(
     lastSetId(match.sets, (s) => setHasTagProgress(s) || s.skipped),
     lastSetId(match.sets, (s) => s.entered.me !== '' || s.entered.them !== '')
   )
+  const loose = match.sets.some((s) => s.setId <= used && !s.skipped && !s.finished)
+  const tagDone = match.tagDone && !loose && match.sets.some((s) => setState(s) === 'finished')
   const count =
     fromResult !== null
       ? Math.max(fromResult, lastTaggedSetId(match))
@@ -191,17 +192,24 @@ export function taggedSetsWon(match: MatchRecord): Score {
 }
 
 /**
- * Tagged comes from tagging: a result is entered and every set it lists is
- * finished or not filmed, or the user pressed Finish match. Never while a
- * set is part way through.
+ * Tagged comes from tagging. With a result entered, the result decides: every
+ * set it lists is finished or not filmed. With no result, the user pressed
+ * Finish match. Never while a set is part way through.
  */
 export function isMatchTagged(match: MatchRecord): boolean {
   if (match.sets.some((s) => setState(s) === 'progress')) return false
   if (!match.sets.some((s) => setState(s) === 'finished')) return false
-  if (match.tagDone) return true
   const count = resultSetCount(match)
-  if (count === null) return false
+  if (count === null) return match.tagDone
   return match.sets.filter((s) => s.setId <= count).every((s) => s.skipped || s.finished)
+}
+
+/**
+ * With no result, Finish match waits on this set: it is part way through, or
+ * listed with nothing tagged and not marked not filmed. Null when none is.
+ */
+export function setBlockingFinish(match: MatchRecord): SetData | null {
+  return match.sets.find((s) => !s.skipped && !s.finished && !isSpareSet(match, s)) ?? null
 }
 
 export function derivePhase(match: MatchRecord): MatchPhase {

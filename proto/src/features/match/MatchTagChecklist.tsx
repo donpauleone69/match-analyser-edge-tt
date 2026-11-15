@@ -1,4 +1,4 @@
-import { useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Button, Card, Icon } from '@/ui-mine'
 import { WfBadge } from '@/layout/Wireframe'
 import {
@@ -9,6 +9,7 @@ import {
   parseEntered,
   resultDiffers,
   resultSetCount,
+  setBlockingFinish,
   setRalliesWithoutVideo,
   setScoresDiffer,
   setState,
@@ -28,11 +29,14 @@ import {
 } from '@/features/tagging/matchOps'
 import { TAG_LOCK_LINE, useTagLock } from '@/features/tagging/tagLock'
 import { AddVideoChoice } from '@/features/match/AddVideoChoice'
+import { isRealResult } from '@/features/match/matchChecks'
 
 const flagClass =
   'rounded-md border border-warning bg-warning/15 px-3 py-2 text-sm text-primary flex flex-wrap items-center justify-between gap-2'
 const differsBadge =
   'inline-flex items-center rounded border border-warning bg-warning/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary'
+
+const linkClass = 'text-sm font-semibold text-brand underline'
 
 function rallyCount(n: number) {
   return `${n} ${n === 1 ? 'rally' : 'rallies'}`
@@ -68,8 +72,6 @@ export function MatchTagChecklist() {
   const resume = hasVideo && !lock ? setInProgress(match) : null
   /** A video that rallies were tagged on has been removed. */
   const videoGone = missingVideoIds(match).length > 0
-  const anyFinished = match.sets.some((s) => setState(s) === 'finished')
-  const anyOpen = match.sets.some((s) => setState(s) === 'progress')
   const openSet = (setId: number) => navigate(`/matches/${match.id}/tag/${setId}`)
 
   if (!hasVideo && phase === 'new') {
@@ -93,7 +95,8 @@ export function MatchTagChecklist() {
           {videoLine}
         </p>
       ) : (
-        <NoVideo match={match} removed={videoGone} />
+        // Past New with no video: sets were tagged, so this is never "start tagging".
+        <NoVideo match={match} removed />
       )}
 
       {hasVideo && videoGone ? (
@@ -170,12 +173,7 @@ export function MatchTagChecklist() {
                       Start
                     </Button>
                   ) : null}
-                  {state === 'progress' && hasVideo && !lock ? (
-                    <Button size="sm" onClick={() => openSet(s.setId)}>
-                      Continue
-                    </Button>
-                  ) : null}
-                  {state === 'finished' || (state === 'progress' && !hasVideo) ? (
+                  {state === 'finished' || state === 'progress' ? (
                     <Button size="sm" variant="secondary" onClick={() => openSet(s.setId)}>
                       Open
                     </Button>
@@ -190,7 +188,6 @@ export function MatchTagChecklist() {
       <MatchEnd
         match={match}
         tagged={tagged}
-        canFinish={anyFinished && !anyOpen && !lock}
         locked={Boolean(lock)}
         onFinish={() => mutateMatch(match.id, finishMatch)}
         onReopen={() => mutateMatch(match.id, reopenMatch)}
@@ -220,7 +217,7 @@ function NoVideo({ match, removed = false }: { match: MatchRecord; removed?: boo
             : 'Add the match video to start tagging.'}
         </p>
       </div>
-      <AddVideoChoice matchId={match.id} align="center" />
+      <AddVideoChoice matchId={match.id} align="center" label={false} />
     </div>
   )
 }
@@ -235,18 +232,22 @@ function ResultFlag({ match }: { match: MatchRecord }) {
       <span>
         Result entered {formatScore({ me, them })} · tagged sets give {formatScore(tagged)}
       </span>
-      <Button size="sm" variant="secondary" onClick={() => mutateMatch(match.id, applyTaggedResult)}>
-        Use tagged result
-      </Button>
+      {isRealResult(tagged) ? (
+        <Button size="sm" variant="secondary" onClick={() => mutateMatch(match.id, applyTaggedResult)}>
+          Use tagged result
+        </Button>
+      ) : null}
     </div>
   )
 }
 
-/** How the match ends: by the result's set list, or by Finish match. */
+/**
+ * How the match ends. With a result entered the result decides, so there is
+ * nothing to press. With no result, Finish match ends it.
+ */
 function MatchEnd({
   match,
   tagged,
-  canFinish,
   locked,
   onFinish,
   onReopen,
@@ -254,50 +255,86 @@ function MatchEnd({
 }: {
   match: MatchRecord
   tagged: boolean
-  canFinish: boolean
   locked: boolean
   onFinish: () => void
   onReopen: () => void
   onUseResult: () => void
 }) {
   const noResult = resultSetCount(match) === null
+  const resultHref = `/matches/${match.id}/details#result`
+  const won = taggedSetsWon(match)
+
   if (tagged) {
     return (
       <div className="rounded-md border border-border bg-bg-card px-3 py-2 flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-primary">
           <span className="font-semibold">Match tagged</span>
           {noResult ? (
-            <span className="text-muted"> · sets {formatScore(taggedSetsWon(match))}, no result entered</span>
+            <span className="text-muted"> · sets {formatScore(won)}, no result entered</span>
           ) : null}
         </p>
-        <div className="flex flex-wrap gap-1">
-          {noResult ? (
-            <Button size="sm" variant="secondary" onClick={onUseResult}>
-              Use tagged result
-            </Button>
-          ) : null}
-          {match.tagDone && !locked ? (
-            <Button size="sm" variant="ghost" onClick={onReopen}>
-              Reopen match
-            </Button>
-          ) : null}
-        </div>
+        {noResult ? (
+          <div className="flex flex-wrap items-center gap-1">
+            {isRealResult(taggedResult(match) ?? won) ? (
+              <Button size="sm" variant="secondary" onClick={onUseResult}>
+                Use tagged result
+              </Button>
+            ) : (
+              <Link to={resultHref} className={linkClass}>
+                Enter the result
+              </Link>
+            )}
+            {/* Only Finish match can be reopened. A result decides for itself. */}
+            {match.tagDone && !locked ? (
+              <Button size="sm" variant="ghost" onClick={onReopen}>
+                Reopen match
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
       </div>
     )
   }
   if (locked) return null
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-2">
+  if (!noResult) {
+    return (
       <p className="text-xs text-muted">
-        {noResult
-          ? 'No result entered. The next set appears as you tag. Finish match after the last set.'
-          : 'The match is tagged when every set is finished or not filmed.'}
+        The match is tagged when every set is finished or not filmed.
       </p>
-      {canFinish ? (
-        <Button size="sm" variant="secondary" onClick={onFinish}>
-          Finish match
-        </Button>
+    )
+  }
+
+  const anyFinished = match.sets.some((s) => setState(s) === 'finished')
+  const blocking = setBlockingFinish(match)
+  return (
+    <div className="space-y-2">
+      {anyFinished ? (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+          <Button
+            // Leads once the tagged sets could be a whole match.
+            variant={!blocking && isRealResult(won) ? 'primary' : 'secondary'}
+            className="w-full sm:w-auto"
+            disabled={blocking !== null}
+            onClick={onFinish}
+          >
+            Finish match
+          </Button>
+          <p className="text-sm text-muted">
+            {blocking
+              ? setState(blocking) === 'progress'
+                ? `Finish set ${blocking.setId} first.`
+                : `Tag set ${blocking.setId} or mark it not filmed first.`
+              : `Ends the match at sets ${formatScore(won)}.`}
+          </p>
+        </div>
       ) : null}
+      <p className="text-xs text-muted">
+        No result entered, so the next set appears as you tag. To mark a set not filmed,{' '}
+        <Link to={resultHref} className={linkClass}>
+          enter the result
+        </Link>
+        .
+      </p>
     </div>
   )
 }
