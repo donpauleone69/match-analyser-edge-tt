@@ -27,6 +27,9 @@ import {
   setInProgress,
 } from '@/features/tagging/matchOps'
 import { TAG_LOCK_LINE, useTagLock } from '@/features/tagging/tagLock'
+import { lastSavedGlobal } from '@/features/tagging/matchOps'
+import { rallyEnd, type Draft } from '@/features/tagging/rally'
+import { lastContactG, segmentsOf, segmentAt, formatClock, toGlobal } from '@/features/tagging/timeline'
 import { AddVideoChoice } from '@/features/match/AddVideoChoice'
 import { isRealResult } from '@/features/match/matchChecks'
 
@@ -41,6 +44,38 @@ const rowAction = 'min-w-16 md:min-w-0'
 
 function rallyCount(n: number) {
   return `${n} ${n === 1 ? 'rally' : 'rallies'}`
+}
+
+/** Where tagging stopped in the match video, for the line under Continue set. */
+function stoppedAtClock(match: MatchRecord, s: SetData): string {
+  const segs = segmentsOf(match.videos)
+  let g: number | null = null
+  if (s.draft && s.draft.contacts.length > 0) {
+    const d: Draft = s.draft
+    const local = d.closed ? rallyEnd(d) : d.contacts[d.contacts.length - 1]
+    g = toGlobal(segs, d.videoId, local)
+  } else if (s.rallies.length > 0) {
+    g = lastContactG(segs, s.rallies[s.rallies.length - 1])
+  } else {
+    g = lastSavedGlobal(match, s.setId)
+  }
+  if (g === null) return '00:00'
+  const seg = segmentAt(segs, g)
+  return formatClock(g - (seg?.offset ?? 0))
+}
+
+/** Saved status under Continue set on the Tag page (item 13). */
+function savedTagLine(match: MatchRecord, s: SetData): string {
+  const score = taggedScore(s)
+  const scoreText = score ? formatScore(score) : '0 - 0'
+  const line = [
+    'Saved',
+    `Set ${s.setId}`,
+    rallyCount(s.rallies.length),
+    scoreText,
+    `stopped at ${stoppedAtClock(match, s)}`,
+  ].join(' · ')
+  return s.draft ? `${line} · 1 rally open` : line
 }
 
 /** What a set can truly have: a state, a score and a rally count. */
@@ -123,10 +158,15 @@ export function MatchTagChecklist() {
       ) : null}
 
       {resume ? (
-        <Button fullWidth kind="main" onClick={() => openSet(resume.setId)}>
-          <Icon name="play" size="sm" />
-          Continue set {resume.setId}
-        </Button>
+        <div className="space-y-1.5">
+          <Button fullWidth kind="main" onClick={() => openSet(resume.setId)}>
+            <Icon name="play" size="sm" />
+            Continue set {resume.setId}
+          </Button>
+          <p className="text-center text-sm text-muted" role="status" data-saved-tag-status>
+            {savedTagLine(match, resume)}
+          </p>
+        </div>
       ) : null}
 
       {resultDiffers(match) ? <ResultFlag match={match} /> : null}
