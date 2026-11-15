@@ -584,9 +584,9 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
         : mode === 'blocked'
           ? 'Open rally · video removed'
           : mode === 'edit' && edit
-            ? readOnly
+            ? readOnly || (ready && !edit.dirty)
               ? `Rally ${edit.index + 1} · ${edit.draft.contacts.length} ${edit.draft.contacts.length === 1 ? 'shot' : 'shots'}`
-              : `Rally ${edit.index + 1} · ${statusText(edit.draft)}`
+              : `Rally ${edit.index + 1} · ${ready ? 'Ready to save changes' : statusText(edit.draft)}`
           : active
             ? statusText(active)
             : atEnd
