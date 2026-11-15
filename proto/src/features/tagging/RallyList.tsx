@@ -158,7 +158,7 @@ export function RallyList({
             </span>
             <span>Deleted</span>
             {actions ? (
-              <Button kind="control" variant="secondary" className={small} onClick={() => actions.onRestore(d.id)}>
+              <Button size="sm" variant="secondary" className={small} onClick={() => actions.onRestore(d.id)}>
                 Restore
               </Button>
             ) : null}
@@ -187,7 +187,7 @@ export function RallyList({
             </p>
           ) : null}
           {finish === 'ok' ? (
-            <Button kind="control" variant="ghost" onClick={onFinish}>
+            <Button size="sm" variant="ghost" onClick={onFinish}>
               Finish at {formatScore(score)}
             </Button>
           ) : finish === 'level' ? (
@@ -232,7 +232,7 @@ export function RallyList({
               <span className="flex-1 min-w-0 truncate text-muted">Point, no video · {names[r.server]} served</span>
               {actions ? (
                 <Button
-                  kind="control"
+                  size="sm"
                   variant="ghost"
                   className={cn(small, 'btn-kind-square shrink-0')}
                   aria-label={`Delete point ${index + 1}`}

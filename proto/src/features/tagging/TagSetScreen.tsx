@@ -117,7 +117,7 @@ import { RallyList, type RallyListActions } from './RallyList'
 import { ZERO, addPoint, isSetWon, type Points } from './score'
 import { AnswerKeyPanel } from './AnswerKeyPanel'
 import { NO_ATTACK_KEY, applyShotKey } from './shotKeys'
-import { KeyHint, ShotPanel, TimeRow, TrimRow } from './ShotPanel'
+import { ShotPanel, TimeRow, TrimRow } from './ShotPanel'
 import { ShotRail } from './ShotRail'
 import { TAG_LOCK_LINE, useTagLock, type TagLock } from './tagLock'
 import { firstContactG, lastContactG, segmentAt, segmentsOf, toGlobal, totalDuration, type Segment } from './timeline'
@@ -482,8 +482,8 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slotKind, stepKey])
 
-  // The details box is pinned to the top of its area. Its top does not move
-  // between steps, and the area does not scroll.
+  // The details box sits at the foot of its area, straight above the slot.
+  // Six rows show when they fit under the title line, otherwise three and More.
   const [detailFit, setDetailFit] = useState<'all' | 'three'>('all')
   const [detailTight, setDetailTight] = useState(false)
   useLayoutEffect(() => {
@@ -491,8 +491,11 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     if (!el) return
     const apply = () => {
       const h = el.clientHeight
-      const nextFit = h >= 310 ? 'all' : 'three'
-      const nextTight = h < 240
+      const row = (parseFloat(getComputedStyle(el).getPropertyValue('--btn-kind-control')) || 2.75) * 16
+      /** Area padding, box padding and border, the title line, then the rows and the gaps between them. */
+      const need = (rows: number) => 16 + 26 + 26 + rows * row + (rows - 1) * 6
+      const nextFit = h >= need(6) ? 'all' : 'three'
+      const nextTight = h < need(4)
       setDetailFit((prev) => (prev === nextFit ? prev : nextFit))
       setDetailTight((prev) => (prev === nextTight ? prev : nextTight))
     }
@@ -501,6 +504,11 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     watch.observe(el)
     return () => watch.disconnect()
   }, [])
+  // Where the rows still do not fit, the row being asked for stays in reach above the slot.
+  useLayoutEffect(() => {
+    const el = body.current
+    if (el) el.scrollTop = el.scrollHeight
+  }, [stepKey, detailFit])
 
   /** Seeks for the user, and says in a few words when one is held back. */
   const seekTo = (g: number) => {
@@ -1644,12 +1652,10 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const switchWarn =
     !readOnly && (mode === 'watch' || mode === 'tagging') && !atEnd && padServer !== expected
   const switchWarnRally = gap ? gap.index + 1 : set.rallies.length + 1
-  /** The warning owns the status line only until the first contact of this rally. */
-  const warnOnStatus = switchWarn && mode === 'watch'
   const switchOn = !readOnly && !atEnd && (mode === 'watch' || mode === 'tagging' || mode === 'edit')
   const rowButton = cn('px-3 shrink-0', slotGrey && BUSY)
   /** The right end of the status row always means "go back": 5 seconds, or one tap. One width, so the spot does not shift. Let never sits there. */
-  const endButton = cn(rowButton, 'w-24')
+  const endButton = cn(rowButton, 'w-24 lg:w-36')
   /** The four rally actions: one width each, the label on two lines where it needs them. */
   const actionButton = cn('w-14 shrink-0 px-0.5 text-xs leading-tight text-center', slotGrey && BUSY)
   /** Slot controls never change size, not even while pressed. The height is the tap pad. */
@@ -1675,7 +1681,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       <div className="tag-media">
         <SetHeader match={match} set={set}>
           <Button
-            kind="control"
+            size="sm"
             variant="secondary"
             className="tag-narrow-only px-3"
             aria-expanded={listOpen}
@@ -1712,7 +1718,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
 
       {/* Right on a wide screen, below on a phone: rail, status, panel, then one slot. */}
       <div className="tag-entry">
-        <div className="shrink-0 px-2 border-b border-border bg-bg-app">
+        <div className="shrink-0 px-2 pt-1.5 border-b border-border bg-bg-app">
           {/* The shot row. Shots only, from the first tap to Save. */}
           {active || mode === 'watch' ? (
             <ShotRail
@@ -1724,26 +1730,21 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
           ) : null}
 
           {/* Status, with the rally's second-rank actions beside it, away from the thumb. */}
-          <p
-            role="status"
-            data-tag-status
-            data-switch-warning={warnOnStatus ? '' : undefined}
-            className={cn(
-              'h-8 flex items-center overflow-hidden rounded-md border-l-4 px-2 text-sm font-semibold leading-4',
-              warnOnStatus || (active && active.closed && !ready && mode !== 'finished')
-                ? 'border-warning bg-warning/15 text-primary'
-                : ready || mode === 'finished'
+          <div className="mb-1.5 flex items-stretch gap-1.5" onClickCapture={guardClicks(slotGuard)}>
+            <p
+              role="status"
+              data-tag-status
+              className={cn(
+                'flex-1 min-w-0 min-h-[var(--btn-kind-control)] flex items-center rounded-md border-l-4 px-2 py-1 text-sm font-semibold leading-tight',
+                ready || mode === 'finished'
                   ? 'border-success bg-success/15 text-primary'
-                  : 'border-border-strong bg-bg-card text-primary'
-            )}
-          >
-            <span className="min-w-0 leading-4">
-              {warnOnStatus
-                ? `${expected === 'me' ? 'You were due to serve.' : `${names[expected]} was due to serve.`} Rallies since rally ${switchWarnRally} will be marked to check.`
-                : status}
-            </span>
-          </p>
-          <div className="flex items-center justify-end gap-1.5 py-1" onClickCapture={guardClicks(slotGuard)}>
+                  : active && active.closed
+                    ? 'border-warning bg-warning/15 text-primary'
+                    : 'border-border-strong bg-bg-card text-primary'
+              )}
+            >
+              {status}
+            </p>
             {mode === 'watch' && gap ? (
               <Button kind="control" variant="secondary" className={rowButton} onClick={leaveGap}>
                 Back to live
@@ -1759,7 +1760,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               >
                 <Icon name="rewind" size="sm" />
                 Back 5s
-                <KeyHint k="Bksp" />
               </Button>
             ) : null}
             {/*
@@ -1785,7 +1785,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                         variant="secondary"
                         className={actionButton}
                         data-action="let"
-                        title="Let, no point (L)"
+                        title="Let, no point"
                         disabled={addOn}
                         onClick={onLet}
                       >
@@ -1811,7 +1811,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                     variant="secondary"
                     className={actionButton}
                     data-action="delete-last"
-                    title="Delete the last contact (Backspace)"
+                    title="Delete the last contact"
                     disabled={addOn || (mode === 'edit' && n <= 1)}
                     onClick={onUndoTap}
                   >
@@ -1877,10 +1877,10 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
           data-tag-body
           data-fit={detailFit}
           data-tight={detailTight ? 'yes' : 'no'}
-          className="flex-1 min-h-0 overflow-hidden px-2 flex flex-col"
+          className="flex-1 min-h-0 overflow-y-auto px-2 py-2 flex flex-col [overflow-anchor:none]"
           onClickCapture={guardClicks(panelGuard)}
         >
-          <div className={cn('space-y-2', panelBusy && BUSY)} data-tag-panel data-details-box>
+          <div className={cn('mt-auto space-y-2', panelBusy && BUSY)} data-tag-panel data-details-box>
             {review ? (
               <div data-review-panel className="rounded-md border border-border bg-bg-surface px-3 py-2 space-y-2">
                 {review.kind === 'gaps' && review.pointAsk ? (
@@ -1947,7 +1947,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               <div
                 data-fa-summary
                 data-ready-summary
-                className="rounded-md border border-border bg-bg-surface px-3 flex items-center justify-between gap-2"
+                className="rounded-md border border-border bg-bg-surface px-3 py-1.5 flex items-center justify-between gap-2"
               >
                 <p className="min-w-0 flex-1 truncate text-sm font-semibold text-primary">
                   {active.contacts.length} {active.contacts.length === 1 ? 'shot' : 'shots'}
@@ -1964,7 +1964,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               <div className="rounded-md border border-border bg-bg-surface p-3" data-no-attack-row>
                 <Button kind="control" variant="secondary" onClick={onNoAttack}>
                   No attack
-                  <KeyHint k="0" />
                 </Button>
               </div>
             ) : null}
@@ -2023,9 +2022,9 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                 </div>
                 {lastSaved.point || !have.has(lastSaved.videoId) ? null : (
                   <Button
-                    kind="control"
+                    size="sm"
                     variant="secondary"
-                    className="px-3 shrink-0"
+                    className="min-w-11 px-3 lg:min-w-0 lg:px-2.5 shrink-0"
                     onClick={() => openRally(lastSaved, lastSavedIndex)}
                   >
                     Edit
@@ -2172,6 +2171,18 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               )}
             </div>
           ) : null}
+          {switchWarn && !review ? (
+            <p
+              role="status"
+              data-switch-warning
+              className="mb-2 rounded-md border border-warning bg-warning/15 px-2 py-1.5 text-xs font-semibold text-primary leading-snug"
+            >
+              {expected === 'me'
+                ? 'You were due to serve.'
+                : `${names[expected]} was due to serve.`}{' '}
+              Rallies since rally {switchWarnRally} will be marked to check.
+            </p>
+          ) : null}
           <div className="flex items-stretch gap-2">
           {slotKind === 'pad' ? (
             <button
@@ -2198,7 +2209,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                     : player.playing || mode === 'blocked'
                       ? `Tap serve · ${names[padServer]}`
                       : 'Play'}
-              {atEnd || mode === 'blocked' ? null : <KeyHint k="Space" />}
               {tapped > 0 && lastTap !== null ? (
                 <span
                   key={lastTap}
@@ -2221,7 +2231,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               )}
             >
               Tap the missed contact
-              <KeyHint k="Space" />
             </button>
           ) : null}
           {slotKind === 'save' && stage === 'pickFa' ? (
@@ -2244,7 +2253,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               onClick={onSave}
             >
               Save
-              <KeyHint k="Enter" />
             </Button>
           ) : null}
           {slotKind === 'edit' && edit ? (
@@ -2271,7 +2279,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                 onClick={onSaveEdit}
               >
                 Save changes
-                <KeyHint k="Enter" />
               </Button>
             )
           ) : null}
@@ -2299,7 +2306,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                 <span className="truncate text-primary">{names[padServer]}</span>
               </span>
               <span className="text-primary">Switch server</span>
-              <KeyHint k="P" />
             </button>
           ) : null}
           {slotKind === 'edit' && readOnly ? (
@@ -2378,7 +2384,7 @@ function FinishedPanel({
           {set.rallies.length} {set.rallies.length === 1 ? 'rally' : 'rallies'} · sets {formatScore(won)}
         </p>
         {lock ? null : (
-          <Button kind="control" variant="ghost" onClick={onReopen}>
+          <Button size="sm" variant="ghost" onClick={onReopen}>
             Reopen set
           </Button>
         )}
@@ -2398,10 +2404,10 @@ function FinishedPanel({
             <p className="text-xs text-muted">Kept. The set stays flagged in Details and on the checklist.</p>
           ) : (
             <div className="flex flex-wrap gap-2">
-              <Button kind="control" onClick={() => mutateMatch(match.id, (m) => applyTaggedScore(m, set.setId))}>
+              <Button size="sm" onClick={() => mutateMatch(match.id, (m) => applyTaggedScore(m, set.setId))}>
                 Use tagged score
               </Button>
-              <Button kind="control" variant="ghost" onClick={onKeepEntered}>
+              <Button size="sm" variant="ghost" onClick={onKeepEntered}>
                 Keep entered
               </Button>
             </div>
@@ -2416,7 +2422,7 @@ function FinishedPanel({
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs text-muted">No result entered.</span>
               {realResult ? (
-                <Button kind="control" variant="secondary" onClick={() => mutateMatch(match.id, applyTaggedResult)}>
+                <Button size="sm" variant="secondary" onClick={() => mutateMatch(match.id, applyTaggedResult)}>
                   Use tagged result
                 </Button>
               ) : null}

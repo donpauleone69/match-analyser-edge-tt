@@ -25,41 +25,24 @@ import {
   type Side,
   type StrokeSide,
 } from './rally'
-import { PIVOT_KEY, RESULT_KEYS, STROKE_KEYS, SWITCH_KEY, WING_KEYS, bindStrokeSide } from './shotKeys'
+import { bindStrokeSide } from './shotKeys'
 import { formatClock } from './timeline'
-
-/** A key printed on its control. Desktop only: a phone has no keys. */
-export function KeyHint({ k, className }: { k: string; className?: string }) {
-  return (
-    <kbd
-      aria-hidden
-      className={cn(
-        'key-hint h-4 min-w-4 px-1 items-center justify-center rounded-sm border border-current/40 font-sans text-[9px] font-bold uppercase leading-none opacity-70',
-        className
-      )}
-    >
-      {k}
-    </kbd>
-  )
-}
 
 /** Height comes from the control kind. A mouse is 36, a finger is 44. */
 const chip =
-  'btn-kind-control px-2 text-sm rounded-md border font-semibold inline-flex items-center gap-1.5'
+  'btn-kind-control px-3.5 text-sm lg:px-2.5 lg:text-xs rounded-md border font-semibold inline-flex items-center gap-1.5'
 
 function Pill({
   on,
   onClick,
   children,
   tone = 'brand',
-  hint,
   disabled = false,
 }: {
   on: boolean
   onClick: () => void
   children: ReactNode
   tone?: 'brand' | 'good' | 'bad'
-  hint?: string
   disabled?: boolean
 }) {
   return (
@@ -81,7 +64,6 @@ function Pill({
       )}
     >
       {children}
-      {hint ? <KeyHint k={hint} /> : null}
     </button>
   )
 }
@@ -105,14 +87,12 @@ export function TimeRow({
       <p className="text-[10px] font-bold uppercase tracking-wide text-muted flex-1">{name}</p>
       <button type="button" className={step} aria-label="Earlier by 0.1 seconds" onClick={() => onNudge(-NUDGE_STEP_S)}>
         - 0.1
-        <KeyHint k="-" />
       </button>
       <span className="w-16 text-center text-sm font-semibold text-primary tabular-nums" data-mark-time>
         {formatClock(markTime(draft, mark), true)}
       </span>
       <button type="button" className={step} aria-label="Later by 0.1 seconds" onClick={() => onNudge(NUDGE_STEP_S)}>
         + 0.1
-        <KeyHint k="=" />
       </button>
     </div>
   )
@@ -122,11 +102,11 @@ const sideBar: Record<Side, string> = { me: 'border-l-side-me', them: 'border-l-
 
 /** Equal cells, one line, full text size. Height comes from the control kind. */
 const cell =
-  'btn-kind-control min-w-0 flex-1 basis-0 px-0 text-sm font-semibold rounded-md border inline-flex items-center justify-center whitespace-nowrap overflow-hidden'
+  'btn-kind-control min-w-0 flex-1 basis-0 px-0 gap-1 text-sm font-semibold rounded-md border inline-flex items-center justify-center whitespace-nowrap overflow-hidden'
 
 /**
  * Switch words. Both fit a 76px cell at 375, full text size, so the long names stay.
- * The cell can grow when a key hint is showing. Stroke cells share what is left.
+ * Stroke cells share what is left.
  */
 const SWITCH_WORD: Record<StrokeSide, string> = { offensive: 'Offensive', defensive: 'Defensive' }
 const SWITCH_BASIS = '76px'
@@ -144,7 +124,6 @@ function Cell({
   onClick,
   children,
   tone = 'brand',
-  hint,
   disabled = false,
   label,
 }: {
@@ -152,7 +131,6 @@ function Cell({
   onClick: () => void
   children: ReactNode
   tone?: 'brand' | 'good' | 'bad'
-  hint?: string
   disabled?: boolean
   label: string
 }) {
@@ -176,7 +154,6 @@ function Cell({
       )}
     >
       <span data-cell-label>{children}</span>
-      {hint ? <KeyHint k={hint} /> : null}
     </button>
   )
 }
@@ -276,22 +253,26 @@ export function ShotPanel({
   return (
     <div
       className={cn(
-        'rounded-md border-r border-l-4 border-border bg-bg-surface py-2 px-2 flex flex-col gap-1.5',
+        'rounded-md border border-border border-l-4 bg-bg-surface p-3 flex flex-col gap-1.5',
         sideBar[hitter]
       )}
-      aria-label={`Shot ${shot}, ${names[hitter]}, ${role}`}
+      aria-label={`Shot ${shot}`}
       data-shot-panel
       data-page={page}
     >
+      <p className="text-sm font-semibold text-primary" data-shot-title>
+        {shot} · {names[hitter]}
+        <span className="ml-2 text-[10px] font-bold uppercase tracking-wide text-muted">{role}</span>
+      </p>
+
       {fields.result ? (
         <Line label="Result">
-          {ENDINGS.map((e, i) => (
+          {ENDINGS.map((e) => (
             <Cell
               key={e}
               label={e}
               on={draft.ending === e}
               tone={isError(e) ? 'bad' : 'good'}
-              hint={RESULT_KEYS[i]}
               onClick={() => onChange(setEnding(draft, e))}
             >
               {e}
@@ -302,12 +283,11 @@ export function ShotPanel({
 
       {fields.wing ? (
         <Line label="Wing">
-          {WINGS.map((w, i) => (
+          {WINGS.map((w) => (
             <Cell
               key={w}
               label={w}
               on={tags.wing === w}
-              hint={WING_KEYS[i]}
               disabled={shotRowOff}
               onClick={() => set('wing', w)}
             >
@@ -318,7 +298,6 @@ export function ShotPanel({
             <Cell
               label="Pivot"
               on={Boolean(tags.pivot)}
-              hint={PIVOT_KEY}
               disabled={shotRowOff}
               onClick={() => onChange(patchShot(draft, shot, { pivot: !tags.pivot }))}
             >
@@ -338,21 +317,19 @@ export function ShotPanel({
             aria-disabled={rule.fixed || shotRowOff}
             onClick={onFlip}
             className={cn(
-              'btn-kind-control shrink-0 px-1 text-sm font-semibold rounded-md border inline-flex items-center justify-center whitespace-nowrap overflow-hidden text-white',
+              'btn-kind-control shrink-0 px-1 gap-1 text-sm font-semibold rounded-md border inline-flex items-center justify-center whitespace-nowrap overflow-hidden text-white',
               shown === 'offensive' ? 'bg-shot-fa border-shot-fa' : 'bg-info border-info'
             )}
             style={{ flex: '0 0 auto', minWidth: SWITCH_BASIS }}
           >
             <span data-cell-label>{word}</span>
-            <KeyHint k={SWITCH_KEY} />
           </button>
           {strokes.map((name, i) =>
             name ? (
               <Cell
-                key={STROKE_KEYS[i]}
+                key={i}
                 label={name}
                 on={tags.stroke === name}
-                hint={STROKE_KEYS[i]}
                 disabled={shotRowOff}
                 onClick={() => set('stroke', name)}
               >
@@ -360,7 +337,7 @@ export function ShotPanel({
               </Cell>
             ) : (
               <span
-                key={STROKE_KEYS[i]}
+                key={i}
                 className="btn-kind-control min-w-0 flex-1 basis-0 border border-transparent"
                 data-cell=""
                 aria-hidden
@@ -401,7 +378,7 @@ export function ShotPanel({
           >
             Review
           </Cell>
-          <Cell label="- 0.1" on={false} hint="-" onClick={() => onNudge(-NUDGE_STEP_S)}>
+          <Cell label="- 0.1" on={false} onClick={() => onNudge(-NUDGE_STEP_S)}>
             - 0.1
           </Cell>
           <span
@@ -410,7 +387,7 @@ export function ShotPanel({
           >
             <span data-cell-label>{formatClock(markTime(draft, { kind: 'shot', shot }), true)}</span>
           </span>
-          <Cell label="+ 0.1" on={false} hint="=" onClick={() => onNudge(NUDGE_STEP_S)}>
+          <Cell label="+ 0.1" on={false} onClick={() => onNudge(NUDGE_STEP_S)}>
             + 0.1
           </Cell>
         </Line>
@@ -446,17 +423,17 @@ export function TrimRow({
   /** Sits at the end of the line: Delete rally. */
   action?: ReactNode
 }) {
-  const marks: { mark: Mark; label: string; hint: string }[] = [
-    { mark: { kind: 'start' }, label: 'Start', hint: '[' },
-    { mark: { kind: 'end' }, label: 'End', hint: ']' },
+  const marks: { mark: Mark; label: string }[] = [
+    { mark: { kind: 'start' }, label: 'Start' },
+    { mark: { kind: 'end' }, label: 'End' },
   ]
   return (
     <div className="rounded-md border border-border bg-bg-surface p-3" role="group" aria-label="Trim">
       <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-muted">Trim</p>
       {/* One line of equal cells: Start, End, then Delete rally. It never wraps. */}
       <div className="flex gap-1.5 lg:gap-1 [&>*]:min-w-0 [&>*]:flex-1 [&>*]:justify-center [&>*]:px-1 [&>*]:whitespace-nowrap">
-        {marks.map(({ mark, label, hint }) => (
-          <Pill key={label} on={selected?.kind === mark.kind} hint={hint} onClick={() => onMark(mark)}>
+        {marks.map(({ mark, label }) => (
+          <Pill key={label} on={selected?.kind === mark.kind} onClick={() => onMark(mark)}>
             {label} {formatClock(markTime(draft, mark), true)}
           </Pill>
         ))}

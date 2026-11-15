@@ -380,21 +380,17 @@ button[disabled] {
   pointer-events: none;
 }
 
-/* Keys are for a mouse. A finger never sees them, whatever the width. */
-.key-hint {
-  display: none;
-}
-@media (pointer: fine) {
-  .key-hint {
-    display: inline-flex;
-  }
+/* On a wide column the rows stop near phone width, so the cells do not stretch. */
+[data-shot-panel] > [data-row],
+[data-shot-panel] > [data-more-rows] {
+  max-width: 26rem;
 }
 
 /*
   Item 7. One column by default. Two columns when the screen is wider than it
-  is tall and at least 700 wide. In one column the picture stays 16:9 and is
-  never more than 45% of the screen height. It also yields when the rows need
-  the room (three rows plus More on a short screen, six on a tall one).
+  is tall and at least 700 wide. In one column the picture is full width, 16:9,
+  and never more than 45% of the screen height. In two columns it stops at 52%
+  of the height and the whole screen stops growing at 1440 wide.
 */
 .tag-set {
   height: 100%;
@@ -410,48 +406,12 @@ button[disabled] {
   min-height: 0;
   max-height: 100%;
 }
-.tag-picture-slot {
-  position: relative;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 100%;
-  overflow: hidden;
-}
-.tag-picture-slot[data-controls='row'] .tag-picture {
-  width: min(100%, calc(min(45vh, 100vh - 550px) * 16 / 9));
-  max-height: min(45vh, calc(100vh - 550px));
-}
-.tag-picture-controls {
-  display: flex;
-  align-self: stretch;
-  align-items: center;
-  justify-content: space-between;
-  gap: 4px;
-  padding-inline: 4px;
-}
-.tag-picture-slot[data-controls='overlay'] .tag-picture-controls {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 10;
-}
-.tag-picture-slot[data-controls='row'] .tag-scene-label {
-  top: auto;
-  bottom: 4px;
-}
-/* A short picture cannot hold the shot number and the stand-in names as well. The scoreboard still names both players. */
-.tag-picture-slot[data-controls='row'] [data-player-name] {
-  display: none;
-}
 .tag-picture {
   position: relative;
-  width: min(100%, calc(min(45vh, 100vh - 506px) * 16 / 9));
-  max-height: min(45vh, calc(100vh - 506px));
+  width: 100%;
   aspect-ratio: 16 / 9;
-  margin-inline: auto;
+  max-height: 45vh;
+  max-height: 45dvh;
   background: #000;
   overflow: hidden;
 }
@@ -469,6 +429,8 @@ button[disabled] {
 @media (min-width: 700px) and (orientation: landscape) {
   .tag-set {
     flex-direction: row;
+    max-width: 1440px;
+    margin-inline: auto;
   }
   .tag-media {
     flex: 3 1 0;
@@ -477,8 +439,9 @@ button[disabled] {
     border-right: 1px solid var(--color-border);
   }
   .tag-picture {
-    width: 100%;
-    max-height: none;
+    flex-shrink: 0;
+    max-height: 52vh;
+    max-height: 52dvh;
   }
   .tag-side-list {
     display: block;
@@ -503,9 +466,9 @@ button[disabled] {
 }
 
 /* Three rows, then the rest behind More. A press, not a scroll. */
-[data-shot-panel][data-page='first'] > [data-row]:nth-child(n + 4) {
+[data-shot-panel][data-page='first'] > :nth-child(n + 4 of [data-row]) {
   display: none;
 }
-[data-shot-panel][data-page='rest'] > [data-row]:nth-child(-n + 3) {
+[data-shot-panel][data-page='rest'] > :nth-child(-n + 3 of [data-row]) {
   display: none;
 }
