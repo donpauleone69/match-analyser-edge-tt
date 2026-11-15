@@ -40,10 +40,10 @@ export function segmentAt(segs: Segment[], g: number): Segment | null {
 }
 
 export function formatClock(seconds: number, tenths = false): string {
-  const s = Math.max(0, seconds)
-  const m = Math.floor(s / 60)
-  const rest = s - m * 60
-  const whole = Math.floor(rest)
+  // Whole tenths first, so 7.3 never reads as 7.2 through float error.
+  const t = Math.floor(Math.max(0, seconds) * 10 + 1e-6)
+  const m = Math.floor(t / 600)
+  const whole = Math.floor((t % 600) / 10)
   const base = `${String(m).padStart(2, '0')}:${String(whole).padStart(2, '0')}`
-  return tenths ? `${base}.${Math.floor((rest - whole) * 10)}` : base
+  return tenths ? `${base}.${t % 10}` : base
 }

@@ -143,6 +143,8 @@ function guardClicks(until: RefObject<number>) {
   }
 }
 type Editing = { id: string; index: number; draft: Draft; dirty: boolean }
+/** Where the video stood when the rally closed, to time a tap that comes after. */
+type LateWindow = { until: number; at: number; g: number; playing: boolean }
 type SetHeaderProps = { match: MatchRecord; set: SetData; children?: ReactNode }
 
 /** The stage-driven choice of what is selected after a change. */
@@ -175,6 +177,11 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const [hint, setHint] = useState<string | null>(null)
   /** Bumped when a rally closes, so the panel that appears fades in as it arms. */
   const [armKey, setArmKey] = useState(0)
+  /**
+   * The second after the idle timer closes a rally. A tap in the slot then is
+   * a contact that came late, not a press on Save, so it reopens tapping.
+   */
+  const [late, setLate] = useState<LateWindow | null>(null)
 
   const slotGuard = useRef(0)
   const panelGuard = useRef(0)
@@ -306,6 +313,12 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     return () => clearTimeout(id)
   }, [hint])
 
+  useEffect(() => {
+    if (!late) return
+    const id = setTimeout(() => setLate(null), Math.max(0, late.until - Date.now()))
+    return () => clearTimeout(id)
+  }, [late])
+
   // The slot and the panel guard themselves whenever what they hold changes.
   const lastSlot = useRef(slotKind)
   const lastStep = useRef(`${mode}:${stage}`)
@@ -355,15 +368,19 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     writeDraft(next)
     setSelected(sel)
     setTight(false)
+    setLate(null)
     applyLoop(windowFor(next, sel, st, false))
   }
 
-  const closeContacts = () => {
+  /** Closes the rally. Only the idle timer leaves the slot open to a late tap. */
+  const closeContacts = (idle = false) => {
     const { live: d, set: s, match: m } = latest.current
     if (!d || d.closed || d.contacts.length === 0) return
     const closed = { ...d, closed: true }
     mutateMatch(m.id, (cur) => setDraft(cur, s.setId, closed))
     const p = playerRef.current
+    const now = Date.now()
+    setLate(idle ? { until: now + GUARD_AFTER_CLOSE_MS, at: now, g: p.getTime(), playing: p.isPlaying() } : null)
     p.setBoundary(null)
     const end: Mark = { kind: 'shot', shot: closed.contacts.length }
     const w = windowFor(closed, null, 'result', false)
@@ -372,15 +389,44 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     p.play()
     setSelected(end)
     setLastTap(null)
-    // A tap that comes late lands on nothing: the slot and the new panel wait.
+    // A tap that comes late never lands on Save, Re-tap, Discard or a chip.
     arm(GUARD_AFTER_CLOSE_MS, GUARD_PANEL_AFTER_CLOSE_MS)
     setArmKey((k) => k + 1)
+  }
+
+  /**
+   * A tap in the slot in the second after the idle close: one more contact,
+   * timed from where the video was, and tapping carries on.
+   */
+  const onLateTap = () => {
+    const d = live
+    const now = Date.now()
+    if (!late || now >= late.until || !d || !d.closed || stageOf(d) !== 'result') return
+    const seg = segs.find((x) => x.id === d.videoId)
+    const g = late.g + (late.playing ? ((now - late.at) / 1000) * CAPTURE_SPEED : 0)
+    if (!seg || g >= seg.offset + seg.duration) return
+    const stored = Math.round(captureContactTime(g - seg.offset, d.contacts[d.contacts.length - 1]) * 100) / 100
+    mutateMatch(match.id, (m) => setDraft(m, set.setId, addContact({ ...d, closed: false }, stored)))
+    const p = playerRef.current
+    p.setLoop(null)
+    p.seek(g)
+    p.setRate(CAPTURE_SPEED)
+    p.setBoundary(seg.offset + seg.duration, () => closeContacts())
+    p.play()
+    setSelected(null)
+    setTight(false)
+    setLate(null)
+    // The pad is back for the same rally: the next tap may follow at once.
+    slotGuard.current = 0
+    panelGuard.current = 0
+    lastSlot.current = 'pad'
+    setLastTap(now)
   }
 
   // Two seconds with no tap closes the rally.
   useEffect(() => {
     if (mode !== 'tapping' || lastTap === null) return
-    const id = setTimeout(closeContacts, CONTACT_IDLE_MS)
+    const id = setTimeout(() => closeContacts(true), CONTACT_IDLE_MS)
     return () => clearTimeout(id)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, lastTap])
@@ -415,7 +461,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     if (tapped === 0) {
       p.setRate(CAPTURE_SPEED)
       // A rally never spans two videos: the end of this one closes it.
-      p.setBoundary(seg.offset + seg.duration, closeContacts)
+      p.setBoundary(seg.offset + seg.duration, () => closeContacts())
     }
     if (!p.isPlaying()) p.play()
     setLastTap(Date.now())
@@ -673,6 +719,8 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   // wing, bottom row the stroke. [ and ] pick the marks, - and = nudge.
   // K plays or pauses, arrows step 10 seconds.
   const handlers = {
+    late,
+    onLateTap,
     onPad,
     onUndoTap,
     onSave,
@@ -706,9 +754,15 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       const key = e.key.length === 1 ? e.key.toLowerCase() : e.key
       if (key === ' ') {
         e.preventDefault()
-        if (e.repeat || Date.now() < slotGuard.current) return
+        if (e.repeat) return
+        if (k.late && now.mode === 'tagging') {
+          k.onLateTap()
+          return
+        }
+        if (Date.now() < slotGuard.current) return
         if (now.mode === 'watch' || now.mode === 'tapping' || now.mode === 'setPoint') k.onPad()
-        else toggle()
+        // While tagging, the slot is Save: a Space that comes too late does nothing.
+        else if (now.mode !== 'tagging') toggle()
       } else if (key === 'Enter') {
         if (!rally) return
         // Enter is Save here. It must not click whatever the mouse last pressed.
@@ -1084,9 +1138,18 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
         */}
         <div
           data-tag-slot={slotKind}
-          className="shrink-0 border-t border-border bg-bg-shell px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
-          onClickCapture={guardClicks(slotGuard)}
+          className="relative shrink-0 border-t border-border bg-bg-shell px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
+          onClickCapture={late ? undefined : guardClicks(slotGuard)}
         >
+          {late && slotKind === 'save' && active ? (
+            <button
+              type="button"
+              data-late-tap
+              aria-label={`Tap shot ${active.contacts.length + 1}`}
+              className="absolute inset-0 z-10 touch-manipulation select-none"
+              onClick={onLateTap}
+            />
+          ) : null}
           {slotKind === 'pad' ? (
             <button
               type="button"
