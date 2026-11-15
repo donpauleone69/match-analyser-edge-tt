@@ -331,7 +331,7 @@ export function VideoStage({
           <p
             data-shot-badge={badge.shot}
             className={cn(
-              'absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2 rounded-md px-3 py-1 text-2xl font-bold tabular-nums text-white',
+              'absolute left-2 top-12 z-20 rounded-md px-3 py-1 text-2xl font-bold tabular-nums text-white',
               badge.side === 'me' ? 'bg-side-me' : 'bg-side-them'
             )}
           >
