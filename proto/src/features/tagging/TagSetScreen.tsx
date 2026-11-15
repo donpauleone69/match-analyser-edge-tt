@@ -174,7 +174,14 @@ function guardClicks(until: RefObject<number>) {
     }
   }
 }
-type Editing = { id: string; index: number; draft: Draft; dirty: boolean }
+type Editing = { id: string; index: number; draft: Draft; /** As opened, so Switch back clears dirty. */ baseline: Draft; dirty: boolean }
+
+function editDirty(baseline: Draft, next: Draft, id: string): boolean {
+  const a = rallyFromDraft(baseline, id)
+  const b = rallyFromDraft(next, id)
+  if (!a || !b) return true
+  return JSON.stringify(a) !== JSON.stringify(b)
+}
 /** Where the video stood when the rally closed, to time a tap that comes after. */
 type LateWindow = { until: number; at: number; g: number; playing: boolean }
 /** A rally being added between two saved ones: the stretch of video it may use. */
@@ -456,7 +463,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   /** Writes the rally being worked on: the past rally in edit, else the draft. */
   const writeDraft = (next: Draft) => {
     if (readOnly) return
-    if (edit) setEdit({ ...edit, draft: next, dirty: true })
+    if (edit) setEdit({ ...edit, draft: next, dirty: editDirty(edit.baseline, next, edit.id) })
     else mutateMatch(match.id, (m) => setDraft(m, set.setId, next))
   }
 
@@ -953,7 +960,8 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       setGap(null)
       setServerPick(null)
     }
-    showEdit({ id: r.id, index, draft: draftFromRally(r), dirty: false })
+    const baseline = draftFromRally(r)
+    showEdit({ id: r.id, index, draft: baseline, baseline, dirty: false })
   }
 
   const leaveEdit = () => {
