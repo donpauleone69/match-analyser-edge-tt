@@ -34,9 +34,11 @@ import {
   SERVE_REVIEW_AFTER_S,
   SERVE_REVIEW_BEFORE_S,
   bandLine,
+  breakForReview,
   breakIndexes,
   checkSet,
   expectedServer,
+  leaveIds,
   longerFirst,
   openReview,
   pressReview,
@@ -1041,7 +1043,16 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     const before = run.rule.rallies[cursor]
     const next = pressReview(run.rule, press)
     const swapped = before.server !== next.rallies[cursor].server
-    mutateMatch(match.id, (m) => confirmServe(m, set.setId, before.id, swapped))
+    mutateMatch(match.id, (m) => {
+      const confirmed = confirmServe(m, set.setId, before.id, swapped)
+      if (next.firstServer === run.rule.firstServer) return confirmed
+      return {
+        ...confirmed,
+        sets: confirmed.sets.map((s) =>
+          s.setId === set.setId ? { ...s, firstServer: next.firstServer } : s
+        ),
+      }
+    })
     if (next.stopped === null && next.cursor !== null) {
       setReview({ kind: 'ask', rule: next })
       playServe(next.rallies[next.cursor])
@@ -1049,8 +1060,8 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     }
     if (next.gaps.length > 0) {
       const gaps = longerFirst(next.gaps, gapLength)
-      const left = breakIndexes(next.rallies, next.firstServer)[0]
-      const breakId = left === undefined ? null : next.rallies[left].id
+      const left = breakForReview(breakIndexes(next.rallies, next.firstServer), next.openedAt)
+      const breakId = left === null ? null : next.rallies[left].id
       setReview({ kind: 'gaps', gaps, at: 0, breakId, hintRallyId: null, pointAsk: false })
       playGapAt(gaps[0])
       return
@@ -1114,7 +1125,16 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const onReviewLeave = () => {
     const run = reviewRef.current
     const id = run && (run.kind === 'leave' || run.kind === 'gaps') ? run.breakId : null
-    if (id) mutateMatch(match.id, (m) => leaveMark(m, set.setId, id, 'serve'))
+    if (id) {
+      mutateMatch(match.id, (m) => {
+        const current = m.sets.find((s) => s.setId === set.setId)
+        if (!current) return m
+        return leaveIds(current.rallies, current.firstServer, id).reduce(
+          (next, rallyId) => leaveMark(next, set.setId, rallyId, 'serve'),
+          m
+        )
+      })
+    }
     endReview()
   }
 

@@ -205,7 +205,7 @@ function hintRow(): CaseResult {
   )
   if (cont.checkCount !== 0) fails.push(`hint counted as ${cont.checkCount}`)
   if (!cont.marks.some((m) => m.kind === 'gap')) fails.push('hint missing from marks')
-  if (bandLine({ from: 6, to: 6, breakId: 'x' }) !== 'Serve order changed at rally 7') {
+  if (bandLine({ from: 6, to: 6, breakId: 'x', breaks: [6] }) !== 'Serve order changed at rally 7') {
     fails.push('one-rally line')
   }
   if (longerFirst([0, 1], (i) => (i === 0 ? 4 : 12)).join(',') !== '1,0') fails.push('longer first')
@@ -284,7 +284,9 @@ export function runServeReviewCases(): CaseResult[] {
       if (expectedServer(prefix, Y) !== Y) fails.unshift('r21 was not due Y')
       return { id: 'R7', ok: fails.length === 0, detail: fails.join('; ') }
     })(),
-    caseR('R8', [Y, Y, S, S, Y, S], [same(6, 6), same(5, 6)], {
+    // The plan's sentence wins over the first reading of R8: the known good
+    // rally (r4) is shown, then the review stops. It is not skipped.
+    caseR('R8', [Y, Y, S, S, Y, S], [same(6, 6), same(5, 6), same(4, 6)], {
       stop: 'known-good',
       gaps: [5, 6],
       stretch: [5, 6],

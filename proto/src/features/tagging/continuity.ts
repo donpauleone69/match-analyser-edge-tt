@@ -148,24 +148,39 @@ export function checkSet(
  *   - a rally whose server was checked (Switch, or either press in Review serves)
  *   - a rally whose serve mark was left
  *
- * The stretch of a break runs from the rally after the last known good one
- * before it, up to and including the break. The list shows that stretch as
- * one band. No single rally is named as the cause.
+ * One mistake is one band. A break joins the band before it when fewer than
+ * two rallies since that break fit the order. Two fitting rallies are what
+ * prove the earlier mistake is finished. Two real mistakes that close together
+ * therefore show as one band. That cost is accepted.
  *
- * Review serves shows the break first, then steps back one rally at a time.
- * After every press, in this order, it stops when:
+ * The stretch runs from the rally after the last known good one before the
+ * band's first break, up to and including its last break. A checked break
+ * still ends the stretch before it, so a later mistake stays its own band
+ * once two rallies have fit. The list shows the stretch as one band.
+ * No single rally is named as the cause.
+ *
+ * Review serves opens on the band's last break and steps back one rally at a
+ * time. After every press, in this order, it stops when:
  *   1. no break is left
- *   2. the last two rallies shown both fit the order
- *   3. the next rally back was known good before this review, or the rally
- *      just shown is rally 1
- * A known good rally is not shown. The break is shown even if it was already
- * known good. Presses during this review do not count as known good for rule 3.
+ *   2. the rally just shown was known good before this review, and it is not
+ *      itself a break (it is shown, then the review stops)
+ *   3. the last two rallies shown both fit the order
+ *   4. the rally just shown is rally 1
+ * A break is never a reason to stop, even when it was checked. Presses during
+ * this review do not count as known good for rule 2.
+ *
+ * Reaching rally 1 and confirming or swapping its server makes that server the
+ * set's first server. The breaks are read again from there, so a band cannot
+ * remain on rally 1 after that press.
  *
  * Same as tagged: the checked flag only. The other player: that rally's server
  * and winner swap, and it is checked. No other rally is written.
  *
- * If a break is left, it sits just after the only serve of a turn. The missing
- * rally is in the gap before that serve or the gap after it.
+ * A review works on the break it was opened on: the last break still at or
+ * before that rally. It does not take the earliest break in the set. If a
+ * break is left, it sits just after the only serve of a turn. The missing
+ * rally is in the gap before that serve or the gap after it. Leave it marks
+ * every break in that band, and no rally in another band.
  */
 
 /** How much of the serve Review serves plays: 1s before the contact, 0.5s after. */
@@ -197,14 +212,35 @@ export function breakIndexes(rallies: Array<Served & { left?: MarkKind[] }>, fir
 export type ServeBand = {
   /** First rally of the stretch, inclusive. */
   from: number
-  /** The break, inclusive. */
+  /** The last break in the band, inclusive. Review serves opens here. */
   to: number
   breakId: string
+  /** Every break in this band, in video order. Leave it marks these only. */
+  breaks: number[]
 }
 
-/** One band per break. `checkCount` is this list's length, never the gap hints. */
+/** Rallies strictly between two breaks whose server is the one due. */
+function fittingBetween(breaks: number[], earlier: number, later: number): number {
+  const at = new Set(breaks)
+  let n = 0
+  for (let i = earlier + 1; i < later; i++) if (!at.has(i)) n++
+  return n
+}
+
+/**
+ * One band per mistake. A later break with fewer than two fitting rallies
+ * since the previous break joins that band. `checkCount` is this list's
+ * length, never the gap hints.
+ */
 export function serveBands(rallies: Array<ServeRally>, firstServer: Side): ServeBand[] {
-  return breakIndexes(rallies, firstServer).map((to) => {
+  const breaks = breakIndexes(rallies, firstServer)
+  const bands: ServeBand[] = []
+  for (const to of breaks) {
+    const prev = bands[bands.length - 1]
+    if (prev && fittingBetween(breaks, prev.to, to) < 2) {
+      bands[bands.length - 1] = { ...prev, to, breakId: rallies[to].id, breaks: [...prev.breaks, to] }
+      continue
+    }
     let from = 0
     for (let i = to - 1; i >= 0; i--) {
       if (isKnownGood(rallies[i])) {
@@ -212,8 +248,18 @@ export function serveBands(rallies: Array<ServeRally>, firstServer: Side): Serve
         break
       }
     }
-    return { from, to, breakId: rallies[to].id }
-  })
+    bands.push({ from, to, breakId: rallies[to].id, breaks: [to] })
+  }
+  return bands
+}
+
+/** Rally ids Leave it writes for the band that contains `breakId`. */
+export function leaveIds(rallies: Array<ServeRally>, firstServer: Side, breakId: string): string[] {
+  const band = serveBands(rallies, firstServer).find(
+    (item) => item.breakId === breakId || item.breaks.some((index) => rallies[index].id === breakId)
+  )
+  if (!band) return [breakId]
+  return band.breaks.map((index) => rallies[index].id)
 }
 
 export function bandLine(band: ServeBand): string {
@@ -230,6 +276,8 @@ export type ReviewPress = 'same' | 'other'
 export type ReviewState<T extends ServeRally = ServeRally> = {
   rallies: T[]
   firstServer: Side
+  /** The break this review was opened on. Gaps and Leave it stay with it. */
+  openedAt: number
   /** Rallies shown, in the order shown. */
   shown: number[]
   /** Known good when the review opened. Presses in this review are not added. */
@@ -254,12 +302,23 @@ export function openReview<T extends ServeRally>(
   return {
     rallies: rallies.map(copyRally),
     firstServer,
+    openedAt: breakIndex,
     shown: [],
     knownBefore: rallies.flatMap((r, index) => (isKnownGood(r) ? [index] : [])),
     cursor: breakIndex,
     stopped: null,
     gaps: [],
   }
+}
+
+/**
+ * The break this review may still offer gaps for: the last break at or before
+ * the one it opened on. An earlier band in the same set is left alone.
+ */
+export function breakForReview(breaks: number[], openedAt: number): number | null {
+  let at: number | null = null
+  for (const index of breaks) if (index <= openedAt) at = index
+  return at
 }
 
 /**
@@ -291,19 +350,23 @@ export function pressReview<T extends ServeRally>(state: ReviewState<T>, press: 
     serveChecked: true,
   }
   const shown = [...state.shown, cursor]
-  const breaks = breakIndexes(rallies, state.firstServer)
+  const firstServer = cursor === 0 ? rallies[0].server : state.firstServer
+  const breaks = breakIndexes(rallies, firstServer)
+  const shownFits = state.knownBefore.includes(cursor) && !breaks.includes(cursor)
   let stopped: StopReason | null = null
   if (breaks.length === 0) stopped = 'no-break'
+  else if (shownFits) stopped = 'known-good'
   else if (shown.length >= 2 && shown.slice(-2).every((index) => !breaks.includes(index))) stopped = 'two-fit'
   else if (cursor === 0) stopped = 'set-start'
-  else if (state.knownBefore.includes(cursor - 1)) stopped = 'known-good'
+  const at = stopped ? breakForReview(breaks, state.openedAt) : null
 
   return {
     ...state,
     rallies,
+    firstServer,
     shown,
     cursor: stopped ? null : cursor - 1,
     stopped,
-    gaps: stopped && breaks.length > 0 ? gapPair(rallies, state.firstServer, breaks[0]) : [],
+    gaps: at === null ? [] : gapPair(rallies, firstServer, at),
   }
 }

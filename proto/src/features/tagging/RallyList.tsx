@@ -96,7 +96,13 @@ export function RallyList({
                 <Button kind="control" variant="secondary" onClick={() => actions.onReview(band)}>
                   Review serves
                 </Button>
-                <Button kind="control" variant="ghost" onClick={() => actions.onLeave(band.breakId, 'serve')}>
+                <Button
+                  kind="control"
+                  variant="ghost"
+                  onClick={() => {
+                    for (const index of band.breaks) actions.onLeave(set.rallies[index].id, 'serve')
+                  }}
+                >
                   Leave it
                 </Button>
               </div>
