@@ -9,7 +9,7 @@ import {
   type RefObject,
 } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { Button, Icon } from '@/ui-mine'
+import { Button, Icon, buttonKindTapPadSquare } from '@/ui-mine'
 import { WfEmpty } from '@/layout/Wireframe'
 import {
   derivePhase,
@@ -29,10 +29,23 @@ import {
 import { AddVideoChoice } from '@/features/match/AddVideoChoice'
 import { isRealResult, matchLabel } from '@/features/match/matchChecks'
 import { cn } from '@/helpers/utils'
-import { checkSet, expectedServer, type RallyMark } from './continuity'
+import {
+  GAP_REVIEW_RATE,
+  SERVE_REVIEW_AFTER_S,
+  SERVE_REVIEW_BEFORE_S,
+  bandLine,
+  breakIndexes,
+  checkSet,
+  expectedServer,
+  longerFirst,
+  openReview,
+  pressReview,
+  type ReviewState,
+} from './continuity'
 import {
   applyTaggedResult,
   applyTaggedScore,
+  confirmServe,
   deleteRally,
   earlierSetsEnd,
   finishMatch,
@@ -50,7 +63,6 @@ import {
   saveRally,
   setDraft,
   setInProgress,
-  swapRallyPlayers,
 } from './matchOps'
 import {
   CAPTURE_SPEED,
@@ -159,12 +171,6 @@ function minutesLeft(seconds: number): string {
   return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`
 }
 
-function markLine(m: RallyMark, names: Record<Side, string>): string {
-  return m.kind === 'gap'
-    ? `${Math.round(m.seconds)}s of video before it`
-    : `${names[m.served]} served, ${names[m.expected]} expected`
-}
-
 /** Watching speed per match, kept while the app is open. */
 const watchRates = new Map<string, number>()
 
@@ -190,6 +196,20 @@ function editDirty(baseline: Draft, next: Draft, id: string): boolean {
 type LateWindow = { until: number; at: number; g: number; playing: boolean }
 /** A rally being added between two saved ones: the stretch of video it may use. */
 type Gap = { index: number; a: number; b: number }
+/** Review serves, then the two gaps, or Check gaps on its own. */
+type ReviewRun =
+  | { kind: 'ask'; rule: ReviewState<RallyData> }
+  | {
+      kind: 'gaps'
+      gaps: number[]
+      at: number
+      /** The break still to leave, when this run came from Review serves. */
+      breakId: string | null
+      /** Next on a hint clears that hint. */
+      hintRallyId: string | null
+      pointAsk: boolean
+    }
+  | { kind: 'leave'; breakId: string }
 type SetHeaderProps = { match: MatchRecord; set: SetData; children?: ReactNode }
 
 /** The stage-driven choice of what is selected after a change. */
@@ -231,7 +251,15 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const [gap, setGap] = useState<Gap | null>(null)
   /** Switch pressed before the first tap: the server of the next rally only. */
   const [serverPick, setServerPick] = useState<Side | null>(null)
+  /** Switch was pressed for the rally now being tagged, even if it was switched back. */
+  const serverChosen = useRef(false)
   const [lastSavedId, setLastSavedId] = useState<string | null>(null)
+  const [review, setReviewState] = useState<ReviewRun | null>(null)
+  const reviewRef = useRef<ReviewRun | null>(null)
+  const setReview = (next: ReviewRun | null) => {
+    reviewRef.current = next
+    setReviewState(next)
+  }
   /** Add contact is on: the taps it was started on, and the speed to go back to. */
   const [adding, setAdding] = useState<{ contacts: number[]; rate: number } | null>(null)
 
@@ -569,7 +597,8 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     const server = nextServer
     mutateMatch(match.id, (m) => {
       const s = m.sets.find((x) => x.setId === set.setId)
-      const base = s?.draft && !s.draft.closed ? s.draft : emptyDraft(seg.id, server)
+      const fresh = s?.draft && !s.draft.closed ? s.draft : emptyDraft(seg.id, server)
+      const base = serverChosen.current ? { ...fresh, serveChecked: true } : fresh
       return setDraft(m, set.setId, addContact(base, stored))
     })
     if (tapped === 0) {
@@ -695,6 +724,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     setLastTap(null)
     setLate(null)
     setServerPick(null)
+    serverChosen.current = false
     setToast({
       text: 'Let, no point',
       undo: () => {
@@ -747,6 +777,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     mutateMatch(match.id, (m) => saveRally(m, set.setId, rally))
     setLastSavedId(rally.id)
     setServerPick(null)
+    serverChosen.current = false
     const endG = offsetOf(rally.videoId) + rally.contacts[rally.contacts.length - 1]
     const after = addPoint(score, rally.winner)
     p.setLoop(null)
@@ -784,14 +815,15 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const onSwitch = () => {
     if (readOnly) return
     // Editing a saved rally: the same Switch, for that rally only.
+    serverChosen.current = true
     if (edit) {
-      writeDraft({ ...edit.draft, server: otherSide(edit.draft.server) })
+      writeDraft({ ...edit.draft, server: otherSide(edit.draft.server), serveChecked: true })
       return
     }
     if (mode !== 'watch' && mode !== 'tagging') return
     if (set.rallies.length === 0) mutateMatch(match.id, (m) => flipFirstServer(m, set.setId))
     else if (!live) setServerPick(nextServer === expected ? otherSide(expected) : null)
-    if (live) writeDraft({ ...live, server: otherSide(live.server) })
+    if (live) writeDraft({ ...live, server: otherSide(live.server), serveChecked: true })
   }
 
   /**
@@ -927,14 +959,172 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     withUndo('Point added', before)
   }
 
+  const gapLength = (index: number): number | null => {
+    const w = gapWindow(match, set.setId, index)
+    return w ? w.b - w.a : null
+  }
+
+  /** Back to the open rally, or to where live tagging stood. */
+  const endReview = () => {
+    setReview(null)
+    const p = playerRef.current
+    p.setLoop(null)
+    p.setRate(watchRate.current)
+    park(live, set.finished, floorG)
+  }
+
+  const playServe = (r: RallyData) => {
+    const p = playerRef.current
+    p.setBoundary(null)
+    p.setCeil(null)
+    if (r.point || r.contacts.length === 0) {
+      p.setLoop(null)
+      p.pause()
+      return
+    }
+    const contact = toGlobal(segs, r.videoId, r.contacts[0])
+    if (contact === null) {
+      p.pause()
+      return
+    }
+    const off = offsetOf(r.videoId)
+    const max = off + durationOf(r.videoId)
+    const a = Math.max(off, contact - SERVE_REVIEW_BEFORE_S)
+    const b = Math.min(max, Math.max(a + 0.3, contact + SERVE_REVIEW_AFTER_S))
+    p.setRate(NORMAL_SPEED)
+    p.setLoop({ a, b })
+    p.seek(a)
+    p.play()
+  }
+
+  const playGapAt = (index: number) => {
+    const w = gapWindow(match, set.setId, index)
+    const p = playerRef.current
+    p.setBoundary(null)
+    p.setCeil(null)
+    if (!w) {
+      p.setLoop(null)
+      p.pause()
+      return
+    }
+    p.setRate(GAP_REVIEW_RATE)
+    p.setLoop(w)
+    p.seek(w.a)
+    p.play()
+  }
+
+  const openReviewRun = (run: ReviewRun) => {
+    if (readOnly || set.finished || (live && !live.closed)) return false
+    setEdit(null)
+    setAdding(null)
+    setGap(null)
+    setListOpen(false)
+    listResume.current = false
+    setToast(null)
+    setReview(run)
+    return true
+  }
+
+  const onReview = (band: { to: number }) => {
+    const rule = openReview(set.rallies, set.firstServer, band.to)
+    if (!openReviewRun({ kind: 'ask', rule })) return
+    const rally = rule.rallies[band.to]
+    if (rally) playServe(rally)
+  }
+
+  const onReviewPress = (press: 'same' | 'other') => {
+    const run = reviewRef.current
+    if (!run || run.kind !== 'ask' || run.rule.cursor === null) return
+    const cursor = run.rule.cursor
+    const before = run.rule.rallies[cursor]
+    const next = pressReview(run.rule, press)
+    const swapped = before.server !== next.rallies[cursor].server
+    mutateMatch(match.id, (m) => confirmServe(m, set.setId, before.id, swapped))
+    if (next.stopped === null && next.cursor !== null) {
+      setReview({ kind: 'ask', rule: next })
+      playServe(next.rallies[next.cursor])
+      return
+    }
+    if (next.gaps.length > 0) {
+      const gaps = longerFirst(next.gaps, gapLength)
+      const left = breakIndexes(next.rallies, next.firstServer)[0]
+      const breakId = left === undefined ? null : next.rallies[left].id
+      setReview({ kind: 'gaps', gaps, at: 0, breakId, hintRallyId: null, pointAsk: false })
+      playGapAt(gaps[0])
+      return
+    }
+    endReview()
+  }
+
+  const onCheckGaps = () => {
+    const idxs: number[] = []
+    for (let i = 1; i < set.rallies.length; i++) {
+      if (gapWindow(match, set.setId, i)) idxs.push(i)
+    }
+    const gaps = longerFirst(idxs, gapLength)
+    if (gaps.length === 0 || !openReviewRun({ kind: 'gaps', gaps, at: 0, breakId: null, hintRallyId: null, pointAsk: false })) {
+      return
+    }
+    playGapAt(gaps[0])
+  }
+
+  const onCheckGap = (index: number) => {
+    const hint = cont.marks.find((m) => m.kind === 'gap' && m.index === index)
+    if (!openReviewRun({ kind: 'gaps', gaps: [index], at: 0, breakId: null, hintRallyId: hint?.rallyId ?? null, pointAsk: false })) {
+      return
+    }
+    playGapAt(index)
+  }
+
+  const onReviewNext = () => {
+    const run = reviewRef.current
+    if (!run || run.kind !== 'gaps') return
+    const at = run.at + 1
+    if (at < run.gaps.length) {
+      setReview({ ...run, at, pointAsk: false })
+      playGapAt(run.gaps[at])
+      return
+    }
+    if (run.hintRallyId) {
+      mutateMatch(match.id, (m) => leaveMark(m, set.setId, run.hintRallyId as string, 'gap'))
+      endReview()
+      return
+    }
+    if (run.breakId) {
+      setReview({ kind: 'leave', breakId: run.breakId })
+      const p = playerRef.current
+      p.pause()
+      p.setLoop(null)
+      p.setRate(watchRate.current)
+      return
+    }
+    endReview()
+  }
+
+  const onReviewAddRally = () => {
+    const run = reviewRef.current
+    if (!run || run.kind !== 'gaps') return
+    const index = run.gaps[run.at]
+    endReview()
+    onAddRally(index)
+  }
+
+  const onReviewLeave = () => {
+    const run = reviewRef.current
+    const id = run && (run.kind === 'leave' || run.kind === 'gaps') ? run.breakId : null
+    if (id) mutateMatch(match.id, (m) => leaveMark(m, set.setId, id, 'serve'))
+    endReview()
+  }
+
   const listActions: RallyListActions | null =
     readOnly || set.finished
       ? null
       : {
           canAddRally: (index) => !live && gapWindow(match, set.setId, index) !== null,
           onAddRally,
-          onAddPoint,
-          onSwap: (id) => mutateMatch(match.id, (m) => swapRallyPlayers(m, set.setId, id)),
+          onReview,
+          onCheckGaps,
+          onCheckGap,
           onLeave: (id: string, kind: MarkKind) => mutateMatch(match.id, (m) => leaveMark(m, set.setId, id, kind)),
           onRestore: (id) => {
             leaveGap()
@@ -996,7 +1186,13 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     if (!edit || readOnly || !edit.dirty) return
     const rally = rallyFromDraft(edit.draft, edit.id)
     if (!rally) return
-    mutateMatch(match.id, (m) => replaceRally(m, set.setId, rally))
+    const prev = set.rallies.find((r) => r.id === edit.id)
+    const kept: RallyData = {
+      ...rally,
+      ...(prev?.left ? { left: prev.left } : {}),
+      ...(rally.serveChecked || prev?.serveChecked ? { serveChecked: true } : {}),
+    }
+    mutateMatch(match.id, (m) => replaceRally(m, set.setId, kept))
     leaveEdit()
   }
 
@@ -1109,6 +1305,8 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     onAddTap,
     adding: addOn,
     onPickFa,
+    reviewing: review !== null,
+    onReviewSame: () => onReviewPress('same'),
     change,
     seekTo,
     askNoAttack,
@@ -1141,6 +1339,13 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
           k.onAddContact()
         } else if (key === 'Backspace' || key === 'Enter') {
           e.preventDefault()
+        }
+        return
+      }
+      if (k.reviewing) {
+        if (key === ' ' && !e.repeat) {
+          e.preventDefault()
+          k.onReviewSame()
         }
         return
       }
@@ -1244,7 +1449,8 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     ? set.rallies.slice(0, edit.index).reduce<Points>((acc, r) => addPoint(acc, r.winner), ZERO)
     : null
   const shownScore = editScore ?? score
-  const shownServer = edit ? edit.draft.server : (live?.server ?? nextServer)
+  const reviewRally = review?.kind === 'ask' && review.rule.cursor !== null ? review.rule.rallies[review.rule.cursor] : null
+  const shownServer = reviewRally ? reviewRally.server : edit ? edit.draft.server : (live?.server ?? nextServer)
   const setsWon = matchSetsWon(match)
   const atEnd = player.atEnd && (mode === 'watch' || mode === 'setPoint')
   const ready = stage === 'ready'
@@ -1280,9 +1486,21 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     return i >= 0 ? i : set.rallies.length - 1
   })()
   const lastSaved = set.rallies[lastSavedIndex] ?? null
-  const lastSavedMarks = lastSaved ? cont.marks.filter((m) => m.rallyId === lastSaved.id) : []
+  const noteBand =
+    cont.bands.find((b) => lastSavedIndex >= b.from && lastSavedIndex <= b.to) ?? null
+  const gapIndex = review?.kind === 'gaps' ? review.gaps[review.at] : null
+  const reviewLine =
+    review?.kind === 'ask' && review.rule.cursor !== null
+      ? `Rally ${review.rule.cursor + 1} serve`
+      : review?.kind === 'gaps' && gapIndex !== null
+        ? `Gap before rally ${gapIndex + 1}`
+        : review?.kind === 'leave'
+          ? 'Neither gap has the rally'
+          : null
 
-  const status =
+  const status = reviewLine
+    ? reviewLine
+    :
     mode === 'finished'
       ? `Set ${set.setId} finished · ${formatScore(score)}`
       : mode === 'setPoint'
@@ -1348,6 +1566,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       data-tag-mode={mode}
       data-tag-stage={stage ?? ''}
       data-tag-adding={addOn ? '' : undefined}
+      data-review={review?.kind ?? ''}
       data-playing={player.playing}
       data-rate={player.rate}
       data-time={player.time}
@@ -1369,9 +1588,9 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
           >
             <Icon name="list" size="xs" />
             Rallies {set.rallies.length}
-            {cont.marks.length > 0 ? (
+            {cont.checkCount > 0 ? (
               <span className="rounded-full bg-warning px-1.5 text-[10px] font-bold text-neutral-950" data-mark-count>
-                {cont.marks.length}
+                {cont.checkCount}
               </span>
             ) : null}
           </Button>
@@ -1557,6 +1776,42 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
           onClickCapture={guardClicks(panelGuard)}
         >
           <div className={cn('mt-auto space-y-2', panelBusy && BUSY)} data-tag-panel>
+            {review ? (
+              <div data-review-panel className="rounded-md border border-border bg-bg-surface px-3 py-2 space-y-2">
+                {review.kind === 'gaps' && review.pointAsk ? (
+                  <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Who won the point">
+                    <span className="text-xs font-semibold text-primary">Who won?</span>
+                    {(['me', 'them'] as const).map((side) => (
+                      <Button
+                        key={side}
+                        kind="control"
+                        variant="secondary"
+                        onClick={() => {
+                          onAddPoint(review.gaps[review.at], side)
+                          endReview()
+                        }}
+                      >
+                        {names[side]}
+                      </Button>
+                    ))}
+                    <Button kind="control" variant="ghost" onClick={() => setReview({ ...review, pointAsk: false })}>
+                      Cancel
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-1.5">
+                    {review.kind === 'gaps' ? (
+                      <Button kind="control" variant="secondary" onClick={() => setReview({ ...review, pointAsk: true })}>
+                        Add point
+                      </Button>
+                    ) : null}
+                    <Button kind="control" variant="ghost" onClick={endReview}>
+                      Stop
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ) : null}
             {goneCount > 0 ? (
               <div className="rounded-md border border-dashed border-border bg-bg-card px-3 py-2 space-y-2" role="status">
                 <p className="text-sm text-primary">
@@ -1677,10 +1932,10 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                       ? ' · point, no video'
                       : ` · ${lastSaved.contacts.length} ${lastSaved.contacts.length === 1 ? 'shot' : 'shots'} · ${lastSaved.ending ?? ''}`}
                   </p>
-                  {lastSavedMarks.length > 0 ? (
+                  {noteBand ? (
                     <p className="text-xs font-semibold text-primary" data-mark-note>
                       <span className="mr-1 inline-block h-2 w-2 rounded-full bg-warning" aria-hidden />
-                      Check in Rallies: {markLine(lastSavedMarks[0], names)}
+                      Check in Rallies: {bandLine(noteBand)}
                     </p>
                   ) : null}
                 </div>
@@ -1767,7 +2022,74 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               onClick={onLateTap}
             />
           ) : null}
-          {switchWarn ? (
+          {review ? (
+            <div
+              className="absolute inset-0 z-20 flex items-stretch gap-2 bg-bg-shell px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
+              data-review-slot
+            >
+              {reviewRally ? (
+                <>
+                  <Button
+                    kind="tapPad"
+                    data-review-serve
+                    className={cn(
+                      'flex-1 min-w-0 text-lg border-l-8',
+                      reviewRally.server === 'me' ? 'border-l-side-me' : 'border-l-side-them'
+                    )}
+                    onClick={() => onReviewPress('same')}
+                  >
+                    {names[reviewRally.server]} served
+                  </Button>
+                  <button
+                    type="button"
+                    data-review-other
+                    className={cn(
+                      buttonKindTapPadSquare,
+                      'shrink-0 rounded-lg border text-xs font-semibold leading-tight px-1',
+                      reviewRally.server === 'me' ? 'bg-side-them/15 border-side-them/50' : 'bg-side-me/15 border-side-me/50'
+                    )}
+                    onClick={() => onReviewPress('other')}
+                  >
+                    No, {names[otherSide(reviewRally.server)]}
+                  </button>
+                </>
+              ) : review.kind === 'gaps' ? (
+                <>
+                  <Button
+                    kind="tapPad"
+                    data-review-add
+                    className="flex-1 min-w-0 text-lg"
+                    disabled={gapIndex === null || gapWindow(match, set.setId, gapIndex) === null || Boolean(live)}
+                    onClick={onReviewAddRally}
+                  >
+                    Add rally
+                  </Button>
+                  <button
+                    type="button"
+                    data-review-next
+                    className={cn(buttonKindTapPadSquare, 'shrink-0 rounded-lg border border-border text-sm font-semibold')}
+                    onClick={onReviewNext}
+                  >
+                    Next
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Button kind="tapPad" variant="secondary" data-review-leave className="flex-1 min-w-0 text-lg" onClick={onReviewLeave}>
+                    Leave it
+                  </Button>
+                  <button
+                    type="button"
+                    className={cn(buttonKindTapPadSquare, 'shrink-0 rounded-lg border border-border text-sm font-semibold')}
+                    onClick={endReview}
+                  >
+                    Stop
+                  </button>
+                </>
+              )}
+            </div>
+          ) : null}
+          {switchWarn && !review ? (
             <p
               role="status"
               data-switch-warning

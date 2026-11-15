@@ -1,20 +1,22 @@
-import { useState, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { Button, Icon } from '@/ui-mine'
 import { formatScore, type SetData } from '@/data/demoStore'
 import { cn } from '@/helpers/utils'
-import type { Continuity, RallyMark } from './continuity'
+import { bandLine, serveBands, type RallyMark, type ServeBand } from './continuity'
 import { deletedOf } from './matchOps'
 import { servesText, type MarkKind, type RallyData, type Side } from './rally'
 import { ZERO, addPoint, type Points } from './score'
 import { firstContactG, insertIndex, type Segment } from './timeline'
 
 export type RallyListActions = {
-  /** Tag a rally in the gap in front of the rally at `index`. Null when the gap cannot be played. */
+  /** Tag a rally in the gap in front of the rally at `index`. */
   canAddRally: (index: number) => boolean
   onAddRally: (index: number) => void
-  /** A point with no video, in front of the rally at `index` (or at the end). */
-  onAddPoint: (index: number, winner: Side) => void
-  onSwap: (rallyId: string) => void
+  onReview: (band: ServeBand) => void
+  /** Play the gaps between saved rallies, longest first. */
+  onCheckGaps: () => void
+  /** Play the one gap in front of the rally at `index`. */
+  onCheckGap: (index: number) => void
   onLeave: (rallyId: string, kind: MarkKind) => void
   onRestore: (rallyId: string) => void
   onDeletePoint: (rallyId: string) => void
@@ -22,22 +24,9 @@ export type RallyListActions = {
 
 const small = 'h-11 lg:h-7 px-2.5 text-xs'
 
-function markText(m: RallyMark, names: Record<Side, string>): string {
-  if (m.kind === 'gap') return `${Math.round(m.seconds)}s of video before this rally`
-  return `Serve order: ${names[m.served]} served, ${names[m.expected]} expected`
-}
-
-/** Where a point added at `index` lands. Newest first, so the card under a rally is the gap in front of it. */
-function pointLabel(index: number, n: number): string {
-  if (index <= 0) return 'Add point before rally 1'
-  if (index >= n) return `Add point after rally ${n}`
-  return `Add point between rally ${index} and rally ${index + 1}`
-}
-
 /**
- * Saved rallies, newest first, in video order. Opening one puts it in the
- * panel to edit. Continuity marks sit under the rally they belong to, with
- * the four fixes. Deleted rallies stay, crossed out, until the set is finished.
+ * Saved rallies, newest first, in video order. A serve break is one band for
+ * the whole stretch, not a mark on one rally. A long gap is a quiet hint.
  */
 export function RallyList({
   set,
@@ -59,7 +48,7 @@ export function RallyList({
   names: Record<Side, string>
   segs: Segment[]
   marks: RallyMark[]
-  scoreMark: Continuity['score']
+  scoreMark: { kind: 'past' | 'differs'; tagged: Points; entered: Points } | null
   nextServer: Side
   editingId: string | null
   /** The gap a rally is being added in right now. */
@@ -74,11 +63,6 @@ export function RallyList({
   /** Null when nothing can be changed: a finished set, or an archive. */
   actions: RallyListActions | null
 }) {
-  /** Add mode shows a place to add in every gap. */
-  const [adding, setAdding] = useState(false)
-  /** The place a point is being added: who won is asked there. */
-  const [pointAt, setPointAt] = useState<number | null>(null)
-
   let running = ZERO
   const rows = set.rallies.map((r, index) => {
     running = addPoint(running, r.winner)
@@ -88,115 +72,54 @@ export function RallyList({
     const g = firstContactG(segs, r)
     return { r, at: g === null ? set.rallies.length : insertIndex(segs, set.rallies, g) }
   })
+  const bands = serveBands(set.rallies, set.firstServer)
   const dot = (side: Side) => cn('h-2 w-2 rounded-full shrink-0', side === 'me' ? 'bg-side-me' : 'bg-side-them')
   const n = set.rallies.length
 
-  const whoWon = (index: number) => (
-    <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Who won the point">
-      <span className="text-xs text-primary">Who won?</span>
-      {(['me', 'them'] as const).map((side) => (
-        <Button
-          key={side}
-          size="sm"
-          variant="secondary"
-          className={small}
-          onClick={() => {
-            actions?.onAddPoint(index, side)
-            setPointAt(null)
-            setAdding(false)
-          }}
-        >
-          <span className={dot(side)} />
-          {names[side]}
-        </Button>
-      ))}
-      <Button size="sm" variant="ghost" className={small} onClick={() => setPointAt(null)}>
-        Cancel
-      </Button>
-    </div>
-  )
-
-  /** What sits in the gap in front of rally `index`: marks, a place to add, deleted rallies. */
+  /** What sits in the gap in front of rally `index`: the band, a hint, deleted rallies. */
   const gap = (index: number): ReactNode => {
-    const r = set.rallies[index]
-    const here = r ? marks.filter((m) => m.rallyId === r.id) : []
+    const band = bands.find((b) => b.to === index)
+    const hint = marks.find((m) => m.kind === 'gap' && m.index === index)
     const gone = deleted.filter((d) => d.at === index)
-    const canRally = Boolean(actions && r && actions.canAddRally(index))
-    const asking = pointAt === index
-    const open = actions && (adding || asking) && here.length === 0
-    if (here.length === 0 && gone.length === 0 && !open && addingAt !== index) return null
+    if (!band && !hint && gone.length === 0 && addingAt !== index) return null
     return (
       <div key={`gap-${index}`} className="space-y-1" data-gap={index}>
-        {here.map((m) => (
+        {band ? (
           <div
-            key={m.kind}
-            role="alert"
-            data-mark={m.kind}
+            role="status"
+            data-serve-band
             className="rounded-md border border-warning bg-warning/15 px-2 py-1.5 space-y-1.5"
           >
-            <p className="text-xs font-semibold text-primary">{markText(m, names)}</p>
+            <p className="text-xs font-semibold text-primary">{bandLine(band)}</p>
             {actions ? (
-              asking ? (
-                <div className="space-y-1.5">
-                  <p className="text-xs font-semibold text-primary">{pointLabel(index, n)}</p>
-                  {whoWon(index)}
-                </div>
-              ) : (
-                <div className="flex flex-wrap gap-1.5">
-                  {canRally ? (
-                    <Button size="sm" variant="secondary" className={small} onClick={() => actions.onAddRally(index)}>
-                      Add rally here
-                    </Button>
-                  ) : null}
-                  <Button size="sm" variant="secondary" className={cn(small, 'whitespace-nowrap')} onClick={() => setPointAt(index)}>
-                    {pointLabel(index, n)}
-                  </Button>
-                  {m.kind === 'serve' ? (
-                    <Button size="sm" variant="secondary" className={small} onClick={() => actions.onSwap(m.rallyId)}>
-                      Swap players
-                    </Button>
-                  ) : null}
-                  <Button size="sm" variant="ghost" className={small} onClick={() => actions.onLeave(m.rallyId, m.kind)}>
-                    Leave it
-                  </Button>
-                </div>
-              )
+              <div className="flex flex-wrap gap-1.5">
+                <Button kind="control" variant="secondary" onClick={() => actions.onReview(band)}>
+                  Review serves
+                </Button>
+                <Button kind="control" variant="ghost" onClick={() => actions.onLeave(band.breakId, 'serve')}>
+                  Leave it
+                </Button>
+              </div>
             ) : null}
           </div>
-        ))}
+        ) : null}
+        {hint && hint.kind === 'gap' ? (
+          <div
+            data-gap-hint
+            className="flex flex-wrap items-center gap-1.5 rounded-md border border-border px-2 py-1.5"
+          >
+            <p className="text-xs text-muted">{Math.round(hint.seconds)}s before this rally</p>
+            {actions ? (
+              <Button kind="control" variant="ghost" onClick={() => actions.onCheckGap(hint.index)}>
+                Check
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
         {addingAt === index ? (
           <p className="rounded-md border border-dashed border-brand-primary px-2 py-1.5 text-xs font-semibold text-primary" role="status">
             Adding a rally here
           </p>
-        ) : null}
-        {open ? (
-          <div className="rounded-md border border-dashed border-border-strong px-2 py-1.5" data-add-slot={index}>
-            {asking ? (
-              <div className="space-y-1.5">
-                <p className="text-xs font-semibold text-primary">{pointLabel(index, n)}</p>
-                {whoWon(index)}
-              </div>
-            ) : (
-              <div className="flex flex-wrap gap-1.5">
-                {canRally ? (
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    className={small}
-                    onClick={() => {
-                      setAdding(false)
-                      actions.onAddRally(index)
-                    }}
-                  >
-                    Add rally here
-                  </Button>
-                ) : null}
-                <Button size="sm" variant="secondary" className={cn(small, 'whitespace-nowrap')} onClick={() => setPointAt(index)}>
-                  {pointLabel(index, n)}
-                </Button>
-              </div>
-            )}
-          </div>
         ) : null}
         {gone.map(({ r: d }) => (
           <div
@@ -227,22 +150,12 @@ export function RallyList({
       <div className="flex items-center justify-between gap-2 px-1 pb-1">
         <p className="text-[10px] font-bold uppercase tracking-wide text-muted">
           {n} {n === 1 ? 'rally' : 'rallies'}
-          {marks.length > 0 ? ` · ${marks.length} to check` : ''}
+          {bands.length > 0 ? ` · ${bands.length} to check` : ''}
         </p>
         <div className="flex items-center gap-1">
-          {actions && n > 0 ? (
-            <Button
-              size="sm"
-              variant={adding ? 'secondary' : 'ghost'}
-              className="min-h-11 lg:min-h-0"
-              aria-pressed={adding}
-              onClick={() => {
-                setAdding(!adding)
-                setPointAt(null)
-              }}
-            >
-              <Icon name={adding ? 'x' : 'plus'} size="xs" />
-              {adding ? 'Done' : 'Add'}
+          {actions && n > 1 ? (
+            <Button kind="control" variant="ghost" onClick={actions.onCheckGaps}>
+              Check gaps
             </Button>
           ) : null}
           {finish === 'ok' ? (
@@ -309,14 +222,11 @@ export function RallyList({
               disabled={!hasVideo(r.videoId)}
               aria-label={`Rally ${index + 1}`}
               aria-pressed={editingId === r.id}
-              data-marked={marks.some((m) => m.rallyId === r.id) || undefined}
               className={cn(
                 'w-full min-h-11 lg:min-h-0 flex items-center gap-2 rounded-md border px-2 py-1.5 text-left text-xs disabled:opacity-60',
                 editingId === r.id
                   ? 'border-brand-primary bg-brand-primary-muted'
-                  : marks.some((m) => m.rallyId === r.id)
-                    ? 'border-warning bg-bg-card hover:bg-bg-elevated'
-                    : 'border-border bg-bg-card hover:bg-bg-elevated'
+                  : 'border-border bg-bg-card hover:bg-bg-elevated'
               )}
             >
               <span className="w-5 text-center tabular-nums text-muted">{index + 1}</span>
