@@ -279,7 +279,11 @@ function SectionBody({
       ) : null}
 
       <Card className="space-y-3">
-        <CardDescription>{data.stats}</CardDescription>
+        <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
+          <CardDescription>{data.stats}</CardDescription>
+          {/* The stats and reel sizes are stand-ins, not counted from the tags. */}
+          <WfBadge>Sample numbers</WfBadge>
+        </div>
 
         {videoGone && match ? (
           <p className="rounded-md border border-dashed border-border bg-bg-card px-3 py-2 text-sm text-primary">

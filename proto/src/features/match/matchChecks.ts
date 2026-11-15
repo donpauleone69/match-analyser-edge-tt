@@ -82,13 +82,10 @@ export function setsLostByResult(match: MatchRecord, next: MatchResult): SetData
   return match.sets.filter((s) => s.setId > keep && (hasEntered(s) || s.skipped))
 }
 
-/** Saved or open rallies that were tagged on this video. */
+/** Saved rallies that were tagged on this video. An open rally is not counted. */
 export function videoRallyCount(match: MatchRecord, videoId: string): number {
   return match.sets.reduce(
-    (n, s) =>
-      n +
-      s.rallies.filter((r) => r.videoId === videoId).length +
-      (s.draft?.videoId === videoId ? 1 : 0),
+    (n, s) => n + s.rallies.filter((r) => r.videoId === videoId).length,
     0
   )
 }

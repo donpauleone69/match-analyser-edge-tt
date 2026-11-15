@@ -265,11 +265,14 @@ export function formatScore(score: Score): string {
 
 export function matchMeta(match: MatchRecord): string {
   const { me, them } = match.result
-  return (
-    [match.date, me !== null && them !== null ? formatScore({ me, them }) : '']
-      .filter(Boolean)
-      .join(' · ') || 'No date'
-  )
+  // The entered result, or for a tagged match with none, what the sets give.
+  const sets =
+    me !== null && them !== null
+      ? formatScore({ me, them })
+      : isMatchTagged(match)
+        ? formatScore(matchSetsWon(match))
+        : ''
+  return [match.date, sets].filter(Boolean).join(' · ') || 'No date'
 }
 
 export function formatSize(sizeMb: number): string {

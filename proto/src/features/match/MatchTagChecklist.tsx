@@ -37,6 +37,10 @@ const differsBadge =
 
 const linkClass = 'text-sm font-semibold text-brand underline'
 
+/** Row buttons are a full finger tall on the phone. */
+const rowButton = 'min-h-11 md:min-h-0'
+const rowAction = `${rowButton} min-w-16 md:min-w-0`
+
 function rallyCount(n: number) {
   return `${n} ${n === 1 ? 'rally' : 'rallies'}`
 }
@@ -72,6 +76,15 @@ export function MatchTagChecklist() {
   /** A video that rallies were tagged on has been removed. */
   const videoGone = missingVideoIds(match).length > 0
   const openSet = (setId: number) => navigate(`/matches/${match.id}/tag/${setId}`)
+  // The next set to start leads, unless a set is under way or Finish match leads.
+  const finishLeads =
+    resultSetCount(match) === null &&
+    setBlockingFinish(match) === null &&
+    isRealResult(matchSetsWon(match))
+  const nextStart =
+    hasVideo && !lock && !resume && !tagged && !finishLeads
+      ? match.sets.find((s) => setState(s) === 'none')
+      : undefined
 
   if (!hasVideo && phase === 'new') {
     return (
@@ -144,6 +157,7 @@ export function MatchTagChecklist() {
                     <Button
                       size="sm"
                       variant="ghost"
+                      className={rowButton}
                       onClick={() => patchSet(match.id, s.setId, { skipped: false })}
                     >
                       Undo
@@ -153,6 +167,7 @@ export function MatchTagChecklist() {
                     <Button
                       size="sm"
                       variant="ghost"
+                      className={rowButton}
                       onClick={() => patchSet(match.id, s.setId, { skipped: true })}
                     >
                       Mark not filmed
@@ -162,18 +177,29 @@ export function MatchTagChecklist() {
                     <Button
                       size="sm"
                       variant="ghost"
+                      className={rowButton}
                       onClick={() => mutateMatch(match.id, (m) => applyTaggedScore(m, s.setId))}
                     >
                       Use tagged score
                     </Button>
                   ) : null}
                   {state === 'none' && hasVideo && !lock ? (
-                    <Button size="sm" variant="secondary" onClick={() => openSet(s.setId)}>
+                    <Button
+                      size="sm"
+                      variant={nextStart?.setId === s.setId ? 'primary' : 'secondary'}
+                      className={rowAction}
+                      onClick={() => openSet(s.setId)}
+                    >
                       Start
                     </Button>
                   ) : null}
                   {state === 'finished' || state === 'progress' ? (
-                    <Button size="sm" variant="secondary" onClick={() => openSet(s.setId)}>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className={rowAction}
+                      onClick={() => openSet(s.setId)}
+                    >
                       Open
                     </Button>
                   ) : null}
