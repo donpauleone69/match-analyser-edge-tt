@@ -1170,7 +1170,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     <AnswerKeyPanel videos={match.videos} rallies={set.rallies} names={names} />
     </>
   )
-  const padServer = live?.server ?? nextServer
+  const padServer = edit ? edit.draft.server : live?.server ?? nextServer
   const switchOn = !readOnly && !atEnd && (mode === 'watch' || mode === 'tagging' || mode === 'edit')
   const rowButton = cn('h-11 lg:h-9 px-3 shrink-0', slotBusy && BUSY)
   /** The right end of the status row always means "go back": 5 seconds, or one tap. One width, so the spot does not shift. Let never sits there. */
