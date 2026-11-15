@@ -138,6 +138,7 @@ export function VideoStage({
   open,
   hint,
   onSeek,
+  noForward = false,
   onRate,
   className,
 }: {
@@ -151,6 +152,8 @@ export function VideoStage({
   hint: string | null
   /** Seeks go through the screen so it can say why one stopped short. */
   onSeek: (g: number) => void
+  /** Tapping: a jump forward would lose the rally being tapped. */
+  noForward?: boolean
   onRate: (rate: number) => void
   className?: string
 }) {
@@ -227,7 +230,7 @@ export function VideoStage({
           </Transport>
           <Transport
             label="Forward 10 seconds"
-            disabled={player.atEnd}
+            disabled={player.atEnd || noForward}
             onClick={() => onSeek(player.getTime() + 10)}
           >
             <Icon name="forward" size="sm" />

@@ -126,7 +126,11 @@ type Toast = { text: string; undo: () => void }
 const GUARD_AFTER_CLOSE_MS = 1000
 const GUARD_AFTER_SWAP_MS = 600
 const GUARD_PANEL_AFTER_CLOSE_MS = 500
-const GUARD_PANEL_MS = 250
+const GUARD_PANEL_MS = 600
+/** Re-tap starts this long before the serve, so the thumb has time to get back to the pad. */
+const RETAP_LEAD_S = 2.5
+/** A control that is ignoring presses looks it. */
+const BUSY = 'opacity-40'
 const HINT_MS = 2500
 
 /** Watching speed per match, kept while the app is open. */
@@ -175,8 +179,9 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const [listOpen, setListOpen] = useState(false)
   const [lastTap, setLastTap] = useState<number | null>(null)
   const [hint, setHint] = useState<string | null>(null)
-  /** Bumped when a rally closes, so the panel that appears fades in as it arms. */
-  const [armKey, setArmKey] = useState(0)
+  /** Redraws when a guard starts and when it ends, so guarded controls can dim. */
+  const [, setGuardTick] = useState(0)
+  const guardTimers = useRef<number[]>([])
   /**
    * The second after the idle timer closes a rally. A tap in the slot then is
    * a contact that came late, not a press on Save, so it reopens tapping.
@@ -193,7 +198,12 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     const now = Date.now()
     slotGuard.current = Math.max(slotGuard.current, now + slotMs)
     panelGuard.current = Math.max(panelGuard.current, now + panelMs)
+    for (const ms of [slotMs, panelMs]) {
+      if (ms > 0) guardTimers.current.push(window.setTimeout(() => setGuardTick((t) => t + 1), ms + 20))
+    }
+    setGuardTick((t) => t + 1)
   }
+  useEffect(() => () => guardTimers.current.forEach((id) => window.clearTimeout(id)), [])
 
   const have = new Set(match.videos.map((v) => v.id))
   /** Rallies of this set whose video has been removed: tags kept, nothing to play. */
@@ -320,15 +330,18 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   }, [late])
 
   // The slot and the panel guard themselves whenever what they hold changes.
+  // Result to wing and stroke is the one step that swaps nothing: those rows stay put.
+  const selKey = selected ? (selected.kind === 'shot' ? `shot-${selected.shot}` : selected.kind) : ''
+  const stepKey = `${mode}:${stage === 'result' || stage === 'endShot' ? 'end' : stage}:${selKey}`
   const lastSlot = useRef(slotKind)
-  const lastStep = useRef(`${mode}:${stage}`)
+  const lastStep = useRef(stepKey)
   useLayoutEffect(() => {
     if (lastSlot.current !== slotKind) arm(GUARD_AFTER_SWAP_MS)
     lastSlot.current = slotKind
-    const step = `${mode}:${stage}`
-    if (lastStep.current !== step) arm(0, GUARD_PANEL_MS)
-    lastStep.current = step
-  }, [slotKind, mode, stage])
+    if (lastStep.current !== stepKey) arm(0, GUARD_PANEL_MS)
+    lastStep.current = stepKey
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slotKind, stepKey])
 
   // The row being asked for sits just above Save. An opened shot starts at its top.
   useLayoutEffect(() => {
@@ -338,6 +351,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
 
   /** Seeks for the user, and says in a few words when one is held back. */
   const seekTo = (g: number) => {
+    if (latest.current.mode === 'tapping' && g > playerRef.current.getTime()) return
     const stop = playerRef.current.seek(g)
     if (stop === 'fence') setHint('Stops at the last saved rally')
     else if (stop === 'loop') setHint('Stays in this rally')
@@ -391,7 +405,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     setLastTap(null)
     // A tap that comes late never lands on Save, Re-tap, Discard or a chip.
     arm(GUARD_AFTER_CLOSE_MS, GUARD_PANEL_AFTER_CLOSE_MS)
-    setArmKey((k) => k + 1)
   }
 
   /**
@@ -534,10 +547,14 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     p.setLoop(null)
     p.setBoundary(null)
     p.setRate(watchRate.current)
-    p.seek(offsetOf(live.videoId) + rallyStart(live))
+    const from = offsetOf(live.videoId)
+    p.seek(Math.max(from, floorG, from + live.contacts[0] - RETAP_LEAD_S))
     p.play()
     setSelected(null)
     setLastTap(null)
+    // The video is running and the pad is back: it takes the serve at once.
+    slotGuard.current = 0
+    lastSlot.current = 'pad'
     withUndo('Rally cleared', before, () => park(before.draft, false, floorG))
   }
 
@@ -845,6 +862,10 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const tapped = live && !live.closed ? live.contacts.length : 0
   /** Finish is offered in the panel at set point and when the video runs out. */
   const finishCard = canFinishNow && (mode === 'setPoint' || atEnd)
+  /** After Keep tagging, while the score is still a winning one, Finish stays in reach. */
+  const finishKept = canFinish && mode === 'watch' && setWon && !atEnd
+  const slotBusy = Date.now() < slotGuard.current
+  const panelBusy = Date.now() < panelGuard.current
   const setLine = `Set ${set.setId} · ${formatScore(score)}`
 
   const status =
@@ -872,15 +893,20 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       editingId={edit?.id ?? null}
       hasVideo={(id) => have.has(id)}
       onOpen={openRally}
-      finish={!canFinishNow || finishCard ? null : level ? 'level' : 'ok'}
+      finish={!canFinishNow || finishCard || finishKept ? null : level ? 'level' : 'ok'}
       score={score}
       onFinish={onFinishSet}
     />
   )
   const padServer = live?.server ?? nextServer
-  const rowButton = 'h-11 lg:h-9 px-3 shrink-0'
+  const rowButton = cn('h-11 lg:h-9 px-3 shrink-0', slotBusy && BUSY)
+  /** Undo, then Re-tap, hold the right end of the status row at one width. Discard never sits there. */
+  const endButton = cn(rowButton, 'min-w-24 lg:min-w-32')
   /** Slot controls never change size, not even while pressed. */
-  const slotButton = 'h-20 rounded-lg text-lg active:scale-100 active:brightness-90'
+  const slotButton = cn(
+    'h-20 rounded-lg text-lg active:scale-100 active:brightness-90',
+    slotBusy && !late && BUSY
+  )
 
   return (
     <div
@@ -914,6 +940,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
           open={openRange}
           hint={hint}
           onSeek={seekTo}
+          noForward={mode === 'tapping'}
           onRate={onRate}
           className="lg:shrink-0 lg:[&>div:first-child]:max-h-[52vh] lg:[&>div:first-child]:mx-auto"
         />
@@ -985,7 +1012,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               {status}
             </p>
             {mode === 'tapping' && tapped > 0 ? (
-              <Button variant="secondary" className={rowButton} onClick={onUndoTap}>
+              <Button variant="secondary" className={endButton} onClick={onUndoTap}>
                 <Icon name="undo" size="sm" />
                 Undo
                 <KeyHint k="Bksp" />
@@ -993,11 +1020,11 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
             ) : null}
             {mode === 'tagging' ? (
               <>
-                <Button variant="secondary" className={rowButton} onClick={onRetap}>
-                  Re-tap
-                </Button>
                 <Button variant="secondary" className={rowButton} onClick={onDiscard}>
                   Discard
+                </Button>
+                <Button variant="secondary" className={endButton} onClick={onRetap}>
+                  Re-tap
                 </Button>
               </>
             ) : null}
@@ -1043,7 +1070,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
           className="flex-1 min-h-0 overflow-y-auto px-2 py-2 flex flex-col"
           onClickCapture={guardClicks(panelGuard)}
         >
-          <div key={armKey} className={cn('mt-auto space-y-2', armKey > 0 && 'tag-arm')}>
+          <div className={cn('mt-auto space-y-2 transition-opacity duration-100', panelBusy && BUSY)} data-tag-panel>
             {goneCount > 0 ? (
               <div className="rounded-md border border-dashed border-border bg-bg-card px-3 py-2 space-y-2" role="status">
                 <p className="text-sm text-primary">
@@ -1111,11 +1138,25 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                 <TimeRow draft={active} mark={selected} onNudge={onNudge} />
               </div>
             ) : null}
+            {finishKept ? (
+              <div data-finish-card>
+                <Button fullWidth variant="secondary" className="h-11" onClick={onFinishSet}>
+                  Finish set at {formatScore(score)}
+                </Button>
+              </div>
+            ) : null}
             {finishCard ? (
               <div data-finish-card>
                 {level ? (
                   <p className="rounded-md border border-border bg-bg-card px-3 py-2 text-sm text-primary" role="status">
-                    Level at {formatScore(score)}. A set cannot finish level.
+                    Level at {formatScore(score)}, so the set is not over.{' '}
+                    <Link
+                      to={`/matches/${match.id}/details`}
+                      className="font-semibold text-brand underline underline-offset-2"
+                    >
+                      Add the next video
+                    </Link>
+                    , or correct a rally.
                   </p>
                 ) : (
                   <Button
@@ -1158,6 +1199,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               disabled={atEnd || mode === 'blocked'}
               className={cn(
                 'relative w-full h-20 rounded-lg text-lg font-bold overflow-hidden touch-manipulation select-none active:brightness-90 border-l-8 inline-flex items-center justify-center gap-2',
+                slotBusy && BUSY,
                 'disabled:bg-disabled-bg disabled:text-disabled-text disabled:active:brightness-100',
                 mode === 'setPoint'
                   ? 'bg-pill-idle text-primary border border-pill-idle-border'
@@ -1216,6 +1258,8 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               match={match}
               set={set}
               locked={readOnly}
+              videoOver={player.atEnd}
+              busy={slotBusy}
               onGo={(to) => navigate(to)}
               onFinishMatch={() => mutateMatch(match.id, finishMatch)}
             />
@@ -1428,12 +1472,17 @@ function FinishedActions({
   match,
   set,
   locked,
+  videoOver,
+  busy,
   onGo,
   onFinishMatch,
 }: {
   match: MatchRecord
   set: SetData
   locked: boolean
+  /** No picture left to tag: with a side ahead in sets, the match is what is left to finish. */
+  videoOver: boolean
+  busy: boolean
   onGo: (to: string) => void
   onFinishMatch: () => void
 }) {
@@ -1444,12 +1493,13 @@ function FinishedActions({
   /** A match cannot end level, so at 1 - 1 (or with no set won) there is nothing to finish. */
   const canFinishMatch =
     resultSetCount(match) === null && setBlockingFinish(match) === null && won.me !== won.them
-  const finishLeads = canFinishMatch && isRealResult(won)
+  const finishLeads = canFinishMatch && (isRealResult(won) || videoOver)
+  const offerNext = next && !(videoOver && canFinishMatch)
   const base = `/matches/${match.id}`
 
   if (tagged || locked) {
     return (
-      <div className="flex items-stretch gap-2">
+      <div className={cn('flex items-stretch gap-2', busy && BUSY)}>
         <Button className="h-12 flex-1 text-base" onClick={() => onGo(`${base}/insights/summary`)}>
           Open match Insights
         </Button>
@@ -1460,8 +1510,8 @@ function FinishedActions({
     )
   }
   return (
-    <div className="flex items-stretch gap-2">
-      {next ? (
+    <div className={cn('flex items-stretch gap-2', busy && BUSY)}>
+      {offerNext ? (
         <Button
           variant={finishLeads ? 'secondary' : 'primary'}
           className={cn('h-12 text-base', !finishLeads && 'flex-1')}
@@ -1472,19 +1522,19 @@ function FinishedActions({
       ) : null}
       {canFinishMatch ? (
         <Button
-          variant={finishLeads || !next ? 'primary' : 'secondary'}
-          className={cn('h-12 text-base', (finishLeads || !next) && 'flex-1')}
+          variant={finishLeads || !offerNext ? 'primary' : 'secondary'}
+          className={cn('h-12 text-base', (finishLeads || !offerNext) && 'flex-1')}
           onClick={onFinishMatch}
         >
           Finish match
         </Button>
       ) : null}
       <Button
-        variant={next || canFinishMatch ? 'ghost' : 'primary'}
-        className={cn('h-12', !next && !canFinishMatch && 'flex-1 text-base')}
+        variant={offerNext || canFinishMatch ? 'ghost' : 'primary'}
+        className={cn('h-12', !offerNext && !canFinishMatch && 'flex-1 text-base')}
         onClick={() => onGo(`${base}/tag`)}
       >
-        {next || canFinishMatch ? 'Sets' : 'Back to sets'}
+        {offerNext || canFinishMatch ? 'Sets' : 'Back to sets'}
       </Button>
     </div>
   )

@@ -63,36 +63,43 @@ export function ShotRail({
     const target = row.querySelector<HTMLElement>(`[data-rail="${focusKey}"]`)
     if (!target) return
     const centred = target.offsetLeft - (row.clientWidth - target.offsetWidth) / 2
-    row.scrollLeft = Math.max(0, Math.min(centred, row.scrollWidth - row.clientWidth))
+    const max = row.scrollWidth - row.clientWidth
+    let left = Math.max(0, Math.min(centred, max))
+    // Stop on a cell's edge where there is room, so the first cell shown is whole.
+    if (left > 0 && left < max) {
+      const edges = [...row.children].map((c) => (c as HTMLElement).offsetLeft).filter((x) => x <= left + 1)
+      if (edges.length > 0) left = edges[edges.length - 1]
+    }
+    row.scrollLeft = left
   }, [focusKey])
 
   return (
     <div className="flex items-start gap-1">
+      {/* Outside the scroller, like the star, so a long rally never cuts it off. */}
+      {marks ? (
+        <div className="flex flex-col items-center shrink-0 py-1" data-rail="start">
+          <button
+            type="button"
+            aria-label="Rally start"
+            aria-pressed={isSelected(selected, { kind: 'start' })}
+            disabled={marksOff}
+            onClick={() => onMark({ kind: 'start' })}
+            className={cn(
+              cell,
+              'border-border bg-bg-card text-muted',
+              isSelected(selected, { kind: 'start' }) && 'ring-2 ring-brand-primary'
+            )}
+          >
+            [
+          </button>
+          <span className={cn(caption, 'text-muted')}>Start</span>
+        </div>
+      ) : null}
       <div
         ref={scroller}
         className="relative flex min-w-0 flex-1 items-start gap-1 overflow-x-auto py-1"
         aria-label="Shots in this rally"
       >
-        {marks ? (
-          <div className="flex flex-col items-center shrink-0" data-rail="start">
-            <button
-              type="button"
-              aria-label="Rally start"
-              aria-pressed={isSelected(selected, { kind: 'start' })}
-              disabled={marksOff}
-              onClick={() => onMark({ kind: 'start' })}
-              className={cn(
-                cell,
-                'border-border bg-bg-card text-muted',
-                isSelected(selected, { kind: 'start' }) && 'ring-2 ring-brand-primary'
-              )}
-            >
-              [
-            </button>
-            <span className={cn(caption, 'text-muted')}>Start</span>
-          </div>
-        ) : null}
-
         {draft.contacts.map((_, i) => {
           const shot = i + 1
           const isEnd = !tapping && shot === n

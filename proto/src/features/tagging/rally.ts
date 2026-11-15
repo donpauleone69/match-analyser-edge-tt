@@ -169,9 +169,10 @@ export function applyAutoSkip(d: Draft): Draft {
   return DEFENSIVE_STROKES.has(stroke) ? { ...d, noAttack: true } : { ...d, fa: 2 }
 }
 
+/** A result is changed by picking another. Pressing the lit one again does nothing. */
 export function setEnding(d: Draft, ending: Ending): Draft {
-  const next = { ...d, ending: d.ending === ending ? null : ending }
-  return applyAutoSkip(next)
+  if (d.ending === ending) return d
+  return applyAutoSkip({ ...d, ending })
 }
 
 export function patchShot(d: Draft, shot: number, patch: Partial<ShotTags>): Draft {

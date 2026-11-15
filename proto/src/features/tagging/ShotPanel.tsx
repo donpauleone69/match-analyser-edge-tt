@@ -48,20 +48,24 @@ function Pill({
   children,
   tone = 'brand',
   hint,
+  disabled = false,
 }: {
   on: boolean
   onClick: () => void
   children: ReactNode
   tone?: 'brand' | 'good' | 'bad'
   hint?: string
+  disabled?: boolean
 }) {
   return (
     <button
       type="button"
       aria-pressed={on}
+      disabled={disabled}
       onClick={onClick}
       className={cn(
         chip,
+        'disabled:opacity-40 disabled:hover:bg-pill-idle',
         on
           ? tone === 'good'
             ? 'bg-success text-white border-success'
@@ -143,7 +147,11 @@ export function ShotPanel({
   const stage = stageOf(draft)
   /** Until the required steps are done, only the row being asked for shows. */
   const requiredOnly = stage !== 'ready'
-  const showShotRow = !(stage === 'result')
+  /**
+   * The wing and stroke row is there from the start, waiting for the result,
+   * so picking a result never moves another chip under the pointer.
+   */
+  const shotRowOff = stage === 'result'
   const set = <K extends keyof ShotTags>(key: K, value: ShotTags[K]) =>
     onChange(toggleShotField(draft, shot, key, value))
   const isEnd = shot === draft.contacts.length
@@ -188,10 +196,10 @@ export function ShotPanel({
         </Row>
       ) : null}
 
-      {fields.wing && showShotRow ? (
+      {fields.wing ? (
         <Row label="Shot">
           {WINGS.map((w, i) => (
-            <Pill key={w} on={tags.wing === w} hint={WING_KEYS[i]} onClick={() => set('wing', w)}>
+            <Pill key={w} on={tags.wing === w} hint={WING_KEYS[i]} disabled={shotRowOff} onClick={() => set('wing', w)}>
               {w}
             </Pill>
           ))}
@@ -199,6 +207,7 @@ export function ShotPanel({
             <Pill
               on={Boolean(tags.pivot)}
               hint={PIVOT_KEY}
+              disabled={shotRowOff}
               onClick={() => onChange(patchShot(draft, shot, { pivot: !tags.pivot }))}
             >
               Pivot
@@ -206,7 +215,13 @@ export function ShotPanel({
           ) : null}
           {fields.strokes ? <span className="w-2" aria-hidden /> : null}
           {fields.strokes?.map((s, i) => (
-            <Pill key={s} on={tags.stroke === s} hint={STROKE_KEYS[i]} onClick={() => set('stroke', s)}>
+            <Pill
+              key={s}
+              on={tags.stroke === s}
+              hint={STROKE_KEYS[i]}
+              disabled={shotRowOff}
+              onClick={() => set('stroke', s)}
+            >
               {s}
             </Pill>
           ))}

@@ -28,7 +28,7 @@ export function applyShotKey(d: Draft, shot: number, key: string): Draft | null 
   const result = RESULT_KEYS.indexOf(k as (typeof RESULT_KEYS)[number])
   if (result >= 0) return fields.result ? setEnding(d, ENDINGS[result]) : null
 
-  // The wing and stroke row is not shown until the result is in.
+  // The wing and stroke row waits, dimmed, until the result is in.
   if (!fields.wing || stageOf(d) === 'result') return null
   const wing = WING_KEYS.indexOf(k as (typeof WING_KEYS)[number])
   if (wing >= 0) return toggleShotField(d, shot, 'wing', WINGS[wing])
