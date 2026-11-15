@@ -1,5 +1,5 @@
 // Rule fixes after the pass 3 rule review: faults 1, 2, 3, 6 and 7, the rule side of fault 5,
-// the pick on a shot whose kept stroke has no row, and the minimum gap between live taps. No browser.
+// the pick on a shot whose kept stroke has no row, the minimum gap between live taps, and Pivot dropped. No browser.
 // Then the reviewer's own cases (rules-review-cases.ts). Run: sh proto/scripts/rules-fixes.sh
 import {
   ATTACK_STROKES,
@@ -14,6 +14,7 @@ import {
   faRefusal,
   faRefusalText,
   faStrokeRefused,
+  fieldsFor,
   insertContact,
   markFa,
   patchShot,
@@ -22,6 +23,7 @@ import {
   savedShots,
   setEnding,
   shotAtTime,
+  shotSummary,
   showsStroke,
   stageOf,
   switchOf,
@@ -31,6 +33,7 @@ import {
   undoClosedContact,
   type Draft,
   type Ending,
+  type RallyData,
   type StrokeSide,
 } from '@/features/tagging/rally'
 import { buildScripts, ralliesFromScript } from '@/features/tagging/script'
@@ -489,6 +492,89 @@ console.log('\nLive taps: the minimum gap')
     const { draft, shot } = insertContact(d, 10.9)
     return draft.contacts.length === 5 && shot === 3
   })())
+}
+
+// ---------- Pivot is not asked
+console.log('\nPivot is dropped')
+{
+  for (const wing of ['FH', 'BH'] as const) {
+    const two = ws(tapped(2, 'Winner'), 2, wing, 'Loop')
+    check(`serve and return: Winner, ${wing} and a stroke can Save`, canSave(two) && rallyFromDraft(two, 'r') !== null)
+    let four = ws(tapped(4, 'Winner'), 4, wing, 'Smash')
+    four = ws(markFa(four, 3), 3, wing, 'Loop')
+    check(`four shots: Winner, ${wing} and a stroke on the end shot and the first attack can Save`, canSave(four) && rallyFromDraft(four, 'r') !== null)
+  }
+  check('the wing is still needed: a stroke alone does not Save', !canSave(patchShot(tapped(2, 'Winner'), 2, { stroke: 'Loop' })))
+
+  // No row, no key, no patch.
+  let d = ws(tapped(6, 'Winner'), 6, 'FH', 'Smash')
+  d = ws(markFa(d, 3), 3, 'FH', 'Loop')
+  const drafts = [tapped(1), tapped(2), tapped(2, 'Winner'), tapped(5, 'Long'), toggleNoAttack(ws(tapped(4, 'Long'), 4, 'BH', 'Push')), d, markFa(d, 6)]
+  check('no shot of any rally shows a Pivot cell', drafts.every((x) => x.contacts.every((_, i) => fieldsFor(x, i + 1).pivot === false)))
+  check('a patch that sets pivot changes nothing: the same draft comes back', patchShot(d, 3, { pivot: true }) === d && toggleShotField(d, 3, 'pivot', true) === d)
+  check('pivot beside another tag: the other tag is taken, pivot is not', (() => {
+    const got = patchShot(d, 4, { pivot: true, wing: 'BH' })
+    return got.shots[3].wing === 'BH' && !('pivot' in got.shots[3])
+  })())
+  check('key D does nothing on any shot at any step, with or without an open panel', (() => {
+    for (const x of drafts) {
+      for (let shot = 1; shot <= x.contacts.length; shot++) {
+        if (applyShotKey(x, shot, 'd') !== null || applyShotKey(x, shot, 'D', 'defensive') !== null || applyPanelKey(x, shot, 'd') !== null) return false
+      }
+    }
+    return true
+  })())
+  check('no key and no rule sets pivot: every key on every shot, twice over', (() => {
+    const keys = 'abcdefghijklmnopqrstuvwxyz0123456789[]-=,. '.split('')
+    for (let x of drafts) {
+      for (let round = 0; round < 2; round++) {
+        for (let shot = 1; shot <= x.contacts.length; shot++) {
+          for (const key of keys) x = applyShotKey(x, shot, key) ?? x
+          x = markFa(x, shot)
+          x = toggleNoAttack(x)
+        }
+      }
+      if (x.shots.some((t) => 'pivot' in t)) return false
+      const out = rallyFromDraft(x, 'r')
+      if (out && out.shots.some((t) => 'pivot' in t)) return false
+    }
+    return true
+  })())
+  check('the summary of a shot says the wing, never pivot', shotSummary({ wing: 'FH', pivot: true, stroke: 'Loop' }) === 'FH · Loop')
+
+  // A rally saved when Pivot was still asked.
+  const old: RallyData = {
+    id: 'old',
+    videoId: 'v',
+    server: 'me',
+    contacts: [10, 10.8, 11.6, 12.4],
+    start: 8,
+    end: 13.4,
+    ending: 'Winner',
+    fa: 3,
+    shots: [{ spin: 'Back' }, { wing: 'BH', pivot: true }, { wing: 'FH', pivot: true, stroke: 'Loop' }, { wing: 'FH', pivot: false, stroke: 'Smash', review: true }],
+    winner: 'them',
+    highlight: true,
+  }
+  const oldSnap = J(old)
+  const opened = draftFromRally(old)
+  check('an old rally with pivot opens ready to save', canSave(opened) && stageOf(opened) === 'ready')
+  check('it shows no Pivot cell', opened.contacts.every((_, i) => !fieldsFor(opened, i + 1).pivot))
+  const resaved = rallyFromDraft(opened, 'old')
+  check('it saves, and no shot of the saved rally has pivot', resaved !== null && resaved.shots.every((t) => !('pivot' in t)))
+  check('everything else is saved as it was', resaved !== null && J(resaved) === J({ ...old, shots: [{ spin: 'Back' }, { wing: 'BH' }, { wing: 'FH', stroke: 'Loop' }, { wing: 'FH', stroke: 'Smash', review: true }] }), J(resaved))
+  check('the old rally itself is not touched', J(old) === oldSnap)
+  check('it can be edited and saved: a new stroke on the end shot', (() => {
+    const out = rallyFromDraft(ws(opened, 4, 'BH', 'Drive'), 'old')
+    return out !== null && J(out.shots[3]) === J({ wing: 'BH', stroke: 'Drive', review: true })
+  })())
+  check('old data with pivot lit and no wing: the wing is what is asked for, then it saves', (() => {
+    const odd = draftFromRally({ ...old, shots: [{}, {}, { wing: 'FH', stroke: 'Loop' }, { pivot: true, stroke: 'Smash' }] })
+    const fixed = patchShot(odd, 4, { wing: 'FH' })
+    const out = rallyFromDraft(fixed, 'old')
+    return stageOf(odd) === 'endShot' && canSave(fixed) && out !== null && !('pivot' in out.shots[3])
+  })())
+  check('a rally with nothing to drop still saves the very same shots array', savedShots(d) === d.shots)
 }
 
 // ---------- Seeded rallies hold nothing that Save would drop
