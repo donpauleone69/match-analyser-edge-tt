@@ -379,7 +379,7 @@ export type Scene = {
   marks: { x: number; y: number; age: number; floor: boolean }[]
   /** Seconds since the ball hit the net, while it still shakes. */
   net: number | null
-  /** Wing and stroke beside the hitter, for as long as the bat flashes. */
+  /** Wing and stroke beside the hitter, until the next contact or 0.8s of video. */
   caption: { side: Side; text: string } | null
   label: string | null
   setNo: number | null
@@ -607,13 +607,17 @@ export function sceneAt(script: VideoScript, t: number): Scene {
 
     const flashed = t - c[i] < 0.2
     const shot = rally.play[i]
+    // Video time, so 0.5x and 2x hold the words for the same stretch of the rally.
+    // The next contact replaces this caption, so the picture never has two.
+    const nextAt = i + 1 < c.length ? c[i + 1] : Infinity
+    const captionOn = t < Math.min(c[i] + 0.8, nextAt)
     return {
       ball: { x: fly.x, y: fly.y, opacity: Math.max(0.15, fade), scale: 0.7 + 0.5 * fly.h, attack: shot.attack },
       hit: flashed ? hitter : null,
       bats,
       marks,
       net: leg.netAt !== null && t >= leg.netAt && t - leg.netAt < NET_S ? t - leg.netAt : null,
-      caption: flashed ? { side: hitter, text: `${shot.wing} ${shot.stroke}` } : null,
+      caption: captionOn ? { side: hitter, text: `${shot.wing} ${shot.stroke}` } : null,
       label: ending && p > 0.6 ? 'Point over' : null,
       setNo,
     }

@@ -15,7 +15,7 @@ const MARK_SHOWN_S = 0.9
  * Drawn table, players and ball that follow the script. Stands in for real
  * footage. Seen from above: the bat goes to the ball, the ball is red on an
  * attack, a mark shows where it lands, and the net shakes when it is hit.
- * A caption by the hitter names the wing and stroke while the bat flashes.
+ * A caption by the hitter names the wing and stroke until the next contact or 0.8s.
  */
 function StandIn({
   script,
