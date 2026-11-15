@@ -89,6 +89,8 @@ import {
   hitterOf,
   insertContact,
   loopShotOf,
+  faRefusal,
+  faRefusalText,
   markFa,
   noAttackOffered,
   markTime,
@@ -116,7 +118,7 @@ import {
 import { RallyList, type RallyListActions } from './RallyList'
 import { ZERO, addPoint, isSetWon, type Points } from './score'
 import { AnswerKeyPanel } from './AnswerKeyPanel'
-import { NO_ATTACK_KEY, applyShotKey } from './shotKeys'
+import { NO_ATTACK_KEY, applyPanelKey } from './shotKeys'
 import { ShotPanel, TimeRow, TrimRow } from './ShotPanel'
 import { ShotRail } from './ShotRail'
 import { TAG_LOCK_LINE, useTagLock, type TagLock } from './tagLock'
@@ -246,6 +248,8 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const [listOpen, setListOpen] = useState(false)
   const [lastTap, setLastTap] = useState<number | null>(null)
   const [hint, setHint] = useState<string | null>(null)
+  /** Why a first attack press was refused. Shown on the status line until the step changes. */
+  const [faSaid, setFaSaid] = useState<string | null>(null)
   /** Redraws when a guard starts and when it ends, so guarded controls can dim. */
   const [, setGuardTick] = useState(0)
   const guardTimers = useRef<number[]>([])
@@ -474,6 +478,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const selKey = selected ? (selected.kind === 'shot' ? `shot-${selected.shot}` : selected.kind) : ''
   const stepKey = `${mode}:${stage === 'result' || stage === 'endShot' ? 'end' : stage}:${selKey}`
   const lastSlot = useRef(slotKind)
+  useEffect(() => setFaSaid(null), [stepKey])
   const lastStep = useRef(stepKey)
   useLayoutEffect(() => {
     if (lastSlot.current !== slotKind) arm(GUARD_AFTER_SWAP_MS)
@@ -696,7 +701,9 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     if (!readOnly && (stage === 'result' || stage === 'endShot' || stage === 'pickFa')) return
     // After the press, the shot before or after moves the first attack.
     if (!readOnly && stage === 'faShot') {
-      if (shot >= 2) change(markFa(active, shot))
+      const refused = faRefusal(active, shot)
+      setFaSaid(refused ? faRefusalText(refused) : null)
+      if (!refused) change(markFa(active, shot))
       return
     }
     const same = selected?.kind === 'shot' && selected.shot === shot
@@ -1331,7 +1338,9 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const onPickFa = () => {
     if (!active || readOnly || stageOf(active) !== 'pickFa') return
     const shot = shotOnScreen(active, TAP_LATENCY_S)
-    if (!shot) return
+    const refused = faRefusal(active, shot ?? 0)
+    setFaSaid(refused ? faRefusalText(refused) : null)
+    if (!shot || refused) return
     change(markFa(active, shot))
   }
 
@@ -1480,7 +1489,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       } else if (key === '-' || key === '=') {
         if (now.selected) k.onNudge(key === '-' ? -NUDGE_STEP_S : NUDGE_STEP_S)
       } else if (now.selected?.kind === 'shot') {
-        const next = applyShotKey(k.active, now.selected.shot, key)
+        const next = applyPanelKey(k.active, now.selected.shot, key)
         if (next) k.change(next)
       }
     }
@@ -1604,6 +1613,8 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
 
   const status = reviewLine
     ? reviewLine
+    : faSaid && active && (stage === 'pickFa' || stage === 'faShot')
+      ? faSaid
     :
     mode === 'finished'
       ? `Set ${set.setId} finished · ${formatScore(score)}`

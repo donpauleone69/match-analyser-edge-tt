@@ -16,7 +16,6 @@ import {
   setEnding,
   stageOf,
   strokeCells,
-  strokeSide,
   switchOf,
   toggleShotField,
   type Draft,
@@ -25,7 +24,7 @@ import {
   type Side,
   type StrokeSide,
 } from './rally'
-import { bindStrokeSide } from './shotKeys'
+import { bindStrokeSide, shownStrokeSide } from './shotKeys'
 import { formatClock } from './timeline'
 
 /** Height comes from the control kind. A mouse is 36, a finger is 44. */
@@ -190,8 +189,7 @@ export function ShotPanel({
   const [held, setHeld] = useState<{ shot: number; side: StrokeSide } | null>(null)
   const [more, setMore] = useState(false)
   useEffect(() => setMore(false), [shot, fit])
-  const own = strokeSide(tags.stroke)
-  const shown: StrokeSide = own ?? (held?.shot === shot ? held.side : rule.side)
+  const shown = shownStrokeSide(draft, shot, held?.shot === shot ? held.side : null)
   useEffect(() => bindStrokeSide(shot, shown, (side) => setHeld({ shot, side })), [shot, shown])
   const set = <K extends keyof ShotTags>(key: K, value: ShotTags[K]) =>
     onChange(toggleShotField(draft, shot, key, value))
