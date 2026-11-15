@@ -427,6 +427,31 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     return () => clearTimeout(id)
   }, [toast])
 
+  // A message belongs to the rally or review on screen. It goes when that changes:
+  // the rally is saved, the next serve is tapped, a saved rally is opened or closed,
+  // or a review is left. The next press inside a review is a new screen, so it replaces it.
+  const messageScene = edit
+    ? `edit:${edit.id}`
+    : review
+      ? `review:${review.kind}:${review.kind === 'ask' ? review.rule.cursor : review.kind === 'gaps' ? review.at : 0}`
+      : live
+        ? `live:${live.contacts[0] ?? ''}`
+        : 'between'
+  const messageHome = useRef(messageScene)
+  const messageShown = useRef<Toast | null>(null)
+  useEffect(() => {
+    if (toast !== messageShown.current) {
+      messageShown.current = toast
+      messageHome.current = messageScene
+      return
+    }
+    if (!toast) {
+      messageHome.current = messageScene
+      return
+    }
+    if (messageHome.current !== messageScene) setToast(null)
+  }, [toast, messageScene])
+
   useEffect(() => {
     if (!hint) return
     const id = setTimeout(() => setHint(null), HINT_MS)
