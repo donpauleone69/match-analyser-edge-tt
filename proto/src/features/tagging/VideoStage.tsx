@@ -240,6 +240,10 @@ export function VideoStage({
   onSeek,
   noForward = false,
   onRate,
+  highlightOn = false,
+  highlight = false,
+  onHighlight,
+  readOnlyHighlight = false,
   className,
 }: {
   player: Player
@@ -255,6 +259,11 @@ export function VideoStage({
   /** Tapping: a jump forward would lose the rally being tapped. */
   noForward?: boolean
   onRate: (rate: number) => void
+  /** Highlight rally (show reel), top right under the clock on the picture. */
+  highlightOn?: boolean
+  highlight?: boolean
+  onHighlight?: () => void
+  readOnlyHighlight?: boolean
   className?: string
 }) {
   const segs: Segment[] = player.segs
@@ -313,6 +322,25 @@ export function VideoStage({
           {videos.length > 1 ? `Video ${player.segIndex + 1} of ${videos.length} · ` : ''}
           {formatClock(player.time - (seg?.offset ?? 0))}
         </p>
+
+        {highlightOn && onHighlight ? (
+          <button
+            type="button"
+            aria-label="Highlight rally"
+            aria-pressed={highlight}
+            disabled={readOnlyHighlight}
+            onClick={onHighlight}
+            className={cn(
+              'absolute right-2 top-10 h-11 w-11 lg:h-9 lg:w-9 inline-flex items-center justify-center rounded-md touch-manipulation select-none',
+              highlight
+                ? 'bg-warning/90 text-neutral-950 hover:bg-warning'
+                : 'bg-black/60 text-white hover:bg-black/80',
+              readOnlyHighlight && 'opacity-40'
+            )}
+          >
+            <Icon name="star" size="sm" />
+          </button>
+        ) : null}
 
         {hint ? (
           <p

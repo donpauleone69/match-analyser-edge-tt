@@ -29,7 +29,6 @@ export function ShotRail({
   liveShot,
   onShot,
   onAddServe,
-  onHighlight,
   readOnly = false,
 }: {
   /** Null between rallies: the row shows where shot 1 will go. */
@@ -40,7 +39,6 @@ export function ShotRail({
   onShot: (shot: number) => void
   /** Puts a serve in front of a late first tap. Not offered when absent. */
   onAddServe?: () => void
-  onHighlight: () => void
   /** Shots can be picked to watch them; nothing can be changed. */
   readOnly?: boolean
 }) {
@@ -71,7 +69,6 @@ export function ShotRail({
   }, [focusKey])
 
   const serveOn = Boolean(draft && !tapping && !readOnly && onAddServe)
-  const starOn = Boolean(draft && !tapping && (!readOnly || draft.highlight))
 
   return (
     <div className="flex w-full min-w-0 items-start gap-1 overflow-hidden" data-rail-row>
@@ -146,28 +143,6 @@ export function ShotRail({
             <span className={caption} />
           </div>
         ) : null}
-      </div>
-
-      <div
-        className={cn(
-          'relative z-10 flex w-11 lg:w-9 flex-col items-center shrink-0 overflow-hidden bg-bg-app py-1',
-          !starOn && 'invisible'
-        )}
-      >
-        <button
-          type="button"
-          aria-label="Highlight rally"
-          aria-pressed={Boolean(draft?.highlight)}
-          disabled={!starOn || locked || readOnly}
-          onClick={onHighlight}
-          className={cn(
-            railCell,
-            draft?.highlight ? 'bg-warning/25 border-warning text-primary' : 'bg-bg-card border-border text-muted'
-          )}
-        >
-          <Icon name="star" size="sm" />
-        </button>
-        <span className={caption} />
       </div>
     </div>
   )

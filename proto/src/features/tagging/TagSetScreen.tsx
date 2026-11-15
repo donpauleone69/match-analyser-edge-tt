@@ -1229,6 +1229,10 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
           onSeek={seekTo}
           noForward={mode === 'tapping'}
           onRate={onRate}
+          highlightOn={Boolean(active && active.closed && (!readOnly || active.highlight))}
+          highlight={Boolean(active?.highlight)}
+          onHighlight={() => active && writeDraft({ ...active, highlight: !active.highlight })}
+          readOnlyHighlight={readOnly || stage === 'result' || stage === 'endShot'}
           className="lg:shrink-0 lg:[&>div:first-child]:max-h-[52vh] lg:[&>div:first-child]:mx-auto"
         />
         <div className="hidden lg:block flex-1 min-h-0 overflow-y-auto">{rallyList}</div>
@@ -1245,7 +1249,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               liveShot={liveShot}
               onShot={onShot}
               onAddServe={active && active.closed && !readOnly ? onAddServe : undefined}
-              onHighlight={() => active && writeDraft({ ...active, highlight: !active.highlight })}
               readOnly={readOnly}
             />
           ) : null}
