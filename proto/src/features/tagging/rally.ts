@@ -137,7 +137,8 @@ export function captureContactTime(videoTime: number, floor: number): number {
  * A live tap on the pad this soon after the contact before it is the same
  * press landing twice, not another contact. In video seconds, as contacts are.
  */
-export const MIN_TAP_GAP_S = 0.15
+// 150 ms on the clock at the 0.75x tapping speed (0.1125s of video), rounded down so a real shot is never dropped.
+export const MIN_TAP_GAP_S = 0.11
 
 /** True when a live tap at `t` is too soon after the last contact to count. The first tap always counts. */
 export function tapIgnored(d: Draft, t: number): boolean {

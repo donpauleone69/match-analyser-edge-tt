@@ -3,6 +3,7 @@
 // Then the reviewer's own cases (rules-review-cases.ts). Run: sh proto/scripts/rules-fixes.sh
 import {
   ATTACK_STROKES,
+  CAPTURE_SPEED,
   MIN_TAP_GAP_S,
   SHOT_REACHED_SLACK_S,
   TAP_LATENCY_S,
@@ -437,21 +438,21 @@ console.log('\nFault 5: shotAtTime and reopenFaPick')
   check('the draft that went in is not touched', d.fa === 3 && n.noAttack)
 }
 
-// ---------- A second live tap inside 150 ms is ignored
+// ---------- A second live tap inside 0.11s of video (150 ms on the clock at 0.75x) is ignored
 console.log('\nLive taps: the minimum gap')
 {
   const one = addContact(emptyDraft('v', 'me'), 10)
-  check('the constant is 0.15s', MIN_TAP_GAP_S === 0.15)
+  check('the constant is 0.11s of video, no more than 150 ms on the clock at the tapping speed', MIN_TAP_GAP_S === 0.11 && MIN_TAP_GAP_S / CAPTURE_SPEED <= 0.15)
   check('the first tap always counts', one.contacts.length === 1 && !tapIgnored(emptyDraft('v', 'me'), 0))
-  for (const ms of [60, 120, 149]) {
+  for (const ms of [60, 100, 109]) {
     const t = 10 + ms / 1000
     const got = addContact(one, t)
-    check(`a second tap ${ms} ms after the first is ignored: the same draft comes back`, got === one && tapIgnored(one, t) && J(got.contacts) === J([10]) && got.shots.length === 1)
+    check(`a second tap ${ms} ms of video after the first is ignored: the same draft comes back`, got === one && tapIgnored(one, t) && J(got.contacts) === J([10]) && got.shots.length === 1)
   }
-  for (const ms of [150, 200]) {
+  for (const ms of [110, 120, 150, 200]) {
     const t = 10 + ms / 1000
     const got = addContact(one, t)
-    check(`a second tap ${ms} ms after the first counts`, !tapIgnored(one, t) && J(got.contacts) === J([10, t]) && got.shots.length === 2 && one.contacts.length === 1)
+    check(`a second tap ${ms} ms of video after the first counts`, !tapIgnored(one, t) && J(got.contacts) === J([10, t]) && got.shots.length === 2 && one.contacts.length === 1)
   }
   check('a tap at the very time of the last contact is ignored', addContact(one, 10) === one)
   check('two real contacts 0.3s apart both count', (() => {
@@ -459,24 +460,24 @@ console.log('\nLive taps: the minimum gap')
     const three = addContact(two, 10.6)
     return J(three.contacts) === J([10, 10.3, 10.6]) && three.shots.length === 3
   })())
-  check('the gap is from the last contact, not the first: 10, 10.3, then 10.4 is ignored and 10.45 counts', (() => {
+  check('the gap is from the last contact, not the first: 10, 10.3, then 10.4 is ignored and 10.41 counts', (() => {
     const two = addContact(one, 10.3)
-    return addContact(two, 10.4) === two && addContact(two, 10.45).contacts.length === 3
+    return addContact(two, 10.4) === two && addContact(two, 10.41).contacts.length === 3
   })())
-  check('exactly 150 ms counts wherever the last contact sits, as the pad stores hundredths', (() => {
+  check('exactly 0.11s counts and 0.10s is ignored wherever the last contact sits, at every hundredth from 0 to 200s', (() => {
     for (let i = 0; i < 20000; i++) {
       const last = i / 100
       const d = addContact(emptyDraft('v', 'me'), last)
-      const at = Math.round((last + 0.15) * 100) / 100
-      const before = Math.round((last + 0.14) * 100) / 100
+      const at = Math.round((last + 0.11) * 100) / 100
+      const before = Math.round((last + 0.1) * 100) / 100
       if (addContact(d, at).contacts.length !== 2 || addContact(d, before) !== d) return false
     }
     return true
   })())
-  check('a burst of taps 60 ms apart leaves one contact every 180 ms', (() => {
+  check('a burst of taps 60 ms apart leaves one contact every 120 ms', (() => {
     let d = emptyDraft('v', 'me')
     for (let i = 0; i < 10; i++) d = addContact(d, Math.round((10 + i * 0.06) * 100) / 100)
-    return J(d.contacts) === J([10, 10.18, 10.36, 10.54])
+    return J(d.contacts) === J([10, 10.12, 10.24, 10.36, 10.48])
   })())
   check('an ignored tap leaves a rally with tags as it was', (() => {
     const d = ws(tapped(3), 3, 'FH', 'Loop')
