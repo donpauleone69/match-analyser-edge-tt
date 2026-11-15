@@ -54,10 +54,9 @@ export const deleteRally = (m: MatchRecord, setId: number, rallyId: string) =>
   inSet(m, setId, (s) => {
     const index = s.rallies.findIndex((r) => r.id === rallyId)
     if (index < 0) return s
-    const gone = { rally: s.rallies[index], index }
     return withDeleted(
       { ...s, rallies: s.rallies.filter((r) => r.id !== rallyId) },
-      placed(segmentsOf(m.videos), deletedOf(s), gone.rally)
+      placed(segmentsOf(m.videos), deletedOf(s), s.rallies[index])
     )
   })
 
@@ -66,10 +65,8 @@ export const restoreRally = (m: MatchRecord, setId: number, rallyId: string) =>
   inSet(m, setId, (s) => {
     const rally = deletedOf(s).find((r) => r.id === rallyId)
     if (!rally) return s
-    const segs = segmentsOf(m.videos)
-    // A point with no video has no contact to order by: it goes back before the rally it sat before.
     return withDeleted(
-      { ...s, rallies: placed(segs, s.rallies, rally) },
+      { ...s, rallies: placed(segmentsOf(m.videos), s.rallies, rally) },
       deletedOf(s).filter((r) => r.id !== rallyId)
     )
   })
@@ -148,10 +145,13 @@ export function earlierSetsEnd(m: MatchRecord, setId: number): number {
   return setId > 1 ? lastSavedGlobal(m, setId - 1) : 0
 }
 
+/** Less video than this between two saved rallies cannot hold another rally. */
+export const MIN_GAP_S = 1
+
 /**
  * The stretch of video a rally added at `index` may use: from the last contact
  * of the rally before it to the first contact of the rally it goes in front of.
- * Null when either neighbour's video is gone.
+ * Null when either neighbour's video is gone, or there is no room between them.
  */
 export function gapWindow(m: MatchRecord, setId: number, index: number): { a: number; b: number } | null {
   const s = m.sets.find((x) => x.setId === setId)
@@ -162,7 +162,7 @@ export function gapWindow(m: MatchRecord, setId: number, index: number): { a: nu
   if (!next) return null
   const a = prev ? lastContactG(segs, prev) : earlierSetsEnd(m, setId)
   const b = firstContactG(segs, next)
-  return a === null || b === null || b <= a ? null : { a, b }
+  return a === null || b === null || b - a < MIN_GAP_S ? null : { a, b }
 }
 
 /** The first set after `setId` that can still be tagged. */
