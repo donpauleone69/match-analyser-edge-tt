@@ -61,7 +61,9 @@ function stoppedAtClock(match: MatchRecord, s: SetData): string {
   }
   if (g === null) return '00:00'
   const seg = segmentAt(segs, g)
-  return formatClock(g - (seg?.offset ?? 0))
+  const clock = formatClock(g - (seg?.offset ?? 0))
+  if (match.videos.length > 1 && seg) return `video ${seg.index + 1} · ${clock}`
+  return clock
 }
 
 /** Saved status under Continue set on the Tag page (item 13). */

@@ -29,7 +29,7 @@ import {
 import { AddVideoChoice } from '@/features/match/AddVideoChoice'
 import { isRealResult, matchLabel } from '@/features/match/matchChecks'
 import { cn } from '@/helpers/utils'
-import { checkSet, expectedServer, walkServes, type RallyMark } from './continuity'
+import { checkSet, expectedServer, type RallyMark } from './continuity'
 import {
   applyTaggedResult,
   applyTaggedScore,
