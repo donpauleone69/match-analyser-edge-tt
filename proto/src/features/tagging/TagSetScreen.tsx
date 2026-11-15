@@ -89,6 +89,9 @@ import {
   hitterOf,
   insertContact,
   loopShotOf,
+  reopenFaPick,
+  shotAtTime,
+  tapIgnored,
   faRefusal,
   faRefusalText,
   markFa,
@@ -586,6 +589,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     const g = late.g + (late.playing ? ((now - late.at) / 1000) * CAPTURE_SPEED : 0)
     if (!seg || g >= seg.offset + seg.duration) return
     const stored = Math.round(captureContactTime(g - seg.offset, d.contacts[d.contacts.length - 1]) * 100) / 100
+    if (tapIgnored(d, stored)) return
     mutateMatch(match.id, (m) => setDraft(m, set.setId, addContact({ ...d, closed: false }, stored)))
     const p = playerRef.current
     p.setLoop(null)
@@ -633,6 +637,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     const local = g - seg.offset
     const floorLocal = tapped > 0 ? live!.contacts[tapped - 1] : Math.max(0, floorG - seg.offset)
     const stored = Math.round(captureContactTime(local, floorLocal) * 100) / 100
+    if (tapped > 0 && tapIgnored(live!, stored)) return
     const server = nextServer
     mutateMatch(match.id, (m) => {
       const s = m.sets.find((x) => x.setId === set.setId)
@@ -1324,20 +1329,10 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     listResume.current = false
   }
 
-  /**
-   * The shot whose contact the playhead has reached. Never the serve.
-   * `lag` is video time taken off, the same allowance a tap gets.
-   */
-  const shotOnScreen = (d: Draft, lag = 0): number | null => {
-    const local = playerRef.current.getTime() - offsetOf(d.videoId) - lag
-    const reached = d.contacts.filter((c) => c <= local + 0.05).length
-    return reached >= 2 ? reached : null
-  }
-
   /** Pick step: the shot on screen a reaction earlier becomes the first attack. */
   const onPickFa = () => {
     if (!active || readOnly || stageOf(active) !== 'pickFa') return
-    const shot = shotOnScreen(active, TAP_LATENCY_S)
+    const shot = shotAtTime(active, playerRef.current.getTime() - offsetOf(active.videoId), TAP_LATENCY_S)
     const refused = faRefusal(active, shot ?? 0)
     setFaSaid(refused ? faRefusalText(refused) : null)
     if (!shot || refused) return
@@ -1351,8 +1346,9 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
 
   /** Back to the same pick step. One way to change. */
   const onChangeFa = () => {
-    if (!active || readOnly || active.contacts.length < 3) return
-    change({ ...active, fa: null, noAttack: false })
+    if (!active || readOnly) return
+    const next = reopenFaPick(active)
+    if (next !== active) change(next)
   }
 
   const n = active ? active.contacts.length : 0
