@@ -1285,15 +1285,9 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     </>
   )
   const padServer = edit ? edit.draft.server : live?.server ?? nextServer
-  const dueServer = edit
-    ? walkServes(set.rallies, set.firstServer).steps[edit.index]?.expected ?? expected
-    : expected
   const switchWarn =
-    !readOnly &&
-    (mode === 'watch' || mode === 'tagging' || mode === 'edit') &&
-    !atEnd &&
-    padServer !== dueServer
-  const switchWarnRally = edit ? edit.index + 1 : gap ? gap.index + 1 : set.rallies.length + 1
+    !readOnly && (mode === 'watch' || mode === 'tagging') && !atEnd && padServer !== expected
+  const switchWarnRally = gap ? gap.index + 1 : set.rallies.length + 1
   const switchOn = !readOnly && !atEnd && (mode === 'watch' || mode === 'tagging' || mode === 'edit')
   const rowButton = cn('h-11 lg:h-9 px-3 shrink-0', slotBusy && BUSY)
   /** The right end of the status row always means "go back": 5 seconds, or one tap. One width, so the spot does not shift. Let never sits there. */
@@ -1710,9 +1704,9 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               data-switch-warning
               className="mb-2 rounded-md border border-warning bg-warning/15 px-2 py-1.5 text-xs font-semibold text-primary leading-snug"
             >
-              {dueServer === 'me'
+              {expected === 'me'
                 ? 'You were due to serve.'
-                : `${names[dueServer]} was due to serve.`}{' '}
+                : `${names[expected]} was due to serve.`}{' '}
               Rallies since rally {switchWarnRally} will be marked to check.
             </p>
           ) : null}
