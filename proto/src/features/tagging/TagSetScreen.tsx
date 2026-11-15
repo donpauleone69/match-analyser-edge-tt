@@ -29,7 +29,7 @@ import {
 import { AddVideoChoice } from '@/features/match/AddVideoChoice'
 import { isRealResult, matchLabel } from '@/features/match/matchChecks'
 import { cn } from '@/helpers/utils'
-import { checkSet, expectedServer, type RallyMark } from './continuity'
+import { checkSet, expectedServer, walkServes, type RallyMark } from './continuity'
 import {
   applyTaggedResult,
   applyTaggedScore,
@@ -1171,6 +1171,15 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     </>
   )
   const padServer = edit ? edit.draft.server : live?.server ?? nextServer
+  const dueServer = edit
+    ? walkServes(set.rallies, set.firstServer).steps[edit.index]?.expected ?? expected
+    : expected
+  const switchWarn =
+    !readOnly &&
+    (mode === 'watch' || mode === 'tagging' || mode === 'edit') &&
+    !atEnd &&
+    padServer !== dueServer
+  const switchWarnRally = edit ? edit.index + 1 : gap ? gap.index + 1 : set.rallies.length + 1
   const switchOn = !readOnly && !atEnd && (mode === 'watch' || mode === 'tagging' || mode === 'edit')
   const rowButton = cn('h-11 lg:h-9 px-3 shrink-0', slotBusy && BUSY)
   /** The right end of the status row always means "go back": 5 seconds, or one tap. One width, so the spot does not shift. Let never sits there. */
@@ -1513,6 +1522,15 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               onClick={onLateTap}
             />
           ) : null}
+          {switchWarn ? (
+            <p
+              role="status"
+              data-switch-warning
+              className="mb-2 rounded-md border border-warning bg-warning/15 px-2 py-1.5 text-xs font-semibold text-primary leading-snug"
+            >
+              {names[dueServer]} was due to serve. Rallies since rally {switchWarnRally} will be marked to check.
+            </p>
+          ) : null}
           <div className="flex items-stretch gap-2">
           {slotKind === 'pad' ? (
             <button
@@ -1595,7 +1613,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                 <span className={cn('h-2 w-2 rounded-full shrink-0', padServer === 'me' ? 'bg-side-me' : 'bg-side-them')} />
                 <span className="truncate text-primary">{names[padServer]}</span>
               </span>
-              <span className="text-primary">Switch</span>
+              <span className="text-primary">Switch server</span>
               <KeyHint k="P" />
             </button>
           ) : null}
