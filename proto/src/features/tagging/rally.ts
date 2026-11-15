@@ -74,6 +74,7 @@ export const SPEED_STEPS = [0.5, 0.75, 1, 1.25, 1.5, 2] as const
 
 export type ShotTags = {
   wing?: Wing
+  /** Not asked any more. Kept so rallies saved with it still load. Never set, never saved. */
   pivot?: boolean
   stroke?: string
   spin?: string
@@ -350,6 +351,12 @@ export function faStrokeRefused(d: Draft, shot: number, stroke: string | undefin
  */
 export function patchShot(d: Draft, shot: number, patch: Partial<ShotTags>): Draft {
   if (faStrokeRefused(d, shot, patch.stroke)) return d
+  // Pivot is not asked: nothing sets it.
+  if ('pivot' in patch) {
+    patch = { ...patch }
+    delete patch.pivot
+    if (Object.keys(patch).length === 0) return d
+  }
   // Two shots: a defensive stroke takes the first attack off shot 2, and the stroke decides again.
   if (twoShotEnd(d, shot) && d.fa === shot && NO_FIRST_ATTACK.has(patch.stroke ?? '')) d = { ...d, fa: null }
   const shots = d.shots.map((s, i) => (i === shot - 1 ? { ...s, ...patch } : s))
@@ -533,6 +540,7 @@ export const ROLE_LABEL: Record<ShotRole, string> = {
 export type ShotFields = {
   result: boolean
   wing: boolean
+  /** Always false: Pivot is not asked. Here only until the screen drops its cell. */
   pivot: boolean
   /** The stroke row, with the switch. Shots before the first attack do not have it. */
   stroke: boolean
@@ -554,7 +562,7 @@ export function fieldsFor(d: Draft, shot: number): ShotFields {
   return {
     result: isEnd,
     wing: !serve,
-    pivot: !serve && (fa || role === 'before' || isEnd),
+    pivot: false,
     stroke: showsStroke(d, shot),
     spin: serve,
     depth: serve || role === 'before',
@@ -670,7 +678,7 @@ export function statusText(d: Draft): string {
 /** Short summary of one shot, for collapsed rows and the rally list. */
 export function shotSummary(s: ShotTags): string {
   return [
-    s.wing ? (s.pivot ? `${s.wing} pivot` : s.wing) : '',
+    s.wing,
     s.stroke,
     s.spin,
     s.depth,
@@ -742,15 +750,18 @@ export function swapPlayers(r: RallyData): RallyData {
  * shows: the end shot, the first attack and the shots after it. A stroke
  * answered on a shot that has since lost its row (the first attack moved, No
  * attack, a contact added after the end shot) stays in the draft, so the
- * answer comes back with the row, and is left out here.
+ * answer comes back with the row, and is left out here. Pivot, on a rally
+ * saved when it was still asked, is left out too.
  */
 export function savedShots(d: Draft): ShotTags[] {
   const hidden = (s: ShotTags | undefined, i: number) => Boolean(s?.stroke) && !showsStroke(d, i + 1)
-  if (!d.shots.some(hidden)) return d.shots
+  const drops = (s: ShotTags | undefined, i: number) => hidden(s, i) || (s !== undefined && 'pivot' in s)
+  if (!d.shots.some(drops)) return d.shots
   return d.shots.map((s, i) => {
-    if (!hidden(s, i)) return s
+    if (!drops(s, i)) return s
     const kept = { ...s }
-    delete kept.stroke
+    if (hidden(s, i)) delete kept.stroke
+    delete kept.pivot
     return kept
   })
 }

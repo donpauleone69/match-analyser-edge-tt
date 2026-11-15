@@ -13,7 +13,6 @@ import {
   WINGS,
   fieldsFor,
   flipSwitch,
-  patchShot,
   setEnding,
   showsStroke,
   stageOf,
@@ -27,7 +26,6 @@ import {
 
 export const RESULT_KEYS = ['q', 'w', 'e', 'r', 't', 'y'] as const
 export const WING_KEYS = ['a', 's'] as const
-export const PIVOT_KEY = 'd'
 export const SWITCH_KEY = 'z'
 /** One key per stroke cell, left to right, after the switch. */
 export const STROKE_KEYS = ['x', 'c', 'v', 'b', 'n'] as const
@@ -68,9 +66,6 @@ export function applyShotKey(d: Draft, shot: number, key: string, held?: StrokeS
   if (stageOf(d) === 'result') return null
   const wing = WING_KEYS.indexOf(k as (typeof WING_KEYS)[number])
   if (wing >= 0) return fields.wing ? toggleShotField(d, shot, 'wing', WINGS[wing]) : null
-  if (k === PIVOT_KEY) {
-    return fields.pivot ? patchShot(d, shot, { pivot: !d.shots[shot - 1]?.pivot }) : null
-  }
 
   if (!showsStroke(d, shot)) return null
   if (k === SWITCH_KEY) {
