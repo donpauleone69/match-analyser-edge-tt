@@ -285,6 +285,18 @@
   min-width: var(--btn-kind-tap-pad);
   padding-inline: 0;
 }
+.btn-kind-field {
+  height: var(--btn-kind-control);
+  min-height: var(--btn-kind-control);
+  box-sizing: border-box;
+}
+@media (pointer: coarse) {
+  .btn-kind-text-link {
+    min-height: var(--btn-kind-control);
+    display: inline-flex;
+    align-items: center;
+  }
+}
 
 html {
   font-family: var(--font-sans);

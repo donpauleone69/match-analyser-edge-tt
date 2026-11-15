@@ -1,139 +1,39 @@
 /**
- * Item 14 fast check: sample buttons on each shell screen; heights must be 36, 44, 48, 64, or 80.
- * Run: BASE=http://127.0.0.1:5174 node proto/scripts/item14-heights.mjs
+ * Item 14 strict check: every shell control must carry a btn-kind-* class and match its height.
+ * BASE=http://127.0.0.1:5174 npm run check:item14
  */
 import { chromium } from 'playwright-core'
 
 const BASE = process.env.BASE || 'http://127.0.0.1:5174'
-const ALLOWED = new Set([36, 44, 48, 64, 80])
 
-async function measure(page) {
-  return page.evaluate(() => {
-    const out = []
-    for (const el of document.querySelectorAll('button, a[aria-label="Back"], nav[aria-label="Main"] a')) {
-      const r = el.getBoundingClientRect()
-      if (r.width < 8 || r.height < 8) continue
-      const style = getComputedStyle(el)
-      if (style.visibility === 'hidden' || style.display === 'none') continue
-      const label = (
-        el.getAttribute('aria-label') ||
-        el.getAttribute('aria-current') ||
-        el.textContent ||
-        ''
-      )
-        .replace(/\s+/g, ' ')
-        .trim()
-        .slice(0, 48)
-      out.push({ label, h: Math.round(r.height), w: Math.round(r.width) })
-    }
-    return out
-  })
-}
+const VIEWPORTS = [
+  { width: 390, height: 844, touch: true, label: '390×844-finger' },
+  { width: 375, height: 667, touch: true, label: '375×667-finger' },
+  { width: 1280, height: 800, touch: true, label: '1280×800-finger' },
+  { width: 1280, height: 800, touch: false, label: '1280×800-mouse' },
+]
 
-function classify(h, coarse) {
-  if (h === 80) return 'tapPad'
-  if (h === 64) return 'tapPad-short'
-  if (h === 48) return 'main-finger'
-  if (h === 44) return coarse ? 'main-mouse-or-control-finger' : 'main-mouse'
-  if (h === 36) return 'control-mouse'
-  return `unexpected-${h}`
-}
-
-async function runViewport(browser, { width, height, coarse, touch, name }) {
-  const ctx = await browser.newContext({
-    viewport: { width, height },
-    hasTouch: touch,
-    isMobile: touch,
-  })
-  const page = await ctx.newPage()
-  await page.goto(BASE + '/', { waitUntil: 'networkidle' })
-  await page.evaluate(() => localStorage.setItem('proto-demo-mode', 'filled'))
-  await page.goto(BASE + '/home', { waitUntil: 'networkidle' })
-
-  const screens = [
-    { path: '/home', name: 'Home' },
-    { path: '/find', name: 'Find' },
-    { path: '/account', name: 'Account' },
-    { path: '/insights/summary', name: 'Insights' },
-  ]
-  const rows = []
-  let bad = 0
-
-  for (const s of screens) {
-    await page.goto(BASE + s.path, { waitUntil: 'networkidle' })
-    const buttons = await measure(page)
-    const main = buttons.find((b) => /Continue|New match|All matches|Go to Tag/i.test(b.label))
-    const control = buttons.find((b) => /^(New|Find|Filter|Back)/i.test(b.label) || b.label === 'Back')
-    for (const b of [main, control].filter(Boolean)) {
-      const ok = ALLOWED.has(b.h)
-      if (!ok) bad++
-      rows.push({
-        screen: s.name,
-        viewport: name,
-        label: b.label,
-        kind: classify(b.h, coarse),
-        height: b.h,
-        ok,
-      })
-    }
-  }
-
-  await page.goto(BASE + '/home', { waitUntil: 'networkidle' })
-  const firstMatch = await page.evaluate(() => {
-    const a = document.querySelector('ul li a[href*="/matches/"]')
-    return a?.getAttribute('href')?.match(/\/matches\/([^/]+)/)?.[1] ?? null
-  })
-  if (firstMatch) {
-    for (const [suffix, screen] of [
-      ['/details', 'Match Details'],
-      ['/tag', 'Match Tag'],
-      ['/insights/summary', 'Match Insights'],
-    ]) {
-      await page.goto(`${BASE}/matches/${firstMatch}${suffix}`, { waitUntil: 'networkidle' })
-      const buttons = await measure(page)
-      const main = buttons.find((b) =>
-        /Continue set|Start|Finish match|Next: Tag|Go to Tag/i.test(b.label)
-      )
-      const back = buttons.find((b) => b.label === 'Back')
-      const tab = buttons.find((b) => /^(Insights|Details|Tag)$/i.test(b.label))
-      for (const [b, role] of [
-        [main, 'main'],
-        [back, 'back'],
-        [tab, 'tab'],
-      ]) {
-        if (!b) continue
-        const ok = ALLOWED.has(b.h)
-        if (!ok) bad++
-        rows.push({
-          screen,
-          viewport: name,
-          label: `${role}: ${b.label}`,
-          kind: classify(b.h, coarse),
-          height: b.h,
-          ok,
-        })
+const ROUTES = [
+  { screen: 'Sign in', path: '/' },
+  { screen: 'Home', path: '/home' },
+  { screen: 'Find', path: '/find' },
+  { screen: 'Account', path: '/account' },
+  {
+    screen: 'Insights',
+    path: '/insights/summary',
+    after: async (page, vp) => {
+      if (vp.width < 768) {
+        await page.getByRole('button', { name: /^Filter/ }).click()
+        await page.waitForTimeout(250)
       }
-    }
-  }
-
-  await page.goto(BASE + '/', { waitUntil: 'networkidle' })
-  const signIn = (await measure(page)).find((b) => /Fake sign-in/i.test(b.label))
-  if (signIn) {
-    const ok = ALLOWED.has(signIn.h)
-    if (!ok) bad++
-    rows.push({
-      screen: 'Sign in',
-      viewport: name,
-      label: signIn.label,
-      kind: classify(signIn.h, coarse),
-      height: signIn.h,
-      ok,
-    })
-  }
-
-  await ctx.close()
-  return { rows, bad }
-}
+    },
+  },
+  { screen: 'Match header and tabs', path: '/matches/m-partial/tag' },
+  { screen: 'Match Details', path: '/matches/m-partial/details' },
+  { screen: 'Tag page', path: '/matches/m-partial/tag' },
+  { screen: 'Tag page (Start)', path: '/matches/m-ready/tag' },
+  { screen: 'Match Insights', path: '/matches/m-partial/insights/summary' },
+]
 
 const browser = await chromium.launch({
   executablePath: '/usr/local/bin/google-chrome',
@@ -141,20 +41,107 @@ const browser = await chromium.launch({
   args: ['--no-sandbox', '--disable-dev-shm-usage'],
 })
 
-const configs = [
-  { width: 390, height: 844, coarse: true, touch: true, name: '390x844-finger' },
-  { width: 1280, height: 800, coarse: false, touch: false, name: '1280x800-mouse' },
-  { width: 1280, height: 800, coarse: true, touch: true, name: '1280x800-finger' },
-]
+const allFails = []
+let checked = 0
 
-const allRows = []
-let totalBad = 0
-for (const cfg of configs) {
-  const { rows, bad } = await runViewport(browser, cfg)
-  allRows.push(...rows)
-  totalBad += bad
+for (const vp of VIEWPORTS) {
+  const ctx = await browser.newContext({
+    viewport: { width: vp.width, height: vp.height },
+    hasTouch: vp.touch,
+    isMobile: vp.touch,
+  })
+  const page = await ctx.newPage()
+  await page.goto(BASE + '/', { waitUntil: 'networkidle' })
+  await page.evaluate(() => localStorage.setItem('proto-demo-mode', 'filled'))
+
+  for (const route of ROUTES) {
+    await page.goto(BASE + route.path, { waitUntil: 'networkidle' })
+    if (route.after) await route.after(page, vp)
+    const result = await page.evaluate(
+      ({ screen, viewportLabel, viewportHeight }) => {
+        const KIND_CLASS = {
+          main: 'btn-kind-main',
+          control: 'btn-kind-control',
+          field: 'btn-kind-field',
+          textLink: 'btn-kind-text-link',
+          tapPad: 'btn-kind-tap-pad',
+        }
+        function expectedHeight(kind, coarse, vh) {
+          if (kind === 'main') return coarse ? 48 : 44
+          if (kind === 'control' || kind === 'field') return coarse ? 44 : 36
+          if (kind === 'textLink') return coarse ? 44 : null
+          if (kind === 'tapPad') {
+            if (!coarse) return 80
+            return vh >= 700 ? 80 : 64
+          }
+          return null
+        }
+        const coarse = matchMedia('(pointer: coarse)').matches
+        const fails = []
+        function kindOf(el) {
+          for (const [k, cls] of Object.entries(KIND_CLASS)) {
+            if (el.classList.contains(cls)) return k
+          }
+          return null
+        }
+        function labelOf(el) {
+          return (
+            el.getAttribute('aria-label') ||
+            el.getAttribute('placeholder') ||
+            el.textContent ||
+            el.tagName
+          )
+            .replace(/\s+/g, ' ')
+            .trim()
+            .slice(0, 48)
+        }
+        function visible(el) {
+          const r = el.getBoundingClientRect()
+          if (r.width < 4 || r.height < 4) return false
+          const st = getComputedStyle(el)
+          if (st.display === 'none' || st.visibility === 'hidden') return false
+          if (el.getAttribute('aria-hidden') === 'true') return false
+          return true
+        }
+        const nodes = [
+          ...document.querySelectorAll(
+            'button, select, input:not([type="hidden"]):not(.hidden), a[aria-label="Back"], nav[aria-label="Main"] a, nav[aria-label="Match sections"] a, nav[aria-label="Insight sections"] button, a.btn-kind-text-link'
+          ),
+        ].filter(visible)
+
+        for (const el of nodes) {
+          if (el.getAttribute('aria-label') === 'Close filters') continue
+          const kind = kindOf(el)
+          const lab = labelOf(el)
+          const h = Math.round(el.getBoundingClientRect().height)
+          const w = Math.round(el.getBoundingClientRect().width)
+          if (!kind) {
+            fails.push({ screen, viewport: viewportLabel, lab, issue: 'no-kind', h, w })
+            continue
+          }
+          const want = expectedHeight(kind, coarse, viewportHeight)
+          if (want !== null && h !== want) {
+            fails.push({ screen, viewport: viewportLabel, lab, kind, issue: 'height', h, want, w })
+          }
+          if (el.classList.contains('btn-kind-square') && kind === 'control' && w !== h) {
+            fails.push({ screen, viewport: viewportLabel, lab, kind, issue: 'not-square', h, w })
+          }
+        }
+        return { count: nodes.length, fails }
+      },
+      { screen: route.screen, viewportLabel: vp.label, viewportHeight: vp.height }
+    )
+    checked += result.count
+    allFails.push(...result.fails)
+  }
+  await ctx.close()
 }
+
 await browser.close()
 
-console.log(JSON.stringify({ ok: totalBad === 0, rows: allRows }, null, 2))
-process.exit(totalBad ? 1 : 0)
+const ok = allFails.length === 0
+console.log(JSON.stringify({ ok, checked, failCount: allFails.length, fails: allFails.slice(0, 30) }, null, 2))
+if (!ok) {
+  console.error(`item14: ${allFails.length} failures (showing up to 30)`)
+  process.exit(1)
+}

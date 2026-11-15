@@ -60,7 +60,7 @@ function FilterPickers({
         <label key={key} className="block space-y-1">
           <span className="text-xs font-semibold text-muted">{label}</span>
           <select
-            className="w-full rounded-md border border-border bg-bg-card px-2 py-1.5 text-sm text-primary"
+            className="btn-kind-field w-full rounded-md border border-border bg-bg-card px-2 text-sm text-primary"
             value={draft[key]}
             onChange={(e) => setDraft({ ...draft, [key]: e.target.value })}
           >
@@ -199,13 +199,9 @@ function PillRowWithFilter({ section }: { section: SectionId }) {
           <div className="absolute inset-x-0 bottom-0 rounded-t-xl border border-border bg-bg-surface p-4 pb-8 space-y-3 shadow-lg">
             <div className="flex items-center justify-between gap-2">
               <p className="text-sm font-semibold text-primary">Filter</p>
-              <button
-                type="button"
-                className="text-sm font-semibold text-muted"
-                onClick={() => setOpen(false)}
-              >
+              <Button kind="control" variant="ghost" className="shrink-0 px-2" onClick={() => setOpen(false)}>
                 Close
-              </button>
+              </Button>
             </div>
             <FilterPickers draft={draft} setDraft={setDraft} />
             <div className="flex gap-2">

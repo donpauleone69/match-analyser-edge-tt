@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Icon, buttonKindControlSquare } from '@/ui-mine'
+import { Icon, buttonKindClass, buttonKindControlSquare } from '@/ui-mine'
 import { cn } from '@/helpers/utils'
 import { BrandMark } from '@/layout/BrandMark'
 
@@ -29,7 +29,10 @@ export function PageHeader({
             {backTo ? (
               <Link
                 to={backTo}
-                className="inline-flex h-full w-full items-center justify-center rounded-md text-brand hover:bg-pill-idle"
+                className={cn(
+                  buttonKindClass.control,
+                  'inline-flex h-full w-full items-center justify-center rounded-md text-brand hover:bg-pill-idle'
+                )}
                 aria-label="Back"
               >
                 <Icon name="chevron-left" size="sm" />

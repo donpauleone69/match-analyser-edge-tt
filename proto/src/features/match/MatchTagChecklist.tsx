@@ -1,5 +1,5 @@
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { Button, Card, Icon } from '@/ui-mine'
+import { Button, Card, Icon, buttonKindTextLink } from '@/ui-mine'
 import { WfBadge } from '@/layout/Wireframe'
 import {
   derivePhase,
@@ -26,6 +26,7 @@ import {
   reopenMatch,
   setInProgress,
 } from '@/features/tagging/matchOps'
+import { cn } from '@/helpers/utils'
 import { TAG_LOCK_LINE, useTagLock } from '@/features/tagging/tagLock'
 import { lastSavedGlobal } from '@/features/tagging/matchOps'
 import { rallyEnd, type Draft } from '@/features/tagging/rally'
@@ -38,7 +39,7 @@ const flagClass =
 const differsBadge =
   'inline-flex items-center rounded border border-warning bg-warning/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary'
 
-const linkClass = 'text-sm font-semibold text-brand underline'
+const linkClass = cn('text-sm font-semibold text-brand underline', buttonKindTextLink)
 
 const rowAction = 'min-w-16 md:min-w-0'
 
@@ -222,7 +223,7 @@ export function MatchTagChecklist() {
                   ) : null}
                   {state === 'none' && hasVideo && !lock ? (
                     <Button
-                      kind="control"
+                      kind="main"
                       variant={nextStart?.setId === s.setId ? 'primary' : 'secondary'}
                       className={rowAction}
                       onClick={() => openSet(s.setId)}

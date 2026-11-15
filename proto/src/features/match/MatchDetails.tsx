@@ -1,6 +1,15 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
-import { Button, Card, CardDescription, CardTitle, Icon } from '@/ui-mine'
+import {
+  Button,
+  Card,
+  CardDescription,
+  CardTitle,
+  Icon,
+  buttonKindControlSquare,
+  buttonKindField,
+  buttonKindTextLink,
+} from '@/ui-mine'
 import { WfBadge, WfWarnBadge } from '@/layout/Wireframe'
 import {
   derivePhase,
@@ -34,8 +43,10 @@ import {
 import { cn } from '@/helpers/utils'
 
 const labelClass = 'text-xs font-semibold uppercase tracking-wide text-muted'
-const inputClass =
-  'w-full rounded-md border border-border bg-bg-card px-3 py-2 text-sm text-primary'
+const inputClass = cn(
+  buttonKindField,
+  'w-full rounded-md border border-border bg-bg-card px-3 text-sm text-primary'
+)
 const flagClass =
   'rounded-md border border-warning bg-warning/15 px-3 py-2 text-sm text-primary'
 const flagRowClass = cn(flagClass, 'flex flex-wrap items-center justify-between gap-2')
@@ -279,6 +290,7 @@ function VideosCard({ match }: { match: MatchRecord }) {
                         <Button
                           kind="control"
                           variant="secondary"
+                          className={buttonKindControlSquare}
                           aria-label={`Move ${v.fileName} up`}
                           disabled={running || i === 0}
                           onClick={() => moveVideo(match.id, v.id, -1)}
@@ -288,6 +300,7 @@ function VideosCard({ match }: { match: MatchRecord }) {
                         <Button
                           kind="control"
                           variant="secondary"
+                          className={buttonKindControlSquare}
                           aria-label={`Move ${v.fileName} down`}
                           disabled={running || i === match.videos.length - 1}
                           onClick={() => moveVideo(match.id, v.id, 1)}
@@ -396,7 +409,10 @@ function ResultSelect({
   return (
     <select
       aria-label="Result"
-      className="rounded-md border border-border bg-bg-card px-2 py-1.5 text-sm font-semibold text-primary"
+      className={cn(
+        buttonKindField,
+        'rounded-md border border-border bg-bg-card px-2 text-sm font-semibold text-primary'
+      )}
       value={key}
       onChange={(e) => {
         const [me, them] = e.target.value.split('-').map(Number)
@@ -435,7 +451,8 @@ function ScoreInput({
       aria-label={label}
       inputMode="numeric"
       className={cn(
-        'w-11 rounded-md border bg-bg-card px-1 py-1.5 text-center text-sm text-primary',
+        buttonKindField,
+        'w-11 rounded-md border bg-bg-card px-1 text-center text-sm text-primary',
         flagged ? 'border-warning' : 'border-border'
       )}
       value={value}
@@ -470,7 +487,10 @@ function TaggedCell({
           <Button kind="control" variant="secondary" onClick={onUseTagged}>
             Use tagged
           </Button>
-          <Link to={tagHref} className="text-xs font-semibold text-brand underline">
+          <Link
+            to={tagHref}
+            className={cn('text-xs font-semibold text-brand underline', buttonKindTextLink)}
+          >
             Open set {set.setId}
           </Link>
         </>

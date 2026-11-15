@@ -24,3 +24,9 @@ export const buttonKindControlSquare = 'btn-kind-control btn-kind-square'
 
 /** Square tap-pad companion (e.g. Switch server beside the pad). */
 export const buttonKindTapPadSquare = 'btn-kind-tap-pad btn-kind-tap-pad-square'
+
+/** Selects, text inputs, score fields — same height as control. */
+export const buttonKindField = 'btn-kind-field'
+
+/** Text links: unchanged on mouse; finger gets control-high press target. */
+export const buttonKindTextLink = 'btn-kind-text-link'

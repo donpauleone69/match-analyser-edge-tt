@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { Navigate, Outlet, useMatch, useParams } from 'react-router-dom'
+import { buttonKindField } from '@/ui-mine'
+import { cn } from '@/helpers/utils'
 import { HubTabs } from '@/layout/HubTabs'
 import { PageHeader } from '@/layout/PageHeader'
 import { StickyChrome } from '@/layout/StickyChrome'
@@ -21,7 +23,10 @@ function OpponentPrompt({ match }: { match: MatchRecord }) {
       <label className="flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-md border border-dashed border-border bg-bg-card px-3 py-2 text-sm text-muted">
         <span>Who did you play?</span>
         <input
-          className="min-w-0 flex-1 basis-40 rounded-md border border-border bg-bg-surface px-2 py-1 text-sm text-primary"
+          className={cn(
+            buttonKindField,
+            'min-w-0 flex-1 basis-40 rounded-md border border-border bg-bg-surface px-2 text-sm text-primary'
+          )}
           placeholder="Opponent"
           value={match.opponent}
           onFocus={() => setEditing(true)}

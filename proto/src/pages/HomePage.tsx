@@ -169,7 +169,7 @@ export function HomePage() {
                   </ul>
                   <Button
                     fullWidth
-                    kind="main"
+                    kind="control"
                     variant="secondary"
                     onClick={() => navigate('/insights/summary')}
                   >
