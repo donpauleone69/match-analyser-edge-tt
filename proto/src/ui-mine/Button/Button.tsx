@@ -19,9 +19,9 @@ const buttonVariants = cva(
         ghost: 'bg-transparent text-primary hover:bg-pill-idle border border-transparent',
       },
       size: {
-        sm: 'h-[var(--control-height)] px-[var(--control-px)] text-[length:var(--control-text)] rounded-[var(--control-radius)]',
-        default: 'h-9 px-3 text-sm rounded-md',
-        lg: 'h-11 px-5 text-base rounded-md',
+        sm: `${buttonKindClass.control} px-[var(--control-px)] text-[length:var(--control-text)] rounded-[var(--control-radius)]`,
+        default: `${buttonKindClass.control} px-3 text-sm rounded-md`,
+        lg: `${buttonKindClass.main} px-5 text-base rounded-md`,
       },
     },
     defaultVariants: {
@@ -48,8 +48,8 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     <button
       ref={ref}
       className={cn(
-        buttonVariants({ variant, size: kind ? undefined : size }),
-        !kind && size === undefined && 'h-9 px-3 text-sm rounded-md',
+        buttonVariants({ variant, size: kind ? null : size }),
+        !kind && size === undefined && `${buttonKindClass.control} px-3 text-sm rounded-md`,
         kind && buttonKindClass[kind],
         kind && 'px-3 text-sm rounded-md',
         disabledSurface,

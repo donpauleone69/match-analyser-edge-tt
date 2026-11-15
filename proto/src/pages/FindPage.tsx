@@ -38,7 +38,7 @@ export function FindPage() {
             <Button kind="control" disabled>
               Apply filters (stub)
             </Button>
-            <Button kind="main" variant="secondary" onClick={onNew}>
+            <Button kind="control" variant="secondary" onClick={onNew}>
               <Icon name="plus" size="xs" />
               New match
             </Button>
