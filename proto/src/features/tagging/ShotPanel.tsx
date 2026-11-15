@@ -380,14 +380,16 @@ export function TrimRow({
   ]
   return (
     <div className="rounded-md border border-border bg-bg-surface p-3" role="group" aria-label="Trim">
-      <Row label="Trim">
+      <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-muted">Trim</p>
+      {/* One line of equal cells: Start, End, then Delete rally. It never wraps. */}
+      <div className="flex gap-1.5 lg:gap-1 [&>*]:min-w-0 [&>*]:flex-1 [&>*]:justify-center [&>*]:px-1 [&>*]:whitespace-nowrap">
         {marks.map(({ mark, label, hint }) => (
           <Pill key={label} on={selected?.kind === mark.kind} hint={hint} onClick={() => onMark(mark)}>
             {label} {formatClock(markTime(draft, mark), true)}
           </Pill>
         ))}
         {action}
-      </Row>
+      </div>
     </div>
   )
 }

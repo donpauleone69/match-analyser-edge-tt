@@ -98,7 +98,7 @@ import { NO_ATTACK_KEY, applyShotKey } from './shotKeys'
 import { FirstAttackRow, KeyHint, ShotPanel, TimeRow, TrimRow } from './ShotPanel'
 import { ShotRail } from './ShotRail'
 import { TAG_LOCK_LINE, useTagLock, type TagLock } from './tagLock'
-import { lastContactG, segmentAt, segmentsOf, toGlobal, totalDuration, type Segment } from './timeline'
+import { firstContactG, lastContactG, segmentAt, segmentsOf, toGlobal, totalDuration, type Segment } from './timeline'
 import { usePlayer, type Window } from './usePlayer'
 import { VideoStage, type TimelineBlock } from './VideoStage'
 
@@ -790,6 +790,15 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     return g > off ? g - off : null
   }
 
+  /** An added contact also stays in front of the saved rally that follows, and inside the video. */
+  const ceilOf = (d: Draft): number => {
+    const off = offsetOf(d.videoId)
+    const max = durationOf(d.videoId)
+    const next = edit ? set.rallies[edit.index + 1] : null
+    const g = edit ? (next ? firstContactG(segs, next) : null) : gap ? gap.b : null
+    return g !== null && g > off && g - off < max ? Math.max(0, g - off - 0.05) : max
+  }
+
   /**
    * Add contact, for a missed serve or a missed contact anywhere in the rally.
    * The whole rally loops from 4 seconds before the first tap and the big
@@ -821,7 +830,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     const was = active
     const wasEdit = edit
     const wasSelected = selected
-    const t = addedContactTime(was, p.getTime() - offsetOf(was.videoId), fenceOf(was), durationOf(was.videoId))
+    const t = addedContactTime(was, p.getTime() - offsetOf(was.videoId), fenceOf(was), ceilOf(was))
     const { draft: next, shot } = insertContact(was, t)
     const st = stageOf(next)
     // Ready: the new shot opens, so its time can be stepped. While a step is asked, that step's shot stays.
@@ -1583,11 +1592,9 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                   <Button
                     kind="control"
                     variant="secondary"
-                    className="ml-auto shrink-0"
                     data-action="delete-rally"
                     onClick={onDeleteEdit}
                   >
-                    <Icon name="trash" size="sm" />
                     Delete rally
                   </Button>
                 }
