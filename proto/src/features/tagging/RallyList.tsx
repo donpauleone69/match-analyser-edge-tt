@@ -27,6 +27,13 @@ function markText(m: RallyMark, names: Record<Side, string>): string {
   return `Serve order: ${names[m.served]} served, ${names[m.expected]} expected`
 }
 
+/** Where a point added at `index` lands. Newest first, so the card under a rally is the gap in front of it. */
+function pointLabel(index: number, n: number): string {
+  if (index <= 0) return 'Add point before rally 1'
+  if (index >= n) return `Add point after rally ${n}`
+  return `Add point between rally ${index} and rally ${index + 1}`
+}
+
 /**
  * Saved rallies, newest first, in video order. Opening one puts it in the
  * panel to edit. Continuity marks sit under the rally they belong to, with
@@ -130,7 +137,10 @@ export function RallyList({
             <p className="text-xs font-semibold text-primary">{markText(m, names)}</p>
             {actions ? (
               asking ? (
-                whoWon(index)
+                <div className="space-y-1.5">
+                  <p className="text-xs font-semibold text-primary">{pointLabel(index, n)}</p>
+                  {whoWon(index)}
+                </div>
               ) : (
                 <div className="flex flex-wrap gap-1.5">
                   {canRally ? (
@@ -138,8 +148,8 @@ export function RallyList({
                       Add rally here
                     </Button>
                   ) : null}
-                  <Button size="sm" variant="secondary" className={small} onClick={() => setPointAt(index)}>
-                    Add point
+                  <Button size="sm" variant="secondary" className={cn(small, 'whitespace-nowrap')} onClick={() => setPointAt(index)}>
+                    {pointLabel(index, n)}
                   </Button>
                   {m.kind === 'serve' ? (
                     <Button size="sm" variant="secondary" className={small} onClick={() => actions.onSwap(m.rallyId)}>
@@ -162,7 +172,10 @@ export function RallyList({
         {open ? (
           <div className="rounded-md border border-dashed border-border-strong px-2 py-1.5" data-add-slot={index}>
             {asking ? (
-              whoWon(index)
+              <div className="space-y-1.5">
+                <p className="text-xs font-semibold text-primary">{pointLabel(index, n)}</p>
+                {whoWon(index)}
+              </div>
             ) : (
               <div className="flex flex-wrap gap-1.5">
                 {canRally ? (
@@ -178,8 +191,8 @@ export function RallyList({
                     Add rally here
                   </Button>
                 ) : null}
-                <Button size="sm" variant="secondary" className={small} onClick={() => setPointAt(index)}>
-                  Add point
+                <Button size="sm" variant="secondary" className={cn(small, 'whitespace-nowrap')} onClick={() => setPointAt(index)}>
+                  {pointLabel(index, n)}
                 </Button>
               </div>
             )}
