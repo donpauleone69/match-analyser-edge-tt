@@ -49,6 +49,20 @@ export const RALLY_LEAD_S = 2
 export const ADD_SERVE_GAP_S = 0.9
 export const NUDGE_STEP_S = 0.1
 export const MARK_LOOP_HALF_S = 0.5
+/**
+ * A shot being asked about loops from the contact before to the contact after.
+ * The lead is never under 1.2s or over 2s, the tail never under 1s or over 2s,
+ * and the window never leaves the rally. The serve starts at the rally start.
+ * The end shot runs to the rally end.
+ */
+export const SHOT_LOOP_BEFORE_MIN_S = 1.2
+export const SHOT_LOOP_BEFORE_MAX_S = 2
+export const SHOT_LOOP_AFTER_MIN_S = 1
+export const SHOT_LOOP_AFTER_MAX_S = 2
+/** Hold on the last frame of a shot loop before it repeats. */
+export const SHOT_LOOP_HOLD_S = 0.3
+/** The shot-number badge stays this long after that shot's contact. */
+export const SHOT_BADGE_S = 0.4
 export const SPEED_STEPS = [0.5, 0.75, 1, 1.25, 1.5, 2] as const
 
 export type ShotTags = {
@@ -390,11 +404,48 @@ export function rallyEnd(d: Pick<Draft, 'end' | 'contacts'>): number {
   return d.end ?? (d.contacts[d.contacts.length - 1] ?? 0) + RALLY_PAD_S
 }
 
-/** A selected shot loops from its contact to the next one. */
+/**
+ * The loop for one shot. Neighbours set the ends, then the floor, the cap,
+ * and the rally. The serve starts at the rally start. The end shot runs to
+ * the rally end. Times are seconds in the rally's video.
+ */
 export function shotWindow(d: Draft, shot: number): { a: number; b: number } {
-  const a = Math.max(rallyStart(d), d.contacts[shot - 1] - 0.2)
-  const b = shot < d.contacts.length ? d.contacts[shot] : rallyEnd(d)
-  return { a, b: Math.max(b, a + 0.3) }
+  const n = d.contacts.length
+  const c = d.contacts[shot - 1] ?? 0
+  const start = rallyStart(d)
+  const end = rallyEnd(d)
+  let a = start
+  if (shot > 1) {
+    const before = d.contacts[shot - 2]
+    a = Math.min(before, c - SHOT_LOOP_BEFORE_MIN_S)
+    a = Math.max(a, c - SHOT_LOOP_BEFORE_MAX_S)
+    a = Math.max(a, start)
+  }
+  let b = end
+  if (shot < n) {
+    const after = d.contacts[shot]
+    b = Math.max(after, c + SHOT_LOOP_AFTER_MIN_S)
+    b = Math.min(b, c + SHOT_LOOP_AFTER_MAX_S)
+    b = Math.min(b, end)
+  }
+  if (a > c) a = c
+  if (b < c) b = c
+  if (b < a) b = a
+  return { a, b }
+}
+
+/**
+ * The shot a loop is about. Null means the whole rally: the pick step, and
+ * Ready when no shot is open. While a shot is asked about, from the result
+ * until its wing and stroke are in, that shot is the one.
+ */
+export function loopShotOf(d: Draft, st: Stage, sel: Mark | null): number | null {
+  if (!d.closed || d.contacts.length === 0 || st === 'pickFa') return null
+  if (st === 'ready' && sel?.kind !== 'shot') return null
+  if (st === 'result' || st === 'endShot') return d.contacts.length
+  if (st === 'faShot') return d.fa
+  if (sel?.kind === 'shot') return sel.shot
+  return null
 }
 
 export type Mark = { kind: 'start' } | { kind: 'end' } | { kind: 'shot'; shot: number }

@@ -245,6 +245,7 @@ export function VideoStage({
   highlight = false,
   onHighlight,
   readOnlyHighlight = false,
+  badge = null,
   className,
 }: {
   player: Player
@@ -265,6 +266,8 @@ export function VideoStage({
   highlight?: boolean
   onHighlight?: () => void
   readOnlyHighlight?: boolean
+  /** Shot number on the picture at that shot's contact. Neighbours get none. */
+  badge?: { shot: number; side: Side } | null
   className?: string
 }) {
   const segs: Segment[] = player.segs
@@ -323,6 +326,18 @@ export function VideoStage({
           {videos.length > 1 ? `Video ${player.segIndex + 1} of ${videos.length} · ` : ''}
           {formatClock(player.time - (seg?.offset ?? 0))}
         </p>
+
+        {badge ? (
+          <p
+            data-shot-badge={badge.shot}
+            className={cn(
+              'absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2 rounded-md px-3 py-1 text-2xl font-bold tabular-nums text-white',
+              badge.side === 'me' ? 'bg-side-me' : 'bg-side-them'
+            )}
+          >
+            {badge.shot}
+          </p>
+        ) : null}
 
         {highlightOn && onHighlight ? (
           <button

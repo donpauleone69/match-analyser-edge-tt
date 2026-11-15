@@ -20,7 +20,7 @@ import {
   type ShotTags,
   type Side,
 } from './rally'
-import { NO_ATTACK_KEY, PIVOT_KEY, RESULT_KEYS, STROKE_KEYS, WING_KEYS } from './shotKeys'
+import { PIVOT_KEY, RESULT_KEYS, STROKE_KEYS, WING_KEYS } from './shotKeys'
 import { formatClock } from './timeline'
 
 /** A key printed on its control. Desktop only: a phone has no keys. */
@@ -306,54 +306,6 @@ export function ShotPanel({
           ) : null}
         </div>
       ) : null}
-    </div>
-  )
-}
-
-const faTint: Record<Side, string> = {
-  me: 'bg-side-me/15 border-side-me/50 text-primary',
-  them: 'bg-side-them/15 border-side-them/50 text-primary',
-}
-
-/**
- * The first attack, picked where the thumb is: one button per shot it could
- * be, and No attack. Pressing the lit one clears it.
- */
-export function FirstAttackRow({
-  draft,
-  onPick,
-  onNoAttack,
-}: {
-  draft: Draft
-  onPick: (shot: number) => void
-  onNoAttack: () => void
-}) {
-  const shots = draft.contacts.map((_, i) => i + 1).slice(1)
-  return (
-    <div className="rounded-md border border-border bg-bg-surface p-3" role="group" aria-label="First attack">
-      <Row label="First attack">
-        {shots.map((shot) => (
-          <button
-            key={shot}
-            type="button"
-            aria-label={`First attack on shot ${shot}`}
-            aria-pressed={draft.fa === shot}
-            onClick={() => onPick(shot)}
-            className={cn(
-              chip,
-              'min-w-11 lg:min-w-8 justify-center tabular-nums',
-              draft.fa === shot
-                ? 'bg-shot-fa text-white border-shot-fa'
-                : faTint[hitterOf(draft.server, shot)]
-            )}
-          >
-            {shot}
-          </button>
-        ))}
-        <Pill on={draft.noAttack} tone="bad" hint={NO_ATTACK_KEY} onClick={onNoAttack}>
-          No attack
-        </Pill>
-      </Row>
     </div>
   )
 }

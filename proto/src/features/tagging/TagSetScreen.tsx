@@ -58,6 +58,8 @@ import {
   MARK_LOOP_HALF_S,
   NORMAL_SPEED,
   NUDGE_STEP_S,
+  SHOT_BADGE_S,
+  SHOT_LOOP_HOLD_S,
   addContact,
   addContactWindow,
   addedContactText,
@@ -66,7 +68,9 @@ import {
   captureContactTime,
   draftFromRally,
   emptyDraft,
+  hitterOf,
   insertContact,
+  loopShotOf,
   markFa,
   markTime,
   nudgeMark,
@@ -95,7 +99,7 @@ import { RallyList, type RallyListActions } from './RallyList'
 import { ZERO, addPoint, isSetWon, type Points } from './score'
 import { AnswerKeyPanel } from './AnswerKeyPanel'
 import { NO_ATTACK_KEY, applyShotKey } from './shotKeys'
-import { FirstAttackRow, KeyHint, ShotPanel, TimeRow, TrimRow } from './ShotPanel'
+import { KeyHint, ShotPanel, TimeRow, TrimRow } from './ShotPanel'
 import { ShotRail } from './ShotRail'
 import { TAG_LOCK_LINE, useTagLock, type TagLock } from './tagLock'
 import { firstContactG, lastContactG, segmentAt, segmentsOf, toGlobal, totalDuration, type Segment } from './timeline'
@@ -319,12 +323,16 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     const clamp = (w: Window): Window => ({
       a: off + Math.max(0, w.a),
       b: off + Math.min(max, Math.max(w.b, w.a + 0.3)),
+      ...(w.hold ? { hold: w.hold } : {}),
     })
     if (sel && (sel.kind !== 'shot' || isTight)) {
       const at = markTime(d, sel)
       return clamp({ a: at - MARK_LOOP_HALF_S, b: at + MARK_LOOP_HALF_S })
     }
-    if (sel && sel.kind === 'shot' && st !== 'result') return clamp(shotWindow(d, sel.shot))
+    // A shot being asked about, or a shot opened at Ready: only that shot.
+    // The whole rally is the pick step, and Ready when nothing is open.
+    const shot = loopShotOf(d, st, sel)
+    if (shot) return clamp({ ...shotWindow(d, shot), hold: SHOT_LOOP_HOLD_S })
     return clamp({ a: rallyStart(d), b: rallyEnd(d) })
   }
 
@@ -351,8 +359,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       const w = windowFor(draft, sel, st, false)
       p.setRate(CAPTURE_SPEED)
       p.setLoop(w)
-      const last = offsetOf(draft.videoId) + draft.contacts[draft.contacts.length - 1]
-      p.seek(st === 'result' ? Math.max(w.a, last - 1) : w.a)
+      p.seek(w.a)
       // An open rally loops as soon as it is on screen, as it did when it was left.
       p.play()
       setSelected(sel)
@@ -491,9 +498,9 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     setLate(idle ? { until: now + GUARD_AFTER_CLOSE_MS, at: now, g: p.getTime(), playing: p.isPlaying() } : null)
     p.setBoundary(null)
     const end: Mark = { kind: 'shot', shot: closed.contacts.length }
-    const w = windowFor(closed, null, 'result', false)
+    const w = windowFor(closed, end, 'result', false)
     p.setLoop(w)
-    p.seek(Math.max(w.a, offsetOf(closed.videoId) + closed.contacts[closed.contacts.length - 1] - 1))
+    p.seek(w.a)
     p.play()
     setSelected(end)
     setLastTap(null)
@@ -623,8 +630,9 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const onShot = (shot: number) => {
     if (!active || !stage) return
     const mark: Mark = { kind: 'shot', shot }
-    if (!readOnly && (stage === 'result' || stage === 'endShot')) return
-    if (!readOnly && (stage === 'pickFa' || stage === 'faShot')) {
+    if (!readOnly && (stage === 'result' || stage === 'endShot' || stage === 'pickFa')) return
+    // After the press, the shot before or after moves the first attack.
+    if (!readOnly && stage === 'faShot') {
       if (shot >= 2) change(markFa(active, shot))
       return
     }
@@ -1049,22 +1057,35 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     listResume.current = false
   }
 
-  const onFa = (shot: number) => {
-    if (active && !readOnly) change(markFa(active, shot))
+  /** The shot whose contact the playhead has reached. Never the serve. */
+  const shotOnScreen = (d: Draft): number | null => {
+    const local = playerRef.current.getTime() - offsetOf(d.videoId)
+    const reached = d.contacts.filter((c) => c <= local + 0.05).length
+    return reached >= 2 ? reached : null
+  }
+
+  /** Pick step: the shot on screen becomes the first attack. */
+  const onPickFa = () => {
+    if (!active || readOnly || stageOf(active) !== 'pickFa') return
+    const shot = shotOnScreen(active)
+    if (!shot) return
+    change(markFa(active, shot))
   }
 
   const onNoAttack = () => {
-    if (active && !readOnly) change(toggleNoAttack(active))
+    if (!active || readOnly || stageOf(active) !== 'pickFa') return
+    change(toggleNoAttack(active))
+  }
+
+  /** Back to the same pick step. One way to change. */
+  const onChangeFa = () => {
+    if (!active || readOnly || active.contacts.length < 3) return
+    change({ ...active, fa: null, noAttack: false })
   }
 
   const n = active ? active.contacts.length : 0
-  /** The first attack is asked from three shots up. On two it follows the stroke. */
-  const showFa =
-    active !== null &&
-    active.closed &&
-    !readOnly &&
-    n >= 3 &&
-    (stage === 'pickFa' || stage === 'faShot' || (stage === 'ready' && !selected))
+  /** No attack is the one row at the pick step, from three shots up. */
+  const askNoAttack = active !== null && active.closed && !readOnly && n >= 3 && stage === 'pickFa'
 
   // Keys (desktop). Space is the pad. Backspace undoes a tap. Enter saves
   // whenever Save is lit, whatever has focus, and never presses a button.
@@ -1087,9 +1108,10 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     onAddContact,
     onAddTap,
     adding: addOn,
+    onPickFa,
     change,
     seekTo,
-    showFa,
+    askNoAttack,
     readOnly,
     active,
   }
@@ -1130,6 +1152,10 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
           return
         }
         if (Date.now() < slotGuard.current) return
+        if (now.stage === 'pickFa' && (now.mode === 'tagging' || now.mode === 'edit')) {
+          k.onPickFa()
+          return
+        }
         if (now.mode === 'watch' || now.mode === 'tapping' || now.mode === 'setPoint') k.onPad()
         // While tagging, the slot is Save: a Space that comes too late does nothing.
         else if (now.mode !== 'tagging') toggle()
@@ -1169,7 +1195,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       } else if (k.readOnly) {
         return
       } else if (key === NO_ATTACK_KEY) {
-        if (k.showFa) k.onNoAttack()
+        if (k.askNoAttack) k.onNoAttack()
       } else if (key === '[' || key === ']') {
         // Trim belongs to a saved rally.
         if (now.mode === 'edit') k.onMark({ kind: key === '[' ? 'start' : 'end' })
@@ -1234,6 +1260,14 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const playLocal = active ? player.time - offsetOf(active.videoId) : 0
   const liveShot =
     active && active.closed ? active.contacts.filter((c) => c <= playLocal + 0.05).length || null : null
+  const asked = active && stage ? loopShotOf(active, stage, selected) : null
+  const askedAt = asked && active ? active.contacts[asked - 1] : null
+  const shotBadge =
+    active && asked && askedAt !== null && playLocal >= askedAt - 0.02 && playLocal < askedAt + SHOT_BADGE_S
+      ? { shot: asked, side: hitterOf(active.server, asked) }
+      : null
+  const loopNow =
+    active && stage && (mode === 'tagging' || mode === 'edit') ? windowFor(active, selected, stage, tight) : null
   /** Where am I: one line, between rallies and on coming back. */
   const whereLine = [
     setLine,
@@ -1317,6 +1351,11 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       data-playing={player.playing}
       data-rate={player.rate}
       data-time={player.time}
+      data-contacts={active?.contacts.join(',') ?? ''}
+      data-loop-a={loopNow ? loopNow.a.toFixed(3) : ''}
+      data-loop-b={loopNow ? loopNow.b.toFixed(3) : ''}
+      data-fa={active?.fa ?? ''}
+      data-no-attack={active?.noAttack ? 'yes' : 'no'}
     >
       {/* Left on desktop, top on phone: header, picture, timeline, rally list. */}
       <div className="shrink-0 lg:flex-[3] lg:min-w-0 lg:min-h-0 lg:flex lg:flex-col lg:border-r lg:border-border">
@@ -1352,6 +1391,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
           highlight={Boolean(active?.highlight)}
           onHighlight={() => active && writeDraft({ ...active, highlight: !active.highlight })}
           readOnlyHighlight={readOnly || stage === 'result' || stage === 'endShot'}
+          badge={shotBadge}
           className="lg:shrink-0 lg:[&>div:first-child]:max-h-[52vh] lg:[&>div:first-child]:mx-auto"
         />
         <div className="hidden lg:block flex-1 min-h-0 overflow-y-auto">{rallyList}</div>
@@ -1360,14 +1400,13 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       {/* Right on desktop, below on phone: rail, status, panel, then one slot for the pad or Save. */}
       <div className="relative flex-1 min-h-0 flex flex-col lg:flex-[2] lg:min-w-[360px]">
         <div className="shrink-0 px-2 pt-1.5 border-b border-border bg-bg-app">
-          {/* The shot row. It keeps one width from the first tap to Save. */}
+          {/* The shot row. Shots only, from the first tap to Save. */}
           {active || mode === 'watch' ? (
             <ShotRail
               draft={active}
               selected={selected}
               liveShot={liveShot}
               onShot={onShot}
-              readOnly={readOnly}
             />
           ) : null}
 
@@ -1576,7 +1615,29 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                 ))}
               </ul>
             ) : null}
-            {showFa && active ? <FirstAttackRow draft={active} onPick={onFa} onNoAttack={onNoAttack} /> : null}
+            {ready && active && n >= 3 && (active.fa !== null || active.noAttack) ? (
+              <div
+                data-fa-summary
+                className="rounded-md border border-border bg-bg-surface px-3 py-1.5 flex items-center justify-between gap-2"
+              >
+                <p className="text-sm font-semibold text-primary">
+                  {active.fa !== null ? `First attack: shot ${active.fa}` : 'No attack'}
+                </p>
+                {readOnly ? null : (
+                  <Button kind="control" variant="secondary" onClick={onChangeFa}>
+                    Change
+                  </Button>
+                )}
+              </div>
+            ) : null}
+            {askNoAttack ? (
+              <div className="rounded-md border border-border bg-bg-surface p-3" data-no-attack-row>
+                <Button kind="control" variant="secondary" onClick={onNoAttack}>
+                  No attack
+                  <KeyHint k="0" />
+                </Button>
+              </div>
+            ) : null}
             {active && active.closed && selected?.kind === 'shot' && !readOnly ? (
               <ShotPanel draft={active} shot={selected.shot} names={names} onChange={change} onNudge={onNudge} />
             ) : null}
@@ -1770,8 +1831,24 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               <KeyHint k="Space" />
             </button>
           ) : null}
-          {slotKind === 'save' ? (
-            <Button data-tag-save className={cn(slotButton, 'flex-1 min-w-0')} disabled={!ready} onClick={onSave}>
+          {slotKind === 'save' && stage === 'pickFa' ? (
+            <Button
+              kind="tapPad"
+              data-tag-fa
+              className={cn('flex-1 min-w-0 text-lg active:scale-100', slotBusy && !late && BUSY)}
+              onClick={onPickFa}
+            >
+              First attack
+            </Button>
+          ) : null}
+          {slotKind === 'save' && stage !== 'pickFa' ? (
+            <Button
+              kind="tapPad"
+              data-tag-save
+              className={cn('flex-1 min-w-0 rounded-lg text-lg active:scale-100', slotBusy && !late && BUSY)}
+              disabled={!ready}
+              onClick={onSave}
+            >
               Save
               <KeyHint k="Enter" />
             </Button>
@@ -1781,10 +1858,20 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               <Button variant="secondary" className={cn(slotButton, 'flex-1 min-w-0')} onClick={leaveEdit}>
                 Back to set
               </Button>
+            ) : stage === 'pickFa' ? (
+              <Button
+                kind="tapPad"
+                data-tag-fa
+                className={cn('flex-1 min-w-0 text-lg active:scale-100', slotBusy && BUSY)}
+                onClick={onPickFa}
+              >
+                First attack
+              </Button>
             ) : (
               <Button
+                kind="tapPad"
                 data-tag-save
-                className={cn(slotButton, 'flex-1 min-w-0')}
+                className={cn('flex-1 min-w-0 rounded-lg text-lg active:scale-100', slotBusy && BUSY)}
                 disabled={!ready || !edit.dirty}
                 onClick={onSaveEdit}
               >

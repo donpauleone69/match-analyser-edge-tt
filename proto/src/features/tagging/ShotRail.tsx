@@ -1,5 +1,4 @@
 import { useEffect, useRef } from 'react'
-import { Icon } from '@/ui-mine'
 import { cn } from '@/helpers/utils'
 import { hitterOf, stageOf, type Draft, type Mark, type Side } from './rally'
 
@@ -19,28 +18,21 @@ function isSelected(selected: Mark | null, shot: number): boolean {
 
 /**
  * The rally as one row of shots in the hitters' colours. It is both the map
- * and the navigation. The row keeps one width from the first tap to Save: the
- * Add serve cell in front and the star behind hold their places throughout.
- * It scrolls on a long rally and follows the cell in play.
+ * and the navigation. Shots only: it scrolls on a long rally, keeps the picked
+ * shot in view, and follows the shot on screen when none is picked.
  */
 export function ShotRail({
   draft,
   selected,
   liveShot,
   onShot,
-  onAddServe,
-  readOnly = false,
 }: {
   /** Null between rallies: the row shows where shot 1 will go. */
   draft: Draft | null
   selected: Mark | null
-  /** The shot on screen while the rally loops. Marked, never scrolled to. */
+  /** The shot on screen while the rally loops. */
   liveShot: number | null
   onShot: (shot: number) => void
-  /** Puts a serve in front of a late first tap. Not offered when absent. */
-  onAddServe?: () => void
-  /** Shots can be picked to watch them; nothing can be changed. */
-  readOnly?: boolean
 }) {
   const stage = draft ? stageOf(draft) : 'contacts'
   const n = draft?.contacts.length ?? 0
@@ -48,10 +40,16 @@ export function ShotRail({
   /** While the result and end shot are entered, only the end shot is live. */
   const locked = stage === 'result' || stage === 'endShot'
 
-  // Keep the cell in play in view: the next tap while tapping, else the
-  // selected shot. Only the row moves, never the page.
+  // The picked shot stays in view. With none picked, follow the shot on screen.
+  // Only the row moves, never the page.
   const scroller = useRef<HTMLDivElement>(null)
-  const focusKey = tapping ? `next-${n}` : selected?.kind === 'shot' ? `shot-${selected.shot}` : null
+  const focusKey = tapping
+    ? `next-${n}`
+    : selected?.kind === 'shot'
+      ? `shot-${selected.shot}`
+      : liveShot
+        ? `shot-${liveShot}`
+        : null
   useEffect(() => {
     const row = scroller.current
     if (!row || !focusKey) return
@@ -68,29 +66,8 @@ export function ShotRail({
     row.scrollLeft = left
   }, [focusKey])
 
-  const serveOn = Boolean(draft && !tapping && !readOnly && onAddServe)
-
   return (
-    <div className="flex w-full min-w-0 items-start gap-1 overflow-hidden" data-rail-row>
-      <div
-        className={cn(
-          'relative z-10 flex w-11 lg:w-9 flex-col items-center shrink-0 overflow-hidden bg-bg-app py-1',
-          !serveOn && 'invisible'
-        )}
-        data-rail="add-serve"
-      >
-        <button
-          type="button"
-          aria-label="Add serve"
-          title="The first tap was late: add the serve in front"
-          disabled={!serveOn}
-          onClick={onAddServe}
-          className={cn(railCell, 'border-dashed border-border-strong bg-bg-card text-muted')}
-        >
-          <Icon name="plus" size="sm" />
-        </button>
-        <span className={cn(caption, 'text-muted')}>Serve</span>
-      </div>
+    <div className="flex w-full min-w-0 items-start overflow-hidden" data-rail-row>
       <div
         ref={scroller}
         className="relative flex min-w-0 flex-1 items-start gap-1 overflow-x-auto py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
@@ -104,7 +81,11 @@ export function ShotRail({
               const on = isSelected(selected, shot)
               const live = liveShot === shot
               return (
-                <div key={shot} className="flex flex-col items-center shrink-0" data-rail={`shot-${shot}`}>
+                <div
+                  key={shot}
+                  className="flex w-11 lg:w-9 flex-col items-center shrink-0"
+                  data-rail={`shot-${shot}`}
+                >
                   <button
                     type="button"
                     aria-label={`Shot ${shot}`}
@@ -114,6 +95,7 @@ export function ShotRail({
                     onClick={() => onShot(shot)}
                     className={cn(
                       railCell,
+                      'w-full',
                       sideTint[hitterOf(draft.server, shot)],
                       isFa && 'border-shot-fa border-2',
                       on && 'ring-2 ring-brand-primary',
@@ -138,8 +120,8 @@ export function ShotRail({
           : null}
 
         {tapping ? (
-          <div className="flex flex-col items-center shrink-0" data-rail={`next-${n}`}>
-            <span className={cn(railCell, 'border-dashed border-border text-muted opacity-60')}>{n + 1}</span>
+          <div className="flex w-11 lg:w-9 flex-col items-center shrink-0" data-rail={`next-${n}`}>
+            <span className={cn(railCell, 'w-full border-dashed border-border text-muted opacity-60')}>{n + 1}</span>
             <span className={caption} />
           </div>
         ) : null}

@@ -3,7 +3,7 @@ import { NORMAL_SPEED } from './rally'
 import { segmentAt, segmentsOf, totalDuration, type Segment } from './timeline'
 
 export type PlayerVideo = { id: string; kind: 'demo' | 'file'; durationS: number; src?: string }
-export type Window = { a: number; b: number }
+export type Window = { a: number; b: number; /** Seconds to hold the last frame before the loop repeats. */ hold?: number }
 /** Why a seek fell short: the saved rally behind, the loop being tagged, the saved rally ahead, or the end. */
 export type SeekStop = 'fence' | 'loop' | 'next' | 'end' | null
 
@@ -29,6 +29,8 @@ export function usePlayer(videos: PlayerVideo[]) {
   const rate = useRef<number>(NORMAL_SPEED)
   const muted = useRef(true)
   const loop = useRef<Window | null>(null)
+  /** performance.now() when a shot loop's hold on the last frame ends. */
+  const holdUntil = useRef<number | null>(null)
   const floor = useRef(0)
   /** With the floor, the window a rally added between two saved ones has to stay in. */
   const ceil = useRef<{ at: number; cb: () => void } | null>(null)
@@ -71,6 +73,8 @@ export function usePlayer(videos: PlayerVideo[]) {
       const seg = segmentAt(all, time)
       const video = seg ? videosRef.current[seg.index] : null
       const node = el.current
+      const w = loop.current
+      const holding = holdUntil.current !== null && now < holdUntil.current
 
       if (seg && seg.index !== lastSeg.current) {
         // Rolled into the next video on its own.
@@ -87,7 +91,10 @@ export function usePlayer(videos: PlayerVideo[]) {
           }
           if (node.playbackRate !== rate.current) node.playbackRate = rate.current
           if (node.muted !== muted.current) node.muted = muted.current
-          if (playing.current) {
+          if (holding && w) {
+            if (!node.paused) node.pause()
+            time = w.b
+          } else if (playing.current) {
             if (node.ended) time = seg.offset + seg.duration
             else {
               if (node.paused) void node.play().catch(() => undefined)
@@ -95,16 +102,29 @@ export function usePlayer(videos: PlayerVideo[]) {
             }
           } else if (!node.paused) node.pause()
         }
-      } else if (playing.current) {
+      } else if (playing.current && !holding) {
         time += dt * rate.current
+      } else if (holding && w) {
+        time = w.b
       }
 
       if (playing.current) {
-        const w = loop.current
         const edge = boundary.current
-        if (w && time >= w.b) {
+        if (holdUntil.current !== null && w && now >= holdUntil.current) {
+          holdUntil.current = null
           jump(w.a)
           time = w.a
+        } else if (holding && w) {
+          time = w.b
+        } else if (w && time >= w.b) {
+          const holdMs = (w.hold ?? 0) * 1000
+          if (holdMs > 0) {
+            holdUntil.current = now + holdMs
+            time = w.b
+          } else {
+            jump(w.a)
+            time = w.a
+          }
         } else if (edge && time >= edge.at) {
           playing.current = false
           boundary.current = null
@@ -176,6 +196,7 @@ export function usePlayer(videos: PlayerVideo[]) {
         const top = ceil.current ? Math.min(total, ceil.current.at) : total
         const lo = w ? w.a : floor.current
         const hi = w ? w.b : top
+        holdUntil.current = null
         jump(Math.min(Math.max(g, lo), Math.max(lo, hi)))
         if (g < lo - 0.05) return w ? 'loop' : lo > 0 ? 'fence' : null
         if (g > hi + 0.05) return w ? 'loop' : top < total ? 'next' : 'end'
@@ -190,6 +211,7 @@ export function usePlayer(videos: PlayerVideo[]) {
       },
       setLoop: (w: Window | null) => {
         loop.current = w
+        holdUntil.current = null
       },
       getLoop: () => loop.current,
       /** Seeking never goes back past this point. */
