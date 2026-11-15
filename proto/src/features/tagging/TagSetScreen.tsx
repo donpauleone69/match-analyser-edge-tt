@@ -1640,6 +1640,8 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const switchWarn =
     !readOnly && (mode === 'watch' || mode === 'tagging') && !atEnd && padServer !== expected
   const switchWarnRally = gap ? gap.index + 1 : set.rallies.length + 1
+  /** The warning owns the status line only until the first contact of this rally. */
+  const warnOnStatus = switchWarn && mode === 'watch'
   const switchOn = !readOnly && !atEnd && (mode === 'watch' || mode === 'tagging' || mode === 'edit')
   const rowButton = cn('px-3 shrink-0', slotGrey && BUSY)
   /** The right end of the status row always means "go back": 5 seconds, or one tap. One width, so the spot does not shift. Let never sits there. */
@@ -1721,10 +1723,10 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
           <p
             role="status"
             data-tag-status
-            data-switch-warning={switchWarn ? '' : undefined}
+            data-switch-warning={warnOnStatus ? '' : undefined}
             className={cn(
               'h-8 flex items-center overflow-hidden rounded-md border-l-4 px-2 text-sm font-semibold leading-4',
-              switchWarn || (active && active.closed && !ready && mode !== 'finished')
+              warnOnStatus || (active && active.closed && !ready && mode !== 'finished')
                 ? 'border-warning bg-warning/15 text-primary'
                 : ready || mode === 'finished'
                   ? 'border-success bg-success/15 text-primary'
@@ -1732,7 +1734,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
             )}
           >
             <span className="min-w-0 leading-4">
-              {switchWarn
+              {warnOnStatus
                 ? `${expected === 'me' ? 'You were due to serve.' : `${names[expected]} was due to serve.`} Rallies since rally ${switchWarnRally} will be marked to check.`
                 : status}
             </span>

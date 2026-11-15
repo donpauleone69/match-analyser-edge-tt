@@ -148,6 +148,35 @@ async function measure(page) {
           }
         : null
 
+    const picBox = pic ? pic.getBoundingClientRect() : null
+    const outside = picBox
+      ? [...pic.querySelectorAll('button, a')].filter((el) => {
+          const r = el.getBoundingClientRect()
+          const st = getComputedStyle(el)
+          if (r.width < 4 || r.height < 4 || st.display === 'none' || st.visibility === 'hidden') return false
+          return r.left < picBox.left - 1 || r.right > picBox.right + 1 || r.top < picBox.top - 1 || r.bottom > picBox.bottom + 1
+        }).map((el) => (el.getAttribute('aria-label') || el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 32))
+      : []
+
+    function textBox(el) {
+      const r = el.getBoundingClientRect()
+      const text = (el.textContent || '').replace(/\s+/g, ' ').trim()
+      const st = getComputedStyle(el)
+      if (!text || r.width < 2 || r.height < 2 || st.display === 'none' || st.visibility === 'hidden' || Number(st.opacity) === 0) return null
+      return { lab: text.slice(0, 28), t: r.top, l: r.left, b: r.bottom, right: r.right }
+    }
+    const texts = [...document.querySelectorAll('.tag-scoreboard, .tag-scene-label, [data-caption], [data-shot-badge], [data-player-name]')].map(textBox).filter(Boolean)
+    const textOverlaps = []
+    for (let i = 0; i < texts.length; i++) {
+      for (let j = i + 1; j < texts.length; j++) {
+        const a = texts[i]
+        const c = texts[j]
+        const w = Math.min(a.right, c.right) - Math.max(a.l, c.l)
+        const h = Math.min(a.b, c.b) - Math.max(a.t, c.t)
+        if (w > 2 && h > 2) textOverlaps.push(`${a.lab} × ${c.lab} (${Math.round(w)}×${Math.round(h)})`)
+      }
+    }
+
     return {
       pageScroll: view.scrollHeight - view.clientHeight,
       screenScroll: screen ? screen.scrollHeight - screen.clientHeight : -1,
@@ -166,7 +195,10 @@ async function measure(page) {
       delBottom: del ? Math.round(del.getBoundingClientRect().bottom) : null,
       cuts,
       overlaps: overlaps.slice(0, 6),
+      outside,
+      textOverlaps: textOverlaps.slice(0, 4),
       warnCut,
+      status: (document.querySelector('[data-tag-status]')?.textContent || '').replace(/\s+/g, ' ').trim(),
     }
   })
 }
@@ -189,6 +221,8 @@ async function driveRally(page, fails, vp) {
     note(fails, scrollOk, `${vp.file} ${step}: no scroll (page ${m.pageScroll}, screen ${m.screenScroll}, box ${m.bodyScroll}, body ${m.bodyH})`)
     note(fails, m.cuts.length === 0, `${vp.file} ${step}: nothing cut off${m.cuts[0] ? ` (${m.cuts[0].lab} ${m.cuts[0].top}-${m.cuts[0].bottom})` : ''}`)
     note(fails, m.overlaps.length === 0, `${vp.file} ${step}: no overlap${m.overlaps[0] ? ` (${m.overlaps[0]})` : ''}`)
+    note(fails, m.outside.length === 0, `${vp.file} ${step}: controls inside the picture${m.outside[0] ? ` (${m.outside[0]})` : ''}`)
+    note(fails, m.textOverlaps.length === 0, `${vp.file} ${step}: caption text clear${m.textOverlaps[0] ? ` (${m.textOverlaps[0]})` : ''}`)
     note(
       fails,
       m.wide || m.picH <= vp.height * 0.45 + 1,
@@ -351,18 +385,37 @@ async function driveEdit(page, fails, vp) {
 
 async function driveWarn(page, fails, vp) {
   if (vp.file !== 'f-390x844.png') return
+  // An open rally is dropped so Switch happens while watching, with rallies already saved.
+  await page.goto('about:blank')
   await page.goto(`${BASE}/matches/m-partial/tag/2`, { waitUntil: 'networkidle' })
   await page.waitForSelector('[data-tag-switch]')
+  if (await page.locator('[data-action="let"]').count()) {
+    await page.evaluate(() => document.querySelector('[data-action="let"]')?.click())
+  }
+  const watching = await page.waitForFunction(
+    () => document.querySelector('.tag-set')?.dataset.tagMode === 'watch',
+    null,
+    { timeout: 4000 }
+  ).then(() => true).catch(() => false)
+  note(fails, watching, 'switch is pressed while watching')
+  if (!watching) return
+  await page.waitForSelector('[data-tap-pad]')
+  // The slot ignores a click for a moment after Let swaps it back to the pad.
+  await page.waitForTimeout(250)
   const before = await measure(page)
-  await page.click('[data-tag-switch]')
-  await page.waitForTimeout(150)
+  await page.evaluate(() => document.querySelector('[data-tag-switch]')?.click())
+  await page.waitForFunction(
+    () => /due to serve/.test(document.querySelector('[data-tag-status]')?.textContent || ''),
+    null,
+    { timeout: 3000 }
+  ).catch(() => {})
   const after = await measure(page)
   note(
     fails,
     before.btnTop !== null && after.btnTop === before.btnTop && after.boxTop === before.boxTop,
     `warning does not move the button (${before.btnTop}->${after.btnTop}) or the box (${before.boxTop}->${after.boxTop})`
   )
-  const text = await page.locator('[data-switch-warning]').innerText()
+  const text = after.status
   note(
     fails,
     /due to serve/.test(text) && /will be marked to check/.test(text),
@@ -372,6 +425,56 @@ async function driveWarn(page, fails, vp) {
     fails,
     !after.warnCut,
     `warning text fits${after.warnCut ? ` (height ${after.warnCut.scroll - after.warnCut.client}px, width ${after.warnCut.scrollW - after.warnCut.clientW}px)` : ''}`
+  )
+  const tap = () => page.evaluate(() => document.querySelector('[data-tap-pad]')?.click())
+  await tap()
+  await page.waitForTimeout(200)
+  if ((await readStage(page)) !== 'contacts') await tap()
+  await page.waitForFunction(
+    () => /Tap each contact/.test(document.querySelector('[data-tag-status]')?.textContent || ''),
+    null,
+    { timeout: 3000 }
+  ).catch(() => {})
+  const tapping = await measure(page)
+  note(
+    fails,
+    /Tap each contact/.test(tapping.status) && !/due to serve/.test(tapping.status),
+    `step owns the line after the first tap (${tapping.status})`
+  )
+  for (let i = 0; i < 3; i++) {
+    await tap()
+    await page.waitForTimeout(70)
+  }
+  await page.waitForFunction(
+    () => document.querySelector('[data-tag-stage]')?.dataset.tagStage === 'result',
+    null,
+    { timeout: 8000 }
+  ).catch(() => {})
+  const result = await measure(page)
+  note(
+    fails,
+    /Result of shot/.test(result.status) && !/due to serve/.test(result.status),
+    `step owns the line at the result (${result.status})`
+  )
+  await page.waitForFunction(
+    () => {
+      const panel = document.querySelector('[data-shot-panel]')
+      return panel ? Number(getComputedStyle(panel).opacity) > 0.9 : false
+    },
+    null,
+    { timeout: 3000 }
+  ).catch(() => {})
+  const pressed = await pressCell(page, 'Long')
+  await page.waitForFunction(
+    () => /Wing and stroke/.test(document.querySelector('[data-tag-status]')?.textContent || ''),
+    null,
+    { timeout: 3000 }
+  ).catch(() => {})
+  const detail = await measure(page)
+  note(
+    fails,
+    pressed && /Wing and stroke/.test(detail.status) && !/due to serve/.test(detail.status),
+    `step owns the line at the end shot (${detail.status})`
   )
 }
 

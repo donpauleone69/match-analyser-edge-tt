@@ -414,8 +414,37 @@ button[disabled] {
   position: relative;
   min-height: 0;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
   overflow: hidden;
+}
+.tag-picture-slot[data-controls='row'] .tag-picture {
+  width: min(100%, calc(min(45vh, 100vh - 550px) * 16 / 9));
+  max-height: min(45vh, calc(100vh - 550px));
+}
+.tag-picture-controls {
+  display: flex;
+  align-self: stretch;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  padding-inline: 4px;
+}
+.tag-picture-slot[data-controls='overlay'] .tag-picture-controls {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+}
+.tag-picture-slot[data-controls='row'] .tag-scene-label {
+  top: auto;
+  bottom: 4px;
+}
+/* A short picture cannot hold the shot number and the stand-in names as well. The scoreboard still names both players. */
+.tag-picture-slot[data-controls='row'] [data-player-name] {
+  display: none;
 }
 .tag-picture {
   position: relative;

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { Icon } from '@/ui-mine'
 import type { VideoAsset } from '@/data/demoStore'
 import { cn } from '@/helpers/utils'
@@ -167,6 +167,7 @@ function StandIn({
             style={{ left: side === 'me' ? '10%' : '90%', top: '50%', transform: 'translate(-50%, -50%)' }}
           />
           <p
+            data-player-name
             className={cn(
               'absolute top-[64%] w-[14%] truncate text-center text-[10px] font-semibold text-white/80',
               side === 'me' ? 'left-0' : 'right-0'
@@ -193,7 +194,7 @@ function StandIn({
       <p
         ref={label}
         data-scene-label
-        className="absolute left-1/2 top-[7%] -translate-x-1/2 rounded bg-black/40 px-1.5 text-xs font-semibold text-white empty:hidden"
+        className="tag-scene-label absolute left-1/2 top-12 z-20 max-w-[calc(100%-0.5rem)] -translate-x-1/2 truncate rounded bg-black/75 px-1.5 text-xs font-semibold text-white empty:hidden"
       />
     </div>
   )
@@ -277,11 +278,77 @@ export function VideoStage({
   const pct = (g: number) => `${Math.min(100, Math.max(0, (g / total) * 100))}%`
   const speedIndex = Math.max(0, SPEED_STEPS.indexOf(player.rate as (typeof SPEED_STEPS)[number]))
   const [captions, setCaptions] = useState(true)
+  const slotRef = useRef<HTMLDivElement>(null)
+  const picRef = useRef<HTMLDivElement>(null)
+  /** A picture narrower than the screen puts the controls on their own row. */
+  const [controlsRow, setControlsRow] = useState(false)
+  useLayoutEffect(() => {
+    const slot = slotRef.current
+    const pic = picRef.current
+    if (!slot || !pic) return
+    const apply = () => {
+      const narrower = pic.getBoundingClientRect().width < slot.getBoundingClientRect().width - 1
+      setControlsRow((prev) => (prev === narrower ? prev : narrower))
+    }
+    apply()
+    const watch = new ResizeObserver(apply)
+    watch.observe(slot)
+    watch.observe(pic)
+    return () => watch.disconnect()
+  }, [])
+
+  const pictureControls = (
+    <div className="tag-picture-controls" data-picture-controls>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={captions}
+        aria-label={captions ? 'Captions on' : 'Captions off'}
+        onClick={() => setCaptions((on) => !on)}
+        className="btn-kind-control shrink-0 px-2 inline-flex items-center justify-center rounded-md bg-black/60 text-[11px] font-semibold text-white hover:bg-black/80"
+      >
+        {captions ? 'Captions on' : 'Captions off'}
+      </button>
+      <div className="flex items-center gap-1">
+        <Transport label="Back 10 seconds" onClick={() => onSeek(player.getTime() - 10)}>
+          <Icon name="rewind" size="sm" />
+        </Transport>
+        <Transport
+          label={player.playing ? 'Pause' : 'Play video'}
+          disabled={player.atEnd && !player.playing}
+          onClick={() => (player.playing ? player.pause() : player.play())}
+        >
+          <Icon name={player.playing ? 'pause' : 'play'} size="sm" />
+        </Transport>
+        <Transport
+          label="Forward 10 seconds"
+          disabled={player.atEnd || noForward}
+          onClick={() => onSeek(player.getTime() + 10)}
+        >
+          <Icon name="forward" size="sm" />
+        </Transport>
+        <Transport
+          label={`Speed ${player.rate}x`}
+          onClick={() => onRate(SPEED_STEPS[(speedIndex + 1) % SPEED_STEPS.length])}
+        >
+          {player.rate}x
+        </Transport>
+        {video?.kind === 'file' ? (
+          <Transport
+            label={player.muted ? 'Sound on' : 'Sound off'}
+            onClick={() => player.setMuted(!player.muted)}
+          >
+            <Icon name={player.muted ? 'volume-off' : 'volume'} size="sm" />
+          </Transport>
+        ) : null}
+      </div>
+    </div>
+  )
 
   return (
     <div className={className}>
-      <div className="tag-picture-slot">
-      <div className="tag-picture" data-video-kind={video?.kind}>
+      <div ref={slotRef} className="tag-picture-slot" data-controls={controlsRow ? 'row' : 'overlay'}>
+      <div ref={picRef} className="tag-picture" data-video-kind={video?.kind}>
         {video?.kind === 'file' && video.src ? (
           <video
             key={video.id}
@@ -304,7 +371,7 @@ export function VideoStage({
         ) : null}
 
         <div
-          className="absolute left-2 top-2 rounded-md bg-black/70 text-white text-[11px] font-semibold tabular-nums overflow-hidden"
+          className="tag-scoreboard absolute left-2 top-2 max-w-[42%] rounded-md bg-black/70 text-white text-[11px] font-semibold tabular-nums overflow-hidden"
           role="status"
           aria-label={`Set ${bug.setId}: ${names.me} ${bug.points.me}, ${names.them} ${bug.points.them}. ${servesText(names, bug.server)}.`}
         >
@@ -316,7 +383,7 @@ export function VideoStage({
                   bug.server === side ? (side === 'me' ? 'bg-side-me' : 'bg-side-them') : 'bg-transparent'
                 )}
               />
-              <span className="w-16 truncate">{names[side]}</span>
+              <span className="min-w-0 flex-1 truncate">{names[side]}</span>
               <span className="w-3 text-center text-white/70">{bug.sets[side]}</span>
               <span className="w-4 text-center">{bug.points[side]}</span>
             </div>
@@ -369,51 +436,9 @@ export function VideoStage({
             {hint}
           </p>
         ) : null}
-
+        {controlsRow ? null : pictureControls}
       </div>
-      <button
-        type="button"
-        role="switch"
-        aria-checked={captions}
-        aria-label={captions ? 'Captions on' : 'Captions off'}
-        onClick={() => setCaptions((on) => !on)}
-        className="btn-kind-control absolute left-2 bottom-2 z-10 px-2 inline-flex items-center justify-center rounded-md bg-black/60 text-[11px] font-semibold text-white hover:bg-black/80"
-      >
-        {captions ? 'Captions on' : 'Captions off'}
-      </button>
-      <div className="absolute right-2 bottom-2 z-10 flex items-center gap-1">
-          <Transport label="Back 10 seconds" onClick={() => onSeek(player.getTime() - 10)}>
-            <Icon name="rewind" size="sm" />
-          </Transport>
-          <Transport
-            label={player.playing ? 'Pause' : 'Play video'}
-            disabled={player.atEnd && !player.playing}
-            onClick={() => (player.playing ? player.pause() : player.play())}
-          >
-            <Icon name={player.playing ? 'pause' : 'play'} size="sm" />
-          </Transport>
-          <Transport
-            label="Forward 10 seconds"
-            disabled={player.atEnd || noForward}
-            onClick={() => onSeek(player.getTime() + 10)}
-          >
-            <Icon name="forward" size="sm" />
-          </Transport>
-          <Transport
-            label={`Speed ${player.rate}x`}
-            onClick={() => onRate(SPEED_STEPS[(speedIndex + 1) % SPEED_STEPS.length])}
-          >
-            {player.rate}x
-          </Transport>
-          {video?.kind === 'file' ? (
-            <Transport
-              label={player.muted ? 'Sound on' : 'Sound off'}
-              onClick={() => player.setMuted(!player.muted)}
-            >
-              <Icon name={player.muted ? 'volume-off' : 'volume'} size="sm" />
-            </Transport>
-          ) : null}
-        </div>
+      {controlsRow ? pictureControls : null}
       </div>
 
       <button
