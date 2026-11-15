@@ -1,6 +1,10 @@
 // The rule reviewer's cases, kept with the repo. Source:
-// internal/proto-tagging-suites/rules-review-cases.ts in the Project store, as written, with two changes:
-// D1 is asked of the saved rally (strokes are kept in the draft and left out at Save), and `failed` is exported.
+// internal/proto-tagging-suites/rules-review-cases.ts in the Project store, as written, with these changes:
+// D1 is asked of the saved rally (strokes are kept in the draft and left out at Save).
+// Two checks asked that a shot tagged Block, Lob, Push or Chop is never picked as the first attack, on a shot
+// whose stroke had no row. That is now decided the other way: a stroke nobody can see does not refuse the
+// pick, it is cleared. The first check is asked of the end shot, where the stroke shows. The second (section
+// E) asks for the new behaviour. `failed` and `count` are exported.
 // Run: sh proto/scripts/rules-fixes.sh
 import * as R from '@/features/tagging/rally'
 import * as SC from '@/features/tagging/script'
@@ -107,8 +111,8 @@ if (P3) {
   check('first attack cells: no Block, four strokes, Block cell left empty', J(r.strokeCells('offensive', true)) === J([null, 'Flick', 'Loop', 'Drive', 'Smash']))
   check('defensive cells: Block, Lob, Push, Chop, empty', J(r.strokeCells('defensive', false)) === J(['Block', 'Lob', 'Push', 'Chop', null]))
   for (const s of ['Block', 'Lob', 'Push', 'Chop']) {
-    const x = R.patchShot(R.setEnding(tapped(5), 'Long'), 3, { stroke: s })
-    check(`a shot tagged ${s} cannot be picked as the first attack`, R.markFa(x, 3).fa === null)
+    const x = R.patchShot(R.setEnding(tapped(5), 'Long'), 5, { stroke: s })
+    check(`a shot that shows ${s} cannot be picked as the first attack`, R.markFa(x, 5).fa === null)
   }
   // the rule itself, not the cells: can a first attack be given Block?
   const faBlock = R.toggleShotField(d, 4, 'stroke', 'Block')
@@ -172,7 +176,8 @@ if (P3) {
   check('a press 0.3s after shot 3 picks shot 3', onScreen(e, 11.9) === 3)
   check('a press during the serve picks nothing', onScreen(e, 10.5) === null)
   const blocked = R.patchShot(e, 3, { stroke: 'Push' })
-  check('press on a shot tagged Push leaves the draft as it is (silent)', R.markFa(blocked, 3) === blocked)
+  const picked = R.markFa(blocked, 3)
+  check('press on a shot whose kept Push has no stroke row picks it and clears that Push', picked.fa === 3 && picked.shots[2].stroke === undefined && R.faRefusal(blocked, 3) === null)
 
   say('F. Shot loop')
   let bad = 0, cases = 0

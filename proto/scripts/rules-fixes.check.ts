@@ -1,7 +1,10 @@
-// Rule fixes after the pass 3 rule review: faults 1, 2, 3, 6 and 7. No browser.
+// Rule fixes after the pass 3 rule review: faults 1, 2, 3, 6 and 7, the rule side of fault 5,
+// and the pick on a shot whose kept stroke has no row. No browser.
 // Then the reviewer's own cases (rules-review-cases.ts). Run: sh proto/scripts/rules-fixes.sh
 import {
   ATTACK_STROKES,
+  SHOT_REACHED_SLACK_S,
+  TAP_LATENCY_S,
   addContact,
   canSave,
   draftFromRally,
@@ -13,8 +16,10 @@ import {
   markFa,
   patchShot,
   rallyFromDraft,
+  reopenFaPick,
   savedShots,
   setEnding,
+  shotAtTime,
   showsStroke,
   stageOf,
   switchOf,
@@ -25,6 +30,7 @@ import {
   type Ending,
   type StrokeSide,
 } from '@/features/tagging/rally'
+import { buildScripts, ralliesFromScript } from '@/features/tagging/script'
 import {
   applyPanelKey,
   applyShotKey,
@@ -258,7 +264,8 @@ console.log('\nFault 7: a refusal says why')
 {
   const base = ws(tapped(6, 'Winner'), 6, 'FH', 'Smash')
   for (const stroke of DEFENSIVE) {
-    const d = patchShot(base, 4, { stroke })
+    // First attack 3, so shot 4 has a stroke row and the stroke is on screen.
+    const d = patchShot(ws(markFa(base, 3), 3, 'FH', 'Loop'), 4, { stroke })
     const why = faRefusal(d, 4)
     check(`shot tagged ${stroke}: refused, and the reason names the shot and the stroke`, markFa(d, 4) === d && J(why) === J({ kind: 'stroke', shot: 4, stroke }), J(why))
     check(`shot tagged ${stroke}: the line to show names both`, why !== null && faRefusalText(why).includes('Shot 4') && faRefusalText(why).includes(stroke), why ? faRefusalText(why) : '')
@@ -267,19 +274,20 @@ console.log('\nFault 7: a refusal says why')
   check('no such shot: refused with its own reason', markFa(base, 7) === base && markFa(base, 0) === base && faRefusal(base, 7)?.kind === 'noShot' && faRefusal(base, 0)?.kind === 'noShot')
   check('a shot with an attacking stroke, a wing only, or nothing: no reason, and it is picked', faRefusal(ws(base, 3, 'FH', 'Loop'), 3) === null && faRefusal(patchShot(base, 3, { wing: 'BH' }), 3) === null && faRefusal(base, 3) === null && markFa(base, 3).fa === 3)
   check('the first attack itself: no reason, a press clears it', faRefusal(markFa(base, 3), 3) === null && markFa(markFa(base, 3), 3).fa === null)
-  check('a stroke kept from before the first attack moved still refuses, with the reason', (() => {
-    let d = ws(markFa(base, 3), 3, 'FH', 'Loop')
-    d = ws(d, 5, 'BH', 'Push')
-    const moved = markFa(d, 6)
-    return !showsStroke(moved, 5) && faRefusal(moved, 5)?.kind === 'stroke' && markFa(moved, 5) === moved
-  })())
+  for (const stroke of DEFENSIVE) {
+    const end = patchShot(tapped(5, 'Long'), 5, { stroke })
+    check(`end shot shows ${stroke}: refused with the reason, before any first attack is picked`, showsStroke(end, 5) && faRefusal(end, 5)?.kind === 'stroke' && markFa(end, 5) === end)
+  }
   check('markFa refuses exactly when faRefusal gives a reason', (() => {
     for (let n = 2; n <= 6; n++) {
       for (let shot = 0; shot <= n + 1; shot++) {
         for (const stroke of ['', 'Block', 'Push', 'Loop', 'Smash']) {
-          let d = tapped(n, 'Winner')
-          if (stroke && shot >= 1 && shot <= n) d = patchShot(d, shot, { stroke })
-          if ((markFa(d, shot) === d) !== (faRefusal(d, shot) !== null)) return false
+          for (const fa of [null, 2, n]) {
+            let d = tapped(n, 'Winner')
+            if (fa !== null && fa !== shot) d = markFa(d, fa)
+            if (stroke && shot >= 1 && shot <= n && d.fa !== shot) d = patchShot(d, shot, { stroke })
+            if ((markFa(d, shot) === d) !== (faRefusal(d, shot) !== null)) return false
+          }
         }
       }
     }
@@ -287,6 +295,166 @@ console.log('\nFault 7: a refusal says why')
   })())
   const lines = [faRefusalText({ kind: 'serve' }), faRefusalText({ kind: 'noShot' }), faRefusalText({ kind: 'stroke', shot: 4, stroke: 'Push' })]
   check('the lines have no long dash, no arrow and not the word clip', lines.every((l) => !/[\u2013\u2014\u2192]|->|clip/i.test(l)), lines.join(' / '))
+}
+
+// ---------- A kept stroke nobody can see does not refuse the pick
+console.log('\nHidden stroke: the pick goes through and that one stroke is cleared')
+{
+  // Six shots, first attack 3 Loop, 4 Block, 5 Push, end shot Smash. Then the first attack goes to 6.
+  let d = ws(tapped(6, 'Winner'), 6, 'FH', 'Smash')
+  d = ws(markFa(d, 3), 3, 'FH', 'Loop')
+  d = ws(ws(d, 4, 'BH', 'Block'), 5, 'BH', 'Push')
+  d = patchShot(patchShot(d, 5, { initiative: 'Counter' }), 5, { review: true })
+  const moved = markFa(d, 6)
+  const movedSnap = J(moved)
+  check('going in: first attack 6, shot 5 keeps Push and has no stroke row', moved.fa === 6 && moved.shots[4].stroke === 'Push' && !showsStroke(moved, 5))
+  check('no reason is given for shot 5', faRefusal(moved, 5) === null)
+
+  const picked = markFa(moved, 5)
+  check('pick shot 5: it is the first attack', picked.fa === 5 && !picked.noAttack)
+  check('pick shot 5: its Push is cleared, no stroke key left, the row opens empty', !('stroke' in picked.shots[4]) && showsStroke(picked, 5) && stageOf(picked) === 'faShot')
+  check('pick shot 5: its wing and other tags stay', picked.shots[4].wing === 'BH' && picked.shots[4].initiative === 'Counter' && picked.shots[4].review === true)
+  check('pick shot 5: no other shot is touched', picked.shots.every((s, i) => i === 4 || s === moved.shots[i]), strokes(picked))
+  check('pick shot 5: the draft that went in is not touched', J(moved) === movedSnap)
+  check('the empty row then takes an attacking stroke and the rally is ready', canSave(ws(picked, 5, 'BH', 'Flick')))
+
+  const away = markFa(picked, 3)
+  check('pick moved away to 3: shot 5 stays empty with a stroke row, Loop and Block are back', away.fa === 3 && strokes(away) === '- - Loop Block - Smash' && showsStroke(away, 5), strokes(away))
+  check('pick moved away to 6: shot 5 has no row and nothing on it to hide', (() => {
+    const to6 = markFa(picked, 6)
+    return to6.fa === 6 && !showsStroke(to6, 5) && to6.shots[4].stroke === undefined && strokes(to6) === '- - Loop Block - Smash'
+  })())
+  check('pick pressed again on 5 clears the first attack only', (() => {
+    const off = markFa(picked, 5)
+    return off.fa === null && J(off.shots) === J(picked.shots)
+  })())
+
+  // Through Change first attack, as the screen does it.
+  const reopened = reopenFaPick(moved)
+  for (const stroke of DEFENSIVE) {
+    const kept = reopenFaPick(patchShot(markFa(reopened, 3), 4, { stroke }))
+    const got = markFa(kept, 4)
+    check(`Change first attack, then pick shot 4 that keeps ${stroke}: picked, that stroke cleared, others kept`, kept.shots[3].stroke === stroke && faRefusal(kept, 4) === null && got.fa === 4 && got.shots[3].stroke === undefined && got.shots[2].stroke === 'Loop' && got.shots[4].stroke === 'Push' && got.shots[5].stroke === 'Smash', strokes(got))
+  }
+  check('a kept attacking stroke with no row is not cleared: it is a stroke a first attack can have', (() => {
+    const got = markFa(reopened, 3)
+    return got.fa === 3 && got.shots[2].stroke === 'Loop'
+  })())
+
+  // No attack hides every stroke but the end shot's.
+  let n = ws(tapped(5, 'Long'), 5, 'BH', 'Chop')
+  n = ws(markFa(n, 3), 3, 'FH', 'Loop')
+  n = ws(n, 4, 'BH', 'Block')
+  const none = toggleNoAttack(n)
+  const from = markFa(none, 4)
+  check('No attack rally, pick shot 4 that keeps Block: picked, Block cleared, No attack off, Loop and Chop kept', faRefusal(none, 4) === null && from.fa === 4 && !from.noAttack && strokes(from) === '- - Loop - Chop', strokes(from))
+  check('No attack rally: the end shot shows Chop, so a pick there is still refused with the reason', faRefusal(none, 5)?.kind === 'stroke' && markFa(none, 5) === none)
+
+  // On screen it is still refused.
+  check('a stroke on screen still refuses: shot 5 shows Push while the first attack is 3', showsStroke(d, 5) && faRefusal(d, 5)?.kind === 'stroke' && markFa(d, 5) === d)
+  check('`stroke` is only ever given for a stroke on screen', (() => {
+    for (let len = 2; len <= 6; len++) {
+      for (const fa of [null, ...Array.from({ length: len - 1 }, (_, i) => i + 2)]) {
+        for (const noAttack of [false, true]) {
+          for (let shot = 2; shot <= len; shot++) {
+            let x = tapped(len, 'Long')
+            if (fa !== null) x = markFa(x, fa)
+            x = { ...x, shots: x.shots.map((s, i) => (i === shot - 1 ? { ...s, stroke: 'Push' } : s)) }
+            if (noAttack) x = { ...x, fa: null, noAttack: true }
+            const why = faRefusal(x, shot)
+            if (why?.kind === 'stroke' && !showsStroke(x, shot)) return false
+            if (!why && x.fa !== shot && showsStroke(x, shot)) return false
+            const got = markFa(x, shot)
+            if (!why && x.fa !== shot && (got.fa !== shot || got.shots[shot - 1].stroke !== undefined)) return false
+            if (!why && got.shots.some((s, i) => i !== shot - 1 && s !== x.shots[i])) return false
+          }
+        }
+      }
+    }
+    return true
+  })())
+  check('a saved rally still never has a defensive stroke on its first attack', (() => {
+    const out = rallyFromDraft(ws(picked, 5, 'BH', 'Flick'), 'r')
+    return out !== null && out.fa === 5 && out.shots[4].stroke === 'Flick'
+  })())
+}
+
+// ---------- Fault 5: the shot under the playhead, and Change first attack
+console.log('\nFault 5: shotAtTime and reopenFaPick')
+{
+  const e = tapped(5, 'Winner') // contacts 10, 10.8, 11.6, 12.4, 13.2
+  // The screen's own formula, as it stands in TagSetScreen.tsx (shotOnScreen).
+  const screen = (d: Draft, local: number, lag = 0) => {
+    const at = local - lag
+    const reached = d.contacts.filter((c) => c <= at + 0.05).length
+    return reached >= 2 ? reached : null
+  }
+  check('before the serve and during the serve: nothing', shotAtTime(e, 9) === null && shotAtTime(e, 10) === null && shotAtTime(e, 10.7) === null)
+  check('never the serve, on a rally of one contact at any time', shotAtTime(tapped(1), 10) === null && shotAtTime(tapped(1), 99) === null)
+  check('no contacts: nothing', shotAtTime(emptyDraft('v', 'me'), 50) === null)
+  check('on a contact: that shot', shotAtTime(e, 10.8) === 2 && shotAtTime(e, 11.6) === 3 && shotAtTime(e, 13.2) === 5)
+  check('up to 0.05s early still counts: 10.76 is shot 2, 10.74 is not', shotAtTime(e, 10.76) === 2 && shotAtTime(e, 10.74) === null && SHOT_REACHED_SLACK_S === 0.05)
+  check('between contacts: the one last reached', shotAtTime(e, 11.5) === 2 && shotAtTime(e, 12.39) === 4 && shotAtTime(e, 12.3) === 3)
+  check('after the end shot: the end shot', shotAtTime(e, 60) === 5)
+  check('lag is taken off first: a press 0.3s after shot 3 picks shot 3, not shot 4', shotAtTime(e, 11.9, TAP_LATENCY_S) === 3 && shotAtTime(e, 12.4, TAP_LATENCY_S) === 3 && shotAtTime(e, 12.4) === 4)
+  check('a press inside the lag of shot 2 picks nothing', shotAtTime(e, 11.0, TAP_LATENCY_S) === null && shotAtTime(e, 11.05, TAP_LATENCY_S) === 2)
+  check('no lag given means none', shotAtTime(e, 12.4) === shotAtTime(e, 12.4, 0))
+  check('same answer as the screen formula at every hundredth from 9s to 15s, with and without lag', (() => {
+    for (let i = 900; i <= 1500; i++) {
+      const t = i / 100
+      if (shotAtTime(e, t) !== screen(e, t) || shotAtTime(e, t, TAP_LATENCY_S) !== screen(e, t, TAP_LATENCY_S)) return false
+    }
+    return true
+  })())
+  check('the draft is only read', (() => {
+    const snap = J(e)
+    shotAtTime(e, 12, TAP_LATENCY_S)
+    return J(e) === snap
+  })())
+  check('a contact added out of order is counted by time', shotAtTime(insertContact(e, 11.2).draft, 11.3) === 3)
+
+  // reopenFaPick
+  let d = ws(tapped(6, 'Winner'), 6, 'FH', 'Smash')
+  d = ws(markFa(d, 3), 3, 'FH', 'Loop')
+  d = ws(d, 4, 'BH', 'Block')
+  const open = reopenFaPick(d)
+  check('Change first attack: back at the pick step, first attack cleared', open.fa === null && !open.noAttack && stageOf(open) === 'pickFa')
+  check('Change first attack: every answer stays, the same shots array', open.shots === d.shots && open.ending === d.ending && J(open.contacts) === J(d.contacts))
+  check('Change first attack then the same shot again: the draft is what it was', J(markFa(open, 3)) === J(d))
+  check('Change first attack is what the screen wrote by hand', J(open) === J({ ...d, fa: null, noAttack: false }))
+  const n = toggleNoAttack(ws(tapped(4, 'Long'), 4, 'BH', 'Push'))
+  check('Change first attack on a No attack rally: No attack off, back at the pick step, Push kept', (() => {
+    const o = reopenFaPick(n)
+    return !o.noAttack && o.fa === null && stageOf(o) === 'pickFa' && o.shots[3].stroke === 'Push'
+  })())
+  const two = ws(tapped(2, 'Long'), 2, 'BH', 'Loop')
+  check('serve and return, or one contact: nothing to reopen, the same draft comes back', (() => {
+    const one = tapped(1)
+    return reopenFaPick(two) === two && two.fa === 2 && reopenFaPick(one) === one
+  })())
+  check('the draft that went in is not touched', d.fa === 3 && n.noAttack)
+}
+
+// ---------- Seeded rallies hold nothing that Save would drop
+console.log('\nSeeded rallies')
+{
+  const videos = buildScripts(7, [
+    { firstServer: 'me', winners: Array.from({ length: 21 }, (_, i) => (i % 3 ? 'me' : 'them')) },
+    { firstServer: 'them', winners: Array.from({ length: 20 }, (_, i) => (i % 2 ? 'me' : 'them')) },
+  ])
+  let total = 0
+  let hidden = 0
+  let changed = 0
+  videos.forEach((v, vi) => {
+    for (const r of ralliesFromScript(`v${vi}`, v, 0, v.rallies.length)) {
+      total++
+      const dr = draftFromRally(r)
+      if (savedShots(dr) !== dr.shots) hidden++
+      if (J(rallyFromDraft(dr, r.id)?.shots) !== J(r.shots)) changed++
+    }
+  })
+  check(`${total} seeded rallies: none holds a stroke on a shot with no stroke row`, total > 0 && hidden === 0, `${hidden} with a hidden stroke`)
+  check('open and save leaves the shots of every seeded rally as they were', changed === 0, `${changed} changed`)
 }
 
 // ---------- The reviewer's cases
