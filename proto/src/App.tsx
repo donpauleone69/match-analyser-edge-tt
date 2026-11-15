@@ -8,10 +8,11 @@ import {
   MatchPage,
   MatchIndexRedirect,
   MatchInsightsSection,
-  MatchDetailsStub,
-  MatchTagStub,
   MatchTagSetStub,
 } from '@/pages/MatchPage'
+import { MatchDetails } from '@/features/match/MatchDetails'
+import { MatchTagChecklist } from '@/features/match/MatchTagChecklist'
+import { DiscardUntouched } from '@/layout/DiscardUntouched'
 import { InsightsPage, InsightsSectionPage } from '@/pages/InsightsPage'
 import { AccountPage } from '@/pages/AccountPage'
 
@@ -19,6 +20,7 @@ export default function App() {
   return (
     <>
       <ScrollToTop />
+      <DiscardUntouched />
       <Routes>
         <Route path="/" element={<GatePage />} />
         <Route element={<AppShell />}>
@@ -28,8 +30,8 @@ export default function App() {
             <Route index element={<MatchIndexRedirect />} />
             <Route path="insights" element={<Navigate to="summary" replace />} />
             <Route path="insights/:section" element={<MatchInsightsSection />} />
-            <Route path="details" element={<MatchDetailsStub />} />
-            <Route path="tag" element={<MatchTagStub />} />
+            <Route path="details" element={<MatchDetails />} />
+            <Route path="tag" element={<MatchTagChecklist />} />
             <Route path="tag/:setId" element={<MatchTagSetStub />} />
           </Route>
           <Route path="/insights" element={<InsightsPage />}>

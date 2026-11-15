@@ -11,7 +11,7 @@ import {
   DEFAULT_INSIGHTS_FILTERS,
   type InsightsFilters,
 } from '@/features/insights/insightsFilterContext'
-import { useDemo } from '@/data/demoStore'
+import { hasTaggedRallies, useDemo } from '@/data/demoStore'
 import { WfEmpty } from '@/layout/Wireframe'
 import { Button } from '@/ui-mine'
 
@@ -39,7 +39,7 @@ function FilterPickers({
   setDraft: (next: InsightsFilters) => void
 }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
       {(
         [
           ['matches', 'Matches', ['All', 'Last 3', 'This month']],
@@ -68,9 +68,9 @@ function FilterPickers({
 }
 
 /**
- * Filter control at the right of the pill row.
- * Desktop: anchored panel. Phone: bottom sheet.
- * Active chips sit under the pills only when something is set.
+ * Filter button sits directly after the section pills at every width and the
+ * active chips follow it. Desktop: the pickers open in the page flow, so they
+ * push the reels down and never cover them. Phone: bottom sheet.
  */
 function PillRowWithFilter({ section }: { section: SectionId }) {
   const { filters, setFilters } = useInsightsFilters()
@@ -114,61 +114,51 @@ function PillRowWithFilter({ section }: { section: SectionId }) {
 
   return (
     <div className="px-4 sm:px-6 lg:px-8 pt-3 pb-2 space-y-2">
-      <div className="flex items-center gap-2 min-w-0">
-        <div className="min-w-0 flex-1 overflow-x-auto">
-          <SectionPills
-            sections={GLOBAL_SECTIONS}
-            section={section}
-            basePath="/insights"
-          />
-        </div>
-        <div className="relative shrink-0">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-2 min-w-0 max-w-full">
+          <div className="min-w-0 overflow-x-auto">
+            <SectionPills sections={GLOBAL_SECTIONS} section={section} basePath="/insights" />
+          </div>
           <Button
             size="sm"
             variant="secondary"
+            className="shrink-0"
             onClick={() => setOpen((v) => !v)}
             aria-expanded={open}
-            aria-haspopup="dialog"
           >
             Filter{n > 0 ? ` (${n})` : ''}
           </Button>
-
-          {/* Desktop panel */}
-          {open ? (
-            <div
-              className="hidden md:block absolute right-0 top-full mt-2 z-40 w-80 rounded-lg border border-border bg-bg-surface shadow-lg p-4 space-y-3"
-              role="dialog"
-              aria-label="Filters"
-            >
-              <FilterPickers draft={draft} setDraft={setDraft} />
-              <div className="flex justify-end gap-2">
-                <Button size="sm" variant="ghost" onClick={clear}>
-                  Clear
-                </Button>
-                <Button size="sm" onClick={apply}>
-                  Apply
-                </Button>
-              </div>
-            </div>
-          ) : null}
         </div>
+        {active.map((a) => (
+          <button
+            key={a}
+            type="button"
+            onClick={() => clearOne(a)}
+            className="inline-flex items-center gap-1 rounded border border-border bg-pill-idle px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted hover:bg-bg-elevated"
+            aria-label={`Remove ${a}`}
+          >
+            {a}
+            <span aria-hidden>×</span>
+          </button>
+        ))}
       </div>
 
-      {/* Active chips: only when something is set */}
-      {active.length > 0 ? (
-        <div className="flex flex-wrap items-center gap-1.5 min-h-0">
-          {active.map((a) => (
-            <button
-              key={a}
-              type="button"
-              onClick={() => clearOne(a)}
-              className="inline-flex items-center gap-1 rounded border border-border bg-pill-idle px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted hover:bg-bg-elevated"
-              aria-label={`Remove ${a}`}
-            >
-              {a}
-              <span aria-hidden>×</span>
-            </button>
-          ))}
+      {/* Desktop: in the page flow, so nothing below is covered */}
+      {open ? (
+        <div
+          className="hidden md:block rounded-lg border border-border bg-bg-surface p-4 space-y-3"
+          role="group"
+          aria-label="Filters"
+        >
+          <FilterPickers draft={draft} setDraft={setDraft} />
+          <div className="flex justify-end gap-2">
+            <Button size="sm" variant="ghost" onClick={clear}>
+              Clear
+            </Button>
+            <Button size="sm" onClick={apply}>
+              Apply
+            </Button>
+          </div>
         </div>
       ) : null}
 
@@ -204,16 +194,6 @@ function PillRowWithFilter({ section }: { section: SectionId }) {
           </div>
         </div>
       ) : null}
-
-      {/* Desktop click-away */}
-      {open ? (
-        <button
-          type="button"
-          className="hidden md:block fixed inset-0 z-30 cursor-default"
-          aria-label="Close filters"
-          onClick={() => setOpen(false)}
-        />
-      ) : null}
     </div>
   )
 }
@@ -225,14 +205,14 @@ function sectionFromPath(pathname: string): SectionId {
 }
 
 /**
- * Global Insights order: title, pills + Filter button, optional chips, content.
- * Unfiltered looks like Match Insights (no chip row).
+ * Global Insights order: title, pills + Filter button + chips, content.
+ * Empty until some match has tagged rallies.
  */
 export function InsightsPage() {
   const { matches } = useDemo()
   const { pathname } = useLocation()
   const section = sectionFromPath(pathname)
-  const empty = matches.length === 0
+  const empty = !matches.some(hasTaggedRallies)
 
   return (
     <InsightsFilterProvider>
@@ -244,7 +224,7 @@ export function InsightsPage() {
           <div className="px-4 sm:px-6 lg:px-8 py-6">
             <WfEmpty
               title="No insights yet"
-              body="Tag matches first, or switch Prototype to Filled."
+              body="Tag a rally in any match to see insights."
             />
           </div>
         ) : (

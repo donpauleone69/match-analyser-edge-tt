@@ -6,6 +6,9 @@ import { WfBadge, WfEmpty } from '@/layout/Wireframe'
 import {
   defaultMatchTab,
   derivePhase,
+  hasTaggedRallies,
+  matchMeta,
+  matchTitle,
   phaseLabel,
   useDemo,
 } from '@/data/demoStore'
@@ -53,7 +56,7 @@ export function HomePage() {
             </div>
             <div className="rounded-md border border-border bg-bg-card px-3 py-3 space-y-1">
               <p className="text-sm font-semibold text-primary">
-                {continueMatch.name || continueMatch.opponent || 'New match'}
+                {matchTitle(continueMatch)}
               </p>
               <p className="text-sm text-muted">
                 {derivePhase(continueMatch) === 'partial'
@@ -61,7 +64,7 @@ export function HomePage() {
                   : derivePhase(continueMatch) === 'ready'
                     ? 'Start tagging'
                     : derivePhase(continueMatch) === 'new'
-                      ? 'Add video on Details'
+                      ? 'Add video'
                       : 'Review match Insights'}
               </p>
             </div>
@@ -108,9 +111,9 @@ export function HomePage() {
                       >
                         <div className="min-w-0">
                           <p className="text-sm font-medium text-primary">
-                            {m.name || m.opponent || 'New match'}
+                            {matchTitle(m)}
                           </p>
-                          <p className="text-xs text-muted mt-0.5">{m.event || 'No event'}</p>
+                          <p className="text-xs text-muted mt-0.5">{matchMeta(m)}</p>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
                           <WfBadge>{phaseLabel(phase)}</WfBadge>
@@ -131,9 +134,7 @@ export function HomePage() {
                 </div>
                 <WfBadge>peek</WfBadge>
               </div>
-              {matches.some(
-                (m) => derivePhase(m) === 'complete' || derivePhase(m) === 'partial'
-              ) ? (
+              {matches.some(hasTaggedRallies) ? (
                 <>
                   <CardDescription>Notables across matches.</CardDescription>
                   <ul className="space-y-2 text-sm text-primary">
@@ -153,16 +154,7 @@ export function HomePage() {
                   </Button>
                 </>
               ) : (
-                <>
-                  <CardDescription>Finish tagging a match to unlock insights.</CardDescription>
-                  <Button
-                    fullWidth
-                    variant="secondary"
-                    onClick={() => navigate('/insights/summary')}
-                  >
-                    All matches Insights
-                  </Button>
-                </>
+                <CardDescription>Tag a rally in any match to see insights.</CardDescription>
               )}
             </Card>
           </div>

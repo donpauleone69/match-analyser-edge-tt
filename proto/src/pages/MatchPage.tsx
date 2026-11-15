@@ -8,9 +8,8 @@ import { WfBadge, WfEmpty } from '@/layout/Wireframe'
 import {
   defaultMatchTab,
   derivePhase,
-  setHasVideo,
+  matchTitle,
   useDemo,
-  videoForSet,
   type RallyData,
 } from '@/data/demoStore'
 import { InsightsSectionRoute } from '@/features/insights/InsightsScreen'
@@ -40,7 +39,7 @@ export function MatchPage() {
     )
   }
 
-  const title = match.name.trim() || match.opponent.trim() || 'New match'
+  const title = matchTitle(match)
 
   return (
     <div>
@@ -75,327 +74,6 @@ export function MatchInsightsSection() {
   return <InsightsSectionRoute scope="match" chrome="full" />
 }
 
-/** Details: name first, Videos list (per match), Add set, optional scores. */
-export function MatchDetailsStub() {
-  const { matchId = '' } = useParams()
-  const navigate = useNavigate()
-  const {
-    getMatch,
-    updateMatch,
-    addSet,
-    addVideo,
-    toggleVideoSet,
-    removeVideo,
-    discardMatch,
-  } = useDemo()
-  const match = getMatch(matchId)
-  if (!match) return null
-
-  const phase = derivePhase(match)
-  const hasVideo = match.videos.length > 0
-  const displayName = match.name.trim() || match.opponent.trim() || ''
-
-  const onNameBlur = (value: string) => {
-    const v = value.trim()
-    updateMatch(match.id, {
-      name: v || (match.opponent ? `vs ${match.opponent}` : ''),
-      opponent: match.opponent || v,
-    })
-  }
-
-  return (
-    <div className="px-4 sm:px-6 lg:px-8 py-6 space-y-4">
-      <Card className="space-y-3">
-        <CardTitle>Match</CardTitle>
-        <label className="block space-y-1">
-          <span className="text-xs font-semibold uppercase tracking-wide text-muted">
-            Name (opponent, date)
-          </span>
-          <input
-            className="w-full rounded-md border border-border bg-bg-card px-3 py-2 text-sm text-primary"
-            defaultValue={displayName}
-            placeholder="Opponent or match name"
-            onBlur={(e) => onNameBlur(e.target.value)}
-          />
-        </label>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <label className="block space-y-1">
-            <span className="text-xs font-semibold uppercase tracking-wide text-muted">
-              Opponent
-            </span>
-            <input
-              className="w-full rounded-md border border-border bg-bg-card px-3 py-2 text-sm text-primary"
-              defaultValue={match.opponent}
-              placeholder="Empty"
-              onBlur={(e) =>
-                updateMatch(match.id, {
-                  opponent: e.target.value.trim(),
-                  name:
-                    match.name.trim() ||
-                    (e.target.value.trim() ? `vs ${e.target.value.trim()}` : ''),
-                })
-              }
-            />
-          </label>
-          <label className="block space-y-1">
-            <span className="text-xs font-semibold uppercase tracking-wide text-muted">Date</span>
-            <input
-              className="w-full rounded-md border border-border bg-bg-card px-3 py-2 text-sm text-primary"
-              defaultValue={match.date}
-              placeholder="Empty"
-              onBlur={(e) => updateMatch(match.id, { date: e.target.value.trim() })}
-            />
-          </label>
-        </div>
-        {match.pristine ||
-        (!match.name.trim() &&
-          !match.opponent.trim() &&
-          !match.date.trim() &&
-          match.videos.length === 0 &&
-          match.sets.length === 1 &&
-          !match.sets[0].skipped) ? (
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => {
-              discardMatch(match.id)
-              navigate('/home')
-            }}
-          >
-            Discard
-          </Button>
-        ) : null}
-      </Card>
-
-      <Card className="space-y-3">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <Icon name="upload" size="sm" className="text-brand" />
-            <CardTitle>Videos</CardTitle>
-          </div>
-          <Button size="sm" variant="secondary" onClick={() => addVideo(match.id)}>
-            <Icon name="plus" size="xs" />
-            Add video
-          </Button>
-        </div>
-        <CardDescription>Each video covers one or more sets (chips).</CardDescription>
-        {match.videos.length === 0 ? (
-          <p className="text-sm text-muted">No videos yet. Add video before tagging.</p>
-        ) : (
-          <ul className="space-y-3">
-            {match.videos.map((v) => (
-              <li
-                key={v.id}
-                className="rounded-md border border-border bg-bg-card px-3 py-3 space-y-2"
-              >
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-sm font-medium text-primary">{v.fileName}</p>
-                  <Button size="sm" variant="ghost" onClick={() => removeVideo(match.id, v.id)}>
-                    Remove
-                  </Button>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {match.sets.map((s) => {
-                    const on = v.setIds.includes(s.setId)
-                    return (
-                      <button
-                        key={s.setId}
-                        type="button"
-                        onClick={() => toggleVideoSet(match.id, v.id, s.setId)}
-                        className={cn(
-                          'rounded-full px-2.5 py-0.5 text-[11px] font-semibold border',
-                          on
-                            ? 'bg-brand-primary-muted border-brand-primary text-brand-primary'
-                            : 'bg-bg-elevated border-border text-muted'
-                        )}
-                      >
-                        Set {s.setId}
-                      </button>
-                    )
-                  })}
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-        {hasVideo ? (
-          <Button onClick={() => navigate(`/matches/${match.id}/tag`)}>Next: Tag</Button>
-        ) : null}
-      </Card>
-
-      <Card className="space-y-3">
-        <div className="flex items-center justify-between gap-2">
-          <CardTitle>Sets</CardTitle>
-          <Button size="sm" variant="secondary" onClick={() => addSet(match.id)}>
-            <Icon name="plus" size="xs" />
-            Add set
-          </Button>
-        </div>
-        <ul className="space-y-2">
-          {match.sets.map((s) => {
-            const filmed = setHasVideo(match, s.setId)
-            return (
-              <li
-                key={s.setId}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-bg-card px-3 py-2"
-              >
-                <div>
-                  <p className="text-sm font-medium text-primary">Set {s.setId}</p>
-                  <p className="text-xs text-muted mt-0.5">
-                    {s.skipped
-                      ? 'Not filmed (skipped)'
-                      : filmed
-                        ? videoForSet(match, s.setId)?.fileName
-                        : 'No video'}
-                  </p>
-                </div>
-                {!filmed && !s.skipped ? <WfBadge>not filmed</WfBadge> : null}
-              </li>
-            )
-          })}
-        </ul>
-      </Card>
-
-      <Card className="space-y-3">
-        <CardTitle>Scores</CardTitle>
-        <CardDescription>Optional. Filled in by tagging.</CardDescription>
-        <div className="grid grid-cols-2 gap-2">
-          {match.sets.map((s) => (
-            <div
-              key={s.setId}
-              className="rounded-md border border-border bg-bg-card px-3 py-2 text-sm"
-            >
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted">
-                Set {s.setId}
-              </p>
-              <p className={s.score ? 'text-primary' : 'text-muted'}>
-                {s.score || 'Empty'}
-              </p>
-            </div>
-          ))}
-        </div>
-      </Card>
-
-      {phase === 'complete' || phase === 'partial' ? (
-        <Button
-          variant="secondary"
-          onClick={() => navigate(`/matches/${match.id}/insights/summary`)}
-        >
-          Open match Insights
-        </Button>
-      ) : null}
-    </div>
-  )
-}
-
-function tagLabel(done: boolean) {
-  return done ? 'done' : 'todo'
-}
-
-/** Tag checklist: Add video (live) + Not filmed skip; no disabled Open set. */
-export function MatchTagStub() {
-  const { matchId = '' } = useParams()
-  const navigate = useNavigate()
-  const { getMatch, patchSet } = useDemo()
-  const match = getMatch(matchId)
-  if (!match) return null
-
-  const phase = derivePhase(match)
-  const hasVideo = match.videos.length > 0
-
-  if (!hasVideo) {
-    return (
-      <div className="px-4 sm:px-6 lg:px-8 py-6 space-y-3">
-        <WfEmpty title="No video yet" body="Add a video on Details first." />
-        <Button onClick={() => navigate(`/matches/${match.id}/details`)}>Go to Details</Button>
-      </div>
-    )
-  }
-
-  return (
-    <div className="px-4 sm:px-6 lg:px-8 py-6 space-y-4">
-      <ul className="space-y-3">
-        {match.sets.map((s) => {
-          const filmed = setHasVideo(match, s.setId)
-          return (
-            <li key={s.setId}>
-              <Card className="space-y-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <p className="text-sm font-semibold text-primary">
-                      Set {s.setId}
-                      {s.score ? ` · ${s.score}` : ''}
-                    </p>
-                    <p className="text-xs text-muted mt-0.5">
-                      {s.skipped
-                        ? 'Not filmed (skipped)'
-                        : filmed
-                          ? 'Video attached'
-                          : 'Not filmed'}
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-1">
-                    {filmed && !s.skipped ? (
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => navigate(`/matches/${match.id}/tag/${s.setId}`)}
-                      >
-                        Open set
-                      </Button>
-                    ) : null}
-                    {!filmed && !s.skipped ? (
-                      <>
-                        <Button
-                          size="sm"
-                          onClick={() => navigate(`/matches/${match.id}/details`)}
-                        >
-                          Add video
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={() => patchSet(match.id, s.setId, { skipped: true })}
-                        >
-                          Not filmed
-                        </Button>
-                      </>
-                    ) : null}
-                    {s.skipped ? (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => patchSet(match.id, s.setId, { skipped: false })}
-                      >
-                        Undo skip
-                      </Button>
-                    ) : null}
-                  </div>
-                </div>
-                {!s.skipped ? (
-                  <div className="flex flex-wrap gap-2 text-xs">
-                    <WfBadge>contacts {tagLabel(s.contacts)}</WfBadge>
-                    <WfBadge>key moments {tagLabel(s.keyMoments)}</WfBadge>
-                    <WfBadge>shot details {tagLabel(s.shotDetails)}</WfBadge>
-                  </div>
-                ) : null}
-              </Card>
-            </li>
-          )
-        })}
-      </ul>
-      {phase === 'complete' || phase === 'partial' ? (
-        <Button
-          variant="ghost"
-          onClick={() => navigate(`/matches/${match.id}/insights/summary`)}
-        >
-          Open match Insights
-        </Button>
-      ) : null}
-    </div>
-  )
-}
-
 const TAG_STEPS = [
   { id: 'contacts', label: 'Contacts' },
   { id: 'keyMoments', label: 'Key moments' },
@@ -418,7 +96,7 @@ export function MatchTagSetStub() {
     () => set?.rallies[0]?.id ?? null
   )
   const selected = rallies.find((r) => r.id === selectedId) ?? null
-  const video = match && set ? videoForSet(match, set.setId) : undefined
+  const video = match?.videos[0]
 
   if (!match || !set) {
     return (
@@ -432,11 +110,11 @@ export function MatchTagSetStub() {
     return (
       <div className="px-4 sm:px-6 lg:px-8 py-6 space-y-3">
         <WfEmpty
-          title={set.skipped ? `Set ${set.setId} skipped` : `Set ${set.setId} has no video`}
-          body="Add video or mark Not filmed on Details / Tag."
+          title={set.skipped ? `Set ${set.setId} not filmed` : 'No video yet'}
+          body={set.skipped ? 'Undo it on the Tag checklist.' : 'Add the video on the Tag checklist.'}
         />
-        <Button variant="secondary" onClick={() => navigate(`/matches/${match.id}/details`)}>
-          Go to Details
+        <Button variant="secondary" onClick={() => navigate(`/matches/${match.id}/tag`)}>
+          Back to Tag
         </Button>
       </div>
     )
@@ -491,7 +169,7 @@ export function MatchTagSetStub() {
       shotDetails: true,
       optionalExtras: step === 'optionalExtras' || step === 'save' || set.optionalExtras,
       rallies: withShots,
-      score: set.score || 'In progress',
+      tagged: set.tagged ?? { me: 11, them: 7 },
     })
   }
 

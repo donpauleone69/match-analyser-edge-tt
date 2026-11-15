@@ -18,11 +18,18 @@ export type RallyData = {
   shots: { id: string; label: string; t: string }[]
 }
 
+export type Score = { me: number; them: number }
+
+/** Typed on Details. Strings so a half-typed score survives. */
+export type EnteredScore = { me: string; them: string }
+
 export type SetData = {
   setId: number
-  /** Optional; filled in by tagging. */
-  score: string
-  /** Skipped / not filmed: never blocks Tagged. */
+  /** Entered on Details. */
+  entered: EnteredScore
+  /** Counted from tagging; null until the set has tagged points. */
+  tagged: Score | null
+  /** "Not filmed": the user chose to skip this set on the Tag checklist. */
   skipped: boolean
   contacts: boolean
   keyMoments: boolean
@@ -31,39 +38,41 @@ export type SetData = {
   rallies: RallyData[]
 }
 
-/** One source video that may cover one or more sets. */
+/** One source video. A match's videos play in list order; no set mapping. */
 export type VideoAsset = {
   id: string
   fileName: string
-  /** Set ids this video covers; empty means none. */
-  setIds: number[]
+  sizeMb: number
+  /** Rallies only, joined, lower quality. Cannot be undone. */
+  archived: boolean
 }
+
+/** Sets won by each side. Both set means the result is entered. */
+export type MatchResult = { me: number | null; them: number | null }
 
 export type MatchRecord = {
   id: string
-  name: string
   opponent: string
   event: string
   date: string
-  /** True until the user edits identity, videos, or sets. */
-  pristine?: boolean
+  result: MatchResult
   videos: VideoAsset[]
   sets: SetData[]
 }
 
 /**
- * new = no video
- * ready = video attached, nothing tagged
+ * new = no video yet
+ * ready = video added, nothing tagged
  * partial = at least one rally tagged
- * complete = every non-skipped set fully tagged
+ * complete = every set is fully tagged or marked not filmed
  */
 export type MatchPhase = 'new' | 'ready' | 'partial' | 'complete'
 
-function setFullyTagged(s: SetData): boolean {
+export function setFullyTagged(s: SetData): boolean {
   return s.contacts && s.keyMoments && s.shotDetails
 }
 
-function setHasTagProgress(s: SetData): boolean {
+export function setHasTagProgress(s: SetData): boolean {
   return (
     s.rallies.length > 0 ||
     s.contacts ||
@@ -73,24 +82,64 @@ function setHasTagProgress(s: SetData): boolean {
   )
 }
 
-export function videoForSet(match: MatchRecord, setId: number): VideoAsset | undefined {
-  return match.videos.find((v) => v.setIds.includes(setId))
+/** Number of sets the result dictates (3 - 2 means 5), or null if not entered. */
+export function resultSetCount(match: MatchRecord): number | null {
+  const { me, them } = match.result
+  if (me === null || them === null) return null
+  const total = me + them
+  return total > 0 ? total : null
 }
 
-export function setHasVideo(match: MatchRecord, setId: number): boolean {
-  return Boolean(videoForSet(match, setId))
+function lastSetId(sets: SetData[], test: (s: SetData) => boolean): number {
+  return sets.reduce((max, s) => (test(s) ? Math.max(max, s.setId) : max), 0)
+}
+
+/** Highest set with tagging in it. Never dropped, even if the result says fewer. */
+export function lastTaggedSetId(match: MatchRecord): number {
+  return lastSetId(match.sets, setHasTagProgress)
+}
+
+function emptySet(setId: number): SetData {
+  return {
+    setId,
+    entered: { me: '', them: '' },
+    tagged: null,
+    skipped: false,
+    contacts: false,
+    keyMoments: false,
+    shotDetails: false,
+    optionalExtras: false,
+    rallies: [],
+  }
+}
+
+/**
+ * The result dictates the set list. With no result yet, list every set that
+ * has been tagged or marked not filmed, plus the next one. Sets that already
+ * hold an entered score are kept.
+ */
+function normalizeSets(match: MatchRecord): MatchRecord {
+  const fromResult = resultSetCount(match)
+  const count =
+    fromResult !== null
+      ? Math.max(fromResult, lastTaggedSetId(match))
+      : Math.max(
+          lastSetId(match.sets, (s) => setHasTagProgress(s) || s.skipped) + 1,
+          lastSetId(match.sets, (s) => s.entered.me !== '' || s.entered.them !== '')
+        )
+  if (count === match.sets.length) return match
+  const sets = Array.from(
+    { length: count },
+    (_, i) => match.sets.find((s) => s.setId === i + 1) ?? emptySet(i + 1)
+  )
+  return { ...match, sets }
 }
 
 export function derivePhase(match: MatchRecord): MatchPhase {
   if (match.videos.length === 0) return 'new'
-  const anyTagged = match.sets.some((s) => !s.skipped && setHasTagProgress(s))
-  if (!anyTagged) return 'ready'
   const active = match.sets.filter((s) => !s.skipped)
-  const allDone =
-    active.length > 0 &&
-    active.every((s) => setHasVideo(match, s.setId) && setFullyTagged(s))
-  if (allDone) return 'complete'
-  return 'partial'
+  if (!active.some(setHasTagProgress)) return 'ready'
+  return active.every(setFullyTagged) ? 'complete' : 'partial'
 }
 
 export function phaseLabel(phase: MatchPhase): string {
@@ -114,44 +163,93 @@ export function taggedSetIds(match: MatchRecord): number[] {
     .map((s) => s.setId)
 }
 
-function emptySet(setId: number): SetData {
-  return {
-    setId,
-    score: '',
-    skipped: false,
-    contacts: false,
-    keyMoments: false,
-    shotDetails: false,
-    optionalExtras: false,
-    rallies: [],
-  }
+export function hasTaggedRallies(match: MatchRecord): boolean {
+  return match.sets.some((s) => !s.skipped && s.rallies.length > 0)
 }
+
+/** The title is made from event and opponent; there is no separate name. */
+export function matchTitle(match: MatchRecord): string {
+  const opponent = match.opponent.trim()
+  return (
+    [match.event.trim(), opponent ? `vs ${opponent}` : '']
+      .filter(Boolean)
+      .join(' ') || 'New match'
+  )
+}
+
+export function formatScore(score: Score): string {
+  return `${score.me} - ${score.them}`
+}
+
+export function matchMeta(match: MatchRecord): string {
+  const { me, them } = match.result
+  return (
+    [match.date, me !== null && them !== null ? formatScore({ me, them }) : '']
+      .filter(Boolean)
+      .join(' · ') || 'No date'
+  )
+}
+
+export function formatSize(sizeMb: number): string {
+  return sizeMb >= 1000 ? `${(sizeMb / 1000).toFixed(1)} GB` : `${sizeMb} MB`
+}
+
+export function parseEntered(entered: EnteredScore): Score | null {
+  if (entered.me === '' || entered.them === '') return null
+  return { me: Number(entered.me), them: Number(entered.them) }
+}
+
+/** Entered and tagged scores are only compared once the set is fully tagged. */
+export function setScoresDiffer(s: SetData): boolean {
+  const entered = parseEntered(s.entered)
+  if (!entered || !s.tagged || s.skipped || !setFullyTagged(s)) return false
+  return entered.me !== s.tagged.me || entered.them !== s.tagged.them
+}
+
+/** A new match nobody has put anything into. Discarded when left. */
+export function isUntouched(match: MatchRecord): boolean {
+  return (
+    !match.opponent.trim() &&
+    !match.event.trim() &&
+    !match.date.trim() &&
+    match.result.me === null &&
+    match.result.them === null &&
+    match.videos.length === 0 &&
+    match.sets.every(
+      (s) =>
+        !s.skipped && !setHasTagProgress(s) && s.entered.me === '' && s.entered.them === ''
+    )
+  )
+}
+
+const ARCHIVE_RATIO = 0.12
 
 const SEED: MatchRecord[] = [
   {
     id: 'm-new',
-    name: 'Open trial vs Lee',
     opponent: 'Lee',
-    event: '',
+    event: 'Open trial',
     date: '',
+    result: { me: null, them: null },
     videos: [],
     sets: [emptySet(1)],
   },
   {
     id: 'm-partial',
-    name: 'Club night vs Sam',
     opponent: 'Sam',
     event: 'Club night',
     date: '2026-11-11',
-    // One video per set; set 3 has no video (Not filmed / skip path).
+    result: { me: 3, them: 1 },
+    // Two videos in order. Set 4 was skipped by choice (Not filmed).
     videos: [
-      { id: 'v-club-1', fileName: 'club-s1.mp4', setIds: [1] },
-      { id: 'v-club-2', fileName: 'club-s2.mp4', setIds: [2] },
+      { id: 'v-club-1', fileName: 'club-night-part-1.mp4', sizeMb: 1600, archived: false },
+      { id: 'v-club-2', fileName: 'club-night-part-2.mp4', sizeMb: 1200, archived: false },
     ],
     sets: [
       {
         setId: 1,
-        score: '11-7',
+        entered: { me: '11', them: '7' },
+        tagged: { me: 11, them: 7 },
         skipped: false,
         contacts: true,
         keyMoments: true,
@@ -174,7 +272,8 @@ const SEED: MatchRecord[] = [
       },
       {
         setId: 2,
-        score: 'In progress',
+        entered: { me: '9', them: '11' },
+        tagged: { me: 4, them: 3 },
         skipped: false,
         contacts: true,
         keyMoments: false,
@@ -191,32 +290,22 @@ const SEED: MatchRecord[] = [
           },
         ],
       },
-      {
-        setId: 3,
-        score: '',
-        skipped: false,
-        contacts: false,
-        keyMoments: false,
-        shotDetails: false,
-        optionalExtras: false,
-        rallies: [],
-      },
+      { ...emptySet(3), entered: { me: '11', them: '8' } },
+      { ...emptySet(4), entered: { me: '11', them: '6' }, skipped: true },
     ],
   },
   {
     id: 'm-complete',
-    name: 'League final vs Pat',
     opponent: 'Pat',
-    event: 'Club league',
+    event: 'League final',
     date: '2026-11-08',
-    // One video covering every set.
-    videos: [
-      { id: 'v-final', fileName: 'league-final.mp4', setIds: [1, 2, 3] },
-    ],
+    result: { me: 2, them: 1 },
+    videos: [{ id: 'v-final', fileName: 'league-final.mp4', sizeMb: 2400, archived: false }],
     sets: [
       {
         setId: 1,
-        score: '11-7',
+        entered: { me: '11', them: '7' },
+        tagged: { me: 11, them: 7 },
         skipped: false,
         contacts: true,
         keyMoments: true,
@@ -238,7 +327,9 @@ const SEED: MatchRecord[] = [
       },
       {
         setId: 2,
-        score: '9-11',
+        // Entered and tagged disagree on purpose, to show the flag.
+        entered: { me: '9', them: '11' },
+        tagged: { me: 8, them: 11 },
         skipped: false,
         contacts: true,
         keyMoments: true,
@@ -260,7 +351,8 @@ const SEED: MatchRecord[] = [
       },
       {
         setId: 3,
-        score: '11-5',
+        entered: { me: '11', them: '5' },
+        tagged: { me: 11, them: 5 },
         skipped: false,
         contacts: true,
         keyMoments: true,
@@ -286,24 +378,24 @@ const SEED: MatchRecord[] = [
 
 const SEED_IDS = new Set(SEED.map((s) => s.id))
 
+type MatchFields = Partial<Pick<MatchRecord, 'opponent' | 'event' | 'date'>>
+
 type DemoContextValue = {
   mode: DemoMode
   setMode: (mode: DemoMode) => void
   matches: MatchRecord[]
   getMatch: (id: string) => MatchRecord | undefined
   createMatch: () => MatchRecord
-  discardMatch: (id: string) => void
-  updateMatch: (
-    id: string,
-    patch: Partial<Omit<MatchRecord, 'id' | 'sets' | 'videos'>> & {
-      sets?: SetData[]
-      videos?: VideoAsset[]
-    }
-  ) => void
-  addSet: (matchId: string) => void
+  deleteMatch: (id: string) => void
+  /** Drops new matches nobody filled in, except the one that is open. */
+  removeUntouchedMatches: (exceptId?: string) => void
+  updateMatch: (id: string, patch: MatchFields) => void
+  setResult: (matchId: string, result: MatchResult) => void
+  setEnteredScore: (matchId: string, setId: number, entered: EnteredScore) => void
   addVideo: (matchId: string) => void
-  toggleVideoSet: (matchId: string, videoId: string, setId: number) => void
+  moveVideo: (matchId: string, videoId: string, by: -1 | 1) => void
   removeVideo: (matchId: string, videoId: string) => void
+  archiveVideos: (matchId: string) => void
   patchSet: (matchId: string, setId: number, patch: Partial<SetData>) => void
 }
 
@@ -320,9 +412,11 @@ function readMode(): DemoMode {
   return 'filled'
 }
 
-function mergeMatches(extra: MatchRecord[]): MatchRecord[] {
+function mergeMatches(extra: MatchRecord[], deleted: string[]): MatchRecord[] {
   const overrides = new Map(extra.map((m) => [m.id, m]))
-  const merged = SEED.map((s) => overrides.get(s.id) ?? s)
+  const merged = SEED.filter((s) => !deleted.includes(s.id)).map(
+    (s) => overrides.get(s.id) ?? s
+  )
   const onlyExtra = extra.filter((m) => !SEED_IDS.has(m.id))
   return [...merged, ...onlyExtra]
 }
@@ -343,9 +437,12 @@ function findCurrent(
 export function DemoProvider({ children }: { children: ReactNode }) {
   const [mode, setModeState] = useState<DemoMode>(() => readMode())
   const [extra, setExtra] = useState<MatchRecord[]>([])
+  const [deleted, setDeleted] = useState<string[]>([])
 
   const setMode = useCallback((next: DemoMode) => {
     setModeState(next)
+    // Filled restores the seed matches, including any that were deleted.
+    if (next === 'filled') setDeleted([])
     try {
       localStorage.setItem(MODE_KEY, next)
     } catch {
@@ -353,7 +450,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  const catalog = useMemo(() => mergeMatches(extra), [extra])
+  const catalog = useMemo(() => mergeMatches(extra, deleted), [extra, deleted])
 
   const matches = useMemo(() => {
     if (mode === 'empty') return extra.filter((m) => !SEED_IDS.has(m.id))
@@ -365,130 +462,126 @@ export function DemoProvider({ children }: { children: ReactNode }) {
     [catalog, extra, mode]
   )
 
-  const upsert = useCallback((next: MatchRecord) => {
-    setExtra((prev) => {
-      const without = prev.filter((m) => m.id !== next.id)
-      return [...without, next]
-    })
-  }, [])
+  /** Applies a change to the latest copy of a match; does nothing if it is gone. */
+  const change = useCallback(
+    (id: string, fn: (current: MatchRecord) => MatchRecord) => {
+      setExtra((prev) => {
+        const isSeed = SEED_IDS.has(id)
+        if (isSeed && mode === 'empty') return prev
+        const current =
+          prev.find((m) => m.id === id) ?? (isSeed ? SEED.find((m) => m.id === id) : undefined)
+        if (!current) return prev
+        const next = normalizeSets(fn(current))
+        return prev.some((m) => m.id === id)
+          ? prev.map((m) => (m.id === id ? next : m))
+          : [...prev, next]
+      })
+    },
+    [mode]
+  )
 
   const createMatch = useCallback(() => {
-    const id = `m-new-${Date.now()}`
     const created: MatchRecord = {
-      id,
-      name: '',
+      id: `m-new-${Date.now()}`,
       opponent: '',
       event: '',
       date: '',
-      pristine: true,
+      result: { me: null, them: null },
       videos: [],
       sets: [emptySet(1)],
     }
-    upsert(created)
+    setExtra((prev) => [...prev, created])
     return created
-  }, [upsert])
+  }, [])
 
-  const discardMatch = useCallback((id: string) => {
+  const deleteMatch = useCallback((id: string) => {
     setExtra((prev) => prev.filter((m) => m.id !== id))
+    if (SEED_IDS.has(id)) setDeleted((prev) => (prev.includes(id) ? prev : [...prev, id]))
+  }, [])
+
+  const removeUntouchedMatches = useCallback((exceptId?: string) => {
+    setExtra((prev) => {
+      const drop = (m: MatchRecord) =>
+        m.id !== exceptId && !SEED_IDS.has(m.id) && isUntouched(m)
+      return prev.some(drop) ? prev.filter((m) => !drop(m)) : prev
+    })
   }, [])
 
   const updateMatch = useCallback(
-    (
-      id: string,
-      patch: Partial<Omit<MatchRecord, 'id' | 'sets' | 'videos'>> & {
-        sets?: SetData[]
-        videos?: VideoAsset[]
-      }
-    ) => {
-      const current = findCurrent(mode, extra, catalog, id)
-      if (!current) return
-      upsert({ ...current, ...patch, id, pristine: false })
-    },
-    [catalog, extra, mode, upsert]
+    (id: string, patch: MatchFields) => change(id, (m) => ({ ...m, ...patch })),
+    [change]
   )
 
-  const addSet = useCallback(
-    (matchId: string) => {
-      const current = findCurrent(mode, extra, catalog, matchId)
-      if (!current) return
-      const nextId = Math.max(0, ...current.sets.map((s) => s.setId)) + 1
-      const nextSets = [...current.sets, emptySet(nextId)]
-      // New set is covered by every video that already covers all previous sets.
-      const allPrev = current.sets.map((s) => s.setId)
-      const videos = current.videos.map((v) => {
-        const coversAllPrev =
-          allPrev.length > 0 && allPrev.every((id) => v.setIds.includes(id))
-        return coversAllPrev ? { ...v, setIds: [...v.setIds, nextId] } : v
-      })
-      upsert({ ...current, pristine: false, sets: nextSets, videos })
-    },
-    [catalog, extra, mode, upsert]
-  )
-
-  const addVideo = useCallback(
-    (matchId: string) => {
-      const current = findCurrent(mode, extra, catalog, matchId)
-      if (!current) return
-      const n = current.videos.length + 1
-      const video: VideoAsset = {
-        id: `v-${matchId}-${Date.now()}`,
-        fileName: `match-video-${n}.mp4`,
-        // Default: covers all sets.
-        setIds: current.sets.map((s) => s.setId),
-      }
-      upsert({
-        ...current,
-        pristine: false,
-        videos: [...current.videos, video],
-      })
-    },
-    [catalog, extra, mode, upsert]
-  )
-
-  const toggleVideoSet = useCallback(
-    (matchId: string, videoId: string, setId: number) => {
-      const current = findCurrent(mode, extra, catalog, matchId)
-      if (!current) return
-      upsert({
-        ...current,
-        pristine: false,
-        videos: current.videos.map((v) => {
-          if (v.id !== videoId) return v
-          const has = v.setIds.includes(setId)
-          return {
-            ...v,
-            setIds: has ? v.setIds.filter((id) => id !== setId) : [...v.setIds, setId],
-          }
-        }),
-      })
-    },
-    [catalog, extra, mode, upsert]
-  )
-
-  const removeVideo = useCallback(
-    (matchId: string, videoId: string) => {
-      const current = findCurrent(mode, extra, catalog, matchId)
-      if (!current) return
-      upsert({
-        ...current,
-        pristine: false,
-        videos: current.videos.filter((v) => v.id !== videoId),
-      })
-    },
-    [catalog, extra, mode, upsert]
+  const setResult = useCallback(
+    (matchId: string, result: MatchResult) => change(matchId, (m) => ({ ...m, result })),
+    [change]
   )
 
   const patchSet = useCallback(
-    (matchId: string, setId: number, patch: Partial<SetData>) => {
-      const current = findCurrent(mode, extra, catalog, matchId)
-      if (!current) return
-      upsert({
-        ...current,
-        pristine: false,
-        sets: current.sets.map((s) => (s.setId === setId ? { ...s, ...patch } : s)),
-      })
-    },
-    [catalog, extra, mode, upsert]
+    (matchId: string, setId: number, patch: Partial<SetData>) =>
+      change(matchId, (m) => ({
+        ...m,
+        sets: m.sets.map((s) => (s.setId === setId ? { ...s, ...patch } : s)),
+      })),
+    [change]
+  )
+
+  const setEnteredScore = useCallback(
+    (matchId: string, setId: number, entered: EnteredScore) =>
+      patchSet(matchId, setId, { entered }),
+    [patchSet]
+  )
+
+  const addVideo = useCallback(
+    (matchId: string) =>
+      change(matchId, (m) => ({
+        ...m,
+        videos: [
+          ...m.videos,
+          {
+            id: `v-${matchId}-${Date.now()}`,
+            fileName: `match-video-${m.videos.length + 1}.mp4`,
+            sizeMb: 1400,
+            archived: false,
+          },
+        ],
+      })),
+    [change]
+  )
+
+  const moveVideo = useCallback(
+    (matchId: string, videoId: string, by: -1 | 1) =>
+      change(matchId, (m) => {
+        const from = m.videos.findIndex((v) => v.id === videoId)
+        const to = from + by
+        if (from < 0 || to < 0 || to >= m.videos.length) return m
+        const videos = [...m.videos]
+        ;[videos[from], videos[to]] = [videos[to], videos[from]]
+        return { ...m, videos }
+      }),
+    [change]
+  )
+
+  const removeVideo = useCallback(
+    (matchId: string, videoId: string) =>
+      change(matchId, (m) => ({
+        ...m,
+        videos: m.videos.filter((v) => v.id !== videoId),
+      })),
+    [change]
+  )
+
+  const archiveVideos = useCallback(
+    (matchId: string) =>
+      change(matchId, (m) => ({
+        ...m,
+        videos: m.videos.map((v) =>
+          v.archived
+            ? v
+            : { ...v, archived: true, sizeMb: Math.round(v.sizeMb * ARCHIVE_RATIO) }
+        ),
+      })),
+    [change]
   )
 
   const value = useMemo(
@@ -498,12 +591,15 @@ export function DemoProvider({ children }: { children: ReactNode }) {
       matches,
       getMatch,
       createMatch,
-      discardMatch,
+      deleteMatch,
+      removeUntouchedMatches,
       updateMatch,
-      addSet,
+      setResult,
+      setEnteredScore,
       addVideo,
-      toggleVideoSet,
+      moveVideo,
       removeVideo,
+      archiveVideos,
       patchSet,
     }),
     [
@@ -512,12 +608,15 @@ export function DemoProvider({ children }: { children: ReactNode }) {
       matches,
       getMatch,
       createMatch,
-      discardMatch,
+      deleteMatch,
+      removeUntouchedMatches,
       updateMatch,
-      addSet,
+      setResult,
+      setEnteredScore,
       addVideo,
-      toggleVideoSet,
+      moveVideo,
       removeVideo,
+      archiveVideos,
       patchSet,
     ]
   )

@@ -3,7 +3,14 @@ import { Button, Card, CardDescription, CardTitle, Icon } from '@/ui-mine'
 import { PageHeader } from '@/layout/PageHeader'
 import { StickyChrome } from '@/layout/StickyChrome'
 import { WfBadge, WfEmpty, WfField } from '@/layout/Wireframe'
-import { defaultMatchTab, derivePhase, phaseLabel, useDemo } from '@/data/demoStore'
+import {
+  defaultMatchTab,
+  derivePhase,
+  matchMeta,
+  matchTitle,
+  phaseLabel,
+  useDemo,
+} from '@/data/demoStore'
 
 export function FindPage() {
   const navigate = useNavigate()
@@ -51,10 +58,10 @@ export function FindPage() {
                     className="block space-y-1"
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <CardTitle>{m.name || m.opponent || 'New match'}</CardTitle>
+                      <CardTitle>{matchTitle(m)}</CardTitle>
                       <WfBadge>{phaseLabel(phase)}</WfBadge>
                     </div>
-                    <CardDescription>{m.event || 'No event'}</CardDescription>
+                    <CardDescription>{matchMeta(m)}</CardDescription>
                   </Link>
                 </Card>
               )

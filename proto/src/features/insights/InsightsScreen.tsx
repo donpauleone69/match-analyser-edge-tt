@@ -1,15 +1,16 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Button, Card, CardDescription, Icon } from '@/ui-mine'
 import { cn } from '@/helpers/utils'
 import { WfBadge, WfEmpty } from '@/layout/Wireframe'
 import {
   derivePhase,
+  hasTaggedRallies,
+  matchTitle,
   taggedSetIds,
   useDemo,
   type MatchRecord,
 } from '@/data/demoStore'
-import { useInsightsFilters } from '@/features/insights/insightsFilterContext'
 
 export type InsightsScope = 'global' | 'match'
 export type SectionId = 'summary' | 'serve' | 'receive' | 'improve'
@@ -35,23 +36,17 @@ type ImproveItem = {
 function sectionData(
   section: SectionId,
   scope: InsightsScope,
+  taggedMatches: number,
   match?: MatchRecord
 ): { stats: string; reels: Reel[]; improve?: ImproveItem[] } {
-  const prefix = scope === 'match' && match ? match.name : 'All matches'
-  const cover =
-    scope === 'match' && match
-      ? (() => {
-          const ids = taggedSetIds(match)
-          return ids.length ? `Covers set ${ids.join(', set ')}` : ''
-        })()
-      : ''
+  const prefix = scope === 'match' && match ? matchTitle(match) : 'All matches'
 
   if (section === 'summary') {
     return {
       stats:
         scope === 'match'
-          ? `${cover} · FA 58% · 12 winners`
-          : 'Across scope · FA 54% · 3 matches · 41 points',
+          ? 'FA 58% · 12 winners'
+          : `${taggedMatches} ${taggedMatches === 1 ? 'match' : 'matches'} · 41 points · FA 54%`,
       reels: [
         { id: 'sum-1', title: 'Highlight', meta: `${prefix} · 8 points` },
         { id: 'sum-2', title: 'Key winners', meta: `${prefix} · 5 points` },
@@ -62,7 +57,7 @@ function sectionData(
     return {
       stats:
         scope === 'match'
-          ? `${cover} · 1st in 64% · short 3 · long 7`
+          ? '1st in 64% · short 3 · long 7'
           : '1st in 62% · short 4 · long 9 · fault 3%',
       reels: [
         { id: 'srv-1', title: 'Serve +1', meta: `${prefix} · 6 points` },
@@ -75,7 +70,7 @@ function sectionData(
     return {
       stats:
         scope === 'match'
-          ? `${cover} · short miss 2 · deep hold 5`
+          ? 'Short miss 2 · deep hold 5'
           : 'Short miss 6 · deep hold 11 · flick 4',
       reels: [
         { id: 'rcv-1', title: 'Short receive', meta: `${prefix} · 6 points` },
@@ -160,15 +155,14 @@ function SectionBody({
   section,
   scope,
   match,
-  filterNote,
 }: {
   section: SectionId
   scope: InsightsScope
   match?: MatchRecord
-  filterNote?: string
 }) {
   const navigate = useNavigate()
-  const data = sectionData(section, scope, match)
+  const { matches } = useDemo()
+  const data = sectionData(section, scope, matches.filter(hasTaggedRallies).length, match)
   const [playingId, setPlayingId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -185,8 +179,8 @@ function SectionBody({
             title="Nothing tagged yet"
             body={
               phase === 'new'
-                ? 'Add video on Details, then tag.'
-                : 'Tag a rally to unlock reels for this match.'
+                ? 'Add the video in Tag to start.'
+                : 'Tag a rally to see insights for this match.'
             }
           />
           <Button onClick={() => navigate(`/matches/${match.id}/tag`)}>Go to Tag</Button>
@@ -199,7 +193,6 @@ function SectionBody({
 
   return (
     <div className="space-y-4">
-      {filterNote ? <p className="text-xs text-muted">Showing: {filterNote}</p> : null}
       {scope === 'match' && match && taggedSetIds(match).length > 0 ? (
         <p className="text-xs text-muted">
           Covers set {taggedSetIds(match).join(', set ')}.
@@ -323,7 +316,11 @@ export function InsightsScreen({
   }
 
   if (chrome === 'body') {
-    return <GlobalBody section={section} scope={scope} match={match} />
+    return (
+      <div className="px-4 sm:px-6 lg:px-8 py-4">
+        <SectionBody key={section} section={section} scope={scope} match={match} />
+      </div>
+    )
   }
 
   return (
@@ -334,41 +331,6 @@ export function InsightsScreen({
       <div className="px-4 sm:px-6 lg:px-8 py-4">
         <SectionBody key={section} section={section} scope={scope} match={match} />
       </div>
-    </div>
-  )
-}
-
-function GlobalBody({
-  section,
-  scope,
-  match,
-}: {
-  section: SectionId
-  scope: InsightsScope
-  match?: MatchRecord
-}) {
-  const { filters } = useInsightsFilters()
-  const filterNote = useMemo(
-    () =>
-      [
-        filters.matches === 'All' ? 'All matches' : filters.matches,
-        filters.opponent !== 'Any' ? filters.opponent : null,
-        filters.tournament !== 'Any' ? filters.tournament : null,
-        filters.dates !== 'Any' ? filters.dates : null,
-      ]
-        .filter(Boolean)
-        .join(' · '),
-    [filters]
-  )
-  return (
-    <div className="px-4 sm:px-6 lg:px-8 py-4">
-      <SectionBody
-        key={section}
-        section={section}
-        scope={scope}
-        match={match}
-        filterNote={filterNote}
-      />
     </div>
   )
 }

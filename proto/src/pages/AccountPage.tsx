@@ -135,8 +135,8 @@ export function AccountPage() {
                   <span className="font-semibold text-primary">Cloud:</span> login and optional sync.
                 </li>
                 <li>
-                  <span className="font-semibold text-primary">Not here:</span> video attach on Match
-                  Details. Reel download on Insights.
+                  <span className="font-semibold text-primary">Not here:</span> video is added on the
+                  match. Reel download on Insights.
                 </li>
               </ul>
             </Card>
