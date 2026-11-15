@@ -398,10 +398,33 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   }, [slotKind, stepKey])
 
   // The row being asked for sits just above Save. An opened shot starts at its top.
+  // A toast shortens the panel. Keep the result chips in reach, and when the
+  // toast comes or goes put them back so a tap does not land somewhere new.
+  // Result and wing/stroke are one step, so picking a result does not scroll.
+  const chipTop = useRef<number | null>(null)
   useLayoutEffect(() => {
     const el = body.current
-    if (el) el.scrollTop = stage === 'ready' && selected ? 0 : el.scrollHeight
-  }, [mode, stage, selected])
+    if (!el) return
+    if (stage === 'ready' && selected) {
+      el.scrollTop = 0
+      chipTop.current = null
+      return
+    }
+    el.scrollTop = el.scrollHeight
+    const chip = el.querySelector('[data-tag-panel] button[aria-pressed]')
+    if (!chip) return
+    const hidden = el.getBoundingClientRect().top - chip.getBoundingClientRect().top
+    if (hidden > 0) el.scrollTop -= hidden + 4
+    chipTop.current = chip.getBoundingClientRect().top
+  }, [stepKey])
+  useLayoutEffect(() => {
+    const el = body.current
+    const chip = el?.querySelector<HTMLElement>('[data-tag-panel] button[aria-pressed]')
+    if (!el || !chip || chipTop.current === null) return
+    const delta = chip.getBoundingClientRect().top - chipTop.current
+    if (Math.abs(delta) > 0.5) el.scrollTop += delta
+    chipTop.current = chip.getBoundingClientRect().top
+  }, [toast])
 
   /** Seeks for the user, and says in a few words when one is held back. */
   const seekTo = (g: number) => {
@@ -1314,7 +1337,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
         {/* The panel. What is asked for next sits at its foot, straight above the slot. */}
         <div
           ref={body}
-          className="flex-1 min-h-0 overflow-y-auto px-2 py-2 flex flex-col"
+          className="flex-1 min-h-0 overflow-y-auto px-2 py-2 flex flex-col [overflow-anchor:none]"
           onClickCapture={guardClicks(panelGuard)}
         >
           <div className={cn('mt-auto space-y-2', panelBusy && BUSY)} data-tag-panel>
@@ -1535,6 +1558,23 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               <KeyHint k="Enter" />
             </Button>
           ) : null}
+          {slotKind === 'edit' && edit ? (
+            readOnly ? (
+              <Button variant="secondary" className={cn(slotButton, 'flex-1 min-w-0')} onClick={leaveEdit}>
+                Back to set
+              </Button>
+            ) : (
+              <Button
+                data-tag-save
+                className={cn(slotButton, 'flex-1 min-w-0')}
+                disabled={!ready || !edit.dirty}
+                onClick={onSaveEdit}
+              >
+                Save changes
+                <KeyHint k="Enter" />
+              </Button>
+            )
+          ) : null}
           {/*
             Switch, beside the big button and always in the same place. While
             tapping it is part of the pad: a tap that lands on it is a contact.
@@ -1561,28 +1601,8 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               <KeyHint k="P" />
             </button>
           ) : null}
+          {slotKind === 'edit' && readOnly ? <span className="h-20 w-20 shrink-0" aria-hidden /> : null}
           </div>
-
-          {slotKind === 'edit' && edit ? (
-            readOnly ? (
-              <>
-                <Button variant="secondary" className={cn(slotButton, 'flex-1 min-w-0')} onClick={leaveEdit}>
-                  Back to set
-                </Button>
-                <span className="h-20 w-20 shrink-0" aria-hidden />
-              </>
-            ) : (
-              <Button
-                data-tag-save
-                className={cn(slotButton, 'flex-1 min-w-0')}
-                disabled={!ready || !edit.dirty}
-                onClick={onSaveEdit}
-              >
-                Save changes
-                <KeyHint k="Enter" />
-              </Button>
-            )
-          ) : null}
 
           {slotKind === 'finished' ? (
             <FinishedActions
