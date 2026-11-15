@@ -321,7 +321,22 @@ export function setEnding(d: Draft, ending: Ending): Draft {
   return applyAutoSkip({ ...d, ending })
 }
 
+/**
+ * The first attack is never Block, Lob, Push or Chop. On a two shot rally the
+ * stroke is the first attack answer, so there it is decided again, not refused.
+ */
+export function faStrokeRefused(d: Draft, shot: number, stroke: string | undefined): boolean {
+  return shot === d.fa && !twoShotEnd(d, shot) && NO_FIRST_ATTACK.has(stroke ?? '')
+}
+
+/**
+ * Change one shot's tags. A stroke the first attack cannot have leaves the
+ * draft as it is (the same object comes back).
+ */
 export function patchShot(d: Draft, shot: number, patch: Partial<ShotTags>): Draft {
+  if (faStrokeRefused(d, shot, patch.stroke)) return d
+  // Two shots: a defensive stroke takes the first attack off shot 2, and the stroke decides again.
+  if (twoShotEnd(d, shot) && d.fa === shot && NO_FIRST_ATTACK.has(patch.stroke ?? '')) d = { ...d, fa: null }
   const shots = d.shots.map((s, i) => (i === shot - 1 ? { ...s, ...patch } : s))
   return applyAutoSkip({ ...d, shots })
 }
@@ -337,30 +352,43 @@ export function toggleShotField<K extends keyof ShotTags>(
   return patchShot(d, shot, { [key]: current === value ? undefined : value } as Partial<ShotTags>)
 }
 
+/** Why a shot cannot be picked as the first attack. */
+export type FaRefusal =
+  | { kind: 'serve' }
+  | { kind: 'noShot' }
+  | { kind: 'stroke'; shot: number; stroke: string }
+
 /**
- * A shot that no longer shows a stroke row must not keep a stroke.
- * Wing and the other tags stay. The draft passed in is not changed.
+ * Null when `shot` can be picked as the first attack (or is the first attack,
+ * where a press clears it). Otherwise the reason: it is the serve, it is not a
+ * shot of this rally, or it is tagged Block, Lob, Push or Chop.
  */
-function clearHiddenStrokes(d: Draft): Draft {
-  let changed = false
-  const shots = d.shots.map((s, i) => {
-    if (!s?.stroke || showsStroke(d, i + 1)) return s
-    changed = true
-    return { ...s, stroke: undefined }
-  })
-  return changed ? { ...d, shots } : d
+export function faRefusal(d: Draft, shot: number): FaRefusal | null {
+  if (shot === 1) return { kind: 'serve' }
+  if (!Number.isInteger(shot) || shot < 1 || shot > endShot(d)) return { kind: 'noShot' }
+  if (d.fa === shot) return null
+  const stroke = d.shots[shot - 1]?.stroke ?? ''
+  return NO_FIRST_ATTACK.has(stroke) ? { kind: 'stroke', shot, stroke } : null
 }
 
-/** Mark, move or clear the first attack. Shot 1 can never be it.
- * Block, Lob, Push and Chop cannot be picked as the first attack.
- * Strokes on shots that are now before the first attack are cleared.
+/** One short line for a refusal, for the screen to show. */
+export function faRefusalText(r: FaRefusal): string {
+  if (r.kind === 'serve') return 'The serve cannot be the first attack'
+  if (r.kind === 'noShot') return 'No shot to pick yet'
+  return `Shot ${r.shot} is tagged ${r.stroke}, so it cannot be the first attack`
+}
+
+/**
+ * Mark, move or clear the first attack. Shot 1 can never be it, nor can a
+ * shot tagged Block, Lob, Push or Chop: `faRefusal` says why. A refused press
+ * gives the same draft back. Strokes already answered are kept wherever the
+ * first attack goes, so moving it back brings them back. Save leaves out the
+ * ones that have no row (`rallyFromDraft`).
  */
 export function markFa(d: Draft, shot: number): Draft {
-  if (shot < 2 || shot > endShot(d)) return d
+  if (faRefusal(d, shot)) return d
   if (d.fa === shot) return { ...d, fa: null }
-  const stroke = d.shots[shot - 1]?.stroke ?? ''
-  if (NO_FIRST_ATTACK.has(stroke)) return d
-  return clearHiddenStrokes({ ...d, fa: shot, noAttack: false })
+  return { ...d, fa: shot, noAttack: false }
 }
 
 /** No attack is not offered once the end shot is Flick, Loop, Drive or Smash. */
@@ -372,9 +400,8 @@ export function noAttackOffered(d: Draft): boolean {
 export function toggleNoAttack(d: Draft): Draft {
   if (d.noAttack) return { ...d, noAttack: false }
   if (!noAttackOffered(d)) return d
-  const next: Draft = { ...d, noAttack: true, fa: null }
-  // Three shots or more: only the end shot still shows a stroke row.
-  return endShot(d) >= 3 ? clearHiddenStrokes(next) : next
+  // Strokes answered on other shots stay in the draft. Save leaves out the ones with no row.
+  return { ...d, noAttack: true, fa: null }
 }
 
 /** The end shot of a two shot rally: its stroke is the first attack answer, so the switch can still flip. */
@@ -662,6 +689,24 @@ export function swapPlayers(r: RallyData): RallyData {
   return { ...r, server: otherSide(r.server), winner: otherSide(r.winner) }
 }
 
+/**
+ * The shots as Save keeps them. A stroke is kept only where the stroke row
+ * shows: the end shot, the first attack and the shots after it. A stroke
+ * answered on a shot that has since lost its row (the first attack moved, No
+ * attack, a contact added after the end shot) stays in the draft, so the
+ * answer comes back with the row, and is left out here.
+ */
+export function savedShots(d: Draft): ShotTags[] {
+  const hidden = (s: ShotTags | undefined, i: number) => Boolean(s?.stroke) && !showsStroke(d, i + 1)
+  if (!d.shots.some(hidden)) return d.shots
+  return d.shots.map((s, i) => {
+    if (!hidden(s, i)) return s
+    const kept = { ...s }
+    delete kept.stroke
+    return kept
+  })
+}
+
 export function rallyFromDraft(d: Draft, id: string): RallyData | null {
   const winner = winnerOf(d)
   if (!canSave(d) || !d.ending || !winner) return null
@@ -674,7 +719,7 @@ export function rallyFromDraft(d: Draft, id: string): RallyData | null {
     end: rallyEnd(d),
     ending: d.ending,
     fa: d.fa,
-    shots: d.shots,
+    shots: savedShots(d),
     winner,
     highlight: d.highlight,
     ...(d.serveChecked ? { serveChecked: true as const } : {}),
