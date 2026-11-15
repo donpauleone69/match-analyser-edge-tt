@@ -38,6 +38,11 @@
   --color-danger: #ef4444;
   --color-info: #3b82f6;
 
+  /* Tagging: the two players, and the first attack. */
+  --color-side-me: #3b82f6;
+  --color-side-them: #f97316;
+  --color-shot-fa: #16a34a;
+
   --color-border: var(--theme-border);
   --color-border-strong: var(--theme-border-strong);
   --color-pill-idle: var(--theme-pill-idle);
@@ -283,4 +288,18 @@ button[disabled] {
   opacity: 1 !important;
   box-shadow: none !important;
   font-weight: 500 !important;
+}
+
+/* Tap pad: the 2s with no tap that closes a rally, shown as a draining bar. */
+@keyframes tag-idle-drain {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+.tag-idle-bar {
+  transform-origin: left;
+  animation: tag-idle-drain 2s linear forwards;
 }

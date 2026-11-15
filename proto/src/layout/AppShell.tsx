@@ -1,4 +1,4 @@
-import { Outlet, Link, useLocation } from 'react-router-dom'
+import { Outlet, Link, useLocation, useMatch } from 'react-router-dom'
 import { Icon, type IconName } from '@/ui-mine'
 import { BrandMark } from '@/layout/BrandMark'
 import { cn } from '@/helpers/utils'
@@ -51,6 +51,8 @@ function ShellNavLink({
 }
 
 export function AppShell() {
+  /** Tagging a set takes the whole phone screen: no bottom nav under the pad. */
+  const tagging = Boolean(useMatch('/matches/:matchId/tag/:setId'))
   return (
     <div className="h-full bg-bg-app flex flex-col">
       <header className="hidden md:flex shrink-0 items-center justify-between gap-4 border-b border-border bg-bg-shell px-6 lg:px-8 h-12 z-40">
@@ -64,19 +66,24 @@ export function AppShell() {
 
       <main
         id="shell-scroll"
-        className="flex-1 min-h-0 overflow-y-auto overscroll-behavior-none pb-14 md:pb-0"
+        className={cn(
+          'flex-1 min-h-0 overscroll-behavior-none',
+          tagging ? 'overflow-hidden' : 'overflow-y-auto pb-14 md:pb-0'
+        )}
       >
         <Outlet />
       </main>
 
-      <nav
-        className="md:hidden fixed bottom-0 left-0 right-0 z-40 h-12 border-t border-border bg-bg-shell flex items-stretch"
-        aria-label="Main"
-      >
-        {navItems.map((item) => (
-          <ShellNavLink key={`b-${item.to}`} {...item} layout="bottom" />
-        ))}
-      </nav>
+      {tagging ? null : (
+        <nav
+          className="md:hidden fixed bottom-0 left-0 right-0 z-40 h-12 border-t border-border bg-bg-shell flex items-stretch"
+          aria-label="Main"
+        >
+          {navItems.map((item) => (
+            <ShellNavLink key={`b-${item.to}`} {...item} layout="bottom" />
+          ))}
+        </nav>
+      )}
     </div>
   )
 }

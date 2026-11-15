@@ -39,14 +39,10 @@ function OpponentPrompt({ match }: { match: MatchRecord }) {
 export function MatchPage() {
   const { matchId = '' } = useParams()
   const { getMatch } = useDemo()
-  const setMatch = useMatch('/matches/:matchId/tag/:setId')
+  const onSetView = Boolean(useMatch('/matches/:matchId/tag/:setId'))
   const onDetails = Boolean(useMatch('/matches/:matchId/details'))
-  const setId = setMatch?.params.setId
   const match = getMatch(matchId)
   const base = `/matches/${matchId}`
-  const onSetView = Boolean(setId)
-  const backTo = onSetView ? `${base}/tag` : '/home'
-  const subtitle = onSetView ? `Set ${setId}` : undefined
 
   if (!match) {
     return (
@@ -61,28 +57,27 @@ export function MatchPage() {
     )
   }
 
-  const title = matchLabel(match)
+  // The set view fills the screen and carries its own compact header.
+  if (onSetView) return <Outlet />
 
   return (
     <div>
       <StickyChrome>
-        <PageHeader title={title} subtitle={subtitle} backTo={backTo} />
-        {!onSetView ? (
-          <HubTabs
-            ariaLabel="Match sections"
-            tabs={[
-              { to: `${base}/insights`, label: 'Insights' },
-              {
-                to: `${base}/details`,
-                label: 'Details',
-                mark: matchDiffers(match) ? 'Differs' : undefined,
-              },
-              { to: `${base}/tag`, label: 'Tag' },
-            ]}
-          />
-        ) : null}
+        <PageHeader title={matchLabel(match)} backTo="/home" />
+        <HubTabs
+          ariaLabel="Match sections"
+          tabs={[
+            { to: `${base}/insights`, label: 'Insights' },
+            {
+              to: `${base}/details`,
+              label: 'Details',
+              mark: matchDiffers(match) ? 'Differs' : undefined,
+            },
+            { to: `${base}/tag`, label: 'Tag' },
+          ]}
+        />
       </StickyChrome>
-      {!onSetView && !onDetails ? <OpponentPrompt match={match} /> : null}
+      {!onDetails ? <OpponentPrompt match={match} /> : null}
       <Outlet />
     </div>
   )

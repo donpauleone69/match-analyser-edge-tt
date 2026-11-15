@@ -396,3 +396,7 @@ export function draftFromRally(r: RallyData): Draft {
     highlight: r.highlight,
   }
 }
+
+/** "You serve", "Sam serves". */
+export const servesText = (names: Record<Side, string>, side: Side): string =>
+  side === 'me' ? `${names.me} serve` : `${names.them} serves`
