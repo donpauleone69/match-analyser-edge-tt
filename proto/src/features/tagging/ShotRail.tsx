@@ -3,8 +3,8 @@ import { Icon } from '@/ui-mine'
 import { cn } from '@/helpers/utils'
 import { hitterOf, stageOf, type Draft, type Mark, type Side } from './rally'
 
-const cell =
-  'h-10 min-w-10 lg:h-9 lg:min-w-9 px-1 rounded-md border text-sm font-bold tabular-nums inline-flex items-center justify-center disabled:opacity-40'
+export const railCell =
+  'relative h-10 min-w-10 lg:h-9 lg:min-w-9 px-1 rounded-md border text-sm font-bold tabular-nums inline-flex items-center justify-center disabled:opacity-40'
 
 const sideTint: Record<Side, string> = {
   me: 'bg-side-me/15 border-side-me/50 text-primary',
@@ -13,50 +13,47 @@ const sideTint: Record<Side, string> = {
 
 const caption = 'h-4 text-[9px] font-bold uppercase tracking-wide leading-4 whitespace-nowrap'
 
-function isSelected(selected: Mark | null, mark: Mark): boolean {
-  if (!selected || selected.kind !== mark.kind) return false
-  return mark.kind !== 'shot' || (selected.kind === 'shot' && selected.shot === mark.shot)
+function isSelected(selected: Mark | null, shot: number): boolean {
+  return selected?.kind === 'shot' && selected.shot === shot
 }
 
 /**
- * The rally as one row: start mark, a cell per shot in the hitter's colour,
- * end mark. It is both the map and the navigation. The row scrolls on a long
- * rally and follows the cell in play; the highlight star stays put beside it.
+ * The rally as one row of shots in the hitters' colours. It is both the map
+ * and the navigation. The row keeps one width from the first tap to Save: the
+ * Add serve cell in front and the star behind hold their places throughout.
+ * It scrolls on a long rally and follows the cell in play.
  */
 export function ShotRail({
   draft,
   selected,
+  liveShot,
   onShot,
-  onMark,
+  onAddServe,
   onHighlight,
   readOnly = false,
 }: {
-  draft: Draft
+  /** Null between rallies: the row shows where shot 1 will go. */
+  draft: Draft | null
   selected: Mark | null
+  /** The shot on screen while the rally loops. Marked, never scrolled to. */
+  liveShot: number | null
   onShot: (shot: number) => void
-  onMark: (mark: Mark) => void
+  /** Puts a serve in front of a late first tap. Not offered when absent. */
+  onAddServe?: () => void
   onHighlight: () => void
   /** Shots can be picked to watch them; nothing can be changed. */
   readOnly?: boolean
 }) {
-  const stage = stageOf(draft)
-  const n = draft.contacts.length
+  const stage = draft ? stageOf(draft) : 'contacts'
+  const n = draft?.contacts.length ?? 0
   const tapping = stage === 'contacts'
   /** While the result and end shot are entered, only the end shot is live. */
   const locked = stage === 'result' || stage === 'endShot'
-  const marksOff = tapping || locked || readOnly
-  const marks = !tapping && !readOnly
 
   // Keep the cell in play in view: the next tap while tapping, else the
-  // selected shot or mark. Only the row moves, never the page.
+  // selected shot. Only the row moves, never the page.
   const scroller = useRef<HTMLDivElement>(null)
-  const focusKey = tapping
-    ? `next-${n}`
-    : selected
-      ? selected.kind === 'shot'
-        ? `shot-${selected.shot}`
-        : selected.kind
-      : null
+  const focusKey = tapping ? `next-${n}` : selected?.kind === 'shot' ? `shot-${selected.shot}` : null
   useEffect(() => {
     const row = scroller.current
     if (!row || !focusKey) return
@@ -73,109 +70,94 @@ export function ShotRail({
     row.scrollLeft = left
   }, [focusKey])
 
+  const serveOn = Boolean(draft && !tapping && !readOnly && onAddServe)
+  const starOn = Boolean(draft && !tapping && (!readOnly || draft.highlight))
+
   return (
-    <div className="flex items-start gap-1">
-      {/* Outside the scroller, like the star, so a long rally never cuts it off. */}
-      {marks ? (
-        <div className="flex flex-col items-center shrink-0 py-1" data-rail="start">
-          <button
-            type="button"
-            aria-label="Rally start"
-            aria-pressed={isSelected(selected, { kind: 'start' })}
-            disabled={marksOff}
-            onClick={() => onMark({ kind: 'start' })}
-            className={cn(
-              cell,
-              'border-border bg-bg-card text-muted',
-              isSelected(selected, { kind: 'start' }) && 'ring-2 ring-brand-primary'
-            )}
-          >
-            [
-          </button>
-          <span className={cn(caption, 'text-muted')}>Start</span>
-        </div>
-      ) : null}
+    <div className="flex items-start gap-1" data-rail-row>
+      <div className={cn('flex flex-col items-center shrink-0 py-1', !serveOn && 'invisible')} data-rail="add-serve">
+        <button
+          type="button"
+          aria-label="Add serve"
+          title="The first tap was late: add the serve in front"
+          disabled={!serveOn}
+          onClick={onAddServe}
+          className={cn(railCell, 'border-dashed border-border-strong bg-bg-card text-muted')}
+        >
+          <Icon name="plus" size="sm" />
+        </button>
+        <span className={cn(caption, 'text-muted')}>Serve</span>
+      </div>
       <div
         ref={scroller}
-        className="relative flex min-w-0 flex-1 items-start gap-1 overflow-x-auto py-1"
+        className="relative flex min-w-0 flex-1 items-start gap-1 overflow-x-auto py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         aria-label="Shots in this rally"
       >
-        {draft.contacts.map((_, i) => {
-          const shot = i + 1
-          const isEnd = !tapping && shot === n
-          const isFa = draft.fa === shot
-          const on = isSelected(selected, { kind: 'shot', shot })
-          return (
-            <div key={shot} className="flex flex-col items-center shrink-0" data-rail={`shot-${shot}`}>
-              <button
-                type="button"
-                aria-label={`Shot ${shot}`}
-                aria-pressed={on}
-                disabled={tapping || (locked && !isEnd)}
-                onClick={() => onShot(shot)}
-                className={cn(
-                  cell,
-                  sideTint[hitterOf(draft.server, shot)],
-                  isFa && 'border-shot-fa border-2',
-                  on && 'ring-2 ring-brand-primary',
-                  tapping && 'disabled:opacity-100'
-                )}
-              >
-                {shot}
-              </button>
-              <span className={cn(caption, isFa ? 'text-shot-fa' : 'text-muted')}>
-                {isFa ? 'FA' : isEnd ? (draft.ending ?? '') : shot === 1 ? 'Srv' : ''}
-              </span>
-            </div>
-          )
-        })}
+        {draft
+          ? draft.contacts.map((_, i) => {
+              const shot = i + 1
+              const isEnd = !tapping && shot === n
+              const isFa = draft.fa === shot
+              const on = isSelected(selected, shot)
+              const live = liveShot === shot
+              return (
+                <div key={shot} className="flex flex-col items-center shrink-0" data-rail={`shot-${shot}`}>
+                  <button
+                    type="button"
+                    aria-label={`Shot ${shot}`}
+                    aria-pressed={on}
+                    aria-current={live ? 'true' : undefined}
+                    disabled={tapping || (locked && !isEnd)}
+                    onClick={() => onShot(shot)}
+                    className={cn(
+                      railCell,
+                      sideTint[hitterOf(draft.server, shot)],
+                      isFa && 'border-shot-fa border-2',
+                      on && 'ring-2 ring-brand-primary',
+                      (tapping || live) && 'disabled:opacity-100'
+                    )}
+                  >
+                    {shot}
+                    {live ? (
+                      <span
+                        data-rail-live
+                        aria-hidden
+                        className="absolute inset-x-1 bottom-0.5 h-1 rounded-full bg-text"
+                      />
+                    ) : null}
+                  </button>
+                  <span className={cn(caption, isFa ? 'text-shot-fa' : 'text-muted')}>
+                    {isFa ? 'FA' : isEnd ? (draft.ending ?? '') : shot === 1 ? 'Srv' : ''}
+                  </span>
+                </div>
+              )
+            })
+          : null}
 
         {tapping ? (
           <div className="flex flex-col items-center shrink-0" data-rail={`next-${n}`}>
-            <span className={cn(cell, 'border-dashed border-border text-muted opacity-60')}>{n + 1}</span>
+            <span className={cn(railCell, 'border-dashed border-border text-muted opacity-60')}>{n + 1}</span>
             <span className={caption} />
           </div>
-        ) : !marks ? null : (
-          <div className="flex flex-col items-center shrink-0" data-rail="end">
-            <button
-              type="button"
-              aria-label="Rally end"
-              aria-pressed={isSelected(selected, { kind: 'end' })}
-              disabled={marksOff}
-              onClick={() => onMark({ kind: 'end' })}
-              className={cn(
-                cell,
-                'border-border bg-bg-card text-muted',
-                isSelected(selected, { kind: 'end' }) && 'ring-2 ring-brand-primary'
-              )}
-            >
-              ]
-            </button>
-            <span className={cn(caption, 'text-muted')}>End</span>
-          </div>
-        )}
+        ) : null}
       </div>
 
-      {!tapping && (!readOnly || draft.highlight) ? (
-        <div className="flex flex-col items-center shrink-0 py-1">
-          <button
-            type="button"
-            aria-label="Highlight rally"
-            aria-pressed={draft.highlight}
-            disabled={locked || readOnly}
-            onClick={onHighlight}
-            className={cn(
-              cell,
-              draft.highlight
-                ? 'bg-warning/25 border-warning text-primary'
-                : 'bg-bg-card border-border text-muted'
-            )}
-          >
-            <Icon name="star" size="sm" />
-          </button>
-          <span className={caption} />
-        </div>
-      ) : null}
+      <div className={cn('flex flex-col items-center shrink-0 py-1', !starOn && 'invisible')}>
+        <button
+          type="button"
+          aria-label="Highlight rally"
+          aria-pressed={Boolean(draft?.highlight)}
+          disabled={!starOn || locked || readOnly}
+          onClick={onHighlight}
+          className={cn(
+            railCell,
+            draft?.highlight ? 'bg-warning/25 border-warning text-primary' : 'bg-bg-card border-border text-muted'
+          )}
+        >
+          <Icon name="star" size="sm" />
+        </button>
+        <span className={caption} />
+      </div>
     </div>
   )
 }

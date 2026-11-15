@@ -357,3 +357,33 @@ export function FirstAttackRow({
     </div>
   )
 }
+
+/**
+ * Trim, for a saved rally: where its play starts and ends, for loops and
+ * reels. Picking one opens its time row; the video loops around it.
+ */
+export function TrimRow({
+  draft,
+  selected,
+  onMark,
+}: {
+  draft: Draft
+  selected: Mark | null
+  onMark: (mark: Mark) => void
+}) {
+  const marks: { mark: Mark; label: string; hint: string }[] = [
+    { mark: { kind: 'start' }, label: 'Start', hint: '[' },
+    { mark: { kind: 'end' }, label: 'End', hint: ']' },
+  ]
+  return (
+    <div className="rounded-md border border-border bg-bg-surface p-3" role="group" aria-label="Trim">
+      <Row label="Trim">
+        {marks.map(({ mark, label, hint }) => (
+          <Pill key={label} on={selected?.kind === mark.kind} hint={hint} onClick={() => onMark(mark)}>
+            {label} {formatClock(markTime(draft, mark), true)}
+          </Pill>
+        ))}
+      </Row>
+    </div>
+  )
+}
