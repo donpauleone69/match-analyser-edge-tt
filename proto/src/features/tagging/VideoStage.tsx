@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Icon } from '@/ui-mine'
 import type { VideoAsset } from '@/data/demoStore'
 import { cn } from '@/helpers/utils'
+import { buttonKindControlSquare } from '@/ui-mine/buttonKinds'
 import { SPEED_STEPS, servesText, type Side } from './rally'
 import { sceneAt, type VideoScript } from './script'
 import { formatClock, totalDuration, type Segment } from './timeline'
@@ -331,7 +332,8 @@ export function VideoStage({
             disabled={readOnlyHighlight}
             onClick={onHighlight}
             className={cn(
-              'absolute right-2 top-10 h-11 w-11 lg:h-9 lg:w-9 inline-flex items-center justify-center rounded-md touch-manipulation select-none',
+              'absolute right-2 top-10 inline-flex items-center justify-center rounded-md touch-manipulation select-none',
+              buttonKindControlSquare,
               highlight
                 ? 'bg-warning/90 text-neutral-950 hover:bg-warning'
                 : 'bg-black/60 text-white hover:bg-black/80',
