@@ -133,6 +133,26 @@ for (const vp of VIEWPORTS) {
     )
     checked += result.count
     allFails.push(...result.fails)
+
+    // One main action per page (Sign in is a multi-card stub and is exempt).
+    if (route.path !== '/') {
+      const mainCount = await page.evaluate(() =>
+        [...document.querySelectorAll('.btn-kind-main')].filter((el) => {
+          const r = el.getBoundingClientRect()
+          if (r.width < 4 || r.height < 4) return false
+          const st = getComputedStyle(el)
+          return st.display !== 'none' && st.visibility !== 'hidden'
+        }).length
+      )
+      if (mainCount > 1) {
+        allFails.push({
+          screen: route.screen,
+          viewport: vp.label,
+          issue: 'too-many-main',
+          count: mainCount,
+        })
+      }
+    }
   }
   await ctx.close()
 }

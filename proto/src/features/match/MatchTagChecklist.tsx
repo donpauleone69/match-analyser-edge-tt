@@ -223,7 +223,9 @@ export function MatchTagChecklist() {
                   ) : null}
                   {state === 'none' && hasVideo && !lock ? (
                     <Button
-                      kind="main"
+                      kind={
+                        resume || nextStart?.setId !== s.setId ? 'control' : 'main'
+                      }
                       variant={nextStart?.setId === s.setId ? 'primary' : 'secondary'}
                       className={rowAction}
                       onClick={() => openSet(s.setId)}
