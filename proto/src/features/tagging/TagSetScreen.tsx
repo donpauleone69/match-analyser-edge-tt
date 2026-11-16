@@ -563,7 +563,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     const now = Date.now()
     setLate(idle ? { until: now + GUARD_AFTER_CLOSE_MS, at: now, g: p.getTime(), playing: p.isPlaying() } : null)
     p.setBoundary(null)
-    const w = windowFor(closed, null, 'result', false)
+    const w = windowFor(closed, null, stageOf(closed), false)
     p.setLoop(w)
     p.seek(w.a)
     p.play()
@@ -581,7 +581,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const onLateTap = () => {
     const d = live
     const now = Date.now()
-    if (!late || now >= late.until || !d || !d.closed || stageOf(d) !== 'result') return
+    if (!late || now >= late.until || !d || !d.closed || !['pickFa', 'result'].includes(stageOf(d))) return
     const seg = segs.find((x) => x.id === d.videoId)
     const g = late.g + (late.playing ? ((now - late.at) / 1000) * CAPTURE_SPEED : 0)
     if (!seg || g >= seg.offset + seg.duration) return

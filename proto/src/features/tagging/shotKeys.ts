@@ -46,7 +46,7 @@ export function shownStrokeSide(d: Draft, shot: number, held?: StrokeSide | null
 
 /** The side the switch shows after `key`: set only when the key is the switch key (A) and the switch can flip. */
 export function sideAfterShotKey(d: Draft, shot: number, key: string, held?: StrokeSide | null): StrokeSide | null {
-  if (key.toLowerCase() !== SWITCH_KEY || stageOf(d) === 'result') return null
+  if (key.toLowerCase() !== SWITCH_KEY || !d.ending || stageOf(d) === 'pickFa') return null
   if (!showsStroke(d, shot) || switchOf(d, shot).fixed) return null
   return shownStrokeSide(d, shot, held) === 'offensive' ? 'defensive' : 'offensive'
 }
@@ -58,12 +58,14 @@ export function sideAfterShotKey(d: Draft, shot: number, key: string, held?: Str
  */
 export function applyShotKey(d: Draft, shot: number, key: string, held?: StrokeSide | null): Draft | null {
   const k = key.toLowerCase()
+  // The pick is answered first, with its own presses.
+  if (stageOf(d) === 'pickFa') return null
   const fields = fieldsFor(d, shot)
   const result = RESULT_KEYS.indexOf(k as (typeof RESULT_KEYS)[number])
   if (result >= 0) return fields.result ? setEnding(d, ENDINGS[result]) : null
 
   // The stroke and wing rows wait until the result is in.
-  if (stageOf(d) === 'result') return null
+  if (!d.ending) return null
   const wing = WING_KEYS.indexOf(k as (typeof WING_KEYS)[number])
   if (wing >= 0) return fields.wing ? toggleShotField(d, shot, 'wing', WINGS[wing]) : null
 

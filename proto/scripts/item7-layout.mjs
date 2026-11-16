@@ -25,9 +25,9 @@ const VIEWPORTS = [
 
 const STEPS = [
   'tapping',
+  'pick first attack',
   'result',
   'end shot details',
-  'pick first attack',
   'first attack details',
   'Ready',
   'editing a saved rally',
@@ -368,24 +368,36 @@ async function driveRally(page, fails, vp) {
     await page.click('[data-tap-pad]')
     await page.waitForTimeout(70)
   }
+  // Five shots: the pick comes straight after the close, before the result.
   await page.waitForFunction(
-    () => document.querySelector('[data-tag-stage]')?.dataset.tagStage === 'result',
+    () => document.querySelector('[data-tag-stage]')?.dataset.tagStage === 'pickFa',
     { timeout: 8000 }
   ).catch(() => {})
   let stage = await readStage(page)
-  if (stage !== 'result' && stage !== 'tapping' && stage !== '') {
-    /* closed already */
-  }
   if (stage === '' || stage === 'contacts') {
     await page.waitForTimeout(600)
     stage = await readStage(page)
   }
   // Still tapping if the idle close has not landed.
   if (!sawTap) await snap('tapping')
-  note(fails, stage === 'result' || stage === 'endShot', `${vp.file} reached result (got ${stage || 'none'})`)
+  note(fails, stage === 'pickFa', `${vp.file} reached the pick (got ${stage || 'none'})`)
+  await snap('pick first attack')
+  await page.waitForFunction(() => !document.querySelector('[data-late-tap]'), { timeout: 3000 }).catch(() => {})
+  // The press marks the shot a reaction (0.3s) earlier than the playhead.
+  await page.waitForFunction(() => {
+    const root = document.querySelector('[data-tag-stage]')
+    if (root?.dataset.tagStage !== 'pickFa') return true
+    const time = Number(root?.dataset.time || 0)
+    const contacts = (root?.dataset.contacts || '').split(',').filter(Boolean).map(Number)
+    const reached = contacts.filter((c) => c <= time - 0.3 + 0.05).length
+    if (reached >= 2) document.querySelector('[data-tag-fa]')?.click()
+    return false
+  }, { timeout: 4000 }).catch(() => {})
+  stage = await readStage(page)
+  note(fails, stage === 'result', `${vp.file} after first attack, the result (got ${stage})`)
 
   await snap('result')
-  // The panel ignores presses for a moment after the rally closes.
+  // The panel ignores presses for a moment after the step changes.
   await page.waitForFunction(() => {
     const panel = document.querySelector('[data-tag-panel]')
     if (!panel) return true
@@ -412,30 +424,12 @@ async function driveRally(page, fails, vp) {
   await page.waitForFunction(
     () => {
       const s = document.querySelector('[data-tag-stage]')?.dataset.tagStage
-      return s === 'pickFa' || s === 'ready' || s === 'faShot'
+      return s === 'ready' || s === 'faShot'
     },
     { timeout: 4000 }
   ).catch(() => {})
   stage = await readStage(page)
-  if (stage === 'pickFa') {
-    await snap('pick first attack')
-    await page.waitForFunction(() => !document.querySelector('[data-late-tap]'), { timeout: 3000 }).catch(() => {})
-    // The press marks the shot a reaction (0.3s) earlier than the playhead.
-    await page.waitForFunction(() => {
-      const root = document.querySelector('[data-tag-stage]')
-      const stageNow = root?.dataset.tagStage
-      if (stageNow === 'faShot' || stageNow === 'ready') return true
-      const time = Number(root?.dataset.time || 0)
-      const contacts = (root?.dataset.contacts || '').split(',').filter(Boolean).map(Number)
-      const reached = contacts.filter((c) => c <= time - 0.3 + 0.05).length
-      if (reached >= 2) document.querySelector('[data-tag-fa]')?.click()
-      return false
-    }, { timeout: 4000 }).catch(() => {})
-    stage = await readStage(page)
-  } else {
-    await snap('pick first attack')
-  }
-  note(fails, stage === 'faShot' || stage === 'ready', `${vp.file} after first attack (got ${stage})`)
+  note(fails, stage === 'faShot' || stage === 'ready', `${vp.file} after the end shot (got ${stage})`)
   if (stage === 'faShot') {
     await pressCell(page, 'FH')
     await pressCell(page, 'Flick')
@@ -571,9 +565,22 @@ async function driveWarn(page, fails, vp) {
     await page.waitForTimeout(70)
   }
   await page.waitForFunction(
-    () => document.querySelector('[data-tag-stage]')?.dataset.tagStage === 'result',
+    () => document.querySelector('[data-tag-stage]')?.dataset.tagStage === 'pickFa',
     null,
     { timeout: 8000 }
+  ).catch(() => {})
+  const pick = await measure(page)
+  note(
+    fails,
+    /Pick the first attack/.test(pick.status) && !/due to serve/.test(pick.status),
+    `step owns the line at the pick (${pick.status})`
+  )
+  await page.waitForFunction(() => !document.querySelector('[data-late-tap]'), null, { timeout: 3000 }).catch(() => {})
+  await page.click('[data-no-attack-row] button').catch(() => {})
+  await page.waitForFunction(
+    () => document.querySelector('[data-tag-stage]')?.dataset.tagStage === 'result',
+    null,
+    { timeout: 3000 }
   ).catch(() => {})
   const result = await measure(page)
   note(

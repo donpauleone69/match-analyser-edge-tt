@@ -47,6 +47,13 @@ async function main() {
   await page.goto(`${BASE}/matches/m-partial/tag/2`, { waitUntil: 'networkidle' })
   await page.waitForSelector('[data-tag-stage]')
   await setRate(page, '0.75')
+  // The open rally starts at the pick. No attack moves it on to the result, which loops the last shot.
+  if ((await page.evaluate(() => document.querySelector('[data-tag-stage]')?.dataset.tagStage)) === 'pickFa') {
+    await page.click('[data-no-attack-row] button')
+    await page.waitForFunction(() => document.querySelector('[data-tag-stage]')?.dataset.tagStage === 'result', null, {
+      timeout: 3000,
+    })
+  }
   const badge = await page.evaluate(
     () =>
       new Promise((resolve) => {
@@ -164,19 +171,11 @@ async function main() {
     await page.click('[data-tap-pad]')
     await page.waitForTimeout(500)
   }
-  await page.waitForFunction(() => document.querySelector('[data-tag-stage]')?.dataset.tagStage === 'result', null, {
+  // Five shots: the pick comes straight after the close, before the result.
+  await page.waitForFunction(() => document.querySelector('[data-tag-stage]')?.dataset.tagStage === 'pickFa', null, {
     timeout: 6000,
   })
   await page.waitForTimeout(700)
-  await pressText(page, 'Winner')
-  await page.waitForFunction(() => document.querySelector('[data-tag-stage]')?.dataset.tagStage === 'endShot', null, {
-    timeout: 4000,
-  })
-  await pressText(page, 'FH')
-  await pressText(page, 'Loop')
-  await page.waitForFunction(() => document.querySelector('[data-tag-stage]')?.dataset.tagStage === 'pickFa', null, {
-    timeout: 4000,
-  })
 
   const serveLook = await page.evaluate(
     () =>

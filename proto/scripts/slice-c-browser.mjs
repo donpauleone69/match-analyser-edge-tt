@@ -106,9 +106,61 @@ async function main() {
     await page.click('[data-tap-pad]')
     await page.waitForTimeout(180)
   }
-  await page.waitForFunction(() => document.querySelector('[data-tag-stage]')?.dataset.tagStage === 'result', {
+  // Twelve shots: the pick comes straight after the close, before the result.
+  await page.waitForFunction(() => document.querySelector('[data-tag-stage]')?.dataset.tagStage === 'pickFa', {
     timeout: 8000,
   })
+  const noAttack = await page.evaluate(() => {
+    const row = document.querySelector('[data-no-attack-row]')
+    const old = document.querySelector('[aria-label^="First attack on shot"]')
+    return {
+      text: row?.textContent?.replace(/\s+/g, ' ').trim() ?? '',
+      old: Boolean(old),
+      button: document.querySelector('[data-tag-fa]')?.textContent?.replace(/\s+/g, ' ').trim() ?? '',
+    }
+  })
+  // No end stroke is asked yet, so No attack is offered.
+  note(noAttack.text === 'No attack' && !noAttack.old, `No attack row at the pick (${noAttack.text || 'none'})`)
+  note(noAttack.button.startsWith('First attack'), `big button reads First attack (${noAttack.button})`)
+
+  const pick = await watch(page, 10000, 'pick first attack')
+  const rallySpan = pick.contacts.length
+    ? pick.contacts[pick.contacts.length - 1] + 1 - Math.max(0, pick.contacts[0] - 2)
+    : 0
+  note(
+    Math.abs(pick.b - pick.a - rallySpan) < 0.05,
+    `pick loops the rally (${(pick.b - pick.a).toFixed(2)}s, rally ${rallySpan.toFixed(2)}s)`
+  )
+
+  const followed = await page.evaluate(() => {
+    const scroller = document.querySelector('[aria-label="Shots in this rally"]')
+    const box = scroller.getBoundingClientRect()
+    const live = scroller.querySelector('[aria-current="true"]')
+    if (!live) return false
+    const r = live.getBoundingClientRect()
+    return r.left >= box.left - 1 && r.right <= box.right + 1
+  })
+  note(followed, 'with no shot picked, the shot on screen is in the row')
+
+  // The button picks the shot 0.3s before the playhead, not the live chip.
+  let pressed = false
+  const pressUntil = Date.now() + 8000
+  while (Date.now() < pressUntil && !pressed) {
+    pressed = await page.evaluate(() => {
+      const root = document.querySelector('[data-tag-stage]')
+      if (root?.dataset.tagStage !== 'pickFa') return false
+      const contacts = (root.dataset.contacts ?? '').split(',').filter(Boolean).map(Number)
+      const at = Number(root.dataset.time) - 0.3
+      const reached = contacts.filter((c) => c <= at + 0.05).length
+      if (reached !== 4) return false
+      document.querySelector('[data-tag-fa]')?.click()
+      return true
+    })
+    if (!pressed) await page.waitForTimeout(30)
+  }
+  await page.waitForFunction(() => document.querySelector('[data-tag-stage]')?.dataset.fa === '4', { timeout: 3000 })
+  const afterPress = await read(page)
+  note(afterPress.fa === '4' && afterPress.stage === 'result', `press on shot 4 sets first attack 4, then the result (fa ${afterPress.fa}, ${afterPress.stage})`)
 
   const row = await page.evaluate(() => {
     const scroller = document.querySelector('[aria-label="Shots in this rally"]')
@@ -156,7 +208,7 @@ async function main() {
       start: null,
       end: null,
       ending: null,
-      fa: null,
+      fa: 4,
       noAttack: false,
       shots: result.contacts.map(() => ({})),
       highlight: false,
@@ -174,61 +226,9 @@ async function main() {
 
   await clickText(page, 'FH')
   await clickText(page, 'Loop')
-  await page.waitForFunction(() => document.querySelector('[data-tag-stage]')?.dataset.tagStage === 'pickFa', {
+  await page.waitForFunction(() => document.querySelector('[data-tag-stage]')?.dataset.tagStage === 'faShot', {
     timeout: 4000,
   })
-  const noAttack = await page.evaluate(() => {
-    const row = document.querySelector('[data-no-attack-row]')
-    const old = document.querySelector('[aria-label^="First attack on shot"]')
-    return {
-      text: row?.textContent?.replace(/\s+/g, ' ').trim() ?? '',
-      old: Boolean(old),
-      button: document.querySelector('[data-tag-fa]')?.textContent?.replace(/\s+/g, ' ').trim() ?? '',
-    }
-  })
-  // The end stroke is Loop, so No attack is not offered.
-  note(noAttack.text === '' && !noAttack.old, `no No attack row after Loop (${noAttack.text || 'none'})`)
-  note(noAttack.button.startsWith('First attack'), `big button reads First attack (${noAttack.button})`)
-
-  const pick = await watch(page, 10000, 'pick first attack')
-  const rallySpan = pick.contacts.length
-    ? pick.contacts[pick.contacts.length - 1] + 1 - Math.max(0, pick.contacts[0] - 2)
-    : 0
-  note(
-    Math.abs(pick.b - pick.a - rallySpan) < 0.05,
-    `pick loops the rally (${(pick.b - pick.a).toFixed(2)}s, rally ${rallySpan.toFixed(2)}s)`
-  )
-
-  const followed = await page.evaluate(() => {
-    const scroller = document.querySelector('[aria-label="Shots in this rally"]')
-    const box = scroller.getBoundingClientRect()
-    const live = scroller.querySelector('[aria-current="true"]')
-    if (!live) return false
-    const r = live.getBoundingClientRect()
-    return r.left >= box.left - 1 && r.right <= box.right + 1
-  })
-  note(followed, 'with no shot picked, the shot on screen is in the row')
-
-  // The button picks the shot 0.3s before the playhead, not the live chip.
-  let pressed = false
-  const pressUntil = Date.now() + 8000
-  while (Date.now() < pressUntil && !pressed) {
-    pressed = await page.evaluate(() => {
-      const root = document.querySelector('[data-tag-stage]')
-      if (root?.dataset.tagStage !== 'pickFa') return false
-      const contacts = (root.dataset.contacts ?? '').split(',').filter(Boolean).map(Number)
-      const at = Number(root.dataset.time) - 0.3
-      const reached = contacts.filter((c) => c <= at + 0.05).length
-      if (reached !== 4) return false
-      document.querySelector('[data-tag-fa]')?.click()
-      return true
-    })
-    if (!pressed) await page.waitForTimeout(30)
-  }
-  await page.waitForFunction(() => document.querySelector('[data-tag-stage]')?.dataset.fa === '4', { timeout: 3000 })
-  const afterPress = await read(page)
-  note(afterPress.fa === '4' && afterPress.stage === 'faShot', `press on shot 4 sets first attack 4 (fa ${afterPress.fa}, ${afterPress.stage})`)
-
   const tops = await page.evaluate(() => {
     const panel = document.querySelector('[data-tag-panel]')
     return { panel: panel.getBoundingClientRect().top, box: panel.parentElement.getBoundingClientRect().top }

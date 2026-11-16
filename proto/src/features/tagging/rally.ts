@@ -1,7 +1,7 @@
 /**
  * Rally model, ported from the real app's Pass 1 tagger (pure, no React).
- * One rally = tapped contacts, then: result of the end shot, its wing and
- * stroke, the first attack (or none), and that shot's wing and stroke.
+ * One rally = tapped contacts, then: the first attack (or none), the result
+ * of the end shot, its wing and stroke, and the first attack's wing and stroke.
  */
 
 export type Side = 'me' | 'them'
@@ -111,7 +111,8 @@ export type Draft = {
   serveChecked?: boolean
 }
 
-export type Stage = 'contacts' | 'result' | 'endShot' | 'pickFa' | 'faShot' | 'ready'
+/** In the order they are asked. The pick comes first from three shots up. */
+export type Stage = 'contacts' | 'pickFa' | 'result' | 'endShot' | 'faShot' | 'ready'
 
 export function emptyDraft(videoId: string, server: Side): Draft {
   return {
@@ -306,8 +307,14 @@ export function faAttrsComplete(d: Draft): boolean {
   return hasWingStroke(d.shots[d.fa - 1])
 }
 
+/**
+ * Three shots or more: the pick first, then the result and the questions.
+ * One shot has no pick. Two shots have no pick either: shot 2's stroke
+ * decides it (`applyAutoSkip`), so it is asked last only if that left it open.
+ */
 export function stageOf(d: Draft): Stage {
   if (!d.closed) return 'contacts'
+  if (!faDecided(d) && endShot(d) >= 3) return 'pickFa'
   if (!d.ending) return 'result'
   if (!endAttrsComplete(d)) return 'endShot'
   if (!faDecided(d)) return 'pickFa'
@@ -446,17 +453,32 @@ export function shotAtTime(d: Draft, localTime: number, lag = 0): number | null 
   return reached >= 2 ? reached : null
 }
 
-/** No attack is not offered once the end shot is Flick, Loop, Drive or Smash. */
+/**
+ * No attack is offered on every rally past the serve. The pick comes before
+ * the end shot's stroke is asked, so what that stroke will be is not known.
+ */
 export function noAttackOffered(d: Draft): boolean {
-  const stroke = d.shots[endShot(d) - 1]?.stroke ?? ''
-  return !isAttackStroke(stroke)
+  return endShot(d) >= 2
 }
 
+/**
+ * No attack takes the first attack off. A Flick, Loop, Drive or Smash kept on
+ * the end shot (Edit, or Change first attack) goes with it, so that stroke is
+ * asked again on the Defensive side. Strokes on other shots stay in the draft:
+ * Save leaves out the ones with no row.
+ */
 export function toggleNoAttack(d: Draft): Draft {
   if (d.noAttack) return { ...d, noAttack: false }
   if (!noAttackOffered(d)) return d
-  // Strokes answered on other shots stay in the draft. Save leaves out the ones with no row.
-  return { ...d, noAttack: true, fa: null }
+  const n = endShot(d)
+  if (!isAttackStroke(d.shots[n - 1]?.stroke ?? '')) return { ...d, noAttack: true, fa: null }
+  const shots = d.shots.map((s, i) => {
+    if (i !== n - 1) return s
+    const open = { ...s }
+    delete open.stroke
+    return open
+  })
+  return { ...d, noAttack: true, fa: null, shots }
 }
 
 /** The end shot of a two shot rally: its stroke is the first attack answer, so the switch can still flip. */

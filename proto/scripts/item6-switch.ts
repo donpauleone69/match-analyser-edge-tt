@@ -178,7 +178,9 @@ function pressFlip(d: Draft, shot: number, shown: StrokeSide): { d: Draft; shown
     ending: 'Winner',
     shots: [{}, {}, {}, { ...wing, stroke: 'Smash' }],
   })
-  ok('S13 No attack not offered', noAttackOffered(d) === false && toggleNoAttack(d) === d)
+  // The pick comes before the end shot's stroke, so No attack is always offered. Choosing it takes the Smash off.
+  const none = toggleNoAttack(d)
+  ok('S13 No attack offered, and the Smash on the end shot goes', noAttackOffered(d) && none.noAttack && none.fa === null && none.shots[3].stroke === undefined && none.shots[3].wing === wing.wing)
 }
 
 // S14

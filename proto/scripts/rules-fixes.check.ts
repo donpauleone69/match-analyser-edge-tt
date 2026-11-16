@@ -17,6 +17,7 @@ import {
   fieldsFor,
   insertContact,
   markFa,
+  noAttackOffered,
   patchShot,
   rallyFromDraft,
   reopenFaPick,
@@ -200,9 +201,10 @@ console.log('\nFault 3: keys are pure')
 
   check('key A: the side after it is the other one', sideAfterShotKey(d, 5, 'a') === 'defensive' && sideAfterShotKey(d, 5, 'A', 'defensive') === 'offensive')
   check('key A on a fixed switch, on a shot with no stroke row, or any other key: no new side', sideAfterShotKey(d, 4, 'a') === null && sideAfterShotKey(d, 3, 'a') === null && sideAfterShotKey(d, 5, 'd') === null)
-  check('key A while the result is asked: nothing', sideAfterShotKey(tapped(4), 4, 'a') === null && applyShotKey(tapped(4), 4, 'a') === null)
-  check('the same shot once the result is in: A gives the other side, so it was the result step that held it', !switchOf(tapped(4, 'Winner'), 4).fixed && sideAfterShotKey(tapped(4, 'Winner'), 4, 'a') === 'defensive')
-  check('stroke and wing keys while the result is asked: nothing', ['s', 'd', 'f', 'g', 'h', 'z', 'x'].every((k) => applyShotKey(tapped(4), 4, k) === null))
+  const picked4 = markFa(tapped(4), 2)
+  check('key A while the pick or the result is asked: nothing', [tapped(4), picked4].every((x) => sideAfterShotKey(x, 4, 'a') === null && applyShotKey(x, 4, 'a') === null))
+  check('the same shot once the result is in: A gives the other side, so it was the result step that held it', !switchOf(setEnding(picked4, 'Winner'), 4).fixed && sideAfterShotKey(setEnding(picked4, 'Winner'), 4, 'a') === 'defensive')
+  check('stroke and wing keys while the pick or the result is asked: nothing', [tapped(4), picked4].every((x) => ['s', 'd', 'f', 'g', 'h', 'z', 'x'].every((k) => applyShotKey(x, 4, k) === null)))
   check('key A on Block leaves the draft alone', applyShotKey(d, 5, 'a') === null)
   const loop6 = patchShot(d, 6, { stroke: 'Loop' })
   check('key A on Loop clears that stroke only', applyShotKey(loop6, 6, 'a')?.shots[5].stroke === undefined && J(applyShotKey(loop6, 6, 'a')?.shots.slice(0, 5)) === J(loop6.shots.slice(0, 5)))
@@ -637,24 +639,73 @@ console.log('\nFewer questions per shot')
   check('Intent pressed again clears it, and a second answer replaces the first', toggleShotField(toggleShotField(d, 3, 'intent', 'Neutral'), 3, 'intent', 'Neutral').shots[2].intent === undefined && toggleShotField(toggleShotField(d, 3, 'intent', 'Safe'), 3, 'intent', 'Neutral').shots[2].intent === 'Neutral')
 
   // Status words.
-  const asked = tapped(4, 'Winner')
+  const asked = markFa(tapped(4, 'Winner'), 3)
   check('status at the last shot: "Stroke and wing of shot 4"', stageOf(asked) === 'endShot' && statusText(asked) === 'Stroke and wing of shot 4', statusText(asked))
-  const askedFa = markFa(ws(asked, 4, 'FH', 'Smash'), 3)
+  const askedFa = ws(asked, 4, 'FH', 'Smash')
   check('status at the first attack: "Stroke and wing of shot 3"', stageOf(askedFa) === 'faShot' && statusText(askedFa) === 'Stroke and wing of shot 3', statusText(askedFa))
-  check('the other status words are as they were', statusText(emptyDraft('v', 'me')) === 'Tap each contact' && statusText(tapped(4)) === 'Result of shot 4' && statusText(ws(asked, 4, 'FH', 'Smash')) === 'Pick the first attack' && statusText(d) === 'Ready to save')
+  check('the other status words are as they were', statusText(emptyDraft('v', 'me')) === 'Tap each contact' && statusText(tapped(4)) === 'Pick the first attack' && statusText(markFa(tapped(4), 3)) === 'Result of shot 4' && statusText(tapped(2)) === 'Result of shot 2' && statusText(d) === 'Ready to save')
 
-  // The Save gate, the step order and the two shot rule are as they were.
-  check('step order: result, last shot, pick, first attack shot, ready', (() => {
+  // The step order: contacts, the pick, then the result and the questions. The Save gate and the two shot rule are as they were.
+  check('step order: pick, result, last shot, first attack shot, ready', (() => {
     const order: string[] = []
     let x = tapped(5)
+    order.push(stageOf(x)); x = markFa(x, 3)
     order.push(stageOf(x)); x = setEnding(x, 'Winner')
     order.push(stageOf(x)); x = patchShot(x, 5, { stroke: 'Smash' })
     order.push(stageOf(x)); x = patchShot(x, 5, { wing: 'FH' })
-    order.push(stageOf(x)); x = markFa(x, 3)
     order.push(stageOf(x)); x = patchShot(x, 3, { stroke: 'Loop' })
     order.push(stageOf(x)); x = patchShot(x, 3, { wing: 'BH' })
     order.push(stageOf(x))
-    return order.join(' ') === 'result endShot endShot pickFa faShot faShot ready'
+    return order.join(' ') === 'pickFa result endShot endShot faShot faShot ready'
+  })())
+  check('step order with No attack: pick, result, last shot (Defensive, fixed), ready', (() => {
+    const order: string[] = []
+    let x = tapped(4)
+    order.push(stageOf(x)); x = toggleNoAttack(x)
+    order.push(stageOf(x)); x = setEnding(x, 'Long')
+    order.push(stageOf(x))
+    const sw = switchOf(x, 4)
+    x = ws(x, 4, 'BH', 'Push')
+    order.push(stageOf(x))
+    return order.join(' ') === 'pickFa result endShot ready' && sw.side === 'defensive' && sw.fixed && canSave(x)
+  })())
+  check('one shot (a serve error): no pick, the result first, then ready', (() => {
+    const x = tapped(1)
+    return stageOf(x) === 'result' && stageOf(setEnding(x, 'Net')) === 'ready'
+  })())
+  check('two shots: no pick, result then the last shot, whose stroke decides', (() => {
+    const x = tapped(2)
+    const r = setEnding(x, 'Long')
+    return stageOf(x) === 'result' && stageOf(r) === 'endShot' && stageOf(ws(r, 2, 'BH', 'Push')) === 'ready' && stageOf(ws(r, 2, 'FH', 'Loop')) === 'ready'
+  })())
+  check('the pick is the first step from 3 to 9 shots, and the result waits for it', [3, 4, 5, 6, 7, 8, 9].every((n) => stageOf(tapped(n)) === 'pickFa' && stageOf(tapped(n, 'Winner')) === 'pickFa' && stageOf(markFa(tapped(n), 2)) === 'result'))
+  check('Change first attack after the questions: back to the pick, every answer kept, then straight to the new shot', (() => {
+    let x = ws(ws(markFa(tapped(6, 'Winner'), 3), 6, 'FH', 'Smash'), 3, 'BH', 'Loop')
+    const back = reopenFaPick(x)
+    x = markFa(back, 4)
+    return canSave(ws(ws(markFa(tapped(6, 'Winner'), 3), 6, 'FH', 'Smash'), 3, 'BH', 'Loop')) && stageOf(back) === 'pickFa' && back.ending === 'Winner' && back.shots[5].stroke === 'Smash' && stageOf(x) === 'faShot' && x.fa === 4 && x.shots[2].stroke === 'Loop'
+  })())
+  check('opening a saved rally: ready, no step asked again', (() => {
+    const x = ws(ws(markFa(tapped(5, 'Long'), 2), 5, 'BH', 'Push'), 2, 'FH', 'Flick')
+    const none = ws(setEnding(toggleNoAttack(tapped(5)), 'Long'), 5, 'BH', 'Push')
+    return [x, none].every((r) => stageOf(draftFromRally(rallyFromDraft(r, 'r')!)) === 'ready')
+  })())
+  check('No attack at the pick on a fresh rally: offered from two shots up, not on a serve only rally', !noAttackOffered(tapped(1)) && [2, 3, 6].every((n) => noAttackOffered(tapped(n))))
+  check('No attack after Change, with Smash kept on the last shot: offered, and the Smash goes so that stroke is asked again on the Defensive side', (() => {
+    const x = ws(ws(markFa(tapped(5, 'Winner'), 3), 5, 'FH', 'Smash'), 3, 'BH', 'Loop')
+    const none = toggleNoAttack(reopenFaPick(x))
+    const sw = switchOf(none, 5)
+    return noAttackOffered(reopenFaPick(x)) && none.noAttack && none.fa === null && none.shots[4].stroke === undefined && none.shots[4].wing === 'FH' && none.shots[2].stroke === 'Loop' && stageOf(none) === 'endShot' && sw.side === 'defensive' && sw.fixed
+  })())
+  check('No attack with a Defensive stroke kept on the last shot: that stroke stays and the rally is ready', (() => {
+    const x = ws(ws(markFa(tapped(5, 'Long'), 3), 5, 'BH', 'Push'), 3, 'BH', 'Loop')
+    const none = toggleNoAttack(reopenFaPick(x))
+    return none.shots[4].stroke === 'Push' && stageOf(none) === 'ready'
+  })())
+  check('Delete last that removes the first attack shot: the pick is asked again before the result', (() => {
+    const x = ws(ws(markFa(tapped(5, 'Winner'), 5), 5, 'FH', 'Smash'), 4, 'BH', 'Push')
+    const y = undoClosedContact(x)
+    return y.fa === null && stageOf(y) === 'pickFa'
   })())
   check('every shot the Save gate asks about has Wing and Stroke rows, on every length and first attack', (() => {
     for (let n = 2; n <= 9; n++) {
@@ -758,7 +809,8 @@ console.log('\nKey rows')
   check('home row on a reply, Defensive: S Block, D Lob, F Push, G Chop, H nothing', ['s', 'd', 'f', 'g'].map((k) => applyShotKey(d, 5, k, 'defensive')?.shots[4].stroke).join(' ') === 'Block Lob Push Chop' && applyShotKey(d, 5, 'h', 'defensive') === null)
   check('home row on the first attack: S nothing, D Flick, F Loop, G Drive, H Smash', applyShotKey(d, 4, 's') === null && ['d', 'f', 'g', 'h'].map((k) => applyShotKey(d, 4, k)?.shots[3].stroke).join(' ') === 'Flick Loop Drive Smash')
   check('bottom row: Z is BH, X is FH, and the same key again clears it', applyShotKey(d, 5, 'z')?.shots[4].wing === 'BH' && applyShotKey(d, 5, 'X')?.shots[4].wing === 'FH' && applyShotKey(applyShotKey(d, 5, 'z')!, 5, 'z')?.shots[4].wing === undefined)
-  check('top row: the result keys are as they were', ['q', 'w', 'e', 'r', 't', 'y'].map((k) => applyShotKey(tapped(3), 3, k)?.ending).join(' ') === 'Winner Lucky Net Long Wide Air')
+  check('top row: the result keys are as they were', ['q', 'w', 'e', 'r', 't', 'y'].map((k) => applyShotKey(markFa(tapped(3), 2), 3, k)?.ending).join(' ') === 'Winner Lucky Net Long Wide Air')
+  check('during the pick no shot key answers, the result keys included', ['q', 'w', 'a', 's', 'f', 'z', 'x'].every((k) => applyShotKey(tapped(3), 3, k) === null && applyShotKey(tapped(5), 4, k) === null))
   check('the old stroke keys C V B N and the old wing key on the home row no longer answer', ['c', 'v', 'b', 'n', 'm', ','].every((k) => applyShotKey(d, 5, k) === null) && applyShotKey(d, 5, 'a')?.shots[4].wing === undefined)
   check('keys handled by the screen are not shot keys: K, L, P', ['k', 'l', 'p'].every((k) => applyShotKey(d, 5, k) === null))
 }
