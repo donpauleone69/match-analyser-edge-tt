@@ -136,7 +136,7 @@ import {
   type SeqPlace,
 } from './sequence'
 import { NO_ATTACK_KEY, applyPanelKey } from './shotKeys'
-import { countOptional, editNote, pushTagLog, tagLogTable, type FlowName, type TagLogLine } from './tagLog'
+import { copyTagLog, countOptional, editNote, pushTagLog, type FlowName, type TagLogLine } from './tagLog'
 import { EndPanel, ShotPanel, TimeRow, TrimRow } from './ShotPanel'
 import { ShotRail } from './ShotRail'
 import { TAG_LOCK_LINE, useTagLock, type TagLock } from './tagLock'
@@ -2033,11 +2033,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       onCopyTimings={
         searchParams.has('flow')
           ? () => {
-              const text = tagLogTable()
-              void navigator.clipboard.writeText(text).then(
-                () => setHint('Timings copied'),
-                () => setHint('Could not copy timings')
-              )
+              void copyTagLog().then((done) => setHint(done ? 'Timings copied' : 'Could not copy timings'))
             }
           : undefined
       }
@@ -2111,8 +2107,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const flowShown: FlowName = mode === 'tagging' && flowLock ? flowLock : flowWanted
   const onFlowToggle = () => {
     const next = new URLSearchParams(searchParams)
-    if (flowWanted === 'sequential') next.delete('flow')
-    else next.set('flow', 'sequential')
+    next.set('flow', flowWanted === 'sequential' ? 'current' : 'sequential')
     setSearchParams(next, { replace: true })
   }
 

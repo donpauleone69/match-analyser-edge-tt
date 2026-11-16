@@ -1,7 +1,7 @@
 /**
  * Side log for the two tagging modes. One line per rally, kept in this
- * browser tab, never on the rally itself. Both modes write the same shape
- * so the times can be compared.
+ * browser (it outlives the tab), never on the rally itself. Both modes
+ * write the same shape so the times can be compared.
  */
 
 import { isError, type Draft, type RallyData, type Side } from './rally'
@@ -32,7 +32,7 @@ const KEY = 'proto-tag-timings'
 
 export function readTagLog(): TagLogLine[] {
   try {
-    const raw = sessionStorage.getItem(KEY)
+    const raw = localStorage.getItem(KEY)
     const parsed = raw ? (JSON.parse(raw) as unknown) : []
     return Array.isArray(parsed) ? (parsed as TagLogLine[]) : []
   } catch {
@@ -44,7 +44,7 @@ export function pushTagLog(line: TagLogLine) {
   const all = readTagLog()
   all.push(line)
   try {
-    sessionStorage.setItem(KEY, JSON.stringify(all))
+    localStorage.setItem(KEY, JSON.stringify(all))
   } catch {
     /* The log is for the comparison. A full tab must not block Save. */
   }
@@ -119,4 +119,37 @@ export function tagLogTable(lines: TagLogLine[] = readTagLog()): string {
     ].join('\t')
   )
   return [HEAD.join('\t'), ...rows].join('\n')
+}
+
+/**
+ * Copies the log. The clipboard API is missing on a plain http address (a
+ * phone on the dev server's network address), so a hidden text box is the
+ * fallback there.
+ */
+export async function copyTagLog(text: string = tagLogTable()): Promise<boolean> {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text)
+      return true
+    }
+  } catch {
+    /* fall through to the text box */
+  }
+  const box = document.createElement('textarea')
+  box.value = text
+  box.setAttribute('readonly', '')
+  box.style.position = 'fixed'
+  box.style.top = '0'
+  box.style.opacity = '0'
+  document.body.appendChild(box)
+  box.select()
+  box.setSelectionRange(0, text.length)
+  let done = false
+  try {
+    done = document.execCommand('copy')
+  } catch {
+    done = false
+  }
+  box.remove()
+  return done
 }
