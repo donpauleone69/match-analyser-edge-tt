@@ -284,7 +284,7 @@ export function ShotPanel({
               )
             })}
           </div>
-          <div className="h-1.5" />
+          <div className="h-1.5" data-stroke-gap />
           <Cells>
             {strokes.map((name) => (
               <Answer

@@ -500,3 +500,17 @@ button[disabled] {
   }
 }
 
+/* A viewport under 660 high. Cells stay 32 and the foot stays 48. 660 itself is unchanged. */
+@media (max-height: 659px) {
+  .tag-set [data-words-line] {
+    margin-top: 6px;
+  }
+  .tag-set [data-shot-panel] {
+    padding-top: 6px;
+    gap: 8px;
+  }
+  .tag-set [data-stroke-gap] {
+    height: 4px;
+  }
+}
+

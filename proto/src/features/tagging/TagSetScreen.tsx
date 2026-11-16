@@ -1802,6 +1802,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
         >
           {/* Status, with the rally's second-rank actions beside it, away from the thumb. */}
           <div
+            data-words-line={livePlain ? '' : undefined}
             className={cn(
               'flex gap-1.5',
               livePlain ? 'mt-2.5 min-h-[var(--btn-kind-control)] items-center' : 'mb-1.5 items-stretch',
