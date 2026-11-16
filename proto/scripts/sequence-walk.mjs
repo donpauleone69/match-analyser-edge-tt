@@ -108,6 +108,8 @@ for (const size of SIZES) {
   await tapRally(1)
   let s = await fits('r1-end')
   check(`${S} 1 shot opens on End`, s.title.startsWith('End'), s.title)
+  const aceSwitch = ((await page.locator('[data-tag-switch]').first().textContent()) ?? '').replace(/\s+/g, ' ').trim()
+  check(`${S} 1 shot offers the server switch`, aceSwitch.endsWith('serving') && s.title.includes(aceSwitch.replace(/ serving$/, '')), `${aceSwitch} / ${s.title}`)
   check(`${S} 1 shot foot is Next and dark`, s.foot === 'Next:off', s.foot)
   await foot()
   await foot()
@@ -157,7 +159,11 @@ for (const size of SIZES) {
 
   // 3 shots: Next, Next (Defensive) to End, Winner, then shot 3.
   await tapRally(3)
+  const serveLoop = await page.locator('[data-tag-mode]').getAttribute('data-loop-a')
   await foot()
+  await sleep(700)
+  const laterLoop = await page.locator('[data-tag-mode]').getAttribute('data-loop-a')
+  check(`${S} the loop window follows the open shot`, Boolean(serveLoop) && serveLoop !== laterLoop, `${serveLoop} then ${laterLoop}`)
   await sleep(700)
   s = await state()
   check(`${S} 3 shot Next on serve goes to 2`, s.title.startsWith('2'), s.title)
@@ -248,6 +254,25 @@ for (const size of SIZES) {
   lines = await log()
   check(`${S} 6 shot saved fa 3`, lines.length === 4 && lines[3].fa === 3 && lines[3].mode === 'sequential', JSON.stringify(lines[3]))
 
+  // 3 shots, Defensive already lit: Push then BH goes straight to Save.
+  await tapRally(3)
+  await foot()
+  await sleep(700)
+  await foot()
+  await sleep(700)
+  await cell('Winner')
+  await sleep(800)
+  await cell('Push')
+  await sleep(200)
+  await cell('BH')
+  await sleep(800)
+  s = await state()
+  check(`${S} push on the last shot goes to Save`, s.foot === 'Save:on' && !s.title.startsWith('2'), `${s.title} ${s.foot}`)
+  await foot()
+  await sleep(1200)
+  lines = await log()
+  check(`${S} push rally saved as no attack`, lines.length === 5 && lines[4].fa === null && lines[4].shots === 3, JSON.stringify(lines[4]))
+
   // The toggle steps Shot by shot, End first, Current. Then the next rally is the current mode. Copy timings.
   await tapAt('[data-flow-toggle]')
   await sleep(400)
@@ -257,13 +282,15 @@ for (const size of SIZES) {
   s = await state()
   const endHold = await page.locator('[data-tag-mode]').getAttribute('data-loop-hold')
   check(`${S} end first opens on End`, s.flow === 'endfirst' && s.title.startsWith('End'), `${s.flow} ${s.title}`)
+  const endFirstSwitch = ((await page.locator('[data-tag-switch]').first().textContent()) ?? '').replace(/\s+/g, ' ').trim()
+  check(`${S} end first 1 shot offers the server switch`, endFirstSwitch.endsWith('serving') && s.title.includes(endFirstSwitch.replace(/ serving$/, '')), `${endFirstSwitch} / ${s.title}`)
   check(`${S} end first pauses one second`, endHold === '1', endHold ?? '')
   await cell('Winner')
   await sleep(700)
   await foot()
   await sleep(1200)
   lines = await log()
-  check(`${S} end first rally logged`, lines.length === 5 && lines[4].mode === 'endfirst', JSON.stringify(lines[4]))
+  check(`${S} end first rally logged`, lines.length === 6 && lines[5].mode === 'endfirst', JSON.stringify(lines[5]))
   await tapAt('[data-flow-toggle]')
   await sleep(400)
   check(`${S} toggle sets flow=current`, page.url().includes('flow=current'), page.url())
@@ -277,7 +304,7 @@ for (const size of SIZES) {
   await foot()
   await sleep(1200)
   lines = await log()
-  check(`${S} current rally logged as current`, lines.length === 6 && lines[5].mode === 'current', JSON.stringify(lines[5]))
+  check(`${S} current rally logged as current`, lines.length === 7 && lines[6].mode === 'current', JSON.stringify(lines[6]))
   if (size.mobile) {
     const ral = page.getByRole('button', { name: /^Rallies \d+$/ }).first()
     if (await ral.count()) {
@@ -293,8 +320,44 @@ for (const size of SIZES) {
     await copy.first().tap()
     await sleep(500)
     const clip = await page.evaluate(() => navigator.clipboard.readText().catch(() => ''))
-    check(`${S} Copy timings copies the rows`, clip.trim().split('\n').length >= 7, clip.split('\n')[0])
+    check(`${S} Copy timings copies the rows`, clip.trim().split('\n').length >= 8, clip.split('\n')[0])
   }
+  if (await page.locator('[aria-label="Close rallies"]').count()) {
+    await tapAt('[aria-label="Close rallies"]')
+    await sleep(400)
+  }
+  // Current flow: Loop on the end shot must not offer No attack. Block still does.
+  await tapRally(3)
+  await cell('Winner')
+  await sleep(800)
+  await cell('Loop')
+  await sleep(250)
+  await cell('FH')
+  await sleep(900)
+  check(
+    `${S} attacking end stroke hides No attack`,
+    (await page.locator('[data-action="no-attack"]').count()) === 0 && (await page.locator('[data-tag-zone="fa"]').count()) === 1,
+    `no-attack ${await page.locator('[data-action="no-attack"]').count()} zone ${await page.locator('[data-tag-zone="fa"]').count()}`
+  )
+  await page.keyboard.press('0')
+  await sleep(300)
+  check(
+    `${S} key 0 leaves the attacking end stroke`,
+    (await page.locator('[data-tag-zone="fa"]').count()) === 1 && (await page.locator('[data-action="no-attack"]').count()) === 0
+  )
+  await tapAt('[data-foot="discard"]')
+  await sleep(1200)
+  await tapRally(3)
+  await cell('Winner')
+  await sleep(800)
+  await cell('Block')
+  await sleep(250)
+  await cell('BH')
+  await sleep(900)
+  check(
+    `${S} a block on the end shot still offers No attack`,
+    (await page.locator('[data-action="no-attack"]').count()) === 1 && (await page.locator('[data-tag-zone="fa"]').count()) === 1
+  )
   await tapAt('[data-flow-toggle]').catch(() => {})
   check(`${S} no page errors`, errors.length === 0, errors.join(' | '))
   await ctx.close()

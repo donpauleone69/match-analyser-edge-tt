@@ -86,11 +86,13 @@ import {
   captureContactTime,
   draftFromRally,
   emptyDraft,
+  endShot,
   hitterOf,
   insertContact,
   loopShotOf,
   reopenFaPick,
   shotAtTime,
+  isAttackStroke,
   tapIgnored,
   faRefusal,
   faRefusalText,
@@ -134,6 +136,7 @@ import {
   nextStop,
   openAt,
   pressSide,
+  settleLastStroke,
   shotComplete,
   type SeqPlace,
   type SeqStop,
@@ -728,8 +731,9 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const afterEnd = (d: Draft, place: SeqStop): SeqPlace => nextStop(d, place)
 
   /** A tag change, then the hand-over the real app does between steps. */
-  const seqOnAnswer = (next: Draft) => {
+  const seqOnAnswer = (nextIn: Draft) => {
     const place = walkRef.current
+    const next = place?.kind === 'shot' && place.shot === endShot(nextIn) ? settleLastStroke(nextIn) : nextIn
     writeDraft(next)
     if (!place || place.kind === 'ready') return
     if (place.kind === 'end') {
@@ -1771,6 +1775,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
 
   const onNoAttack = () => {
     if (!active || readOnly || stageOf(active) !== 'pickFa') return
+    if (isAttackStroke(active.shots[endShot(active) - 1]?.stroke ?? '')) return
     change(toggleNoAttack(active))
     arm(GUARD_AFTER_SWAP_MS)
   }
@@ -1794,7 +1799,8 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     !readOnly &&
     n >= 3 &&
     stage === 'pickFa' &&
-    noAttackOffered(active)
+    noAttackOffered(active) &&
+    !isAttackStroke(active.shots[n - 1]?.stroke ?? '')
 
   // Keys (desktop). Space is the pad. Backspace deletes a tap while tapping
   // and steps back 5 seconds between rallies. Enter saves whenever Save is
@@ -2041,8 +2047,11 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     active && asked && badgeTick >= 0 && badgeClock.current.shot === asked && performance.now() < badgeClock.current.until
       ? { shot: asked, side: hitterOf(active.server, asked) }
       : null
-  const loopNow =
-    active && stage && (mode === 'tagging' || mode === 'edit') ? windowFor(active, selected, stage, tight) : null
+  const loopNow = seqLive
+    ? player.getLoop()
+    : active && stage && (mode === 'tagging' || mode === 'edit')
+      ? windowFor(active, selected, stage, tight)
+      : null
   /** Where am I: one line, between rallies and on coming back. */
   const whereLine = [
     setLine,
@@ -2780,7 +2789,8 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
           {(slotKind === 'add' ||
             slotKind === 'edit' ||
             ((slotKind === 'pad' || slotKind === 'save') && edit) ||
-            (seqLive && walk?.kind === 'shot' && walk.shot === 1)) &&
+            (seqLive &&
+              ((walk?.kind === 'shot' && walk.shot === 1) || (walk?.kind === 'end' && n === 1)))) &&
           !readOnly ? (
             <button
               type="button"
@@ -2893,7 +2903,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                 >
                   Delete last
                 </button>
-              ) : rightKind === 'no-attack' ? (
+              ) : rightKind === 'no-attack' && askNoAttack ? (
                 <button
                   type="button"
                   data-action="no-attack"

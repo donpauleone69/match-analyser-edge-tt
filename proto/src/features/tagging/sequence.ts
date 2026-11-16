@@ -19,6 +19,7 @@ import {
   endShot,
   faDecided,
   flipSwitch,
+  isAttackStroke,
   isError,
   markFa,
   noAttackOffered,
@@ -134,6 +135,19 @@ export function nextAllowed(d: Draft, place: SeqStop): boolean {
   const needs = place.shot === endShot(d) || d.fa === place.shot
   if (needs && (!tags?.stroke || !tags?.wing)) return false
   return true
+}
+
+/**
+ * A defensive stroke on the last shot, with no attack chosen yet, is No attack.
+ * The stroke stays. An attacking stroke does not decide it: that shot can still
+ * be the first attack. Two shots already decide this in `applyAutoSkip`.
+ */
+export function settleLastStroke(d: Draft): Draft {
+  const n = endShot(d)
+  if (n < 3 || faDecided(d)) return d
+  const stroke = d.shots[n - 1]?.stroke ?? ''
+  if (!stroke || isAttackStroke(stroke)) return d
+  return toggleNoAttack(d)
 }
 
 /** The last shot still needs its details, or the first attack is not decided yet. */

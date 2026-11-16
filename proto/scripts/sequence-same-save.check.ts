@@ -20,6 +20,7 @@ import {
   pairSide,
   pressSide,
   rowsFor,
+  settleLastStroke,
   shotComplete,
   shouldStop,
   type SeqPlace,
@@ -303,6 +304,7 @@ function walk(start: Draft, steps: Step[]): { d: Draft; trail: string; place: Se
     } else if (step[0] === 'field') {
       const shot = stop.kind === 'shot' ? stop.shot : d.contacts.length
       d = toggleShotField(d, shot, step[1], step[2] as never)
+      if (stop.kind === 'shot' && shot === d.contacts.length) d = settleLastStroke(d)
       if (stop.kind === 'end') go(nextStop(d, stop))
       else if (shotComplete(d, stop.shot)) go(nextStop(d, stop))
     } else if (step[0] === 'result') {
@@ -371,6 +373,18 @@ function walk(start: Draft, steps: Step[]): { d: Draft; trail: string; place: Se
   current = toggleShotField(current, 3, 'stroke', 'Loop')
   current = toggleShotField(current, 3, 'wing', 'FH')
   same('walk 3 shots attack on the last', w.d, current)
+}
+
+{
+  // 3 shots: Next, Next, Winner, then Push and BH with Defensive already lit.
+  const w = walk(taps(3), [['next'], ['next'], ['result', 'Winner'], ['field', 'stroke', 'Push'], ['field', 'wing', 'BH']])
+  ok('walk 3 shots push goes to Ready', w.trail === 's1 s2 end s3 ready', w.trail)
+  ok('push on the last shot is no attack', w.d.noAttack && w.d.fa === null && w.d.shots[2]?.stroke === 'Push')
+  let current = setEnding(taps(3), 'Winner')
+  current = toggleNoAttack(current)
+  current = toggleShotField(current, 3, 'stroke', 'Push')
+  current = toggleShotField(current, 3, 'wing', 'BH')
+  same('walk 3 shots push saves as no attack', w.d, current)
 }
 
 {
