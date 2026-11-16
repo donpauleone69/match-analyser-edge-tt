@@ -48,6 +48,19 @@
   --color-side-them: #f97316;
   --color-shot-fa: #16a34a;
 
+  /* Tagging set screen. Names are the meanings; a later pass changes values only. */
+  --color-tag-player-a: var(--color-side-me);
+  --color-tag-player-b: var(--color-side-them);
+  --color-tag-first-attack: var(--color-shot-fa);
+  --color-tag-first-attack-text: #15803d;
+  --color-tag-error: var(--color-danger);
+  --color-tag-error-text: #b91c1c;
+  --color-tag-mark-set: var(--color-warning);
+  --color-tag-chosen: var(--color-brand-primary);
+  --color-tag-rest: rgba(120,130,150,0.13);
+  --color-tag-on-solid: #0b1220;
+  --color-tag-end-open: #334155;
+
   --color-border: var(--theme-border);
   --color-border-strong: var(--theme-border-strong);
   --color-pill-idle: var(--theme-pill-idle);
@@ -344,6 +357,15 @@ button[disabled] {
   font-weight: 500 !important;
 }
 
+/* Shot cells that stay tinted while they cannot be pressed. The rule above would wipe the fill. */
+[data-rail-row] button[data-shot-look="keep"]:disabled {
+  background-color: var(--shot-fill) !important;
+  border-color: var(--shot-line) !important;
+  color: var(--shot-ink) !important;
+  opacity: var(--shot-fade, 1) !important;
+  font-weight: 700 !important;
+}
+
 /* Tap pad: the 2s with no tap that closes a rally, shown as a draining bar. */
 @keyframes tag-idle-drain {
   from {
@@ -398,6 +420,25 @@ button[disabled] {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  /* This screen only. Mouse: control 32, tap 40. The values are rem, as the built ones are. */
+  --btn-kind-control: 2rem; /* 32px */
+  --btn-kind-tap-pad: 2.5rem; /* 40px */
+  --tag-cell-rest: var(--color-tag-rest);
+  --tag-cell-rest-line: transparent;
+  --tag-shot-line-a: transparent;
+  --tag-shot-line-b: transparent;
+}
+.tag-set[data-cells="outlined"] {
+  --tag-cell-rest: var(--color-pill-idle);
+  --tag-cell-rest-line: var(--color-pill-idle-border);
+  --tag-shot-line-a: color-mix(in srgb, var(--color-tag-player-a) 50%, transparent);
+  --tag-shot-line-b: color-mix(in srgb, var(--color-tag-player-b) 50%, transparent);
+}
+@media (pointer: coarse) {
+  .tag-set {
+    --btn-kind-control: 2.5rem; /* 40px */
+    --btn-kind-tap-pad: 3rem; /* 48px */
+  }
 }
 .tag-media {
   display: flex;
@@ -414,6 +455,13 @@ button[disabled] {
   max-height: 45dvh;
   background: #000;
   overflow: hidden;
+  /* The picture's own controls keep the built height. This screen's control height starts under the strip. */
+  --btn-kind-control: 2.25rem; /* 36px */
+}
+@media (pointer: coarse) {
+  .tag-picture {
+    --btn-kind-control: 2.75rem; /* 44px */
+  }
 }
 .tag-entry {
   position: relative;

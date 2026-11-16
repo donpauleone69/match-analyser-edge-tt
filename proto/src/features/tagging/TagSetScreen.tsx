@@ -8,7 +8,7 @@ import {
   type ReactNode,
   type RefObject,
 } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Button, Icon, buttonKindTapPadSquare, buttonKindTextLink } from '@/ui-mine'
 import { WfEmpty } from '@/layout/Wireframe'
 import {
@@ -234,6 +234,8 @@ function selectionAfter(prev: Stage, next: Stage, d: Draft, current: Mark | null
 
 function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: TagLock }) {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const cellsOutlined = searchParams.get('cells') === 'outlined'
   const { mutateMatch } = useDemo()
   const player = usePlayer(match.videos)
   const playerRef = useRef(player)
@@ -1672,6 +1674,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     <div
       className="tag-set bg-bg-app"
       data-tag-mode={mode}
+      data-cells={cellsOutlined ? 'outlined' : undefined}
       data-tag-stage={stage ?? ''}
       data-tag-adding={addOn ? '' : undefined}
       data-review={review?.kind ?? ''}
@@ -2524,7 +2527,7 @@ function FinishedActions({
 
 function SetHeader({ match, set, children }: SetHeaderProps) {
   return (
-    <header className="h-11 px-2 flex items-center gap-2 border-b border-border bg-bg-app">
+    <header className="h-10 px-2 flex items-center gap-2 border-b border-border bg-bg-app">
       <Link
         to={`/matches/${match.id}/tag`}
         aria-label="Back"

@@ -1,16 +1,34 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, type CSSProperties } from 'react'
 import { cn } from '@/helpers/utils'
 import { hitterOf, stageOf, type Draft, type Mark, type Side } from './rally'
 
 export const railCell =
-  'btn-kind-control relative w-full px-1 rounded-md border text-sm font-bold tabular-nums inline-flex items-center justify-center disabled:opacity-40'
-
-const sideTint: Record<Side, string> = {
-  me: 'bg-side-me/15 border-side-me/50 text-primary',
-  them: 'bg-side-them/15 border-side-them/50 text-primary',
-}
+  'btn-kind-control relative w-full px-1 rounded-md border text-sm font-bold tabular-nums inline-flex items-center justify-center'
 
 const caption = 'h-4 text-[9px] font-bold uppercase tracking-wide leading-4 whitespace-nowrap'
+
+/** Player token, or that token at 15%. Open is the solid token. */
+function shotPaint(side: Side, open: boolean, fa: boolean, dim: boolean): CSSProperties {
+  const token = side === 'me' ? 'var(--color-tag-player-a)' : 'var(--color-tag-player-b)'
+  const fill = open ? token : `color-mix(in srgb, ${token} 15%, transparent)`
+  const line = open
+    ? token
+    : fa
+      ? 'var(--color-tag-first-attack)'
+      : side === 'me'
+        ? 'var(--tag-shot-line-a)'
+        : 'var(--tag-shot-line-b)'
+  const ink = open ? 'var(--color-tag-on-solid)' : 'var(--color-text)'
+  return {
+    backgroundColor: fill,
+    borderColor: line,
+    color: ink,
+    ['--shot-fill' as string]: fill,
+    ['--shot-line' as string]: line,
+    ['--shot-ink' as string]: ink,
+    ['--shot-fade' as string]: dim ? '0.6' : '1',
+  }
+}
 
 function isSelected(selected: Mark | null, shot: number): boolean {
   return selected?.kind === 'shot' && selected.shot === shot
@@ -37,8 +55,10 @@ export function ShotRail({
   const stage = draft ? stageOf(draft) : 'contacts'
   const n = draft?.contacts.length ?? 0
   const tapping = stage === 'contacts'
-  /** While the result and end shot are entered, only the end shot is live. */
-  const locked = stage === 'result' || stage === 'endShot'
+  /** Before the result, every shot stays at 15% and 60% opacity, and cannot be pressed. */
+  const beforeResult = stage === 'result'
+  /** After the result, until the last shot's stroke and wing are in, only that shot is live. */
+  const locked = stage === 'endShot'
 
   // The picked shot stays in view. With none picked, follow the shot on screen.
   // Only the row moves, never the page.
@@ -80,6 +100,10 @@ export function ShotRail({
               const isFa = draft.fa === shot
               const on = isSelected(selected, shot)
               const live = liveShot === shot
+              const side = hitterOf(draft.server, shot)
+              /** Open is the solid cell. Before the result, and while tapping, nothing is open. */
+              const openLook = on && !tapping && !beforeResult
+              const keep = tapping || beforeResult
               return (
                 <div
                   key={shot}
@@ -91,16 +115,11 @@ export function ShotRail({
                     aria-label={`Shot ${shot}`}
                     aria-pressed={on}
                     aria-current={live ? 'true' : undefined}
-                    disabled={tapping || (locked && !isEnd)}
+                    disabled={keep || (locked && !isEnd)}
+                    data-shot-look={keep ? 'keep' : undefined}
                     onClick={() => onShot(shot)}
-                    className={cn(
-                      railCell,
-                      'w-full',
-                      sideTint[hitterOf(draft.server, shot)],
-                      isFa && 'border-shot-fa border-2',
-                      on && 'ring-2 ring-brand-primary',
-                      (tapping || live) && 'disabled:opacity-100'
-                    )}
+                    className={cn(railCell, 'w-full', isFa && !openLook && 'border-2')}
+                    style={shotPaint(side, openLook, isFa && !openLook, beforeResult)}
                   >
                     {shot}
                     {live ? (
@@ -111,7 +130,7 @@ export function ShotRail({
                       />
                     ) : null}
                   </button>
-                  <span className={cn(caption, isFa ? 'text-shot-fa' : 'text-muted')}>
+                  <span className={cn(caption, isFa ? 'text-tag-first-attack' : 'text-muted')}>
                     {isFa ? 'FA' : isEnd ? (draft.ending ?? '') : shot === 1 ? 'Srv' : ''}
                   </span>
                 </div>

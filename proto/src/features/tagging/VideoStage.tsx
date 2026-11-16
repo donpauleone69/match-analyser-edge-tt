@@ -417,14 +417,14 @@ export function VideoStage({
       <button
         type="button"
         aria-label="Match timeline"
-        className="btn-kind-control relative block w-full shrink-0 cursor-pointer"
+        className="relative block h-7 w-full shrink-0 cursor-pointer"
         onClick={(e) => {
           const box = e.currentTarget.getBoundingClientRect()
           onSeek(((e.clientX - box.left) / box.width) * total)
         }}
       >
-        {/* The stripe stays 20px. The rest of the button is the tap area. */}
-        <span className="relative block h-5 bg-bg-elevated border-b border-border overflow-hidden">
+        {/* The stripe fills the 28px strip. */}
+        <span className="relative block h-full bg-bg-elevated border-b border-border overflow-hidden">
         {blocks.map((b, i) => (
           <span
             key={i}
