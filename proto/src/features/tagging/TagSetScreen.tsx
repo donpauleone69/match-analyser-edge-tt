@@ -122,6 +122,7 @@ import { RallyList, type RallyListActions } from './RallyList'
 import { ZERO, addPoint, isSetWon, type Points } from './score'
 import { AnswerKeyPanel } from './AnswerKeyPanel'
 import { NO_ATTACK_KEY, applyPanelKey } from './shotKeys'
+import { countOptional, editNote, pushTagLog, type FlowName, type TagLogLine } from './tagLog'
 import { EndPanel, ShotPanel, TimeRow, TrimRow } from './ShotPanel'
 import { ShotRail } from './ShotRail'
 import { TAG_LOCK_LINE, useTagLock, type TagLock } from './tagLock'
@@ -223,6 +224,53 @@ type ReviewRun =
   | { kind: 'leave'; breakId: string }
 type SetHeaderProps = { match: MatchRecord; set: SetData; children?: ReactNode }
 
+/** Times for one rally, kept off the rally and written when it is saved. */
+type RallyClock = {
+  mode: FlowName
+  firstTap: number
+  tapsEnded: number
+  presses: number
+  nexts: number
+  loops: number
+  reopened: number
+  changed: number
+  discards: number
+}
+
+function freshClock(mode: FlowName): RallyClock {
+  return {
+    mode,
+    firstTap: Date.now(),
+    tapsEnded: 0,
+    presses: 0,
+    nexts: 0,
+    loops: 0,
+    reopened: 0,
+    changed: 0,
+    discards: 0,
+  }
+}
+
+function lineFrom(c: RallyClock, d: Draft | null, edit?: string): TagLogLine {
+  const now = Date.now()
+  return {
+    mode: c.mode,
+    shots: d?.contacts.length ?? 0,
+    server: d?.server ?? 'me',
+    fa: d?.fa ?? null,
+    answerMs: Math.max(0, now - (c.tapsEnded || c.firstTap)),
+    totalMs: Math.max(0, now - c.firstTap),
+    presses: c.presses,
+    nexts: c.nexts,
+    loops: c.loops,
+    reopened: c.reopened,
+    changed: c.changed,
+    discards: c.discards,
+    optional: d ? countOptional(d) : 0,
+    ...(edit ? { edit } : {}),
+  }
+}
+
 /** The stage-driven choice of what is selected after a change. */
 function selectionAfter(prev: Stage, next: Stage, d: Draft, current: Mark | null): Mark | null {
   const end: Mark = { kind: 'shot', shot: d.contacts.length }
@@ -236,8 +284,10 @@ function selectionAfter(prev: Stage, next: Stage, d: Draft, current: Mark | null
 
 function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: TagLock }) {
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const cellsOutlined = searchParams.get('cells') === 'outlined'
+  /** The address. A rally already open keeps the mode it started with. */
+  const flowWanted: FlowName = searchParams.get('flow') === 'sequential' ? 'sequential' : 'current'
   const { mutateMatch } = useDemo()
   const player = usePlayer(match.videos)
   const playerRef = useRef(player)
@@ -273,6 +323,15 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   /** Switch was pressed for the rally now being tagged, even if it was switched back. */
   const serverChosen = useRef(false)
   const [lastSavedId, setLastSavedId] = useState<string | null>(null)
+  /**
+   * The mode locked when tapping ended. Null between rallies, so the address
+   * applies to the next one. Cleared on Save and on Discard.
+   */
+  const [flowLock, setFlowLock] = useState<FlowName | null>(null)
+  /** Side log for the rally being tagged. Not stored on the rally. */
+  const clock = useRef<RallyClock | null>(null)
+  /** A Discard that has not been undone and has not been written yet. */
+  const pendingDiscard = useRef<{ clock: RallyClock; draft: Draft } | null>(null)
   const [review, setReviewState] = useState<ReviewRun | null>(null)
   const reviewRef = useRef<ReviewRun | null>(null)
   const setReview = (next: ReviewRun | null) => {
@@ -348,10 +407,10 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   /** What sits in the bottom slot. A change of it guards the slot for a moment. */
   const slotKind = addOn ? 'add' : mode === 'tagging' ? 'save' : mode === 'edit' || mode === 'finished' ? mode : 'pad'
 
-  const latest = useRef({ live, set, match, floorG, segs, mode, selected, tight, edit, nextServer, stage })
+  const latest = useRef({ live, set, match, floorG, segs, mode, selected, tight, edit, nextServer, stage, flowWanted })
   useEffect(() => {
     playerRef.current = player
-    latest.current = { live, set, match, floorG, segs, mode, selected, tight, edit, nextServer, stage }
+    latest.current = { live, set, match, floorG, segs, mode, selected, tight, edit, nextServer, stage, flowWanted }
   })
 
   /** Play ran into the saved rally ahead of the gap. */
@@ -436,6 +495,11 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       draft = draft.contacts.length > 0 ? { ...draft, closed: true } : null
       const fixed = draft
       mutateMatch(match.id, (m) => setDraft(m, set.setId, fixed))
+    }
+    if (draft && draft.closed && draft.contacts.length > 0) {
+      const modeNow: FlowName = searchParams.get('flow') === 'sequential' ? 'sequential' : 'current'
+      setFlowLock(modeNow)
+      clock.current = { ...freshClock(modeNow), tapsEnded: Date.now() }
     }
     park(draft, set.finished, floorG)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -536,6 +600,17 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   /** A tag change, then the hand-over the real app does between steps. */
   const change = (next: Draft) => {
     if (!active) return
+    if (clock.current) {
+      if (active.ending && next.ending && active.ending !== next.ending) clock.current.changed++
+      if (active.fa !== null && active.fa !== next.fa) clock.current.changed++
+      const count = Math.max(active.shots.length, next.shots.length)
+      for (let i = 0; i < count; i++) {
+        const was = active.shots[i]
+        const now = next.shots[i]
+        if (was?.stroke && now?.stroke && was.stroke !== now.stroke) clock.current.changed++
+        if (was?.wing && now?.wing && was.wing !== now.wing) clock.current.changed++
+      }
+    }
     const prev = stageOf(active)
     const st = stageOf(next)
     const sel = selectionAfter(prev, st, next, selected)
@@ -572,6 +647,11 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     setSelected(null)
     setEndOpen(false)
     setLastTap(null)
+    const wanted = latest.current.flowWanted
+    setFlowLock(wanted)
+    if (!clock.current) clock.current = freshClock(wanted)
+    clock.current.mode = wanted
+    clock.current.tapsEnded = Date.now()
     // A tap that comes late never lands on Save, Discard or a chip. The whole second.
     arm(GUARD_AFTER_CLOSE_MS, GUARD_AFTER_CLOSE_MS, GUARD_AFTER_CLOSE_MS)
   }
@@ -647,6 +727,11 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       return setDraft(m, set.setId, addContact(base, stored))
     })
     if (tapped === 0) {
+      if (pendingDiscard.current) {
+        pushTagLog(lineFrom(pendingDiscard.current.clock, pendingDiscard.current.draft))
+        pendingDiscard.current = null
+      }
+      clock.current = freshClock(latest.current.flowWanted)
       p.setRate(CAPTURE_SPEED)
       // A rally never spans two videos: the end of this one closes it.
       p.setBoundary(seg.offset + seg.duration, () => closeContacts())
@@ -720,6 +805,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       return
     }
     const same = selected?.kind === 'shot' && selected.shot === shot
+    if (!same && stage === 'ready' && clock.current) clock.current.reopened++
     const sel = same ? null : mark
     setEndOpen(false)
     setSelected(sel)
@@ -830,11 +916,24 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     arm(GUARD_AFTER_CLOSE_MS)
     // The same rally is tapped again, so it keeps the server it had.
     if (set.rallies.length > 0) setServerPick(live.server === expected ? null : live.server)
+    if (clock.current) {
+      clock.current.presses++
+      clock.current.discards++
+      pendingDiscard.current = { clock: clock.current, draft: live }
+      clock.current = null
+    }
+    setFlowLock(null)
     setToast({
       text: 'Taps cleared',
       undo: () => {
         mutateMatch(match.id, (m) => restoreSet(m, before))
         setToast(null)
+        const held = pendingDiscard.current
+        pendingDiscard.current = null
+        if (held) {
+          clock.current = held.clock
+          setFlowLock(held.clock.mode)
+        }
         park(before.draft, false, floorG)
       },
     })
@@ -848,6 +947,10 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     const p = playerRef.current
     const before = set
     mutateMatch(match.id, (m) => saveRally(m, set.setId, rally))
+    if (clock.current) pushTagLog(lineFrom(clock.current, live))
+    clock.current = null
+    pendingDiscard.current = null
+    setFlowLock(null)
     setLastSavedId(rally.id)
     setServerPick(null)
     serverChosen.current = false
@@ -1301,6 +1404,16 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       ...(rally.serveChecked || prev?.serveChecked ? { serveChecked: true } : {}),
     }
     mutateMatch(match.id, (m) => replaceRally(m, set.setId, kept))
+    if (prev) {
+      pushTagLog({
+        ...lineFrom(freshClock(flowWanted), edit.draft, editNote(prev, kept)),
+        shots: kept.contacts.length,
+        server: kept.server,
+        fa: kept.fa,
+        answerMs: 0,
+        totalMs: 0,
+      })
+    }
     leaveEdit()
   }
 
@@ -1751,10 +1864,29 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     rightKindSeen.current = rightKind
   }, [rightKind])
 
+  // A loop round: the playhead jumps back while this rally is still the one being tagged.
+  const playedAt = useRef(player.time)
+  useEffect(() => {
+    if (clock.current && player.playing && player.time + 0.4 < playedAt.current) clock.current.loops++
+    playedAt.current = player.time
+  }, [player.time, player.playing])
+
+  const flowShown: FlowName = mode === 'tagging' && flowLock ? flowLock : flowWanted
+  const onFlowToggle = () => {
+    const next = new URLSearchParams(searchParams)
+    if (flowWanted === 'sequential') next.delete('flow')
+    else next.set('flow', 'sequential')
+    setSearchParams(next, { replace: true })
+  }
+
   return (
     <div
       className="tag-set bg-bg-app"
       data-tag-mode={mode}
+      data-flow={flowShown === 'sequential' ? 'sequential' : undefined}
+      onClick={() => {
+        if (clock.current) clock.current.presses++
+      }}
       data-cells={cellsOutlined ? 'outlined' : undefined}
       data-tag-stage={stage ?? ''}
       data-tag-adding={addOn ? '' : undefined}
@@ -1771,6 +1903,16 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       {/* Left on desktop, top on phone: header, picture, timeline, rally list. */}
       <div className="tag-media">
         <SetHeader match={match} set={set}>
+          <Button
+            size="sm"
+            variant="secondary"
+            data-flow-toggle=""
+            aria-pressed={flowWanted === 'sequential'}
+            className={cn('px-3', flowWanted === 'sequential' && 'border-tag-chosen bg-tag-chosen text-on-accent')}
+            onClick={onFlowToggle}
+          >
+            Shot by shot
+          </Button>
           <Button
             size="sm"
             variant="secondary"
@@ -2734,7 +2876,7 @@ function SetHeader({ match, set, children }: SetHeaderProps) {
         <Icon name="chevron-left" size="sm" />
       </Link>
       <div className="min-w-0 flex-1 flex items-baseline gap-2">
-        <h1 className="text-base font-bold text-primary">Set {set.setId}</h1>
+        <h1 className="shrink-0 whitespace-nowrap text-base font-bold text-primary">Set {set.setId}</h1>
         <p className="text-xs text-muted truncate">{matchLabel(match)}</p>
       </div>
       {children}
