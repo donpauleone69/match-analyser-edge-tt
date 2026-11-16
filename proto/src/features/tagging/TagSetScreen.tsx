@@ -169,7 +169,6 @@ type Toast = { text: string; undo?: () => void; extra?: { label: string; run: ()
  */
 const GUARD_AFTER_CLOSE_MS = 1000
 const GUARD_AFTER_SWAP_MS = 600
-const GUARD_PANEL_AFTER_CLOSE_MS = 500
 /** The guard after the idle close looks it. A slot swap ignores presses and does not dim. */
 const BUSY = 'opacity-40'
 const HINT_MS = 2500
@@ -570,8 +569,8 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     setSelected(null)
     setEndOpen(false)
     setLastTap(null)
-    // A tap that comes late never lands on Save, Re-tap, Discard or a chip.
-    arm(GUARD_AFTER_CLOSE_MS, GUARD_PANEL_AFTER_CLOSE_MS, GUARD_AFTER_CLOSE_MS)
+    // A tap that comes late never lands on Save, Discard or a chip. The whole second.
+    arm(GUARD_AFTER_CLOSE_MS, GUARD_AFTER_CLOSE_MS, GUARD_AFTER_CLOSE_MS)
   }
 
   /**
@@ -1365,6 +1364,8 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     setFaSaid(refused ? faRefusalText(refused) : null)
     if (!shot || refused) return
     change(markFa(active, shot))
+    // Whatever the stage opens next, a second press waits a second.
+    arm(0, GUARD_AFTER_CLOSE_MS)
   }
 
   const onNoAttack = () => {
@@ -1376,7 +1377,11 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const onChangeFa = () => {
     if (!active || readOnly) return
     const next = reopenFaPick(active)
-    if (next !== active) change(next)
+    if (next !== active) {
+      change(next)
+      // The zone comes back where the Ready line was.
+      arm(0, GUARD_AFTER_SWAP_MS)
+    }
   }
 
   const n = active ? active.contacts.length : 0
@@ -1706,6 +1711,19 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   )
   const lineButton =
     'btn-kind-control shrink-0 rounded-md border border-border bg-transparent px-3 text-sm font-medium text-primary'
+  // Live tagging only. The answer area, edit, set point, the end of the video, blocked, finished and review keep the built band.
+  const zoneOn =
+    !review &&
+    !edit &&
+    (mode === 'tapping' || (mode === 'watch' && !atEnd) || (mode === 'tagging' && stage === 'pickFa' && !showEnd))
+  const zoneKind = mode === 'tagging' ? 'fa' : 'pad'
+  const padTitle =
+    tapped > 0 ? `Tap shot ${tapped + 1}` : player.playing ? `Tap serve · ${names[padServer]}` : 'Play'
+  const zoneTitle = zoneKind === 'fa' ? 'First attack' : padTitle
+  const zoneLine =
+    zoneKind === 'fa'
+      ? (faSaid ?? 'Tap when you see the first attack')
+      : 'Tap the screen every time the ball is hit'
 
   return (
     <div
@@ -1797,15 +1815,35 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
         <div
           ref={body}
           data-tag-body
-          className="flex min-h-0 flex-1 flex-col overflow-y-auto border-t border-border bg-bg-surface px-2 [overflow-anchor:none]"
-          onClickCapture={guardClicks(panelGuard)}
+          className={cn(
+            'relative flex min-h-0 flex-1 flex-col overflow-y-auto border-t border-border bg-bg-surface px-2 [overflow-anchor:none]',
+            zoneOn && 'pb-3'
+          )}
+          onClickCapture={late ? undefined : guardClicks(panelGuard)}
         >
+          {late && slotKind === 'save' && active ? (
+            <button
+              type="button"
+              data-late-tap
+              aria-label={`Tap shot ${active.contacts.length + 1}`}
+              className="absolute inset-0 z-10 touch-manipulation select-none"
+              onClick={onLateTap}
+            />
+          ) : null}
+          {tapped > 0 && lastTap !== null ? (
+            <span
+              key={lastTap}
+              aria-hidden
+              className="tag-idle-bar pointer-events-none absolute left-0 right-0 top-0 h-1.5 bg-brand-primary/50"
+            />
+          ) : null}
           {/* Status, with the rally's second-rank actions beside it, away from the thumb. */}
           <div
             data-words-line={livePlain ? '' : undefined}
             className={cn(
               'flex gap-1.5',
               livePlain ? 'mt-2.5 min-h-[var(--btn-kind-control)] items-center' : 'mb-1.5 items-stretch',
+              zoneOn && 'hidden',
               livePlain ? lineHidden && 'hidden' : mode !== 'edit' && (selected?.kind === 'shot' || showEnd) && 'hidden'
             )}
             onClickCapture={guardClicks(slotGuard)}
@@ -1903,7 +1941,10 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
             <div
               role="status"
               data-tag-toast
-              className="mb-1.5 flex items-center justify-between gap-3 rounded-md bg-neutral-100 text-neutral-950 pl-3 pr-1 text-sm shadow-lg"
+              className={cn(
+                'mb-1.5 flex items-center justify-between gap-3 rounded-md bg-neutral-100 text-neutral-950 pl-3 pr-1 text-sm shadow-lg',
+                zoneOn && 'absolute left-2 right-2 top-2 z-20'
+              )}
             >
               <span className="flex-1">{toast.text}</span>
               {toast.extra ? (
@@ -1928,7 +1969,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
           ) : null}
 
           <div className={cn('space-y-2', panelBusy && BUSY)} data-tag-panel data-details-box>
-            {review ? (
+            {!zoneOn && review ? (
               <div data-review-panel className="rounded-md border border-border bg-bg-surface px-3 py-2 space-y-2">
                 {review.kind === 'gaps' && review.pointAsk ? (
                   <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Who won the point">
@@ -1979,7 +2020,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                 {TAG_LOCK_LINE[lock]}
               </p>
             ) : null}
-            {mode === 'finished' ? (
+            {!zoneOn && mode === 'finished' ? (
               <FinishedPanel
                 match={match}
                 set={set}
@@ -1990,7 +2031,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                 lock={lock}
               />
             ) : null}
-            {active && active.closed && !showEnd && mode !== 'tagging' && (readOnly || (ready && !selected)) ? (
+            {!zoneOn && active && active.closed && !showEnd && mode !== 'tagging' && (readOnly || (ready && !selected)) ? (
               <div
                 data-fa-summary
                 data-ready-summary
@@ -2007,17 +2048,17 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                 )}
               </div>
             ) : null}
-            {askNoAttack && !showEnd ? (
+            {askNoAttack && !showEnd && mode === 'edit' ? (
               <div className="rounded-md border border-border bg-bg-surface p-3" data-no-attack-row>
                 <Button kind="control" variant="secondary" onClick={onNoAttack}>
                   No attack
                 </Button>
               </div>
             ) : null}
-            {showEnd && active && !readOnly ? (
+            {!zoneOn && showEnd && active && !readOnly ? (
               <EndPanel draft={active} names={names} onChange={change} />
             ) : null}
-            {active && active.closed && selected?.kind === 'shot' && !readOnly && !showEnd ? (
+            {!zoneOn && active && active.closed && selected?.kind === 'shot' && !readOnly && !showEnd ? (
               <ShotPanel
                 draft={active}
                 shot={selected.shot}
@@ -2026,12 +2067,12 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                 onNudge={mode === 'edit' ? onNudge : undefined}
               />
             ) : null}
-            {active && active.closed && selected && selected.kind !== 'shot' && !readOnly ? (
+            {!zoneOn && active && active.closed && selected && selected.kind !== 'shot' && !readOnly ? (
               <div className="rounded-md border border-border bg-bg-surface p-3">
                 <TimeRow draft={active} mark={selected} onNudge={onNudge} />
               </div>
             ) : null}
-            {mode === 'edit' && edit && !readOnly && ready && selected?.kind !== 'shot' ? (
+            {!zoneOn && mode === 'edit' && edit && !readOnly && ready && selected?.kind !== 'shot' ? (
               <TrimRow
                 draft={edit.draft}
                 selected={selected}
@@ -2048,7 +2089,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                 }
               />
             ) : null}
-            {mode === 'watch' && !gap && !atEnd && lastSaved ? (
+            {!zoneOn && mode === 'watch' && !gap && !atEnd && lastSaved ? (
               <div
                 data-last-saved
                 className="rounded-md border border-border bg-bg-surface pl-3 pr-1.5 py-1.5 flex items-center gap-2"
@@ -2081,7 +2122,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                 )}
               </div>
             ) : null}
-            {(mode === 'watch' || mode === 'tapping' || mode === 'setPoint') && !atEnd ? (
+            {!zoneOn && (mode === 'watch' || mode === 'tapping' || mode === 'setPoint') && !atEnd ? (
               <p
                 data-tag-where
                 className="h-5 px-1 text-xs leading-5 text-muted tabular-nums truncate"
@@ -2089,14 +2130,14 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                 {whereLine}
               </p>
             ) : null}
-            {finishKept ? (
+            {!zoneOn && finishKept ? (
               <div data-finish-card>
                 <Button kind="main" fullWidth variant="secondary" onClick={onFinishSet}>
                   Finish set at {formatScore(score)}
                 </Button>
               </div>
             ) : null}
-            {finishCard ? (
+            {!zoneOn && finishCard ? (
               <div data-finish-card>
                 {cont.score && !level ? (
                   <p
@@ -2133,6 +2174,22 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               </div>
             ) : null}
           </div>
+          {zoneOn ? (
+            <button
+              type="button"
+              data-tag-zone={zoneKind}
+              data-tap-pad={zoneKind === 'pad' ? '' : undefined}
+              data-tag-fa={zoneKind === 'fa' ? '' : undefined}
+              className="flex min-h-0 flex-1 flex-col items-center justify-center rounded-lg text-center cursor-pointer touch-manipulation select-none active:bg-bg-app disabled:cursor-default disabled:opacity-40 disabled:active:bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-primary"
+              aria-label={zoneTitle}
+              onClickCapture={guardClicks(slotGuard)}
+              onClick={zoneKind === 'fa' ? onPickFa : onPad}
+              disabled={zoneKind === 'fa' && liveShot === 1}
+            >
+              <span className="text-lg font-bold text-primary">{zoneTitle}</span>
+              <span className="mt-1 max-w-[17.5rem] text-sm text-muted">{zoneLine}</span>
+            </button>
+          ) : null}
         </div>
 
         {/*
@@ -2258,7 +2315,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               <span className="ml-1.5 min-w-0 truncate">{names[padServer]} serving</span>
             </button>
           ) : null}
-          {slotKind === 'pad' ? (
+          {slotKind === 'pad' && !zoneOn ? (
             <button
               type="button"
               data-tap-pad
@@ -2283,13 +2340,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                     : player.playing || mode === 'blocked'
                       ? `Tap serve · ${names[padServer]}`
                       : 'Play'}
-              {tapped > 0 && lastTap !== null ? (
-                <span
-                  key={lastTap}
-                  className="tag-idle-bar absolute left-0 right-0 bottom-0 h-1.5 bg-white/70"
-                  aria-hidden
-                />
-              ) : null}
             </button>
           ) : null}
 
@@ -2307,7 +2357,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               Tap the missed contact
             </button>
           ) : null}
-          {slotKind === 'save' && stage === 'pickFa' ? (
+          {slotKind === 'save' && stage === 'pickFa' && !zoneOn ? (
             <Button
               kind="tapPad"
               data-tag-fa
