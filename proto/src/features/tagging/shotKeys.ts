@@ -1,8 +1,8 @@
 /**
- * Desktop keys for a shot's required tags, by keyboard row:
- * top row is the result, home row the wing, bottom row the stroke.
- * Z flips the switch. X is Block, then C V B N are the other strokes
- * in the cells that follow. M and comma do nothing.
+ * Desktop keys for a shot's required tags, by keyboard row, in the order the
+ * rows sit on screen: top row is the result, home row the stroke, bottom row
+ * the wing. A flips the switch. S is Block, then D F G H are the other
+ * strokes in the cells that follow. Z is BH, X is FH.
  *
  * `applyShotKey` and the helpers above it are pure. The block at the foot of
  * the file is a bridge for the screen and is the only state here.
@@ -25,10 +25,10 @@ import {
 } from './rally'
 
 export const RESULT_KEYS = ['q', 'w', 'e', 'r', 't', 'y'] as const
-export const WING_KEYS = ['a', 's'] as const
-export const SWITCH_KEY = 'z'
+export const SWITCH_KEY = 'a'
 /** One key per stroke cell, left to right, after the switch. */
-export const STROKE_KEYS = ['x', 'c', 'v', 'b', 'n'] as const
+export const STROKE_KEYS = ['s', 'd', 'f', 'g', 'h'] as const
+export const WING_KEYS = ['z', 'x'] as const
 export const NO_ATTACK_KEY = '0'
 
 /**
@@ -62,7 +62,7 @@ export function applyShotKey(d: Draft, shot: number, key: string, held?: StrokeS
   const result = RESULT_KEYS.indexOf(k as (typeof RESULT_KEYS)[number])
   if (result >= 0) return fields.result ? setEnding(d, ENDINGS[result]) : null
 
-  // The wing and stroke row waits until the result is in.
+  // The stroke and wing rows wait until the result is in.
   if (stageOf(d) === 'result') return null
   const wing = WING_KEYS.indexOf(k as (typeof WING_KEYS)[number])
   if (wing >= 0) return fields.wing ? toggleShotField(d, shot, 'wing', WINGS[wing]) : null

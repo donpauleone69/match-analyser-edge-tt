@@ -496,11 +496,16 @@ export function strokeCells(side: StrokeSide, firstAttack: boolean): readonly (s
   return ['Block', 'Flick', 'Loop', 'Drive', 'Smash']
 }
 
-/** The stroke row is asked on the end shot, the first attack, and shots after it. Not on the serve, and not before the first attack. */
+/**
+ * The stroke row is asked on the end shot whatever its role, on the first
+ * attack, and on the two replies after it. Not on the serve, not before the
+ * first attack, and not on later shots.
+ */
 export function showsStroke(d: Draft, shot: number): boolean {
   if (shot <= 1 || shot > endShot(d)) return false
   if (shot === endShot(d)) return true
-  return roleOf(d, shot) !== 'before'
+  const role = roleOf(d, shot)
+  return role === 'firstAttack' || role === 'reply'
 }
 
 /**
@@ -540,37 +545,45 @@ export const ROLE_LABEL: Record<ShotRole, string> = {
 export type ShotFields = {
   result: boolean
   wing: boolean
-  /** Always false: Pivot is not asked. Here only until the screen drops its cell. */
-  pivot: boolean
-  /** The stroke row, with the switch. Shots before the first attack do not have it. */
+  /** The stroke row, with the switch: `showsStroke`. */
   stroke: boolean
+  /** Always false: Spin is not asked. Here only until the screen drops its row. */
   spin: boolean
   depth: boolean
   ball: boolean
+  /** Always false: Contact is not asked. Here only until the screen drops its row. */
   contact: boolean
   intent: boolean
   initiative: boolean
   missReason: boolean
 }
 
-/** Which rows a shot's panel shows. Anything else is not asked for that role. */
+/**
+ * Which rows a shot's panel shows. Anything else is not asked for that role.
+ *
+ * Serve: Depth, and the High and Heavy marks. Receive: the marks only.
+ * First attack: Stroke, Wing, Intent. Reply: Stroke, Wing, Initiative.
+ * Later shots: nothing. The last shot has Wing and Stroke whatever its role,
+ * since Save needs them, and Miss reason on any error.
+ */
 export function fieldsFor(d: Draft, shot: number): ShotFields {
   const role = roleOf(d, shot)
   const isEnd = shot === endShot(d)
   const serve = role === 'serve'
   const fa = role === 'firstAttack'
+  const stroke = showsStroke(d, shot)
   return {
     result: isEnd,
-    wing: !serve,
-    pivot: false,
-    stroke: showsStroke(d, shot),
-    spin: serve,
-    depth: serve || role === 'before',
+    // Wing goes with the stroke row: the first attack, the replies and the last shot.
+    wing: stroke,
+    stroke,
+    spin: false,
+    depth: serve,
     ball: serve || role === 'before',
-    contact: fa,
+    contact: false,
     intent: fa,
     initiative: role === 'reply',
-    missReason: isEnd && isError(d.ending) && Boolean(d.shots[shot - 1]?.review),
+    missReason: isEnd && isError(d.ending),
   }
 }
 
@@ -665,11 +678,11 @@ export function statusText(d: Draft): string {
     case 'result':
       return `Result of shot ${n}`
     case 'endShot':
-      return `Wing and stroke of shot ${n}`
+      return `Stroke and wing of shot ${n}`
     case 'pickFa':
       return 'Pick the first attack'
     case 'faShot':
-      return `Wing and stroke of shot ${d.fa}`
+      return `Stroke and wing of shot ${d.fa}`
     default:
       return 'Ready to save'
   }

@@ -292,16 +292,6 @@ export function ShotPanel({
               {w}
             </Cell>
           ))}
-          {fields.pivot ? (
-            <Cell
-              label="Pivot"
-              on={Boolean(tags.pivot)}
-              disabled={shotRowOff}
-              onClick={() => onChange(patchShot(draft, shot, { pivot: !tags.pivot }))}
-            >
-              Pivot
-            </Cell>
-          ) : null}
         </Line>
       ) : null}
 
