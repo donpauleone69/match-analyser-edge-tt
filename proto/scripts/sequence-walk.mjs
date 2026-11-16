@@ -8,6 +8,7 @@
  */
 import { chromium } from 'playwright-core'
 import { mkdirSync } from 'node:fs'
+import { beforeResult } from './won-by.mjs'
 
 const BASE = process.env.BASE || 'http://127.0.0.1:5174'
 const OUT = process.env.OUT || '/tmp/sequence-walk'
@@ -55,7 +56,10 @@ for (const size of SIZES) {
     if (!b) throw new Error(`no box ${sel}`)
     await page.touchscreen.tap(b.x + b.width / 2, b.y + b.height / 2)
   }
-  const cell = (name) => tapAt(`[data-seq-shot] [data-cell="${name}"], [data-cell="${name}"]`)
+  const cell = async (name) => {
+    await beforeResult(page, name, tapAt)
+    await tapAt(`[data-seq-shot] [data-cell="${name}"], [data-cell="${name}"]`)
+  }
   const foot = () => tapAt('[data-tag-save]')
   const state = () =>
     page.evaluate(() => {
@@ -236,7 +240,11 @@ for (const size of SIZES) {
   lines = await log()
   check(`${S} 6 shot saved fa 3`, lines.length === 4 && lines[3].fa === 3 && lines[3].mode === 'sequential', JSON.stringify(lines[3]))
 
-  // The toggle: off, then the next rally is the current mode. Copy timings.
+  // The toggle steps Shot by shot, End first, Current. Then the next rally is the current mode. Copy timings.
+  await tapAt('[data-flow-toggle]')
+  await sleep(400)
+  check(`${S} toggle sets flow=endfirst`, page.url().includes('flow=endfirst'), page.url())
+  check(`${S} toggle reads End first`, (await page.locator('[data-flow-toggle]').textContent())?.trim() === 'End first')
   await tapAt('[data-flow-toggle]')
   await sleep(400)
   check(`${S} toggle sets flow=current`, page.url().includes('flow=current'), page.url())

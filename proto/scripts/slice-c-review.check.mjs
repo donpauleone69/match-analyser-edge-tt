@@ -4,6 +4,7 @@
  */
 import { chromium } from 'playwright-core'
 import { mkdirSync } from 'node:fs'
+import { beforeResult } from './won-by.mjs'
 
 const BASE = process.env.BASE || 'http://127.0.0.1:5174'
 const OUT = '/opt/cursor/artifacts'
@@ -53,6 +54,7 @@ async function tapRally(page, shots) {
 }
 
 async function pressText(page, label) {
+  await beforeResult(page, label, (sel) => page.locator(sel).first().click())
   const hit = await page.evaluate((name) => {
     const buttons = [...document.querySelectorAll('button')]
     const el = buttons.find((b) => b.textContent?.replace(/\s+/g, ' ').trim().startsWith(name))

@@ -7,6 +7,7 @@
  */
 import { chromium } from 'playwright-core'
 import { mkdirSync } from 'node:fs'
+import { beforeResult } from './won-by.mjs'
 
 const BASE = process.env.BASE || 'http://127.0.0.1:5174'
 const OUT = process.env.OUT || '/opt/cursor/artifacts/sequential'
@@ -146,6 +147,7 @@ for (const size of SIZES) {
     }
     await shot('end')
     await page.waitForTimeout(800)
+    await beforeResult(page, 'Winner', (sel) => page.locator(sel).click())
     await page.locator('[data-cell="Winner"]').click()
     await page.waitForTimeout(800)
     const ready = await shot('ready')

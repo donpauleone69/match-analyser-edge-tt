@@ -6,7 +6,20 @@
 
 import { isError, type Draft, type RallyData, type Side } from './rally'
 
-export type FlowName = 'current' | 'sequential'
+export type FlowName = 'current' | 'sequential' | 'endfirst'
+
+/** Shot by shot and End first share the walk. */
+export const isWalkFlow = (f: FlowName | null): boolean => f === 'sequential' || f === 'endfirst'
+
+/** The `flow` value in the address. Anything else is the current mode. */
+export const flowFromParam = (v: string | null): FlowName =>
+  v === 'sequential' || v === 'endfirst' ? v : 'current'
+
+export const FLOW_LABEL: Record<FlowName, string> = {
+  current: 'Current',
+  sequential: 'Shot by shot',
+  endfirst: 'End first',
+}
 
 export type TagLogLine = {
   mode: FlowName

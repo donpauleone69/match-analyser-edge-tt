@@ -287,6 +287,18 @@ export function winnerOf(d: Pick<Draft, 'server' | 'contacts' | 'ending'>): Side
   return isError(d.ending) ? otherSide(hitter) : hitter
 }
 
+/**
+ * The server that makes `winner` win this rally. Winner or Lucky: the last
+ * shot's hitter won. An error: the other player won. The number of shots then
+ * says who served. With no result yet the server is left as it is.
+ */
+export function serverForWinner(d: Pick<Draft, 'server' | 'contacts' | 'ending'>, winner: Side): Side {
+  const n = d.contacts.length
+  if (!d.ending || n === 0) return d.server
+  const hitter = isError(d.ending) ? otherSide(winner) : winner
+  return n % 2 === 1 ? hitter : otherSide(hitter)
+}
+
 function hasWingStroke(s: ShotTags | undefined): boolean {
   return Boolean(s?.wing && s.stroke)
 }

@@ -4,7 +4,7 @@
  * write is the rally the current mode would write for the same answers.
  * Run: sh proto/scripts/sequence-same-save.sh
  */
-import { addContact, draftFromRally, emptyDraft, toggleShotField, undoContact, flipSwitch, markFa, patchShot, rallyFromDraft, setEnding, switchOf, toggleNoAttack, type Draft, type Ending, type Side } from '@/features/tagging/rally'
+import { addContact, draftFromRally, emptyDraft, toggleShotField, undoContact, flipSwitch, markFa, patchShot, rallyFromDraft, serverForWinner, setEnding, winnerOf, switchOf, toggleNoAttack, type Draft, type Ending, type Side } from '@/features/tagging/rally'
 import { applyShotKey } from '@/features/tagging/shotKeys'
 import {
   afterRevisit,
@@ -488,6 +488,53 @@ function walk(start: Draft, steps: Step[]): { d: Draft; trail: string; place: Se
   ok('0 sets no attack', d.noAttack && d.fa === null)
   const end = applySeqKey(setEnding(taps(1), 'Winner'), { kind: 'end' }, 'q')
   ok('a result key on End sets Winner', end?.kind === 'draft' && end.draft.ending === ('Winner' as Ending))
+}
+
+// --- Won by sets the server ---
+
+{
+  const cases: { n: number; ending: Ending; winner: Side; server: Side }[] = [
+    { n: 1, ending: 'Winner', winner: 'them', server: 'them' },
+    { n: 1, ending: 'Net', winner: 'them', server: 'me' },
+    { n: 2, ending: 'Net', winner: 'them', server: 'them' },
+    { n: 2, ending: 'Winner', winner: 'them', server: 'me' },
+    { n: 3, ending: 'Long', winner: 'me', server: 'them' },
+    { n: 6, ending: 'Lucky', winner: 'me', server: 'them' },
+  ]
+  for (const c of cases) {
+    for (const start of ['me', 'them'] as const) {
+      const d = setEnding(taps(c.n, start), c.ending)
+      const server = serverForWinner(d, c.winner)
+      ok(`won by ${c.winner} on ${c.n} shots ${c.ending} from ${start}`, server === c.server && winnerOf({ ...d, server }) === c.winner)
+    }
+  }
+  ok('no result leaves the server', serverForWinner(taps(3, 'them'), 'me') === 'them')
+}
+
+// --- End first: End, then serve to last shot, End again only for a miss reason ---
+
+{
+  const ef = { endFirst: true }
+  ok('end first opens on End', openAt(taps(4), ef).kind === 'end' && openAt(taps(1), ef).kind === 'end')
+  let d = setEnding(taps(3), 'Winner')
+  ok('end first: Next on End once a result is in', nextAllowed(d, { kind: 'end' }, ef))
+  ok('shot by shot: End Next waits for the shots', !nextAllowed(d, { kind: 'end' }))
+  const first = nextStop(d, { kind: 'end' }, ef)
+  ok('end first: End goes to the serve', first.kind === 'shot' && first.shot === 1)
+  d = pressSide(d, 2, 'defensive').draft
+  d = pressSide(d, 3, 'defensive').draft
+  d = patchShot(d, 3, { stroke: 'Push', wing: 'BH' })
+  ok('end first: last shot of a won rally goes to Ready', nextStop(d, { kind: 'shot', shot: 3 }, ef).kind === 'ready')
+  ok('shot by shot: last shot goes to End', nextStop(d, { kind: 'shot', shot: 3 }).kind === 'end')
+  let e = setEnding(taps(3), 'Net')
+  e = pressSide(e, 2, 'defensive').draft
+  e = pressSide(e, 3, 'defensive').draft
+  e = patchShot(e, 3, { stroke: 'Push', wing: 'BH' })
+  ok('end first: an error opens End again for the miss reason', nextStop(e, { kind: 'shot', shot: 3 }, ef).kind === 'end')
+  e = toggleShotField(e, 3, 'missReason', 'Forced')
+  ok('end first: with a reason it goes to Ready', nextStop(e, { kind: 'shot', shot: 3 }, ef).kind === 'ready')
+  const plain = pressSide(pressSide(setEnding(taps(3), 'Net'), 2, 'defensive').draft, 3, 'defensive').draft
+  same('end first saves as shot by shot', patchShot(e, 3, {}), patchShot(toggleShotField(patchShot(plain, 3, { stroke: 'Push', wing: 'BH' }), 3, 'missReason', 'Forced'), 3, {}))
 }
 
 if (fails.length) {

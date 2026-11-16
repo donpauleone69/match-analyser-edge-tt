@@ -43,9 +43,16 @@ const RESULT_KEYS = ['q', 'w', 'e', 'r', 't', 'y'] as const
 const STROKE_KEYS = ['s', 'd', 'f', 'g', 'h'] as const
 const WING_KEYS = ['z', 'x'] as const
 
+/**
+ * End first: the same walk, but End (who won, and the result) is asked
+ * straight after the taps, then serve to last shot. On an error End opens
+ * once more after the last shot, for the optional miss reason.
+ */
+export type WalkOpts = { endFirst?: boolean }
+
 /** Where the walk opens once tapping has closed. */
-export function openAt(d: Draft): SeqStop {
-  if (endShot(d) <= 1) return { kind: 'end' }
+export function openAt(d: Draft, opts: WalkOpts = {}): SeqStop {
+  if (opts.endFirst || endShot(d) <= 1) return { kind: 'end' }
   return { kind: 'shot', shot: 1 }
 }
 
@@ -122,8 +129,8 @@ export function shotComplete(d: Draft, shot: number): boolean {
  * Next is dark while this stop is missing something Save needs:
  * stroke and wing on the first attack or the last shot, and the result on End.
  */
-export function nextAllowed(d: Draft, place: SeqStop): boolean {
-  if (place.kind === 'end') return Boolean(d.ending) && canSave(d)
+export function nextAllowed(d: Draft, place: SeqStop, opts: WalkOpts = {}): boolean {
+  if (place.kind === 'end') return Boolean(d.ending) && (canSave(d) || Boolean(opts.endFirst))
   const tags = d.shots[place.shot - 1]
   const needs = place.shot === endShot(d) || d.fa === place.shot
   if (needs && (!tags?.stroke || !tags?.wing)) return false
@@ -131,17 +138,19 @@ export function nextAllowed(d: Draft, place: SeqStop): boolean {
 }
 
 /** The next stop, or Ready when a Winner or Lucky (or a miss reason) has finished End. */
-export function nextStop(d: Draft, from: SeqStop): SeqPlace {
+export function nextStop(d: Draft, from: SeqStop, opts: WalkOpts = {}): SeqPlace {
+  const n = endShot(d)
+  const reason = d.shots[n - 1]?.missReason
   if (from.kind === 'end') {
+    if (opts.endFirst && d.ending && !canSave(d)) return { kind: 'shot', shot: 1 }
     if (!d.ending || !canSave(d)) return from
     if (!isError(d.ending)) return { kind: 'ready' }
-    const reason = d.shots[endShot(d) - 1]?.missReason
     return reason ? { kind: 'ready' } : from
   }
-  const n = endShot(d)
   for (let shot = from.shot + 1; shot <= n; shot++) {
     if (shouldStop(d, shot)) return { kind: 'shot', shot }
   }
+  if (opts.endFirst && d.ending && canSave(d) && (!isError(d.ending) || reason)) return { kind: 'ready' }
   return { kind: 'end' }
 }
 

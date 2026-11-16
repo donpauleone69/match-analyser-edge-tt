@@ -492,10 +492,15 @@ export function EndPanel({
   draft,
   names,
   onChange,
+  wonBy,
+  onWonBy,
 }: {
   draft: Draft
   names: Record<Side, string>
   onChange: (next: Draft) => void
+  /** Who won the point. The result waits for it: the two together say who served. */
+  wonBy: Side | null
+  onWonBy: (side: Side) => void
 }) {
   const shot = draft.contacts.length
   const hitter = hitterOf(draft.server, shot)
@@ -528,6 +533,33 @@ export function EndPanel({
         ) : null}
         {words ? <span className="ml-3 shrink-0 text-sm font-normal text-primary">{words}</span> : null}
       </div>
+      <div role="group" aria-label="Won by" data-row="Won by">
+        <Name>Won by</Name>
+        <Cells>
+          {(['me', 'them'] as const).map((side) => (
+            <button
+              key={side}
+              type="button"
+              data-won-by={side}
+              aria-pressed={wonBy === side}
+              onClick={() => onWonBy(side)}
+              className={cn(
+                answerCell,
+                'rounded-md inline-flex items-center gap-1.5',
+                wonBy === side ? 'border-tag-chosen bg-tag-chosen text-on-accent' : 'text-primary'
+              )}
+              style={wonBy === side ? undefined : restStyle()}
+            >
+              <span
+                aria-hidden
+                className="h-3.5 w-1 shrink-0 rounded-[2px]"
+                style={{ backgroundColor: side === 'me' ? 'var(--color-tag-player-a)' : 'var(--color-tag-player-b)' }}
+              />
+              {names[side]}
+            </button>
+          ))}
+        </Cells>
+      </div>
       <div role="group" aria-label="Result" data-row="Result">
         <Name>Result</Name>
         <Cells>
@@ -537,6 +569,7 @@ export function EndPanel({
               label={e}
               on={draft.ending === e}
               tone={isError(e) ? 'error' : 'chosen'}
+              disabled={!wonBy}
               onClick={() => onChange(setEnding(draft, e))}
             />
           ))}
