@@ -164,8 +164,8 @@ function Cells({ children }: { children: ReactNode }) {
 }
 
 /**
- * One shot's tags. The heading, then up to the sections that shot asks,
- * each at its own width. Result stays here until End takes it.
+ * One shot's tags. The heading, then up to the three sections that shot asks.
+ * Result and Miss reason are on End.
  */
 export function ShotPanel({
   draft,
@@ -343,36 +343,85 @@ export function ShotPanel({
         </div>
       ) : null}
 
-      {fields.result ? (
-        <div role="group" aria-label="Result" data-row="Result">
-          <Name>Result</Name>
-          <Cells>
-            {ENDINGS.map((e) => (
-              <Answer
-                key={e}
-                label={e}
-                on={draft.ending === e}
-                tone={isError(e) ? 'error' : 'chosen'}
-                onClick={() => onChange(setEnding(draft, e))}
-              />
-            ))}
-          </Cells>
-        </div>
+      {onNudge && !requiredOnly ? (
+        <TimeRow draft={draft} mark={{ kind: 'shot', shot }} onNudge={onNudge} />
       ) : null}
+    </div>
+  )
+}
 
-      {!requiredOnly && fields.missReason ? (
+/**
+ * End of the point. The last shot's hitter, then Result, then Miss reason
+ * once the rally is ready and the result is an error.
+ */
+export function EndPanel({
+  draft,
+  names,
+  onChange,
+}: {
+  draft: Draft
+  names: Record<Side, string>
+  onChange: (next: Draft) => void
+}) {
+  const shot = draft.contacts.length
+  const hitter = hitterOf(draft.server, shot)
+  const tags: ShotTags = draft.shots[shot - 1] ?? {}
+  const stage = stageOf(draft)
+  const token = hitter === 'me' ? 'var(--color-tag-player-a)' : 'var(--color-tag-player-b)'
+  const error = isError(draft.ending)
+  const roleStyle: CSSProperties = error
+    ? {
+        backgroundColor: 'color-mix(in srgb, var(--color-tag-error) 15%, transparent)',
+        color: 'var(--color-tag-error-text)',
+      }
+    : { backgroundColor: 'var(--color-tag-rest)', color: 'var(--color-text-muted)' }
+  const words = draft.ending && stage !== 'ready' ? statusText(draft).replace(/ of shot \d+$/, '') : ''
+
+  return (
+    <div className="flex flex-col gap-2.5 pt-2.5" aria-label="End of the point" data-shot-panel>
+      <div className="flex h-6 min-w-0 items-center">
+        <span className="h-3.5 w-1 shrink-0 rounded-[2px]" style={{ backgroundColor: token }} aria-hidden />
+        <p className="ml-1.5 min-w-0 truncate text-sm font-semibold text-primary" data-shot-title>
+          End · {names[hitter]}
+        </p>
+        {draft.ending ? (
+          <span
+            className="ml-2 inline-flex h-[18px] shrink-0 items-center rounded-[4px] px-1.5 text-[10px] font-bold uppercase"
+            style={roleStyle}
+          >
+            {error ? 'Error' : 'Winner'}
+          </span>
+        ) : null}
+        {words ? <span className="ml-3 shrink-0 text-sm font-normal text-primary">{words}</span> : null}
+      </div>
+      <div role="group" aria-label="Result" data-row="Result">
+        <Name>Result</Name>
+        <Cells>
+          {ENDINGS.map((e) => (
+            <Answer
+              key={e}
+              label={e}
+              on={draft.ending === e}
+              tone={isError(e) ? 'error' : 'chosen'}
+              onClick={() => onChange(setEnding(draft, e))}
+            />
+          ))}
+        </Cells>
+      </div>
+      {stage === 'ready' && error ? (
         <div role="group" aria-label="Miss reason" data-row="Miss reason">
           <Name>Miss reason</Name>
           <Cells>
             {MISS_REASONS.map((v) => (
-              <Answer key={v} label={v} on={tags.missReason === v} onClick={() => set('missReason', v)} />
+              <Answer
+                key={v}
+                label={v}
+                on={tags.missReason === v}
+                onClick={() => onChange(toggleShotField(draft, shot, 'missReason', v))}
+              />
             ))}
           </Cells>
         </div>
-      ) : null}
-
-      {onNudge && !requiredOnly ? (
-        <TimeRow draft={draft} mark={{ kind: 'shot', shot }} onNudge={onNudge} />
       ) : null}
     </div>
   )

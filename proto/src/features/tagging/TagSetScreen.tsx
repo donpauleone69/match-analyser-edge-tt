@@ -122,7 +122,7 @@ import { RallyList, type RallyListActions } from './RallyList'
 import { ZERO, addPoint, isSetWon, type Points } from './score'
 import { AnswerKeyPanel } from './AnswerKeyPanel'
 import { NO_ATTACK_KEY, applyPanelKey } from './shotKeys'
-import { ShotPanel, TimeRow, TrimRow } from './ShotPanel'
+import { EndPanel, ShotPanel, TimeRow, TrimRow } from './ShotPanel'
 import { ShotRail } from './ShotRail'
 import { TAG_LOCK_LINE, useTagLock, type TagLock } from './tagLock'
 import { firstContactG, lastContactG, segmentAt, segmentsOf, toGlobal, totalDuration, type Segment } from './timeline'
@@ -226,7 +226,9 @@ type SetHeaderProps = { match: MatchRecord; set: SetData; children?: ReactNode }
 /** The stage-driven choice of what is selected after a change. */
 function selectionAfter(prev: Stage, next: Stage, d: Draft, current: Mark | null): Mark | null {
   const end: Mark = { kind: 'shot', shot: d.contacts.length }
-  if (next === 'result' || next === 'endShot') return end
+  // No result yet: End is open and no shot is. The last shot opens once a result is in.
+  if (next === 'result') return null
+  if (next === 'endShot') return end
   if (next === 'faShot' && d.fa !== null) return { kind: 'shot', shot: d.fa }
   if (next !== prev) return null
   return current
@@ -243,6 +245,8 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const names: Record<Side, string> = { me: 'You', them: match.opponent.trim() || 'Opponent' }
 
   const [selected, setSelected] = useState<Mark | null>(null)
+  /** End opened by a press. The result step shows End whether or not this is set. */
+  const [endOpen, setEndOpen] = useState(false)
   /** After a nudge the loop tightens around the mark that moved. */
   const [tight, setTight] = useState(false)
   const [edit, setEdit] = useState<Editing | null>(null)
@@ -307,6 +311,10 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const readOnly = lock !== null
   const active = edit ? edit.draft : live
   const stage = active ? stageOf(active) : null
+  /** End is on screen with no result, and whenever a press has opened it. */
+  const showEnd = Boolean(
+    active && active.closed && stage && stage !== 'contacts' && (stage === 'result' || endOpen)
+  )
   const score = taggedScore(set) ?? ZERO
   const entered = parseEntered(set.entered)
   /** The set, walked in video order and marked where it does not add up. Nothing is changed by it. */
@@ -529,8 +537,17 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     const prev = stageOf(active)
     const st = stageOf(next)
     const sel = selectionAfter(prev, st, next, selected)
+    const handoff = prev === 'result' && st !== 'result'
     writeDraft(next)
     setSelected(sel)
+    // The first result swaps End for the last shot (or for nothing, on one shot).
+    // A later result, pressed while End is open, does the same swap. Either way the band pauses.
+    if (handoff || (endOpen && sel?.kind === 'shot' && active.ending !== next.ending)) {
+      setEndOpen(false)
+      arm(0, GUARD_AFTER_SWAP_MS)
+    } else if (sel?.kind === 'shot') {
+      setEndOpen(false)
+    }
     setTight(false)
     setLate(null)
     applyLoop(windowFor(next, sel, st, false))
@@ -546,12 +563,12 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     const now = Date.now()
     setLate(idle ? { until: now + GUARD_AFTER_CLOSE_MS, at: now, g: p.getTime(), playing: p.isPlaying() } : null)
     p.setBoundary(null)
-    const end: Mark = { kind: 'shot', shot: closed.contacts.length }
-    const w = windowFor(closed, end, 'result', false)
+    const w = windowFor(closed, null, 'result', false)
     p.setLoop(w)
     p.seek(w.a)
     p.play()
-    setSelected(end)
+    setSelected(null)
+    setEndOpen(false)
     setLastTap(null)
     // A tap that comes late never lands on Save, Re-tap, Discard or a chip.
     arm(GUARD_AFTER_CLOSE_MS, GUARD_PANEL_AFTER_CLOSE_MS, GUARD_AFTER_CLOSE_MS)
@@ -578,6 +595,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     p.setBoundary(seg.offset + seg.duration, () => closeContacts())
     p.play()
     setSelected(null)
+    setEndOpen(false)
     setTight(false)
     setLate(null)
     // The pad is back for the same rally: the next tap may follow at once.
@@ -683,19 +701,41 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const onShot = (shot: number) => {
     if (!active || !stage) return
     const mark: Mark = { kind: 'shot', shot }
-    if (!readOnly && (stage === 'result' || stage === 'endShot' || stage === 'pickFa')) return
+    if (!readOnly && stage === 'result') return
+    if (!readOnly && stage === 'pickFa') return
+    // While the last shot is being asked, a press does nothing unless End is what is open.
+    if (!readOnly && stage === 'endShot' && !showEnd) return
     // After the press, the shot before or after moves the first attack.
     if (!readOnly && stage === 'faShot') {
       const refused = faRefusal(active, shot)
       setFaSaid(refused ? faRefusalText(refused) : null)
-      if (!refused) change(markFa(active, shot))
+      if (!refused) {
+        setEndOpen(false)
+        change(markFa(active, shot))
+      }
       return
     }
     const same = selected?.kind === 'shot' && selected.shot === shot
     const sel = same ? null : mark
+    setEndOpen(false)
     setSelected(sel)
     setTight(false)
     applyLoop(windowFor(active, sel, stage, false))
+  }
+
+  /** Open End, or close it. With no result it stays open. Opening it closes any shot. */
+  const onEnd = () => {
+    if (!active || !stage || stage === 'contacts' || readOnly) return
+    if (stage !== 'result' && endOpen) {
+      setEndOpen(false)
+      return
+    }
+    setEndOpen(true)
+    if (selected) {
+      setSelected(null)
+      setTight(false)
+      applyLoop(windowFor(active, null, stage, false))
+    }
   }
 
   const onMark = (mark: Mark) => {
@@ -778,6 +818,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     p.seek(at)
     p.play()
     setSelected(null)
+    setEndOpen(false)
     setTight(false)
     setLastTap(null)
     setLate(null)
@@ -817,6 +858,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       p.seek(liveFloor)
       p.pause()
       setSelected(null)
+      setEndOpen(false)
       setTight(false)
       setKeptAt(null)
       withUndo('Rally added', before, () => park(before.draft, false, liveFloor))
@@ -830,6 +872,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     if (isSetWon(after) || atEntered) p.pause()
     else p.play()
     setSelected(null)
+    setEndOpen(false)
     setTight(false)
     setKeptAt(null)
   }
@@ -1196,6 +1239,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const showEdit = (next: Editing) => {
     setEdit(next)
     setSelected(null)
+    setEndOpen(stageOf(next.draft) === 'result')
     setTight(false)
     setListOpen(false)
     listResume.current = false
@@ -1713,7 +1757,9 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               draft={active}
               selected={selected}
               liveShot={liveShot}
+              endOpen={showEnd}
               onShot={onShot}
+              onEnd={onEnd}
             />
           ) : null}
         </div>
@@ -1729,7 +1775,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
           <div
             className={cn(
               'mb-1.5 flex items-stretch gap-1.5',
-              mode !== 'edit' && selected?.kind === 'shot' && 'hidden'
+              mode !== 'edit' && (selected?.kind === 'shot' || showEnd) && 'hidden'
             )}
             onClickCapture={guardClicks(slotGuard)}
           >
@@ -1935,7 +1981,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                 lock={lock}
               />
             ) : null}
-            {active && active.closed && (readOnly || (ready && !selected)) ? (
+            {active && active.closed && !showEnd && (readOnly || (ready && !selected)) ? (
               <div
                 data-fa-summary
                 data-ready-summary
@@ -1952,14 +1998,17 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                 )}
               </div>
             ) : null}
-            {askNoAttack ? (
+            {askNoAttack && !showEnd ? (
               <div className="rounded-md border border-border bg-bg-surface p-3" data-no-attack-row>
                 <Button kind="control" variant="secondary" onClick={onNoAttack}>
                   No attack
                 </Button>
               </div>
             ) : null}
-            {active && active.closed && selected?.kind === 'shot' && !readOnly ? (
+            {showEnd && active && !readOnly ? (
+              <EndPanel draft={active} names={names} onChange={change} />
+            ) : null}
+            {active && active.closed && selected?.kind === 'shot' && !readOnly && !showEnd ? (
               <ShotPanel
                 draft={active}
                 shot={selected.shot}

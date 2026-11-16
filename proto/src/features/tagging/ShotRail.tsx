@@ -1,6 +1,6 @@
 import { useEffect, useRef, type CSSProperties } from 'react'
 import { cn } from '@/helpers/utils'
-import { hitterOf, stageOf, type Draft, type Mark, type Side } from './rally'
+import { hitterOf, isError, stageOf, type Draft, type Mark, type Side } from './rally'
 
 export const railCell =
   'btn-kind-control relative w-full px-1 rounded-md border text-sm font-bold tabular-nums inline-flex items-center justify-center'
@@ -43,14 +43,19 @@ export function ShotRail({
   draft,
   selected,
   liveShot,
+  endOpen,
   onShot,
+  onEnd,
 }: {
   /** Null between rallies: the row shows where shot 1 will go. */
   draft: Draft | null
   selected: Mark | null
   /** The shot on screen while the rally loops. */
   liveShot: number | null
+  /** End is the open cell. The row scrolls it into view. */
+  endOpen: boolean
   onShot: (shot: number) => void
+  onEnd: () => void
 }) {
   const stage = draft ? stageOf(draft) : 'contacts'
   const n = draft?.contacts.length ?? 0
@@ -65,11 +70,13 @@ export function ShotRail({
   const scroller = useRef<HTMLDivElement>(null)
   const focusKey = tapping
     ? `next-${n}`
-    : selected?.kind === 'shot'
-      ? `shot-${selected.shot}`
-      : liveShot
-        ? `shot-${liveShot}`
-        : null
+    : endOpen
+      ? 'end'
+      : selected?.kind === 'shot'
+        ? `shot-${selected.shot}`
+        : liveShot
+          ? `shot-${liveShot}`
+          : null
   useEffect(() => {
     const row = scroller.current
     if (!row || !focusKey) return
@@ -131,12 +138,42 @@ export function ShotRail({
                     ) : null}
                   </button>
                   <span className={cn(caption, isFa ? 'text-tag-first-attack' : 'text-muted')}>
-                    {isFa ? 'FA' : isEnd ? (draft.ending ?? '') : shot === 1 ? 'Srv' : ''}
+                    {isFa ? 'FA' : shot === 1 ? 'Srv' : ''}
                   </span>
                 </div>
               )
             })
           : null}
+
+        {!tapping && n > 0 && draft ? (
+          <div className="flex w-12 flex-col items-center shrink-0" data-rail="end">
+            <button
+              type="button"
+              aria-label="End of the point"
+              aria-pressed={endOpen}
+              onClick={onEnd}
+              className={cn(railCell, 'w-full text-xs')}
+              style={
+                endOpen
+                  ? {
+                      backgroundColor: 'var(--color-tag-end-open)',
+                      borderColor: 'var(--color-tag-end-open)',
+                      color: '#fff',
+                    }
+                  : {
+                      backgroundColor: 'var(--tag-cell-rest)',
+                      borderColor: 'var(--tag-cell-rest-line)',
+                      color: 'var(--color-text)',
+                    }
+              }
+            >
+              End
+            </button>
+            <span className={cn(caption, draft.ending && isError(draft.ending) ? 'text-tag-error' : 'text-muted')}>
+              {draft.ending ?? ''}
+            </span>
+          </div>
+        ) : null}
 
         {tapping ? (
           <div className="flex w-[var(--btn-kind-control)] flex-col items-center shrink-0" data-rail={`next-${n}`}>
