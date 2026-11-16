@@ -25,6 +25,7 @@ import {
   type Side,
   type StrokeSide,
 } from './rally'
+import { pairSide, rowsFor } from './sequence'
 import { bindStrokeSide, shownStrokeSide } from './shotKeys'
 import { formatClock } from './timeline'
 
@@ -173,6 +174,8 @@ export function ShotPanel({
   names,
   onChange,
   onNudge,
+  sequential = false,
+  onSide,
 }: {
   draft: Draft
   shot: number
@@ -180,6 +183,14 @@ export function ShotPanel({
   onChange: (next: Draft) => void
   /** Edit keeps the shot time row. Live tagging does not: the numbers leave no room. */
   onNudge?: (delta: number) => void
+  /**
+   * Shot by shot. Every section of this shot shows, marks from the start,
+   * and stroke and wing take a press before the result. The current mode
+   * leaves this false and is unchanged.
+   */
+  sequential?: boolean
+  /** Offensive or Defensive. The walk decides what that stores. */
+  onSide?: (side: StrokeSide) => void
 }) {
   const tags: ShotTags = draft.shots[shot - 1] ?? {}
   const fields = fieldsFor(draft, shot)
@@ -216,6 +227,11 @@ export function ShotPanel({
   }
   const strokes = fields.stroke ? strokeCells(shown, draft.fa === shot).filter((name): name is string => Boolean(name)) : null
   const token = hitter === 'me' ? 'var(--color-tag-player-a)' : 'var(--color-tag-player-b)'
+  const seqRows = sequential ? rowsFor(draft, shot) : null
+  const seqShown = sequential ? pairSide(draft, shot, held?.shot === shot ? held.side : null) : shown
+  const seqStrokes = seqRows?.includes('stroke')
+    ? strokeCells(seqShown, draft.fa === shot).filter((name): name is string => Boolean(name))
+    : null
   const roleStyle: CSSProperties =
     role === 'First attack'
       ? {
@@ -223,6 +239,113 @@ export function ShotPanel({
           color: 'var(--color-tag-first-attack-text)',
         }
       : { backgroundColor: 'var(--color-tag-rest)', color: 'var(--color-text-muted)' }
+
+  if (sequential && seqRows) {
+    const pressSide = (side: StrokeSide) => {
+      setHeld({ shot, side })
+      onSide?.(side)
+    }
+    return (
+      <div className="flex flex-col gap-2.5 pt-2.5" aria-label={`Shot ${shot}`} data-shot-panel data-seq-shot>
+        <div className="flex h-6 min-w-0 items-center">
+          <span className="h-3.5 w-1 shrink-0 rounded-[2px]" style={{ backgroundColor: token }} aria-hidden />
+          <p className="ml-1.5 min-w-0 truncate text-sm font-semibold text-primary" data-shot-title>
+            {shot} · {names[hitter]}
+          </p>
+          <span className="ml-2 inline-flex h-[18px] shrink-0 items-center rounded-[4px] px-1.5 text-[10px] font-bold uppercase" style={roleStyle}>
+            {role}
+          </span>
+          <div className="ml-auto flex shrink-0 gap-1.5 pl-3">
+            {markNames.map((name) => {
+              const on = markOn(name)
+              return (
+                <button
+                  key={name}
+                  type="button"
+                  data-cell={name}
+                  aria-pressed={on}
+                  onClick={() => toggleMark(name)}
+                  className={cn(
+                    'inline-flex h-6 shrink-0 items-center justify-center rounded-full border text-xs font-semibold',
+                    on ? 'border-tag-mark-set bg-tag-mark-set text-tag-on-solid' : 'border-border-strong bg-transparent text-primary'
+                  )}
+                  style={{ width: MARK_W[name] }}
+                >
+                  {name}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {seqRows.includes('pair') ? (
+          <div role="group" aria-label="Stroke" data-row="Stroke" className="flex flex-col">
+            <Name>Stroke</Name>
+            <div className="flex gap-0.5">
+              {(['Offensive', 'Defensive'] as const).map((label) => {
+                const side = label === 'Offensive' ? 'offensive' : 'defensive'
+                const on = seqShown === side
+                return (
+                  <Answer
+                    key={label}
+                    label={label}
+                    on={on}
+                    side={side}
+                    fixed={false}
+                    radius={label === 'Offensive' ? 'rounded-l-md rounded-r-none' : 'rounded-r-md rounded-l-none'}
+                    onClick={() => pressSide(side)}
+                  />
+                )
+              })}
+            </div>
+            {seqStrokes ? (
+              <>
+                <div className="h-1.5" data-stroke-gap />
+                <Cells>
+                  {seqStrokes.map((name) => (
+                    <Answer key={name} label={name} on={tags.stroke === name} onClick={() => set('stroke', name)} />
+                  ))}
+                </Cells>
+              </>
+            ) : null}
+          </div>
+        ) : null}
+
+        {seqRows.includes('wing') ? (
+          <div role="group" aria-label="Wing" data-row="Wing">
+            <Name>Wing</Name>
+            <Cells>
+              {WINGS.map((w) => (
+                <Answer key={w} label={w} on={tags.wing === w} onClick={() => set('wing', w)} />
+              ))}
+            </Cells>
+          </div>
+        ) : null}
+
+        {seqRows.includes('depth') ? (
+          <div role="group" aria-label="Depth" data-row="Depth">
+            <Name>Depth</Name>
+            <Cells>
+              {['Short', 'Half', 'Deep'].map((v) => (
+                <Answer key={v} label={v} on={tags.depth === v} onClick={() => set('depth', v)} />
+              ))}
+            </Cells>
+          </div>
+        ) : null}
+
+        {seqRows.includes('initiative') ? (
+          <div role="group" aria-label="Initiative" data-row="Initiative">
+            <Name>Initiative</Name>
+            <Cells>
+              {['Behind', 'Level', 'Ahead'].map((v) => (
+                <Answer key={v} label={v} on={tags.initiative === v} onClick={() => set('initiative', v)} />
+              ))}
+            </Cells>
+          </div>
+        ) : null}
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col gap-2.5 pt-2.5" aria-label={`Shot ${shot}`} data-shot-panel>
