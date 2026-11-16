@@ -149,6 +149,12 @@ for (const vp of VIEWPORTS) {
             if (h !== 28) fails.push({ screen, viewport: viewportLabel, lab, issue: 'height', h, want: 28, w })
             continue
           }
+          // The tap zone on the set screen fills the band. It is not one of the button kinds.
+          if (el.hasAttribute('data-tag-zone')) {
+            if (kind) fails.push({ screen, viewport: viewportLabel, lab, kind, issue: 'zone-has-kind', h, w })
+            if (h < 160) fails.push({ screen, viewport: viewportLabel, lab, issue: 'zone-too-small', h, want: '>= 160', w })
+            continue
+          }
           if (!kind) {
             fails.push({ screen, viewport: viewportLabel, lab, issue: 'no-kind', h, w })
             continue

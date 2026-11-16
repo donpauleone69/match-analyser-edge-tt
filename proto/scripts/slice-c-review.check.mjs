@@ -23,6 +23,35 @@ async function setRate(page, want) {
   }
 }
 
+/** The panel ignores presses for a moment after each step change. Wait it out. */
+async function panelReady(page) {
+  await page.waitForTimeout(80)
+  await page.waitForFunction(
+    () => {
+      const panel = document.querySelector('[data-tag-panel]')
+      return panel ? Number(getComputedStyle(panel).opacity) > 0.9 : false
+    },
+    null,
+    { timeout: 3000 }
+  )
+}
+
+/** Tap one rally of n contacts on the zone. Play first if paused. Presses wait out the guards. */
+async function tapRally(page, shots) {
+  await page.waitForSelector('[data-tap-pad]')
+  const playing = await page.evaluate(() => document.querySelector('[data-tag-stage]')?.dataset.playing === 'true')
+  if (!playing) {
+    await page.click('[data-tap-pad]')
+    await page.waitForTimeout(700)
+  }
+  for (let i = 0; i < shots; i++) {
+    if (i > 0) await page.waitForTimeout(450)
+    await page.click('[data-tap-pad]')
+  }
+  const got = await page.evaluate(() => (document.querySelector('[data-tag-stage]')?.dataset.contacts ?? '').split(',').filter(Boolean).length)
+  note(got === shots, `tapped ${shots} contacts (${got})`)
+}
+
 async function pressText(page, label) {
   const hit = await page.evaluate((name) => {
     const buttons = [...document.querySelectorAll('button')]
@@ -49,7 +78,7 @@ async function main() {
   await setRate(page, '0.75')
   // The open rally starts at the pick. No attack moves it on to the result, which loops the last shot.
   if ((await page.evaluate(() => document.querySelector('[data-tag-stage]')?.dataset.tagStage)) === 'pickFa') {
-    await page.click('[data-no-attack-row] button')
+    await page.click('[data-tag-slot] [data-action="no-attack"]')
     await page.waitForFunction(() => document.querySelector('[data-tag-stage]')?.dataset.tagStage === 'result', null, {
       timeout: 3000,
     })
@@ -100,20 +129,16 @@ async function main() {
   )
 
   await page.goto(`${BASE}/matches/m-ready/tag/1`, { waitUntil: 'networkidle' })
-  await page.waitForSelector('[data-tap-pad]')
-  await page.click('[data-tap-pad]')
-  await page.waitForTimeout(700)
-  await page.click('[data-tap-pad]')
-  await page.waitForTimeout(450)
-  await page.click('[data-tap-pad]')
+  await tapRally(page, 2)
   await page.waitForFunction(() => document.querySelector('[data-tag-stage]')?.dataset.tagStage === 'result', null, {
     timeout: 6000,
   })
-  await page.waitForTimeout(700)
+  await panelReady(page)
   await pressText(page, 'Winner')
   await page.waitForFunction(() => document.querySelector('[data-tag-stage]')?.dataset.tagStage === 'endShot', null, {
     timeout: 4000,
   })
+  await panelReady(page)
   await pressText(page, 'FH')
   await pressText(page, 'Block')
   await page.waitForFunction(() => document.querySelector('[data-tag-stage]')?.dataset.tagStage === 'ready', null, {
@@ -131,20 +156,18 @@ async function main() {
   await page.screenshot({ path: `${OUT}/slice-c-two-shot-390.png` })
 
   await page.click('[data-tag-save]')
-  await page.waitForTimeout(400)
-  await page.click('[data-tap-pad]')
-  await page.waitForTimeout(500)
-  await page.click('[data-tap-pad]')
-  await page.waitForTimeout(450)
-  await page.click('[data-tap-pad]')
+  // The zone ignores presses for a second after Save.
+  await page.waitForTimeout(1100)
+  await tapRally(page, 2)
   await page.waitForFunction(() => document.querySelector('[data-tag-stage]')?.dataset.tagStage === 'result', null, {
     timeout: 6000,
   })
-  await page.waitForTimeout(700)
+  await panelReady(page)
   await pressText(page, 'Winner')
   await page.waitForFunction(() => document.querySelector('[data-tag-stage]')?.dataset.tagStage === 'endShot', null, {
     timeout: 4000,
   })
+  await panelReady(page)
   await pressText(page, 'FH')
   await pressText(page, 'Loop')
   await page.waitForFunction(() => document.querySelector('[data-tag-stage]')?.dataset.tagStage === 'ready', null, {
@@ -164,13 +187,8 @@ async function main() {
   )
 
   await page.click('[data-tag-save]')
-  await page.waitForTimeout(400)
-  await page.click('[data-tap-pad]')
-  await page.waitForTimeout(500)
-  for (let i = 0; i < 4; i++) {
-    await page.click('[data-tap-pad]')
-    await page.waitForTimeout(500)
-  }
+  await page.waitForTimeout(1100)
+  await tapRally(page, 5)
   // Five shots: the pick comes straight after the close, before the result.
   await page.waitForFunction(() => document.querySelector('[data-tag-stage]')?.dataset.tagStage === 'pickFa', null, {
     timeout: 6000,
@@ -212,7 +230,11 @@ async function main() {
     serveLook.later?.disabled === false && serveLook.later.text.startsWith('First attack'),
     `later shot on screen: button normal (${serveLook.later?.text}, h ${serveLook.later?.h})`
   )
-  note(serveLook.serve?.h === 80 && serveLook.later?.h === 80, 'button height stays 80')
+  // The first attack button is the tap zone on the band: big, and the same size before and after the serve.
+  note(
+    serveLook.serve?.h >= 200 && serveLook.later?.h === serveLook.serve?.h,
+    `zone height stays (${serveLook.serve?.h} then ${serveLook.later?.h})`
+  )
 
   const picked = await page.evaluate(
     () =>

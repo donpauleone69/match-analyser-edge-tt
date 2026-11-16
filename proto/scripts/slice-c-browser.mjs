@@ -111,16 +111,20 @@ async function main() {
     timeout: 8000,
   })
   const noAttack = await page.evaluate(() => {
-    const row = document.querySelector('[data-no-attack-row]')
+    const btn = document.querySelector('[data-tag-slot] [data-action="no-attack"]')
     const old = document.querySelector('[aria-label^="First attack on shot"]')
     return {
-      text: row?.textContent?.replace(/\s+/g, ' ').trim() ?? '',
+      text: btn?.textContent?.replace(/\s+/g, ' ').trim() ?? '',
+      live: btn ? !btn.disabled : false,
       old: Boolean(old),
       button: document.querySelector('[data-tag-fa]')?.textContent?.replace(/\s+/g, ' ').trim() ?? '',
     }
   })
   // No end stroke is asked yet, so No attack is offered.
-  note(noAttack.text === 'No attack' && !noAttack.old, `No attack row at the pick (${noAttack.text || 'none'})`)
+  note(
+    noAttack.text === 'No attack' && noAttack.live && !noAttack.old,
+    `No attack in the foot at the pick, pressable (${noAttack.text || 'none'}${noAttack.live ? '' : ', dimmed'})`
+  )
   note(noAttack.button.startsWith('First attack'), `big button reads First attack (${noAttack.button})`)
 
   const pick = await watch(page, 10000, 'pick first attack')

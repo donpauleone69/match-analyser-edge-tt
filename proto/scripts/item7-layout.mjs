@@ -66,7 +66,7 @@ async function measure(page) {
     const box = document.querySelector('[data-details-box]')
     const pic = document.querySelector('.tag-picture')
     const slotBtn = document.querySelector(
-      '[data-tag-slot] [data-tap-pad], [data-tag-slot] [data-tap-add], [data-tag-slot] [data-tag-fa], [data-tag-slot] [data-tag-save]'
+      '[data-tag-slot] [data-tap-pad], [data-tag-slot] [data-tap-add], [data-tag-slot] [data-tag-fa], [data-tag-slot] [data-tag-save], [data-tag-slot] [data-action="delete-last"], [data-tag-slot] [data-action="no-attack"], [data-tag-slot] [data-action="edit-last"], [data-tag-slot] [data-action="back-to-live"]'
     )
     const rows = [...document.querySelectorAll('[data-shot-panel] [data-row]')].filter((el) => {
       const st = getComputedStyle(el)
@@ -256,6 +256,7 @@ async function measure(page) {
       endH: endBtn ? Math.round(endBtn.getBoundingClientRect().height) : null,
       endW: endBtn ? Math.round(endBtn.getBoundingClientRect().width) : null,
       deleteLast: Boolean(document.querySelector('[data-action="delete-last"]')),
+      deleteLastFoot: Boolean(document.querySelector('[data-tag-slot] [data-action="delete-last"]')),
       lead,
       bandGap: bodyRect && slotRect ? Math.round(slotRect.top - bodyRect.bottom) : null,
       picBtnH: picBtns[0] ?? null,
@@ -319,7 +320,7 @@ function assertFrame(fails, vp, step, m) {
   )
   if (step === 'tapping' && m.stage === 'contacts') {
     note(fails, m.endH === null, `${vp.file} ${step}: no End cell while tapping`)
-    note(fails, m.deleteLast, `${vp.file} ${step}: Delete last is on the row`)
+    note(fails, m.deleteLastFoot, `${vp.file} ${step}: Delete last is in the foot`)
   }
   if (step === 'result') {
     note(
@@ -576,7 +577,7 @@ async function driveWarn(page, fails, vp) {
     `step owns the line at the pick (${pick.status})`
   )
   await page.waitForFunction(() => !document.querySelector('[data-late-tap]'), null, { timeout: 3000 }).catch(() => {})
-  await page.click('[data-no-attack-row] button').catch(() => {})
+  await page.click('[data-tag-slot] [data-action="no-attack"]').catch(() => {})
   await page.waitForFunction(
     () => document.querySelector('[data-tag-stage]')?.dataset.tagStage === 'result',
     null,
