@@ -7,7 +7,7 @@
  * One shot rallies open on End. Every other rally opens on the serve.
  * Defensive is the lit choice before the first attack. Offensive makes that
  * shot the first attack and keeps the walk there until stroke, wing and
- * initiative are in. Next skips a row Save does not need.
+ * intent are in. Next skips a row Save does not need.
  */
 
 import {
@@ -37,7 +37,7 @@ import {
 export type SeqStop = { kind: 'shot'; shot: number } | { kind: 'end' }
 export type SeqPlace = SeqStop | { kind: 'ready' }
 
-export type SeqRow = 'depth' | 'pair' | 'stroke' | 'wing' | 'initiative'
+export type SeqRow = 'depth' | 'pair' | 'stroke' | 'wing' | 'intent' | 'initiative'
 
 const RESULT_KEYS = ['q', 'w', 'e', 'r', 't', 'y'] as const
 const STROKE_KEYS = ['s', 'd', 'f', 'g', 'h'] as const
@@ -85,7 +85,8 @@ export function pairLive(d: Draft, shot: number): boolean {
 
 /**
  * Rows under the heading. A shot before the attack is the pair alone.
- * Offensive (the first attack) and a reply add stroke, wing and initiative.
+ * Offensive (the first attack) adds stroke, wing and intent, and a reply adds
+ * stroke, wing and initiative: the same fields the current mode asks and saves.
  * The last shot always adds stroke and wing, because Save needs them.
  */
 export function rowsFor(d: Draft, shot: number): SeqRow[] {
@@ -98,9 +99,9 @@ export function rowsFor(d: Draft, shot: number): SeqRow[] {
     ((d.fa === null && !d.noAttack) || (d.fa !== null && shot < d.fa) || (d.noAttack && shot < n))
   if (before) return ['pair']
   const role = roleOf(d, shot)
-  const initiative = role === 'firstAttack' || role === 'reply'
   const rows: SeqRow[] = ['pair', 'stroke', 'wing']
-  if (initiative) rows.push('initiative')
+  if (role === 'firstAttack') rows.push('intent')
+  if (role === 'reply') rows.push('initiative')
   return rows
 }
 
@@ -112,6 +113,7 @@ export function shotComplete(d: Draft, shot: number): boolean {
   if (rows.includes('depth') && !tags?.depth) return false
   if (rows.includes('stroke') && !tags?.stroke) return false
   if (rows.includes('wing') && !tags?.wing) return false
+  if (rows.includes('intent') && !tags?.intent) return false
   if (rows.includes('initiative') && !tags?.initiative) return false
   return true
 }

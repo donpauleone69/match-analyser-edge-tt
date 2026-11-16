@@ -4,11 +4,12 @@
  * write is the rally the current mode would write for the same answers.
  * Run: sh proto/scripts/sequence-same-save.sh
  */
-import { addContact, emptyDraft, flipSwitch, markFa, patchShot, rallyFromDraft, setEnding, switchOf, toggleNoAttack, type Draft, type Ending, type Side } from '@/features/tagging/rally'
+import { addContact, draftFromRally, emptyDraft, toggleShotField, undoContact, flipSwitch, markFa, patchShot, rallyFromDraft, setEnding, switchOf, toggleNoAttack, type Draft, type Ending, type Side } from '@/features/tagging/rally'
 import { applyShotKey } from '@/features/tagging/shotKeys'
 import {
   afterRevisit,
   applySeqKey,
+  beforeAttack,
   blockOf,
   blockWindow,
   defensiveToEnd,
@@ -21,10 +22,13 @@ import {
   shotComplete,
   shouldStop,
   type SeqPlace,
+  type SeqStop,
 } from '@/features/tagging/sequence'
 
 const fails: string[] = []
+let checked = 0
 const ok = (name: string, cond: boolean, detail = '') => {
+  checked++
   if (!cond) fails.push(detail ? `${name}: ${detail}` : name)
 }
 
@@ -109,11 +113,13 @@ function same(name: string, seq: Draft, current: Draft) {
   const passed = pressSide(seq, 2, 'defensive')
   ok('defensive before the attack is not stored', passed.advance && passed.draft === seq)
   seq = pressSide(seq, 3, 'offensive').draft
-  ok('offensive opens stroke, wing and initiative', rowsFor(seq, 3).join(',') === 'pair,stroke,wing,initiative')
+  ok('offensive opens stroke, wing and intent', rowsFor(seq, 3).join(',') === 'pair,stroke,wing,intent', rowsFor(seq, 3).join(','))
+  ok('a reply asks initiative', rowsFor(seq, 4).join(',') === 'pair,stroke,wing,initiative', rowsFor(seq, 4).join(','))
   ok('those three hold the walk', !shotComplete(seq, 3) && !nextAllowed(seq, { kind: 'shot', shot: 3 }))
   seq = patchShot(seq, 3, { stroke: 'Loop', wing: 'FH' })
-  ok('Next skips initiative', nextAllowed(seq, { kind: 'shot', shot: 3 }) && !shotComplete(seq, 3))
-  ok('initiative would move it on', shotComplete(patchShot(seq, 3, { initiative: 'Level' }), 3))
+  ok('Next skips intent', nextAllowed(seq, { kind: 'shot', shot: 3 }) && !shotComplete(seq, 3))
+  ok('intent would move it on', shotComplete(patchShot(seq, 3, { intent: 'Neutral' }), 3))
+  ok('initiative on the first attack would not', !shotComplete(patchShot(seq, 3, { initiative: 'Level' }), 3))
   seq = patchShot(seq, 6, { stroke: 'Block', wing: 'BH' })
   seq = setEnding(seq, 'Winner')
   let current = markFa(taps(6), 3)
@@ -150,33 +156,6 @@ function same(name: string, seq: Draft, current: Draft) {
 }
 
 // Walk order for 6 shots, attack on 3, Next past every optional row.
-{
-  let d = taps(6)
-  let place: SeqPlace = openAt(d)
-  const seen: string[] = []
-  const step = (label: string) => {
-    seen.push(place.kind === 'shot' ? String(place.shot) : place.kind)
-    if (label === 'def') {
-      const pressed = pressSide(d, (place as { shot: number }).shot, 'defensive')
-      d = pressed.draft
-      place = nextStop(d, place as { kind: 'shot'; shot: number })
-    } else if (label === 'off') {
-      d = pressSide(d, (place as { shot: number }).shot, 'offensive').draft
-    } else if (label === 'rows') {
-      d = patchShot(d, (place as { shot: number }).shot, { stroke: 'Loop', wing: 'FH' })
-      place = nextStop(d, place as { kind: 'shot'; shot: number })
-    } else if (label === 'last') {
-      d = patchShot(d, 6, { stroke: 'Block', wing: 'BH' })
-      place = nextStop(d, { kind: 'shot', shot: 6 })
-    } else if (label === 'end') {
-      d = setEnding(d, 'Winner')
-      place = nextStop(d, { kind: 'end' })
-    }
-  }
-  step('next') // serve, Next
-  // nextStop from serve does not apply the label. Do it plainly:
-}
-
 {
   let d = taps(6)
   let place: SeqPlace = openAt(d)
@@ -278,6 +257,207 @@ function same(name: string, seq: Draft, current: Draft) {
   same('result changed to an error', setEnding(seq, 'Net'), again)
 }
 
+
+// --- The walk as the screen drives it ---
+// Mirrors TagSetScreen: a field press is toggleShotField, then the walk moves
+// on when the shot is complete. Offensive or Defensive is pressSide. Next is
+// Defensive before the attack, else the next stop. The same answers are then
+// given the current mode's way, and the stored rallies must match.
+
+type Step =
+  | ['next']
+  | ['side', 'offensive' | 'defensive']
+  | ['field', 'stroke' | 'wing' | 'depth' | 'intent' | 'initiative' | 'missReason', string]
+  | ['result', Ending]
+  | ['zero']
+
+function walk(start: Draft, steps: Step[]): { d: Draft; trail: string; place: SeqPlace } {
+  let d = start
+  let place: SeqPlace = openAt(d)
+  const trail: string[] = []
+  const at = (p: SeqPlace) => (p.kind === 'shot' ? `s${p.shot}` : p.kind)
+  trail.push(at(place))
+  const go = (dest: SeqPlace) => {
+    if (at(dest) !== at(place)) trail.push(at(dest))
+    place = dest
+  }
+  for (const step of steps) {
+    if (place.kind === 'ready') throw new Error(`step ${step.join(' ')} after Ready`)
+    const stop = place as SeqStop
+    if (step[0] === 'next') {
+      if (!nextAllowed(d, stop)) {
+        trail.push('next-dark')
+        continue
+      }
+      if (stop.kind === 'shot' && beforeAttack(d, stop.shot)) {
+        const pressed = pressSide(d, stop.shot, 'defensive')
+        d = pressed.draft
+        go(nextStop(d, stop))
+      } else go(nextStop(d, stop))
+    } else if (step[0] === 'side') {
+      if (stop.kind !== 'shot') throw new Error('side on End')
+      const pressed = pressSide(d, stop.shot, step[1])
+      d = pressed.draft
+      if (pressed.cleared || pressed.advance || shotComplete(d, stop.shot)) go(nextStop(d, stop))
+    } else if (step[0] === 'field') {
+      const shot = stop.kind === 'shot' ? stop.shot : d.contacts.length
+      d = toggleShotField(d, shot, step[1], step[2] as never)
+      if (stop.kind === 'end') go(nextStop(d, stop))
+      else if (shotComplete(d, stop.shot)) go(nextStop(d, stop))
+    } else if (step[0] === 'result') {
+      d = setEnding(d, step[1])
+      go(nextStop(d, stop))
+    } else if (step[0] === 'zero') {
+      if (stop.kind !== 'shot' || !beforeAttack(d, stop.shot)) continue
+      d = defensiveToEnd(d)
+      go({ kind: 'shot', shot: d.contacts.length })
+    }
+  }
+  return { d, trail: trail.join(' '), place }
+}
+
+{
+  // 2 shots, receive attacks, every optional row answered.
+  const w = walk(taps(2), [
+    ['field', 'depth', 'Short'],
+    ['side', 'offensive'],
+    ['field', 'stroke', 'Flick'],
+    ['field', 'wing', 'FH'],
+    ['field', 'intent', 'Aggressive'],
+    ['result', 'Winner'],
+  ])
+  ok('walk 2 shots attack trail', w.trail === 's1 s2 end ready', w.trail)
+  let current = taps(2)
+  current = toggleShotField(current, 1, 'depth', 'Short')
+  current = setEnding(current, 'Winner')
+  current = toggleShotField(current, 2, 'stroke', 'Flick')
+  current = toggleShotField(current, 2, 'wing', 'FH')
+  current = toggleShotField(current, 2, 'intent', 'Aggressive')
+  same('walk 2 shots attack, intent saved', w.d, current)
+  ok('2 shot attack keeps intent, no initiative', w.d.shots[1]?.intent === 'Aggressive' && !w.d.shots[1]?.initiative)
+}
+
+{
+  // 2 shots, receive pushed: Push pressed with no Defensive press first.
+  const w = walk(taps(2), [['next'], ['field', 'stroke', 'Push'], ['field', 'wing', 'BH'], ['result', 'Long'], ['field', 'missReason', 'Misjudged']])
+  ok('walk 2 shots push trail', w.trail === 's1 s2 end ready', w.trail)
+  let current = taps(2)
+  current = setEnding(current, 'Long')
+  current = toggleShotField(current, 2, 'stroke', 'Push')
+  current = toggleShotField(current, 2, 'wing', 'BH')
+  current = toggleShotField(current, 2, 'missReason', 'Misjudged')
+  same('walk 2 shots push, no Defensive press', w.d, current)
+}
+
+{
+  // Serve error: opens on End, the miss reason is optional and stored when given.
+  const w = walk(taps(1, 'them'), [['next'], ['result', 'Net'], ['field', 'missReason', 'Misjudged']])
+  ok('walk serve error trail (Next dark on End)', w.trail === 'end next-dark ready', w.trail)
+  let current = setEnding(taps(1, 'them'), 'Net')
+  current = toggleShotField(current, 1, 'missReason', 'Misjudged')
+  same('walk serve error with reason', w.d, current)
+  ok('serve error winner is me', rallyFromDraft(w.d, 'x')?.winner === 'me')
+}
+
+{
+  // 3 shots: Next on the serve, Next on 2 (Defensive), 3 Offensive, missed.
+  const w = walk(taps(3), [['next'], ['next'], ['side', 'offensive'], ['field', 'stroke', 'Loop'], ['field', 'wing', 'FH'], ['next'], ['result', 'Net']])
+  ok('walk 3 shots trail', w.trail === 's1 s2 s3 end', w.trail)
+  ok('Next never saves: a run of Next stays short of Ready', w.place.kind === 'end')
+  let current = taps(3)
+  current = setEnding(current, 'Net')
+  current = markFa(current, 3)
+  current = toggleShotField(current, 3, 'stroke', 'Loop')
+  current = toggleShotField(current, 3, 'wing', 'FH')
+  same('walk 3 shots attack on the last', w.d, current)
+}
+
+{
+  // A run of Next from the serve on a 6 shot rally stops on the last shot.
+  const w = walk(taps(6), [['next'], ['next'], ['next'], ['next'], ['next'], ['next'], ['next'], ['next']])
+  ok('Next run stops at the last shot', w.trail.startsWith('s1 s2 s3 s4 s5 s6') && w.place.kind === 'shot', w.trail)
+}
+
+{
+  // 6 shots, No attack by key 0 on shot 2.
+  const w = walk(taps(6), [['next'], ['zero'], ['field', 'stroke', 'Chop'], ['field', 'wing', 'BH'], ['result', 'Winner']])
+  ok('walk key 0 trail', w.trail === 's1 s2 s6 end ready', w.trail)
+  let current = setEnding(taps(6), 'Winner')
+  current = toggleNoAttack(current)
+  current = toggleShotField(current, 6, 'stroke', 'Chop')
+  current = toggleShotField(current, 6, 'wing', 'BH')
+  same('walk 6 shots no attack by key 0', w.d, current)
+}
+
+{
+  // 6 shots, attack on 3, replies answered, a later shot passed.
+  const w = walk(taps(8), [
+    ['field', 'depth', 'Half'],
+    ['next'],
+    ['side', 'offensive'],
+    ['field', 'stroke', 'Loop'],
+    ['field', 'wing', 'FH'],
+    ['field', 'intent', 'Neutral'],
+    ['field', 'stroke', 'Block'],
+    ['field', 'wing', 'BH'],
+    ['field', 'initiative', 'Behind'],
+    ['next'],
+    ['field', 'stroke', 'Smash'],
+    ['field', 'wing', 'FH'],
+    ['result', 'Winner'],
+  ])
+  ok('walk 8 shots trail skips 6 and 7', w.trail === 's1 s2 s3 s4 s5 s8 end ready', w.trail)
+  let current = setEnding(taps(8), 'Winner')
+  current = toggleShotField(current, 1, 'depth', 'Half')
+  current = markFa(current, 3)
+  current = patchShot(current, 3, { stroke: 'Loop', wing: 'FH', intent: 'Neutral' })
+  current = patchShot(current, 4, { stroke: 'Block', wing: 'BH', initiative: 'Behind' })
+  current = patchShot(current, 8, { stroke: 'Smash', wing: 'FH' })
+  same('walk 8 shots, replies answered', w.d, current)
+}
+
+{
+  // Delete last while tapping: the walk opens on the shorter rally and saves it like the current mode.
+  const tapped = undoContact(addContact(taps(3), 20))
+  const w = walk(tapped, [['next'], ['next'], ['side', 'defensive'], ['field', 'stroke', 'Push'], ['field', 'wing', 'FH'], ['result', 'Wide']])
+  ok('walk after Delete last trail (an error waits on End)', w.trail === 's1 s2 s3 end', w.trail)
+  let current = setEnding(taps(3), 'Wide')
+  current = toggleNoAttack(current)
+  current = toggleShotField(current, 3, 'stroke', 'Push')
+  current = toggleShotField(current, 3, 'wing', 'FH')
+  same('walk after Delete last', w.d, current)
+}
+
+{
+  // Discard then Undo: the screen puts back the same draft and stop, so the walk carries on to the same rally.
+  const half = walk(taps(4), [['next'], ['side', 'offensive'], ['field', 'stroke', 'Flick'], ['field', 'wing', 'BH']])
+  const held = { draft: half.d, place: half.place }
+  const restored = JSON.parse(JSON.stringify(held)) as typeof held
+  ok('undo keeps the stop', JSON.stringify(restored.place) === JSON.stringify(half.place))
+  let d = restored.draft
+  d = toggleShotField(d, 4, 'stroke', 'Block')
+  d = toggleShotField(d, 4, 'wing', 'FH')
+  d = setEnding(d, 'Net')
+  let current = setEnding(taps(4), 'Net')
+  current = markFa(current, 2)
+  current = patchShot(current, 2, { stroke: 'Flick', wing: 'BH' })
+  current = patchShot(current, 4, { stroke: 'Block', wing: 'FH' })
+  same('discard, undo, finish', d, current)
+}
+
+{
+  // Edit of a rally saved in shot by shot mode: it opens as a draft and saves back unchanged.
+  const w = walk(taps(5), [['next'], ['next'], ['side', 'offensive'], ['field', 'stroke', 'Drive'], ['field', 'wing', 'FH'], ['field', 'intent', 'Safe'], ['next'], ['field', 'stroke', 'Loop'], ['field', 'wing', 'BH'], ['next'], ['result', 'Winner']])
+  const saved = rallyFromDraft(w.d, 'r1')
+  ok('edit: the walk reached Ready', w.place.kind === 'ready' && saved !== null, `${w.trail} ${JSON.stringify(w.d)}`)
+  if (saved) {
+    const reopened = draftFromRally(saved)
+    same('edit round trip', reopened, w.d)
+    const changed = setEnding(reopened, 'Lucky')
+    same('edit result change', changed, setEnding(w.d, 'Lucky'))
+  }
+}
+
 // --- Blocks, the default side, and keys ---
 
 {
@@ -311,8 +491,8 @@ function same(name: string, seq: Draft, current: Draft) {
 }
 
 if (fails.length) {
-  console.error(`sequence same-save: ${fails.length} failed`)
+  console.error(`sequence same-save: ${fails.length} of ${checked} failed`)
   for (const line of fails) console.error('  ' + line)
   process.exit(1)
 }
-console.log('sequence same-save: all cases passed')
+console.log(`sequence same-save: all ${checked} checks passed`)

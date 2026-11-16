@@ -333,6 +333,17 @@ export function ShotPanel({
           </div>
         ) : null}
 
+        {seqRows.includes('intent') ? (
+          <div role="group" aria-label="Intent" data-row="Intent">
+            <Name>Intent</Name>
+            <Cells>
+              {['Safe', 'Neutral', 'Aggressive'].map((v) => (
+                <Answer key={v} label={v} on={tags.intent === v} onClick={() => set('intent', v)} />
+              ))}
+            </Cells>
+          </div>
+        ) : null}
+
         {seqRows.includes('initiative') ? (
           <div role="group" aria-label="Initiative" data-row="Initiative">
             <Name>Initiative</Name>

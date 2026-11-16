@@ -107,7 +107,7 @@ for (const size of SIZES) {
   await page.waitForTimeout(400)
   const attack = await shot('attack')
   if (attack.fa !== '2') fails.push(`${size.name} attack: fa is ${attack.fa}`)
-  if (!attack.rows.includes('Wing') || !attack.rows.includes('Initiative')) {
+  if (!attack.rows.includes('Wing') || !attack.rows.includes('Intent')) {
     fails.push(`${size.name} attack: rows ${attack.rows.join(',')}`)
   }
   const nextDisabled = await page.locator('[data-tag-save]').isDisabled()
