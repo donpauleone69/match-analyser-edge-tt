@@ -4,7 +4,8 @@
 // Two checks asked that a shot tagged Block, Lob, Push or Chop is never picked as the first attack, on a shot
 // whose stroke had no row. That is now decided the other way: a stroke nobody can see does not refuse the
 // pick, it is cleared. The first check is asked of the end shot, where the stroke shows. The second (section
-// E) asks for the new behaviour. `failed` and `count` are exported.
+// E) asks for the new behaviour. The stroke keys moved to the home row (A is the switch, S D F G H the
+// cells), so the key cases press S and D where they pressed X and C. `failed` and `count` are exported.
 // Run: sh proto/scripts/rules-fixes.sh
 import * as R from '@/features/tagging/rally'
 import * as SC from '@/features/tagging/script'
@@ -117,8 +118,8 @@ if (P3) {
   // the rule itself, not the cells: can a first attack be given Block?
   const faBlock = R.toggleShotField(d, 4, 'stroke', 'Block')
   check('RULE GUARD: Block put on the first attack shot is refused by the rule', faBlock.shots[3].stroke !== 'Block' || faBlock.fa !== 4, `fa ${faBlock.fa}, shot 4 stroke ${faBlock.shots[3].stroke}, stage ${R.stageOf(R.patchShot(faBlock, 4, { wing: 'FH' }))}`)
-  const viaKey = K.applyShotKey(d, 4, 'x')
-  check('key X on the first attack does nothing', viaKey === null)
+  const viaKey = K.applyShotKey(d, 4, 's')
+  check('key S (Block) on the first attack does nothing', viaKey === null)
   // guess at the end shot step
   const g = (n: number, e: R.Ending) => r.switchOf(R.setEnding(tapped(n), e), n).side
   check('end shot before the first attack is known: Winner or 3+ shots Offensive, two shots not a winner Defensive', g(2, 'Winner') === 'offensive' && g(2, 'Long') === 'defensive' && g(3, 'Long') === 'offensive' && g(5, 'Wide') === 'offensive')
@@ -193,8 +194,8 @@ if (P3) {
   say('G. shotKeys module state')
   const un = K.bindStrokeSide(5, 'defensive', () => undefined)
   const other = R.patchShot(R.markFa(R.setEnding(tapped(7), 'Winner'), 4), 5, { stroke: 'Block' })
-  const viaStale = K.applyShotKey(other, 5, 'c') // no `shown` passed: reads the published side
-  say(`  with shot 5 published as Defensive by another rally's panel, key C on this rally's shot 5 (rule side ${r.switchOf(other, 5).side}) gives ${viaStale?.shots[4].stroke}`)
+  const viaStale = K.applyShotKey(other, 5, 'd') // no `shown` passed: reads the published side
+  say(`  with shot 5 published as Defensive by another rally's panel, key D on this rally's shot 5 (rule side ${r.switchOf(other, 5).side}) gives ${viaStale?.shots[4].stroke}`)
   check('a key reads the rule, not a side left published by another rally', viaStale?.shots[4].stroke === 'Flick', `got ${viaStale?.shots[4].stroke}`)
   un()
 }

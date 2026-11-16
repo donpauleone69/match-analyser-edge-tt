@@ -486,14 +486,14 @@ async function driveWarn(page, fails, vp) {
   ).catch(() => {})
   if ((await readStage(page)) !== 'endShot') pressed = await pressCell(page, 'Long')
   await page.waitForFunction(
-    () => /Wing and stroke/.test(document.querySelector('[data-tag-status]')?.textContent || ''),
+    () => /Stroke and wing/.test(document.querySelector('[data-tag-status]')?.textContent || ''),
     null,
     { timeout: 3000 }
   ).catch(() => {})
   const detail = await measure(page)
   note(
     fails,
-    pressed && /Wing and stroke/.test(detail.status) && !/due to serve/.test(detail.status),
+    pressed && /Stroke and wing/.test(detail.status) && !/due to serve/.test(detail.status),
     `step owns the line at the end shot (${detail.status})`
   )
 }

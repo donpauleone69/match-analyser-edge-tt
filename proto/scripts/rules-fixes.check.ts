@@ -1,5 +1,5 @@
 // Rule fixes after the pass 3 rule review: faults 1, 2, 3, 6 and 7, the rule side of fault 5,
-// the pick on a shot whose kept stroke has no row, the minimum gap between live taps, and Pivot dropped. No browser.
+// the pick on a shot whose kept stroke has no row, the minimum gap between live taps, Pivot dropped, fewer questions per shot, and the key rows. No browser.
 // Then the reviewer's own cases (rules-review-cases.ts). Run: sh proto/scripts/rules-fixes.sh
 import {
   ATTACK_STROKES,
@@ -26,6 +26,7 @@ import {
   shotSummary,
   showsStroke,
   stageOf,
+  statusText,
   switchOf,
   tapIgnored,
   toggleNoAttack,
@@ -38,6 +39,10 @@ import {
 } from '@/features/tagging/rally'
 import { buildScripts, ralliesFromScript } from '@/features/tagging/script'
 import {
+  RESULT_KEYS,
+  STROKE_KEYS,
+  SWITCH_KEY,
+  WING_KEYS,
   applyPanelKey,
   applyShotKey,
   bindStrokeSide,
@@ -153,11 +158,14 @@ console.log('\nFault 2: Add contact and hidden strokes')
         const out = rallyFromDraft(moved, 'r')
         swept++
         if (out && out.shots.some((s, i) => s.stroke && !showsStroke(moved, i + 1))) bad++
-        if (J(markFa(moved, fa).shots) !== J(d.shots) && moved !== d) bad++
+        // The one answer that goes: Push kept on the picked shot itself while it had no stroke row.
+        const cleared = moved !== d && !showsStroke(d, to) && d.shots[to - 1].stroke === 'Push'
+        const want = cleared ? d.shots.map((s, i) => (i === to - 1 ? { wing: s.wing } : s)) : d.shots
+        if (J(markFa(moved, fa).shots) !== J(want) && moved !== d) bad++
       }
     }
   }
-  check(`sweep of ${swept} first attack moves: nothing hidden is saved, and moving back restores every answer`, bad === 0, `${bad} bad`)
+  check(`sweep of ${swept} first attack moves: nothing hidden is saved, and moving back restores every answer but a hidden Push on the picked shot`, bad === 0, `${bad} bad`)
 }
 
 // ---------- Fault 3: the keys are pure
@@ -166,53 +174,53 @@ console.log('\nFault 3: keys are pure')
   // Seven shots, first attack 4, shot 5 Block (no side of its own), so shot 5 follows the first attack: Offensive.
   const d = patchShot(markFa(tapped(7, 'Winner'), 4), 5, { stroke: 'Block' })
   check('rule side of shot 5 is Offensive, free', J(switchOf(d, 5)) === J({ side: 'offensive', fixed: false }))
-  const plain = applyShotKey(d, 5, 'c')
+  const plain = applyShotKey(d, 5, 'd')
   const undo = bindStrokeSide(5, 'defensive', () => undefined)
-  const bound = applyShotKey(d, 5, 'c')
-  check('key C with no side passed reads the rule: Flick, whatever a panel has published', plain?.shots[4].stroke === 'Flick' && J(bound) === J(plain), `${plain?.shots[4].stroke} then ${bound?.shots[4].stroke}`)
+  const bound = applyShotKey(d, 5, 'd')
+  check('key D with no side passed reads the rule: Flick, whatever a panel has published', plain?.shots[4].stroke === 'Flick' && J(bound) === J(plain), `${plain?.shots[4].stroke} then ${bound?.shots[4].stroke}`)
   undo()
   check('the same key on the same draft with the same side gives the same draft, 50 times over', (() => {
-    const first = J(applyShotKey(d, 5, 'c', 'defensive'))
+    const first = J(applyShotKey(d, 5, 'd', 'defensive'))
     for (let i = 0; i < 50; i++) {
       const u = bindStrokeSide(5, i % 2 ? 'offensive' : 'defensive', () => undefined)
-      const same = J(applyShotKey(d, 5, 'c', 'defensive')) === first
+      const same = J(applyShotKey(d, 5, 'd', 'defensive')) === first
       u()
       if (!same) return false
     }
     return true
   })())
-  check('the side comes in as an argument: Defensive gives Lob, Offensive gives Flick', applyShotKey(d, 5, 'c', 'defensive')?.shots[4].stroke === 'Lob' && applyShotKey(d, 5, 'c', 'offensive')?.shots[4].stroke === 'Flick')
-  check('a side passed in never beats a fixed switch: first attack stays Offensive cells', applyShotKey(d, 4, 'c', 'defensive')?.shots[3].stroke === 'Flick' && shownStrokeSide(d, 4, 'defensive') === 'offensive')
-  check('a side passed in never beats a fixed switch: before the first attack there is no stroke row at all', applyShotKey(d, 3, 'c', 'offensive') === null)
+  check('the side comes in as an argument: Defensive gives Lob, Offensive gives Flick', applyShotKey(d, 5, 'd', 'defensive')?.shots[4].stroke === 'Lob' && applyShotKey(d, 5, 'd', 'offensive')?.shots[4].stroke === 'Flick')
+  check('a side passed in never beats a fixed switch: first attack stays Offensive cells', applyShotKey(d, 4, 'd', 'defensive')?.shots[3].stroke === 'Flick' && shownStrokeSide(d, 4, 'defensive') === 'offensive')
+  check('a side passed in never beats a fixed switch: before the first attack there is no stroke row at all', applyShotKey(d, 3, 'd', 'offensive') === null)
   const none = toggleNoAttack(ws(tapped(4, 'Long'), 4, 'BH', 'Block'))
-  check('No attack rally: a held Offensive side is ignored, key C gives Lob', shownStrokeSide(none, 4, 'offensive') === 'defensive' && applyShotKey(none, 4, 'c', 'offensive')?.shots[3].stroke === 'Lob')
+  check('No attack rally: a held Offensive side is ignored, key D gives Lob', shownStrokeSide(none, 4, 'offensive') === 'defensive' && applyShotKey(none, 4, 'd', 'offensive')?.shots[3].stroke === 'Lob')
   const pushed = patchShot(d, 6, { stroke: 'Push' })
   check('a stroke with a side outranks a held side', shownStrokeSide(pushed, 6, 'offensive') === 'defensive' && shownStrokeSide(patchShot(d, 6, { stroke: 'Loop' }), 6, 'defensive') === 'offensive')
   check('no side held: the rule side', shownStrokeSide(d, 6) === 'offensive' && shownStrokeSide(d, 6, null) === 'offensive')
 
-  check('key Z: the side after it is the other one', sideAfterShotKey(d, 5, 'z') === 'defensive' && sideAfterShotKey(d, 5, 'Z', 'defensive') === 'offensive')
-  check('key Z on a fixed switch, on a shot with no stroke row, or any other key: no new side', sideAfterShotKey(d, 4, 'z') === null && sideAfterShotKey(d, 3, 'z') === null && sideAfterShotKey(d, 5, 'c') === null)
-  check('key Z while the result is asked: nothing', sideAfterShotKey(tapped(4), 4, 'z') === null && applyShotKey(tapped(4), 4, 'z') === null)
-  check('key Z on Block leaves the draft alone', applyShotKey(d, 5, 'z') === null)
+  check('key A: the side after it is the other one', sideAfterShotKey(d, 5, 'a') === 'defensive' && sideAfterShotKey(d, 5, 'A', 'defensive') === 'offensive')
+  check('key A on a fixed switch, on a shot with no stroke row, or any other key: no new side', sideAfterShotKey(d, 4, 'a') === null && sideAfterShotKey(d, 3, 'a') === null && sideAfterShotKey(d, 5, 'd') === null)
+  check('key A while the result is asked: nothing', sideAfterShotKey(tapped(4), 4, 'z') === null && applyShotKey(tapped(4), 4, 'z') === null)
+  check('key A on Block leaves the draft alone', applyShotKey(d, 5, 'a') === null)
   const loop6 = patchShot(d, 6, { stroke: 'Loop' })
-  check('key Z on Loop clears that stroke only', applyShotKey(loop6, 6, 'z')?.shots[5].stroke === undefined && J(applyShotKey(loop6, 6, 'z')?.shots.slice(0, 5)) === J(loop6.shots.slice(0, 5)))
+  check('key A on Loop clears that stroke only', applyShotKey(loop6, 6, 'a')?.shots[5].stroke === undefined && J(applyShotKey(loop6, 6, 'a')?.shots.slice(0, 5)) === J(loop6.shots.slice(0, 5)))
 
   // The screen bridge: the panel publishes its side, and is told of a flip.
   const told: StrokeSide[] = []
   const unbind = bindStrokeSide(5, 'defensive', (s) => told.push(s))
-  check('bridge: a key on the open panel uses the side that panel shows', applyPanelKey(d, 5, 'c')?.shots[4].stroke === 'Lob')
-  check('bridge: a key on another shot does not', applyPanelKey(d, 6, 'c')?.shots[5].stroke === 'Flick')
-  applyPanelKey(d, 5, 'z')
-  check('bridge: Z tells the panel the new side, once', J(told) === J(['offensive']), J(told))
-  applyPanelKey(d, 4, 'z')
-  applyPanelKey(d, 6, 'z')
-  check('bridge: Z on a fixed switch or on a shot that is not open tells it nothing', told.length === 1, J(told))
+  check('bridge: a key on the open panel uses the side that panel shows', applyPanelKey(d, 5, 'd')?.shots[4].stroke === 'Lob')
+  check('bridge: a key on another shot does not', applyPanelKey(d, 6, 'd')?.shots[5].stroke === 'Flick')
+  applyPanelKey(d, 5, 'a')
+  check('bridge: A tells the panel the new side, once', J(told) === J(['offensive']), J(told))
+  applyPanelKey(d, 4, 'a')
+  applyPanelKey(d, 6, 'a')
+  check('bridge: A on a fixed switch or on a shot that is not open tells it nothing', told.length === 1, J(told))
   unbind()
-  check('bridge: once the panel is gone the rule side is used', applyPanelKey(d, 5, 'c')?.shots[4].stroke === 'Flick')
+  check('bridge: once the panel is gone the rule side is used', applyPanelKey(d, 5, 'd')?.shots[4].stroke === 'Flick')
   const a = bindStrokeSide(5, 'defensive', () => undefined)
   const b = bindStrokeSide(6, 'defensive', () => undefined)
   a()
-  check('bridge: an old panel letting go does not unbind the new one', applyPanelKey(d, 6, 'c')?.shots[5].stroke === 'Lob')
+  check('bridge: an old panel letting go does not unbind the new one', applyPanelKey(d, 6, 'd')?.shots[5].stroke === 'Lob')
   b()
 }
 
@@ -235,7 +243,7 @@ console.log('\nFault 6: the first attack is never a defensive stroke')
   }
   check('the refusal is for the first attack only: Block on the shot after it is taken', toggleShotField(d, 5, 'stroke', 'Block').shots[4].stroke === 'Block')
   check('other tags on the first attack are still taken', patchShot(d, 4, { intent: 'Safe' }).shots[3].intent === 'Safe')
-  check('key X on the first attack does nothing', applyShotKey(d, 4, 'x') === null && applyShotKey(d, 4, 'x', 'defensive') === null)
+  check('key S (Block) on the first attack does nothing', applyShotKey(d, 4, 's') === null && applyShotKey(d, 4, 's', 'defensive') === null)
   const loop = patchShot(d, 4, { stroke: 'Loop' })
   check('pressing the lit stroke again still clears it', toggleShotField(loop, 4, 'stroke', 'Loop').shots[3].stroke === undefined)
   // The end shot that is the first attack.
@@ -510,19 +518,11 @@ console.log('\nPivot is dropped')
   let d = ws(tapped(6, 'Winner'), 6, 'FH', 'Smash')
   d = ws(markFa(d, 3), 3, 'FH', 'Loop')
   const drafts = [tapped(1), tapped(2), tapped(2, 'Winner'), tapped(5, 'Long'), toggleNoAttack(ws(tapped(4, 'Long'), 4, 'BH', 'Push')), d, markFa(d, 6)]
-  check('no shot of any rally shows a Pivot cell', drafts.every((x) => x.contacts.every((_, i) => fieldsFor(x, i + 1).pivot === false)))
+  check('no shot of any rally has a Pivot row: the field is gone', drafts.every((x) => x.contacts.every((_, i) => !('pivot' in fieldsFor(x, i + 1)))))
   check('a patch that sets pivot changes nothing: the same draft comes back', patchShot(d, 3, { pivot: true }) === d && toggleShotField(d, 3, 'pivot', true) === d)
   check('pivot beside another tag: the other tag is taken, pivot is not', (() => {
     const got = patchShot(d, 4, { pivot: true, wing: 'BH' })
     return got.shots[3].wing === 'BH' && !('pivot' in got.shots[3])
-  })())
-  check('key D does nothing on any shot at any step, with or without an open panel', (() => {
-    for (const x of drafts) {
-      for (let shot = 1; shot <= x.contacts.length; shot++) {
-        if (applyShotKey(x, shot, 'd') !== null || applyShotKey(x, shot, 'D', 'defensive') !== null || applyPanelKey(x, shot, 'd') !== null) return false
-      }
-    }
-    return true
   })())
   check('no key and no rule sets pivot: every key on every shot, twice over', (() => {
     const keys = 'abcdefghijklmnopqrstuvwxyz0123456789[]-=,. '.split('')
@@ -559,7 +559,7 @@ console.log('\nPivot is dropped')
   const oldSnap = J(old)
   const opened = draftFromRally(old)
   check('an old rally with pivot opens ready to save', canSave(opened) && stageOf(opened) === 'ready')
-  check('it shows no Pivot cell', opened.contacts.every((_, i) => !fieldsFor(opened, i + 1).pivot))
+  check('it shows no Pivot cell', opened.contacts.every((_, i) => !('pivot' in fieldsFor(opened, i + 1))))
   const resaved = rallyFromDraft(opened, 'old')
   check('it saves, and no shot of the saved rally has pivot', resaved !== null && resaved.shots.every((t) => !('pivot' in t)))
   check('everything else is saved as it was', resaved !== null && J(resaved) === J({ ...old, shots: [{ spin: 'Back' }, { wing: 'BH' }, { wing: 'FH', stroke: 'Loop' }, { wing: 'FH', stroke: 'Smash', review: true }] }), J(resaved))
@@ -575,6 +575,132 @@ console.log('\nPivot is dropped')
     return stageOf(odd) === 'endShot' && canSave(fixed) && out !== null && !('pivot' in out.shots[3])
   })())
   check('a rally with nothing to drop still saves the very same shots array', savedShots(d) === d.shots)
+}
+
+// ---------- Fewer questions per shot
+console.log('\nFewer questions per shot')
+{
+  const rows = (d: Draft, shot: number) => {
+    const f = fieldsFor(d, shot)
+    return (Object.keys(f) as (keyof typeof f)[]).filter((k) => f[k]).join(' ')
+  }
+  // Eight shots, first attack 3: serve, Receive, first attack, two replies, two later shots, the last shot.
+  let d = ws(tapped(8, 'Long'), 8, 'FH', 'Loop')
+  d = ws(markFa(d, 3), 3, 'FH', 'Loop')
+  check('going in: ready', canSave(d))
+  check('Serve: Depth and the ball marks. No Spin', rows(d, 1) === 'depth ball', rows(d, 1))
+  check('Receive: the ball marks only. No Wing, no Depth, no Stroke', rows(d, 2) === 'ball', rows(d, 2))
+  check('First attack: Wing, Stroke, Intent. No Contact', rows(d, 3) === 'wing stroke intent', rows(d, 3))
+  check('Reply, both of them: Wing, Stroke, Initiative', rows(d, 4) === 'wing stroke initiative' && rows(d, 5) === rows(d, 4), `${rows(d, 4)} / ${rows(d, 5)}`)
+  check('Later shots: nothing', rows(d, 6) === '' && rows(d, 7) === '', `${rows(d, 6)} / ${rows(d, 7)}`)
+  check('The last shot, a later shot here: Result, Wing, Stroke, and Miss reason on an error', rows(d, 8) === 'result wing stroke missReason', rows(d, 8))
+  check('Spin and Contact are on no shot of any role', [1, 2, 3, 4, 5, 6, 7, 8].every((s) => !fieldsFor(d, s).spin && !fieldsFor(d, s).contact))
+  check('Pivot is not a row any more', !('pivot' in fieldsFor(d, 3)))
+
+  // The last shot keeps Wing and Stroke whatever its role.
+  const recv = toggleNoAttack(ws(tapped(4, 'Long'), 4, 'BH', 'Push'))
+  check('Receive as the last shot (No attack): Result, Wing, Stroke, the ball marks, Miss reason. No Depth', rows(recv, 4) === 'result wing stroke ball missReason', rows(recv, 4))
+  check('Receive that is not the last shot, same rally: the ball marks only', rows(recv, 2) === 'ball' && rows(recv, 3) === 'ball')
+  const faEnd = markFa(ws(tapped(4, 'Winner'), 4, 'FH', 'Loop'), 4)
+  check('First attack as the last shot: Result, Wing, Stroke, Intent', rows(faEnd, 4) === 'result wing stroke intent', rows(faEnd, 4))
+  const replyEnd = ws(markFa(ws(tapped(4, 'Winner'), 4, 'FH', 'Smash'), 3), 3, 'FH', 'Loop')
+  check('Reply as the last shot: Result, Wing, Stroke, Initiative', rows(replyEnd, 4) === 'result wing stroke initiative', rows(replyEnd, 4))
+  check('Serve only rally: Result, Depth, the ball marks', rows(tapped(1, 'Winner'), 1) === 'result depth ball', rows(tapped(1, 'Winner'), 1))
+  check('Serve and return: the return has Result, Wing, Stroke', rows(ws(tapped(2, 'Winner'), 2, 'FH', 'Loop'), 2).startsWith('result wing stroke'))
+  check('before the first attack is picked, only the last shot has Wing and Stroke', (() => {
+    const x = ws(tapped(6, 'Winner'), 6, 'FH', 'Smash')
+    return stageOf(x) === 'pickFa' && [2, 3, 4, 5].every((s) => !fieldsFor(x, s).wing && !fieldsFor(x, s).stroke) && fieldsFor(x, 6).wing && fieldsFor(x, 6).stroke
+  })())
+
+  // Miss reason: any error, with or without Review.
+  for (const ending of ['Net', 'Long', 'Wide', 'Air'] as const) {
+    const e = tapped(3, ending)
+    check(`Miss reason is offered on ${ending} without Review, on the last shot only`, fieldsFor(e, 3).missReason && !fieldsFor(e, 2).missReason && !fieldsFor(e, 1).missReason)
+  }
+  check('Miss reason is not offered on Winner or Lucky, or before a result', !fieldsFor(tapped(3, 'Winner'), 3).missReason && !fieldsFor(tapped(3, 'Lucky'), 3).missReason && !fieldsFor(tapped(3), 3).missReason)
+  check('Miss reason is stored without Review, is not needed for Save, and Review does not clear it', (() => {
+    const base = ws(tapped(2, 'Long'), 2, 'BH', 'Push')
+    const withReason = patchShot(base, 2, { missReason: 'Forced' })
+    const marked = patchShot(withReason, 2, { review: true })
+    const out = rallyFromDraft(marked, 'r')
+    return canSave(base) && canSave(withReason) && marked.shots[1].missReason === 'Forced' && out !== null && out.shots[1].missReason === 'Forced' && out.shots[1].review === true
+  })())
+
+  // Intent: Neutral is taken like any other answer.
+  for (const intent of ['Safe', 'Neutral', 'Aggressive']) {
+    const x = toggleShotField(d, 3, 'intent', intent)
+    const out = rallyFromDraft(x, 'r')
+    check(`Intent ${intent} is taken, saved, and comes back when the rally is opened`, x.shots[2].intent === intent && canSave(x) && out !== null && out.shots[2].intent === intent && draftFromRally(out).shots[2].intent === intent)
+  }
+  check('Intent pressed again clears it, and a second answer replaces the first', toggleShotField(toggleShotField(d, 3, 'intent', 'Neutral'), 3, 'intent', 'Neutral').shots[2].intent === undefined && toggleShotField(toggleShotField(d, 3, 'intent', 'Safe'), 3, 'intent', 'Neutral').shots[2].intent === 'Neutral')
+
+  // Status words.
+  const asked = tapped(4, 'Winner')
+  check('status at the last shot: "Stroke and wing of shot 4"', stageOf(asked) === 'endShot' && statusText(asked) === 'Stroke and wing of shot 4', statusText(asked))
+  const askedFa = markFa(ws(asked, 4, 'FH', 'Smash'), 3)
+  check('status at the first attack: "Stroke and wing of shot 3"', stageOf(askedFa) === 'faShot' && statusText(askedFa) === 'Stroke and wing of shot 3', statusText(askedFa))
+  check('the other status words are as they were', statusText(emptyDraft('v', 'me')) === 'Tap each contact' && statusText(tapped(4)) === 'Result of shot 4' && statusText(ws(asked, 4, 'FH', 'Smash')) === 'Pick the first attack' && statusText(d) === 'Ready to save')
+
+  // The Save gate, the step order and the two shot rule are as they were.
+  check('step order: result, last shot, pick, first attack shot, ready', (() => {
+    const order: string[] = []
+    let x = tapped(5)
+    order.push(stageOf(x)); x = setEnding(x, 'Winner')
+    order.push(stageOf(x)); x = patchShot(x, 5, { stroke: 'Smash' })
+    order.push(stageOf(x)); x = patchShot(x, 5, { wing: 'FH' })
+    order.push(stageOf(x)); x = markFa(x, 3)
+    order.push(stageOf(x)); x = patchShot(x, 3, { stroke: 'Loop' })
+    order.push(stageOf(x)); x = patchShot(x, 3, { wing: 'BH' })
+    order.push(stageOf(x))
+    return order.join(' ') === 'result endShot endShot pickFa faShot faShot ready'
+  })())
+  check('every shot the Save gate asks about has Wing and Stroke rows, on every length and first attack', (() => {
+    for (let n = 2; n <= 9; n++) {
+      for (const fa of [null, ...Array.from({ length: n - 1 }, (_, i) => i + 2)]) {
+        let x = tapped(n, 'Long')
+        if (fa !== null) x = markFa(x, fa)
+        else if (n > 2) x = { ...x, noAttack: true }
+        const need = fa === null ? [n] : [n, fa]
+        if (!need.every((s) => fieldsFor(x, s).wing && fieldsFor(x, s).stroke)) return false
+      }
+    }
+    return true
+  })())
+  check('two shots: the stroke still decides, and the shot keeps Wing and Stroke', (() => {
+    const loop = ws(tapped(2, 'Long'), 2, 'BH', 'Loop')
+    const push = ws(tapped(2, 'Long'), 2, 'BH', 'Push')
+    return loop.fa === 2 && canSave(loop) && push.noAttack && push.fa === null && canSave(push) && fieldsFor(push, 2).wing && fieldsFor(push, 2).stroke && fieldsFor(loop, 2).wing && fieldsFor(loop, 2).stroke
+  })())
+
+  // A later shot has no stroke row, so the stroke rules treat it as any shot without one.
+  let late = ws(markFa(ws(tapped(8, 'Long'), 8, 'FH', 'Loop'), 5), 5, 'FH', 'Loop')
+  late = ws(ws(late, 6, 'BH', 'Block'), 7, 'BH', 'Push')
+  const early = markFa(late, 3)
+  check('first attack moved from 5 to 3: shots 6 and 7 are later shots now, with no stroke row, answers kept in the draft', !showsStroke(early, 6) && !showsStroke(early, 7) && early.shots[5].stroke === 'Block' && early.shots[6].stroke === 'Push')
+  check('Save leaves those two strokes out and keeps the wings', (() => {
+    const out = rallyFromDraft(ws(early, 3, 'FH', 'Loop'), 'r')
+    return out !== null && !('stroke' in out.shots[5]) && !('stroke' in out.shots[6]) && out.shots[5].wing === 'BH' && out.shots[4].stroke === 'Loop'
+  })())
+  check('first attack moved back to 5: both answers are on screen again', (() => {
+    const back = markFa(early, 5)
+    return showsStroke(back, 6) && showsStroke(back, 7) && back.shots[5].stroke === 'Block' && back.shots[6].stroke === 'Push'
+  })())
+  check('the keys follow the rows: no wing key and no stroke key on a Receive or a later shot', [2, 6, 7].every((s) => ['z', 'x', 'a', 's', 'd', 'f', 'g', 'h'].every((k) => applyShotKey(early, s, k) === null)))
+}
+
+// ---------- Desktop keys follow the rows on screen: stroke on the home row, wing on the bottom row
+console.log('\nKey rows')
+{
+  const d = markFa(tapped(7, 'Winner'), 4)
+  check('the key map', J(STROKE_KEYS) === J(['s', 'd', 'f', 'g', 'h']) && SWITCH_KEY === 'a' && J(WING_KEYS) === J(['z', 'x']) && J(RESULT_KEYS) === J(['q', 'w', 'e', 'r', 't', 'y']))
+  check('no key is used twice', new Set([...STROKE_KEYS, SWITCH_KEY, ...WING_KEYS, ...RESULT_KEYS]).size === 14)
+  check('home row on a reply, Offensive: S Block, D Flick, F Loop, G Drive, H Smash', ['s', 'd', 'f', 'g', 'h'].map((k) => applyShotKey(d, 5, k)?.shots[4].stroke).join(' ') === 'Block Flick Loop Drive Smash')
+  check('home row on a reply, Defensive: S Block, D Lob, F Push, G Chop, H nothing', ['s', 'd', 'f', 'g'].map((k) => applyShotKey(d, 5, k, 'defensive')?.shots[4].stroke).join(' ') === 'Block Lob Push Chop' && applyShotKey(d, 5, 'h', 'defensive') === null)
+  check('home row on the first attack: S nothing, D Flick, F Loop, G Drive, H Smash', applyShotKey(d, 4, 's') === null && ['d', 'f', 'g', 'h'].map((k) => applyShotKey(d, 4, k)?.shots[3].stroke).join(' ') === 'Flick Loop Drive Smash')
+  check('bottom row: Z is BH, X is FH, and the same key again clears it', applyShotKey(d, 5, 'z')?.shots[4].wing === 'BH' && applyShotKey(d, 5, 'X')?.shots[4].wing === 'FH' && applyShotKey(applyShotKey(d, 5, 'z')!, 5, 'z')?.shots[4].wing === undefined)
+  check('top row: the result keys are as they were', ['q', 'w', 'e', 'r', 't', 'y'].map((k) => applyShotKey(tapped(3), 3, k)?.ending).join(' ') === 'Winner Lucky Net Long Wide Air')
+  check('the old stroke keys C V B N and the old wing key on the home row no longer answer', ['c', 'v', 'b', 'n', 'm', ','].every((k) => applyShotKey(d, 5, k) === null) && applyShotKey(d, 5, 'a')?.shots[4].wing === undefined)
+  check('keys handled by the screen are not shot keys: K, L, P', ['k', 'l', 'p'].every((k) => applyShotKey(d, 5, k) === null))
 }
 
 // ---------- Seeded rallies hold nothing that Save would drop
