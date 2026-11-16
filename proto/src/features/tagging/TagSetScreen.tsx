@@ -492,33 +492,11 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slotKind, stepKey])
 
-  // The details box sits at the foot of its area, straight above the slot.
-  // Six rows show when they fit under the title line, otherwise three and More.
-  const [detailFit, setDetailFit] = useState<'all' | 'three'>('all')
-  const [detailTight, setDetailTight] = useState(false)
-  useLayoutEffect(() => {
-    const el = body.current
-    if (!el) return
-    const apply = () => {
-      const h = el.clientHeight
-      const row = (parseFloat(getComputedStyle(el).getPropertyValue('--btn-kind-control')) || 2.75) * 16
-      /** Area padding, box padding and border, the title line, then the rows and the gaps between them. */
-      const need = (rows: number) => 16 + 26 + 26 + rows * row + (rows - 1) * 6
-      const nextFit = h >= need(6) ? 'all' : 'three'
-      const nextTight = h < need(4)
-      setDetailFit((prev) => (prev === nextFit ? prev : nextFit))
-      setDetailTight((prev) => (prev === nextTight ? prev : nextTight))
-    }
-    apply()
-    const watch = new ResizeObserver(apply)
-    watch.observe(el)
-    return () => watch.disconnect()
-  }, [])
-  // Where the rows still do not fit, the row being asked for stays in reach above the slot.
+  // Where the band still overflows, the section being asked stays in reach above the foot.
   useLayoutEffect(() => {
     const el = body.current
     if (el) el.scrollTop = el.scrollHeight
-  }, [stepKey, detailFit])
+  }, [stepKey])
 
   /** Seeks for the user, and says in a few words when one is held back. */
   const seekTo = (g: number) => {
@@ -1728,7 +1706,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
 
       {/* Right on a wide screen, below on a phone: rail, status, panel, then one slot. */}
       <div className="tag-entry">
-        <div className="shrink-0 px-2 pt-1.5 border-b border-border bg-bg-app">
+        <div className="shrink-0 bg-bg-app px-2 pt-1.5">
           {/* The shot row. Shots only, from the first tap to Save. */}
           {active || mode === 'watch' ? (
             <ShotRail
@@ -1738,9 +1716,23 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               onShot={onShot}
             />
           ) : null}
+        </div>
 
+        {/* The white band. One line under the shot row, then the column down to the foot. */}
+        <div
+          ref={body}
+          data-tag-body
+          className="flex min-h-0 flex-1 flex-col overflow-y-auto border-t border-border bg-bg-surface px-2 [overflow-anchor:none]"
+          onClickCapture={guardClicks(panelGuard)}
+        >
           {/* Status, with the rally's second-rank actions beside it, away from the thumb. */}
-          <div className="mb-1.5 flex items-stretch gap-1.5" onClickCapture={guardClicks(slotGuard)}>
+          <div
+            className={cn(
+              'mb-1.5 flex items-stretch gap-1.5',
+              mode !== 'edit' && selected?.kind === 'shot' && 'hidden'
+            )}
+            onClickCapture={guardClicks(slotGuard)}
+          >
             <p
               role="status"
               data-tag-status
@@ -1879,18 +1871,8 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               ) : null}
             </div>
           ) : null}
-        </div>
 
-        {/* The panel. What is asked for next sits at its foot, straight above the slot. */}
-        <div
-          ref={body}
-          data-tag-body
-          data-fit={detailFit}
-          data-tight={detailTight ? 'yes' : 'no'}
-          className="flex-1 min-h-0 overflow-y-auto px-2 py-2 flex flex-col [overflow-anchor:none]"
-          onClickCapture={guardClicks(panelGuard)}
-        >
-          <div className={cn('mt-auto space-y-2', panelBusy && BUSY)} data-tag-panel data-details-box>
+          <div className={cn('space-y-2', panelBusy && BUSY)} data-tag-panel data-details-box>
             {review ? (
               <div data-review-panel className="rounded-md border border-border bg-bg-surface px-3 py-2 space-y-2">
                 {review.kind === 'gaps' && review.pointAsk ? (
@@ -1983,8 +1965,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                 shot={selected.shot}
                 names={names}
                 onChange={change}
-                onNudge={onNudge}
-                fit={detailFit}
+                onNudge={mode === 'edit' ? onNudge : undefined}
               />
             ) : null}
             {active && active.closed && selected && selected.kind !== 'shot' && !readOnly ? (

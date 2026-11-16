@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
 import { cn } from '@/helpers/utils'
 import {
   ENDINGS,
@@ -15,6 +15,7 @@ import {
   roleOf,
   setEnding,
   stageOf,
+  statusText,
   strokeCells,
   switchOf,
   toggleShotField,
@@ -97,69 +98,74 @@ export function TimeRow({
   )
 }
 
-const sideBar: Record<Side, string> = { me: 'border-l-side-me', them: 'border-l-side-them' }
+const answerCell =
+  'h-8 min-w-10 shrink-0 border px-2.5 text-sm font-semibold inline-flex items-center justify-center whitespace-nowrap'
 
-/** Equal cells, one line, full text size. Height comes from the control kind. */
-const cell =
-  'btn-kind-control min-w-0 flex-1 basis-0 px-0 gap-1 text-sm font-semibold rounded-md border inline-flex items-center justify-center whitespace-nowrap overflow-hidden'
+const MARK_W = { High: 42, Heavy: 51, Review: 56 } as const
 
-/**
- * Switch words. Both fit a 76px cell at 375, full text size, so the long names stay.
- * Stroke cells share what is left.
- */
-const SWITCH_WORD: Record<StrokeSide, string> = { offensive: 'Offensive', defensive: 'Defensive' }
-const SWITCH_BASIS = '76px'
-
-function Line({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div role="group" aria-label={label} data-row={label} className="flex gap-1">
-      {children}
-    </div>
-  )
+function restStyle(): CSSProperties {
+  return { backgroundColor: 'var(--tag-cell-rest)', borderColor: 'var(--tag-cell-rest-line)' }
 }
 
-function Cell({
+function Name({ children }: { children: string }) {
+  return <p className="h-3 text-[10px] font-bold uppercase leading-3 tracking-[0.025em] text-muted">{children}</p>
+}
+
+function Answer({
+  label,
   on,
   onClick,
-  children,
-  tone = 'brand',
+  tone = 'chosen',
   disabled = false,
-  label,
+  radius = 'rounded-md',
+  dim = false,
+  side,
+  fixed,
 }: {
+  label: string
   on: boolean
   onClick: () => void
-  children: ReactNode
-  tone?: 'brand' | 'good' | 'bad'
+  tone?: 'chosen' | 'error'
   disabled?: boolean
-  label: string
+  radius?: string
+  dim?: boolean
+  side?: StrokeSide
+  fixed?: boolean
 }) {
   return (
     <button
       type="button"
+      data-cell={label}
+      data-side={side}
+      data-fixed={fixed === undefined ? undefined : fixed ? 'true' : 'false'}
       aria-pressed={on}
+      aria-disabled={disabled || dim}
       disabled={disabled}
       onClick={onClick}
-      data-cell={label}
       className={cn(
-        cell,
-        'disabled:pointer-events-none',
+        answerCell,
+        radius,
         on
-          ? tone === 'good'
-            ? 'bg-success text-white border-success'
-            : tone === 'bad'
-              ? 'bg-danger text-white border-danger'
-              : 'bg-brand-primary text-on-accent border-brand-primary'
-          : 'bg-pill-idle border-pill-idle-border text-primary'
+          ? tone === 'error'
+            ? 'border-tag-error bg-tag-error text-white'
+            : 'border-tag-chosen bg-tag-chosen text-on-accent'
+          : 'text-primary',
+        dim && 'pointer-events-none opacity-[0.45]'
       )}
+      style={on ? undefined : restStyle()}
     >
-      <span data-cell-label>{children}</span>
+      {label}
     </button>
   )
 }
 
+function Cells({ children }: { children: ReactNode }) {
+  return <div className="flex flex-nowrap gap-1.5">{children}</div>
+}
+
 /**
- * One shot's tags. One line per row, equal cells, no headings.
- * Order: result, wing, stroke, the extras for that shot, miss reason, then Review and the shot time.
+ * One shot's tags. The heading, then up to the sections that shot asks,
+ * each at its own width. Result stays here until End takes it.
  */
 export function ShotPanel({
   draft,
@@ -167,229 +173,206 @@ export function ShotPanel({
   names,
   onChange,
   onNudge,
-  fit = 'all',
 }: {
   draft: Draft
   shot: number
   names: Record<Side, string>
   onChange: (next: Draft) => void
-  onNudge: (delta: number) => void
-  /** Six rows when the box has the room, otherwise the first three and More. */
-  fit?: 'all' | 'three'
+  /** Edit keeps the shot time row. Live tagging does not: the numbers leave no room. */
+  onNudge?: (delta: number) => void
 }) {
   const tags: ShotTags = draft.shots[shot - 1] ?? {}
   const fields = fieldsFor(draft, shot)
   const hitter = hitterOf(draft.server, shot)
   const stage = stageOf(draft)
-  /** Until the required steps are done, only the rows being asked show. */
+  /** Until the required steps are done, only the sections being asked show. */
   const requiredOnly = stage !== 'ready'
   /** Wing and stroke stay put while the result is asked, so a press cannot land on a row that just moved. */
   const shotRowOff = stage === 'result'
   const rule = switchOf(draft, shot)
   const [held, setHeld] = useState<{ shot: number; side: StrokeSide } | null>(null)
-  const [more, setMore] = useState(false)
-  useEffect(() => setMore(false), [shot, fit])
   const shown = shownStrokeSide(draft, shot, held?.shot === shot ? held.side : null)
   useEffect(() => bindStrokeSide(shot, shown, (side) => setHeld({ shot, side })), [shot, shown])
   const set = <K extends keyof ShotTags>(key: K, value: ShotTags[K]) =>
     onChange(toggleShotField(draft, shot, key, value))
-  const isEnd = shot === draft.contacts.length
   const plainRole = roleOf(draft, shot)
-  const role = isEnd
-    ? draft.ending
-      ? isError(draft.ending)
-        ? 'Error'
-        : 'Winner'
-      : 'End shot'
-    : plainRole === 'before' && shot > 2
-      ? 'Before attack'
-      : ROLE_LABEL[plainRole]
-  const word = SWITCH_WORD[shown]
+  const role = plainRole === 'before' && shot > 2 ? 'Before attack' : ROLE_LABEL[plainRole]
   const onFlip = () => {
     if (rule.fixed || shotRowOff) return
     const next: StrokeSide = shown === 'offensive' ? 'defensive' : 'offensive'
     setHeld({ shot, side: next })
     if (tags.stroke !== 'Block') onChange(flipSwitch(draft, shot))
   }
-
-  const choice = (label: string, on: boolean, onClick: () => void) => ({ label, on, onClick })
-  const spin = ['Under', 'Top', 'Side'].map((v) => choice(v, tags.spin === v, () => set('spin', v)))
-  const depth = ['Short', 'Half', 'Deep'].map((v) => choice(v, tags.depth === v, () => set('depth', v)))
-  const ball = [
-    choice('High', Boolean(tags.high), () => onChange(patchShot(draft, shot, { high: !tags.high }))),
-    choice('Heavy', Boolean(tags.heavy), () => onChange(patchShot(draft, shot, { heavy: !tags.heavy }))),
-  ]
-  const extras: { label: string; cells: { label: string; on: boolean; onClick: () => void }[] }[] = []
-  if (fields.spin && fields.depth) extras.push({ label: 'Serve', cells: [...spin, ...depth] })
-  else if (fields.spin) extras.push({ label: 'Spin', cells: spin })
-  if (fields.depth && fields.ball && !fields.spin) extras.push({ label: 'Depth', cells: [...depth, ...ball] })
-  else if (fields.depth && !fields.spin) extras.push({ label: 'Depth', cells: depth })
-  if (fields.ball && !(fields.depth && !fields.spin)) extras.push({ label: 'Ball', cells: ball })
-  if (fields.contact || fields.intent) {
-    const cells = [
-      ...(fields.contact
-        ? ['Over table', 'Off table'].map((v) => choice(v, tags.contact === v, () => set('contact', v)))
-        : []),
-      ...(fields.intent
-        ? ['Safe', 'Aggressive'].map((v) => choice(v, tags.intent === v, () => set('intent', v)))
-        : []),
-    ]
-    extras.push({ label: 'Contact', cells })
+  const words = requiredOnly ? statusText(draft).replace(/ of shot \d+$/, '') : ''
+  const markNames = (plainRole === 'serve' || plainRole === 'before' ? ['High', 'Heavy', 'Review'] : ['Review']) as Array<
+    keyof typeof MARK_W
+  >
+  const markOn = (name: keyof typeof MARK_W) =>
+    name === 'High' ? Boolean(tags.high) : name === 'Heavy' ? Boolean(tags.heavy) : Boolean(tags.review)
+  const toggleMark = (name: keyof typeof MARK_W) => {
+    if (name === 'High') onChange(patchShot(draft, shot, { high: !tags.high }))
+    else if (name === 'Heavy') onChange(patchShot(draft, shot, { heavy: !tags.heavy }))
+    else onChange(patchShot(draft, shot, { review: !tags.review }))
   }
-  if (fields.initiative) {
-    extras.push({
-      label: 'Initiative',
-      cells: ['Behind', 'Level', 'Ahead'].map((v) => choice(v, tags.initiative === v, () => set('initiative', v))),
-    })
-  }
-  const strokes = fields.stroke ? strokeCells(shown, draft.fa === shot) : null
-  const primaryRows = (fields.result ? 1 : 0) + (fields.wing ? 1 : 0) + (strokes ? 1 : 0)
-  const extraRows = requiredOnly ? 0 : extras.length + (fields.missReason ? 1 : 0) + 1
-  const paged = fit === 'three' && primaryRows + extraRows > 3
-  const page = paged ? (more ? 'rest' : 'first') : 'all'
+  const strokes = fields.stroke ? strokeCells(shown, draft.fa === shot).filter((name): name is string => Boolean(name)) : null
+  const token = hitter === 'me' ? 'var(--color-tag-player-a)' : 'var(--color-tag-player-b)'
+  const roleStyle: CSSProperties =
+    role === 'First attack'
+      ? {
+          backgroundColor: 'color-mix(in srgb, var(--color-tag-first-attack) 15%, transparent)',
+          color: 'var(--color-tag-first-attack-text)',
+        }
+      : { backgroundColor: 'var(--color-tag-rest)', color: 'var(--color-text-muted)' }
 
   return (
-    <div
-      className={cn(
-        'rounded-md border border-border border-l-4 bg-bg-surface p-3 flex flex-col gap-1.5',
-        sideBar[hitter]
-      )}
-      aria-label={`Shot ${shot}`}
-      data-shot-panel
-      data-page={page}
-    >
-      <p className="text-sm font-semibold text-primary" data-shot-title>
-        {shot} · {names[hitter]}
-        <span className="ml-2 text-[10px] font-bold uppercase tracking-wide text-muted">{role}</span>
-      </p>
-
-      {fields.result ? (
-        <Line label="Result">
-          {ENDINGS.map((e) => (
-            <Cell
-              key={e}
-              label={e}
-              on={draft.ending === e}
-              tone={isError(e) ? 'bad' : 'good'}
-              onClick={() => onChange(setEnding(draft, e))}
-            >
-              {e}
-            </Cell>
-          ))}
-        </Line>
-      ) : null}
-
-      {fields.wing ? (
-        <Line label="Wing">
-          {WINGS.map((w) => (
-            <Cell
-              key={w}
-              label={w}
-              on={tags.wing === w}
-              disabled={shotRowOff}
-              onClick={() => set('wing', w)}
-            >
-              {w}
-            </Cell>
-          ))}
-        </Line>
-      ) : null}
+    <div className="flex flex-col gap-2.5 pt-2.5" aria-label={`Shot ${shot}`} data-shot-panel>
+      <div className="flex h-6 min-w-0 items-center">
+        <span className="h-3.5 w-1 shrink-0 rounded-[2px]" style={{ backgroundColor: token }} aria-hidden />
+        <p className="ml-1.5 min-w-0 truncate text-sm font-semibold text-primary" data-shot-title>
+          {shot} · {names[hitter]}
+        </p>
+        <span className="ml-2 inline-flex h-[18px] shrink-0 items-center rounded-[4px] px-1.5 text-[10px] font-bold uppercase" style={roleStyle}>
+          {role}
+        </span>
+        {words ? <span className="ml-3 shrink-0 text-sm font-normal text-primary">{words}</span> : null}
+        {!requiredOnly ? (
+          <div className="ml-auto flex shrink-0 gap-1.5 pl-3">
+            {markNames.map((name) => {
+              const on = markOn(name)
+              return (
+                <button
+                  key={name}
+                  type="button"
+                  data-cell={name}
+                  aria-pressed={on}
+                  onClick={() => toggleMark(name)}
+                  className={cn(
+                    'inline-flex h-6 shrink-0 items-center justify-center rounded-full border text-xs font-semibold',
+                    on ? 'border-tag-mark-set bg-tag-mark-set text-tag-on-solid' : 'border-border-strong bg-transparent text-primary'
+                  )}
+                  style={{ width: MARK_W[name] }}
+                >
+                  {name}
+                </button>
+              )
+            })}
+          </div>
+        ) : null}
+      </div>
 
       {strokes ? (
-        <Line label="Stroke">
-          <button
-            type="button"
-            data-cell={word}
-            data-side={shown}
-            data-fixed={rule.fixed ? 'true' : 'false'}
-            aria-disabled={rule.fixed || shotRowOff}
-            onClick={onFlip}
-            className={cn(
-              'btn-kind-control shrink-0 px-1 gap-1 text-sm font-semibold rounded-md border inline-flex items-center justify-center whitespace-nowrap overflow-hidden text-white',
-              shown === 'offensive' ? 'bg-shot-fa border-shot-fa' : 'bg-info border-info'
-            )}
-            style={{ flex: '0 0 auto', minWidth: SWITCH_BASIS }}
-          >
-            <span data-cell-label>{word}</span>
-          </button>
-          {strokes.map((name, i) =>
-            name ? (
-              <Cell
-                key={i}
+        <div role="group" aria-label="Stroke" data-row="Stroke" className="flex flex-col">
+          <Name>Stroke</Name>
+          <div className="flex gap-0.5">
+            {(['Offensive', 'Defensive'] as const).map((label) => {
+              const on = (label === 'Offensive') === (shown === 'offensive')
+              const dim = rule.fixed && !on
+              return (
+                <Answer
+                  key={label}
+                  label={label}
+                  on={on}
+                  disabled={shotRowOff}
+                  dim={dim}
+                  side={label === 'Offensive' ? 'offensive' : 'defensive'}
+                  fixed={rule.fixed}
+                  radius={label === 'Offensive' ? 'rounded-l-md rounded-r-none' : 'rounded-r-md rounded-l-none'}
+                  onClick={() => {
+                    if (!on) onFlip()
+                  }}
+                />
+              )
+            })}
+          </div>
+          <div className="h-1.5" />
+          <Cells>
+            {strokes.map((name) => (
+              <Answer
+                key={name}
                 label={name}
                 on={tags.stroke === name}
                 disabled={shotRowOff}
                 onClick={() => set('stroke', name)}
-              >
-                {name}
-              </Cell>
-            ) : (
-              <span
-                key={i}
-                className="btn-kind-control min-w-0 flex-1 basis-0 border border-transparent"
-                data-cell=""
-                aria-hidden
               />
-            )
-          )}
-        </Line>
+            ))}
+          </Cells>
+        </div>
       ) : null}
 
-      {!requiredOnly
-        ? extras.map((row) => (
-            <Line key={row.label} label={row.label}>
-              {row.cells.map((c) => (
-                <Cell key={c.label} label={c.label} on={c.on} onClick={c.onClick}>
-                  {c.label}
-                </Cell>
-              ))}
-            </Line>
-          ))
-        : null}
+      {fields.wing ? (
+        <div role="group" aria-label="Wing" data-row="Wing">
+          <Name>Wing</Name>
+          <Cells>
+            {WINGS.map((w) => (
+              <Answer key={w} label={w} on={tags.wing === w} disabled={shotRowOff} onClick={() => set('wing', w)} />
+            ))}
+          </Cells>
+        </div>
+      ) : null}
+
+      {!requiredOnly && fields.depth ? (
+        <div role="group" aria-label="Depth" data-row="Depth">
+          <Name>Depth</Name>
+          <Cells>
+            {['Short', 'Half', 'Deep'].map((v) => (
+              <Answer key={v} label={v} on={tags.depth === v} onClick={() => set('depth', v)} />
+            ))}
+          </Cells>
+        </div>
+      ) : null}
+
+      {!requiredOnly && fields.intent ? (
+        <div role="group" aria-label="Intent" data-row="Intent">
+          <Name>Intent</Name>
+          <Cells>
+            {['Safe', 'Neutral', 'Aggressive'].map((v) => (
+              <Answer key={v} label={v} on={tags.intent === v} onClick={() => set('intent', v)} />
+            ))}
+          </Cells>
+        </div>
+      ) : null}
+
+      {!requiredOnly && fields.initiative ? (
+        <div role="group" aria-label="Initiative" data-row="Initiative">
+          <Name>Initiative</Name>
+          <Cells>
+            {['Behind', 'Level', 'Ahead'].map((v) => (
+              <Answer key={v} label={v} on={tags.initiative === v} onClick={() => set('initiative', v)} />
+            ))}
+          </Cells>
+        </div>
+      ) : null}
+
+      {fields.result ? (
+        <div role="group" aria-label="Result" data-row="Result">
+          <Name>Result</Name>
+          <Cells>
+            {ENDINGS.map((e) => (
+              <Answer
+                key={e}
+                label={e}
+                on={draft.ending === e}
+                tone={isError(e) ? 'error' : 'chosen'}
+                onClick={() => onChange(setEnding(draft, e))}
+              />
+            ))}
+          </Cells>
+        </div>
+      ) : null}
 
       {!requiredOnly && fields.missReason ? (
-        <Line label="Miss reason">
-          {MISS_REASONS.map((v) => (
-            <Cell key={v} label={v} on={tags.missReason === v} onClick={() => set('missReason', v)}>
-              {v}
-            </Cell>
-          ))}
-        </Line>
+        <div role="group" aria-label="Miss reason" data-row="Miss reason">
+          <Name>Miss reason</Name>
+          <Cells>
+            {MISS_REASONS.map((v) => (
+              <Answer key={v} label={v} on={tags.missReason === v} onClick={() => set('missReason', v)} />
+            ))}
+          </Cells>
+        </div>
       ) : null}
 
-      {!requiredOnly ? (
-        <Line label="Review">
-          <Cell
-            label="Review"
-            on={Boolean(tags.review)}
-            onClick={() => onChange(patchShot(draft, shot, { review: !tags.review, missReason: undefined }))}
-          >
-            Review
-          </Cell>
-          <Cell label="- 0.1" on={false} onClick={() => onNudge(-NUDGE_STEP_S)}>
-            - 0.1
-          </Cell>
-          <span
-            className="btn-kind-control min-w-0 flex-1 basis-0 px-0 text-sm font-semibold rounded-md border border-pill-idle-border bg-pill-idle inline-flex items-center justify-center whitespace-nowrap overflow-hidden tabular-nums text-primary"
-            data-cell="time"
-          >
-            <span data-cell-label>{formatClock(markTime(draft, { kind: 'shot', shot }), true)}</span>
-          </span>
-          <Cell label="+ 0.1" on={false} onClick={() => onNudge(NUDGE_STEP_S)}>
-            + 0.1
-          </Cell>
-        </Line>
-      ) : null}
-      {paged ? (
-        <button
-          type="button"
-          className="btn-kind-control w-full rounded-md border border-pill-idle-border bg-pill-idle text-sm font-semibold text-primary"
-          data-more-rows
-          aria-expanded={more}
-          onClick={() => setMore((open) => !open)}
-        >
-          {more ? 'Less' : 'More'}
-        </button>
+      {onNudge && !requiredOnly ? (
+        <TimeRow draft={draft} mark={{ kind: 'shot', shot }} onNudge={onNudge} />
       ) : null}
     </div>
   )

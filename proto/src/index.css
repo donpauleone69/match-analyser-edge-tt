@@ -402,12 +402,6 @@ button[disabled] {
   pointer-events: none;
 }
 
-/* On a wide column the rows stop near phone width, so the cells do not stretch. */
-[data-shot-panel] > [data-row],
-[data-shot-panel] > [data-more-rows] {
-  max-width: 26rem;
-}
-
 /*
   Item 7. One column by default. Two columns when the screen is wider than it
   is tall and at least 700 wide. In one column the picture is full width, 16:9,
@@ -506,17 +500,3 @@ button[disabled] {
   }
 }
 
-/* Short screens: three rows plus More. The few pixels under that come off gaps and padding. */
-[data-tag-body][data-tight='yes'] [data-shot-panel] {
-  padding-top: 4px;
-  padding-bottom: 4px;
-  gap: 4px;
-}
-
-/* Three rows, then the rest behind More. A press, not a scroll. */
-[data-shot-panel][data-page='first'] > :nth-child(n + 4 of [data-row]) {
-  display: none;
-}
-[data-shot-panel][data-page='rest'] > :nth-child(-n + 3 of [data-row]) {
-  display: none;
-}
