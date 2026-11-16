@@ -45,6 +45,7 @@ export function RallyList({
   score,
   onFinish,
   actions,
+  onCopyTimings,
 }: {
   set: SetData
   names: Record<Side, string>
@@ -64,6 +65,8 @@ export function RallyList({
   onFinish: () => void
   /** Null when nothing can be changed: a finished set, or an archive. */
   actions: RallyListActions | null
+  /** Copies the side log. Shown only when the address has a flow. */
+  onCopyTimings?: () => void
 }) {
   let running = ZERO
   const rows = set.rallies.map((r, index) => {
@@ -176,6 +179,11 @@ export function RallyList({
           {bands.length > 0 ? ` · ${bands.length} to check` : ''}
         </p>
         <div className="flex flex-wrap items-center justify-end gap-1">
+          {onCopyTimings ? (
+            <Button kind="control" variant="ghost" data-copy-timings onClick={onCopyTimings}>
+              Copy timings
+            </Button>
+          ) : null}
           {actions && n > 1 ? (
             <Button kind="control" variant="ghost" disabled={Boolean(actions.hold)} onClick={actions.onCheckGaps}>
               Check gaps

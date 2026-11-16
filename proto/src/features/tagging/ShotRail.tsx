@@ -46,6 +46,7 @@ export function ShotRail({
   endOpen,
   onShot,
   onEnd,
+  reach = null,
 }: {
   /** Null between rallies: the row shows where shot 1 will go. */
   draft: Draft | null
@@ -56,6 +57,11 @@ export function ShotRail({
   endOpen: boolean
   onShot: (shot: number) => void
   onEnd: () => void
+  /**
+   * Shot by shot. Shots already passed can be pressed. Null keeps the
+   * current mode's rules.
+   */
+  reach?: { shot: (n: number) => boolean; end: boolean } | null
 }) {
   const stage = draft ? stageOf(draft) : 'contacts'
   const n = draft?.contacts.length ?? 0
@@ -109,8 +115,8 @@ export function ShotRail({
               const live = liveShot === shot
               const side = hitterOf(draft.server, shot)
               /** Open is the solid cell. Before the result, and while tapping, nothing is open. */
-              const openLook = on && !tapping && !beforeResult
-              const keep = tapping || beforeResult
+              const openLook = on && !tapping && (reach ? true : !beforeResult)
+              const keep = reach ? false : tapping || beforeResult
               return (
                 <div
                   key={shot}
@@ -122,11 +128,11 @@ export function ShotRail({
                     aria-label={`Shot ${shot}`}
                     aria-pressed={on}
                     aria-current={live ? 'true' : undefined}
-                    disabled={keep || (locked && !isEnd)}
+                    disabled={reach ? !reach.shot(shot) : keep || (locked && !isEnd)}
                     data-shot-look={keep ? 'keep' : undefined}
                     onClick={() => onShot(shot)}
                     className={cn(railCell, 'w-full', isFa && !openLook && 'border-2')}
-                    style={shotPaint(side, openLook, isFa && !openLook, beforeResult)}
+                    style={shotPaint(side, openLook, isFa && !openLook, reach ? false : beforeResult)}
                   >
                     {shot}
                     {live ? (
@@ -151,6 +157,7 @@ export function ShotRail({
               type="button"
               aria-label="End of the point"
               aria-pressed={endOpen}
+              disabled={reach ? !reach.end : false}
               onClick={onEnd}
               className={cn(railCell, 'w-full text-xs')}
               style={
