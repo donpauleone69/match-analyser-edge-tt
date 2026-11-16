@@ -119,25 +119,32 @@ async function main() {
       const r = c.getBoundingClientRect()
       return r.width > 8 && r.left >= box.left - 1 && r.right <= box.right + 1
     })
-    const picked = scroller.querySelector('[aria-pressed="true"]')
-    const pr = picked?.getBoundingClientRect()
+    const end = scroller.querySelector('[data-rail="end"] button')
+    const er = end?.getBoundingClientRect()
     const extras = [...rail.querySelectorAll('button')].filter((b) => !/^Shot \d+$/.test(b.getAttribute('aria-label') || ''))
     return {
       shots: cells.length,
       whole: whole.length,
       wholeLabels: whole.map((c) => c.getAttribute('data-rail')),
-      picked: picked?.getAttribute('aria-label') ?? '',
-      pickedInView: Boolean(pr && pr.left >= box.left - 1 && pr.right <= box.right + 1),
+      endInView: Boolean(er && er.width > 8 && er.left >= box.left - 1 && er.right <= box.right + 1),
+      endW: er ? Math.round(er.width) : 0,
+      endH: er ? Math.round(er.height) : 0,
       extras: extras.map((b) => b.getAttribute('aria-label')),
       railW: Math.round(rail.getBoundingClientRect().width),
       cellW: cells[0] ? Math.round(cells[0].getBoundingClientRect().width) : 0,
+      cellH: cells[0] ? Math.round(cells[0].querySelector('button')?.getBoundingClientRect().height ?? 0) : 0,
     }
   })
   console.log('row', JSON.stringify(row))
   note(row.shots === 12, `12 shot cells (${row.shots})`)
+  note(row.cellW === 40 && row.cellH === 40, `shot cell is 40 square (${row.cellW}×${row.cellH})`)
+  note(row.endW === 48 && row.endH === 40, `End cell is 48 by 40 (${row.endW}×${row.endH})`)
   note(row.whole === 7, `7 whole shots at 390 (${row.whole})`)
-  note(row.extras.length === 0, `row is shots only (${row.extras.join(', ') || 'none'})`)
-  note(row.picked === 'Shot 12' && row.pickedInView, `picked shot in view (${row.picked})`)
+  note(
+    row.extras.length === 1 && row.extras[0] === 'End of the point',
+    `row is shots and End (${row.extras.join(', ') || 'none'})`
+  )
+  note(row.endInView, 'End is in view')
 
   const result = await watch(page, 10000, 'result')
   const endShot = loopShotOf(
@@ -179,7 +186,8 @@ async function main() {
       button: document.querySelector('[data-tag-fa]')?.textContent?.replace(/\s+/g, ' ').trim() ?? '',
     }
   })
-  note(noAttack.text.startsWith('No attack') && !noAttack.old, `pick step row is No attack (${noAttack.text})`)
+  // The end stroke is Loop, so No attack is not offered.
+  note(noAttack.text === '' && !noAttack.old, `no No attack row after Loop (${noAttack.text || 'none'})`)
   note(noAttack.button.startsWith('First attack'), `big button reads First attack (${noAttack.button})`)
 
   const pick = await watch(page, 10000, 'pick first attack')
@@ -201,15 +209,21 @@ async function main() {
   })
   note(followed, 'with no shot picked, the shot on screen is in the row')
 
+  // The button picks the shot 0.3s before the playhead, not the live chip.
   let pressed = false
-  for (let i = 0; i < 40 && !pressed; i++) {
+  const pressUntil = Date.now() + 8000
+  while (Date.now() < pressUntil && !pressed) {
     pressed = await page.evaluate(() => {
-      const shot = document.querySelector('[aria-label="Shot 4"]')
-      if (shot?.getAttribute('aria-current') !== 'true') return false
+      const root = document.querySelector('[data-tag-stage]')
+      if (root?.dataset.tagStage !== 'pickFa') return false
+      const contacts = (root.dataset.contacts ?? '').split(',').filter(Boolean).map(Number)
+      const at = Number(root.dataset.time) - 0.3
+      const reached = contacts.filter((c) => c <= at + 0.05).length
+      if (reached !== 4) return false
       document.querySelector('[data-tag-fa]')?.click()
       return true
     })
-    if (!pressed) await page.waitForTimeout(80)
+    if (!pressed) await page.waitForTimeout(30)
   }
   await page.waitForFunction(() => document.querySelector('[data-tag-stage]')?.dataset.fa === '4', { timeout: 3000 })
   const afterPress = await read(page)
@@ -240,8 +254,15 @@ async function main() {
   await page.waitForFunction(() => document.querySelector('[data-tag-stage]')?.dataset.tagStage === 'ready', {
     timeout: 4000,
   })
-  const summary = await page.evaluate(() => document.querySelector('[data-fa-summary]')?.textContent?.replace(/\s+/g, ' ').trim() ?? '')
-  note(summary.includes('First attack: shot 3') && summary.includes('Change'), `summary line (${summary})`)
+  const summary = await page.evaluate(() => {
+    const text = document.querySelector('[data-fa-summary]')?.textContent?.replace(/\s+/g, ' ').trim() ?? ''
+    const change = Boolean(document.querySelector('[data-action="change-fa"]'))
+    return { text, change }
+  })
+  note(
+    /First attack:? shot 3/.test(summary.text) && summary.change,
+    `summary line (${summary.text}${summary.change ? ', Change' : ''})`
+  )
   await watch(page, 10000, 'ready')
 
   await page.setViewportSize({ width: 1280, height: 800 })

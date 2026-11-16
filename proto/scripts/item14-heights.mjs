@@ -80,11 +80,26 @@ for (const vp of VIEWPORTS) {
           textLink: 'btn-kind-text-link',
           tapPad: 'btn-kind-tap-pad',
         }
-        function expectedHeight(kind, coarse, vh) {
+        /** The tagging set screen only. The picture on that screen keeps the shared heights. */
+        function onSetScreen(el) {
+          if (!el.closest('.tag-set')) return false
+          if (el.closest('.tag-picture')) return false
+          return true
+        }
+        function expectedHeight(kind, coarse, vh, el) {
+          const here = onSetScreen(el)
           if (kind === 'main') return coarse ? 48 : 44
-          if (kind === 'control' || kind === 'field') return coarse ? 44 : 36
-          if (kind === 'textLink') return coarse ? 44 : null
+          if (kind === 'control' || kind === 'field') {
+            if (here) return coarse ? 40 : 32
+            return coarse ? 44 : 36
+          }
+          if (kind === 'textLink') {
+            if (!coarse) return null
+            return here ? 40 : 44
+          }
           if (kind === 'tapPad') {
+            // One foot height on the set screen. Everywhere else, 64 under 700 high, else 80.
+            if (here) return coarse ? 48 : 40
             if (!coarse) return 80
             return vh >= 700 ? 80 : 64
           }
@@ -129,11 +144,16 @@ for (const vp of VIEWPORTS) {
           const lab = labelOf(el)
           const h = Math.round(el.getBoundingClientRect().height)
           const w = Math.round(el.getBoundingClientRect().width)
+          // The strip under the picture is 28 high and is not one of the button kinds.
+          if (el.getAttribute('aria-label') === 'Match timeline') {
+            if (h !== 28) fails.push({ screen, viewport: viewportLabel, lab, issue: 'height', h, want: 28, w })
+            continue
+          }
           if (!kind) {
             fails.push({ screen, viewport: viewportLabel, lab, issue: 'no-kind', h, w })
             continue
           }
-          const want = expectedHeight(kind, coarse, viewportHeight)
+          const want = expectedHeight(kind, coarse, viewportHeight, el)
           if (want !== null && h !== want) {
             fails.push({ screen, viewport: viewportLabel, lab, kind, issue: 'height', h, want, w })
           }
