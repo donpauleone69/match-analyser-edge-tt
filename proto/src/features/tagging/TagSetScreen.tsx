@@ -169,6 +169,7 @@ type Toast = { text: string; undo?: () => void; extra?: { label: string; run: ()
  */
 const GUARD_AFTER_CLOSE_MS = 1000
 const GUARD_AFTER_SWAP_MS = 600
+const GUARD_DELETE_AFTER_TAP_MS = 300
 /** The guard after the idle close looks it. A slot swap ignores presses and does not dim. */
 const BUSY = 'opacity-40'
 const HINT_MS = 2500
@@ -283,6 +284,8 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
 
   const slotGuard = useRef(0)
   const panelGuard = useRef(0)
+  const rightGuard = useRef(0)
+  const rightKindSeen = useRef<string | null>(null)
   /** Dim until this moment. Only the guard after the idle close sets it. */
   const closeGrey = useRef(0)
   /** The speed chosen for watching between rallies. Tapping, Save and the next set do not lose it. */
@@ -603,6 +606,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     closeGrey.current = 0
     lastSlot.current = 'pad'
     setLastTap(now)
+    rightGuard.current = Math.max(rightGuard.current, Date.now() + GUARD_DELETE_AFTER_TAP_MS)
   }
 
   // Two seconds with no tap closes the rally.
@@ -649,6 +653,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     }
     if (!p.isPlaying()) p.play()
     setLastTap(Date.now())
+    rightGuard.current = Math.max(rightGuard.current, Date.now() + GUARD_DELETE_AFTER_TAP_MS)
   }
 
   /**
@@ -1371,6 +1376,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const onNoAttack = () => {
     if (!active || readOnly || stageOf(active) !== 'pickFa') return
     change(toggleNoAttack(active))
+    arm(GUARD_AFTER_SWAP_MS)
   }
 
   /** Back to the same pick step. One way to change. */
@@ -1696,8 +1702,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const switchWarnRally = gap ? gap.index + 1 : set.rallies.length + 1
   const switchOn = !readOnly && !atEnd && (mode === 'watch' || mode === 'tagging' || mode === 'edit')
   const rowButton = cn('px-3 shrink-0', slotGrey && BUSY)
-  /** The right end of the status row always means "go back": 5 seconds, or one tap. One width, so the spot does not shift. Let never sits there. */
-  const endButton = cn(rowButton, 'w-24 lg:w-36')
   /** The four rally actions: one width each, the label on two lines where it needs them. */
   const actionButton = cn('w-14 shrink-0 px-0.5 text-xs leading-tight text-center', slotGrey && BUSY)
   /** Slot controls never change size, not even while pressed. The height is the tap pad. */
@@ -1724,6 +1728,28 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     zoneKind === 'fa'
       ? (faSaid ?? 'Tap when you see the first attack')
       : 'Tap the screen every time the ball is hit'
+  const footStrip = zoneOn || (mode === 'tagging' && stage === 'pickFa' && !review)
+  const rightKind = !footStrip
+    ? 'none'
+    : mode === 'tapping'
+      ? 'delete-last'
+      : mode === 'tagging' && stage === 'pickFa'
+        ? 'no-attack'
+        : gap
+          ? 'back-to-live'
+          : finishKept
+            ? 'finish'
+            : lastSaved && !lastSaved.point && have.has(lastSaved.videoId)
+              ? 'edit-last'
+              : 'none'
+  const rightBoxClass =
+    'btn-kind-tap-pad w-28 shrink-0 rounded-lg border border-border bg-transparent px-3 text-sm font-medium text-primary whitespace-nowrap disabled:opacity-40'
+  useLayoutEffect(() => {
+    if (rightKindSeen.current !== null && rightKindSeen.current !== rightKind) {
+      rightGuard.current = Date.now() + GUARD_AFTER_SWAP_MS
+    }
+    rightKindSeen.current = rightKind
+  }, [rightKind])
 
   return (
     <div
@@ -1784,30 +1810,15 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       {/* Right on a wide screen, below on a phone: rail, status, panel, then one slot. */}
       <div className="tag-entry">
         <div className="shrink-0 bg-bg-app px-2 pt-1.5">
-          {/* The shot row. Delete last sits at the right only while contacts are being tapped. */}
           {active || mode === 'watch' ? (
-            <div className="flex items-start">
-              <div className="min-w-0 flex-1">
-                <ShotRail
-                  draft={active}
-                  selected={selected}
-                  liveShot={liveShot}
-                  endOpen={showEnd}
-                  onShot={onShot}
-                  onEnd={onEnd}
-                />
-              </div>
-              {mode === 'tapping' ? (
-                <button
-                  type="button"
-                  data-action="delete-last"
-                  className="btn-kind-control shrink-0 px-2 text-xs font-semibold text-muted"
-                  onClick={onUndoTap}
-                >
-                  Delete last
-                </button>
-              ) : null}
-            </div>
+            <ShotRail
+              draft={active}
+              selected={selected}
+              liveShot={liveShot}
+              endOpen={showEnd}
+              onShot={onShot}
+              onEnd={onEnd}
+            />
           ) : null}
         </div>
 
@@ -1868,28 +1879,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
             >
               {status}
             </p>
-            {mode === 'watch' && gap ? (
-              <Button kind="control" variant="secondary" className={rowButton} onClick={leaveGap}>
-                Back to live
-              </Button>
-            ) : null}
-            {mode === 'watch' && !atEnd ? (
-              <Button
-                kind="control"
-                variant="secondary"
-                className={cn(endButton, 'whitespace-nowrap px-2')}
-                aria-label="Back 5 seconds"
-                onClick={() => seekTo(playerRef.current.getTime() - BACK_S)}
-              >
-                <Icon name="rewind" size="sm" />
-                Back 5s
-              </Button>
-            ) : null}
-            {livePlain && (mode === 'tapping' || (mode === 'tagging' && stage === 'pickFa')) && !refusalLine ? (
-              <button type="button" data-foot="discard" className={cn(lineButton, 'w-[4.625rem]')} onClick={onRetap}>
-                Discard
-              </button>
-            ) : null}
             {livePlain && mode === 'tagging' && ready && !selected && !showEnd && changeOffered ? (
               <button type="button" data-action="change-fa" className={lineButton} onClick={onChangeFa}>
                 Change
@@ -2315,7 +2304,109 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               <span className="ml-1.5 min-w-0 truncate">{names[padServer]} serving</span>
             </button>
           ) : null}
-          {slotKind === 'pad' && !zoneOn ? (
+          {footStrip ? (
+            <>
+              <div className="min-w-0 flex-1 flex flex-col justify-center">
+                {mode === 'watch' && gap ? (
+                  <p className="truncate text-xs leading-4 font-semibold text-primary">
+                    Add rally before rally {gap.index + 1}
+                  </p>
+                ) : mode === 'watch' && !gap ? (
+                  lastSaved ? (
+                    <>
+                      <p data-last-saved className="truncate text-xs leading-4 font-semibold text-primary">
+                        {noteBand ? (
+                          <span className="mr-1 inline-block h-2 w-2 rounded-full bg-warning" aria-hidden />
+                        ) : null}
+                        Rally {lastSavedIndex + 1} · {names[lastSaved.winner]} won
+                        {lastSaved.point ? ' · point' : ` · ${lastSaved.ending ?? ''}`}
+                      </p>
+                      {noteBand ? (
+                        <p data-mark-note className="truncate text-xs leading-4 font-semibold text-primary">
+                          Check in Rallies
+                        </p>
+                      ) : (
+                        <p data-tag-where className="truncate text-xs leading-4 text-muted tabular-nums">
+                          {formatScore(score)} · {minutesLeft(totalDuration(segs) - player.time)} left
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <p className="truncate text-xs leading-4 font-semibold text-primary">{setLine}</p>
+                      <p data-tag-where className="truncate text-xs leading-4 text-muted tabular-nums">
+                        {minutesLeft(totalDuration(segs) - player.time)} left
+                      </p>
+                    </>
+                  )
+                ) : null}
+              </div>
+              {mode === 'tagging' && stage === 'pickFa' ? (
+                <button
+                  type="button"
+                  data-foot="discard"
+                  className="btn-kind-tap-pad w-[4.625rem] shrink-0 rounded-lg border border-border bg-transparent px-3 text-sm font-medium text-primary"
+                  onClick={onRetap}
+                >
+                  Discard
+                </button>
+              ) : null}
+              {rightKind === 'edit-last' && lastSaved ? (
+                <button
+                  type="button"
+                  data-action="edit-last"
+                  className={rightBoxClass}
+                  onClickCapture={guardClicks(rightGuard)}
+                  onClick={() => openRally(lastSaved, lastSavedIndex)}
+                >
+                  Edit last rally
+                </button>
+              ) : rightKind === 'finish' ? (
+                <button
+                  type="button"
+                  data-finish-card
+                  className={rightBoxClass}
+                  onClickCapture={guardClicks(rightGuard)}
+                  onClick={onFinishSet}
+                >
+                  Finish set
+                </button>
+              ) : rightKind === 'back-to-live' ? (
+                <button
+                  type="button"
+                  data-action="back-to-live"
+                  className={rightBoxClass}
+                  onClickCapture={guardClicks(rightGuard)}
+                  onClick={leaveGap}
+                >
+                  Back to live
+                </button>
+              ) : rightKind === 'delete-last' ? (
+                <button
+                  type="button"
+                  data-action="delete-last"
+                  className={rightBoxClass}
+                  onClickCapture={guardClicks(rightGuard)}
+                  onClick={onUndoTap}
+                >
+                  Delete last
+                </button>
+              ) : rightKind === 'no-attack' ? (
+                <button
+                  type="button"
+                  data-action="no-attack"
+                  aria-pressed={Boolean(active?.noAttack)}
+                  className={rightBoxClass}
+                  disabled={!askNoAttack}
+                  onClickCapture={guardClicks(rightGuard)}
+                  onClick={onNoAttack}
+                >
+                  No attack
+                </button>
+              ) : null}
+            </>
+          ) : null}
+          {slotKind === 'pad' && !footStrip ? (
             <button
               type="button"
               data-tap-pad
@@ -2357,7 +2448,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               Tap the missed contact
             </button>
           ) : null}
-          {slotKind === 'save' && stage === 'pickFa' && !zoneOn ? (
+          {slotKind === 'save' && stage === 'pickFa' && !footStrip ? (
             <Button
               kind="tapPad"
               data-tag-fa
