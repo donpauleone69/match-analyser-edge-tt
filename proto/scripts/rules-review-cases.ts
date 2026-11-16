@@ -40,12 +40,12 @@ say('A. Chosen behaviours')
   check('tap time takes 0.3s off and never goes behind the floor', R.captureContactTime(12, 0) === 11.7 && R.captureContactTime(12, 11.9) === 11.9)
   const order: string[] = []
   let x = d
-  order.push(R.stageOf(x)); x = R.markFa(x, 3)
   order.push(R.stageOf(x)); x = R.setEnding(x, 'Winner')
   order.push(R.stageOf(x)); x = ws(x, 5, 'FH', 'Loop')
+  order.push(R.stageOf(x)); x = R.markFa(x, 3)
   order.push(R.stageOf(x)); x = ws(x, 3, 'BH', 'Flick')
   order.push(R.stageOf(x))
-  check('step order pick first attack, result, end shot, first attack shot, ready', order.join(' > ') === 'pickFa > result > endShot > faShot > ready', order.join(' > '))
+  check('step order result, end shot, pick, first attack shot, ready', order.join(' > ') === 'result > endShot > pickFa > faShot > ready', order.join(' > '))
   const saved = R.rallyFromDraft(x, 'r1')!
   say(`  saved: ${J({ server: saved.server, winner: saved.winner, fa: saved.fa, start: saved.start, end: saved.end, contacts: saved.contacts, shots: saved.shots, ending: saved.ending })}`)
   check('saved rally is what was tapped and answered', saved.winner === 'me' && saved.fa === 3 && J(saved.contacts) === J(d.contacts) && saved.shots[4].stroke === 'Loop' && saved.shots[2].stroke === 'Flick' && saved.shots[4].wing === 'FH' && saved.shots[2].wing === 'BH')

@@ -58,7 +58,7 @@ export function sideAfterShotKey(d: Draft, shot: number, key: string, held?: Str
  */
 export function applyShotKey(d: Draft, shot: number, key: string, held?: StrokeSide | null): Draft | null {
   const k = key.toLowerCase()
-  // The pick is answered first, with its own presses.
+  // The pick has its own presses. Shot keys wait.
   if (stageOf(d) === 'pickFa') return null
   const fields = fieldsFor(d, shot)
   const result = RESULT_KEYS.indexOf(k as (typeof RESULT_KEYS)[number])

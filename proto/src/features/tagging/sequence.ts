@@ -1,10 +1,12 @@
 /**
- * Shot by shot walk. A screen layer on top of the rally: it chooses which
- * shot is open, and it never changes what Save stores. The current mode's
- * stage order and `shotKeys.applyShotKey` stay as they are. Stroke and wing
- * are asked here before the result, which those two refuse.
+ * Shot by shot and End first. A screen layer on top of the rally: it chooses
+ * which shot is open, and it never changes what Save stores. The current
+ * mode's stage order and `shotKeys.applyShotKey` stay as they are.
  *
- * One shot rallies open on End. Every other rally opens on the serve.
+ * The serve opens first. A one shot rally opens on End. On the last shot,
+ * End is asked before that shot's details. Both walks use this order.
+ * End first holds one second at the end of each clip.
+ *
  * Defensive is the lit choice before the first attack. Offensive makes that
  * shot the first attack and keeps the walk there until stroke, wing and
  * intent are in. Next skips a row Save does not need.
@@ -43,16 +45,12 @@ const RESULT_KEYS = ['q', 'w', 'e', 'r', 't', 'y'] as const
 const STROKE_KEYS = ['s', 'd', 'f', 'g', 'h'] as const
 const WING_KEYS = ['z', 'x'] as const
 
-/**
- * End first: the same walk, but End (who won, and the result) is asked
- * straight after the taps, then serve to last shot. On an error End opens
- * once more after the last shot, for the optional miss reason.
- */
-export type WalkOpts = { endFirst?: boolean }
+/** End first holds the last frame of each clip for one second. Shot by shot keeps the short hold. */
+export const END_FIRST_PAUSE_S = 1
 
 /** Where the walk opens once tapping has closed. */
-export function openAt(d: Draft, opts: WalkOpts = {}): SeqStop {
-  if (opts.endFirst || endShot(d) <= 1) return { kind: 'end' }
+export function openAt(d: Draft): SeqStop {
+  if (endShot(d) <= 1) return { kind: 'end' }
   return { kind: 'shot', shot: 1 }
 }
 
@@ -128,30 +126,54 @@ export function shotComplete(d: Draft, shot: number): boolean {
 /**
  * Next is dark while this stop is missing something Save needs:
  * stroke and wing on the first attack or the last shot, and the result on End.
+ * Once End has a result, Next can move on to the last shot's details.
  */
-export function nextAllowed(d: Draft, place: SeqStop, opts: WalkOpts = {}): boolean {
-  if (place.kind === 'end') return Boolean(d.ending) && (canSave(d) || Boolean(opts.endFirst))
+export function nextAllowed(d: Draft, place: SeqStop): boolean {
+  if (place.kind === 'end') return Boolean(d.ending)
   const tags = d.shots[place.shot - 1]
   const needs = place.shot === endShot(d) || d.fa === place.shot
   if (needs && (!tags?.stroke || !tags?.wing)) return false
   return true
 }
 
-/** The next stop, or Ready when a Winner or Lucky (or a miss reason) has finished End. */
-export function nextStop(d: Draft, from: SeqStop, opts: WalkOpts = {}): SeqPlace {
+/** The last shot still needs its details, or the first attack is not decided yet. */
+function lastShotPending(d: Draft): boolean {
   const n = endShot(d)
-  const reason = d.shots[n - 1]?.missReason
+  if (n <= 1) return false
+  if (!faDecided(d)) return true
+  const tags = d.shots[n - 1]
+  return !tags?.stroke || !tags?.wing
+}
+
+/**
+ * The next stop. Shots before the last come first. End comes before the last
+ * shot's details. Ready once Save has what it needs. On a one shot error, End
+ * stays open for the optional miss reason.
+ */
+export function nextStop(d: Draft, from: SeqStop): SeqPlace {
+  const n = endShot(d)
   if (from.kind === 'end') {
-    if (opts.endFirst && d.ending && !canSave(d)) return { kind: 'shot', shot: 1 }
-    if (!d.ending || !canSave(d)) return from
+    if (!d.ending) return from
+    if (lastShotPending(d)) return { kind: 'shot', shot: n }
+    if (!canSave(d)) {
+      const gap = firstSaveGap(d)
+      return gap && gap.kind !== 'end' ? gap : from
+    }
     if (!isError(d.ending)) return { kind: 'ready' }
-    return reason ? { kind: 'ready' } : from
+    return d.shots[n - 1]?.missReason ? { kind: 'ready' } : from
   }
-  for (let shot = from.shot + 1; shot <= n; shot++) {
+  for (let shot = from.shot + 1; shot < n; shot++) {
     if (shouldStop(d, shot)) return { kind: 'shot', shot }
   }
-  if (opts.endFirst && d.ending && canSave(d) && (!isError(d.ending) || reason)) return { kind: 'ready' }
-  return { kind: 'end' }
+  if (n > 1 && from.shot < n) {
+    if (!d.ending) return { kind: 'end' }
+    if (lastShotPending(d)) return { kind: 'shot', shot: n }
+  }
+  if (!d.ending) return { kind: 'end' }
+  if (canSave(d)) return { kind: 'ready' }
+  const gap = firstSaveGap(d)
+  if (gap && !(gap.kind === 'shot' && gap.shot === from.shot)) return gap
+  return from
 }
 
 /**
@@ -166,23 +188,23 @@ export function afterRevisit(d: Draft, furthest: SeqPlace, endAnswered: boolean)
   return furthest
 }
 
-/** The first shot Save still needs, or End when the result is missing. */
+/**
+ * The first thing Save still needs, in walk order: a shot before the last,
+ * then End, then the last shot's details.
+ */
 export function firstSaveGap(d: Draft): SeqStop | null {
   const n = endShot(d)
   if (!faDecided(d)) {
-    for (let shot = 2; shot <= n; shot++) {
+    for (let shot = 2; shot < n; shot++) {
       if (shouldStop(d, shot)) return { kind: 'shot', shot }
     }
   }
-  if (d.fa !== null) {
+  if (d.fa !== null && d.fa < n) {
     const tags = d.shots[d.fa - 1]
     if (!tags?.stroke || !tags?.wing) return { kind: 'shot', shot: d.fa }
   }
-  if (n > 1) {
-    const tags = d.shots[n - 1]
-    if (!tags?.stroke || !tags?.wing) return { kind: 'shot', shot: n }
-  }
   if (!d.ending) return { kind: 'end' }
+  if (lastShotPending(d)) return { kind: 'shot', shot: n }
   return null
 }
 

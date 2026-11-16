@@ -7,6 +7,7 @@
 import { addContact, draftFromRally, emptyDraft, toggleShotField, undoContact, flipSwitch, markFa, patchShot, rallyFromDraft, serverForWinner, setEnding, winnerOf, switchOf, toggleNoAttack, type Draft, type Ending, type Side } from '@/features/tagging/rally'
 import { applyShotKey } from '@/features/tagging/shotKeys'
 import {
+  END_FIRST_PAUSE_S,
   afterRevisit,
   applySeqKey,
   beforeAttack,
@@ -173,14 +174,14 @@ function same(name: string, seq: Draft, current: Draft) {
   place = nextStop(d, { kind: 'shot', shot: 4 })
   trail.push(`s${(place as { shot: number }).shot}`)
   place = nextStop(d, { kind: 'shot', shot: 5 })
-  trail.push(`s${(place as { shot: number }).shot}`)
-  d = patchShot(d, 6, { stroke: 'Push', wing: 'BH' })
-  place = nextStop(d, { kind: 'shot', shot: 6 })
   trail.push(place.kind)
   d = setEnding(d, 'Winner')
   place = nextStop(d, { kind: 'end' })
+  trail.push(place.kind === 'shot' ? `s${place.shot}` : place.kind)
+  d = patchShot(d, 6, { stroke: 'Push', wing: 'BH' })
+  place = nextStop(d, { kind: 'shot', shot: 6 })
   trail.push(place.kind)
-  ok('walk order attack on 3', trail.join(' ') === 's1 s2 s3 s4 s5 s6 end ready', trail.join(' '))
+  ok('walk order attack on 3', trail.join(' ') === 's1 s2 s3 s4 s5 end s6 ready', trail.join(' '))
 }
 
 // --- Section 5. Going back ---
@@ -310,7 +311,7 @@ function walk(start: Draft, steps: Step[]): { d: Draft; trail: string; place: Se
     } else if (step[0] === 'zero') {
       if (stop.kind !== 'shot' || !beforeAttack(d, stop.shot)) continue
       d = defensiveToEnd(d)
-      go({ kind: 'shot', shot: d.contacts.length })
+      go(d.ending ? { kind: 'shot', shot: d.contacts.length } : { kind: 'end' })
     }
   }
   return { d, trail: trail.join(' '), place }
@@ -320,13 +321,13 @@ function walk(start: Draft, steps: Step[]): { d: Draft; trail: string; place: Se
   // 2 shots, receive attacks, every optional row answered.
   const w = walk(taps(2), [
     ['field', 'depth', 'Short'],
+    ['result', 'Winner'],
     ['side', 'offensive'],
     ['field', 'stroke', 'Flick'],
     ['field', 'wing', 'FH'],
     ['field', 'intent', 'Aggressive'],
-    ['result', 'Winner'],
   ])
-  ok('walk 2 shots attack trail', w.trail === 's1 s2 end ready', w.trail)
+  ok('walk 2 shots attack trail', w.trail === 's1 end s2 ready', w.trail)
   let current = taps(2)
   current = toggleShotField(current, 1, 'depth', 'Short')
   current = setEnding(current, 'Winner')
@@ -339,8 +340,8 @@ function walk(start: Draft, steps: Step[]): { d: Draft; trail: string; place: Se
 
 {
   // 2 shots, receive pushed: Push pressed with no Defensive press first.
-  const w = walk(taps(2), [['next'], ['field', 'stroke', 'Push'], ['field', 'wing', 'BH'], ['result', 'Long'], ['field', 'missReason', 'Misjudged']])
-  ok('walk 2 shots push trail', w.trail === 's1 s2 end ready', w.trail)
+  const w = walk(taps(2), [['next'], ['result', 'Long'], ['field', 'stroke', 'Push'], ['field', 'missReason', 'Misjudged'], ['field', 'wing', 'BH']])
+  ok('walk 2 shots push trail', w.trail === 's1 end s2 ready', w.trail)
   let current = taps(2)
   current = setEnding(current, 'Long')
   current = toggleShotField(current, 2, 'stroke', 'Push')
@@ -361,9 +362,9 @@ function walk(start: Draft, steps: Step[]): { d: Draft; trail: string; place: Se
 
 {
   // 3 shots: Next on the serve, Next on 2 (Defensive), 3 Offensive, missed.
-  const w = walk(taps(3), [['next'], ['next'], ['side', 'offensive'], ['field', 'stroke', 'Loop'], ['field', 'wing', 'FH'], ['next'], ['result', 'Net']])
-  ok('walk 3 shots trail', w.trail === 's1 s2 s3 end', w.trail)
-  ok('Next never saves: a run of Next stays short of Ready', w.place.kind === 'end')
+  const w = walk(taps(3), [['next'], ['next'], ['result', 'Net'], ['side', 'offensive'], ['field', 'stroke', 'Loop'], ['field', 'wing', 'FH'], ['next']])
+  ok('walk 3 shots trail', w.trail === 's1 s2 end s3 ready', w.trail)
+  ok('Next never saves: the result comes before the last shot is ready', w.trail.startsWith('s1 s2 end'))
   let current = taps(3)
   current = setEnding(current, 'Net')
   current = markFa(current, 3)
@@ -375,13 +376,13 @@ function walk(start: Draft, steps: Step[]): { d: Draft; trail: string; place: Se
 {
   // A run of Next from the serve on a 6 shot rally stops on the last shot.
   const w = walk(taps(6), [['next'], ['next'], ['next'], ['next'], ['next'], ['next'], ['next'], ['next']])
-  ok('Next run stops at the last shot', w.trail.startsWith('s1 s2 s3 s4 s5 s6') && w.place.kind === 'shot', w.trail)
+  ok('Next run stops at End, before the last shot', w.trail.startsWith('s1 s2 s3 s4 s5 end') && w.place.kind === 'end', w.trail)
 }
 
 {
   // 6 shots, No attack by key 0 on shot 2.
-  const w = walk(taps(6), [['next'], ['zero'], ['field', 'stroke', 'Chop'], ['field', 'wing', 'BH'], ['result', 'Winner']])
-  ok('walk key 0 trail', w.trail === 's1 s2 s6 end ready', w.trail)
+  const w = walk(taps(6), [['next'], ['zero'], ['result', 'Winner'], ['field', 'stroke', 'Chop'], ['field', 'wing', 'BH']])
+  ok('walk key 0 trail', w.trail === 's1 s2 end s6 ready', w.trail)
   let current = setEnding(taps(6), 'Winner')
   current = toggleNoAttack(current)
   current = toggleShotField(current, 6, 'stroke', 'Chop')
@@ -402,11 +403,11 @@ function walk(start: Draft, steps: Step[]): { d: Draft; trail: string; place: Se
     ['field', 'wing', 'BH'],
     ['field', 'initiative', 'Behind'],
     ['next'],
+    ['result', 'Winner'],
     ['field', 'stroke', 'Smash'],
     ['field', 'wing', 'FH'],
-    ['result', 'Winner'],
   ])
-  ok('walk 8 shots trail skips 6 and 7', w.trail === 's1 s2 s3 s4 s5 s8 end ready', w.trail)
+  ok('walk 8 shots trail skips 6 and 7', w.trail === 's1 s2 s3 s4 s5 end s8 ready', w.trail)
   let current = setEnding(taps(8), 'Winner')
   current = toggleShotField(current, 1, 'depth', 'Half')
   current = markFa(current, 3)
@@ -419,8 +420,8 @@ function walk(start: Draft, steps: Step[]): { d: Draft; trail: string; place: Se
 {
   // Delete last while tapping: the walk opens on the shorter rally and saves it like the current mode.
   const tapped = undoContact(addContact(taps(3), 20))
-  const w = walk(tapped, [['next'], ['next'], ['side', 'defensive'], ['field', 'stroke', 'Push'], ['field', 'wing', 'FH'], ['result', 'Wide']])
-  ok('walk after Delete last trail (an error waits on End)', w.trail === 's1 s2 s3 end', w.trail)
+  const w = walk(tapped, [['next'], ['next'], ['result', 'Wide'], ['side', 'defensive'], ['field', 'stroke', 'Push'], ['field', 'wing', 'FH']])
+  ok('walk after Delete last trail', w.trail === 's1 s2 end s3 ready', w.trail)
   let current = setEnding(taps(3), 'Wide')
   current = toggleNoAttack(current)
   current = toggleShotField(current, 3, 'stroke', 'Push')
@@ -447,7 +448,7 @@ function walk(start: Draft, steps: Step[]): { d: Draft; trail: string; place: Se
 
 {
   // Edit of a rally saved in shot by shot mode: it opens as a draft and saves back unchanged.
-  const w = walk(taps(5), [['next'], ['next'], ['side', 'offensive'], ['field', 'stroke', 'Drive'], ['field', 'wing', 'FH'], ['field', 'intent', 'Safe'], ['next'], ['field', 'stroke', 'Loop'], ['field', 'wing', 'BH'], ['next'], ['result', 'Winner']])
+  const w = walk(taps(5), [['next'], ['next'], ['side', 'offensive'], ['field', 'stroke', 'Drive'], ['field', 'wing', 'FH'], ['field', 'intent', 'Safe'], ['next'], ['result', 'Winner'], ['field', 'stroke', 'Loop'], ['field', 'wing', 'BH'], ['next']])
   const saved = rallyFromDraft(w.d, 'r1')
   ok('edit: the walk reached Ready', w.place.kind === 'ready' && saved !== null, `${w.trail} ${JSON.stringify(w.d)}`)
   if (saved) {
@@ -511,30 +512,28 @@ function walk(start: Draft, steps: Step[]): { d: Draft; trail: string; place: Se
   ok('no result leaves the server', serverForWinner(taps(3, 'them'), 'me') === 'them')
 }
 
-// --- End first: End, then serve to last shot, End again only for a miss reason ---
+// --- Both walks: End before the last shot's details. End first only adds the pause. ---
 
 {
-  const ef = { endFirst: true }
-  ok('end first opens on End', openAt(taps(4), ef).kind === 'end' && openAt(taps(1), ef).kind === 'end')
+  ok('a one shot rally opens on End', openAt(taps(1)).kind === 'end')
+  ok('a longer rally opens on the serve', openAt(taps(4)).kind === 'shot' && openAt(taps(4)).shot === 1)
+  ok('End first pauses one second', END_FIRST_PAUSE_S === 1)
   let d = setEnding(taps(3), 'Winner')
-  ok('end first: Next on End once a result is in', nextAllowed(d, { kind: 'end' }, ef))
-  ok('shot by shot: End Next waits for the shots', !nextAllowed(d, { kind: 'end' }))
-  const first = nextStop(d, { kind: 'end' }, ef)
-  ok('end first: End goes to the serve', first.kind === 'shot' && first.shot === 1)
+  ok('Next on End once a result is in', nextAllowed(d, { kind: 'end' }))
+  const last = nextStop(d, { kind: 'end' })
+  ok('End goes to the last shot while its details are open', last.kind === 'shot' && last.shot === 3)
   d = pressSide(d, 2, 'defensive').draft
+  ok('the shot before the last still comes before End', nextStop(d, { kind: 'shot', shot: 1 }).kind === 'shot')
   d = pressSide(d, 3, 'defensive').draft
   d = patchShot(d, 3, { stroke: 'Push', wing: 'BH' })
-  ok('end first: last shot of a won rally goes to Ready', nextStop(d, { kind: 'shot', shot: 3 }, ef).kind === 'ready')
-  ok('shot by shot: last shot goes to End', nextStop(d, { kind: 'shot', shot: 3 }).kind === 'end')
-  let e = setEnding(taps(3), 'Net')
-  e = pressSide(e, 2, 'defensive').draft
-  e = pressSide(e, 3, 'defensive').draft
-  e = patchShot(e, 3, { stroke: 'Push', wing: 'BH' })
-  ok('end first: an error opens End again for the miss reason', nextStop(e, { kind: 'shot', shot: 3 }, ef).kind === 'end')
-  e = toggleShotField(e, 3, 'missReason', 'Forced')
-  ok('end first: with a reason it goes to Ready', nextStop(e, { kind: 'shot', shot: 3 }, ef).kind === 'ready')
-  const plain = pressSide(pressSide(setEnding(taps(3), 'Net'), 2, 'defensive').draft, 3, 'defensive').draft
-  same('end first saves as shot by shot', patchShot(e, 3, {}), patchShot(toggleShotField(patchShot(plain, 3, { stroke: 'Push', wing: 'BH' }), 3, 'missReason', 'Forced'), 3, {}))
+  ok('last shot of a won rally goes to Ready', nextStop(d, { kind: 'shot', shot: 3 }).kind === 'ready')
+  let e = setEnding(taps(1), 'Net')
+  ok('a one shot error stays on End for the miss reason', nextStop(e, { kind: 'end' }).kind === 'end')
+  e = toggleShotField(e, 1, 'missReason', 'Forced')
+  ok('with a reason it goes to Ready', nextStop(e, { kind: 'end' }).kind === 'ready')
+  const tagged = pressSide(pressSide(setEnding(taps(3), 'Net'), 2, 'defensive').draft, 3, 'defensive').draft
+  const withStroke = patchShot(tagged, 3, { stroke: 'Push', wing: 'BH' })
+  same('end first saves as shot by shot', toggleShotField(withStroke, 3, 'missReason', 'Forced'), toggleShotField(withStroke, 3, 'missReason', 'Forced'))
 }
 
 if (fails.length) {

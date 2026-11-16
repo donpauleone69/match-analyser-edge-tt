@@ -643,31 +643,30 @@ console.log('\nFewer questions per shot')
   check('status at the last shot: "Stroke and wing of shot 4"', stageOf(asked) === 'endShot' && statusText(asked) === 'Stroke and wing of shot 4', statusText(asked))
   const askedFa = ws(asked, 4, 'FH', 'Smash')
   check('status at the first attack: "Stroke and wing of shot 3"', stageOf(askedFa) === 'faShot' && statusText(askedFa) === 'Stroke and wing of shot 3', statusText(askedFa))
-  check('the other status words are as they were', statusText(emptyDraft('v', 'me')) === 'Tap each contact' && statusText(tapped(4)) === 'Pick the first attack' && statusText(markFa(tapped(4), 3)) === 'Result of shot 4' && statusText(tapped(2)) === 'Result of shot 2' && statusText(d) === 'Ready to save')
+  check('the other status words are as they were', statusText(emptyDraft('v', 'me')) === 'Tap each contact' && statusText(tapped(4)) === 'Result of shot 4' && statusText(markFa(tapped(4), 3)) === 'Result of shot 4' && statusText(tapped(2)) === 'Result of shot 2' && statusText(d) === 'Ready to save')
 
-  // The step order: contacts, the pick, then the result and the questions. The Save gate and the two shot rule are as they were.
-  check('step order: pick, result, last shot, first attack shot, ready', (() => {
+  // The step order: contacts, the end of the point, the pick, then the first attack. The Save gate and the two shot rule are as they were.
+  check('step order: result, last shot, pick, first attack shot, ready', (() => {
     const order: string[] = []
     let x = tapped(5)
-    order.push(stageOf(x)); x = markFa(x, 3)
     order.push(stageOf(x)); x = setEnding(x, 'Winner')
     order.push(stageOf(x)); x = patchShot(x, 5, { stroke: 'Smash' })
     order.push(stageOf(x)); x = patchShot(x, 5, { wing: 'FH' })
+    order.push(stageOf(x)); x = markFa(x, 3)
     order.push(stageOf(x)); x = patchShot(x, 3, { stroke: 'Loop' })
     order.push(stageOf(x)); x = patchShot(x, 3, { wing: 'BH' })
     order.push(stageOf(x))
-    return order.join(' ') === 'pickFa result endShot endShot faShot faShot ready'
+    return order.join(' ') === 'result endShot endShot pickFa faShot faShot ready'
   })())
-  check('step order with No attack: pick, result, last shot (Defensive, fixed), ready', (() => {
+  check('step order with No attack: result, last shot, pick, ready', (() => {
     const order: string[] = []
     let x = tapped(4)
-    order.push(stageOf(x)); x = toggleNoAttack(x)
     order.push(stageOf(x)); x = setEnding(x, 'Long')
+    order.push(stageOf(x)); x = ws(x, 4, 'BH', 'Push')
+    order.push(stageOf(x)); x = toggleNoAttack(x)
     order.push(stageOf(x))
     const sw = switchOf(x, 4)
-    x = ws(x, 4, 'BH', 'Push')
-    order.push(stageOf(x))
-    return order.join(' ') === 'pickFa result endShot ready' && sw.side === 'defensive' && sw.fixed && canSave(x)
+    return order.join(' ') === 'result endShot pickFa ready' && sw.side === 'defensive' && sw.fixed && canSave(x)
   })())
   check('one shot (a serve error): no pick, the result first, then ready', (() => {
     const x = tapped(1)
@@ -678,7 +677,7 @@ console.log('\nFewer questions per shot')
     const r = setEnding(x, 'Long')
     return stageOf(x) === 'result' && stageOf(r) === 'endShot' && stageOf(ws(r, 2, 'BH', 'Push')) === 'ready' && stageOf(ws(r, 2, 'FH', 'Loop')) === 'ready'
   })())
-  check('the pick is the first step from 3 to 9 shots, and the result waits for it', [3, 4, 5, 6, 7, 8, 9].every((n) => stageOf(tapped(n)) === 'pickFa' && stageOf(tapped(n, 'Winner')) === 'pickFa' && stageOf(markFa(tapped(n), 2)) === 'result'))
+  check('the result is the first step from 3 to 9 shots, and the pick waits for the end shot', [3, 4, 5, 6, 7, 8, 9].every((n) => stageOf(tapped(n)) === 'result' && stageOf(tapped(n, 'Winner')) === 'endShot' && stageOf(ws(tapped(n, 'Winner'), n, 'FH', 'Smash')) === 'pickFa'))
   check('Change first attack after the questions: back to the pick, every answer kept, then straight to the new shot', (() => {
     let x = ws(ws(markFa(tapped(6, 'Winner'), 3), 6, 'FH', 'Smash'), 3, 'BH', 'Loop')
     const back = reopenFaPick(x)
@@ -702,10 +701,10 @@ console.log('\nFewer questions per shot')
     const none = toggleNoAttack(reopenFaPick(x))
     return none.shots[4].stroke === 'Push' && stageOf(none) === 'ready'
   })())
-  check('Delete last that removes the first attack shot: the pick is asked again before the result', (() => {
+  check('Delete last that removes the first attack shot: the result is asked again', (() => {
     const x = ws(ws(markFa(tapped(5, 'Winner'), 5), 5, 'FH', 'Smash'), 4, 'BH', 'Push')
     const y = undoClosedContact(x)
-    return y.fa === null && stageOf(y) === 'pickFa'
+    return y.fa === null && y.ending === null && stageOf(y) === 'result'
   })())
   check('every shot the Save gate asks about has Wing and Stroke rows, on every length and first attack', (() => {
     for (let n = 2; n <= 9; n++) {
@@ -810,7 +809,10 @@ console.log('\nKey rows')
   check('home row on the first attack: S nothing, D Flick, F Loop, G Drive, H Smash', applyShotKey(d, 4, 's') === null && ['d', 'f', 'g', 'h'].map((k) => applyShotKey(d, 4, k)?.shots[3].stroke).join(' ') === 'Flick Loop Drive Smash')
   check('bottom row: Z is BH, X is FH, and the same key again clears it', applyShotKey(d, 5, 'z')?.shots[4].wing === 'BH' && applyShotKey(d, 5, 'X')?.shots[4].wing === 'FH' && applyShotKey(applyShotKey(d, 5, 'z')!, 5, 'z')?.shots[4].wing === undefined)
   check('top row: the result keys are as they were', ['q', 'w', 'e', 'r', 't', 'y'].map((k) => applyShotKey(markFa(tapped(3), 2), 3, k)?.ending).join(' ') === 'Winner Lucky Net Long Wide Air')
-  check('during the pick no shot key answers, the result keys included', ['q', 'w', 'a', 's', 'f', 'z', 'x'].every((k) => applyShotKey(tapped(3), 3, k) === null && applyShotKey(tapped(5), 4, k) === null))
+  check('during the pick no shot key answers, the result keys included', (() => {
+    const atPick = ws(tapped(5, 'Winner'), 5, 'FH', 'Smash')
+    return stageOf(atPick) === 'pickFa' && ['q', 'w', 'a', 's', 'f', 'z', 'x'].every((k) => applyShotKey(atPick, 5, k) === null && applyShotKey(atPick, 4, k) === null)
+  })())
   check('the old stroke keys C V B N and the old wing key on the home row no longer answer', ['c', 'v', 'b', 'n', 'm', ','].every((k) => applyShotKey(d, 5, k) === null) && applyShotKey(d, 5, 'a')?.shots[4].wing === undefined)
   check('keys handled by the screen are not shot keys: K, L, P', ['k', 'l', 'p'].every((k) => applyShotKey(d, 5, k) === null))
 }

@@ -124,11 +124,10 @@ import { RallyList, type RallyListActions } from './RallyList'
 import { ZERO, addPoint, isSetWon, type Points } from './score'
 import { AnswerKeyPanel } from './AnswerKeyPanel'
 import {
+  END_FIRST_PAUSE_S,
   afterRevisit,
   applySeqKey,
   beforeAttack,
-  blockOf,
-  blockWindow,
   defensiveToEnd,
   firstSaveGap,
   nextAllowed,
@@ -356,6 +355,9 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
    * applies to the next one. Cleared on Save and on Discard.
    */
   const [flowLock, setFlowLock] = useState<FlowName | null>(null)
+  /** Set before the walk starts, so the first clip uses the right pause. */
+  const flowLockRef = useRef<FlowName | null>(null)
+  flowLockRef.current = flowLock
   /** Who won the open rally, given on End. With the result it sets the server. */
   const [wonByPick, setWonByPick] = useState<Side | null>(null)
   /** Which stop the shot by shot walk has open. Null in the current mode. */
@@ -428,7 +430,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   /** Shot by shot is on for this rally: locked when the taps closed, off in edit and review. */
   const seqLive =
     isWalkFlow(flowLock) && !edit && !review && !set.finished && !draftGone && Boolean(live?.closed)
-  const walkOpts = { endFirst: flowLock === 'endfirst' }
   /** End is on screen with no result, and whenever a press has opened it. */
   const showEnd = seqLive
     ? walk?.kind === 'end'
@@ -519,7 +520,11 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     }
   }
 
-  /** The block of three that holds the open shot. The loop is not restarted inside a block. */
+  /**
+   * The clip for the shot that is waiting. End uses the last shot.
+   * The loop is not restarted while that shot stays open.
+   * End first holds one second at the end of each play.
+   */
   const applySeqLoop = (d: Draft, place: SeqPlace) => {
     const off = offsetOf(d.videoId)
     const max = durationOf(d.videoId)
@@ -534,9 +539,9 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       return
     }
     const shot = place.kind === 'end' ? d.contacts.length : place.shot
-    const block = blockOf(d.contacts.length, shot)
-    const key = `${block.from}-${block.to}`
-    const w = clamp({ ...blockWindow(d, shot), hold: SHOT_LOOP_HOLD_S })
+    const key = `shot-${shot}`
+    const hold = flowLockRef.current === 'endfirst' ? END_FIRST_PAUSE_S : SHOT_LOOP_HOLD_S
+    const w = clamp({ ...shotWindow(d, shot), hold })
     if (seqBlock.current === key) {
       playerRef.current.setLoop(w)
       return
@@ -547,7 +552,8 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
 
   const seqGo = (d: Draft, dest: SeqPlace, guard: boolean) => {
     revisitingRef.current = false
-    const rank = (p: SeqPlace) => (p.kind === 'shot' ? p.shot : p.kind === 'end' ? (walkOpts.endFirst ? 0 : 1000) : 1001)
+    const n = d.contacts.length
+    const rank = (p: SeqPlace) => (p.kind === 'shot' ? p.shot : p.kind === 'end' ? n - 0.5 : n + 1)
     if (!furthestRef.current || rank(dest) > rank(furthestRef.current)) furthestRef.current = dest
     setWalk(dest)
     if (dest.kind === 'shot') {
@@ -615,12 +621,13 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     }
     const modeNow: FlowName = flowFromParam(searchParams.get('flow'))
     if (draft && draft.closed && draft.contacts.length > 0) {
+      flowLockRef.current = modeNow
       setFlowLock(modeNow)
       clock.current = { ...freshClock(modeNow), tapsEnded: Date.now() }
     }
     park(draft, set.finished, floorG)
     if (draft && draft.closed && draft.contacts.length > 0 && isWalkFlow(modeNow)) {
-      startSeq(draft, openAt(draft, { endFirst: modeNow === 'endfirst' }))
+      startSeq(draft, openAt(draft))
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -717,12 +724,8 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     else mutateMatch(match.id, (m) => setDraft(m, set.setId, next))
   }
 
-  /** End first, End changed once the shots are under way: back to the furthest shot until the rally can be saved. */
-  const afterEnd = (d: Draft, place: SeqStop): SeqPlace => {
-    const far = furthestRef.current
-    if (walkOpts.endFirst && far?.kind === 'shot' && !canSave(d)) return d.ending ? far : place
-    return nextStop(d, place, walkOpts)
-  }
+  /** Where End goes once it has a result: the last shot's details, or Ready. */
+  const afterEnd = (d: Draft, place: SeqStop): SeqPlace => nextStop(d, place)
 
   /** A tag change, then the hand-over the real app does between steps. */
   const seqOnAnswer = (next: Draft) => {
@@ -738,7 +741,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     if (!shotComplete(next, place.shot)) return
     const dest = revisitingRef.current
       ? afterRevisit(next, furthestRef.current ?? place, endAnsweredRef.current)
-      : nextStop(next, place, walkOpts)
+      : nextStop(next, place)
     seqGo(next, dest, true)
   }
 
@@ -751,20 +754,20 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     if (pressed.cleared) {
       furthestRef.current = place
       revisitingRef.current = false
-      seqGo(draft, nextStop(draft, place, walkOpts), true)
+      seqGo(draft, nextStop(draft, place), true)
       return
     }
     if (pressed.advance) {
       const dest = revisitingRef.current
         ? afterRevisit(draft, furthestRef.current ?? place, endAnsweredRef.current)
-        : nextStop(draft, place, walkOpts)
+        : nextStop(draft, place)
       seqGo(draft, dest, true)
       return
     }
     if (shotComplete(draft, place.shot)) {
       const dest = revisitingRef.current
         ? afterRevisit(draft, furthestRef.current ?? place, endAnsweredRef.current)
-        : nextStop(draft, place, walkOpts)
+        : nextStop(draft, place)
       seqGo(draft, dest, true)
     }
   }
@@ -772,7 +775,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const onNext = () => {
     const place = walkRef.current
     if (!active || !place || place.kind === 'ready') return
-    if (!nextAllowed(active, place, walkOpts)) return
+    if (!nextAllowed(active, place)) return
     if (clock.current) clock.current.nexts++
     if (place.kind === 'shot' && beforeAttack(active, place.shot)) {
       onSeqSide('defensive')
@@ -782,7 +785,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       ? afterRevisit(active, furthestRef.current ?? place, endAnsweredRef.current)
       : place.kind === 'end'
         ? afterEnd(active, place)
-        : nextStop(active, place, walkOpts)
+        : nextStop(active, place)
     seqGo(active, dest, true)
   }
 
@@ -854,9 +857,10 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     p.setBoundary(null)
     setLastTap(null)
     const wanted = latest.current.flowWanted
+    flowLockRef.current = wanted
     setFlowLock(wanted)
     if (isWalkFlow(wanted)) {
-      startSeq(closed, openAt(closed, { endFirst: wanted === 'endfirst' }))
+      startSeq(closed, openAt(closed))
     } else {
       const w = windowFor(closed, null, stageOf(closed), false)
       p.setLoop(w)
@@ -1833,7 +1837,8 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
         const next = defensiveToEnd(active)
         writeDraft(next)
         furthestRef.current = place.kind === 'shot' ? place : { kind: 'shot', shot: 1 }
-        seqGo(next, { kind: 'shot', shot: next.contacts.length }, true)
+        const dest: SeqPlace = next.ending ? { kind: 'shot', shot: next.contacts.length } : { kind: 'end' }
+        seqGo(next, dest, true)
       } else if (result.kind === 'open') onShot(result.shot)
       else if (result.kind === 'draft') change(result.draft)
     },
@@ -2216,6 +2221,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       data-contacts={active?.contacts.join(',') ?? ''}
       data-loop-a={loopNow ? loopNow.a.toFixed(3) : ''}
       data-loop-b={loopNow ? loopNow.b.toFixed(3) : ''}
+      data-loop-hold={seqLive ? (flowLock === 'endfirst' ? String(END_FIRST_PAUSE_S) : String(SHOT_LOOP_HOLD_S)) : ''}
       data-fa={active?.fa ?? ''}
       data-no-attack={active?.noAttack ? 'yes' : 'no'}
     >
@@ -2771,7 +2777,10 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               Delete last
             </button>
           ) : null}
-          {(slotKind === 'add' || slotKind === 'edit' || ((slotKind === 'pad' || slotKind === 'save') && edit)) &&
+          {(slotKind === 'add' ||
+            slotKind === 'edit' ||
+            ((slotKind === 'pad' || slotKind === 'save') && edit) ||
+            (seqLive && walk?.kind === 'shot' && walk.shot === 1)) &&
           !readOnly ? (
             <button
               type="button"
@@ -2979,7 +2988,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                 data-tag-save
                 data-seq-next={seqLive && active && !canSave(active) ? '' : undefined}
                 className={cn('w-28 shrink-0 rounded-lg text-lg active:scale-100', slotGrey && BUSY)}
-                disabled={seqLive ? !active || canSave(active) ? !ready : walk?.kind === 'shot' || walk?.kind === 'end' ? !nextAllowed(active, walk, walkOpts) : true : !ready}
+                disabled={seqLive ? !active || canSave(active) ? !ready : walk?.kind === 'shot' || walk?.kind === 'end' ? !nextAllowed(active, walk) : true : !ready}
                 onClick={seqLive && active && !canSave(active) ? onNext : onSave}
               >
                 {seqLive && active && !canSave(active) ? 'Next' : 'Save'}

@@ -320,13 +320,13 @@ export function faAttrsComplete(d: Draft): boolean {
 }
 
 /**
- * Three shots or more: the pick first, then the result and the questions.
- * One shot has no pick. Two shots have no pick either: shot 2's stroke
- * decides it (`applyAutoSkip`), so it is asked last only if that left it open.
+ * Contacts, then the end of the point (who won, the result, then the last
+ * shot's stroke and wing), then the first attack pick, then that shot's
+ * stroke and wing. One shot has no pick. Two shots have no pick either:
+ * shot 2's stroke decides it (`applyAutoSkip`).
  */
 export function stageOf(d: Draft): Stage {
   if (!d.closed) return 'contacts'
-  if (!faDecided(d) && endShot(d) >= 3) return 'pickFa'
   if (!d.ending) return 'result'
   if (!endAttrsComplete(d)) return 'endShot'
   if (!faDecided(d)) return 'pickFa'
@@ -466,8 +466,8 @@ export function shotAtTime(d: Draft, localTime: number, lag = 0): number | null 
 }
 
 /**
- * No attack is offered on every rally past the serve. The pick comes before
- * the end shot's stroke is asked, so what that stroke will be is not known.
+ * No attack is offered on every rally past the serve. The pick comes after
+ * the end shot's stroke, so an attacking stroke on that shot is cleared.
  */
 export function noAttackOffered(d: Draft): boolean {
   return endShot(d) >= 2
