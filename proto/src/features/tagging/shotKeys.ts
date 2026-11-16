@@ -44,7 +44,7 @@ export function shownStrokeSide(d: Draft, shot: number, held?: StrokeSide | null
   return rule.fixed ? rule.side : (held ?? rule.side)
 }
 
-/** The side the switch shows after `key`: set only when the key is Z and the switch can flip. */
+/** The side the switch shows after `key`: set only when the key is the switch key (A) and the switch can flip. */
 export function sideAfterShotKey(d: Draft, shot: number, key: string, held?: StrokeSide | null): StrokeSide | null {
   if (key.toLowerCase() !== SWITCH_KEY || stageOf(d) === 'result') return null
   if (!showsStroke(d, shot) || switchOf(d, shot).fixed) return null

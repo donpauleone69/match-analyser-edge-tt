@@ -200,7 +200,9 @@ console.log('\nFault 3: keys are pure')
 
   check('key A: the side after it is the other one', sideAfterShotKey(d, 5, 'a') === 'defensive' && sideAfterShotKey(d, 5, 'A', 'defensive') === 'offensive')
   check('key A on a fixed switch, on a shot with no stroke row, or any other key: no new side', sideAfterShotKey(d, 4, 'a') === null && sideAfterShotKey(d, 3, 'a') === null && sideAfterShotKey(d, 5, 'd') === null)
-  check('key A while the result is asked: nothing', sideAfterShotKey(tapped(4), 4, 'z') === null && applyShotKey(tapped(4), 4, 'z') === null)
+  check('key A while the result is asked: nothing', sideAfterShotKey(tapped(4), 4, 'a') === null && applyShotKey(tapped(4), 4, 'a') === null)
+  check('the same shot once the result is in: A gives the other side, so it was the result step that held it', !switchOf(tapped(4, 'Winner'), 4).fixed && sideAfterShotKey(tapped(4, 'Winner'), 4, 'a') === 'defensive')
+  check('stroke and wing keys while the result is asked: nothing', ['s', 'd', 'f', 'g', 'h', 'z', 'x'].every((k) => applyShotKey(tapped(4), 4, k) === null))
   check('key A on Block leaves the draft alone', applyShotKey(d, 5, 'a') === null)
   const loop6 = patchShot(d, 6, { stroke: 'Loop' })
   check('key A on Loop clears that stroke only', applyShotKey(loop6, 6, 'a')?.shots[5].stroke === undefined && J(applyShotKey(loop6, 6, 'a')?.shots.slice(0, 5)) === J(loop6.shots.slice(0, 5)))
@@ -686,6 +688,64 @@ console.log('\nFewer questions per shot')
     return showsStroke(back, 6) && showsStroke(back, 7) && back.shots[5].stroke === 'Block' && back.shots[6].stroke === 'Push'
   })())
   check('the keys follow the rows: no wing key and no stroke key on a Receive or a later shot', [2, 6, 7].every((s) => ['z', 'x', 'a', 's', 'd', 'f', 'g', 'h'].every((k) => applyShotKey(early, s, k) === null)))
+}
+
+// ---------- A shot that gains or loses the last place (from the second rule review)
+console.log('\nA shot that gains or loses the last place')
+{
+  // Delete last makes a later shot the end: what was hidden on it is on screen again and is saved.
+  let a = ws(tapped(8, 'Long'), 8, 'FH', 'Loop')
+  a = ws(markFa(a, 3), 3, 'FH', 'Loop')
+  a = ws(a, 7, 'BH', 'Push')
+  check('going in: shot 7 is a later shot, its Push has no row and is not saved', canSave(a) && !showsStroke(a, 7) && !('stroke' in rallyFromDraft(a, 'r')!.shots[6]))
+  const aEnd = setEnding(undoClosedContact(a), 'Long')
+  check('Delete last makes it the last shot: Push and BH are on screen, and Save writes them', showsStroke(aEnd, 7) && fieldsFor(aEnd, 7).wing && canSave(aEnd) && J(rallyFromDraft(aEnd, 'r')?.shots[6]) === J({ wing: 'BH', stroke: 'Push' }))
+
+  let b = ws(tapped(8, 'Long'), 8, 'FH', 'Loop')
+  b = ws(markFa(b, 3), 3, 'FH', 'Loop')
+  const bEnd = setEnding(undoClosedContact(b), 'Long')
+  check('Delete last makes a later shot with no answers the last shot: the rows appear and Save waits for both', stageOf(bEnd) === 'endShot' && fieldsFor(bEnd, 7).wing && fieldsFor(bEnd, 7).stroke && !canSave(bEnd) && !canSave(patchShot(bEnd, 7, { stroke: 'Push' })) && canSave(ws(bEnd, 7, 'BH', 'Push')))
+
+  // Delete last makes a Receive the last shot.
+  const c = toggleNoAttack(ws(tapped(4, 'Long'), 4, 'BH', 'Push'))
+  const cEnd = setEnding(undoClosedContact(c), 'Long')
+  const cRows = fieldsFor(cEnd, 3)
+  check('Delete last makes a Receive the last shot: Wing, Stroke and the ball marks, no Depth, No attack kept', canSave(c) && cEnd.noAttack && cRows.wing && cRows.stroke && cRows.ball && !cRows.depth && stageOf(cEnd) === 'endShot')
+  check('Save waits for its wing and stroke, then saves with no first attack', !canSave(cEnd) && canSave(ws(cEnd, 3, 'FH', 'Chop')) && rallyFromDraft(ws(cEnd, 3, 'FH', 'Chop'), 'r')?.fa === null)
+
+  // A contact after the end makes the old end a later shot.
+  let e = ws(tapped(5, 'Winner'), 5, 'FH', 'Smash')
+  e = ws(markFa(e, 2), 2, 'BH', 'Flick')
+  const eIns = insertContact(e, 14)
+  const eDone = ws(setEnding(eIns.draft, 'Long'), 6, 'BH', 'Push')
+  check('a contact after the end: the old end shot is a later shot, Save keeps its wing and leaves its stroke out', eIns.shot === 6 && !showsStroke(eDone, 5) && eDone.shots[4].stroke === 'Smash' && canSave(eDone) && J(rallyFromDraft(eDone, 'r')?.shots[4]) === J({ wing: 'FH' }))
+
+  // The hidden stroke rule, reached by a later shot, and the same stroke once it is on screen.
+  let h = ws(tapped(7, 'Winner'), 7, 'FH', 'Smash')
+  h = ws(markFa(h, 3), 3, 'FH', 'Loop')
+  h = ws(h, 6, 'BH', 'Chop')
+  const hPick = markFa(h, 6)
+  check('a later shot that keeps Chop picked as the first attack: taken, that Chop cleared, Loop on shot 3 kept', !showsStroke(h, 6) && faRefusal(h, 6) === null && hPick.fa === 6 && hPick.shots[5].stroke === undefined && hPick.shots[5].wing === 'BH' && hPick.shots[2].stroke === 'Loop')
+  const hEnd = undoClosedContact(h)
+  check('the same Chop once Delete last has made that shot the end: it is on screen, so the pick is refused', showsStroke(hEnd, 6) && faRefusal(hEnd, 6)?.kind === 'stroke' && markFa(hEnd, 6) === hEnd)
+
+  // Everything but the stroke is written when the rows go, and stays written.
+  let g = ws(tapped(8, 'Long'), 8, 'FH', 'Loop')
+  g = ws(markFa(g, 5), 5, 'FH', 'Loop')
+  g = patchShot(patchShot(ws(g, 6, 'BH', 'Block'), 6, { initiative: 'Level' }), 6, { review: true })
+  const gMoved = ws(markFa(g, 3), 3, 'BH', 'Flick')
+  const gSaved = rallyFromDraft(gMoved, 'r')
+  check('a reply that becomes a later shot: Save writes its wing, initiative and Review, not its stroke', gSaved !== null && J(gSaved.shots[5]) === J({ wing: 'BH', initiative: 'Level', review: true }))
+  check('saving that rally a second time changes nothing', gSaved !== null && J(rallyFromDraft(draftFromRally(gSaved), 'r')) === J(gSaved))
+  check('opening the saved rally and moving the first attack back does not bring the stroke back', gSaved !== null && markFa(draftFromRally(gSaved), 5).shots[5].stroke === undefined)
+
+  // Two shots, from the new keys.
+  const win = applyShotKey(applyShotKey(tapped(2, 'Winner'), 2, 'h')!, 2, 'z')!
+  check('two shots, Winner, H then Z: Smash, BH, first attack 2, ready', win.shots[1].stroke === 'Smash' && win.shots[1].wing === 'BH' && win.fa === 2 && canSave(win))
+  const long = applyShotKey(applyShotKey(tapped(2, 'Long'), 2, 'f')!, 2, 'x')!
+  check('two shots, Long, F then X: Push, FH, No attack, ready', long.shots[1].stroke === 'Push' && long.shots[1].wing === 'FH' && long.noAttack && long.fa === null && canSave(long))
+  const flip = applyShotKey(win, 2, 'a')
+  check('two shots: A on that first attack is not fixed, it clears the stroke and the answer, and Save goes dark', flip !== null && flip.shots[1].stroke === undefined && flip.fa === null && !canSave(flip) && flip.shots[1].wing === 'BH')
 }
 
 // ---------- Desktop keys follow the rows on screen: stroke on the home row, wing on the bottom row

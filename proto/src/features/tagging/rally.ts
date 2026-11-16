@@ -760,7 +760,7 @@ export function swapPlayers(r: RallyData): RallyData {
 
 /**
  * The shots as Save keeps them. A stroke is kept only where the stroke row
- * shows: the end shot, the first attack and the shots after it. A stroke
+ * shows: the last shot, the first attack and the two replies after it. A stroke
  * answered on a shot that has since lost its row (the first attack moved, No
  * attack, a contact added after the end shot) stays in the draft, so the
  * answer comes back with the row, and is left out here. Pivot, on a rally

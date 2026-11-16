@@ -316,7 +316,7 @@ function pressFlip(d: Draft, shot: number, shown: StrokeSide): { d: Draft; shown
     shots: [{}, {}, { ...wing, stroke: 'Loop' }, {}],
   })
   const flipped = applyShotKey(d, 4, 'a', 'offensive')
-  ok('key A flips and clears an empty shot to Defensive list', flipped !== null && sw(flipped!, 4).side === 'offensive' && flipped!.shots[3]?.stroke === undefined)
+  ok('key A on an empty shot gives a draft with no stroke, and the rule side stays Offensive: the flip is not stored', flipped !== null && sw(flipped!, 4).side === 'offensive' && flipped!.shots[3]?.stroke === undefined)
   const block = applyShotKey(d, 4, 's', 'offensive')
   ok('key S is Block', block?.shots[3]?.stroke === 'Block')
   const flick = applyShotKey(d, 4, 'd', 'offensive')
