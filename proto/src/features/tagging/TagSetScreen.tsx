@@ -822,6 +822,8 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     setTight(false)
     setLastTap(null)
     setLate(null)
+    // The tap button takes the place of Discard and Save, so the next press waits a second.
+    arm(GUARD_AFTER_CLOSE_MS)
     // The same rally is tapped again, so it keeps the server it had.
     if (set.rallies.length > 0) setServerPick(live.server === expected ? null : live.server)
     setToast({
@@ -861,6 +863,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       setEndOpen(false)
       setTight(false)
       setKeptAt(null)
+      arm(GUARD_AFTER_CLOSE_MS)
       withUndo('Rally added', before, () => park(before.draft, false, liveFloor))
       return
     }
@@ -875,6 +878,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     setEndOpen(false)
     setTight(false)
     setKeptAt(null)
+    arm(GUARD_AFTER_CLOSE_MS)
   }
 
   /**
@@ -1385,11 +1389,11 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     stage === 'pickFa' &&
     noAttackOffered(active)
 
-  // Keys (desktop). Space is the pad. Backspace undoes a tap. Enter saves
-  // whenever Save is lit, whatever has focus, and never presses a button.
-  // 1 to 9 pick a shot, 0 is No attack. Top row is the result, home row the
-  // wing, bottom row the stroke. [ and ] pick the marks, - and = nudge.
-  // K plays or pauses, arrows step 10 seconds.
+  // Keys (desktop). Space is the pad. Backspace deletes a tap while tapping
+  // and steps back 5 seconds between rallies. Enter saves whenever Save is
+  // lit. 1 to 9 pick a shot, 0 is No attack. Top row is the result, home row
+  // the wing, bottom row the stroke. In edit, [ and ] pick the marks and
+  // - and = nudge. K plays or pauses, arrows step 10 seconds.
   const handlers = {
     late,
     onLateTap,
@@ -1476,19 +1480,14 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       } else if (key === 'k') {
         toggle()
       } else if (key === 'Backspace') {
-        // One key for "go back": a tap while tapping or tagging, 5 seconds between rallies.
+        // Delete last while tapping, and 5 seconds between rallies. Not while answering.
         if (now.mode === 'tapping') {
           e.preventDefault()
           k.onUndoTap()
-        } else if (now.mode === 'tagging') {
-          e.preventDefault()
-          if (!e.repeat && Date.now() >= slotGuard.current) k.onUndoTap()
         } else if (now.mode === 'watch') {
           e.preventDefault()
           k.seekTo(p.getTime() - BACK_S)
         }
-      } else if (key === 'l' && (now.mode === 'tapping' || now.mode === 'tagging')) {
-        if (!e.repeat && (now.mode === 'tapping' || Date.now() >= slotGuard.current)) k.onLet()
       } else if (key === 'p' && (now.mode === 'watch' || now.mode === 'tagging')) {
         if (!e.repeat && Date.now() >= slotGuard.current) k.onSwitch()
       } else if (key === 'ArrowLeft') {
@@ -1506,7 +1505,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       } else if (key === '[' || key === ']') {
         // Trim belongs to a saved rally.
         if (now.mode === 'edit') k.onMark({ kind: key === '[' ? 'start' : 'end' })
-      } else if (key === '-' || key === '=') {
+      } else if ((key === '-' || key === '=') && now.mode === 'edit') {
         if (now.selected) k.onNudge(key === '-' ? -NUDGE_STEP_S : NUDGE_STEP_S)
       } else if (now.selected?.kind === 'shot') {
         const next = applyPanelKey(k.active, now.selected.shot, key)
@@ -1631,6 +1630,11 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
           ? 'Neither gap has the rally'
           : null
 
+  const summaryText = active
+    ? `${active.contacts.length} ${active.contacts.length === 1 ? 'shot' : 'shots'}${
+        active.fa !== null ? ` · First attack shot ${active.fa}` : active.noAttack ? ' · No attack' : ''
+      }`
+    : ''
   const status = reviewLine
     ? reviewLine
     : faSaid && active && (stage === 'pickFa' || stage === 'faShot')
@@ -1651,7 +1655,9 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
           : active
             ? addOn
               ? 'Adding a contact'
-              : statusText(active)
+              : mode === 'tagging' && ready && !faSaid
+                ? summaryText
+                : statusText(active)
             : gap
               ? `Add rally before rally ${gap.index + 1}`
               : player.playing && !atEnd
@@ -1691,6 +1697,15 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const actionButton = cn('w-14 shrink-0 px-0.5 text-xs leading-tight text-center', slotGrey && BUSY)
   /** Slot controls never change size, not even while pressed. The height is the tap pad. */
   const slotButton = cn('rounded-lg text-lg active:scale-100 active:brightness-90', slotGrey && !late && BUSY)
+  /** Watch, tapping and answering use the plain words line. Edit and the special states keep the built band. */
+  const livePlain = !review && (mode === 'watch' || mode === 'tapping' || mode === 'tagging')
+  const refusalLine = Boolean(faSaid && stage === 'faShot')
+  const lineHidden = livePlain && (selected?.kind === 'shot' || showEnd) && !refusalLine
+  const changeOffered = Boolean(
+    !readOnly && ready && n >= 3 && active && (active.fa !== null || active.noAttack)
+  )
+  const lineButton =
+    'btn-kind-control shrink-0 rounded-md border border-border bg-transparent px-3 text-sm font-medium text-primary'
 
   return (
     <div
@@ -1751,16 +1766,30 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       {/* Right on a wide screen, below on a phone: rail, status, panel, then one slot. */}
       <div className="tag-entry">
         <div className="shrink-0 bg-bg-app px-2 pt-1.5">
-          {/* The shot row. Shots only, from the first tap to Save. */}
+          {/* The shot row. Delete last sits at the right only while contacts are being tapped. */}
           {active || mode === 'watch' ? (
-            <ShotRail
-              draft={active}
-              selected={selected}
-              liveShot={liveShot}
-              endOpen={showEnd}
-              onShot={onShot}
-              onEnd={onEnd}
-            />
+            <div className="flex items-start">
+              <div className="min-w-0 flex-1">
+                <ShotRail
+                  draft={active}
+                  selected={selected}
+                  liveShot={liveShot}
+                  endOpen={showEnd}
+                  onShot={onShot}
+                  onEnd={onEnd}
+                />
+              </div>
+              {mode === 'tapping' ? (
+                <button
+                  type="button"
+                  data-action="delete-last"
+                  className="btn-kind-control shrink-0 px-2 text-xs font-semibold text-muted"
+                  onClick={onUndoTap}
+                >
+                  Delete last
+                </button>
+              ) : null}
+            </div>
           ) : null}
         </div>
 
@@ -1774,21 +1803,28 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
           {/* Status, with the rally's second-rank actions beside it, away from the thumb. */}
           <div
             className={cn(
-              'mb-1.5 flex items-stretch gap-1.5',
-              mode !== 'edit' && (selected?.kind === 'shot' || showEnd) && 'hidden'
+              'flex gap-1.5',
+              livePlain ? 'mt-2.5 min-h-[var(--btn-kind-control)] items-center' : 'mb-1.5 items-stretch',
+              livePlain ? lineHidden && 'hidden' : mode !== 'edit' && (selected?.kind === 'shot' || showEnd) && 'hidden'
             )}
             onClickCapture={guardClicks(slotGuard)}
           >
             <p
               role="status"
               data-tag-status
+              data-fa-summary={livePlain && mode === 'tagging' && ready ? '' : undefined}
               className={cn(
-                'flex-1 min-w-0 min-h-[var(--btn-kind-control)] flex items-center rounded-md border-l-4 px-2 py-1 text-sm font-semibold leading-tight',
-                ready || mode === 'finished'
-                  ? 'border-success bg-success/15 text-primary'
-                  : active && active.closed
-                    ? 'border-warning bg-warning/15 text-primary'
-                    : 'border-border-strong bg-bg-card text-primary'
+                'min-w-0 flex-1 text-sm leading-tight',
+                livePlain
+                  ? 'flex items-center font-normal text-primary'
+                  : cn(
+                      'flex min-h-[var(--btn-kind-control)] items-center rounded-md border-l-4 px-2 py-1 font-semibold',
+                      ready || mode === 'finished'
+                        ? 'border-success bg-success/15 text-primary'
+                        : active && active.closed
+                          ? 'border-warning bg-warning/15 text-primary'
+                          : 'border-border-strong bg-bg-card text-primary'
+                    )
               )}
             >
               {status}
@@ -1802,7 +1838,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               <Button
                 kind="control"
                 variant="secondary"
-                className={endButton}
+                className={cn(endButton, 'whitespace-nowrap px-2')}
                 aria-label="Back 5 seconds"
                 onClick={() => seekTo(playerRef.current.getTime() - BACK_S)}
               >
@@ -1810,77 +1846,49 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                 Back 5s
               </Button>
             ) : null}
-            {/*
-              Two pairs, always in the same places. Let and Re-tap act on the
-              whole rally, Delete last and Add contact on one contact.
-            */}
-            {mode === 'tapping' || mode === 'tagging' || (mode === 'edit' && !readOnly) ? (
+            {livePlain && (mode === 'tapping' || (mode === 'tagging' && stage === 'pickFa')) && !refusalLine ? (
+              <button type="button" data-foot="discard" className={cn(lineButton, 'w-[4.625rem]')} onClick={onRetap}>
+                Discard
+              </button>
+            ) : null}
+            {livePlain && mode === 'tagging' && ready && !selected && !showEnd && changeOffered ? (
+              <button type="button" data-action="change-fa" className={lineButton} onClick={onChangeFa}>
+                Change
+              </button>
+            ) : null}
+            {/* Edit keeps Back to live, Delete last and Add contact. Live tagging does not. */}
+            {mode === 'edit' && !readOnly ? (
               <div className="flex shrink-0 items-stretch gap-2" data-tag-actions>
-                <div className="flex items-stretch gap-1">
-                  {mode === 'edit' ? (
-                    <Button
-                      kind="control"
-                      variant="secondary"
-                      className={cn(actionButton, 'w-[7.25rem]')}
-                      onClick={closeEdit}
-                    >
-                      Back to live
-                    </Button>
-                  ) : (
-                    <>
-                      <Button
-                        kind="control"
-                        variant="secondary"
-                        className={actionButton}
-                        data-action="let"
-                        title="Let, no point"
-                        disabled={addOn}
-                        onClick={onLet}
-                      >
-                        Let
-                      </Button>
-                      <Button
-                        kind="control"
-                        variant="secondary"
-                        className={actionButton}
-                        data-action="retap"
-                        title="Tap this rally again"
-                        disabled={addOn}
-                        onClick={onRetap}
-                      >
-                        <span className="whitespace-nowrap">Re-tap</span>
-                      </Button>
-                    </>
-                  )}
-                </div>
-                <div className="flex items-stretch gap-1">
-                  <Button
-                    kind="control"
-                    variant="secondary"
-                    className={actionButton}
-                    data-action="delete-last"
-                    title="Delete the last contact"
-                    disabled={addOn || (mode === 'edit' && n <= 1)}
-                    onClick={onUndoTap}
-                  >
-                    Delete last
-                  </Button>
-                  {mode === 'tapping' ? (
-                    <span className="w-14 shrink-0" aria-hidden />
-                  ) : (
-                    <Button
-                      kind="control"
-                      variant={addOn ? 'primary' : 'secondary'}
-                      className={actionButton}
-                      data-action="add-contact"
-                      title="Add a missed contact"
-                      aria-pressed={addOn}
-                      onClick={onAddContact}
-                    >
-                      Add contact
-                    </Button>
-                  )}
-                </div>
+                <Button
+                  kind="control"
+                  variant="secondary"
+                  className={cn(actionButton, 'w-[7.25rem]')}
+                  onClick={closeEdit}
+                >
+                  Back to live
+                </Button>
+                <Button
+                  kind="control"
+                  variant="secondary"
+                  className={actionButton}
+                  data-action="delete-last"
+                  title="Delete the last contact"
+                  disabled={addOn || n <= 1}
+                  onClick={onUndoTap}
+                >
+                  Delete last
+                </Button>
+                <Button
+                  kind="control"
+                  variant={addOn ? 'primary' : 'secondary'}
+                  className={actionButton}
+                  data-action="add-contact"
+                  title="Add a missed contact"
+                  aria-pressed={addOn}
+                  onClick={onAddContact}
+                >
+                  Add contact
+                </Button>
               </div>
             ) : null}
             {mode === 'blocked' ? (
@@ -1981,7 +1989,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                 lock={lock}
               />
             ) : null}
-            {active && active.closed && !showEnd && (readOnly || (ready && !selected)) ? (
+            {active && active.closed && !showEnd && mode !== 'tagging' && (readOnly || (ready && !selected)) ? (
               <div
                 data-fa-summary
                 data-ready-summary
@@ -2132,7 +2140,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
         */}
         <div
           data-tag-slot={slotKind}
-          className="relative shrink-0 border-t border-border bg-bg-shell px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
+          className="relative shrink-0 border-t border-border bg-bg-app px-2 pt-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))]"
           onClickCapture={late ? undefined : guardClicks(slotGuard)}
         >
           {late && slotKind === 'save' && active ? (
@@ -2146,7 +2154,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
           ) : null}
           {review ? (
             <div
-              className="absolute inset-0 z-20 flex items-stretch gap-2 bg-bg-shell px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
+              className="absolute inset-0 z-20 flex items-stretch gap-2 bg-bg-app px-2 pt-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))]"
               data-review-slot
             >
               {reviewRally ? (
@@ -2224,6 +2232,31 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
             </p>
           ) : null}
           <div className="flex items-stretch gap-2">
+          {(slotKind === 'pad' || slotKind === 'add' || slotKind === 'save' || slotKind === 'edit') && !readOnly ? (
+            <button
+              type="button"
+              data-tag-switch
+              aria-label={`${servesText(names, padServer)}. Switch server`}
+              onClick={mode === 'tapping' ? onPad : addOn ? onAddTap : onSwitch}
+              disabled={!switchOn && mode !== 'tapping'}
+              className={cn(
+                'btn-kind-tap-pad max-w-40 shrink-0 rounded-lg border pl-2 pr-3 text-sm font-semibold text-primary',
+                'inline-flex items-center touch-manipulation select-none active:brightness-90',
+                'disabled:opacity-40',
+                (mode === 'tapping' || addOn || slotGrey) && 'opacity-40'
+              )}
+              style={{
+                backgroundColor: `color-mix(in srgb, ${padServer === 'me' ? 'var(--color-tag-player-a)' : 'var(--color-tag-player-b)'} 15%, transparent)`,
+                borderColor: `color-mix(in srgb, ${padServer === 'me' ? 'var(--color-tag-player-a)' : 'var(--color-tag-player-b)'} 50%, transparent)`,
+              }}
+            >
+              <span
+                className="h-3.5 w-1 shrink-0 rounded-[2px]"
+                style={{ backgroundColor: padServer === 'me' ? 'var(--color-tag-player-a)' : 'var(--color-tag-player-b)' }}
+              />
+              <span className="ml-1.5 min-w-0 truncate">{names[padServer]} serving</span>
+            </button>
+          ) : null}
           {slotKind === 'pad' ? (
             <button
               type="button"
@@ -2277,23 +2310,45 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
             <Button
               kind="tapPad"
               data-tag-fa
-              className={cn('flex-1 min-w-0 text-lg active:scale-100', slotGrey && !late && BUSY)}
+              className={cn('min-w-0 flex-1 rounded-lg text-lg active:scale-100', slotGrey && !late && BUSY)}
               disabled={liveShot === 1}
               onClick={onPickFa}
             >
               First attack
             </Button>
           ) : null}
-          {slotKind === 'save' && stage !== 'pickFa' ? (
+          {slotKind === 'save' && stage !== 'pickFa' && late ? (
             <Button
               kind="tapPad"
               data-tag-save
-              className={cn('flex-1 min-w-0 rounded-lg text-lg active:scale-100', slotGrey && !late && BUSY)}
-              disabled={!ready}
+              className={cn('min-w-0 flex-1 rounded-lg text-lg active:scale-100', slotGrey && BUSY)}
+              disabled
               onClick={onSave}
             >
               Save
             </Button>
+          ) : null}
+          {slotKind === 'save' && stage !== 'pickFa' && !late ? (
+            <>
+              <span className="min-w-0 flex-1" />
+              <button
+                type="button"
+                data-foot="discard"
+                className="btn-kind-tap-pad w-[4.625rem] shrink-0 rounded-lg border border-border bg-transparent px-3 text-sm font-medium text-primary"
+                onClick={onRetap}
+              >
+                Discard
+              </button>
+              <Button
+                kind="tapPad"
+                data-tag-save
+                className={cn('w-28 shrink-0 rounded-lg text-lg active:scale-100', slotGrey && BUSY)}
+                disabled={!ready}
+                onClick={onSave}
+              >
+                Save
+              </Button>
+            </>
           ) : null}
           {slotKind === 'edit' && edit ? (
             readOnly ? (
@@ -2304,7 +2359,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               <Button
                 kind="tapPad"
                 data-tag-fa
-                className={cn('flex-1 min-w-0 text-lg active:scale-100', slotGrey && BUSY)}
+                className={cn('min-w-0 flex-1 rounded-lg text-lg active:scale-100', slotGrey && BUSY)}
                 disabled={liveShot === 1}
                 onClick={onPickFa}
               >
@@ -2321,35 +2376,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                 Save changes
               </Button>
             )
-          ) : null}
-          {/*
-            Switch, beside the big button and always in the same place. While
-            tapping it is part of the pad: a tap that lands on it is a contact.
-          */}
-          {(slotKind === 'pad' || slotKind === 'add' || slotKind === 'save' || slotKind === 'edit') && !readOnly ? (
-            <button
-              type="button"
-              data-tag-switch
-              aria-label={`${servesText(names, padServer)}. Switch server`}
-              onClick={mode === 'tapping' ? onPad : addOn ? onAddTap : onSwitch}
-              disabled={!switchOn && mode !== 'tapping'}
-              className={cn(
-                buttonKindTapPadSquare,
-                'shrink-0 rounded-lg border text-xs font-semibold touch-manipulation select-none active:brightness-90',
-                'inline-flex flex-col items-center justify-center gap-1 disabled:opacity-40',
-                padServer === 'me' ? 'bg-side-me/15 border-side-me/50' : 'bg-side-them/15 border-side-them/50',
-                (mode === 'tapping' || addOn || (slotGrey && !late)) && BUSY
-              )}
-            >
-              <span className="inline-flex items-center gap-1.5 max-w-full px-1">
-                <span className={cn('h-2 w-2 rounded-full shrink-0', padServer === 'me' ? 'bg-side-me' : 'bg-side-them')} />
-                <span className="truncate text-primary">{names[padServer]}</span>
-              </span>
-              <span className="text-primary">Switch server</span>
-            </button>
-          ) : null}
-          {slotKind === 'edit' && readOnly ? (
-            <span className="btn-kind-tap-pad w-[var(--btn-kind-tap-pad)] shrink-0" aria-hidden />
           ) : null}
           </div>
 
