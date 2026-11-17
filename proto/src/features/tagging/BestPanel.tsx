@@ -1,12 +1,13 @@
-import type { CSSProperties, ReactNode } from 'react'
+import { useState, type CSSProperties, type ReactNode } from 'react'
 import { cn } from '@/helpers/utils'
 import {
   BEST_ENDS,
   BEST_SERVE,
-  BEST_STROKES,
+  BEST_SHOTS,
   STEP_LABEL,
   chipText,
   finishShowsStroke,
+  asksWhoFirst,
   firstAttackShot,
   stepAnswered,
   stepsFor,
@@ -45,17 +46,19 @@ function Choice({
   on,
   onClick,
   data,
+  className,
 }: {
   label: string
   on: boolean
   onClick: () => void
   data?: Record<string, string>
+  className?: string
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={cell}
+      className={cn(cell, className)}
       style={on ? chosen() : rest()}
       aria-pressed={on}
       {...data}
@@ -85,7 +88,9 @@ export function BestRallyRow({
   checking?: boolean
   onStar?: () => void
 }) {
-  const fa = draft?.best?.flow === 'bestfa' && draft ? firstAttackShot(draft.shots) : null
+  const flow = draft?.best?.flow
+  const found = flow === 'bestfa' && draft ? firstAttackShot(draft.shots) : null
+  const fa = found && draft && flow === 'bestfa' && asksWhoFirst(flow, draft.contacts.length, found) ? null : found
   return (
     <div className="flex w-full min-w-0 items-start gap-1" data-best-rail>
       {showStar ? (
@@ -180,6 +185,7 @@ export function BestPanel({
   onStar,
   onFirst,
   onFix,
+  onDrop,
 }: {
   draft: Draft
   names: Record<Side, string>
@@ -197,7 +203,9 @@ export function BestPanel({
   onStar: () => void
   onFirst: (name: string) => void
   onFix: (action: 'check' | 'delete' | 'add' | 'switch' | 'keep') => void
+  onDrop: (shot: number) => void
 }) {
+  const [picking, setPicking] = useState(false)
   const n = draft.contacts.length
   const steps = stepsFor(n)
   const at = steps.indexOf(step)
@@ -272,24 +280,21 @@ export function BestPanel({
       ) : null}
 
       {strokeShot > 0 ? (
-        <>
-          {(['BH', 'FH'] as const).map((wing) => (
-            <Row key={wing} label={wing}>
-              {BEST_STROKES.map((stroke) => {
-                const shot = draft.shots[strokeShot - 1]
-                return (
-                  <Choice
-                    key={stroke}
-                    label={stroke}
-                    on={shot?.wing === wing && shot?.stroke === stroke}
-                    onClick={() => onStroke(strokeShot, wing, stroke)}
-                    data={{ 'data-wing': wing, 'data-stroke': stroke }}
-                  />
-                )
-              })}
-            </Row>
-          ))}
-        </>
+        <Row label="Shot">
+          {BEST_SHOTS.map((shot) => {
+            const saved = draft.shots[strokeShot - 1]
+            return (
+              <Choice
+                key={shot.label}
+                label={shot.label}
+                on={saved?.wing === shot.wing && saved?.stroke === shot.stroke}
+                onClick={() => onStroke(strokeShot, shot.wing, shot.stroke)}
+                className="px-1.5"
+                data={{ 'data-wing': shot.wing, 'data-stroke': shot.stroke }}
+              />
+            )
+          })}
+        </Row>
       ) : null}
 
       {step === 'finish' ? (
@@ -337,31 +342,66 @@ export function BestPanel({
           </Row>
           {mismatch ? (
             <div className="space-y-1" data-best-mismatch>
-              <p className={caption}>Does not match</p>
-              <div className="flex flex-nowrap gap-1">
-                {(
-                  [
-                    ['check', 'Check', 'Check contacts'],
-                    ['delete', 'Delete', 'Delete a contact'],
-                    ['add', 'Add', 'Add contact'],
-                    ['switch', 'Switch', 'Switch server'],
-                    ['keep', 'Keep', 'Keep'],
-                  ] as const
-                ).map(([action, label, aria]) => (
+              <p className={caption}>{picking ? 'Delete shot' : 'Does not match'}</p>
+              {picking ? (
+                <div className="flex flex-nowrap gap-1 overflow-x-auto" data-best-drop>
+                  {draft.contacts.map((_, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      data-best-drop={i + 1}
+                      aria-label={`Delete shot ${i + 1}`}
+                      className={cn(cell, 'w-8 px-0')}
+                      style={rest()}
+                      onClick={() => {
+                        setPicking(false)
+                        onDrop(i + 1)
+                      }}
+                    >
+                      {i + 1}
+                    </button>
+                  ))}
                   <button
-                    key={action}
                     type="button"
-                    data-best-fix={action}
-                    aria-label={aria}
-                    disabled={action === 'delete' && n < 2}
-                    className={cn(cell, 'disabled:opacity-40')}
+                    className={cn(cell, 'px-1.5')}
                     style={rest()}
-                    onClick={() => onFix(action)}
+                    onClick={() => setPicking(false)}
                   >
-                    {label}
+                    Back
                   </button>
-                ))}
-              </div>
+                </div>
+              ) : (
+                <div className="flex flex-nowrap gap-1">
+                  {(
+                    [
+                      ['check', 'Check', 'Check contacts'],
+                      ['delete', 'Delete', 'Delete a contact'],
+                      ['add', 'Add', 'Add contact'],
+                      ['switch', 'Switch', 'Switch server'],
+                      ['keep', 'Keep', 'Keep'],
+                    ] as const
+                  ).map(([action, label, aria]) => (
+                    <button
+                      key={action}
+                      type="button"
+                      data-best-fix={action}
+                      aria-label={aria}
+                      disabled={action === 'delete' && n < 2}
+                      className={cn(cell, 'px-1.5', 'disabled:opacity-40')}
+                      style={rest()}
+                      onClick={() => {
+                        if (action === 'delete') {
+                          setPicking(true)
+                          return
+                        }
+                        onFix(action)
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           ) : null}
         </>

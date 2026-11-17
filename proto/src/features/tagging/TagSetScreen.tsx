@@ -179,6 +179,7 @@ import {
   firstAttackShot,
   keepStep,
   nextStep,
+  removeBestContact,
   restoreStep,
   setDepth,
   setWingStroke,
@@ -1617,8 +1618,10 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     const p = playerRef.current
     const t = addedContactTime(live, p.getTime() - offsetOf(live.videoId), fenceOf(live), ceilOf(live))
     const { draft: next } = insertContact(live, t)
+    const miss = bestMiss
     setBestAdd(false)
     putBest(next, keepStep(next.contacts.length, live.best?.step), false)
+    if (miss) setBestMiss(miss)
   }
 
   const onBestFix = (action: 'check' | 'delete' | 'add' | 'switch' | 'keep') => {
@@ -1629,15 +1632,9 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       playCheck(live)
       return
     }
-    if (action === 'delete') {
-      if (live.contacts.length < 2) return
-      const next = undoClosedContact(live)
-      putBest(next, keepStep(next.contacts.length, live.best?.step), false)
-      return
-    }
+    if (action === 'delete') return
     if (action === 'add') {
       setBestAdd(true)
-      setBestMiss(null)
       playBest(live, 'rally', CAPTURE_SPEED)
       return
     }
@@ -1649,6 +1646,14 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       return
     }
     if (bestMiss) saveBest(bestMiss, true)
+  }
+
+  const onBestDrop = (shot: number) => {
+    if (!live || live.contacts.length < 2) return
+    const miss = bestMiss
+    const next = removeBestContact(live, shot)
+    putBest(next, keepStep(next.contacts.length, live.best?.step), false)
+    if (miss) setBestMiss(miss)
   }
 
   /** Opening and Ending: the point winner is the button. The server stays the one already due. */
@@ -3043,6 +3048,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                   writeDraft({ ...live, best: { ...live.best, first: name } })
                 }}
                 onFix={onBestFix}
+                onDrop={onBestDrop}
               />
             ) : null}
             {!zoneOn && review ? (

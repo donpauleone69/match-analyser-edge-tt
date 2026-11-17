@@ -3,18 +3,14 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import {
   Button,
   Card,
-  CardDescription,
   CardTitle,
-  Icon,
-  buttonKindControlSquare,
   buttonKindField,
   buttonKindTextLink,
 } from '@/ui-mine'
-import { WfBadge, WfWarnBadge } from '@/layout/Wireframe'
+import { WfWarnBadge } from '@/layout/Wireframe'
 import {
   derivePhase,
   formatScore,
-  formatSize,
   isUntouched,
   lastTaggedSetId,
   matchSetsWon,
@@ -27,18 +23,15 @@ import {
   type MatchRecord,
   type MatchResult,
   type SetData,
-  type VideoAsset,
 } from '@/data/demoStore'
 import { applyTaggedScore, applyTaggedScores } from '@/features/tagging/matchOps'
-import { AddVideoChoice } from '@/features/match/AddVideoChoice'
-import { ARCHIVE_STEPS, startArchive, useArchiveStep } from '@/features/match/archiveJobs'
+import { useArchiveStep } from '@/features/match/archiveJobs'
 import {
   enteredScoresMissResult,
   enteredSetsWon,
   isRealResult,
   REAL_RESULTS,
   setsLostByResult,
-  videoRallyCount,
 } from '@/features/match/matchChecks'
 import { cn } from '@/helpers/utils'
 
@@ -68,7 +61,6 @@ export function MatchDetails() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
         <div className="space-y-4">
           <MatchFieldsCard match={match} />
-          <VideosCard match={match} />
         </div>
         <ResultCard match={match} />
       </div>
@@ -145,251 +137,6 @@ function ConfirmBox({ label, children }: { label: string; children: ReactNode })
     >
       {children}
     </div>
-  )
-}
-
-const UNDO_MS = 6000
-
-function rallies(n: number) {
-  return `${n} tagged ${n === 1 ? 'rally' : 'rallies'}`
-}
-
-/** What removing a video costs. Asked before any removal that loses something. */
-function RemoveVideoConfirm({
-  video,
-  uses,
-  onRemove,
-  onCancel,
-}: {
-  video: VideoAsset
-  uses: number
-  onRemove: () => void
-  onCancel: () => void
-}) {
-  return (
-    <ConfirmBox label={`Remove ${video.fileName}`}>
-      {video.archived ? (
-        <>
-          <p>
-            This is the only copy. The original was removed when it was archived.
-            {uses > 0
-              ? ` ${rallies(uses)} can never be played or shown in reels again.`
-              : ''}
-          </p>
-          <p className="font-semibold">This cannot be undone.</p>
-        </>
-      ) : (
-        <p>
-          {rallies(uses)} {uses === 1 ? 'uses' : 'use'} this video. Tags and scores stay, but{' '}
-          {uses === 1 ? 'it' : 'they'} can no longer be played or shown in reels.
-        </p>
-      )}
-      <div className="flex flex-wrap gap-2">
-        <Button kind="control" onClick={onRemove}>
-          {video.archived ? 'Remove the only copy' : 'Remove video'}
-        </Button>
-        <Button kind="control" variant="ghost" onClick={onCancel}>
-          {video.archived ? 'Keep it' : 'Cancel'}
-        </Button>
-      </div>
-    </ConfirmBox>
-  )
-}
-
-/** Ordered, sequential videos for the match. No mapping of sets to videos. */
-function VideosCard({ match }: { match: MatchRecord }) {
-  const navigate = useNavigate()
-  const { moveVideo, removeVideo, mutateMatch } = useDemo()
-  const phase = derivePhase(match)
-  const many = match.videos.length > 1
-  const anyOriginal = match.videos.some((v) => !v.archived)
-
-  // The job runs outside this page, so it carries on if Details is left.
-  const archiveStep = useArchiveStep(match.id)
-  const running = archiveStep !== null
-  const [confirmArchive, setConfirmArchive] = useState(false)
-
-  const [asking, setAsking] = useState<string | null>(null)
-  const [removed, setRemoved] = useState<{ video: VideoAsset; index: number } | null>(null)
-
-  useEffect(() => {
-    if (!removed) return
-    const timer = setTimeout(() => setRemoved(null), UNDO_MS)
-    return () => clearTimeout(timer)
-  }, [removed])
-
-  const remove = (video: VideoAsset, index: number, undoable: boolean) => {
-    removeVideo(match.id, video.id)
-    setAsking(null)
-    setRemoved(undoable ? { video, index } : null)
-  }
-
-  const onRemove = (video: VideoAsset, index: number) => {
-    // An Original nothing was tagged on goes at once, with a short undo.
-    if (video.archived || videoRallyCount(match, video.id) > 0) setAsking(video.id)
-    else remove(video, index, true)
-  }
-
-  const undoRemove = () => {
-    if (!removed) return
-    const { video, index } = removed
-    mutateMatch(match.id, (m) => {
-      if (m.videos.some((v) => v.id === video.id)) return m
-      const videos = [...m.videos]
-      videos.splice(Math.min(index, videos.length), 0, video)
-      return { ...m, videos }
-    })
-    setRemoved(null)
-  }
-
-  return (
-    <Card className="space-y-3">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <Icon name="film" size="sm" className="text-brand" />
-          <CardTitle>Videos</CardTitle>
-        </div>
-        <AddVideoChoice matchId={match.id} disabled={running} />
-      </div>
-
-      {match.videos.length === 0 ? <p className="text-sm text-muted">No video yet.</p> : null}
-
-      {removed ? (
-        <p
-          className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-bg-card px-3 py-1.5 text-sm text-primary"
-          role="status"
-        >
-          <span className="min-w-0 truncate">Removed {removed.video.fileName}</span>
-          <Button kind="control" variant="secondary" onClick={undoRemove}>
-            Undo
-          </Button>
-        </p>
-      ) : null}
-
-      {match.videos.length > 0 ? (
-        <>
-          {many ? <CardDescription>Played in this order.</CardDescription> : null}
-          <ol className="space-y-2">
-            {match.videos.map((v, i) => (
-              <li
-                key={v.id}
-                className="rounded-md border border-border bg-bg-card px-3 py-2 space-y-2"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-semibold text-muted tabular-nums">{i + 1}</span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-primary truncate">{v.fileName}</p>
-                    <p className="mt-1 flex items-center gap-1.5 text-xs text-muted">
-                      <WfBadge>{v.archived ? 'Archived' : 'Original'}</WfBadge>
-                      {formatSize(v.sizeMb)}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    {many ? (
-                      <>
-                        <Button
-                          kind="control"
-                          variant="secondary"
-                          className={buttonKindControlSquare}
-                          aria-label={`Move ${v.fileName} up`}
-                          disabled={running || i === 0}
-                          onClick={() => moveVideo(match.id, v.id, -1)}
-                        >
-                          <Icon name="chevron-up" size="xs" />
-                        </Button>
-                        <Button
-                          kind="control"
-                          variant="secondary"
-                          className={buttonKindControlSquare}
-                          aria-label={`Move ${v.fileName} down`}
-                          disabled={running || i === match.videos.length - 1}
-                          onClick={() => moveVideo(match.id, v.id, 1)}
-                        >
-                          <Icon name="chevron-down" size="xs" />
-                        </Button>
-                      </>
-                    ) : null}
-                    <Button
-                      kind="control"
-                      variant="ghost"
-                      disabled={running || asking === v.id}
-                      onClick={() => onRemove(v, i)}
-                    >
-                      Remove
-                    </Button>
-                  </div>
-                </div>
-                {asking === v.id ? (
-                  <RemoveVideoConfirm
-                    video={v}
-                    uses={videoRallyCount(match, v.id)}
-                    onRemove={() => remove(v, i, false)}
-                    onCancel={() => setAsking(null)}
-                  />
-                ) : null}
-              </li>
-            ))}
-          </ol>
-
-          {running ? (
-            <div className="space-y-1.5" role="status">
-              <p className="text-sm text-primary">
-                {ARCHIVE_STEPS[archiveStep]}
-                <span className="text-muted">
-                  {' '}
-                  · step {archiveStep + 1} of {ARCHIVE_STEPS.length}
-                </span>
-              </p>
-              <div className="h-1.5 rounded-full bg-bg-elevated overflow-hidden">
-                <div
-                  className="h-full bg-brand-primary transition-all duration-500"
-                  style={{ width: `${((archiveStep + 1) / ARCHIVE_STEPS.length) * 100}%` }}
-                />
-              </div>
-              <p className="text-xs text-muted">Carries on if you leave this page.</p>
-            </div>
-          ) : !anyOriginal ? (
-            <p className="text-xs text-muted">Tags and reels use the archived copy.</p>
-          ) : phase !== 'complete' ? (
-            <p className="text-xs text-muted">Archive comes once tagging is finished.</p>
-          ) : !confirmArchive ? (
-            <Button kind="control" variant="secondary" onClick={() => setConfirmArchive(true)}>
-              Archive
-            </Button>
-          ) : (
-            <ConfirmBox label="Archive">
-              <p>
-                Archive keeps only the rallies, joined with no gaps, at lower quality. Tags and
-                reels then use the archived copy. The original is removed once the archive is made
-                and checked.
-              </p>
-              <p className="font-semibold">This cannot be undone.</p>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  kind="control"
-                  onClick={() => {
-                    setConfirmArchive(false)
-                    setAsking(null)
-                    startArchive(match.id)
-                  }}
-                >
-                  Archive
-                </Button>
-                <Button kind="control" variant="ghost" onClick={() => setConfirmArchive(false)}>
-                  Cancel
-                </Button>
-              </div>
-            </ConfirmBox>
-          )}
-        </>
-      ) : null}
-
-      {phase === 'ready' || phase === 'partial' ? (
-        <Button kind="main" onClick={() => navigate(`/matches/${match.id}/tag`)}>
-          Next: Tag
-        </Button>
-      ) : null}
-    </Card>
   )
 }
 

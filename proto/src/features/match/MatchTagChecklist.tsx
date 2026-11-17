@@ -32,6 +32,7 @@ import { lastSavedGlobal } from '@/features/tagging/matchOps'
 import { rallyEnd, type Draft } from '@/features/tagging/rally'
 import { lastContactG, segmentsOf, segmentAt, formatClock, toGlobal } from '@/features/tagging/timeline'
 import { AddVideoChoice } from '@/features/match/AddVideoChoice'
+import { VideosCard } from '@/features/match/VideosCard'
 import { isRealResult } from '@/features/match/matchChecks'
 import { bestFlowOf, bestPlace } from '@/features/tagging/bestFlow'
 
@@ -129,32 +130,16 @@ export function MatchTagChecklist() {
       ? match.sets.find((s) => setState(s) === 'none')
       : undefined
 
-  if (!hasVideo && phase === 'new') {
-    return (
-      <div className="px-4 sm:px-6 lg:px-8 py-6">
-        <NoVideo match={match} />
-      </div>
-    )
-  }
-
-  const videoLine =
-    match.videos.length === 1
-      ? match.videos[0].fileName
-      : `${match.videos.length} videos, in order`
-
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-6 space-y-4">
-      {hasVideo ? (
-        <p className="flex items-center gap-1.5 text-xs text-muted">
-          <Icon name="film" size="xs" />
-          {videoLine}
-        </p>
-      ) : (
-        // Past New with no video: sets were tagged, so this is never "start tagging".
-        <NoVideo match={match} removed />
-      )}
+      <VideosCard match={match} />
+      {!hasVideo && phase !== 'new' ? (
+        <p className="text-sm text-muted">Tags and scores are kept. Add the video back to play or tag.</p>
+      ) : null}
 
-      {hasVideo && videoGone ? (
+      {hasVideo ? (
+      <>
+      {videoGone ? (
         <div className="rounded-md border border-dashed border-border bg-bg-card px-3 py-2 flex flex-wrap items-center justify-between gap-2">
           <p className="text-sm text-primary">A video was removed. Its rallies keep their tags and score.</p>
           <AddVideoChoice matchId={match.id} />
@@ -275,22 +260,8 @@ export function MatchTagChecklist() {
           Open match Insights
         </Button>
       ) : null}
-    </div>
-  )
-}
-
-function NoVideo({ match, removed = false }: { match: MatchRecord; removed?: boolean }) {
-  return (
-    <div className="rounded-lg border border-dashed border-border bg-bg-card px-4 py-6 text-center space-y-3">
-      <div className="space-y-1">
-        <p className="text-sm font-semibold text-primary">{removed ? 'Video removed' : 'No video yet'}</p>
-        <p className="text-sm text-muted">
-          {removed
-            ? 'Tags and scores are kept. Add the video back to play or tag.'
-            : 'Add the match video to start tagging.'}
-        </p>
-      </div>
-      <AddVideoChoice matchId={match.id} align="center" label={false} />
+      </>
+      ) : null}
     </div>
   )
 }

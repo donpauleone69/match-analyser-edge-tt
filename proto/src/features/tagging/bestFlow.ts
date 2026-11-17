@@ -15,15 +15,18 @@ import {
   type Wing,
 } from './rally'
 
-export const BEST_STROKES = ['Touch', 'Push', 'Flick', 'Loop'] as const
+export const BEST_SHOTS = [
+  { wing: 'FH', stroke: 'Attack', label: 'FH attack' },
+  { wing: 'BH', stroke: 'Attack', label: 'BH attack' },
+  { wing: 'FH', stroke: 'Control', label: 'FH control' },
+  { wing: 'BH', stroke: 'Control', label: 'BH control' },
+] as const
 export const BEST_SERVE = ['Short', 'Long'] as const
 export const BEST_ENDS = ['Winner', 'Net', 'Long', 'Wide'] as const
 export const BEST_STEPS = ['serve', 'receive', 'third', 'finish'] as const
 
 export type BestStep = (typeof BEST_STEPS)[number]
 export type BestFlowName = 'best' | 'bestfa'
-
-const ATTACK = new Set<string>(['Flick', 'Loop'])
 
 export const STEP_LABEL: Record<BestStep, string> = {
   serve: 'Serve',
@@ -77,18 +80,36 @@ export function keepStep(n: number, step: BestStep | undefined): BestStep {
   return steps[steps.length - 1]
 }
 
-/** First Flick or Loop, as a shot number. Null when none was tagged. */
+/** First attack button, as a shot number. Null when none was tagged. */
 export function firstAttackShot(shots: ShotTags[]): number | null {
   for (let i = 0; i < shots.length; i++) {
-    const stroke = shots[i]?.stroke
-    if (stroke && ATTACK.has(stroke)) return i + 1
+    if (shots[i]?.stroke === 'Attack') return i + 1
   }
   return null
 }
 
-/** Best + FA only. A rally of 5 or more with no Flick or Loop. Never required. */
+/**
+ * Best + FA only. The only attack is the last shot of a rally of 5 or more,
+ * so an earlier one may be untagged. Never required.
+ */
 export function asksWhoFirst(flow: BestFlowName, n: number, fa: number | null): boolean {
-  return flow === 'bestfa' && n >= 5 && fa === null
+  return flow === 'bestfa' && n >= 5 && fa === n
+}
+
+/** Drop one contact. Tags stay with the shots that remain. The end answer goes with the last shot. */
+export function removeBestContact(d: Draft, shot: number): Draft {
+  const i = shot - 1
+  if (i < 0 || i >= d.contacts.length || d.contacts.length < 2) return d
+  const last = i === d.contacts.length - 1
+  return {
+    ...d,
+    contacts: d.contacts.filter((_, j) => j !== i),
+    shots: d.shots.filter((_, j) => j !== i),
+    ending: last ? null : d.ending,
+    end: last ? null : d.end,
+    start: i === 0 ? null : d.start,
+    fa: d.fa == null ? d.fa : d.fa - 1 === i ? null : d.fa - 1 > i ? d.fa - 1 : d.fa,
+  }
 }
 
 export function impliedWinner(d: Pick<Draft, 'server' | 'contacts' | 'ending'>): Side | null {
@@ -155,8 +176,10 @@ export function bestPlace(s: { draft: Draft | null; rallies: RallyData[]; finish
 
 export function bestRally(d: Draft, id: string, winner: Side, kept: boolean): RallyData {
   const flow: BestFlowName = d.best?.flow === 'bestfa' ? 'bestfa' : 'best'
-  const fa = flow === 'bestfa' ? firstAttackShot(d.shots) : null
-  const who = asksWhoFirst(flow, d.contacts.length, fa) ? d.best?.first : undefined
+  const found = flow === 'bestfa' ? firstAttackShot(d.shots) : null
+  const ask = asksWhoFirst(flow, d.contacts.length, found)
+  const fa = ask ? null : found
+  const who = ask ? d.best?.first : undefined
   return {
     id,
     videoId: d.videoId,
@@ -182,10 +205,7 @@ export function bestRally(d: Draft, id: string, winner: Side, kept: boolean): Ra
 
 export function chipText(shot: ShotTags | undefined, index: number): string {
   if (index === 0 && shot?.depth) return shot.depth === 'Long' ? 'Ln' : 'Sh'
-  if (!shot?.stroke) return ''
-  if (shot.stroke === 'Touch') return 'T'
-  if (shot.stroke === 'Push') return 'P'
-  if (shot.stroke === 'Flick') return 'F'
-  if (shot.stroke === 'Loop') return 'Lp'
+  if (shot?.stroke === 'Attack') return shot.wing === 'BH' ? 'Ba' : 'Fa'
+  if (shot?.stroke === 'Control') return shot.wing === 'BH' ? 'Bc' : 'Fc'
   return ''
 }
