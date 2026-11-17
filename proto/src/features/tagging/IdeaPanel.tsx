@@ -45,7 +45,7 @@ export function IdeaLivePanel({
   names: Record<Side, string>
   onWinner: (side: Side) => void
   onResult: (result: string) => void
-  onLet: () => void
+  onLet?: () => void
 }) {
   const n = draft.contacts.length
   const last = n % 2 === 1 ? draft.server : draft.server === 'me' ? 'them' : 'me'
@@ -63,9 +63,11 @@ export function IdeaLivePanel({
           ))}
         </Row>
       )}
-      <button type="button" className="self-start text-xs font-semibold text-muted underline-offset-2 hover:underline" onClick={onLet}>
-        Let
-      </button>
+      {onLet ? (
+        <button type="button" className="self-start text-xs font-semibold text-muted underline-offset-2 hover:underline" onClick={onLet}>
+          Let
+        </button>
+      ) : null}
     </div>
   )
 }

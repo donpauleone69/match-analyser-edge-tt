@@ -9,6 +9,7 @@ import {
   otherSide,
   rallyEnd,
   rallyStart,
+  winnerOf,
   type Draft,
   type Ending,
   type IdeaTag,
@@ -16,8 +17,8 @@ import {
   type Side,
 } from './rally'
 
-/** Spine pauses this long after the last contact. Opening and Ending keeps the shared 2s pause. */
-export const SPINE_IDLE_MS = 1200
+/** Spine closes after this much video, not wall time. Opening and Ending keeps the shared 2s pause. */
+export const SPINE_IDLE_S = 1.2
 
 export const SPINE_RESULTS = ['Winner', 'Net', 'Long', 'Wide'] as const
 export const SPINE_SERVE = ['Short', 'Half-long', 'Long'] as const
@@ -56,6 +57,15 @@ export function thirdLabel(serve: string | undefined, prev: string | undefined, 
   if (incoming === 'Short' || incoming === 'Push') return 'Push'
   if (incoming === 'Attack' || incoming === 'Block') return 'Block'
   return 'No attack'
+}
+
+/**
+ * Attack row. When the ball before was never asked, offer every name instead of
+ * a third button that would only say No attack.
+ */
+export function attackOptions(serve: string | undefined, prev: string | undefined, shot: number): string[] {
+  if (shot > 2 && !prev) return ['FH attack', 'BH attack', 'Push', 'Block', 'No attack']
+  return ['FH attack', 'BH attack', thirdLabel(serve, prev, shot)]
 }
 
 /** Landed means the last hitter won. Net or Off table means they lost. */
@@ -145,7 +155,7 @@ function openendQuestion(r: RallyData, index: number, names: Record<Side, string
         shot,
         title: `Shot ${shot}${shot === n ? ', last' : ''}, ${who(shot)}`,
         hint: '',
-        options: ['FH attack', 'BH attack', thirdLabel(idea.serve, prev, shot)],
+        options: attackOptions(idea.serve, prev, shot),
       }
     }
   }
@@ -174,12 +184,13 @@ function openendQuestion(r: RallyData, index: number, names: Record<Side, string
     }
   }
   if (idea.result === 'Landed' && !idea.zone) {
-    const receiver = names[otherSide(hitterOf(r.server, n))]
+    const receiver = otherSide(hitterOf(r.server, n))
+    const half = receiver === 'me' ? 'your half' : `${names[receiver]}'s half`
     return {
       index,
       contact: n,
       kind: 'zone',
-      title: `Where it landed, ${receiver}'s half`,
+      title: `Where it landed, ${half}`,
       hint: 'Thirds of the table, from that side.',
       options: [...OPEN_ZONE],
     }
@@ -296,6 +307,24 @@ export function sweepState(rallies: RallyData[], sweep: Sweep): 'empty' | 'open'
   const rows = mine(rallies, 'spine').filter((r) => sweepApplies(r, sweep))
   if (rows.length === 0) return 'empty'
   return rows.some((r) => !sweepAnswered(r, sweep)) ? 'open' : 'done'
+}
+
+/** Change the winner on a saved Opening and Ending rally. The last ball, if set, is checked again. */
+export function correctWinner(r: RallyData, winner: Side): RallyData {
+  const idea: IdeaTag = { ...(r.idea ?? { flow: 'openend' }) }
+  if (idea.result === 'Net' || idea.result === 'Off table' || idea.result === 'Landed') {
+    idea.check = pointAgrees(r.server, r.contacts.length, winner, idea.result) ? undefined : 'Check the point'
+  }
+  return { ...r, winner, idea }
+}
+
+/** Change the result token on a saved Rally Spine rally. The winner follows the token. */
+export function correctResult(r: RallyData, result: string): RallyData | null {
+  const ending = spineEnding(result)
+  if (!ending || !r.idea) return null
+  const winner = winnerOf({ server: r.server, contacts: r.contacts, ending })
+  if (!winner) return null
+  return { ...r, winner, ending, idea: { ...r.idea, result } }
 }
 
 /** Write one detail answer. The point winner stays as the live pass set it. */

@@ -269,7 +269,8 @@ export function RallyList({
               <span className={dot(r.winner)} />
               <span className="font-semibold text-primary w-16 truncate">{names[r.winner]}</span>
               <span className="flex-1 min-w-0 truncate text-muted">
-                {r.contacts.length} {r.contacts.length === 1 ? 'shot' : 'shots'} · {r.idea?.result ?? r.ending ?? 'Point'}
+                {r.contacts.length} {r.contacts.length === 1 ? 'shot' : 'shots'}
+                {r.idea?.result ?? r.ending ? ` · ${r.idea?.result ?? r.ending}` : ''}
                 {r.idea?.check ? ` · ${r.idea.check}` : ''}
                 {r.fa !== null ? ` · FA ${r.fa}` : ''} · {names[r.server]} served
               </span>
