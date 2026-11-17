@@ -79,6 +79,8 @@ export type BestMark = {
   step?: 'serve' | 'receive' | 'third' | 'finish'
   /** Who attacked first, when that question was answered. */
   first?: string
+  /** End button. BH and FH are winners. Net, Long and Wide are errors. */
+  end?: 'BH' | 'FH' | 'Net' | 'Long' | 'Wide'
 }
 
 export type ShotTags = {

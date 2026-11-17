@@ -7,8 +7,11 @@
 import {
   rallyEnd,
   rallyStart,
+  hitterOf,
+  serverForWinner,
   winnerOf,
   type Draft,
+  type Ending,
   type RallyData,
   type ShotTags,
   type Side,
@@ -22,7 +25,29 @@ export const BEST_SHOTS = [
   { wing: 'BH', stroke: 'Control', label: 'BH control' },
 ] as const
 export const BEST_SERVE = ['Short', 'Long'] as const
-export const BEST_ENDS = ['Winner', 'Net', 'Long', 'Wide'] as const
+/** Winners first, then errors. BH and FH mean the last hitter won on that wing. */
+export const BEST_ENDS = ['BH', 'FH', 'Net', 'Long', 'Wide'] as const
+export type BestEnd = (typeof BEST_ENDS)[number]
+const BEST_WIN_ENDS = new Set<BestEnd>(['BH', 'FH'])
+
+export function isBestEnd(value: string): value is BestEnd {
+  return (BEST_ENDS as readonly string[]).includes(value)
+}
+
+/** BH and FH store as Winner so the last hitter takes the point. Errors store as themselves. */
+export function endingForBest(end: BestEnd): Ending {
+  if (end === 'BH' || end === 'FH') return 'Winner'
+  return end
+}
+
+/** The end button that is on. Nothing is on until one is pressed, including a plain Winner from an older rally. */
+export function bestEndOf(d: { ending: Ending | null; best?: { end?: string } }): BestEnd | null {
+  if (!d.ending) return null
+  const saved = d.best?.end
+  if (!saved || !isBestEnd(saved)) return null
+  if (BEST_WIN_ENDS.has(saved)) return d.ending === 'Winner' ? saved : null
+  return d.ending === saved ? saved : null
+}
 export const BEST_STEPS = ['serve', 'receive', 'third', 'finish'] as const
 
 export type BestStep = (typeof BEST_STEPS)[number]
@@ -101,6 +126,7 @@ export function removeBestContact(d: Draft, shot: number): Draft {
   const i = shot - 1
   if (i < 0 || i >= d.contacts.length || d.contacts.length < 2) return d
   const last = i === d.contacts.length - 1
+  const best = d.best && last ? omitBestEnd(d.best) : d.best
   return {
     ...d,
     contacts: d.contacts.filter((_, j) => j !== i),
@@ -109,11 +135,35 @@ export function removeBestContact(d: Draft, shot: number): Draft {
     end: last ? null : d.end,
     start: i === 0 ? null : d.start,
     fa: d.fa == null ? d.fa : d.fa - 1 === i ? null : d.fa - 1 > i ? d.fa - 1 : d.fa,
+    ...(best ? { best } : {}),
   }
+}
+
+function omitBestEnd(best: NonNullable<Draft['best']>): NonNullable<Draft['best']> {
+  const { end: _end, ...rest } = best
+  return rest
 }
 
 export function impliedWinner(d: Pick<Draft, 'server' | 'contacts' | 'ending'>): Side | null {
   return winnerOf(d)
+}
+
+/** Who hits each shot, from the server and the shot number. Later shots move when a contact is removed. */
+export function bestHitters(d: Pick<Draft, 'server' | 'contacts'>): Side[] {
+  return d.contacts.map((_, i) => hitterOf(d.server, i + 1))
+}
+
+/**
+ * Rally 1 has no server until the ending says who won. Write that server onto the draft
+ * so who hit each shot, the hinted winner and the score all read the same data.
+ */
+export function settleBestServer(d: Draft, rallyOne: boolean): Draft {
+  if (!rallyOne || !d.ending) return d
+  const winner = winnerOf(d)
+  if (!winner) return d
+  const server = serverForWinner(d, winner)
+  if (server === d.server && d.serveChecked) return d
+  return { ...d, server, serveChecked: true }
 }
 
 /** Keep the mismatch only while the lit name still disagrees with the tapped one. */
@@ -172,10 +222,19 @@ export function saveBestTiming(timing: BestTiming) {
   }
 }
 
-/** One shot: lead before its contact, then to the end offset before the next mark, at least `min` long. */
-export function shotLoop(contact: number, next: number, timing: BestTiming): BestWindow {
-  const a = contact - timing.lead / 1000
-  const b = Math.max(next - timing.end / 1000, a + timing.min / 1000)
+/** Shot loops play at this rate. Lead, end and minimum are playback time, so the video window is those times times this rate. */
+export const BEST_SHOT_RATE = 0.75
+
+/**
+ * One shot. `lead`, `end` and `min` are milliseconds of playback, so they scale with `rate`
+ * (at 0.75x, 200 ms of playback is 150 ms of video). The reaction buffer is not applied here.
+ */
+export function shotLoop(contact: number, next: number, timing: BestTiming, rate = BEST_SHOT_RATE): BestWindow {
+  const lead = (timing.lead / 1000) * rate
+  const tail = (timing.end / 1000) * rate
+  const min = (timing.min / 1000) * rate
+  const a = contact - lead
+  const b = Math.max(next - tail, a + min)
   return { a, b }
 }
 
@@ -188,13 +247,19 @@ function taggedShot(what: BestStep, n: number): number {
 }
 
 /**
- * Loop the shot being tagged. It starts `lead` before that contact and ends
- * `end` before the next contact, or `min` after the start, whichever is later.
+ * Loop the shot being tagged, at `rate` (0.75 unless a caller says otherwise).
+ * It starts `lead` of playback before that contact and ends `end` of playback
+ * before the next contact, or `min` of playback after the start, whichever is later.
  * The last shot uses the rally end in place of the next contact.
  * The Rally label still loops the whole rally. Add starts at the serve.
  * Times are seconds in the rally's video.
  */
-export function bestLoop(d: Draft, what: BestStep | 'rally' | 'add', timing: BestTiming = DEFAULT_BEST_TIMING): BestWindow {
+export function bestLoop(
+  d: Draft,
+  what: BestStep | 'rally' | 'add',
+  timing: BestTiming = DEFAULT_BEST_TIMING,
+  rate = BEST_SHOT_RATE,
+): BestWindow {
   const start = rallyStart(d)
   const end = rallyEnd(d)
   if (what === 'rally') return { a: start, b: end }
@@ -204,7 +269,7 @@ export function bestLoop(d: Draft, what: BestStep | 'rally' | 'add', timing: Bes
   const shot = taggedShot(what, n)
   const c = d.contacts[shot - 1] ?? start
   const next = shot < n ? (d.contacts[shot] ?? end) : end
-  return shotLoop(c, next, timing)
+  return shotLoop(c, next, timing, rate)
 }
 
 export function setDepth(d: Draft, depth: string): Draft {
@@ -242,6 +307,7 @@ export function bestRally(d: Draft, id: string, winner: Side, kept: boolean): Ra
   const ask = asksWhoFirst(flow, d.contacts.length, found)
   const fa = ask ? null : found
   const who = ask ? d.best?.first : undefined
+  const endLabel = bestEndOf(d) ?? (d.ending && d.ending !== 'Winner' ? d.ending : null)
   return {
     id,
     videoId: d.videoId,
@@ -258,7 +324,7 @@ export function bestRally(d: Draft, id: string, winner: Side, kept: boolean): Ra
     idea: {
       flow,
       ...(d.shots[0]?.depth ? { serve: d.shots[0].depth } : {}),
-      ...(d.ending ? { result: d.ending } : {}),
+      ...(endLabel ? { result: endLabel } : {}),
       ...(who ? { first: who } : {}),
       ...(kept ? { check: 'Check the point' } : {}),
     },
