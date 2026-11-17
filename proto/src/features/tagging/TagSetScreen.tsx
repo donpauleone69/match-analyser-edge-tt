@@ -176,9 +176,11 @@ import {
   asksWhoFirst,
   BEST_SHOT_RATE,
   bestLoop,
+  bestParts,
   bestPlace,
   contactFollowUp,
   endingForBest,
+  keepBestMarks,
   loadBestTiming,
   saveBestTiming,
   bestRally,
@@ -191,7 +193,7 @@ import {
   bestHitters,
   setDepth,
   setWingStroke,
-  stepAnswered,
+  stepOpen,
   stepsFor,
   type BestStep,
   type BestTiming,
@@ -1075,8 +1077,20 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     if (!d || d.closed || d.contacts.length === 0) return
     const wanted = latest.current.flowWanted
     const best = isBestFlow(wanted)
+    const firstStep = stepsFor(d)[0]
     const closed = best
-      ? { ...d, closed: true, best: { flow: wanted, step: stepsFor(d.contacts.length)[0], ...(d.best?.first ? { first: d.best.first } : {}) } }
+      ? {
+          ...d,
+          closed: true,
+          best: {
+            flow: wanted,
+            step: firstStep,
+            ...(d.best?.first ? { first: d.best.first } : {}),
+            ...(d.best?.end ? { end: d.best.end } : {}),
+            ...(d.best?.middle ? { middle: d.best.middle } : {}),
+            ...(d.best?.review?.length ? { review: d.best.review } : {}),
+          },
+        }
       : { ...d, closed: true }
     mutateMatch(m.id, (cur) => setDraft(cur, s.setId, closed))
     const p = playerRef.current
@@ -1104,7 +1118,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       setBestCheck(false)
       setBestToss(false)
       setBestServeAsk(false)
-      playBest(closed, stepsFor(d.contacts.length)[0])
+      playBest(closed, firstStep)
     } else if (isIdeaFlow(wanted)) {
       setSelected(null)
       setEndOpen(false)
@@ -1598,7 +1612,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   /** Writes a Best answer and moves the loop to the step that should be open. */
   const putBest = (next: Draft, step: BestStep, advance: boolean) => {
     const flow = next.best?.flow && isBestFlow(next.best.flow) ? next.best.flow : isBestFlow(flowLock) ? flowLock : 'best'
-    const dest = advance && step !== 'finish' ? nextStep(next.contacts.length, step) : step
+    const dest = advance && step !== 'finish' ? nextStep(next, step) : step
     const saved: Draft = {
       ...next,
       best: {
@@ -1606,6 +1620,8 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
         step: dest,
         ...(next.best?.first ? { first: next.best.first } : {}),
         ...(next.best?.end ? { end: next.best.end } : {}),
+        ...(next.best?.middle ? { middle: next.best.middle } : {}),
+        ...(next.best?.review?.length ? { review: next.best.review } : {}),
       },
     }
     writeDraft(saved)
@@ -1711,9 +1727,10 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     const t = addedContactTime(live, local, fenceOf(live), ceilOf(live), timing.reaction / 1000)
     if (serveAt !== undefined && t < serveAt) return
     const { draft: next, shot } = insertContact(live, t)
+    const kept = keepBestMarks(next)
     const afterEnd = shot > live.contacts.length
     setBestAdd(false)
-    putBest(next, keepStep(next.contacts.length, live.best?.step), false)
+    putBest(kept, keepStep(kept, live.best?.step), false)
     setBestMiss(missIfStill(next, bestMiss))
     setBestNote(afterEnd ? 'New last shot. End again.' : null)
   }
@@ -1749,15 +1766,17 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     const last = shot === live.contacts.length
     const hadServeDepth = Boolean(live.shots[0]?.depth)
     const follow = contactFollowUp(live.closed, live.contacts.length, shot, hadServeDepth)
-    const removed = removeBestContact(live, shot)
+    const removed = keepBestMarks(removeBestContact(live, shot))
     const flow = removed.best?.flow && isBestFlow(removed.best.flow) ? removed.best.flow : isBestFlow(flowLock) ? flowLock : 'best'
     const stepped: Draft = {
       ...removed,
       best: {
         flow,
-        ...(removed.best?.step ? { step: keepStep(removed.contacts.length, removed.best.step) } : {}),
+        ...(removed.best?.step ? { step: keepStep(removed, removed.best.step) } : {}),
         ...(removed.best?.first ? { first: removed.best.first } : {}),
         ...(removed.best?.end ? { end: removed.best.end } : {}),
+        ...(removed.best?.middle ? { middle: removed.best.middle } : {}),
+        ...(removed.best?.review?.length ? { review: removed.best.review } : {}),
       },
     }
     const watchServe = follow === 'toss' || follow === 'serve'
@@ -2849,6 +2868,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   }, [player.time, player.playing])
 
   const flowShown: FlowName = mode === 'tagging' && flowLock ? flowLock : flowWanted
+  const parts = live ? bestParts(live.contacts.length, live.shots) : []
   const bestAccount = (() => {
     if (!isBestFlow(flowShown) || !live || live.contacts.length === 0) return null
     const rallyOne = set.rallies.length === 0
@@ -2974,6 +2994,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               checking={bestCheck}
               showCheck={Boolean(active && active.contacts.length > 0)}
               toss={bestToss}
+              parts={parts}
               onRally={() => {
                 if (!live) return
                 setBestLook(true)
@@ -3221,9 +3242,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                     if (needsEnd) setBestNote('Last shot removed. End again.')
                     return
                   }
-                  const steps = stepsFor(live.contacts.length)
-                  const cur = steps.indexOf(restoreStep(live))
-                  if (!watching && steps.indexOf(step) > cur && !stepAnswered(live, step)) return
+                  if (!watching && !stepOpen(live, step, restoreStep(live))) return
                   putBest(live, step, false)
                 }}
                 onServe={(depth) => {
@@ -3237,7 +3256,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                 }}
                 onStroke={(shot, wing, stroke) => {
                   const which: BestStep = shot === 2 ? 'receive' : shot === 3 ? 'third' : 'finish'
-                  putBest(setWingStroke(live, shot, wing, stroke), which, which !== 'finish')
+                  putBest(keepBestMarks(setWingStroke(live, shot, wing, stroke)), which, which !== 'finish')
                 }}
                 onEnding={(label) => {
                   if (!live.best) return
@@ -3260,6 +3279,20 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                   if (!live.best) return
                   writeDraft({ ...live, best: { ...live.best, first: name } })
                 }}
+                onMiddle={(side) => {
+                  if (!live.best) return
+                  putBest({ ...live, best: { ...live.best, middle: side } }, 'middle', true)
+                }}
+                onReview={(part) => {
+                  if (!live.best) return
+                  const have = new Set(live.best.review ?? [])
+                  if (have.has(part)) have.delete(part)
+                  else have.add(part)
+                  const review = parts.filter((group) => have.has(group.part)).map((group) => group.part)
+                  const { review: _review, ...rest } = live.best
+                  writeDraft({ ...live, best: review.length ? { ...rest, review } : rest })
+                }}
+                parts={parts}
                 onFix={onBestFix}
               />
             ) : null}

@@ -9,6 +9,7 @@ import {
   rallyStart,
   hitterOf,
   winnerOf,
+  type BestPart,
   type Draft,
   type Ending,
   type RallyData,
@@ -16,6 +17,8 @@ import {
   type Side,
   type Wing,
 } from './rally'
+
+export type { BestPart }
 
 export const BEST_SHOTS = [
   { wing: 'FH', stroke: 'Attack', label: 'FH attack' },
@@ -47,23 +50,104 @@ export function bestEndOf(d: { ending: Ending | null; best?: { end?: string } })
   if (BEST_WIN_ENDS.has(saved)) return d.ending === 'Winner' ? saved : null
   return d.ending === saved ? saved : null
 }
-export const BEST_STEPS = ['serve', 'receive', 'third', 'finish'] as const
+export const BEST_STEPS = ['serve', 'receive', 'third', 'middle', 'finish'] as const
 
 export type BestStep = (typeof BEST_STEPS)[number]
 export type BestFlowName = 'best' | 'bestfa'
+export type MiddleAnswer = 'me' | 'them' | 'none'
 
 export const STEP_LABEL: Record<BestStep, string> = {
   serve: 'Serve',
   receive: 'Receive',
   third: 'Third',
+  middle: 'Middle',
   finish: 'Finish',
 }
 
-export function stepsFor(n: number): BestStep[] {
+/** Four parts. Opening replaces Serve, Start and Pre-attack. Rally is the old Middle. */
+export const PART_LABEL: Record<BestPart, string> = {
+  opening: 'Opening',
+  attack: 'Attack',
+  rally: 'Rally',
+  end: 'End',
+}
+
+export const BEST_END_LEN = 3
+export const BEST_ATTACK_LEN = 3
+
+export type BestPartSpan = { part: BestPart; from: number; to: number }
+
+/** Shots Best asks: 2, 3, and the last shot once the rally has 4 or more. */
+export function bestAsked(n: number, shot: number): boolean {
+  if (shot < 2 || shot > n) return false
+  if (shot === 2 || shot === 3) return true
+  return n >= 4 && shot === n
+}
+
+/**
+ * First attack shot, or why there isn't one.
+ * An unasked shot, or an asked shot with no stroke, stops the walk as unknown.
+ */
+export function bestOpener(n: number, shots: ShotTags[]): number | 'none' | 'unknown' {
+  for (let shot = 2; shot <= n; shot++) {
+    if (!bestAsked(n, shot) || !shots[shot - 1]?.stroke) return 'unknown'
+    if (shots[shot - 1]?.stroke === 'Attack') return shot
+  }
+  return 'none'
+}
+
+function addPart(parts: BestPartSpan[], part: BestPart, from: number, to: number) {
+  if (to < from || from < 1) return
+  parts.push({ part, from, to })
+}
+
+/**
+ * The Rally Row groups, in order. Empty parts are left out.
+ * Every shot from 1 to n sits in exactly one part.
+ * Best and Best + FA use this same split. They differ only in who attacked first.
+ */
+export function bestParts(n: number, shots: ShotTags[]): BestPartSpan[] {
+  if (n <= 0) return []
+  // A serve point is all Opening.
+  if (n === 1) return [{ part: 'opening', from: 1, to: 1 }]
+  const o = bestOpener(n, shots)
+  const parts: BestPartSpan[] = []
+  if (typeof o === 'number') {
+    addPart(parts, 'opening', 1, o - 1)
+    // Attack grows to the end until there is room for a full Attack and a full End.
+    if (n < o + BEST_ATTACK_LEN + BEST_END_LEN - 1) {
+      addPart(parts, 'attack', o, n)
+      return parts
+    }
+    const attackTo = o + BEST_ATTACK_LEN - 1
+    const endFrom = n - BEST_END_LEN + 1
+    addPart(parts, 'attack', o, attackTo)
+    addPart(parts, 'rally', attackTo + 1, endFrom - 1)
+    addPart(parts, 'end', endFrom, n)
+    return parts
+  }
+  // End is the last 3, and it never takes the serve.
+  const endFrom = Math.max(2, n - BEST_END_LEN + 1)
+  if (o === 'none') {
+    addPart(parts, 'opening', 1, endFrom - 1)
+    addPart(parts, 'end', endFrom, n)
+    return parts
+  }
+  // First attack unknown: Opening, Rally, End. Opening stops at 3 shots.
+  const openTo = Math.min(Math.max(1, Math.min(3, n - BEST_END_LEN)), endFrom - 1)
+  addPart(parts, 'opening', 1, openTo)
+  addPart(parts, 'rally', openTo + 1, endFrom - 1)
+  addPart(parts, 'end', endFrom, n)
+  return parts
+}
+
+export function stepsFor(d: Pick<Draft, 'contacts' | 'shots'>): BestStep[] {
+  const n = d.contacts.length
   const steps: BestStep[] = []
   if (n !== 1) steps.push('serve')
   if (n >= 2) steps.push('receive')
   if (n >= 3) steps.push('third')
+  if (bestParts(n, d.shots).some((part) => part.part === 'rally')) steps.push('middle')
   steps.push('finish')
   return steps
 }
@@ -73,35 +157,73 @@ export function finishShowsStroke(n: number): boolean {
   return n >= 4
 }
 
-export function stepAnswered(d: Pick<Draft, 'contacts' | 'shots' | 'ending'>, step: BestStep): boolean {
+export function stepAnswered(
+  d: Pick<Draft, 'contacts' | 'shots' | 'ending' | 'best'>,
+  step: BestStep,
+): boolean {
   const n = d.contacts.length
   if (step === 'serve') return Boolean(d.shots[0]?.depth)
   if (step === 'receive') return Boolean(d.shots[1]?.wing && d.shots[1]?.stroke)
   if (step === 'third') return Boolean(d.shots[2]?.wing && d.shots[2]?.stroke)
+  if (step === 'middle') return Boolean(d.best?.middle)
   if (!d.ending) return false
   if (!finishShowsStroke(n)) return true
   const last = d.shots[n - 1]
   return Boolean(last?.wing && last?.stroke)
 }
 
-export function restoreStep(d: Draft): BestStep {
-  const steps = stepsFor(d.contacts.length)
-  const wanted = d.best?.step
-  if (wanted && steps.includes(wanted)) return wanted
-  return steps.find((step) => !stepAnswered(d, step)) ?? 'finish'
+/** Middle is optional. It never blocks Finish. */
+export function stepPassable(
+  d: Pick<Draft, 'contacts' | 'shots' | 'ending' | 'best'>,
+  step: BestStep,
+): boolean {
+  if (step === 'middle') return true
+  return stepAnswered(d, step)
 }
 
-export function nextStep(n: number, step: BestStep): BestStep {
-  const steps = stepsFor(n)
+/**
+ * A later required step stays shut until it is reached.
+ * Middle does not count, so Finish is open from Middle with no answer.
+ */
+export function stepOpen(
+  d: Pick<Draft, 'contacts' | 'shots' | 'ending' | 'best'>,
+  step: BestStep,
+  current: BestStep,
+  openSteps = false,
+): boolean {
+  const steps = stepsFor(d)
   const i = steps.indexOf(step)
-  if (i < 0) return steps[0]
+  const at = steps.indexOf(current)
+  if (i < 0) return false
+  if (openSteps || i <= at) return true
+  if (stepPassable(d, step)) {
+    for (let j = 0; j < i; j++) {
+      if (!stepPassable(d, steps[j])) return false
+    }
+    return true
+  }
+  if (!stepPassable(d, current)) return false
+  return steps.slice(at + 1, i).every((name) => stepPassable(d, name))
+}
+
+export function restoreStep(d: Draft): BestStep {
+  const steps = stepsFor(d)
+  const wanted = d.best?.step
+  if (wanted && steps.includes(wanted)) return wanted
+  return steps.find((step) => !stepPassable(d, step)) ?? 'finish'
+}
+
+export function nextStep(d: Pick<Draft, 'contacts' | 'shots'>, step: BestStep): BestStep {
+  const steps = stepsFor(d)
+  const i = steps.indexOf(step)
+  if (i < 0) return steps[0] ?? 'finish'
   return steps[Math.min(steps.length - 1, i + 1)]
 }
 
-export function keepStep(n: number, step: BestStep | undefined): BestStep {
-  const steps = stepsFor(n)
+export function keepStep(d: Pick<Draft, 'contacts' | 'shots'>, step: BestStep | undefined): BestStep {
+  const steps = stepsFor(d)
   if (step && steps.includes(step)) return step
-  return steps[steps.length - 1]
+  return steps[steps.length - 1] ?? 'finish'
 }
 
 /** First attack button, as a shot number. Null when none was tagged. */
@@ -283,6 +405,12 @@ export function bestLoop(
   if (what === 'rally') return { a: start, b: end }
   // Add starts at the serve. A tap in the lead before it is not a contact.
   if (what === 'add') return { a: d.contacts[0] ?? start, b: end }
+  // The middle question loops the Rally part and stops where End begins.
+  if (what === 'middle') {
+    const part = bestParts(d.contacts.length, d.shots).find((span) => span.part === 'rally')
+    if (!part) return { a: start, b: end }
+    return shotLoop(d.contacts[part.from - 1] ?? start, d.contacts[part.to] ?? end, timing, rate)
+  }
   const n = d.contacts.length
   const shot = taggedShot(what, n)
   const c = d.contacts[shot - 1] ?? start
@@ -326,6 +454,8 @@ export function bestRally(d: Draft, id: string, winner: Side, kept: boolean): Ra
   const fa = ask ? null : found
   const who = ask ? d.best?.first : undefined
   const endLabel = bestEndOf(d) ?? (d.ending && d.ending !== 'Winner' ? d.ending : null)
+  const order = bestParts(d.contacts.length, d.shots).map((span) => span.part)
+  const review = order.filter((part) => d.best?.review?.includes(part))
   return {
     id,
     videoId: d.videoId,
@@ -344,9 +474,112 @@ export function bestRally(d: Draft, id: string, winner: Side, kept: boolean): Ra
       ...(d.shots[0]?.depth ? { serve: d.shots[0].depth } : {}),
       ...(endLabel ? { result: endLabel } : {}),
       ...(who ? { first: who } : {}),
+      ...(d.best?.middle ? { middle: d.best.middle } : {}),
+      ...(review.length ? { review } : {}),
       ...(kept ? { check: 'Check the point' } : {}),
     },
   }
+}
+
+/** The side that opened, when the shot is known, or when Best + FA named a player. */
+export function openerSide(
+  d: Pick<Draft, 'server' | 'contacts' | 'shots' | 'best'>,
+  names?: Record<Side, string>,
+): Side | null {
+  const o = bestOpener(d.contacts.length, d.shots)
+  if (typeof o === 'number') return hitterOf(d.server, o)
+  if (d.best?.flow !== 'bestfa') return null
+  const named = d.best.first
+  if (!named || named === 'Nobody') return null
+  if (named === 'me' || named === 'them') return named
+  if (!names) return null
+  if (named === names.me) return 'me'
+  if (named === names.them) return 'them'
+  return null
+}
+
+export type MiddleEvent = 'kept' | 'turned' | 'reset' | 'opened' | 'control'
+
+/** What the middle answer means, once a Rally part exists. */
+export function middleEvent(
+  d: Pick<Draft, 'server' | 'contacts' | 'shots' | 'best'>,
+  names?: Record<Side, string>,
+): MiddleEvent | null {
+  const mid = d.best?.middle
+  if (!mid) return null
+  if (!bestParts(d.contacts.length, d.shots).some((span) => span.part === 'rally')) return null
+  const opener = openerSide(d, names)
+  if (mid === 'none') return opener ? 'reset' : 'control'
+  if (!opener) return 'opened'
+  return mid === opener ? 'kept' : 'turned'
+}
+
+/**
+ * Clip for one part. Shot 1 starts at the rally start. The last part ends at the rally end.
+ * Anything else starts the lead before its first contact and ends the end offset before the next part.
+ */
+export function partWindow(
+  d: Draft,
+  part: BestPart,
+  timing: BestTiming = DEFAULT_BEST_TIMING,
+): BestWindow {
+  const parts = bestParts(d.contacts.length, d.shots)
+  const i = parts.findIndex((span) => span.part === part)
+  const start = rallyStart(d)
+  const end = rallyEnd(d)
+  if (i < 0) return { a: start, b: end }
+  const cur = parts[i]
+  const next = parts[i + 1]
+  const lead = timing.lead / 1000
+  const tail = timing.end / 1000
+  const a = cur.from <= 1 ? start : (d.contacts[cur.from - 1] ?? start) - lead
+  const b = next ? (d.contacts[next.from - 1] ?? end) - tail : end
+  return { a, b: Math.max(a, b) }
+}
+
+/** Drop a middle answer with no Rally part, and review marks whose part is gone. */
+export function keepBestMarks(d: Draft): Draft {
+  if (!d.best) return d
+  const alive = new Set(bestParts(d.contacts.length, d.shots).map((span) => span.part))
+  let best: NonNullable<Draft['best']> = d.best
+  let changed = false
+  if (best.middle && !alive.has('rally')) {
+    const { middle: _middle, ...rest } = best
+    best = rest
+    changed = true
+  }
+  if (best.review) {
+    const review = best.review.filter((part) => alive.has(part))
+    if (review.length !== best.review.length) {
+      const { review: _review, ...rest } = best
+      best = review.length ? { ...rest, review } : rest
+      changed = true
+    }
+  }
+  if (best.step === 'middle' && !alive.has('rally')) {
+    best = { ...best, step: 'finish' }
+    changed = true
+  }
+  return changed ? { ...d, best } : d
+}
+
+/** Rally list. "Middle Kim" or "Middle Nobody". */
+export function middleLine(r: { idea?: { middle?: MiddleAnswer } }, names: Record<Side, string>): string {
+  const mid = r.idea?.middle
+  if (!mid) return ''
+  if (mid === 'none') return 'Middle Nobody'
+  return `Middle ${names[mid]}`
+}
+
+/** Rally list. "Review Rally, End", in row order. */
+export function reviewLine(r: { contacts: number[]; shots: ShotTags[]; idea?: { review?: BestPart[] } }): string {
+  const review = r.idea?.review
+  if (!review?.length) return ''
+  const shown = bestParts(r.contacts.length, r.shots)
+    .map((span) => span.part)
+    .filter((part) => review.includes(part))
+  if (!shown.length) return ''
+  return `Review ${shown.map((part) => PART_LABEL[part]).join(', ')}`
 }
 
 /** Rally list text. A shot number when it is known. Who, or a question mark, when only the last shot was an attack. */

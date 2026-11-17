@@ -4,17 +4,21 @@ import {
   BEST_ENDS,
   BEST_SERVE,
   BEST_SHOTS,
+  PART_LABEL,
   STEP_LABEL,
   bestEndOf,
   finishShowsStroke,
   asksWhoFirst,
   firstAttackShot,
   stepAnswered,
+  stepOpen,
   stepsFor,
   type BestEnd,
+  type BestPartSpan,
   type BestStep,
+  type MiddleAnswer,
 } from './bestFlow'
-import { hitterOf, winnerOf, type Draft, type Side, type Wing } from './rally'
+import { hitterOf, winnerOf, type BestPart, type Draft, type Side, type Wing } from './rally'
 
 const cell =
   'h-8 shrink-0 rounded-md border px-2 text-xs font-semibold inline-flex items-center justify-center whitespace-nowrap'
@@ -113,6 +117,7 @@ export function BestRallyRow({
   onMinus,
   onStar,
   toss,
+  parts,
 }: {
   draft: Draft | null
   flash: number
@@ -128,11 +133,83 @@ export function BestRallyRow({
   onStar?: () => void
   /** Shot 1 may be a toss. A suggestion after an end contact was removed. */
   toss?: boolean
+  /** The same array the review row uses. Ignored until the rally closes. */
+  parts: BestPartSpan[]
 }) {
   const flow = draft?.best?.flow
   const found = flow === 'bestfa' && draft ? firstAttackShot(draft.shots) : null
   const fa = found && draft && flow === 'bestfa' && asksWhoFirst(flow, draft.contacts.length, found) ? null : found
   const withCheck = Boolean(onCheck && (showStar || showCheck))
+  const grouped = Boolean(draft?.closed && parts.length > 0)
+  const chip = (i: number) => {
+    if (!draft) return null
+    const shot = i + 1
+    const side = hitterOf(draft.server, shot)
+    const flagged = Boolean(toss && shot === 1)
+    const canDelete = Boolean(onMinus && draft.contacts.length > 1 && (checking || flagged))
+    const tags = draft.shots[i]
+    const paint = {
+      backgroundColor: `color-mix(in srgb, ${side === 'me' ? 'var(--color-tag-player-a)' : 'var(--color-tag-player-b)'} 15%, transparent)`,
+      borderColor: `color-mix(in srgb, ${side === 'me' ? 'var(--color-tag-player-a)' : 'var(--color-tag-player-b)'} 50%, transparent)`,
+      color: 'var(--color-text)',
+    }
+    const look = cn(
+      'relative flex shrink-0 flex-col items-center justify-center rounded-md border text-[10px] font-bold leading-none tabular-nums',
+      canDelete ? 'h-9 min-w-9' : 'h-7 min-w-7',
+      flagged ? 'w-auto px-0.5' : canDelete ? 'w-9' : 'w-7',
+      flash === i && 'ring-2 ring-warning',
+      flagged && flash !== i && 'ring-2 ring-warning',
+      fa === shot && flash !== i && !flagged && 'ring-2 ring-[var(--color-tag-first-attack)]'
+    )
+    const body = (
+      <>
+        <span>{shot}</span>
+        {flagged ? <span className="text-[8px] font-bold leading-none text-warning">toss?</span> : null}
+        {canDelete ? (
+          <span
+            aria-hidden
+            className="absolute right-0 top-0 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-danger text-[11px] font-bold leading-none text-white"
+          >
+            −
+          </span>
+        ) : null}
+      </>
+    )
+    if (!canDelete) {
+      return (
+        <div
+          key={shot}
+          data-best-chip={shot}
+          data-best-toss={flagged ? '' : undefined}
+          data-best-wing={tags?.wing ?? ''}
+          data-best-stroke={tags?.stroke ?? ''}
+          data-best-flash={flash === i ? '' : undefined}
+          className={look}
+          style={paint}
+        >
+          {body}
+        </div>
+      )
+    }
+    return (
+      <button
+        key={shot}
+        type="button"
+        data-best-chip={shot}
+        data-best-minus={shot}
+        data-best-toss={flagged ? '' : undefined}
+        data-best-wing={tags?.wing ?? ''}
+        data-best-stroke={tags?.stroke ?? ''}
+        data-best-flash={flash === i ? '' : undefined}
+        aria-label={`Delete shot ${shot}`}
+        className={look}
+        style={paint}
+        onClick={() => onMinus?.(shot)}
+      >
+        {body}
+      </button>
+    )
+  }
   return (
     <div
       className="grid w-full min-w-0 items-start gap-x-1"
@@ -172,77 +249,40 @@ export function BestRallyRow({
           Check
         </button>
       ) : null}
-      <div className="flex min-w-0 flex-wrap content-start gap-0.5 py-0.5">
-        {draft
-          ? draft.contacts.map((_, i) => {
-              const shot = i + 1
-              const side = hitterOf(draft.server, shot)
-              const flagged = Boolean(toss && shot === 1)
-              const canDelete = Boolean(onMinus && draft.contacts.length > 1 && (checking || flagged))
-              const tags = draft.shots[i]
-              const paint = {
-                backgroundColor: `color-mix(in srgb, ${side === 'me' ? 'var(--color-tag-player-a)' : 'var(--color-tag-player-b)'} 15%, transparent)`,
-                borderColor: `color-mix(in srgb, ${side === 'me' ? 'var(--color-tag-player-a)' : 'var(--color-tag-player-b)'} 50%, transparent)`,
-                color: 'var(--color-text)',
-              }
-              const look = cn(
-                'relative flex shrink-0 flex-col items-center justify-center rounded-md border text-[10px] font-bold leading-none tabular-nums',
-                canDelete ? 'h-9 min-w-9' : 'h-7 min-w-7',
-                flagged ? 'w-auto px-0.5' : canDelete ? 'w-9' : 'w-7',
-                flash === i && 'ring-2 ring-warning',
-                flagged && flash !== i && 'ring-2 ring-warning',
-                fa === shot && flash !== i && !flagged && 'ring-2 ring-[var(--color-tag-first-attack)]'
-              )
-              const body = (
-                <>
-                  <span>{shot}</span>
-                  {flagged ? <span className="text-[8px] font-bold leading-none text-warning">toss?</span> : null}
-                  {canDelete ? (
-                    <span
-                      aria-hidden
-                      className="absolute right-0 top-0 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-danger text-[11px] font-bold leading-none text-white"
-                    >
-                      −
-                    </span>
-                  ) : null}
-                </>
-              )
-              if (!canDelete) {
-                return (
-                  <div
-                  key={shot}
-                  data-best-chip={shot}
-                  data-best-toss={flagged ? '' : undefined}
-                  data-best-wing={tags?.wing ?? ''}
-                  data-best-stroke={tags?.stroke ?? ''}
-                  data-best-flash={flash === i ? '' : undefined}
-                  className={look}
-                  style={paint}
-                >
-                    {body}
-                  </div>
-                )
-              }
+      <div className={cn('flex min-w-0 flex-wrap content-start py-0.5', grouped ? 'gap-2' : 'gap-0.5')}>
+        {grouped && draft
+          ? parts.map((group) => {
+              const marked = Boolean(draft.best?.review?.includes(group.part))
+              const ink = marked ? 'var(--color-brand-primary)' : undefined
               return (
-                <button
-                  key={shot}
-                  type="button"
-                  data-best-chip={shot}
-                  data-best-minus={shot}
-                  data-best-toss={flagged ? '' : undefined}
-                  data-best-wing={tags?.wing ?? ''}
-                  data-best-stroke={tags?.stroke ?? ''}
-                  data-best-flash={flash === i ? '' : undefined}
-                  aria-label={`Delete shot ${shot}`}
-                  className={look}
-                  style={paint}
-                  onClick={() => onMinus?.(shot)}
+                <div
+                  key={group.part}
+                  data-best-part={group.part}
+                  data-from={group.from}
+                  data-to={group.to}
+                  className="flex w-fit max-w-full flex-col items-start"
                 >
-                  {body}
-                </button>
+                  <div className="flex max-w-full flex-col">
+                    <div className="flex flex-wrap gap-0.5">
+                      {draft.contacts.map((_, i) => (i + 1 >= group.from && i + 1 <= group.to ? chip(i) : null))}
+                    </div>
+                    <div
+                      className="mt-0.5 h-0.5 w-full rounded-full"
+                      style={{ backgroundColor: ink ?? 'var(--tag-cell-rest-line)' }}
+                    />
+                  </div>
+                  <span
+                    className="whitespace-nowrap text-left text-[8px] font-semibold leading-none text-muted"
+                    style={ink ? { color: ink } : undefined}
+                  >
+                    {PART_LABEL[group.part]}
+                  </span>
+                </div>
               )
             })
-          : null}
+          : draft
+            ? draft.contacts.map((_, i) => chip(i))
+            : null}
       </div>
       {showStar && onStar ? (
         <button
@@ -283,6 +323,9 @@ export function BestPanel({
   tossWatch,
   serveNote,
   openSteps,
+  parts,
+  onMiddle,
+  onReview,
 }: {
   draft: Draft
   names: Record<Side, string>
@@ -299,7 +342,11 @@ export function BestPanel({
   onPoint: (side: Side) => void
   onStar: () => void
   onFirst: (name: string) => void
+  onMiddle: (side: MiddleAnswer) => void
+  onReview: (part: BestPart) => void
   onFix: (action: 'check' | 'add' | 'switch' | 'keep') => void
+  /** The same array the Rally Row uses. */
+  parts: BestPartSpan[]
   endNote?: string | null
   /** After an end contact was removed: the serve loop is playing and shot 1 may be a toss. */
   tossWatch?: boolean
@@ -309,8 +356,7 @@ export function BestPanel({
   openSteps?: boolean
 }) {
   const n = draft.contacts.length
-  const steps = stepsFor(n)
-  const at = steps.indexOf(step)
+  const steps = stepsFor(draft)
   const lit = rallyOne ? null : winnerOf(draft)
   const endOn = bestEndOf(draft)
   const strokeShot = step === 'receive' ? 2 : step === 'third' ? 3 : step === 'finish' && finishShowsStroke(n) ? n : 0
@@ -319,7 +365,7 @@ export function BestPanel({
   return (
     <div className="relative z-20 flex flex-col gap-1 pt-1.5" data-best-panel data-best-step={step} data-best-rally={rallyNo}>
       <div className="flex flex-nowrap gap-1" role="tablist" aria-label="Steps">
-        {steps.map((name, i) => {
+        {steps.map((name) => {
           const done = stepAnswered(draft, name)
           const on = name === step
           return (
@@ -330,7 +376,7 @@ export function BestPanel({
               aria-selected={on}
               data-best-step={name}
               data-best-done={done ? '' : undefined}
-              disabled={!openSteps && i > at && !done}
+              disabled={!stepOpen(draft, name, step, openSteps)}
               onClick={() => onStep(name)}
               className={cn(cell, 'disabled:opacity-40')}
               style={on ? chosen() : rest()}
@@ -413,6 +459,23 @@ export function BestPanel({
         </Row>
       ) : null}
 
+      {step === 'middle' ? (
+        <div role="group" aria-label="End of middle: who was attacking?" data-row="End of middle" className="flex flex-col gap-0.5">
+          <span className={caption}>End of middle: who was attacking?</span>
+          <div className="flex flex-nowrap items-center gap-1">
+            {(['me', 'them', 'none'] as const).map((side) => (
+              <Choice
+                key={side}
+                label={side === 'none' ? 'Nobody' : names[side]}
+                on={draft.best?.middle === side}
+                onClick={() => onMiddle(side)}
+                data={{ 'data-best-middle': side }}
+              />
+            ))}
+          </div>
+        </div>
+      ) : null}
+
       {step === 'finish' ? (
         <>
           <Row label="End">
@@ -442,6 +505,23 @@ export function BestPanel({
               {endNote}
             </p>
           ) : null}
+          {mismatch ? null : (
+            <Row label="Mark for review">
+              {parts.map((group) => (
+                <Choice
+                  key={group.part}
+                  label={PART_LABEL[group.part]}
+                  on={Boolean(draft.best?.review?.includes(group.part))}
+                  onClick={() => onReview(group.part)}
+                  data={{
+                    'data-best-review': group.part,
+                    'data-from': String(group.from),
+                    'data-to': String(group.to),
+                  }}
+                />
+              ))}
+            </Row>
+          )}
           <Row label="Point to">
             {(['me', 'them'] as const).map((side) => (
               <button

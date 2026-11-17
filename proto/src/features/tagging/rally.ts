@@ -74,13 +74,20 @@ export const SHOT_BADGE_S = 0.4
 export const SPEED_STEPS = [0.5, 0.75, 1, 1.25, 1.5, 2] as const
 
 /** In-progress Best or Best + FA. The other flows never set this. */
+/** Rally Row groups. Opening, Attack, Rally, End. The same ids are the review marks. */
+export type BestPart = 'opening' | 'attack' | 'rally' | 'end'
+
 export type BestMark = {
   flow: 'best' | 'bestfa'
-  step?: 'serve' | 'receive' | 'third' | 'finish'
+  step?: 'serve' | 'receive' | 'third' | 'middle' | 'finish'
   /** Who attacked first, when that question was answered. */
   first?: string
   /** End button. BH and FH are winners. Net, Long and Wide are errors. */
   end?: 'BH' | 'FH' | 'Net' | 'Long' | 'Wide'
+  /** Who was attacking at the end of the Rally part. */
+  middle?: 'me' | 'them' | 'none'
+  /** Parts marked for review, in row order. */
+  review?: BestPart[]
 }
 
 export type ShotTags = {
@@ -803,6 +810,10 @@ export type IdeaTag = {
   shots?: Record<number, string>
   /** Who attacked first. Opening and Ending, or Best + FA. */
   first?: string
+  /** Who was attacking at the end of the Rally part. Best and Best + FA. */
+  middle?: 'me' | 'them' | 'none'
+  /** Parts marked for review. Same ids as the Rally Row. */
+  review?: BestPart[]
   /** Where a landed ball finished, Opening and Ending only. */
   zone?: string
   /** Finish wing, Rally Spine only. */
