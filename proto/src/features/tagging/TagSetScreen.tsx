@@ -148,11 +148,24 @@ import {
   countOptional,
   editNote,
   flowFromParam,
+  isIdeaFlow,
   isWalkFlow,
   pushTagLog,
   type FlowName,
   type TagLogLine,
 } from './tagLog'
+import { IdeaDetailPanel, IdeaLivePanel } from './IdeaPanel'
+import {
+  SPINE_IDLE_MS,
+  applyDetail,
+  liveRally,
+  nextOpenend,
+  nextSweep,
+  openendState,
+  spineEnding,
+  sweepState,
+  type Sweep,
+} from './ideaFlow'
 import { EndPanel, ShotPanel, TimeRow, TrimRow } from './ShotPanel'
 import { ShotRail } from './ShotRail'
 import { TAG_LOCK_LINE, useTagLock, type TagLock } from './tagLock'
@@ -358,6 +371,10 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
    * applies to the next one. Cleared on Save and on Discard.
    */
   const [flowLock, setFlowLock] = useState<FlowName | null>(null)
+  /** Detail pass or a spine sweep. Null during the live pass. */
+  const [detail, setDetail] = useState<{ flow: 'openend' } | { flow: 'spine'; sweep: Sweep } | null>(null)
+  const detailRef = useRef(detail)
+  detailRef.current = detail
   /** Set before the walk starts, so the first clip uses the right pause. */
   const flowLockRef = useRef<FlowName | null>(null)
   flowLockRef.current = flowLock
@@ -433,10 +450,21 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   /** Shot by shot is on for this rally: locked when the taps closed, off in edit and review. */
   const seqLive =
     isWalkFlow(flowLock) && !edit && !review && !set.finished && !draftGone && Boolean(live?.closed)
+  /** Opening and Ending, or Rally Spine: the live pass is waiting for its one row. */
+  const ideaLive =
+    isIdeaFlow(flowLock) && !edit && !review && !detail && !set.finished && !draftGone && Boolean(live?.closed)
+  const detailing = Boolean(detail && isIdeaFlow(flowWanted) && detail.flow === flowWanted)
+  const detailQ = !detail || !detailing
+    ? null
+    : detail.flow === 'openend'
+      ? nextOpenend(set.rallies, names)
+      : nextSweep(set.rallies, detail.sweep, names)
   /** End is on screen with no result, and whenever a press has opened it. */
-  const showEnd = seqLive
-    ? walk?.kind === 'end'
-    : Boolean(active && active.closed && stage && stage !== 'contacts' && (stage === 'result' || endOpen))
+  const showEnd = ideaLive
+    ? false
+    : seqLive
+      ? walk?.kind === 'end'
+      : Boolean(active && active.closed && stage && stage !== 'contacts' && (stage === 'result' || endOpen))
   const score = taggedScore(set) ?? ZERO
   const entered = parseEntered(set.entered)
   /** The set, walked in video order and marked where it does not add up. Nothing is changed by it. */
@@ -466,7 +494,15 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const addOn =
     adding !== null && active !== null && active.closed && !readOnly && adding.contacts === active.contacts
   /** What sits in the bottom slot. A change of it guards the slot for a moment. */
-  const slotKind = addOn ? 'add' : mode === 'tagging' ? 'save' : mode === 'edit' || mode === 'finished' ? mode : 'pad'
+  const slotKind = detailing
+    ? 'detail'
+    : addOn
+      ? 'add'
+      : mode === 'tagging'
+        ? 'save'
+        : mode === 'edit' || mode === 'finished'
+          ? mode
+          : 'pad'
 
   const latest = useRef({ live, set, match, floorG, segs, mode, selected, tight, edit, nextServer, stage, flowWanted })
   useEffect(() => {
@@ -629,6 +665,11 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       clock.current = { ...freshClock(modeNow), tapsEnded: Date.now() }
     }
     park(draft, set.finished, floorG)
+    if (draft && draft.closed && draft.contacts.length > 0 && isIdeaFlow(modeNow)) {
+      const p = playerRef.current
+      p.setLoop(null)
+      p.pause()
+    }
     if (draft && draft.closed && draft.contacts.length > 0 && isWalkFlow(modeNow)) {
       startSeq(draft, openAt(draft))
     }
@@ -856,14 +897,25 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     const closed = { ...d, closed: true }
     mutateMatch(m.id, (cur) => setDraft(cur, s.setId, closed))
     const p = playerRef.current
+    const wanted = latest.current.flowWanted
+    const at = p.getTime()
+    const wasPlaying = p.isPlaying()
+    if (isIdeaFlow(wanted)) {
+      p.setLoop(null)
+      p.pause()
+      // Spine shows the last contact. The late tap still uses the time the pause fired.
+      if (wanted === 'spine') p.seek(offsetOf(d.videoId) + d.contacts[d.contacts.length - 1])
+    }
     const now = Date.now()
-    setLate(idle ? { until: now + GUARD_AFTER_CLOSE_MS, at: now, g: p.getTime(), playing: p.isPlaying() } : null)
+    setLate(idle ? { until: now + GUARD_AFTER_CLOSE_MS, at: now, g: at, playing: isIdeaFlow(wanted) ? false : wasPlaying } : null)
     p.setBoundary(null)
     setLastTap(null)
-    const wanted = latest.current.flowWanted
     flowLockRef.current = wanted
     setFlowLock(wanted)
-    if (isWalkFlow(wanted)) {
+    if (isIdeaFlow(wanted)) {
+      setSelected(null)
+      setEndOpen(false)
+    } else if (isWalkFlow(wanted)) {
       startSeq(closed, openAt(closed))
     } else {
       const w = windowFor(closed, null, stageOf(closed), false)
@@ -916,13 +968,48 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   // Two seconds with no tap closes the rally.
   useEffect(() => {
     if (mode !== 'tapping' || lastTap === null) return
-    const id = setTimeout(() => closeContacts(true), CONTACT_IDLE_MS)
+    const idleMs = latest.current.flowWanted === 'spine' ? SPINE_IDLE_MS : CONTACT_IDLE_MS
+    const id = setTimeout(() => closeContacts(true), idleMs)
     return () => clearTimeout(id)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, lastTap])
 
+  useEffect(() => {
+    setDetail((cur) => (cur && cur.flow !== flowWanted ? null : cur))
+  }, [flowWanted])
+
+  /** Detail pass and sweeps loop the contact the question is about. */
+  useEffect(() => {
+    if (!detail) return
+    if (!detailQ) {
+      setDetail(null)
+      const p = playerRef.current
+      p.setLoop(null)
+      p.setRate(watchRate.current)
+      return
+    }
+    const r = set.rallies[detailQ.index]
+    if (!r) return
+    const d = draftFromRally(r)
+    const off = offsetOf(r.videoId)
+    const max = durationOf(r.videoId)
+    const raw = shotWindow(d, detailQ.contact)
+    const w = {
+      a: off + Math.max(0, raw.a),
+      b: off + Math.min(max, Math.max(raw.b, raw.a + 0.3)),
+      hold: SHOT_LOOP_HOLD_S,
+    }
+    const p = playerRef.current
+    p.setRate(1)
+    p.setLoop(w)
+    p.seek(w.a)
+    p.play()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [detail, detailQ?.index, detailQ?.kind, detailQ?.contact, detailQ?.shot])
+
   /** The pad: plays when paused with nothing tapped, otherwise records a contact. */
   const onPad = () => {
+    if (detailRef.current) return
     const p = playerRef.current
     if (mode === 'setPoint') {
       onKeepTagging()
@@ -980,6 +1067,16 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     const p = playerRef.current
     const removed = live.contacts[live.contacts.length - 1]
     if (live.closed) {
+      if (isIdeaFlow(flowLock) && live.contacts.length > 1) {
+        const next = undoClosedContact(live)
+        writeDraft(next)
+        const p = playerRef.current
+        p.setLoop(null)
+        p.pause()
+        p.seek(offsetOf(live.videoId) + next.contacts[next.contacts.length - 1])
+        setLate(null)
+        return
+      }
       if (live.contacts.length > 1) {
         change(undoClosedContact(live))
         return
@@ -1226,14 +1323,11 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   }
 
   /** Save writes the rally, moves the score and lets the video run on. */
-  const onSave = () => {
-    if (!live || !canSave(live)) return
-    const rally = rallyFromDraft(live, `r-${Date.now()}`)
-    if (!rally) return
+  const commitRally = (rally: RallyData, logged: Draft) => {
     const p = playerRef.current
     const before = set
     mutateMatch(match.id, (m) => saveRally(m, set.setId, rally))
-    if (clock.current) pushTagLog(lineFrom(clock.current, live))
+    if (clock.current) pushTagLog(lineFrom(clock.current, logged))
     clock.current = null
     pendingDiscard.current = null
     setWalk(null)
@@ -1273,6 +1367,47 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     setTight(false)
     setKeptAt(null)
     arm(GUARD_AFTER_CLOSE_MS)
+  }
+
+  const onSave = () => {
+    if (!live || !canSave(live)) return
+    const rally = rallyFromDraft(live, `r-${Date.now()}`)
+    if (!rally) return
+    commitRally(rally, live)
+  }
+
+  /** Opening and Ending: the point winner is the button. The server stays the one already due. */
+  const onIdeaWinner = (side: Side) => {
+    if (!live?.closed || flowLock !== 'openend') return
+    commitRally(liveRally(live, `r-${Date.now()}`, side, null, { flow: 'openend' }), live)
+  }
+
+  /** Rally Spine: Winner means the last hitter won. Net, Long or Wide means they lost. */
+  const onIdeaResult = (result: string) => {
+    if (!live?.closed || flowLock !== 'spine') return
+    const ending = spineEnding(result)
+    if (!ending) return
+    const winner = winnerOf({ server: live.server, contacts: live.contacts, ending })
+    if (!winner) return
+    commitRally(liveRally(live, `r-${Date.now()}`, winner, ending, { flow: 'spine', result }), live)
+  }
+
+  const onDetailPick = (code: string) => {
+    if (!detailQ) return
+    const rally = set.rallies[detailQ.index]
+    if (!rally) return
+    const next = applyDetail(rally, detailQ, code)
+    mutateMatch(match.id, (m) => replaceRally(m, set.setId, next))
+    if (next.idea?.check && !rally.idea?.check) setHint('Check the point')
+    arm(0, GUARD_AFTER_SWAP_MS)
+  }
+
+  const onDetailBack = () => {
+    setDetail(null)
+    const p = playerRef.current
+    p.setLoop(null)
+    p.setRate(watchRate.current)
+    p.pause()
   }
 
   /**
@@ -1656,6 +1791,14 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       setGap(null)
       setServerPick(null)
     }
+    if (r.idea) {
+      const p = playerRef.current
+      p.setLoop(null)
+      p.setRate(watchRate.current)
+      p.seek(offsetOf(r.videoId) + r.start)
+      p.pause()
+      return
+    }
     const baseline = draftFromRally(r)
     showEdit({ id: r.id, index, draft: baseline, baseline, dirty: false })
   }
@@ -1688,6 +1831,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     const kept: RallyData = {
       ...rally,
       ...(prev?.left ? { left: prev.left } : {}),
+      ...(prev?.idea ? { idea: prev.idea } : {}),
       ...(rally.serveChecked || prev?.serveChecked ? { serveChecked: true } : {}),
     }
     mutateMatch(match.id, (m) => replaceRally(m, set.setId, kept))
@@ -1849,6 +1993,8 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       else if (result.kind === 'draft') change(result.draft)
     },
     reviewing: review !== null,
+    detailing,
+    onDetailBack,
     onReviewSame: () => onReviewPress('same'),
     change,
     seekTo,
@@ -1890,6 +2036,11 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
           e.preventDefault()
           k.onReviewSame()
         }
+        return
+      }
+      if (k.detailing) {
+        if (key === 'Escape') k.onDetailBack()
+        if (key === ' ' || key === 'Enter' || key === 'Backspace') e.preventDefault()
         return
       }
       if (key === ' ') {
@@ -2098,12 +2249,18 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               : readOnly || (ready && !edit.dirty)
               ? `Rally ${edit.index + 1} · ${edit.draft.contacts.length} ${edit.draft.contacts.length === 1 ? 'shot' : 'shots'}`
               : `Rally ${edit.index + 1} · ${ready ? 'Ready to save changes' : statusText(edit.draft)}`
+          : detailing && detailQ
+            ? detailQ.title
           : active
             ? addOn
               ? 'Adding a contact'
-              : mode === 'tagging' && ready && !faSaid
-                ? summaryText
-                : statusText(active)
+              : ideaLive
+                ? flowLock === 'spine'
+                  ? 'Result'
+                  : 'Point to'
+                : mode === 'tagging' && ready && !faSaid
+                  ? summaryText
+                  : statusText(active)
             : gap
               ? `Add rally before rally ${gap.index + 1}`
               : player.playing && !atEnd
@@ -2245,7 +2402,37 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
             className={cn('px-3', flowWanted !== 'current' && 'border-tag-chosen bg-tag-chosen text-on-accent')}
             onClick={onFlowToggle}
           >
-            {FLOW_LABEL[flowWanted === 'current' ? 'sequential' : flowWanted]}
+            {FLOW_LABEL[flowWanted === 'current' ? 'sequential' : isIdeaFlow(flowWanted) ? 'current' : flowWanted]}
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            data-flow-jump="openend"
+            aria-pressed={flowWanted === 'openend'}
+            className={cn('px-2', flowWanted === 'openend' && 'border-tag-chosen bg-tag-chosen text-on-accent')}
+            onClick={() => {
+              const next = new URLSearchParams(searchParams)
+              next.set('flow', 'openend')
+              setSearchParams(next, { replace: true })
+              setDetail(null)
+            }}
+          >
+            Open end
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            data-flow-jump="spine"
+            aria-pressed={flowWanted === 'spine'}
+            className={cn('px-2', flowWanted === 'spine' && 'border-tag-chosen bg-tag-chosen text-on-accent')}
+            onClick={() => {
+              const next = new URLSearchParams(searchParams)
+              next.set('flow', 'spine')
+              setSearchParams(next, { replace: true })
+              setDetail(null)
+            }}
+          >
+            Spine
           </Button>
           <SwapVideoButton
             matchId={match.id}
@@ -2538,10 +2725,54 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                 </Button>
               </div>
             ) : null}
+            {ideaLive && live ? (
+              <IdeaLivePanel
+                flow={flowLock === 'spine' ? 'spine' : 'openend'}
+                draft={live}
+                names={names}
+                onWinner={onIdeaWinner}
+                onResult={onIdeaResult}
+                onLet={onLet}
+              />
+            ) : null}
+            {detailQ ? <IdeaDetailPanel q={detailQ} onPick={onDetailPick} onBack={onDetailBack} /> : null}
+            {mode === 'watch' && isIdeaFlow(flowWanted) && !detailing && set.rallies.some((r) => r.idea?.flow === flowWanted) ? (
+              <div className="flex flex-wrap gap-1.5" data-idea-pass="">
+                {flowWanted === 'openend' ? (
+                  <Button
+                    kind="control"
+                    variant="secondary"
+                    data-idea-open="detail"
+                    disabled={openendState(set.rallies, names) !== 'open'}
+                    onClick={() => setDetail({ flow: 'openend' })}
+                  >
+                    {openendState(set.rallies, names) === 'done' ? 'Detail done' : 'Detail'}
+                  </Button>
+                ) : (
+                  (['serve', 'receive', 'third', 'finish'] as const).map((sweep) => {
+                    const state = sweepState(set.rallies, sweep)
+                    if (state === 'empty') return null
+                    const label = sweep === 'serve' ? 'Serve' : sweep === 'receive' ? 'Receive' : sweep === 'third' ? 'Third' : 'Finish'
+                    return (
+                      <Button
+                        key={sweep}
+                        kind="control"
+                        variant="secondary"
+                        data-idea-open={sweep}
+                        disabled={state !== 'open'}
+                        onClick={() => setDetail({ flow: 'spine', sweep })}
+                      >
+                        {state === 'done' ? `${label} done` : label}
+                      </Button>
+                    )
+                  })
+                )}
+              </div>
+            ) : null}
             {!zoneOn && showEnd && active && !readOnly ? (
               <EndPanel draft={active} names={names} onChange={change} wonBy={wonBy} onWonBy={onWonBy} />
             ) : null}
-            {!zoneOn && active && active.closed && selected?.kind === 'shot' && !readOnly && !showEnd ? (
+            {!zoneOn && active && active.closed && selected?.kind === 'shot' && !readOnly && !showEnd && !ideaLive ? (
               <ShotPanel
                 draft={active}
                 shot={selected.shot}
@@ -2586,7 +2817,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                     </span>
                     {lastSaved.point
                       ? ' · point, no video'
-                      : ` · ${lastSaved.contacts.length} ${lastSaved.contacts.length === 1 ? 'shot' : 'shots'} · ${lastSaved.ending ?? ''}`}
+                      : ` · ${lastSaved.contacts.length} ${lastSaved.contacts.length === 1 ? 'shot' : 'shots'} · ${lastSaved.idea?.result ?? lastSaved.ending ?? ''}`}
                   </p>
                   {noteBand ? (
                     <p className="text-xs font-semibold text-primary" data-mark-note>
@@ -2831,7 +3062,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                           <span className="mr-1 inline-block h-2 w-2 rounded-full bg-warning" aria-hidden />
                         ) : null}
                         Rally {lastSavedIndex + 1} · {names[lastSaved.winner]} won
-                        {lastSaved.point ? ' · point' : ` · ${lastSaved.ending ?? ''}`}
+                        {lastSaved.point ? ' · point' : ` · ${lastSaved.idea?.result ?? lastSaved.ending ?? ''}`}
                       </p>
                       {noteBand ? (
                         <p data-mark-note className="truncate text-xs leading-4 font-semibold text-primary">
@@ -2918,6 +3149,16 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               ) : null}
             </>
           ) : null}
+          {slotKind === 'detail' ? (
+            <button
+              type="button"
+              data-idea-back=""
+              onClick={onDetailBack}
+              className="btn-kind-tap-pad relative flex-1 min-w-0 rounded-lg text-lg font-bold touch-manipulation select-none border border-border bg-transparent text-primary"
+            >
+              Back
+            </button>
+          ) : null}
           {slotKind === 'pad' && !footStrip ? (
             <button
               type="button"
@@ -2960,7 +3201,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               Tap the missed contact
             </button>
           ) : null}
-          {slotKind === 'save' && stage === 'pickFa' && !footStrip && !seqLive ? (
+          {slotKind === 'save' && stage === 'pickFa' && !footStrip && !seqLive && !ideaLive ? (
             <Button
               kind="tapPad"
               data-tag-fa
@@ -2971,7 +3212,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               First attack
             </Button>
           ) : null}
-          {slotKind === 'save' && stage !== 'pickFa' && late ? (
+          {slotKind === 'save' && stage !== 'pickFa' && late && !ideaLive ? (
             <Button
               kind="tapPad"
               data-tag-save
@@ -2982,7 +3223,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               Save
             </Button>
           ) : null}
-          {slotKind === 'save' && !late && (stage !== 'pickFa' || seqLive) ? (
+          {slotKind === 'save' && !late && (stage !== 'pickFa' || seqLive) && !ideaLive ? (
             <>
               <span className="min-w-0 flex-1" />
               <button

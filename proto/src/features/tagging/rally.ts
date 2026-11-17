@@ -9,7 +9,8 @@ export type Side = 'me' | 'them'
 export const otherSide = (s: Side): Side => (s === 'me' ? 'them' : 'me')
 
 export const ENDINGS = ['Winner', 'Lucky', 'Net', 'Long', 'Wide', 'Air'] as const
-export type Ending = (typeof ENDINGS)[number]
+/** `Off` is the Opening and Ending last-ball "Off table". It is not a button in the other flows. */
+export type Ending = (typeof ENDINGS)[number] | 'Off'
 
 export const WINGS = ['BH', 'FH'] as const
 export type Wing = (typeof WINGS)[number]
@@ -278,7 +279,7 @@ export function hitterOf(server: Side, shot: number): Side {
 }
 
 export const isError = (e: Ending | null): boolean =>
-  e === 'Net' || e === 'Long' || e === 'Wide' || e === 'Air'
+  e === 'Net' || e === 'Long' || e === 'Wide' || e === 'Air' || e === 'Off'
 
 /** Winner or Lucky: the end shot's hitter. Any error: the other player. */
 export function winnerOf(d: Pick<Draft, 'server' | 'contacts' | 'ending'>): Side | null {
@@ -767,6 +768,31 @@ export type RallyData = {
   left?: MarkKind[]
   /** The server was chosen or confirmed. See `isKnownGood` in continuity.ts. */
   serveChecked?: boolean
+  /**
+   * Opening and Ending, or Rally Spine. Absent on the other flows.
+   * The score still comes from `winner`, not from these answers.
+   */
+  idea?: IdeaTag
+}
+
+/** Answers from `?flow=openend` or `?flow=spine`. The other flows never set this. */
+export type IdeaTag = {
+  flow: 'openend' | 'spine'
+  /** Spine result token, or the Opening and Ending last ball once it is answered. */
+  result?: string
+  serve?: string
+  /** Shot number to the button that was pressed. */
+  shots?: Record<number, string>
+  /** Who attacked first, Opening and Ending only. */
+  first?: string
+  /** Where a landed ball finished, Opening and Ending only. */
+  zone?: string
+  /** Finish wing, Rally Spine only. */
+  wing?: string
+  /** Finish stroke, Rally Spine only. Empty when the earlier sweep already named it. */
+  finish?: string
+  /** Set when the last ball disagrees with the point winner. */
+  check?: string
 }
 
 /** A point with no video, placed at `at` so it keeps its place in video order. */

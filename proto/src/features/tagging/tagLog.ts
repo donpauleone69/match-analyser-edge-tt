@@ -6,19 +6,24 @@
 
 import { isError, type Draft, type RallyData, type Side } from './rally'
 
-export type FlowName = 'current' | 'sequential' | 'endfirst'
+export type FlowName = 'current' | 'sequential' | 'endfirst' | 'openend' | 'spine'
 
 /** Shot by shot and End first share the walk. */
 export const isWalkFlow = (f: FlowName | null): boolean => f === 'sequential' || f === 'endfirst'
 
+/** Opening and Ending, and Rally Spine. A live pass, then a later pass. */
+export const isIdeaFlow = (f: FlowName | null): f is 'openend' | 'spine' => f === 'openend' || f === 'spine'
+
 /** The `flow` value in the address. Anything else is the current mode. */
 export const flowFromParam = (v: string | null): FlowName =>
-  v === 'sequential' || v === 'endfirst' ? v : 'current'
+  v === 'sequential' || v === 'endfirst' || v === 'openend' || v === 'spine' ? v : 'current'
 
 export const FLOW_LABEL: Record<FlowName, string> = {
   current: 'Current',
   sequential: 'Shot by shot',
   endfirst: 'End first',
+  openend: 'Open end',
+  spine: 'Spine',
 }
 
 export type TagLogLine = {
