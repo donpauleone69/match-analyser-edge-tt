@@ -33,6 +33,7 @@ import { rallyEnd, type Draft } from '@/features/tagging/rally'
 import { lastContactG, segmentsOf, segmentAt, formatClock, toGlobal } from '@/features/tagging/timeline'
 import { AddVideoChoice } from '@/features/match/AddVideoChoice'
 import { isRealResult } from '@/features/match/matchChecks'
+import { bestFlowOf, bestPlace } from '@/features/tagging/bestFlow'
 
 const flagClass =
   'rounded-md border border-warning bg-warning/15 px-3 py-2 text-sm text-primary flex flex-wrap items-center justify-between gap-2'
@@ -78,7 +79,8 @@ function savedTagLine(match: MatchRecord, s: SetData): string {
     scoreText,
     `stopped at ${stoppedAtClock(match, s)}`,
   ].join(' · ')
-  return s.draft ? `${line} · 1 rally open` : line
+  const place = bestPlace(s)
+  return place ?? (s.draft ? `${line} · 1 rally open` : line)
 }
 
 /** What a set can truly have: a state, a score and a rally count. */
@@ -88,7 +90,8 @@ function setLine(s: SetData): string {
   if (state === 'skipped') return 'Not filmed'
   if (state === 'none') return 'Not started'
   const base = score ? `${formatScore(score)} · ${rallyCount(s.rallies.length)}` : 'Started'
-  if (state === 'progress') return s.draft ? `${base} · rally open` : base
+  const place = bestPlace(s)
+  if (state === 'progress') return place ? `${base} · ${place}` : s.draft ? `${base} · rally open` : base
   const entered = parseEntered(s.entered)
   return setScoresDiffer(s) && entered ? `${base} · entered ${formatScore(entered)}` : base
 }
@@ -111,7 +114,11 @@ export function MatchTagChecklist() {
   const resume = hasVideo && !lock ? setInProgress(match) : null
   /** A video that rallies were tagged on has been removed. */
   const videoGone = missingVideoIds(match).length > 0
-  const openSet = (setId: number) => navigate(`/matches/${match.id}/tag/${setId}`)
+  const openSet = (setId: number) => {
+    const s = match.sets.find((x) => x.setId === setId)
+    const flow = s ? bestFlowOf(s) : null
+    navigate(flow ? `/matches/${match.id}/tag/${setId}?flow=${flow}` : `/matches/${match.id}/tag/${setId}`)
+  }
   // The next set to start leads, unless a set is under way or Finish match leads.
   const finishLeads =
     resultSetCount(match) === null &&

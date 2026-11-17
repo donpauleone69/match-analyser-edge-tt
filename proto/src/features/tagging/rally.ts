@@ -73,6 +73,14 @@ export const SHOT_LOOP_HOLD_S = 0.3
 export const SHOT_BADGE_S = 0.4
 export const SPEED_STEPS = [0.5, 0.75, 1, 1.25, 1.5, 2] as const
 
+/** In-progress Best or Best + FA. The other flows never set this. */
+export type BestMark = {
+  flow: 'best' | 'bestfa'
+  step?: 'serve' | 'receive' | 'third' | 'finish'
+  /** Who attacked first, when that question was answered. */
+  first?: string
+}
+
 export type ShotTags = {
   wing?: Wing
   /** Not asked any more. Kept so rallies saved with it still load. Never set, never saved. */
@@ -110,6 +118,8 @@ export type Draft = {
    * Absent means the app's proposal was kept.
    */
   serveChecked?: boolean
+  /** Best or Best + FA only. Absent on the other flows. */
+  best?: BestMark
 }
 
 /** In the order they are asked. The pick comes first from three shots up. */
@@ -769,21 +779,21 @@ export type RallyData = {
   /** The server was chosen or confirmed. See `isKnownGood` in continuity.ts. */
   serveChecked?: boolean
   /**
-   * Opening and Ending, or Rally Spine. Absent on the other flows.
+   * Opening and Ending, Rally Spine, Best, or Best + FA. Absent on the other flows.
    * The score still comes from `winner`, not from these answers.
    */
   idea?: IdeaTag
 }
 
-/** Answers from `?flow=openend` or `?flow=spine`. The other flows never set this. */
+/** Answers from a later-pass flow. Current, Shot by shot and End first never set this. */
 export type IdeaTag = {
-  flow: 'openend' | 'spine'
+  flow: 'openend' | 'spine' | 'best' | 'bestfa'
   /** Spine result token, or the Opening and Ending last ball once it is answered. */
   result?: string
   serve?: string
   /** Shot number to the button that was pressed. */
   shots?: Record<number, string>
-  /** Who attacked first, Opening and Ending only. */
+  /** Who attacked first. Opening and Ending, or Best + FA. */
   first?: string
   /** Where a landed ball finished, Opening and Ending only. */
   zone?: string
