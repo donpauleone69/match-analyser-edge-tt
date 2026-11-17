@@ -46,7 +46,7 @@ const flagRowClass = cn(flagClass, 'flex flex-wrap items-center justify-between 
 const noteRowClass =
   'rounded-md border border-border bg-bg-card px-3 py-2 text-sm text-primary flex flex-wrap items-center justify-between gap-2'
 
-/** Details: who and when, the videos in order, then result and set scores as one area. */
+/** Details: who and when, then result and set scores as one area. Videos live on Tag. */
 export function MatchDetails() {
   const { matchId = '' } = useParams()
   const navigate = useNavigate()

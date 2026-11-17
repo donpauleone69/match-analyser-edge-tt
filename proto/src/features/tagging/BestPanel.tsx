@@ -91,8 +91,13 @@ export function BestRallyRow({
   const flow = draft?.best?.flow
   const found = flow === 'bestfa' && draft ? firstAttackShot(draft.shots) : null
   const fa = found && draft && flow === 'bestfa' && asksWhoFirst(flow, draft.contacts.length, found) ? null : found
+  const withCheck = Boolean(showStar && onCheck)
   return (
-    <div className="flex w-full min-w-0 items-start gap-1" data-best-rail>
+    <div
+      className="grid w-full min-w-0 items-start gap-x-1"
+      style={{ gridTemplateColumns: withCheck ? 'auto auto minmax(0,1fr) auto' : 'auto minmax(0,1fr) auto' }}
+      data-best-rail
+    >
       {showStar ? (
         <button
           type="button"
@@ -118,7 +123,7 @@ export function BestRallyRow({
           Check
         </button>
       ) : null}
-      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1 py-0.5">
+      <div className="flex min-w-0 flex-wrap content-start gap-0.5 py-0.5">
         {draft
           ? draft.contacts.map((_, i) => {
               const shot = i + 1
@@ -130,8 +135,9 @@ export function BestRallyRow({
                   data-best-chip={shot}
                   data-best-flash={flash === i ? '' : undefined}
                   className={cn(
-                    'flex h-8 w-8 shrink-0 flex-col items-center justify-center rounded-md border text-[10px] font-bold leading-none tabular-nums',
-                    flash === i && 'ring-2 ring-warning'
+                    'flex h-7 w-7 shrink-0 flex-col items-center justify-center rounded-md border text-[10px] font-bold leading-none tabular-nums',
+                    flash === i && 'ring-2 ring-warning',
+                    fa === shot && flash !== i && 'ring-2 ring-[var(--color-tag-first-attack)]'
                   )}
                   style={{
                     backgroundColor: `color-mix(in srgb, ${side === 'me' ? 'var(--color-tag-player-a)' : 'var(--color-tag-player-b)'} 15%, transparent)`,
@@ -141,9 +147,9 @@ export function BestRallyRow({
                 >
                   <span>{shot}</span>
                   {mark ? (
-                    <span className={cn('text-[8px] font-semibold', fa === shot && 'text-tag-first-attack')}>{mark}</span>
+                    <span className="text-[10px] font-bold leading-none">{mark}</span>
                   ) : fa === shot ? (
-                    <span className="text-[8px] text-tag-first-attack">FA</span>
+                    <span className="text-[9px] font-bold leading-none text-tag-first-attack">FA</span>
                   ) : null}
                 </div>
               )
@@ -186,6 +192,7 @@ export function BestPanel({
   onFirst,
   onFix,
   onDrop,
+  endNote,
 }: {
   draft: Draft
   names: Record<Side, string>
@@ -198,12 +205,13 @@ export function BestPanel({
   onServe: (depth: string) => void
   onServer: () => void
   onStroke: (shot: number, wing: Wing, stroke: string) => void
-  onEnding: (ending: string) => void
+  onEnding: (ending: (typeof BEST_ENDS)[number]) => void
   onPoint: (side: Side) => void
   onStar: () => void
   onFirst: (name: string) => void
   onFix: (action: 'check' | 'delete' | 'add' | 'switch' | 'keep') => void
   onDrop: (shot: number) => void
+  endNote?: string | null
 }) {
   const [picking, setPicking] = useState(false)
   const n = draft.contacts.length
@@ -314,6 +322,11 @@ export function BestPanel({
               </div>
             </div>
           ) : null}
+          {endNote && !draft.ending ? (
+            <p className="text-xs font-semibold text-primary" data-best-end-note>
+              {endNote}
+            </p>
+          ) : null}
           <Row label="Point to">
             {(['me', 'them'] as const).map((side) => (
               <button
@@ -344,14 +357,22 @@ export function BestPanel({
             <div className="space-y-1" data-best-mismatch>
               <p className={caption}>{picking ? 'Delete shot' : 'Does not match'}</p>
               {picking ? (
-                <div className="flex flex-nowrap gap-1 overflow-x-auto" data-best-drop>
+                <div className="flex flex-wrap gap-0.5" data-best-drop>
+                  <button
+                    type="button"
+                    className={cn(cell, 'px-1.5')}
+                    style={rest()}
+                    onClick={() => setPicking(false)}
+                  >
+                    Back
+                  </button>
                   {draft.contacts.map((_, i) => (
                     <button
                       key={i}
                       type="button"
                       data-best-drop={i + 1}
                       aria-label={`Delete shot ${i + 1}`}
-                      className={cn(cell, 'w-8 px-0')}
+                      className={cn(cell, 'w-6 px-0')}
                       style={rest()}
                       onClick={() => {
                         setPicking(false)
@@ -361,14 +382,6 @@ export function BestPanel({
                       {i + 1}
                     </button>
                   ))}
-                  <button
-                    type="button"
-                    className={cn(cell, 'px-1.5')}
-                    style={rest()}
-                    onClick={() => setPicking(false)}
-                  >
-                    Back
-                  </button>
                 </div>
               ) : (
                 <div className="flex flex-nowrap gap-1">

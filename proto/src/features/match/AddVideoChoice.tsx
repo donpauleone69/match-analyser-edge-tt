@@ -83,12 +83,15 @@ export function AddVideoChoice({
   align = 'start',
   disabled = false,
   label = true,
+  hint = true,
 }: {
   matchId: string
   align?: 'start' | 'center'
   disabled?: boolean
   /** Shows the words "Add video". Off where the text around it already says so. */
   label?: boolean
+  /** The line under the buttons. Off on the compact empty state. */
+  hint?: boolean
 }) {
   const { addVideo } = useDemo()
   const input = useRef<HTMLInputElement>(null)
@@ -154,11 +157,11 @@ export function AddVideoChoice({
         <p className="text-xs text-muted" role="status">
           That file could not be played here.
         </p>
-      ) : (
+      ) : hint ? (
         <p className="text-xs text-muted">
           A chosen file stays on this device. The demo video is a prototype stand-in.
         </p>
-      )}
+      ) : null}
     </div>
   )
 }

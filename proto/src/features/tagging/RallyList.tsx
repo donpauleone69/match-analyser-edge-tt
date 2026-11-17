@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { Button, Icon } from '@/ui-mine'
 import { formatScore, type SetData } from '@/data/demoStore'
 import { cn } from '@/helpers/utils'
+import { faLine } from './bestFlow'
 import { bandLine, serveBands, type RallyMark, type ServeBand } from './continuity'
 import { deletedOf } from './matchOps'
 import { servesText, type MarkKind, type RallyData, type Side } from './rally'
@@ -272,7 +273,7 @@ export function RallyList({
                 {r.contacts.length} {r.contacts.length === 1 ? 'shot' : 'shots'}
                 {r.idea?.result ?? r.ending ? ` · ${r.idea?.result ?? r.ending}` : ''}
                 {r.idea?.check ? ` · ${r.idea.check}` : ''}
-                {r.fa !== null ? ` · FA ${r.fa}` : ''} · {names[r.server]} served
+                {faLine(r) ? ` · ${faLine(r)}` : ''} · {names[r.server]} served
               </span>
               {r.highlight ? <Icon name="star" size="xs" className="text-warning" /> : null}
               <span className="font-semibold text-primary tabular-nums">{formatScore(after)}</span>

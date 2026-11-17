@@ -116,6 +116,13 @@ export function impliedWinner(d: Pick<Draft, 'server' | 'contacts' | 'ending'>):
   return winnerOf(d)
 }
 
+/** Keep the mismatch only while the lit name still disagrees with the tapped one. */
+export function missIfStill(d: Pick<Draft, 'server' | 'contacts' | 'ending'>, miss: Side | null): Side | null {
+  if (!miss) return null
+  const lit = winnerOf(d)
+  return lit && lit === miss ? null : miss
+}
+
 export type BestWindow = { a: number; b: number }
 
 /** The shot a step is tagging. Finish tags the last shot. */
@@ -131,10 +138,12 @@ function taggedShot(what: BestStep, n: number): number {
  * The last shot runs to the rally end. The Rally label loops the whole rally.
  * Times are seconds in the rally's video.
  */
-export function bestLoop(d: Draft, what: BestStep | 'rally'): BestWindow {
+export function bestLoop(d: Draft, what: BestStep | 'rally' | 'add'): BestWindow {
   const start = rallyStart(d)
   const end = rallyEnd(d)
   if (what === 'rally') return { a: start, b: end }
+  // Add starts at the serve. A tap in the lead before it is not a contact.
+  if (what === 'add') return { a: d.contacts[0] ?? start, b: end }
   const n = d.contacts.length
   const shot = taggedShot(what, n)
   const c = d.contacts[shot - 1] ?? start
@@ -205,7 +214,21 @@ export function bestRally(d: Draft, id: string, winner: Side, kept: boolean): Ra
 
 export function chipText(shot: ShotTags | undefined, index: number): string {
   if (index === 0 && shot?.depth) return shot.depth === 'Long' ? 'Ln' : 'Sh'
-  if (shot?.stroke === 'Attack') return shot.wing === 'BH' ? 'Ba' : 'Fa'
-  if (shot?.stroke === 'Control') return shot.wing === 'BH' ? 'Bc' : 'Fc'
+  if (shot?.stroke === 'Attack') return shot.wing === 'BH' ? 'B+' : 'F+'
+  if (shot?.stroke === 'Control') return shot.wing === 'BH' ? 'B-' : 'F-'
   return ''
+}
+
+/** Rally list text. A shot number when it is known. Who, or a question mark, when only the last shot was an attack. */
+export function faLine(r: {
+  fa: number | null
+  contacts: number[]
+  shots: ShotTags[]
+  idea?: { flow?: string; first?: string }
+}): string {
+  if (r.fa !== null) return `FA ${r.fa}`
+  if (r.idea?.flow !== 'bestfa') return ''
+  const found = firstAttackShot(r.shots)
+  if (!asksWhoFirst('bestfa', r.contacts.length, found)) return ''
+  return r.idea.first ? `FA ${r.idea.first}` : 'FA ?'
 }

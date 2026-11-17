@@ -179,6 +179,7 @@ import {
   firstAttackShot,
   keepStep,
   nextStep,
+  missIfStill,
   removeBestContact,
   restoreStep,
   setDepth,
@@ -408,6 +409,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const detailRef = useRef(detail)
   /** Best details: the unlit Point to, the whole-rally loop, contact check, add, and the set-end hold. */
   const [bestMiss, setBestMiss] = useState<Side | null>(null)
+  const [bestNote, setBestNote] = useState<string | null>(null)
   const [bestLook, setBestLook] = useState(false)
   const [bestCheck, setBestCheck] = useState(false)
   const [bestAdd, setBestAdd] = useState(false)
@@ -587,7 +589,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const durationOf = (videoId: string) => match.videos.find((v) => v.id === videoId)?.durationS ?? 0
 
   /** Best step loop, in match time. A contact check plays once at half speed. */
-  const playBest = (d: Draft, what: BestStep | 'rally', rate = 1) => {
+  const playBest = (d: Draft, what: BestStep | 'rally' | 'add', rate = 1) => {
     bestCheckRef.current = false
     const w = bestLoop(d, what)
     const off = offsetOf(d.videoId)
@@ -1028,6 +1030,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       setSelected(null)
       setEndOpen(false)
       setBestMiss(null)
+      setBestNote(null)
       setBestLook(false)
       setBestAdd(false)
       setBestCheck(false)
@@ -1528,6 +1531,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     setBestLook(false)
     setBestCheck(false)
     setBestMiss(null)
+    setBestNote(null)
     setBestAdd(false)
     playBest(saved, dest)
   }
@@ -1559,6 +1563,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     setServerPick(null)
     serverChosen.current = false
     setBestMiss(null)
+    setBestNote(null)
     setBestLook(false)
     setBestCheck(false)
     setBestAdd(false)
@@ -1616,12 +1621,18 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const onBestAddTap = () => {
     if (!bestAdd || !live || readOnly) return
     const p = playerRef.current
-    const t = addedContactTime(live, p.getTime() - offsetOf(live.videoId), fenceOf(live), ceilOf(live))
-    const { draft: next } = insertContact(live, t)
-    const miss = bestMiss
+    const local = p.getTime() - offsetOf(live.videoId)
+    const serveAt = live.contacts[0]
+    // Before the serve is not a contact. The loop starts at the serve, and a tap there is ignored.
+    if (serveAt !== undefined && local < serveAt - 0.02) return
+    const t = addedContactTime(live, local, fenceOf(live), ceilOf(live))
+    if (serveAt !== undefined && t < serveAt) return
+    const { draft: next, shot } = insertContact(live, t)
+    const afterEnd = shot > live.contacts.length
     setBestAdd(false)
     putBest(next, keepStep(next.contacts.length, live.best?.step), false)
-    if (miss) setBestMiss(miss)
+    setBestMiss(missIfStill(next, bestMiss))
+    setBestNote(afterEnd ? 'New last shot. End again.' : null)
   }
 
   const onBestFix = (action: 'check' | 'delete' | 'add' | 'switch' | 'keep') => {
@@ -1635,7 +1646,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     if (action === 'delete') return
     if (action === 'add') {
       setBestAdd(true)
-      playBest(live, 'rally', CAPTURE_SPEED)
+      playBest(live, 'add', CAPTURE_SPEED)
       return
     }
     if (action === 'switch') {
@@ -1643,6 +1654,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       if (set.rallies.length === 0) mutateMatch(match.id, (m) => flipFirstServer(m, set.setId))
       writeDraft({ ...live, server, serveChecked: true })
       setBestMiss(null)
+      setBestNote(null)
       return
     }
     if (bestMiss) saveBest(bestMiss, true)
@@ -1650,10 +1662,11 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
 
   const onBestDrop = (shot: number) => {
     if (!live || live.contacts.length < 2) return
-    const miss = bestMiss
+    const last = shot === live.contacts.length
     const next = removeBestContact(live, shot)
     putBest(next, keepStep(next.contacts.length, live.best?.step), false)
-    if (miss) setBestMiss(miss)
+    setBestMiss(missIfStill(next, bestMiss))
+    setBestNote(last ? 'Last shot removed. End again.' : null)
   }
 
   /** Opening and Ending: the point winner is the button. The server stays the one already due. */
@@ -3037,10 +3050,14 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                   const which: BestStep = shot === 2 ? 'receive' : shot === 3 ? 'third' : 'finish'
                   putBest(setWingStroke(live, shot, wing, stroke), which, which !== 'finish')
                 }}
-                onEnding={(ending) => {
-                  if (ending !== 'Winner' && ending !== 'Net' && ending !== 'Long' && ending !== 'Wide') return
-                  putBest({ ...live, ending }, 'finish', false)
+                onEnding={(label) => {
+                  if (label !== 'Winner' && label !== 'Net' && label !== 'Long' && label !== 'Wide') return
+                  const next = { ...live, ending: label }
+                  setBestNote(null)
+                  setBestMiss(missIfStill(next, bestMiss))
+                  putBest(next, 'finish', false)
                 }}
+                endNote={bestNote}
                 onPoint={onBestPoint}
                 onStar={() => writeDraft({ ...live, highlight: !live.highlight })}
                 onFirst={(name) => {

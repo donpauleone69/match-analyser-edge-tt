@@ -133,13 +133,10 @@ export function MatchTagChecklist() {
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-6 space-y-4">
       <VideosCard match={match} />
-      {!hasVideo && phase !== 'new' ? (
-        <p className="text-sm text-muted">Tags and scores are kept. Add the video back to play or tag.</p>
-      ) : null}
 
-      {hasVideo ? (
+      {hasVideo || phase !== 'new' ? (
       <>
-      {videoGone ? (
+      {hasVideo && videoGone ? (
         <div className="rounded-md border border-dashed border-border bg-bg-card px-3 py-2 flex flex-wrap items-center justify-between gap-2">
           <p className="text-sm text-primary">A video was removed. Its rallies keep their tags and score.</p>
           <AddVideoChoice matchId={match.id} />

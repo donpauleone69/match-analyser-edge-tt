@@ -233,7 +233,7 @@ export function phaseLabel(phase: MatchPhase): string {
 export function defaultMatchTab(
   phase: MatchPhase
 ): 'insights' | 'details' | 'tag' {
-  if (phase === 'new') return 'details'
+  if (phase === 'new') return 'tag'
   if (phase === 'ready' || phase === 'partial') return 'tag'
   return 'insights'
 }

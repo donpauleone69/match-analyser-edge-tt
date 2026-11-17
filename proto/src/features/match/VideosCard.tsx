@@ -80,6 +80,7 @@ export function VideosCard({ match }: { match: MatchRecord }) {
   const running = archiveStep !== null
   const [confirmArchive, setConfirmArchive] = useState(false)
   const [asking, setAsking] = useState<string | null>(null)
+  const [adding, setAdding] = useState(false)
   const [removed, setRemoved] = useState<{ video: VideoAsset; index: number } | null>(null)
 
   useEffect(() => {
@@ -111,6 +112,32 @@ export function VideosCard({ match }: { match: MatchRecord }) {
     setRemoved(null)
   }
 
+  const undo = removed ? (
+        <p className="flex items-center justify-between gap-2 rounded-md border border-border bg-bg-card px-2 py-1 text-sm text-primary" role="status">
+          <span className="min-w-0 truncate">Removed {removed.video.fileName}</span>
+          <Button kind="control" variant="secondary" onClick={undoRemove}>
+            Undo
+          </Button>
+        </p>
+      ) : null
+
+  if (match.videos.length === 0) {
+    return (
+      <div className="space-y-2" data-videos>
+        {undo}
+        <div className="space-y-2 rounded-lg border border-dashed border-border bg-bg-card px-4 py-4 text-center" data-no-video>
+          <p className="text-sm font-semibold text-primary">{phase === 'new' ? 'No video yet' : 'Video removed'}</p>
+          <p className="text-sm text-muted">
+            {phase === 'new'
+              ? 'Add the match video to start tagging.'
+              : 'Tags and scores are kept. Add the video back to play or tag.'}
+          </p>
+          <AddVideoChoice matchId={match.id} align="center" label={false} hint={false} disabled={running} />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <Card className="space-y-2" data-videos>
       <div className="flex items-center justify-between gap-2">
@@ -118,22 +145,18 @@ export function VideosCard({ match }: { match: MatchRecord }) {
           <Icon name="film" size="sm" className="text-brand" />
           <CardTitle>Videos</CardTitle>
         </div>
-        <AddVideoChoice matchId={match.id} disabled={running} />
+        <Button
+          kind="control"
+          variant="secondary"
+          disabled={running}
+          aria-expanded={adding}
+          onClick={() => setAdding((open) => !open)}
+        >
+          Add video
+        </Button>
       </div>
-
-      {match.videos.length === 0 ? (
-        <p className="text-sm text-muted">No video yet. Add the match video to start tagging.</p>
-      ) : null}
-
-      {removed ? (
-        <p className="flex items-center justify-between gap-2 rounded-md border border-border bg-bg-card px-2 py-1 text-sm text-primary" role="status">
-          <span className="min-w-0 truncate">Removed {removed.video.fileName}</span>
-          <Button kind="control" variant="secondary" onClick={undoRemove}>
-            Undo
-          </Button>
-        </p>
-      ) : null}
-
+      {adding ? <AddVideoChoice matchId={match.id} label={false} disabled={running} /> : null}
+      {undo}
       {match.videos.length > 0 ? (
         <ol className="space-y-1">
           {match.videos.map((v, i) => (
