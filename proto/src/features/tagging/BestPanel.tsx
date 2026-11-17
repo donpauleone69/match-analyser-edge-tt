@@ -5,12 +5,14 @@ import {
   BEST_SERVE,
   BEST_SHOTS,
   STEP_LABEL,
+  bestEndOf,
   chipText,
   finishShowsStroke,
   asksWhoFirst,
   firstAttackShot,
   stepAnswered,
   stepsFor,
+  type BestEnd,
   type BestStep,
 } from './bestFlow'
 import { hitterOf, winnerOf, type Draft, type Side, type Wing } from './rally'
@@ -32,6 +34,34 @@ function chosen(): CSSProperties {
   }
 }
 
+/** Check is a mode. Amber, so it is not the same fill as the open step. */
+function checkingOn(): CSSProperties {
+  return {
+    backgroundColor: 'var(--color-warning)',
+    borderColor: 'var(--color-warning)',
+    color: '#0b1220',
+  }
+}
+
+function endTone(kind: 'win' | 'err', on: boolean): CSSProperties {
+  const color = kind === 'win' ? 'var(--color-success)' : 'var(--color-danger)'
+  if (on) return { backgroundColor: color, borderColor: color, color: kind === 'win' ? '#0b1220' : '#fff' }
+  return {
+    backgroundColor: `color-mix(in srgb, ${color} 16%, transparent)`,
+    borderColor: `color-mix(in srgb, ${color} 55%, transparent)`,
+    color: 'var(--color-text)',
+  }
+}
+
+/** A calculated Point to, shown as an outline. It is not selected until it is tapped. */
+function hinted(): CSSProperties {
+  return {
+    backgroundColor: 'color-mix(in srgb, var(--color-brand-primary) 14%, transparent)',
+    borderColor: 'var(--color-brand-primary)',
+    color: 'var(--color-text)',
+  }
+}
+
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div role="group" aria-label={label} data-row={label} className="flex flex-col gap-0.5">
@@ -47,19 +77,21 @@ function Choice({
   onClick,
   data,
   className,
+  tone,
 }: {
   label: string
   on: boolean
   onClick: () => void
   data?: Record<string, string>
   className?: string
+  tone?: 'win' | 'err'
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
       className={cn(cell, className)}
-      style={on ? chosen() : rest()}
+      style={tone ? endTone(tone, on) : on ? chosen() : rest()}
       aria-pressed={on}
       {...data}
     >
@@ -77,6 +109,8 @@ export function BestRallyRow({
   onRally,
   onCheck,
   checking,
+  showCheck,
+  onMinus,
   onStar,
 }: {
   draft: Draft | null
@@ -86,16 +120,28 @@ export function BestRallyRow({
   onRally?: () => void
   onCheck?: () => void
   checking?: boolean
+  /** Check while contacts are still being tapped, and after they are committed. */
+  showCheck?: boolean
+  /** While Check is on, each chip can delete that contact. */
+  onMinus?: (shot: number) => void
   onStar?: () => void
 }) {
   const flow = draft?.best?.flow
   const found = flow === 'bestfa' && draft ? firstAttackShot(draft.shots) : null
   const fa = found && draft && flow === 'bestfa' && asksWhoFirst(flow, draft.contacts.length, found) ? null : found
-  const withCheck = Boolean(showStar && onCheck)
+  const withCheck = Boolean(onCheck && (showStar || showCheck))
   return (
     <div
       className="grid w-full min-w-0 items-start gap-x-1"
-      style={{ gridTemplateColumns: withCheck ? 'auto auto minmax(0,1fr) auto' : 'auto minmax(0,1fr) auto' }}
+      style={{
+        gridTemplateColumns: withCheck
+          ? showStar
+            ? 'auto auto minmax(0,1fr) auto'
+            : 'auto auto minmax(0,1fr)'
+          : showStar
+            ? 'auto minmax(0,1fr) auto'
+            : 'auto minmax(0,1fr)',
+      }}
       data-best-rail
     >
       {showStar ? (
@@ -110,14 +156,14 @@ export function BestRallyRow({
       ) : (
         <span className="shrink-0 whitespace-nowrap text-[10px] font-bold uppercase text-muted">{label}</span>
       )}
-      {showStar && onCheck ? (
+      {withCheck ? (
         <button
           type="button"
           data-best-check
           aria-pressed={checking}
           aria-label="Check contacts"
           className={cn(cell, 'flex-none px-2')}
-          style={checking ? chosen() : rest()}
+          style={checking ? checkingOn() : rest()}
           onClick={onCheck}
         >
           Check
@@ -129,29 +175,57 @@ export function BestRallyRow({
               const shot = i + 1
               const side = hitterOf(draft.server, shot)
               const mark = chipText(draft.shots[i], i)
-              return (
-                <div
-                  key={shot}
-                  data-best-chip={shot}
-                  data-best-flash={flash === i ? '' : undefined}
-                  className={cn(
-                    'flex h-7 w-7 shrink-0 flex-col items-center justify-center rounded-md border text-[10px] font-bold leading-none tabular-nums',
-                    flash === i && 'ring-2 ring-warning',
-                    fa === shot && flash !== i && 'ring-2 ring-[var(--color-tag-first-attack)]'
-                  )}
-                  style={{
-                    backgroundColor: `color-mix(in srgb, ${side === 'me' ? 'var(--color-tag-player-a)' : 'var(--color-tag-player-b)'} 15%, transparent)`,
-                    borderColor: `color-mix(in srgb, ${side === 'me' ? 'var(--color-tag-player-a)' : 'var(--color-tag-player-b)'} 50%, transparent)`,
-                    color: 'var(--color-text)',
-                  }}
-                >
+              const canDelete = Boolean(checking && onMinus && draft.contacts.length > 1)
+              const paint = {
+                backgroundColor: `color-mix(in srgb, ${side === 'me' ? 'var(--color-tag-player-a)' : 'var(--color-tag-player-b)'} 15%, transparent)`,
+                borderColor: `color-mix(in srgb, ${side === 'me' ? 'var(--color-tag-player-a)' : 'var(--color-tag-player-b)'} 50%, transparent)`,
+                color: 'var(--color-text)',
+              }
+              const look = cn(
+                'relative flex shrink-0 flex-col items-center justify-center rounded-md border text-[10px] font-bold leading-none tabular-nums',
+                canDelete ? 'h-9 w-9' : 'h-7 w-7',
+                flash === i && 'ring-2 ring-warning',
+                fa === shot && flash !== i && 'ring-2 ring-[var(--color-tag-first-attack)]'
+              )
+              const body = (
+                <>
                   <span>{shot}</span>
                   {mark ? (
                     <span className="text-[10px] font-bold leading-none">{mark}</span>
                   ) : fa === shot ? (
                     <span className="text-[9px] font-bold leading-none text-tag-first-attack">FA</span>
                   ) : null}
-                </div>
+                  {canDelete ? (
+                    <span
+                      aria-hidden
+                      className="absolute right-0 top-0 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-danger text-[11px] font-bold leading-none text-white"
+                    >
+                      −
+                    </span>
+                  ) : null}
+                </>
+              )
+              if (!canDelete) {
+                return (
+                  <div key={shot} data-best-chip={shot} data-best-flash={flash === i ? '' : undefined} className={look} style={paint}>
+                    {body}
+                  </div>
+                )
+              }
+              return (
+                <button
+                  key={shot}
+                  type="button"
+                  data-best-chip={shot}
+                  data-best-minus={shot}
+                  data-best-flash={flash === i ? '' : undefined}
+                  aria-label={`Delete shot ${shot}`}
+                  className={look}
+                  style={paint}
+                  onClick={() => onMinus?.(shot)}
+                >
+                  {body}
+                </button>
               )
             })
           : null}
@@ -205,7 +279,7 @@ export function BestPanel({
   onServe: (depth: string) => void
   onServer: () => void
   onStroke: (shot: number, wing: Wing, stroke: string) => void
-  onEnding: (ending: (typeof BEST_ENDS)[number]) => void
+  onEnding: (ending: BestEnd) => void
   onPoint: (side: Side) => void
   onStar: () => void
   onFirst: (name: string) => void
@@ -217,7 +291,8 @@ export function BestPanel({
   const n = draft.contacts.length
   const steps = stepsFor(n)
   const at = steps.indexOf(step)
-  const lit = rallyOne ? null : winnerOf(draft)
+  const lit = rallyOne && !draft.serveChecked ? null : winnerOf(draft)
+  const endOn = bestEndOf(draft)
   const strokeShot = step === 'receive' ? 2 : step === 'third' ? 3 : step === 'finish' && finishShowsStroke(n) ? n : 0
   const who = [names.me, names.them, 'Nobody']
 
@@ -247,7 +322,8 @@ export function BestPanel({
       </div>
 
       {step === 'serve' ? (
-        <Row label="Serve">
+        <div role="group" aria-label="Serve" data-row="Serve" className="flex flex-col gap-0.5">
+          <span className={caption}>Serve</span>
           {rallyOne ? null : (
             <button
               type="button"
@@ -255,7 +331,7 @@ export function BestPanel({
               data-best-server={draft.server}
               aria-label={`${names[draft.server]} serving`}
               aria-checked={draft.server === 'them'}
-              className="inline-flex h-8 shrink-0 items-center rounded-full border border-border bg-bg-card p-0.5"
+              className="inline-flex h-8 w-fit shrink-0 items-center rounded-full border border-border bg-bg-card p-0.5"
               onClick={onServer}
             >
               {(['me', 'them'] as const).map((side) => (
@@ -276,15 +352,17 @@ export function BestPanel({
               ))}
             </button>
           )}
-          {BEST_SERVE.map((label) => (
-            <Choice
-              key={label}
-              label={label}
-              on={draft.shots[0]?.depth === label}
-              onClick={() => onServe(label)}
-            />
-          ))}
-        </Row>
+          <div className="flex flex-nowrap items-center gap-1">
+            {BEST_SERVE.map((label) => (
+              <Choice
+                key={label}
+                label={label}
+                on={draft.shots[0]?.depth === label}
+                onClick={() => onServe(label)}
+              />
+            ))}
+          </div>
+        </div>
       ) : null}
 
       {strokeShot > 0 ? (
@@ -309,7 +387,14 @@ export function BestPanel({
         <>
           <Row label="End">
             {BEST_ENDS.map((label) => (
-              <Choice key={label} label={label} on={draft.ending === label} onClick={() => onEnding(label)} />
+              <Choice
+                key={label}
+                label={label}
+                tone={label === 'BH' || label === 'FH' ? 'win' : 'err'}
+                on={endOn === label}
+                onClick={() => onEnding(label)}
+                data={{ 'data-best-end': label }}
+              />
             ))}
           </Row>
           {showFirst ? (
@@ -333,9 +418,10 @@ export function BestPanel({
                 key={side}
                 type="button"
                 data-point-to={names[side]}
-                data-point-lit={lit === side ? '' : undefined}
+                data-point-hint={lit === side ? '' : undefined}
+                aria-pressed={false}
                 className={cell}
-                style={lit === side ? chosen() : rest()}
+                style={lit === side ? hinted() : rest()}
                 onClick={() => onPoint(side)}
               >
                 {names[side]}

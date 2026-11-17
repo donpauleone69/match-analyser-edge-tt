@@ -174,8 +174,10 @@ import { BestPanel, BestRallyRow } from './BestPanel'
 import { BestTimingControl } from './BestTimingControl'
 import {
   asksWhoFirst,
+  BEST_SHOT_RATE,
   bestLoop,
   bestPlace,
+  endingForBest,
   loadBestTiming,
   saveBestTiming,
   bestRally,
@@ -185,6 +187,8 @@ import {
   missIfStill,
   removeBestContact,
   restoreStep,
+  settleBestServer,
+  bestHitters,
   setDepth,
   setWingStroke,
   stepAnswered,
@@ -599,16 +603,17 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const offsetOf = (videoId: string, all: Segment[] = segs) => toGlobal(all, videoId, 0) ?? 0
   const durationOf = (videoId: string) => match.videos.find((v) => v.id === videoId)?.durationS ?? 0
 
-  /** Best step loop, in match time. A contact check plays once at half speed. */
-  const playBest = (d: Draft, what: BestStep | 'rally' | 'add', rate = 1) => {
+  /** Best step loop, in match time. Shot loops play at 0.75x. A contact check plays at half speed. */
+  const playBest = (d: Draft, what: BestStep | 'rally' | 'add', rate?: number) => {
     bestCheckRef.current = false
-    loopWhat.current = { what, rate }
-    const w = bestLoop(d, what, timing)
+    const speed = rate ?? (what === 'add' ? CAPTURE_SPEED : what === 'rally' ? 1 : BEST_SHOT_RATE)
+    loopWhat.current = { what, rate: speed }
+    const w = bestLoop(d, what, timing, speed)
     const off = offsetOf(d.videoId)
     const max = durationOf(d.videoId)
     const p = playerRef.current
     p.setBoundary(null)
-    p.setRate(rate)
+    p.setRate(speed)
     const span = w.b > w.a ? w.b : w.a + 0.05
     const a = off + Math.max(0, w.a)
     const b = off + Math.min(max, span)
@@ -640,12 +645,37 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     p.setBoundary(end, () => {
       p.setBoundary(null)
       if (!bestCheckRef.current) return
-      bestCheckRef.current = false
-      setBestCheck(false)
-      playBest(d, restoreStep(d))
+      p.pause()
     })
     p.seek(off + rallyStart(d))
     p.play()
+  }
+  /** Contacts still being tapped: play what is there at half speed, and do not close the rally. */
+  const playOpenCheck = (d: Draft) => {
+    bestCheckRef.current = true
+    const off = offsetOf(d.videoId)
+    const first = d.contacts[0] ?? 0
+    const last = d.contacts[d.contacts.length - 1] ?? first
+    const a = off + Math.max(0, first)
+    const b = off + Math.max(last, first) + 0.4
+    const p = playerRef.current
+    p.setRate(0.5)
+    p.setBoundary(null)
+    p.setLoop({ a, b: Math.max(b, a + 0.3) })
+    p.seek(a)
+    p.play()
+  }
+  /** Leave delete mode while the rally is still open and carry on tapping. */
+  const resumeCapture = (d: Draft) => {
+    bestCheckRef.current = false
+    const p = playerRef.current
+    const off = offsetOf(d.videoId)
+    p.setLoop(null)
+    p.setRate(CAPTURE_SPEED)
+    p.setBoundary(off + durationOf(d.videoId), () => closeContacts())
+    p.seek(off + (d.contacts[d.contacts.length - 1] ?? 0))
+    p.play()
+    setLastTap(Date.now())
   }
 
   /** The part of the video a rally being tagged should loop, in match time. */
@@ -1117,7 +1147,10 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   useEffect(() => {
     if (mode !== 'tapping' || lastTap === null) return
     if (latest.current.flowWanted !== 'spine') {
-      const id = setTimeout(() => closeContacts(true), CONTACT_IDLE_MS)
+      const id = setTimeout(() => {
+        if (bestCheckRef.current && isBestFlow(latest.current.flowWanted)) return
+        closeContacts(true)
+      }, CONTACT_IDLE_MS)
       return () => clearTimeout(id)
     }
     const start = playerRef.current.getTime()
@@ -1172,6 +1205,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   /** The pad: plays when paused with nothing tapped, otherwise records a contact. */
   const onPad = () => {
     if (detailRef.current || fixRef.current || bestHold.current) return
+    if (bestCheckRef.current && isBestFlow(latest.current.flowWanted)) return
     const p = playerRef.current
     if (mode === 'setPoint') {
       onKeepTagging()
@@ -1191,6 +1225,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     if (!seg) return
     const local = g - seg.offset
     const floorLocal = tapped > 0 ? live!.contacts[tapped - 1] : Math.max(0, floorG - seg.offset)
+    // Reaction is video time. A slower playback speed does not shrink it.
     const latency = isBestFlow(latest.current.flowWanted) ? timing.reaction / 1000 : TAP_LATENCY_S
     const stored = Math.round(captureContactTime(local, floorLocal, latency) * 100) / 100
     if (tapped > 0 && tapIgnored(live!, stored)) return
@@ -1551,7 +1586,12 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     const dest = advance && step !== 'finish' ? nextStep(next.contacts.length, step) : step
     const saved: Draft = {
       ...next,
-      best: { flow, step: dest, ...(next.best?.first ? { first: next.best.first } : {}) },
+      best: {
+        flow,
+        step: dest,
+        ...(next.best?.first ? { first: next.best.first } : {}),
+        ...(next.best?.end ? { end: next.best.end } : {}),
+      },
     }
     writeDraft(saved)
     setBestLook(false)
@@ -1684,6 +1724,35 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       return
     }
     if (bestMiss) saveBest(bestMiss, true)
+  }
+
+  const onBestMinus = (shot: number) => {
+    if (!live || live.contacts.length < 2 || !bestCheck) return
+    const before = set
+    const last = shot === live.contacts.length
+    const removed = removeBestContact(live, shot)
+    const settled = settleBestServer(removed, set.rallies.length === 0)
+    const flow = settled.best?.flow && isBestFlow(settled.best.flow) ? settled.best.flow : isBestFlow(flowLock) ? flowLock : 'best'
+    const stepped: Draft = {
+      ...settled,
+      best: {
+        flow,
+        ...(settled.best?.step ? { step: keepStep(settled.contacts.length, settled.best.step) } : {}),
+        ...(settled.best?.first ? { first: settled.best.first } : {}),
+        ...(settled.best?.end ? { end: settled.best.end } : {}),
+      },
+    }
+    writeDraft(stepped)
+    setBestMiss(missIfStill(stepped, bestMiss))
+    setBestNote(last && stepped.closed ? 'Last shot removed. End again.' : null)
+    if (stepped.closed) playCheck(stepped)
+    else playOpenCheck(stepped)
+    withUndo('Shot removed', before, () => {
+      const back = before.draft
+      if (!back || !bestCheckRef.current) return
+      if (back.closed) playCheck(back)
+      else playOpenCheck(back)
+    })
   }
 
   const onBestDrop = (shot: number) => {
@@ -2734,6 +2803,22 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   }, [player.time, player.playing])
 
   const flowShown: FlowName = mode === 'tagging' && flowLock ? flowLock : flowWanted
+  const bestAccount = (() => {
+    if (!isBestFlow(flowShown) || !live || live.contacts.length === 0) return null
+    const rallyOne = set.rallies.length === 0
+    const settled = settleBestServer(live, rallyOne)
+    const winner = settled.ending && (!rallyOne || settled.serveChecked) ? winnerOf(settled) : null
+    const walk = winner
+      ? walkServes([...set.rallies, { server: settled.server, winner }], set.firstServer)
+      : null
+    return {
+      hitters: bestHitters(winner ? settled : live).join(','),
+      winner: winner ?? '',
+      score: walk ? `${walk.score.me}-${walk.score.them}` : `${score.me}-${score.them}`,
+      next: walk?.next ?? '',
+      points: walk?.score ?? null,
+    }
+  })()
   const onFlowPick = (flow: string) => {
     const next = new URLSearchParams(searchParams)
     next.set('flow', flow)
@@ -2760,6 +2845,10 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       data-best-a={bestSpan ? bestSpan.a.toFixed(3) : ''}
       data-best-b={bestSpan ? bestSpan.b.toFixed(3) : ''}
       data-contacts={active?.contacts.join(',') ?? ''}
+      data-best-hitters={bestAccount?.hitters ?? ''}
+      data-best-winner={bestAccount?.winner ?? ''}
+      data-best-score={bestAccount?.score ?? ''}
+      data-best-next={bestAccount?.next ?? ''}
       data-loop-a={loopNow ? loopNow.a.toFixed(3) : ''}
       data-loop-b={loopNow ? loopNow.b.toFixed(3) : ''}
       data-loop-hold={seqLive ? (flowLock === 'endfirst' ? String(END_FIRST_PAUSE_S) : String(SHOT_LOOP_HOLD_S)) : ''}
@@ -2806,7 +2895,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
           player={player}
           videos={match.videos}
           names={names}
-          bug={{ sets: setsWon, points: shownScore, server: shownServer, setId: set.setId }}
+          bug={{ sets: setsWon, points: bestAccount?.points ?? shownScore, server: shownServer, setId: set.setId }}
           blocks={blocks}
           open={openRange}
           hint={hint}
@@ -2837,19 +2926,28 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                   : -1
               }
               showStar={bestOn}
-              label={bestOn ? `Rally ${set.rallies.length + 1}` : 'Rally'}
+              label={active && active.contacts.length > 0 ? `Rally ${set.rallies.length + 1}` : 'Rally'}
               checking={bestCheck}
+              showCheck={Boolean(active && active.contacts.length > 0)}
               onRally={() => {
                 if (!live) return
                 setBestLook(true)
                 setBestCheck(false)
                 playBest(live, 'rally')
               }}
+              onMinus={onBestMinus}
               onCheck={() => {
-                if (!live) return
+                if (!live || live.contacts.length === 0) return
+                if (bestCheck) {
+                  setBestCheck(false)
+                  if (!live.closed) resumeCapture(live)
+                  else playBest(live, restoreStep(live))
+                  return
+                }
                 setBestCheck(true)
                 setBestLook(false)
-                playCheck(live)
+                if (!live.closed) playOpenCheck(live)
+                else playCheck(live)
               }}
               onStar={() => live && writeDraft({ ...live, highlight: !live.highlight })}
             />
@@ -3026,7 +3124,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               data-tag-toast
               className={cn(
                 'mb-1.5 flex items-center justify-between gap-3 rounded-md bg-neutral-100 text-neutral-950 pl-3 pr-1 text-sm shadow-lg',
-                zoneOn && 'absolute left-2 right-2 top-2 z-20'
+                (zoneOn || bestOn) && 'absolute left-2 right-2 top-2 z-30'
               )}
             >
               <span className="flex-1">{toast.text}</span>
@@ -3082,8 +3180,15 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                   putBest(setWingStroke(live, shot, wing, stroke), which, which !== 'finish')
                 }}
                 onEnding={(label) => {
-                  if (label !== 'Winner' && label !== 'Net' && label !== 'Long' && label !== 'Wide') return
-                  const next = { ...live, ending: label }
+                  if (!live.best) return
+                  const next = settleBestServer(
+                    {
+                      ...live,
+                      ending: endingForBest(label),
+                      best: { ...live.best, end: label },
+                    },
+                    set.rallies.length === 0,
+                  )
                   setBestNote(null)
                   setBestMiss(missIfStill(next, bestMiss))
                   putBest(next, 'finish', false)
