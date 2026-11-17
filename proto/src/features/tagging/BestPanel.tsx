@@ -1,4 +1,4 @@
-import { useState, type CSSProperties, type ReactNode } from 'react'
+import { type CSSProperties, type ReactNode } from 'react'
 import { cn } from '@/helpers/utils'
 import {
   BEST_ENDS,
@@ -53,11 +53,12 @@ function endTone(kind: 'win' | 'err', on: boolean): CSSProperties {
   }
 }
 
-/** A calculated Point to, shown as an outline. It is not selected until it is tapped. */
+/** A calculated Point to. An outline and a tint, stronger than a resting cell, and not the filled selected style. */
 function hinted(): CSSProperties {
   return {
-    backgroundColor: 'color-mix(in srgb, var(--color-brand-primary) 14%, transparent)',
+    backgroundColor: 'color-mix(in srgb, var(--color-brand-primary) 32%, var(--tag-cell-rest))',
     borderColor: 'var(--color-brand-primary)',
+    boxShadow: 'inset 0 0 0 2px var(--color-brand-primary)',
     color: 'var(--color-text)',
   }
 }
@@ -112,6 +113,7 @@ export function BestRallyRow({
   showCheck,
   onMinus,
   onStar,
+  toss,
 }: {
   draft: Draft | null
   flash: number
@@ -125,6 +127,8 @@ export function BestRallyRow({
   /** While Check is on, each chip can delete that contact. */
   onMinus?: (shot: number) => void
   onStar?: () => void
+  /** Shot 1 may be a toss. A suggestion after an end contact was removed. */
+  toss?: boolean
 }) {
   const flow = draft?.best?.flow
   const found = flow === 'bestfa' && draft ? firstAttackShot(draft.shots) : null
@@ -174,7 +178,8 @@ export function BestRallyRow({
           ? draft.contacts.map((_, i) => {
               const shot = i + 1
               const side = hitterOf(draft.server, shot)
-              const mark = chipText(draft.shots[i], i)
+              const flagged = Boolean(toss && shot === 1)
+              const mark = flagged ? 'toss?' : chipText(draft.shots[i], i)
               const canDelete = Boolean(checking && onMinus && draft.contacts.length > 1)
               const paint = {
                 backgroundColor: `color-mix(in srgb, ${side === 'me' ? 'var(--color-tag-player-a)' : 'var(--color-tag-player-b)'} 15%, transparent)`,
@@ -183,15 +188,17 @@ export function BestRallyRow({
               }
               const look = cn(
                 'relative flex shrink-0 flex-col items-center justify-center rounded-md border text-[10px] font-bold leading-none tabular-nums',
-                canDelete ? 'h-9 w-9' : 'h-7 w-7',
+                canDelete ? 'h-9 min-w-9' : 'h-7 min-w-7',
+                flagged ? 'w-auto px-0.5' : canDelete ? 'w-9' : 'w-7',
                 flash === i && 'ring-2 ring-warning',
-                fa === shot && flash !== i && 'ring-2 ring-[var(--color-tag-first-attack)]'
+                flagged && flash !== i && 'ring-2 ring-warning',
+                fa === shot && flash !== i && !flagged && 'ring-2 ring-[var(--color-tag-first-attack)]'
               )
               const body = (
                 <>
                   <span>{shot}</span>
                   {mark ? (
-                    <span className="text-[10px] font-bold leading-none">{mark}</span>
+                    <span className={cn('font-bold leading-none', flagged ? 'text-[8px] text-warning' : 'text-[10px]')}>{mark}</span>
                   ) : fa === shot ? (
                     <span className="text-[9px] font-bold leading-none text-tag-first-attack">FA</span>
                   ) : null}
@@ -207,7 +214,7 @@ export function BestRallyRow({
               )
               if (!canDelete) {
                 return (
-                  <div key={shot} data-best-chip={shot} data-best-flash={flash === i ? '' : undefined} className={look} style={paint}>
+                  <div key={shot} data-best-chip={shot} data-best-toss={flagged ? '' : undefined} data-best-flash={flash === i ? '' : undefined} className={look} style={paint}>
                     {body}
                   </div>
                 )
@@ -218,6 +225,7 @@ export function BestRallyRow({
                   type="button"
                   data-best-chip={shot}
                   data-best-minus={shot}
+                  data-best-toss={flagged ? '' : undefined}
                   data-best-flash={flash === i ? '' : undefined}
                   aria-label={`Delete shot ${shot}`}
                   className={look}
@@ -265,8 +273,10 @@ export function BestPanel({
   onStar,
   onFirst,
   onFix,
-  onDrop,
   endNote,
+  tossWatch,
+  serveNote,
+  openSteps,
 }: {
   draft: Draft
   names: Record<Side, string>
@@ -283,15 +293,19 @@ export function BestPanel({
   onPoint: (side: Side) => void
   onStar: () => void
   onFirst: (name: string) => void
-  onFix: (action: 'check' | 'delete' | 'add' | 'switch' | 'keep') => void
-  onDrop: (shot: number) => void
+  onFix: (action: 'check' | 'add' | 'switch' | 'keep') => void
   endNote?: string | null
+  /** After an end contact was removed: the serve loop is playing and shot 1 may be a toss. */
+  tossWatch?: boolean
+  /** The serve length left with a deleted contact. */
+  serveNote?: string | null
+  /** Step tabs stay open so the glance can go straight to the next question. */
+  openSteps?: boolean
 }) {
-  const [picking, setPicking] = useState(false)
   const n = draft.contacts.length
   const steps = stepsFor(n)
   const at = steps.indexOf(step)
-  const lit = rallyOne && !draft.serveChecked ? null : winnerOf(draft)
+  const lit = rallyOne ? null : winnerOf(draft)
   const endOn = bestEndOf(draft)
   const strokeShot = step === 'receive' ? 2 : step === 'third' ? 3 : step === 'finish' && finishShowsStroke(n) ? n : 0
   const who = [names.me, names.them, 'Nobody']
@@ -310,7 +324,7 @@ export function BestPanel({
               aria-selected={on}
               data-best-step={name}
               data-best-done={done ? '' : undefined}
-              disabled={i > at && !done}
+              disabled={!openSteps && i > at && !done}
               onClick={() => onStep(name)}
               className={cn(cell, 'disabled:opacity-40')}
               style={on ? chosen() : rest()}
@@ -352,6 +366,16 @@ export function BestPanel({
               ))}
             </button>
           )}
+          {tossWatch ? (
+            <p className="text-xs font-semibold text-warning" data-best-toss-note>
+              Toss? shot 1 may be extra
+            </p>
+          ) : null}
+          {serveNote ? (
+            <p className="text-xs font-semibold text-primary" data-best-serve-note>
+              {serveNote}
+            </p>
+          ) : null}
           <div className="flex flex-nowrap items-center gap-1">
             {BEST_SERVE.map((label) => (
               <Choice
@@ -439,68 +463,36 @@ export function BestPanel({
               ★
             </button>
           </Row>
+          {serveNote && step === 'finish' ? (
+            <p className="text-xs font-semibold text-primary" data-best-serve-note>
+              {serveNote}
+            </p>
+          ) : null}
           {mismatch ? (
             <div className="space-y-1" data-best-mismatch>
-              <p className={caption}>{picking ? 'Delete shot' : 'Does not match'}</p>
-              {picking ? (
-                <div className="flex flex-wrap gap-0.5" data-best-drop>
+              <p className={caption}>Does not match</p>
+              <div className="flex flex-nowrap gap-1">
+                {(
+                  [
+                    ['check', 'Check', 'Check contacts'],
+                    ['add', 'Add', 'Add contact'],
+                    ['switch', 'Switch', 'Switch server'],
+                    ['keep', 'Keep', 'Keep'],
+                  ] as const
+                ).map(([action, label, aria]) => (
                   <button
+                    key={action}
                     type="button"
+                    data-best-fix={action}
+                    aria-label={aria}
                     className={cn(cell, 'px-1.5')}
                     style={rest()}
-                    onClick={() => setPicking(false)}
+                    onClick={() => onFix(action)}
                   >
-                    Back
+                    {label}
                   </button>
-                  {draft.contacts.map((_, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      data-best-drop={i + 1}
-                      aria-label={`Delete shot ${i + 1}`}
-                      className={cn(cell, 'w-6 px-0')}
-                      style={rest()}
-                      onClick={() => {
-                        setPicking(false)
-                        onDrop(i + 1)
-                      }}
-                    >
-                      {i + 1}
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex flex-nowrap gap-1">
-                  {(
-                    [
-                      ['check', 'Check', 'Check contacts'],
-                      ['delete', 'Delete', 'Delete a contact'],
-                      ['add', 'Add', 'Add contact'],
-                      ['switch', 'Switch', 'Switch server'],
-                      ['keep', 'Keep', 'Keep'],
-                    ] as const
-                  ).map(([action, label, aria]) => (
-                    <button
-                      key={action}
-                      type="button"
-                      data-best-fix={action}
-                      aria-label={aria}
-                      disabled={action === 'delete' && n < 2}
-                      className={cn(cell, 'px-1.5', 'disabled:opacity-40')}
-                      style={rest()}
-                      onClick={() => {
-                        if (action === 'delete') {
-                          setPicking(true)
-                          return
-                        }
-                        onFix(action)
-                      }}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              )}
+                ))}
+              </div>
             </div>
           ) : null}
         </>
