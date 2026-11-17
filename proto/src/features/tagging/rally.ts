@@ -141,9 +141,9 @@ export function emptyDraft(videoId: string, server: Side): Draft {
   }
 }
 
-/** Tap time with reaction time removed, never before `floor`. */
-export function captureContactTime(videoTime: number, floor: number): number {
-  return Math.max(floor, videoTime - TAP_LATENCY_S)
+/** Tap time with reaction time removed, never before `floor`. `latency` defaults to the shared 300 ms. */
+export function captureContactTime(videoTime: number, floor: number, latency = TAP_LATENCY_S): number {
+  return Math.max(floor, videoTime - latency)
 }
 
 /**
@@ -220,9 +220,15 @@ const round2 = (v: number) => Math.round(v * 100) / 100
  * inside the video, never on top of a tap already there, and never behind
  * `fence` (the last contact of the rally saved before this one).
  */
-export function addedContactTime(d: Draft, videoTime: number, fence: number | null, maxTime: number): number {
+export function addedContactTime(
+  d: Draft,
+  videoTime: number,
+  fence: number | null,
+  maxTime: number,
+  latency = TAP_LATENCY_S
+): number {
   const low = fence === null ? 0 : fence + CONTACT_GAP_S
-  let t = round2(Math.max(low, Math.min(maxTime, videoTime - TAP_LATENCY_S)))
+  let t = round2(Math.max(low, Math.min(maxTime, videoTime - latency)))
   const i = d.contacts.findIndex((c) => Math.abs(c - t) < CONTACT_GAP_S - 1e-6)
   if (i < 0) return t
   // Too close to a tap: it goes 0.05 from it, on the side it fell.

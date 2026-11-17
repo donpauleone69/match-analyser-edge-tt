@@ -171,10 +171,13 @@ import {
 } from './ideaFlow'
 import { EndPanel, ShotPanel, TimeRow, TrimRow } from './ShotPanel'
 import { BestPanel, BestRallyRow } from './BestPanel'
+import { BestTimingControl } from './BestTimingControl'
 import {
   asksWhoFirst,
   bestLoop,
   bestPlace,
+  loadBestTiming,
+  saveBestTiming,
   bestRally,
   firstAttackShot,
   keepStep,
@@ -187,6 +190,7 @@ import {
   stepAnswered,
   stepsFor,
   type BestStep,
+  type BestTiming,
 } from './bestFlow'
 import { ShotRail } from './ShotRail'
 import { TAG_LOCK_LINE, useTagLock, type TagLock } from './tagLock'
@@ -410,6 +414,13 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   /** Best details: the unlit Point to, the whole-rally loop, contact check, add, and the set-end hold. */
   const [bestMiss, setBestMiss] = useState<Side | null>(null)
   const [bestNote, setBestNote] = useState<string | null>(null)
+  const [timing, setTiming] = useState(loadBestTiming)
+  const [bestSpan, setBestSpan] = useState<{ a: number; b: number } | null>(null)
+  const loopWhat = useRef<{ what: BestStep | 'rally' | 'add'; rate: number } | null>(null)
+  const setBestTiming = (next: BestTiming) => {
+    setTiming(next)
+    saveBestTiming(next)
+  }
   const [bestLook, setBestLook] = useState(false)
   const [bestCheck, setBestCheck] = useState(false)
   const [bestAdd, setBestAdd] = useState(false)
@@ -591,20 +602,34 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   /** Best step loop, in match time. A contact check plays once at half speed. */
   const playBest = (d: Draft, what: BestStep | 'rally' | 'add', rate = 1) => {
     bestCheckRef.current = false
-    const w = bestLoop(d, what)
+    loopWhat.current = { what, rate }
+    const w = bestLoop(d, what, timing)
     const off = offsetOf(d.videoId)
     const max = durationOf(d.videoId)
     const p = playerRef.current
     p.setBoundary(null)
     p.setRate(rate)
     const span = w.b > w.a ? w.b : w.a + 0.05
-    p.setLoop({
-      a: off + Math.max(0, w.a),
-      b: off + Math.min(max, span),
-    })
-    p.seek(off + Math.max(0, w.a))
+    const a = off + Math.max(0, w.a)
+    const b = off + Math.min(max, span)
+    setBestSpan({ a, b })
+    p.setLoop({ a, b })
+    p.seek(a)
     p.play()
   }
+  const timingSeen = useRef(false)
+  useEffect(() => {
+    if (!timingSeen.current) {
+      timingSeen.current = true
+      return
+    }
+    const cur = loopWhat.current
+    const d = latest.current.live
+    if (!cur || !d || bestCheckRef.current) return
+    playBest(d, cur.what, cur.rate)
+    // Reapplies the loop that is already playing when Paul changes a timing.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timing])
   const playCheck = (d: Draft) => {
     bestCheckRef.current = true
     const off = offsetOf(d.videoId)
@@ -1166,7 +1191,8 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     if (!seg) return
     const local = g - seg.offset
     const floorLocal = tapped > 0 ? live!.contacts[tapped - 1] : Math.max(0, floorG - seg.offset)
-    const stored = Math.round(captureContactTime(local, floorLocal) * 100) / 100
+    const latency = isBestFlow(latest.current.flowWanted) ? timing.reaction / 1000 : TAP_LATENCY_S
+    const stored = Math.round(captureContactTime(local, floorLocal, latency) * 100) / 100
     if (tapped > 0 && tapIgnored(live!, stored)) return
     const server = nextServer
     mutateMatch(match.id, (m) => {
@@ -1625,7 +1651,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     const serveAt = live.contacts[0]
     // Before the serve is not a contact. The loop starts at the serve, and a tap there is ignored.
     if (serveAt !== undefined && local < serveAt - 0.02) return
-    const t = addedContactTime(live, local, fenceOf(live), ceilOf(live))
+    const t = addedContactTime(live, local, fenceOf(live), ceilOf(live), timing.reaction / 1000)
     if (serveAt !== undefined && t < serveAt) return
     const { draft: next, shot } = insertContact(live, t)
     const afterEnd = shot > live.contacts.length
@@ -2731,6 +2757,8 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       data-playing={player.playing}
       data-rate={player.rate}
       data-time={player.time}
+      data-best-a={bestSpan ? bestSpan.a.toFixed(3) : ''}
+      data-best-b={bestSpan ? bestSpan.b.toFixed(3) : ''}
       data-contacts={active?.contacts.join(',') ?? ''}
       data-loop-a={loopNow ? loopNow.a.toFixed(3) : ''}
       data-loop-b={loopNow ? loopNow.b.toFixed(3) : ''}
@@ -2790,6 +2818,9 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
           onHighlight={() => active && writeDraft({ ...active, highlight: !active.highlight })}
           readOnlyHighlight={readOnly || stage === 'result' || stage === 'endShot'}
           badge={shotBadge}
+          extra={
+            isBestFlow(flowShown) ? <BestTimingControl timing={timing} onChange={setBestTiming} /> : null
+          }
         />
         <div className="tag-side-list">{rallyList}</div>
       </div>

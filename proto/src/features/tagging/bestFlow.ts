@@ -125,6 +125,60 @@ export function missIfStill(d: Pick<Draft, 'server' | 'contacts' | 'ending'>, mi
 
 export type BestWindow = { a: number; b: number }
 
+/** Milliseconds. Paul tunes these on the video while prototyping. */
+export type BestTiming = {
+  reaction: number
+  lead: number
+  end: number
+  min: number
+}
+
+export const DEFAULT_BEST_TIMING: BestTiming = {
+  reaction: 300,
+  lead: 200,
+  end: 200,
+  min: 1000,
+}
+
+const TIMING_KEY = 'edge-tt.best-timing'
+
+function timingNumber(value: unknown, fallback: number): number {
+  const n = typeof value === 'number' ? value : Number(value)
+  if (!Number.isFinite(n) || n < 0 || n > 10000) return fallback
+  return Math.round(n)
+}
+
+export function loadBestTiming(): BestTiming {
+  try {
+    const raw = localStorage.getItem(TIMING_KEY)
+    if (!raw) return DEFAULT_BEST_TIMING
+    const parsed = JSON.parse(raw) as Partial<BestTiming>
+    return {
+      reaction: timingNumber(parsed.reaction, DEFAULT_BEST_TIMING.reaction),
+      lead: timingNumber(parsed.lead, DEFAULT_BEST_TIMING.lead),
+      end: timingNumber(parsed.end, DEFAULT_BEST_TIMING.end),
+      min: timingNumber(parsed.min, DEFAULT_BEST_TIMING.min),
+    }
+  } catch {
+    return DEFAULT_BEST_TIMING
+  }
+}
+
+export function saveBestTiming(timing: BestTiming) {
+  try {
+    localStorage.setItem(TIMING_KEY, JSON.stringify(timing))
+  } catch {
+    // A private browser can refuse the write. The values still apply for this visit.
+  }
+}
+
+/** One shot: lead before its contact, then to the end offset before the next mark, at least `min` long. */
+export function shotLoop(contact: number, next: number, timing: BestTiming): BestWindow {
+  const a = contact - timing.lead / 1000
+  const b = Math.max(next - timing.end / 1000, a + timing.min / 1000)
+  return { a, b }
+}
+
 /** The shot a step is tagging. Finish tags the last shot. */
 function taggedShot(what: BestStep, n: number): number {
   if (what === 'serve') return 1
@@ -134,11 +188,13 @@ function taggedShot(what: BestStep, n: number): number {
 }
 
 /**
- * Loop the shot being tagged: that contact to the next contact.
- * The last shot runs to the rally end. The Rally label loops the whole rally.
+ * Loop the shot being tagged. It starts `lead` before that contact and ends
+ * `end` before the next contact, or `min` after the start, whichever is later.
+ * The last shot uses the rally end in place of the next contact.
+ * The Rally label still loops the whole rally. Add starts at the serve.
  * Times are seconds in the rally's video.
  */
-export function bestLoop(d: Draft, what: BestStep | 'rally' | 'add'): BestWindow {
+export function bestLoop(d: Draft, what: BestStep | 'rally' | 'add', timing: BestTiming = DEFAULT_BEST_TIMING): BestWindow {
   const start = rallyStart(d)
   const end = rallyEnd(d)
   if (what === 'rally') return { a: start, b: end }
@@ -147,11 +203,8 @@ export function bestLoop(d: Draft, what: BestStep | 'rally' | 'add'): BestWindow
   const n = d.contacts.length
   const shot = taggedShot(what, n)
   const c = d.contacts[shot - 1] ?? start
-  if (shot < n) {
-    const next = d.contacts[shot] ?? end
-    return { a: c, b: Math.max(next, c) }
-  }
-  return { a: c, b: Math.max(end, c) }
+  const next = shot < n ? (d.contacts[shot] ?? end) : end
+  return shotLoop(c, next, timing)
 }
 
 export function setDepth(d: Draft, depth: string): Draft {

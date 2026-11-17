@@ -246,6 +246,7 @@ export function VideoStage({
   onHighlight,
   readOnlyHighlight = false,
   badge = null,
+  extra = null,
   className,
 }: {
   player: Player
@@ -268,6 +269,8 @@ export function VideoStage({
   readOnlyHighlight?: boolean
   /** Shot number on the picture at that shot's contact. Neighbours get none. */
   badge?: { shot: number; side: Side } | null
+  /** Drawn over the picture. Does not change the picture's size. */
+  extra?: ReactNode
   className?: string
 }) {
   const segs: Segment[] = player.segs
@@ -359,6 +362,7 @@ export function VideoStage({
           </button>
         ) : null}
 
+        {extra}
         {hint ? (
           <p
             role="status"
