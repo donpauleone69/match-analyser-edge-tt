@@ -8,7 +8,6 @@ import {
   rallyEnd,
   rallyStart,
   hitterOf,
-  serverForWinner,
   winnerOf,
   type Draft,
   type Ending,
@@ -121,16 +120,25 @@ export function asksWhoFirst(flow: BestFlowName, n: number, fa: number | null): 
   return flow === 'bestfa' && n >= 5 && fa === n
 }
 
+/** A contact that moves into the serve slot is the serve. It does not keep the stroke of the shot it used to be. */
+function withoutServeStroke(shot: ShotTags | undefined): ShotTags | undefined {
+  if (!shot || (!shot.wing && !shot.stroke)) return shot
+  const { wing: _wing, stroke: _stroke, ...rest } = shot
+  return rest
+}
+
 /** Drop one contact. Tags stay with the shots that remain. The end answer goes with the last shot. */
 export function removeBestContact(d: Draft, shot: number): Draft {
   const i = shot - 1
   if (i < 0 || i >= d.contacts.length || d.contacts.length < 2) return d
   const last = i === d.contacts.length - 1
   const best = d.best && last ? omitBestEnd(d.best) : d.best
+  const shots = d.shots.filter((_, j) => j !== i)
+  if (i === 0 && shots[0]) shots[0] = withoutServeStroke(shots[0]) ?? {}
   return {
     ...d,
     contacts: d.contacts.filter((_, j) => j !== i),
-    shots: d.shots.filter((_, j) => j !== i),
+    shots,
     ending: last ? null : d.ending,
     end: last ? null : d.end,
     start: i === 0 ? null : d.start,
@@ -154,16 +162,26 @@ export function bestHitters(d: Pick<Draft, 'server' | 'contacts'>): Side[] {
 }
 
 /**
- * Rally 1 has no server until the ending says who won. Write that server onto the draft
- * so who hit each shot, the hinted winner and the score all read the same data.
+ * What a closed rally should show after one contact is removed.
+ * `toss`: an end contact (one of the last two, not the serve) left, and a serve step remains.
+ * `serve`: the serve length was on contact 1, and the serve step remains.
+ * `serve-note`: the same length left, but only one contact remains.
+ * A middle contact, a serve with no length, and a rally still being tapped say nothing.
  */
-export function settleBestServer(d: Draft, rallyOne: boolean): Draft {
-  if (!rallyOne || !d.ending) return d
-  const winner = winnerOf(d)
-  if (!winner) return d
-  const server = serverForWinner(d, winner)
-  if (server === d.server && d.serveChecked) return d
-  return { ...d, server, serveChecked: true }
+export type ContactFollowUp = 'toss' | 'serve' | 'serve-note'
+
+export function contactFollowUp(
+  closed: boolean,
+  n: number,
+  shot: number,
+  hadServeDepth: boolean,
+): ContactFollowUp | null {
+  if (!closed || n < 2) return null
+  const left = n - 1
+  const endContact = shot > 1 && shot >= n - 1
+  if (endContact && left >= 2) return 'toss'
+  if (shot === 1 && hadServeDepth) return left >= 2 ? 'serve' : 'serve-note'
+  return null
 }
 
 /** Keep the mismatch only while the lit name still disagrees with the tapped one. */
@@ -329,13 +347,6 @@ export function bestRally(d: Draft, id: string, winner: Side, kept: boolean): Ra
       ...(kept ? { check: 'Check the point' } : {}),
     },
   }
-}
-
-export function chipText(shot: ShotTags | undefined, index: number): string {
-  if (index === 0 && shot?.depth) return shot.depth === 'Long' ? 'Ln' : 'Sh'
-  if (shot?.stroke === 'Attack') return shot.wing === 'BH' ? 'B+' : 'F+'
-  if (shot?.stroke === 'Control') return shot.wing === 'BH' ? 'B-' : 'F-'
-  return ''
 }
 
 /** Rally list text. A shot number when it is known. Who, or a question mark, when only the last shot was an attack. */
