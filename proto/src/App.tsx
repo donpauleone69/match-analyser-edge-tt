@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
+import { APP_VERSION } from '@/version'
 import { AppShell } from '@/layout/AppShell'
 import { ScrollToTop } from '@/layout/ScrollToTop'
 import { GatePage } from '@/pages/GatePage'
@@ -20,6 +21,12 @@ import { AccountPage } from '@/pages/AccountPage'
 export default function App() {
   return (
     <>
+      <p
+        data-build-version=""
+        className="pointer-events-none fixed top-1 right-2 z-50 text-[10px] font-medium leading-none text-muted"
+      >
+        {APP_VERSION}
+      </p>
       <ScrollToTop />
       <DiscardUntouched />
       <ArchiveRunner />

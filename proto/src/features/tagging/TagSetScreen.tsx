@@ -2426,18 +2426,12 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   }, [player.time, player.playing])
 
   const flowShown: FlowName = mode === 'tagging' && flowLock ? flowLock : flowWanted
-  const onFlowToggle = () => {
+  const onFlowPick = (flow: string) => {
     const next = new URLSearchParams(searchParams)
-    const dest =
-      flowWanted === 'current' || isIdeaFlow(flowWanted)
-        ? 'sequential'
-        : flowWanted === 'sequential'
-          ? 'endfirst'
-          : 'current'
-    next.set('flow', dest)
+    next.set('flow', flow)
     setSearchParams(next, { replace: true })
+    setDetail(null)
   }
-  const flowChosen = !isIdeaFlow(flowWanted) && flowWanted !== 'current'
 
   return (
     <div
@@ -2464,16 +2458,19 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       {/* Left on desktop, top on phone: header, picture, timeline, rally list. */}
       <div className="tag-media">
         <SetHeader match={match} set={set}>
-          <Button
-            size="sm"
-            variant="secondary"
+          <select
             data-flow-toggle=""
-            aria-pressed={flowChosen}
-            className={cn('px-3', flowChosen && 'border-tag-chosen bg-tag-chosen text-on-accent')}
-            onClick={onFlowToggle}
+            aria-label="Flow"
+            value={flowWanted}
+            onChange={(e) => onFlowPick(e.target.value)}
+            className="h-7 w-[5.6rem] shrink-0 appearance-none truncate rounded-md border border-border bg-bg-card px-1.5 text-[11px] font-medium text-primary"
           >
-            {FLOW_LABEL[flowWanted === 'current' || isIdeaFlow(flowWanted) ? 'sequential' : flowWanted]}
-          </Button>
+            {(Object.keys(FLOW_LABEL) as FlowName[]).map((flow) => (
+              <option key={flow} value={flow}>
+                {FLOW_LABEL[flow]}
+              </option>
+            ))}
+          </select>
           <SwapVideoButton
             matchId={match.id}
             videoId={match.videos[segmentAt(segs, player.time)?.index ?? 0]?.id ?? null}
@@ -3551,7 +3548,7 @@ function FinishedActions({
 
 function SetHeader({ match, set, children }: SetHeaderProps) {
   return (
-    <header className="h-10 px-2 flex items-center gap-2 border-b border-border bg-bg-app">
+    <header className="h-10 flex items-center gap-1.5 border-b border-border bg-bg-app pl-2 pr-10">
       <Link
         to={`/matches/${match.id}/tag`}
         aria-label="Back"

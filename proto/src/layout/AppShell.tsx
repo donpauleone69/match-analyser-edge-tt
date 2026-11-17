@@ -55,7 +55,7 @@ export function AppShell() {
   const tagging = Boolean(useMatch('/matches/:matchId/tag/:setId'))
   return (
     <div className="h-full bg-bg-app flex flex-col">
-      <header className="hidden md:flex shrink-0 items-center justify-between gap-4 border-b border-border bg-bg-shell px-6 lg:px-8 min-h-[var(--btn-kind-main)] z-40">
+      <header className="hidden md:flex shrink-0 items-center justify-between gap-4 border-b border-border bg-bg-shell pl-6 pr-12 lg:pl-8 lg:pr-14 min-h-[var(--btn-kind-main)] z-40">
         <nav className="flex items-center gap-1" aria-label="Main">
           {navItems.map((item) => (
             <ShellNavLink key={item.to} {...item} layout="top" />
