@@ -120,16 +120,25 @@ export function asksWhoFirst(flow: BestFlowName, n: number, fa: number | null): 
   return flow === 'bestfa' && n >= 5 && fa === n
 }
 
+/** A contact that moves into the serve slot is the serve. It does not keep the stroke of the shot it used to be. */
+function withoutServeStroke(shot: ShotTags | undefined): ShotTags | undefined {
+  if (!shot || (!shot.wing && !shot.stroke)) return shot
+  const { wing: _wing, stroke: _stroke, ...rest } = shot
+  return rest
+}
+
 /** Drop one contact. Tags stay with the shots that remain. The end answer goes with the last shot. */
 export function removeBestContact(d: Draft, shot: number): Draft {
   const i = shot - 1
   if (i < 0 || i >= d.contacts.length || d.contacts.length < 2) return d
   const last = i === d.contacts.length - 1
   const best = d.best && last ? omitBestEnd(d.best) : d.best
+  const shots = d.shots.filter((_, j) => j !== i)
+  if (i === 0 && shots[0]) shots[0] = withoutServeStroke(shots[0]) ?? {}
   return {
     ...d,
     contacts: d.contacts.filter((_, j) => j !== i),
-    shots: d.shots.filter((_, j) => j !== i),
+    shots,
     ending: last ? null : d.ending,
     end: last ? null : d.end,
     start: i === 0 ? null : d.start,
@@ -338,13 +347,6 @@ export function bestRally(d: Draft, id: string, winner: Side, kept: boolean): Ra
       ...(kept ? { check: 'Check the point' } : {}),
     },
   }
-}
-
-export function chipText(shot: ShotTags | undefined, index: number): string {
-  if (index === 0 && shot?.depth) return shot.depth === 'Long' ? 'Ln' : 'Sh'
-  if (shot?.stroke === 'Attack') return shot.wing === 'BH' ? 'B+' : 'F+'
-  if (shot?.stroke === 'Control') return shot.wing === 'BH' ? 'Bc' : 'Fc'
-  return ''
 }
 
 /** Rally list text. A shot number when it is known. Who, or a question mark, when only the last shot was an attack. */

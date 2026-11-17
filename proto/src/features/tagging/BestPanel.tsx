@@ -6,7 +6,6 @@ import {
   BEST_SHOTS,
   STEP_LABEL,
   bestEndOf,
-  chipText,
   finishShowsStroke,
   asksWhoFirst,
   firstAttackShot,
@@ -179,8 +178,8 @@ export function BestRallyRow({
               const shot = i + 1
               const side = hitterOf(draft.server, shot)
               const flagged = Boolean(toss && shot === 1)
-              const mark = flagged ? 'toss?' : chipText(draft.shots[i], i)
-              const canDelete = Boolean(checking && onMinus && draft.contacts.length > 1)
+              const canDelete = Boolean(onMinus && draft.contacts.length > 1 && (checking || flagged))
+              const tags = draft.shots[i]
               const paint = {
                 backgroundColor: `color-mix(in srgb, ${side === 'me' ? 'var(--color-tag-player-a)' : 'var(--color-tag-player-b)'} 15%, transparent)`,
                 borderColor: `color-mix(in srgb, ${side === 'me' ? 'var(--color-tag-player-a)' : 'var(--color-tag-player-b)'} 50%, transparent)`,
@@ -197,11 +196,7 @@ export function BestRallyRow({
               const body = (
                 <>
                   <span>{shot}</span>
-                  {mark ? (
-                    <span className={cn('font-bold leading-none', flagged ? 'text-[8px] text-warning' : 'text-[10px]')}>{mark}</span>
-                  ) : fa === shot ? (
-                    <span className="text-[9px] font-bold leading-none text-tag-first-attack">FA</span>
-                  ) : null}
+                  {flagged ? <span className="text-[8px] font-bold leading-none text-warning">toss?</span> : null}
                   {canDelete ? (
                     <span
                       aria-hidden
@@ -214,7 +209,16 @@ export function BestRallyRow({
               )
               if (!canDelete) {
                 return (
-                  <div key={shot} data-best-chip={shot} data-best-toss={flagged ? '' : undefined} data-best-flash={flash === i ? '' : undefined} className={look} style={paint}>
+                  <div
+                  key={shot}
+                  data-best-chip={shot}
+                  data-best-toss={flagged ? '' : undefined}
+                  data-best-wing={tags?.wing ?? ''}
+                  data-best-stroke={tags?.stroke ?? ''}
+                  data-best-flash={flash === i ? '' : undefined}
+                  className={look}
+                  style={paint}
+                >
                     {body}
                   </div>
                 )
@@ -226,6 +230,8 @@ export function BestRallyRow({
                   data-best-chip={shot}
                   data-best-minus={shot}
                   data-best-toss={flagged ? '' : undefined}
+                  data-best-wing={tags?.wing ?? ''}
+                  data-best-stroke={tags?.stroke ?? ''}
                   data-best-flash={flash === i ? '' : undefined}
                   aria-label={`Delete shot ${shot}`}
                   className={look}

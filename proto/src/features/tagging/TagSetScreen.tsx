@@ -1743,7 +1743,8 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   }
 
   const onBestMinus = (shot: number) => {
-    if (!live || live.contacts.length < 2 || !bestCheck) return
+    const fromToss = bestToss && shot === 1 && !bestCheck
+    if (!live || live.contacts.length < 2 || (!bestCheck && !fromToss)) return
     const before = set
     const last = shot === live.contacts.length
     const hadServeDepth = Boolean(live.shots[0]?.depth)
@@ -1760,7 +1761,9 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       },
     }
     const watchServe = follow === 'toss' || follow === 'serve'
-    if (watchServe) {
+    // The toss minus deletes shot 1 and leaves the serve loop running.
+    const stayOnServe = fromToss && stepped.closed && stepped.contacts.length >= 2
+    if (watchServe || stayOnServe) {
       setBestMiss(null)
       setBestToss(follow === 'toss')
       setBestServeAsk(follow === 'serve')
@@ -1781,10 +1784,17 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       else playOpenCheck(stepped)
     }
     withUndo('Shot removed', before, () => {
-      setBestToss(false)
-      setBestServeAsk(false)
       const back = before.draft
       if (!back) return
+      if (fromToss) {
+        setBestCheck(false)
+        setBestToss(true)
+        setBestServeAsk(false)
+        if (back.closed) playBest(back, 'serve')
+        return
+      }
+      setBestToss(false)
+      setBestServeAsk(false)
       if (watchServe) {
         setBestCheck(true)
         if (back.closed) playCheck(back)
@@ -3159,8 +3169,10 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               data-tag-toast
               className={cn(
                 'mb-1.5 flex items-center justify-between gap-3 rounded-md bg-neutral-100 text-neutral-950 pl-3 pr-1 text-sm shadow-lg',
-                (zoneOn || bestOn) && 'absolute left-2 right-2 top-2 z-30'
+                (bestToss || bestServeAsk) && 'absolute left-2 right-2 bottom-2 z-30',
+                !(bestToss || bestServeAsk) && (zoneOn || bestOn) && 'absolute left-2 right-2 top-2 z-30'
               )}
+              data-toast-at={bestToss || bestServeAsk ? 'bottom' : undefined}
             >
               <span className="flex-1">{toast.text}</span>
               {toast.extra ? (
