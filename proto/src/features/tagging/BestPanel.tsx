@@ -8,13 +8,16 @@ import {
   chipText,
   finishShowsStroke,
   firstAttackShot,
+  stepAnswered,
   stepsFor,
   type BestStep,
 } from './bestFlow'
 import { hitterOf, winnerOf, type Draft, type Side, type Wing } from './rally'
 
 const cell =
-  'h-8 min-w-0 flex-1 rounded-md border px-1 text-xs font-semibold inline-flex items-center justify-center whitespace-nowrap'
+  'h-8 shrink-0 rounded-md border px-2 text-xs font-semibold inline-flex items-center justify-center whitespace-nowrap'
+
+const caption = 'text-[9px] font-bold uppercase tracking-wide leading-4 text-muted'
 
 function rest(): CSSProperties {
   return { backgroundColor: 'var(--tag-cell-rest)', borderColor: 'var(--tag-cell-rest-line)', color: 'var(--color-text)' }
@@ -30,9 +33,9 @@ function chosen(): CSSProperties {
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div role="group" aria-label={label} data-row={label} className="flex flex-nowrap items-center gap-1">
-      <span className="shrink-0 whitespace-nowrap text-[10px] font-bold uppercase leading-3 text-muted">{label}</span>
-      {children}
+    <div role="group" aria-label={label} data-row={label} className="flex flex-col gap-0.5">
+      <span className={caption}>{label}</span>
+      <div className="flex flex-nowrap items-center gap-1">{children}</div>
     </div>
   )
 }
@@ -84,7 +87,7 @@ export function BestRallyRow({
 }) {
   const fa = draft?.best?.flow === 'bestfa' && draft ? firstAttackShot(draft.shots) : null
   return (
-    <div className="flex w-full min-w-0 items-center gap-1 overflow-hidden" data-best-rail>
+    <div className="flex w-full min-w-0 items-start gap-1" data-best-rail>
       {showStar ? (
         <button
           type="button"
@@ -110,7 +113,7 @@ export function BestRallyRow({
           Check
         </button>
       ) : null}
-      <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1 py-0.5">
         {draft
           ? draft.contacts.map((_, i) => {
               const shot = i + 1
@@ -198,7 +201,7 @@ export function BestPanel({
   const n = draft.contacts.length
   const steps = stepsFor(n)
   const at = steps.indexOf(step)
-  const lit = winnerOf(draft)
+  const lit = rallyOne ? null : winnerOf(draft)
   const strokeShot = step === 'receive' ? 2 : step === 'third' ? 3 : step === 'finish' && finishShowsStroke(n) ? n : 0
   const who = [names.me, names.them, 'Nobody']
 
@@ -206,7 +209,7 @@ export function BestPanel({
     <div className="relative z-20 flex flex-col gap-1 pt-1.5" data-best-panel data-best-step={step} data-best-rally={rallyNo}>
       <div className="flex flex-nowrap gap-1" role="tablist" aria-label="Steps">
         {steps.map((name, i) => {
-          const done = i < at
+          const done = stepAnswered(draft, name)
           const on = name === step
           return (
             <button
@@ -215,7 +218,8 @@ export function BestPanel({
               role="tab"
               aria-selected={on}
               data-best-step={name}
-              disabled={i > at}
+              data-best-done={done ? '' : undefined}
+              disabled={i > at && !done}
               onClick={() => onStep(name)}
               className={cn(cell, 'disabled:opacity-40')}
               style={on ? chosen() : rest()}
@@ -231,12 +235,29 @@ export function BestPanel({
           {rallyOne ? null : (
             <button
               type="button"
-              data-best-server
-              className={cn(cell, 'flex-none px-2')}
-              style={rest()}
+              role="switch"
+              data-best-server={draft.server}
+              aria-label={`${names[draft.server]} serving`}
+              aria-checked={draft.server === 'them'}
+              className="inline-flex h-8 shrink-0 items-center rounded-full border border-border bg-bg-card p-0.5"
               onClick={onServer}
             >
-              {names[draft.server]}
+              {(['me', 'them'] as const).map((side) => (
+                <span
+                  key={side}
+                  className="rounded-full px-2 text-xs font-semibold"
+                  style={
+                    draft.server === side
+                      ? {
+                          backgroundColor: side === 'me' ? 'var(--color-side-me)' : 'var(--color-side-them)',
+                          color: '#fff',
+                        }
+                      : { color: 'var(--color-text-muted)' }
+                  }
+                >
+                  {names[side]}
+                </span>
+              ))}
             </button>
           )}
           {BEST_SERVE.map((label) => (
@@ -280,7 +301,7 @@ export function BestPanel({
           </Row>
           {showFirst ? (
             <div className="space-y-1">
-              <p className="text-[10px] font-bold leading-3 text-muted">Who attacked first?</p>
+              <p className={caption}>Who attacked first?</p>
               <div className="flex flex-nowrap gap-1" role="group" aria-label="Who attacked first?">
                 {who.map((label) => (
                   <Choice key={label} label={label} on={draft.best?.first === label} onClick={() => onFirst(label)} />
@@ -316,7 +337,7 @@ export function BestPanel({
           </Row>
           {mismatch ? (
             <div className="space-y-1" data-best-mismatch>
-              <p className="text-[10px] font-bold leading-3 text-muted">Does not match</p>
+              <p className={caption}>Does not match</p>
               <div className="flex flex-nowrap gap-1">
                 {(
                   [

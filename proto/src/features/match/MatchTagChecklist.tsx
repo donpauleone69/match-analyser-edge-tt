@@ -80,7 +80,7 @@ function savedTagLine(match: MatchRecord, s: SetData): string {
     `stopped at ${stoppedAtClock(match, s)}`,
   ].join(' · ')
   const place = bestPlace(s)
-  return place ?? (s.draft ? `${line} · 1 rally open` : line)
+  return place ? `${line} · ${place}` : s.draft ? `${line} · 1 rally open` : line
 }
 
 /** What a set can truly have: a state, a score and a rally count. */

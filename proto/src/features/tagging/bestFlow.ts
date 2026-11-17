@@ -5,10 +5,8 @@
  */
 
 import {
-  SHOT_LOOP_HOLD_S,
   rallyEnd,
   rallyStart,
-  shotWindow,
   winnerOf,
   type Draft,
   type RallyData,
@@ -16,7 +14,6 @@ import {
   type Side,
   type Wing,
 } from './rally'
-import { END_FIRST_PAUSE_S } from './sequence'
 
 export const BEST_STROKES = ['Touch', 'Push', 'Flick', 'Loop'] as const
 export const BEST_SERVE = ['Short', 'Long'] as const
@@ -98,23 +95,33 @@ export function impliedWinner(d: Pick<Draft, 'server' | 'contacts' | 'ending'>):
   return winnerOf(d)
 }
 
-export type BestWindow = { a: number; b: number; hold?: number }
+export type BestWindow = { a: number; b: number }
 
-/** One step's loop. Times are seconds in the rally's video. */
+/** The shot a step is tagging. Finish tags the last shot. */
+function taggedShot(what: BestStep, n: number): number {
+  if (what === 'serve') return 1
+  if (what === 'receive') return 2
+  if (what === 'third') return 3
+  return Math.max(1, n)
+}
+
+/**
+ * Loop the shot being tagged: that contact to the next contact.
+ * The last shot runs to the rally end. The Rally label loops the whole rally.
+ * Times are seconds in the rally's video.
+ */
 export function bestLoop(d: Draft, what: BestStep | 'rally'): BestWindow {
-  const n = d.contacts.length
   const start = rallyStart(d)
   const end = rallyEnd(d)
   if (what === 'rally') return { a: start, b: end }
-  if (what === 'serve') {
-    const recv = d.contacts[1] ?? d.contacts[0] ?? start
-    const b = Math.min(end, recv + 0.35)
-    return { a: start, b: Math.max(b, start + 0.3) }
+  const n = d.contacts.length
+  const shot = taggedShot(what, n)
+  const c = d.contacts[shot - 1] ?? start
+  if (shot < n) {
+    const next = d.contacts[shot] ?? end
+    return { a: c, b: Math.max(next, c) }
   }
-  if (what === 'receive' && n >= 2) return { ...shotWindow(d, 2), hold: SHOT_LOOP_HOLD_S }
-  if (what === 'third' && n >= 3) return { ...shotWindow(d, 3), hold: SHOT_LOOP_HOLD_S }
-  const last = shotWindow(d, Math.max(1, n))
-  return { a: last.a, b: end, hold: END_FIRST_PAUSE_S }
+  return { a: c, b: Math.max(end, c) }
 }
 
 export function setDepth(d: Draft, depth: string): Draft {
@@ -174,11 +181,11 @@ export function bestRally(d: Draft, id: string, winner: Side, kept: boolean): Ra
 }
 
 export function chipText(shot: ShotTags | undefined, index: number): string {
-  if (index === 0 && shot?.depth) return shot.depth === 'Long' ? 'L' : 'S'
+  if (index === 0 && shot?.depth) return shot.depth === 'Long' ? 'Ln' : 'Sh'
   if (!shot?.stroke) return ''
   if (shot.stroke === 'Touch') return 'T'
   if (shot.stroke === 'Push') return 'P'
   if (shot.stroke === 'Flick') return 'F'
-  if (shot.stroke === 'Loop') return 'L'
+  if (shot.stroke === 'Loop') return 'Lp'
   return ''
 }

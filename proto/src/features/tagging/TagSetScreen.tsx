@@ -182,6 +182,7 @@ import {
   restoreStep,
   setDepth,
   setWingStroke,
+  stepAnswered,
   stepsFor,
   type BestStep,
 } from './bestFlow'
@@ -593,10 +594,10 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     const p = playerRef.current
     p.setBoundary(null)
     p.setRate(rate)
+    const span = w.b > w.a ? w.b : w.a + 0.05
     p.setLoop({
       a: off + Math.max(0, w.a),
-      b: off + Math.min(max, Math.max(w.b, w.a + 0.3)),
-      ...(w.hold ? { hold: w.hold } : {}),
+      b: off + Math.min(max, span),
     })
     p.seek(off + Math.max(0, w.a))
     p.play()
@@ -1594,7 +1595,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const onBestPoint = (side: Side) => {
     if (!live?.ending) return
     const implied = winnerOf(live)
-    if (implied && side !== implied) {
+    if (set.rallies.length > 0 && implied && side !== implied) {
       setBestMiss(side)
       return
     }
@@ -2778,7 +2779,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       {/* Right on a wide screen, below on a phone: rail, status, panel, then one slot. */}
       <div className="tag-entry">
         <div className="shrink-0 bg-bg-app px-2 pt-1.5">
-          {isBestFlow(flowShown) && !edit && !(bestOver && !active) ? (
+          {isBestFlow(flowShown) && !edit && !((bestOver || bestHoldOn) && !active) ? (
             <BestRallyRow
               draft={active}
               flash={
@@ -2898,7 +2899,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               'flex gap-1.5',
               livePlain ? 'mt-2.5 min-h-[var(--btn-kind-control)] items-center' : 'mb-1.5 items-stretch',
               zoneOn && 'hidden',
-              (bestOn || bestOver) && 'hidden',
+              (bestOn || bestOver || bestHoldOn) && 'hidden',
               livePlain ? lineHidden && 'hidden' : mode !== 'edit' && (selected?.kind === 'shot' || showEnd) && 'hidden'
             )}
             onClickCapture={guardClicks(slotGuard)}
@@ -2970,7 +2971,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
             ) : null}
           </div>
 
-          {toast ? (
+          {toast && !bestHoldOn && !bestOver ? (
             <div
               role="status"
               data-tag-toast
@@ -3001,7 +3002,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
             </div>
           ) : null}
 
-          <div className={cn('space-y-2', panelBusy && BUSY)} data-tag-panel data-details-box>
+          <div className={cn('space-y-2', panelBusy && !bestOn && BUSY)} data-tag-panel data-details-box>
             {bestOver ? (
               <p data-best-over className="pt-1.5 text-sm font-semibold text-primary">
                 Set over at {bestOver}
@@ -3019,7 +3020,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                 onStep={(step) => {
                   const steps = stepsFor(live.contacts.length)
                   const cur = steps.indexOf(restoreStep(live))
-                  if (steps.indexOf(step) > cur) return
+                  if (steps.indexOf(step) > cur && !stepAnswered(live, step)) return
                   putBest(live, step, false)
                 }}
                 onServe={(depth) => putBest(setDepth(live, depth), 'serve', true)}
@@ -3206,7 +3207,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                 }
               />
             ) : null}
-            {!zoneOn && !detailing && !fixing && mode === 'watch' && !gap && !atEnd && lastSaved && !bestOver ? (
+            {!zoneOn && !detailing && !fixing && mode === 'watch' && !gap && !atEnd && lastSaved && !bestOver && !bestHoldOn ? (
               <div
                 data-last-saved
                 className="rounded-md border border-border bg-bg-surface pl-3 pr-1.5 py-1.5 flex items-center gap-2"
@@ -3237,7 +3238,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                 )}
               </div>
             ) : null}
-            {!zoneOn && !detailing && !fixing && (mode === 'watch' || mode === 'tapping' || mode === 'setPoint') && !atEnd && !bestOver ? (
+            {!zoneOn && !detailing && !fixing && (mode === 'watch' || mode === 'tapping' || mode === 'setPoint') && !atEnd && !bestOver && !bestHoldOn ? (
               <p
                 data-tag-where
                 className="h-5 px-1 text-xs leading-5 text-muted tabular-nums truncate"
@@ -3245,7 +3246,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                 {whereLine}
               </p>
             ) : null}
-            {!zoneOn && finishKept && !bestOver ? (
+            {!zoneOn && finishKept && !bestOver && !bestHoldOn ? (
               <div data-finish-card>
                 <Button kind="main" fullWidth variant="secondary" onClick={onFinishSet}>
                   Finish set at {formatScore(score)}
