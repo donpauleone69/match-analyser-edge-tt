@@ -39,6 +39,7 @@ import {
   strokeLabel,
   strokeRole,
   toggleReview,
+  unaskedShots,
   type BestAt,
   type BestEnd,
 } from '../src/features/tagging/bestFlow'
@@ -126,6 +127,14 @@ eq('steps 2', stepsFor(closed(2)), ['end', 'serve'])
 eq('steps 4', stepsFor(closed(4)), ['end', 'serve', 'receive', 'third'])
 eq('steps 6', stepsFor(closed(6)), ['end', 'serve', 'receive', 'third', 'shots'])
 eq('steps 7', stepsFor(closed(7)), ['end', 'serve', 'receive', 'third', 'fourth', 'shots'])
+// Who attacked first? covers shots 5 to n-3, so only 8+ shots with no attack on 2 to 4.
+eq('who first 7 all control', asksWhoFirst(tagged(7, { 2: 'C', 3: 'C', 4: 'C' })), false)
+eq('who first 7 blank', asksWhoFirst(closed(7)), false)
+eq('who first 8 all control', asksWhoFirst(tagged(8, { 2: 'C', 3: 'C', 4: 'C' })), true)
+eq('who first 8 shot 4 attack', asksWhoFirst(tagged(8, { 2: 'C', 3: 'C', 4: 'A' })), false)
+eq('unasked 7', unaskedShots(7), [])
+eq('unasked 10', unaskedShots(10), [5, 6, 7])
+eq('cell targets 7, no Rally page', [5, 6].map((k) => cellTarget(closed(7), k)), [{ step: 'shots', page: 5 }, { step: 'shots', page: 6 }])
 const taps: [number, number][] = [[1, 3], [2, 6], [3, 8], [4, 10], [5, 12], [6, 14], [7, 16], [10, 19]]
 for (const [n, t] of taps) eq(`taps ${n}`, bestTaps(n), t)
 

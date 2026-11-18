@@ -56,7 +56,7 @@ export function openAt(d: Draft): SeqStop {
  * The serve and the last shot always stop (a one shot rally has no serve stop:
  * it opens on End). Before a first attack, every shot stops. After it, the
  * attack and the two replies stop. Later shots do not. No attack skips the
- * middle and stops on the last shot.
+ * shots between and stops on the last shot.
  */
 export function shouldStop(d: Draft, shot: number): boolean {
   const n = endShot(d)

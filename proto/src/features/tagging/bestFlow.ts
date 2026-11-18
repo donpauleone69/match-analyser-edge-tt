@@ -46,7 +46,7 @@ export function bestEndOf(d: { ending: Ending | null; best?: { end?: string } })
 
 export const BEST_STEPS: readonly BestStep[] = ['end', 'serve', 'receive', 'third', 'fourth', 'shots']
 
-/** Four parts. Rally is the part between, never Middle. */
+/** Four parts. Rally is the part between Attack and End. */
 export const PART_LABEL: Record<BestPart, string> = {
   opening: 'Opening',
   attack: 'Attack',
@@ -205,7 +205,10 @@ export function strokeLabel(d: Pick<Draft, 'contacts' | 'shots'>, shot: number, 
   return `${wing} ${counterAt(d, shot) ? 'Counter' : 'Attack'}`
 }
 
-/** Who attacked first? is asked on 8 shots or more when shots 2, 3 and 4 are not attacks. Blank counts as not. */
+/**
+ * Who attacked first? covers the unasked shots, 5 to n-3. A 7 shot rally has none,
+ * so it is asked on 8 shots or more, when shots 2, 3 and 4 are not attacks. Blank counts as not.
+ */
 export function asksWhoFirst(d: Pick<Draft, 'contacts' | 'shots'>): boolean {
   const n = d.contacts.length
   if (unaskedShots(n).length === 0) return false
