@@ -2929,7 +2929,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       ? [
           bestQ.step,
           bestQ.page ?? '',
-          padFocus(live, bestRallyOne, endBack),
+          answerLayout === 'pad' ? padFocus(live, bestRallyOne, endBack) : '',
           bestMismatch(live, bestRallyOne),
           pointDone(live, bestRallyOne),
           live.contacts.length,
