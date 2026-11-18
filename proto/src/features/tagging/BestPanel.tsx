@@ -168,11 +168,16 @@ export function BestRallyRow({
                   data-best-flash={flash === i ? '' : undefined}
                   aria-label={canDelete ? `Delete shot ${shot}` : `Shot ${shot}`}
                   aria-current={open ? 'step' : undefined}
-                  disabled={!enabled}
-                  onClick={() => (canDelete ? onMinus(shot) : onCell(shot))}
+                  aria-disabled={!enabled}
+                  onClick={() => {
+                    if (!enabled) return
+                    if (canDelete) onMinus(shot)
+                    else onCell(shot)
+                  }}
                   className={cn(
                     railCell,
-                    'min-w-0 px-0 disabled:cursor-default',
+                    'min-w-0 px-0',
+                    !enabled && 'cursor-default',
                     isFa && 'border-2',
                     mark === 'todo' && 'border-dashed',
                     mark === 'off' && 'opacity-45',

@@ -589,7 +589,7 @@ export function bestLoop(
 }
 
 /**
- * Clip for one part. Shot 1 starts at the rally start. The last part ends at the rally end.
+ * Video window for one part. Shot 1 starts at the rally start. The last part ends at the rally end.
  * Anything else starts the lead before its first contact and ends the end offset before the next part.
  */
 export function partWindow(d: Draft, part: BestPart, timing: BestTiming = DEFAULT_BEST_TIMING): BestWindow {
