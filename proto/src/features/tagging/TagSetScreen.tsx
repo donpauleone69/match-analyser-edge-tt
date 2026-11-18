@@ -187,6 +187,7 @@ import {
   bestTossInstead,
   canOpenCell,
   pointDone,
+  padFocus,
   carryBest,
   cellTarget,
   keepBestMarks,
@@ -444,6 +445,8 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const [bestLook, setBestLook] = useState(false)
   const [bestCheck, setBestCheck] = useState(false)
   const [bestMore, setBestMore] = useState(false)
+  /** Corner pad only: an End question opened again from its one-line reminder. */
+  const [endBack, setEndBack] = useState<'end' | 'point' | null>(null)
   /**
    * The rally just saved. Its row stays until the next rally's first contact:
    * part buttons and ★ change the saved rally, a cell reopens the rally from `before`.
@@ -1738,17 +1741,20 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
 
   const onBestEnd = (end: BestEnd) => {
     if (!live) return
+    setEndBack(null)
     setBestNote(null)
     routeBest(bestSetEnd(live, end))
   }
 
   const onBestPoint = (side: Side) => {
     if (!live?.ending) return
+    setEndBack(null)
     routeBest(bestSetPoint(live, side, rallyOneNow()))
   }
 
   const onBestStroke = (shot: number, wing: Wing, stroke: 'Attack' | 'Control') => {
     if (!live) return
+    setEndBack(null)
     routeBest(setWingStroke(live, shot, wing, stroke))
   }
 
@@ -2911,6 +2917,9 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const flowLocked = mode === 'tagging' && flowLock !== null
   const bestRallyOne = set.rallies.length === 0
   const bestQ: BestAt | null = bestOn && live ? bestAt(live, bestRallyOne) : null
+  useEffect(() => {
+    if (bestQ?.step !== 'end') setEndBack(null)
+  }, [bestQ?.step])
   /** The saved row shows until the next rally's first contact. */
   const bestRowSaved = Boolean(bestSaved && (!live || live.contacts.length === 0))
   const bestRowDraft = bestRowSaved ? bestSaved!.draft : active
@@ -2920,6 +2929,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       ? [
           bestQ.step,
           bestQ.page ?? '',
+          padFocus(live, bestRallyOne, endBack),
           bestMismatch(live, bestRallyOne),
           pointDone(live, bestRallyOne),
           live.contacts.length,
@@ -3307,6 +3317,8 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                 onStroke={onBestStroke}
                 onFirst={(first) => writeDraft(bestSetFirst(live, first))}
                 layout={answerLayout}
+                back={endBack}
+                onBack={setEndBack}
                 onFix={onBestFix}
                 onTossInstead={() => routeBest(bestTossInstead(live), { save: false })}
               />
