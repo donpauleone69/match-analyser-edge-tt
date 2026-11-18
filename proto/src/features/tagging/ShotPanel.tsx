@@ -25,6 +25,7 @@ import {
   type Side,
   type StrokeSide,
 } from './rally'
+import { Answer, Cells, Name, answerCell, restStyle } from './AnswerCells'
 import { pairSide, rowsFor } from './sequence'
 import { bindStrokeSide, shownStrokeSide } from './shotKeys'
 import { formatClock } from './timeline'
@@ -99,70 +100,7 @@ export function TimeRow({
   )
 }
 
-const answerCell =
-  'h-8 min-w-10 shrink-0 border px-2.5 text-sm font-semibold inline-flex items-center justify-center whitespace-nowrap'
-
 const MARK_W = { High: 42, Heavy: 51, Review: 56 } as const
-
-function restStyle(): CSSProperties {
-  return { backgroundColor: 'var(--tag-cell-rest)', borderColor: 'var(--tag-cell-rest-line)' }
-}
-
-function Name({ children }: { children: string }) {
-  return <p className="h-3 text-[10px] font-bold uppercase leading-3 tracking-[0.025em] text-muted">{children}</p>
-}
-
-function Answer({
-  label,
-  on,
-  onClick,
-  tone = 'chosen',
-  disabled = false,
-  radius = 'rounded-md',
-  dim = false,
-  side,
-  fixed,
-}: {
-  label: string
-  on: boolean
-  onClick: () => void
-  tone?: 'chosen' | 'error'
-  disabled?: boolean
-  radius?: string
-  dim?: boolean
-  side?: StrokeSide
-  fixed?: boolean
-}) {
-  return (
-    <button
-      type="button"
-      data-cell={label}
-      data-side={side}
-      data-fixed={fixed === undefined ? undefined : fixed ? 'true' : 'false'}
-      aria-pressed={on}
-      aria-disabled={disabled || dim}
-      disabled={disabled}
-      onClick={onClick}
-      className={cn(
-        answerCell,
-        radius,
-        on
-          ? tone === 'error'
-            ? 'border-tag-error bg-tag-error text-white'
-            : 'border-tag-chosen bg-tag-chosen text-on-accent'
-          : 'text-primary',
-        dim && 'pointer-events-none opacity-[0.45]'
-      )}
-      style={on ? undefined : restStyle()}
-    >
-      {label}
-    </button>
-  )
-}
-
-function Cells({ children }: { children: ReactNode }) {
-  return <div className="flex flex-nowrap gap-1.5">{children}</div>
-}
 
 /**
  * One shot's tags. The heading, then up to the three sections that shot asks.
@@ -185,8 +123,8 @@ export function ShotPanel({
   onNudge?: (delta: number) => void
   /**
    * Shot by shot. Every section of this shot shows, marks from the start,
-   * and stroke and wing take a press before the result. The current mode
-   * leaves this false and is unchanged.
+   * and stroke and wing take a press before the result. Edit leaves this
+   * false.
    */
   sequential?: boolean
   /** Offensive or Defensive. The walk decides what that stores. */

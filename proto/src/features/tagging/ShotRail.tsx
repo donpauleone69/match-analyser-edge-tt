@@ -8,7 +8,7 @@ export const railCell =
 const caption = 'h-4 text-[9px] font-bold uppercase tracking-wide leading-4 whitespace-nowrap'
 
 /** Player token, or that token at 15%. Open is the solid token. */
-function shotPaint(side: Side, open: boolean, fa: boolean, dim: boolean): CSSProperties {
+export function shotPaint(side: Side, open: boolean, fa: boolean, dim: boolean): CSSProperties {
   const token = side === 'me' ? 'var(--color-tag-player-a)' : 'var(--color-tag-player-b)'
   const fill = open ? token : `color-mix(in srgb, ${token} 15%, transparent)`
   const line = open
@@ -59,7 +59,7 @@ export function ShotRail({
   onEnd: () => void
   /**
    * Shot by shot. Shots already passed can be pressed. Null keeps the
-   * current mode's rules.
+   * stage rules edit uses.
    */
   reach?: { shot: (n: number) => boolean; end: boolean } | null
 }) {

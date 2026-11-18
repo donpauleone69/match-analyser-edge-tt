@@ -1,11 +1,10 @@
 /**
- * Shot by shot and End first. A screen layer on top of the rally: it chooses
- * which shot is open, and it never changes what Save stores. The current
- * mode's stage order and `shotKeys.applyShotKey` stay as they are.
+ * Shot by shot. A screen layer on top of the rally: it chooses
+ * which shot is open, and it never changes what Save stores. The rally's
+ * stage order and `shotKeys.applyShotKey` stay as they are.
  *
  * The serve opens first. A one shot rally opens on End. On the last shot,
- * End is asked before that shot's details. Both walks use this order.
- * End first holds one second at the end of each clip.
+ * End is asked before that shot's details.
  *
  * Defensive is the lit choice before the first attack. Offensive makes that
  * shot the first attack and keeps the walk there until stroke, wing and
@@ -46,9 +45,6 @@ const RESULT_KEYS = ['q', 'w', 'e', 'r', 't', 'y'] as const
 const STROKE_KEYS = ['s', 'd', 'f', 'g', 'h'] as const
 const WING_KEYS = ['z', 'x'] as const
 
-/** End first holds the last frame of each clip for one second. Shot by shot keeps the short hold. */
-export const END_FIRST_PAUSE_S = 1
-
 /** Where the walk opens once tapping has closed. */
 export function openAt(d: Draft): SeqStop {
   if (endShot(d) <= 1) return { kind: 'end' }
@@ -60,7 +56,7 @@ export function openAt(d: Draft): SeqStop {
  * The serve and the last shot always stop (a one shot rally has no serve stop:
  * it opens on End). Before a first attack, every shot stops. After it, the
  * attack and the two replies stop. Later shots do not. No attack skips the
- * middle and stops on the last shot.
+ * shots between and stops on the last shot.
  */
 export function shouldStop(d: Draft, shot: number): boolean {
   const n = endShot(d)
@@ -72,7 +68,7 @@ export function shouldStop(d: Draft, shot: number): boolean {
   return shot <= d.fa + 2
 }
 
-/** The side the pair shows. Before the first attack this is Defensive, even when the current mode would light Offensive. */
+/** The side the pair shows. Before the first attack this is Defensive, even when the stage rules would light Offensive. */
 export function pairSide(d: Draft, shot: number, held?: StrokeSide | null): StrokeSide {
   if (d.fa !== null && shot === d.fa) return 'offensive'
   if (d.fa !== null && shot < d.fa) return 'defensive'
@@ -92,7 +88,7 @@ export function pairLive(d: Draft, shot: number): boolean {
 /**
  * Rows under the heading. A shot before the attack is the pair alone.
  * Offensive (the first attack) adds stroke, wing and intent, and a reply adds
- * stroke, wing and initiative: the same fields the current mode asks and saves.
+ * stroke, wing and initiative: the same fields edit asks and saves.
  * The last shot always adds stroke and wing, because Save needs them.
  */
 export function rowsFor(d: Draft, shot: number): SeqRow[] {

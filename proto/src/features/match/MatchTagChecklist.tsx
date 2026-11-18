@@ -34,7 +34,7 @@ import { lastContactG, segmentsOf, segmentAt, formatClock, toGlobal } from '@/fe
 import { AddVideoChoice } from '@/features/match/AddVideoChoice'
 import { VideosCard } from '@/features/match/VideosCard'
 import { isRealResult } from '@/features/match/matchChecks'
-import { bestFlowOf, bestPlace } from '@/features/tagging/bestFlow'
+import { bestPlace } from '@/features/tagging/bestFlow'
 
 const flagClass =
   'rounded-md border border-warning bg-warning/15 px-3 py-2 text-sm text-primary flex flex-wrap items-center justify-between gap-2'
@@ -115,11 +115,7 @@ export function MatchTagChecklist() {
   const resume = hasVideo && !lock ? setInProgress(match) : null
   /** A video that rallies were tagged on has been removed. */
   const videoGone = missingVideoIds(match).length > 0
-  const openSet = (setId: number) => {
-    const s = match.sets.find((x) => x.setId === setId)
-    const flow = s ? bestFlowOf(s) : null
-    navigate(flow ? `/matches/${match.id}/tag/${setId}?flow=${flow}` : `/matches/${match.id}/tag/${setId}`)
-  }
+  const openSet = (setId: number) => navigate(`/matches/${match.id}/tag/${setId}`)
   // The next set to start leads, unless a set is under way or Finish match leads.
   const finishLeads =
     resultSetCount(match) === null &&

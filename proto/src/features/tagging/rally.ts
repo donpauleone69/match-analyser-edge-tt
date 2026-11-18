@@ -9,7 +9,7 @@ export type Side = 'me' | 'them'
 export const otherSide = (s: Side): Side => (s === 'me' ? 'them' : 'me')
 
 export const ENDINGS = ['Winner', 'Lucky', 'Net', 'Long', 'Wide', 'Air'] as const
-/** `Off` is the Opening and Ending last-ball "Off table". It is not a button in the other flows. */
+/** `Off` is kept so rallies saved with it still load. No flow offers it any more. */
 export type Ending = (typeof ENDINGS)[number] | 'Off'
 
 export const WINGS = ['BH', 'FH'] as const
@@ -73,14 +73,33 @@ export const SHOT_LOOP_HOLD_S = 0.3
 export const SHOT_BADGE_S = 0.4
 export const SPEED_STEPS = [0.5, 0.75, 1, 1.25, 1.5, 2] as const
 
-/** In-progress Best or Best + FA. The other flows never set this. */
+/** Rally Row groups. Opening, Attack, Rally, End. The same ids are the review marks. */
+export type BestPart = 'opening' | 'attack' | 'rally' | 'end'
+
+/** Questions in the order they are asked. `fourth` is shot 4, asked on 7 shots or more. */
+export type BestStep = 'end' | 'serve' | 'receive' | 'third' | 'fourth' | 'shots'
+
+/** Who attacked first. Covers the shots never asked. */
+export type BestFirst = 'me' | 'them' | 'none'
+
+/** In-progress Best + FA. The other flows never set this. */
 export type BestMark = {
-  flow: 'best' | 'bestfa'
-  step?: 'serve' | 'receive' | 'third' | 'finish'
-  /** Who attacked first, when that question was answered. */
-  first?: string
-  /** End button. BH and FH are winners. Net, Long and Wide are errors. */
-  end?: 'BH' | 'FH' | 'Net' | 'Long' | 'Wide'
+  flow: 'bestfa'
+  /** The question open now. */
+  step?: BestStep
+  /** The End shot open while `step` is `shots`. */
+  endPage?: number
+  /** End button. Winner means the last hitter won. Net, Long and Wide are errors. */
+  end?: 'Winner' | 'Net' | 'Long' | 'Wide'
+  /** Point to. Kept through every contact edit. */
+  point?: Side
+  /** Keep as is: saved with "Check the point". */
+  kept?: true
+  first?: BestFirst
+  /** Parts marked for review, in row order. */
+  review?: BestPart[]
+  /** The contact Delete last removed, while Serve can still offer Delete first instead. Draft only. */
+  cut?: number
 }
 
 export type ShotTags = {
@@ -120,7 +139,7 @@ export type Draft = {
    * Absent means the app's proposal was kept.
    */
   serveChecked?: boolean
-  /** Best or Best + FA only. Absent on the other flows. */
+  /** Best + FA only. Absent on the other flows. */
   best?: BestMark
 }
 
@@ -787,24 +806,24 @@ export type RallyData = {
   /** The server was chosen or confirmed. See `isKnownGood` in continuity.ts. */
   serveChecked?: boolean
   /**
-   * Opening and Ending, Rally Spine, Best, or Best + FA. Absent on the other flows.
+   * Rally Spine or Best + FA. Absent on Shot by shot.
    * The score still comes from `winner`, not from these answers.
    */
   idea?: IdeaTag
 }
 
-/** Answers from a later-pass flow. Current, Shot by shot and End first never set this. */
+/** Answers from Rally Spine or Best + FA. Shot by shot never sets this. */
 export type IdeaTag = {
-  flow: 'openend' | 'spine' | 'best' | 'bestfa'
-  /** Spine result token, or the Opening and Ending last ball once it is answered. */
+  flow: 'spine' | 'bestfa'
+  /** Spine result token, or the Best + FA end button. */
   result?: string
   serve?: string
   /** Shot number to the button that was pressed. */
   shots?: Record<number, string>
-  /** Who attacked first. Opening and Ending, or Best + FA. */
-  first?: string
-  /** Where a landed ball finished, Opening and Ending only. */
-  zone?: string
+  /** Who attacked first, from the optional Best + FA question. */
+  first?: BestFirst
+  /** Parts marked for review. Same ids as the Rally Row. */
+  review?: BestPart[]
   /** Finish wing, Rally Spine only. */
   wing?: string
   /** Finish stroke, Rally Spine only. Empty when the earlier sweep already named it. */
