@@ -6,31 +6,24 @@
 
 import { isError, type Draft, type RallyData, type Side } from './rally'
 
-export type FlowName = 'current' | 'sequential' | 'endfirst' | 'openend' | 'spine' | 'best' | 'bestfa'
+export type FlowName = 'bestfa' | 'sequential' | 'spine'
 
-/** Shot by shot and End first share the walk. */
-export const isWalkFlow = (f: FlowName | null): boolean => f === 'sequential' || f === 'endfirst'
+/** Shot by shot. */
+export const isWalkFlow = (f: FlowName | null): boolean => f === 'sequential'
 
-/** Opening and Ending, and Rally Spine. A live pass, then a later pass. */
-export const isIdeaFlow = (f: FlowName | null): f is 'openend' | 'spine' => f === 'openend' || f === 'spine'
+/** Rally Spine. A live pass, then a later pass. */
+export const isIdeaFlow = (f: FlowName | null): f is 'spine' => f === 'spine'
 
-/** Best, and Best + FA. One rally at a time. */
-export const isBestFlow = (f: FlowName | null): f is 'best' | 'bestfa' => f === 'best' || f === 'bestfa'
+/** Best + FA. One rally at a time. */
+export const isBestFlow = (f: FlowName | null): f is 'bestfa' => f === 'bestfa'
 
-/** The `flow` value in the address. Anything else is the current mode. */
-export const flowFromParam = (v: string | null): FlowName =>
-  v === 'sequential' || v === 'endfirst' || v === 'openend' || v === 'spine' || v === 'best' || v === 'bestfa'
-    ? v
-    : 'current'
+/** The `flow` value in the address. Anything else, including a removed flow, is Best + FA. */
+export const flowFromParam = (v: string | null): FlowName => (v === 'sequential' || v === 'spine' ? v : 'bestfa')
 
 export const FLOW_LABEL: Record<FlowName, string> = {
-  current: 'Current',
-  sequential: 'Shot by shot',
-  endfirst: 'End first',
-  openend: 'Open end',
-  spine: 'Spine',
-  best: 'Best',
   bestfa: 'Best + FA',
+  sequential: 'Shot by shot',
+  spine: 'Spine',
 }
 
 export type TagLogLine = {

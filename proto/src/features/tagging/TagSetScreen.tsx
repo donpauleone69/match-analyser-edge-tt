@@ -126,7 +126,6 @@ import { RallyList, type RallyListActions } from './RallyList'
 import { ZERO, addPoint, isSetWon, type Points } from './score'
 import { AnswerKeyPanel } from './AnswerKeyPanel'
 import {
-  END_FIRST_PAUSE_S,
   afterRevisit,
   applySeqKey,
   beforeAttack,
@@ -160,11 +159,8 @@ import {
   SPINE_IDLE_S,
   applyDetail,
   correctResult,
-  correctWinner,
   liveRally,
-  nextOpenend,
   nextSweep,
-  openendState,
   spineEnding,
   sweepState,
   type Sweep,
@@ -414,8 +410,8 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
    * applies to the next one. Cleared on Save and on Discard.
    */
   const [flowLock, setFlowLock] = useState<FlowName | null>(null)
-  /** Detail pass or a spine sweep. Null during the live pass. */
-  const [detail, setDetail] = useState<{ flow: 'openend' } | { flow: 'spine'; sweep: Sweep } | null>(null)
+  /** A spine sweep. Null during the live pass. */
+  const [detail, setDetail] = useState<{ flow: 'spine'; sweep: Sweep } | null>(null)
   const detailRef = useRef(detail)
   /** Best details: the unlit Point to, the whole-rally loop, contact check, add, and the set-end hold. */
   const [bestMiss, setBestMiss] = useState<Side | null>(null)
@@ -450,7 +446,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   flowLockRef.current = flowLock
   /** Who won the open rally, given on End. With the result it sets the server. */
   const [wonByPick, setWonByPick] = useState<Side | null>(null)
-  /** Which stop the shot by shot walk has open. Null in the current mode. */
+  /** Which stop the shot by shot walk has open. Null on the other flows. */
   const [walk, setWalkState] = useState<SeqPlace | null>(null)
   const walkRef = useRef<SeqPlace | null>(null)
   const furthestRef = useRef<SeqPlace | null>(null)
@@ -520,18 +516,14 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   /** Shot by shot is on for this rally: locked when the taps closed, off in edit and review. */
   const seqLive =
     isWalkFlow(flowLock) && !edit && !review && !set.finished && !draftGone && Boolean(live?.closed)
-  /** Opening and Ending, or Rally Spine: the live pass is waiting for its one row. */
+  /** Rally Spine: the live pass is waiting for its one row. */
   const ideaLive =
     isIdeaFlow(flowLock) && !edit && !review && !detail && !set.finished && !draftGone && Boolean(live?.closed)
   /** Best or Best + FA, contacts closed, this rally's steps open. */
   const bestOn =
     isBestFlow(flowLock) && !edit && !review && !set.finished && !draftGone && Boolean(live?.closed)
   const detailing = Boolean(detail && isIdeaFlow(flowWanted) && detail.flow === flowWanted)
-  const detailQ = !detail || !detailing
-    ? null
-    : detail.flow === 'openend'
-      ? nextOpenend(set.rallies, names)
-      : nextSweep(set.rallies, detail.sweep, names)
+  const detailQ = !detail || !detailing ? null : nextSweep(set.rallies, detail.sweep, names)
   /** End is on screen with no result, and whenever a press has opened it. */
   const showEnd = bestOn
     ? false
@@ -727,7 +719,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   /**
    * The clip for the shot that is waiting. End uses the last shot.
    * The loop is not restarted while that shot stays open.
-   * End first holds one second at the end of each play.
    */
   const applySeqLoop = (d: Draft, place: SeqPlace) => {
     const off = offsetOf(d.videoId)
@@ -744,8 +735,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     }
     const shot = place.kind === 'end' ? d.contacts.length : place.shot
     const key = `shot-${shot}`
-    const hold = flowLockRef.current === 'endfirst' ? END_FIRST_PAUSE_S : SHOT_LOOP_HOLD_S
-    const w = clamp({ ...shotWindow(d, shot), hold })
+    const w = clamp({ ...shotWindow(d, shot), hold: SHOT_LOOP_HOLD_S })
     if (seqBlock.current === key) {
       playerRef.current.setLoop(w)
       return
@@ -1124,13 +1114,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       setEndOpen(false)
     } else if (isWalkFlow(wanted)) {
       startSeq(closed, openAt(closed))
-    } else {
-      const w = windowFor(closed, null, stageOf(closed), false)
-      p.setLoop(w)
-      p.seek(w.a)
-      p.play()
-      setSelected(null)
-      setEndOpen(false)
     }
     if (!clock.current) clock.current = freshClock(wanted)
     clock.current.mode = wanted
@@ -1611,7 +1594,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
 
   /** Writes a Best answer and moves the loop to the step that should be open. */
   const putBest = (next: Draft, step: BestStep, advance: boolean) => {
-    const flow = next.best?.flow && isBestFlow(next.best.flow) ? next.best.flow : isBestFlow(flowLock) ? flowLock : 'best'
+    const flow = next.best?.flow && isBestFlow(next.best.flow) ? next.best.flow : 'bestfa'
     const dest = advance && step !== 'finish' ? nextStep(next, step) : step
     const saved: Draft = {
       ...next,
@@ -1767,7 +1750,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     const hadServeDepth = Boolean(live.shots[0]?.depth)
     const follow = contactFollowUp(live.closed, live.contacts.length, shot, hadServeDepth)
     const removed = keepBestMarks(removeBestContact(live, shot))
-    const flow = removed.best?.flow && isBestFlow(removed.best.flow) ? removed.best.flow : isBestFlow(flowLock) ? flowLock : 'best'
+    const flow = removed.best?.flow && isBestFlow(removed.best.flow) ? removed.best.flow : 'bestfa'
     const stepped: Draft = {
       ...removed,
       best: {
@@ -1824,18 +1807,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       if (back.closed) playCheck(back)
       else playOpenCheck(back)
     })
-  }
-
-  /** Opening and Ending: the point winner is the button. The server stays the one already due. */
-  const onIdeaWinner = (side: Side) => {
-    if (fixRef.current) {
-      if (fixRally?.idea?.flow === 'openend') {
-        mutateMatch(match.id, (m) => replaceRally(m, set.setId, correctWinner(fixRally, side)))
-      }
-      return
-    }
-    if (!live?.closed || flowLock !== 'openend') return
-    commitRally(liveRally(live, `r-${Date.now()}`, side, null, { flow: 'openend' }), live)
   }
 
   /** Rally Spine: Winner means the last hitter won. Net, Long or Wide means they lost. */
@@ -2892,7 +2863,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     <div
       className="tag-set bg-bg-app"
       data-tag-mode={mode}
-      data-flow={flowShown === 'current' ? undefined : flowShown}
+      data-flow={flowShown}
       data-best-look={bestLook ? '' : undefined}
       onClick={() => {
         if (clock.current) clock.current.presses++
@@ -2915,7 +2886,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       data-best-resume={bestResume === null ? undefined : String(bestResume)}
       data-loop-a={loopNow ? loopNow.a.toFixed(3) : ''}
       data-loop-b={loopNow ? loopNow.b.toFixed(3) : ''}
-      data-loop-hold={seqLive ? (flowLock === 'endfirst' ? String(END_FIRST_PAUSE_S) : String(SHOT_LOOP_HOLD_S)) : ''}
+      data-loop-hold={seqLive ? String(SHOT_LOOP_HOLD_S) : ''}
       data-fa={active?.fa ?? ''}
       data-no-attack={active?.noAttack ? 'yes' : 'no'}
     >
@@ -3065,10 +3036,8 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
           {ideaLive && live ? (
             <div className="relative z-20">
               <IdeaLivePanel
-                flow={flowLock === 'spine' ? 'spine' : 'openend'}
                 draft={live}
                 names={names}
-                onWinner={onIdeaWinner}
                 onResult={onIdeaResult}
                 onLet={onLet}
               />
@@ -3090,10 +3059,8 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                 </button>
               </div>
               <IdeaLivePanel
-                flow={fixRally.idea?.flow === 'spine' ? 'spine' : 'openend'}
                 draft={draftFromRally(fixRally)}
                 names={names}
-                onWinner={onIdeaWinner}
                 onResult={onIdeaResult}
               />
             </div>
@@ -3385,21 +3352,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
             {detailQ ? <IdeaDetailPanel q={detailQ} onPick={onDetailPick} onBack={onDetailBack} /> : null}
             {mode === 'watch' && isIdeaFlow(flowWanted) && !detailing && set.rallies.some((r) => r.idea?.flow === flowWanted) ? (
               <div className="flex flex-wrap gap-1.5" data-idea-pass="">
-                {flowWanted === 'openend' ? (
-                  <Button
-                    kind="control"
-                    variant="secondary"
-                    data-idea-open="detail"
-                    disabled={openendState(set.rallies, names) !== 'open'}
-                    onClick={() => {
-                      setFixLast(false)
-                      setDetail({ flow: 'openend' })
-                    }}
-                  >
-                    {openendState(set.rallies, names) === 'done' ? 'Detail done' : 'Detail'}
-                  </Button>
-                ) : (
-                  (['serve', 'receive', 'third', 'finish'] as const).map((sweep) => {
+                {(['serve', 'receive', 'third', 'finish'] as const).map((sweep) => {
                     const state = sweepState(set.rallies, sweep)
                     if (state === 'empty') return null
                     const label = sweep === 'serve' ? 'Serve' : sweep === 'receive' ? 'Receive' : sweep === 'third' ? 'Third' : 'Finish'
@@ -3418,8 +3371,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                         {state === 'done' ? `${label} done` : label}
                       </Button>
                     )
-                  })
-                )}
+                  })}
               </div>
             ) : null}
             {!zoneOn && showEnd && active && !readOnly ? (
@@ -3567,7 +3519,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
           else ever appears here while a rally is tapped or tagged.
         */}
         <div
-          data-tag-slot={bestOn && !bestAdd && !bestOver ? 'best' : slotKind}
+          data-tag-slot={bestOn && !bestAdd && !bestOver ? 'bestfa' : slotKind}
           className={cn(
             'relative shrink-0 border-t border-border bg-bg-app px-2 pt-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))]',
             ((bestOn && !bestAdd && !bestOver) || bestHoldOn) && 'hidden'

@@ -4,7 +4,6 @@ import { PageHeader } from '@/layout/PageHeader'
 import { StickyChrome } from '@/layout/StickyChrome'
 import { WfBadge, WfEmpty, WfWarnBadge } from '@/layout/Wireframe'
 import { hasPlayableRallies, matchDiffers, matchLabel } from '@/features/match/matchChecks'
-import { bestFlowOf } from '@/features/tagging/bestFlow'
 import { setInProgress } from '@/features/tagging/matchOps'
 import {
   defaultMatchTab,
@@ -86,9 +85,7 @@ export function HomePage() {
               onClick={() =>
                 navigate(
                   resumeSet
-                    ? `/matches/${continueMatch.id}/tag/${resumeSet.setId}${
-                        bestFlowOf(resumeSet) ? `?flow=${bestFlowOf(resumeSet)}` : ''
-                      }`
+                    ? `/matches/${continueMatch.id}/tag/${resumeSet.setId}`
                     : `/matches/${continueMatch.id}/${defaultMatchTab(derivePhase(continueMatch))}`
                 )
               }

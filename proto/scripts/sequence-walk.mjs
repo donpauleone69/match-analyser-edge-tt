@@ -1,4 +1,5 @@
 /**
+ * Out of date since v0.13: End first and Current are gone, so the flow toggle checks fail.
  * Shot by shot walk with touch: rallies of 1, 2, 3 and 6 shots at 393x645
  * and 1440x912. Checks the walk moves on by itself, the 600 ms band guard,
  * Next never saving, the block of three loop, the flow toggle, Copy timings,

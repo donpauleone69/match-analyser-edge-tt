@@ -31,38 +31,27 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
   )
 }
 
-/** Winner buttons, or the spine result row, once the contacts have closed. */
+/** The spine result row, once the contacts have closed. */
 export function IdeaLivePanel({
-  flow,
   draft,
   names,
-  onWinner,
   onResult,
   onLet,
 }: {
-  flow: 'openend' | 'spine'
   draft: Draft
   names: Record<Side, string>
-  onWinner: (side: Side) => void
   onResult: (result: string) => void
   onLet?: () => void
 }) {
   const n = draft.contacts.length
   const last = n % 2 === 1 ? draft.server : draft.server === 'me' ? 'them' : 'me'
   return (
-    <div className="flex flex-col gap-2.5 pt-2.5" data-idea-live={flow}>
-      {flow === 'openend' ? (
-        <Row label="Point to">
-          <Choice label={names.me} onClick={() => onWinner('me')} />
-          <Choice label={names.them} onClick={() => onWinner('them')} />
-        </Row>
-      ) : (
-        <Row label={`Result, ${names[last]}`}>
-          {['Winner', 'Net', 'Long', 'Wide'].map((label) => (
-            <Choice key={label} label={label} onClick={() => onResult(label)} />
-          ))}
-        </Row>
-      )}
+    <div className="flex flex-col gap-2.5 pt-2.5" data-idea-live="spine">
+      <Row label={`Result, ${names[last]}`}>
+        {['Winner', 'Net', 'Long', 'Wide'].map((label) => (
+          <Choice key={label} label={label} onClick={() => onResult(label)} />
+        ))}
+      </Row>
       {onLet ? (
         <button type="button" className="self-start text-xs font-semibold text-muted underline-offset-2 hover:underline" onClick={onLet}>
           Let
@@ -72,7 +61,7 @@ export function IdeaLivePanel({
   )
 }
 
-/** One question in the detail pass or a sweep. */
+/** One question in a sweep. */
 export function IdeaDetailPanel({
   q,
   onPick,

@@ -1,5 +1,5 @@
 /**
- * Best (`?flow=best`) and Best + FA (`?flow=bestfa`).
+ * Best + FA (`?flow=bestfa`, the default).
  * Contacts, idle close, that rally's steps, then play on.
  * The other flows do not use this file.
  */
@@ -53,7 +53,6 @@ export function bestEndOf(d: { ending: Ending | null; best?: { end?: string } })
 export const BEST_STEPS = ['serve', 'receive', 'third', 'middle', 'finish'] as const
 
 export type BestStep = (typeof BEST_STEPS)[number]
-export type BestFlowName = 'best' | 'bestfa'
 export type MiddleAnswer = 'me' | 'them' | 'none'
 
 export const STEP_LABEL: Record<BestStep, string> = {
@@ -238,7 +237,7 @@ export function firstAttackShot(shots: ShotTags[]): number | null {
  * Best + FA only. The only attack is the last shot of a rally of 5 or more,
  * so an earlier one may be untagged. Never required.
  */
-export function asksWhoFirst(flow: BestFlowName, n: number, fa: number | null): boolean {
+export function asksWhoFirst(flow: 'bestfa', n: number, fa: number | null): boolean {
   return flow === 'bestfa' && n >= 5 && fa === n
 }
 
@@ -431,11 +430,9 @@ export function setWingStroke(d: Draft, shot: number, wing: Wing, stroke: string
   return { ...d, shots }
 }
 
-export function bestFlowOf(s: { draft: Draft | null; rallies: RallyData[] }): BestFlowName | null {
-  const fromDraft = s.draft?.best?.flow
-  if (fromDraft === 'best' || fromDraft === 'bestfa') return fromDraft
-  const flow = s.rallies[s.rallies.length - 1]?.idea?.flow
-  if (flow === 'best' || flow === 'bestfa') return flow
+export function bestFlowOf(s: { draft: Draft | null; rallies: RallyData[] }): 'bestfa' | null {
+  if (s.draft?.best?.flow === 'bestfa') return 'bestfa'
+  if (s.rallies[s.rallies.length - 1]?.idea?.flow === 'bestfa') return 'bestfa'
   return null
 }
 
@@ -448,8 +445,8 @@ export function bestPlace(s: { draft: Draft | null; rallies: RallyData[]; finish
 }
 
 export function bestRally(d: Draft, id: string, winner: Side, kept: boolean): RallyData {
-  const flow: BestFlowName = d.best?.flow === 'bestfa' ? 'bestfa' : 'best'
-  const found = flow === 'bestfa' ? firstAttackShot(d.shots) : null
+  const flow = 'bestfa' as const
+  const found = firstAttackShot(d.shots)
   const ask = asksWhoFirst(flow, d.contacts.length, found)
   const fa = ask ? null : found
   const who = ask ? d.best?.first : undefined

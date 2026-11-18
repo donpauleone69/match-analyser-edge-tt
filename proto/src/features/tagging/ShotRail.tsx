@@ -59,7 +59,7 @@ export function ShotRail({
   onEnd: () => void
   /**
    * Shot by shot. Shots already passed can be pressed. Null keeps the
-   * current mode's rules.
+   * stage rules edit uses.
    */
   reach?: { shot: (n: number) => boolean; end: boolean } | null
 }) {

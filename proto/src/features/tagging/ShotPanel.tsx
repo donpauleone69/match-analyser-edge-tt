@@ -185,8 +185,8 @@ export function ShotPanel({
   onNudge?: (delta: number) => void
   /**
    * Shot by shot. Every section of this shot shows, marks from the start,
-   * and stroke and wing take a press before the result. The current mode
-   * leaves this false and is unchanged.
+   * and stroke and wing take a press before the result. Edit leaves this
+   * false.
    */
   sequential?: boolean
   /** Offensive or Defensive. The walk decides what that stores. */
