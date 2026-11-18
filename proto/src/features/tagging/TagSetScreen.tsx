@@ -287,8 +287,10 @@ const watchRates = new Map<string, number>()
 
 const scoreKey = (p: Points) => `${p.me}-${p.them}`
 
-function guardClicks(until: RefObject<number>) {
+/** `pass` lets a press on a matching element through the guard. */
+function guardClicks(until: RefObject<number>, pass?: string) {
   return (e: MouseEvent) => {
+    if (pass && e.target instanceof Element && e.target.closest(pass)) return
     if (Date.now() < until.current) {
       e.preventDefault()
       e.stopPropagation()
@@ -3030,7 +3032,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
           className="pad-wing"
           data-pad-wing="left"
           ref={setLeftWing}
-          onClickCapture={late ? undefined : guardClicks(panelGuard)}
+          onClickCapture={guardClicks(panelGuard)}
         />
       ) : null}
       <div className="tag-flow">
@@ -3152,6 +3154,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
         </div>
 
         {/* The white band. One line under the shot row, then the column down to the foot. */}
+        {/* The Best questions sit above the late tap, so in the second after the close only the late tap gets through. */}
         <div
           ref={body}
           data-tag-body
@@ -3160,7 +3163,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
             bestOn && answerLayout === 'pad' && 'overflow-hidden',
             zoneOn && 'pb-3'
           )}
-          onClickCapture={late ? undefined : guardClicks(panelGuard)}
+          onClickCapture={!late ? guardClicks(panelGuard) : bestOn ? guardClicks(panelGuard, '[data-late-tap]') : undefined}
         >
           {late && slotKind === 'save' && active ? (
             <button
@@ -4063,7 +4066,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
           className="pad-wing"
           data-pad-wing="right"
           ref={setRightWing}
-          onClickCapture={late ? undefined : guardClicks(panelGuard)}
+          onClickCapture={guardClicks(panelGuard)}
         />
       ) : null}
     </div>
