@@ -2,7 +2,8 @@
  * Best + FA (`?flow=bestfa`, the default).
  * Contacts, idle close, then the questions on the Rally Row: the last shot
  * with End and Point to, then Serve, Receive, Third, shot 4 on 7 shots or
- * more, then the other End shots in rally order. The last answer saves.
+ * more, then every later shot in rally order. Every shot is asked. The last
+ * answer saves.
  * Pure: no React, no store. The other flows do not use this file.
  */
 
@@ -61,14 +62,12 @@ export const BEST_FOURTH_FROM = 7
 
 export type BestPartSpan = { part: BestPart; from: number; to: number }
 
-/** Shots with a stroke question: 2, 3, 4 on 7 shots or more, and the last 3. */
+/** Every shot from 2 to the last has a stroke question. A long rally does not skip. */
 export function bestAsked(n: number, shot: number): boolean {
-  if (shot < 2 || shot > n) return false
-  if (shot <= 3 || shot >= n - 2) return true
-  return shot === 4 && n >= BEST_FOURTH_FROM
+  return shot >= 2 && shot <= n
 }
 
-/** Shots never asked. Who attacked first? covers them. */
+/** Shots with no stroke question. Empty, because every shot is asked. */
 export function unaskedShots(n: number): number[] {
   const out: number[] = []
   for (let k = 2; k <= n; k++) if (!bestAsked(n, k)) out.push(k)
@@ -143,10 +142,13 @@ export function partsOf(d: Pick<Draft, 'contacts' | 'shots' | 'best'>): BestPart
   return bestParts(d.contacts.length, d.shots, d.best?.first)
 }
 
-/** End shots asked last, one page each, in rally order. The last shot is asked first, on End. */
+/**
+ * Shots asked after the named early ones, one page each, in rally order.
+ * Shot 4 is its own step from 7 shots. The last shot is asked first, on End.
+ */
 export function endShots(n: number): number[] {
   const out: number[] = []
-  const from = Math.max(n >= BEST_FOURTH_FROM ? 5 : 4, n - 2)
+  const from = n >= BEST_FOURTH_FROM ? 5 : 4
   for (let k = from; k <= n - 1; k++) out.push(k)
   return out
 }
@@ -206,8 +208,8 @@ export function strokeLabel(d: Pick<Draft, 'contacts' | 'shots'>, shot: number, 
 }
 
 /**
- * Who attacked first? covers the unasked shots, 5 to n-3. A 7 shot rally has none,
- * so it is asked on 8 shots or more, when shots 2, 3 and 4 are not attacks. Blank counts as not.
+ * Who attacked first? covered shots that were not asked. Every shot is asked
+ * now, so this stays false and the question is not shown.
  */
 export function asksWhoFirst(d: Pick<Draft, 'contacts' | 'shots'>): boolean {
   const n = d.contacts.length
@@ -528,6 +530,29 @@ export function saveBestTiming(timing: BestTiming) {
     localStorage.setItem(TIMING_KEY, JSON.stringify(timing))
   } catch {
     // A private browser can refuse the write. The values still apply for this visit.
+  }
+}
+
+/** Answer layout. Buttons is the v0.13.1 cells. Pad is the corner pad. Same questions either way. */
+export type AnswerLayout = 'buttons' | 'pad'
+
+const LAYOUT_KEY = 'edge-tt.answer-layout'
+
+export function loadAnswerLayout(): AnswerLayout {
+  try {
+    const raw = localStorage.getItem(LAYOUT_KEY)
+    if (raw === 'buttons' || raw === 'pad') return raw
+  } catch {
+    // A private browser can refuse the read. The pad is the layout for this version.
+  }
+  return 'pad'
+}
+
+export function saveAnswerLayout(layout: AnswerLayout) {
+  try {
+    localStorage.setItem(LAYOUT_KEY, layout)
+  } catch {
+    // The choice still applies for this visit.
   }
 }
 

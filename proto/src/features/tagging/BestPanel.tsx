@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { cn } from '@/helpers/utils'
 import { Answer, AnswerRow, StrokeGrid, restStyle } from './AnswerCells'
+import { CornerPad } from './CornerPad'
 import {
   BEST_ENDS,
   BEST_SERVE,
@@ -18,6 +19,7 @@ import {
   rallyPage,
   stepShot,
   strokeLabel,
+  type AnswerLayout,
   type BestAt,
   type BestEnd,
   type BestFirst,
@@ -87,6 +89,26 @@ function filled(): CSSProperties {
 }
 
 const headButton = 'h-8 shrink-0 rounded-md border px-2 text-xs font-semibold inline-flex items-center justify-center'
+
+/** BH left, FH right. Attack is the strong colour, Control the light one. */
+const PAD_STROKE: Record<string, { bg: string; fg: string }> = {
+  'BH:Attack': { bg: '#1d4ed8', fg: '#fff' },
+  'FH:Attack': { bg: '#c2410c', fg: '#fff' },
+  'BH:Control': { bg: '#bfdbfe', fg: '#0b1220' },
+  'FH:Control': { bg: '#fed7aa', fg: '#0b1220' },
+}
+
+const PAD_SERVE = [
+  { label: 'Short', bg: '#0f766e', fg: '#fff' },
+  { label: 'Long', bg: '#6d28d9', fg: '#fff' },
+] as const
+
+/** Winner takes the left half. Long is top right, In net bottom right. Net is the stored end. */
+const PAD_ENDS: { end: BestEnd; label: string; bg: string; style: CSSProperties }[] = [
+  { end: 'Winner', label: 'Winner', bg: '#15803d', style: { gridColumn: '1', gridRow: '1 / span 2' } },
+  { end: 'Long', label: 'Long', bg: '#b45309', style: { gridColumn: '2', gridRow: '1' } },
+  { end: 'Net', label: 'In net', bg: '#b91c1c', style: { gridColumn: '2', gridRow: '2' } },
+]
 
 /**
  * The rally, one cell per shot in the hitter's colour. Each cell is the way
@@ -303,6 +325,7 @@ export function BestPanel({
   rallyNo,
   more,
   note,
+  layout,
   onEnd,
   onPoint,
   onServe,
@@ -321,6 +344,7 @@ export function BestPanel({
   more: boolean
   /** "New last shot. End again." on End, "Serve length left with that contact." on Serve. */
   note: string | null
+  layout: AnswerLayout
   onEnd: (end: BestEnd) => void
   onPoint: (side: Side) => void
   onServe: (depth: string) => void
@@ -333,65 +357,118 @@ export function BestPanel({
   const n = draft.contacts.length
   const shot = stepShot(n, at.step, at.page)
   const hitter = hitterOf(draft.server, shot)
-  const grid = (k: number, title: string) => {
+  const grid = (k: number, title: string, fill = true) => {
     const saved = draft.shots[k - 1]
+    const cells = STROKE_GRID.map((row) => row.map((c) => ({ ...c, label: strokeLabel(draft, k, c.wing, c.stroke) })))
+    if (layout === 'pad') {
+      return (
+        <CornerPad
+          shot={k}
+          label={title}
+          fill={fill}
+          columns="1fr 1fr"
+          rows="1fr 1fr"
+          regions={cells.flat().map((c) => {
+            const tone = PAD_STROKE[`${c.wing}:${c.stroke}`]
+            return {
+              key: `${c.wing}-${c.stroke}`,
+              label: c.label,
+              on: saved?.wing === c.wing && saved?.stroke === c.stroke,
+              bg: tone.bg,
+              fg: tone.fg,
+              onClick: () => onStroke(k, c.wing, c.stroke),
+              data: { 'data-wing': c.wing, 'data-stroke': c.stroke },
+            }
+          })}
+        />
+      )
+    }
     return (
       <StrokeGrid
         shot={k}
         label={title}
-        rows={STROKE_GRID.map((row) => row.map((c) => ({ ...c, label: strokeLabel(draft, k, c.wing, c.stroke) })))}
+        rows={cells}
         isOn={(c) => saved?.wing === c.wing && saved?.stroke === c.stroke}
         onPick={(c) => onStroke(k, c.wing, c.stroke)}
       />
     )
   }
+  const serverSwitch =
+    rallyOne ? null : (
+      <button
+        type="button"
+        role="switch"
+        data-best-server={draft.server}
+        aria-label={`${names[draft.server]} serving`}
+        aria-checked={draft.server === 'them'}
+        className="inline-flex h-7 shrink-0 items-center rounded-full border border-border bg-bg-card p-0.5"
+        onClick={onServer}
+      >
+        {(['me', 'them'] as const).map((side) => (
+          <span
+            key={side}
+            className="rounded-full px-2 text-xs font-semibold leading-6"
+            style={
+              draft.server === side
+                ? { backgroundColor: side === 'me' ? 'var(--color-side-me)' : 'var(--color-side-them)', color: '#fff' }
+                : { color: 'var(--color-text-muted)' }
+            }
+          >
+            {names[side]}
+          </span>
+        ))}
+      </button>
+    )
 
   return (
     <div
-      className="relative z-20 flex flex-col gap-2.5 pt-2"
+      className={cn('relative z-20 flex flex-col gap-2.5 pt-2', layout === 'pad' && 'min-h-0 flex-1')}
       data-best-panel
       data-best-step={at.step}
       data-best-page={at.page ?? ''}
       data-best-rally={rallyNo}
+      data-answer-layout={layout}
     >
-      {at.step === 'end' ? <EndPage draft={draft} names={names} rallyOne={rallyOne} more={more} note={note} onEnd={onEnd} onPoint={onPoint} onFix={onFix} grid={grid} /> : null}
+      {at.step === 'end' ? (
+        <EndPage
+          draft={draft}
+          names={names}
+          rallyOne={rallyOne}
+          more={more}
+          note={note}
+          layout={layout}
+          onEnd={onEnd}
+          onPoint={onPoint}
+          onFix={onFix}
+          grid={grid}
+        />
+      ) : null}
 
       {at.step === 'serve' ? (
-        <>
-          <AnswerRow
-            label={`Serve · ${names[draft.server]}`}
-            aside={
-              rallyOne ? null : (
-                <button
-                  type="button"
-                  role="switch"
-                  data-best-server={draft.server}
-                  aria-label={`${names[draft.server]} serving`}
-                  aria-checked={draft.server === 'them'}
-                  className="inline-flex h-7 shrink-0 items-center rounded-full border border-border bg-bg-card p-0.5"
-                  onClick={onServer}
-                >
-                  {(['me', 'them'] as const).map((side) => (
-                    <span
-                      key={side}
-                      className="rounded-full px-2 text-xs font-semibold leading-6"
-                      style={
-                        draft.server === side
-                          ? { backgroundColor: side === 'me' ? 'var(--color-side-me)' : 'var(--color-side-them)', color: '#fff' }
-                          : { color: 'var(--color-text-muted)' }
-                      }
-                    >
-                      {names[side]}
-                    </span>
-                  ))}
-                </button>
-              )
-            }
-          >
-            {BEST_SERVE.map((label) => (
-              <Answer key={label} label={label} on={draft.shots[0]?.depth === label} onClick={() => onServe(label)} data={{ 'data-best-serve': label }} />
-            ))}
-          </AnswerRow>
+        <div className={cn('flex flex-col gap-2.5', layout === 'pad' && 'min-h-0 flex-1')}>
+          {layout === 'pad' ? (
+            <CornerPad
+              label={`Serve · ${names[draft.server]}`}
+              aside={serverSwitch}
+              columns="1fr 1fr"
+              rows="1fr"
+              regions={PAD_SERVE.map((cell) => ({
+                key: cell.label,
+                label: cell.label,
+                on: draft.shots[0]?.depth === cell.label,
+                bg: cell.bg,
+                fg: cell.fg,
+                onClick: () => onServe(cell.label),
+                data: { 'data-best-serve': cell.label },
+              }))}
+            />
+          ) : (
+            <AnswerRow label={`Serve · ${names[draft.server]}`} aside={serverSwitch}>
+              {BEST_SERVE.map((label) => (
+                <Answer key={label} label={label} on={draft.shots[0]?.depth === label} onClick={() => onServe(label)} data={{ 'data-best-serve': label }} />
+              ))}
+            </AnswerRow>
+          )}
           {draft.best?.cut !== undefined ? (
             <div className="flex items-center gap-2" data-best-toss-offer>
               <p className="text-sm font-semibold text-warning">Shot 1 the toss?</p>
@@ -403,7 +480,7 @@ export function BestPanel({
               {note}
             </p>
           ) : null}
-        </>
+        </div>
       ) : null}
 
       {at.step === 'receive' ? grid(2, `Receive · ${names[hitter]}`) : null}
@@ -438,6 +515,7 @@ function EndPage({
   rallyOne,
   more,
   note,
+  layout,
   onEnd,
   onPoint,
   onFix,
@@ -448,6 +526,7 @@ function EndPage({
   rallyOne: boolean
   more: boolean
   note: string | null
+  layout: AnswerLayout
   onEnd: (end: BestEnd) => void
   onPoint: (side: Side) => void
   onFix: (fix: BestFix) => void
@@ -462,20 +541,100 @@ function EndPage({
   const fixes: [BestFix, string][] =
     n < 2 ? [] : [['deleteLast', 'Delete last'], ['deleteFirst', 'Delete first'], ['check', 'Check'], ['more', 'More']]
   const moreFixes: [BestFix, string][] = [['add', 'Add missed'], ['switch', 'Switch server'], ['keep', 'Keep as is']]
+  const endLabel = `End · shot ${n} · ${names[last]}`
+  const endButtons = (
+    <AnswerRow label={endLabel}>
+      {BEST_ENDS.map((label) => (
+        <Answer
+          key={label}
+          label={label}
+          on={endOn === label}
+          tone={label === 'Winner' ? 'chosen' : 'error'}
+          onClick={() => onEnd(label)}
+          data={{ 'data-best-end': label }}
+        />
+      ))}
+    </AnswerRow>
+  )
+  const endPad = (fill: boolean) => (
+    <CornerPad
+      label={endLabel}
+      fill={fill}
+      columns="1fr 1fr"
+      rows="1fr 1fr"
+      regions={PAD_ENDS.map((cell) => ({
+        key: cell.end,
+        label: cell.label,
+        on: endOn === cell.end,
+        bg: cell.bg,
+        fg: '#fff',
+        onClick: () => onEnd(cell.end),
+        data: { 'data-best-end': cell.end },
+        style: cell.style,
+      }))}
+    />
+  )
+  const strokeOpen = pointDone(draft, rallyOne) && !mismatch && n >= 2
+  if (layout === 'pad') {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col gap-2">
+        {strokeOpen ? endPad(false) : endPad(true)}
+        {note ? (
+          <p className="-mt-1 text-xs font-semibold text-primary" data-best-end-note>
+            {note}
+          </p>
+        ) : null}
+        <AnswerRow label="Point to">
+          {(['me', 'them'] as const).map((side) => (
+            <Answer
+              key={side}
+              label={names[side]}
+              on={point === side}
+              disabled={!draft.ending}
+              className={!draft.ending ? 'opacity-40' : undefined}
+              style={lit === side ? hinted() : undefined}
+              onClick={() => onPoint(side)}
+              data={{ 'data-point-to': names[side], 'data-point-hint': lit === side ? '' : undefined, 'data-point-on': point === side ? '' : undefined }}
+            />
+          ))}
+        </AnswerRow>
+        {mismatch ? (
+          <div className="flex flex-col gap-1.5" data-best-mismatch>
+            <p className="text-sm font-semibold leading-4 text-warning" data-best-line>
+              {mismatchLine(draft, names)}
+            </p>
+            {fixes.length ? (
+              <div className="flex flex-nowrap gap-1.5 overflow-hidden" data-best-fixes>
+                {fixes.map(([fix, label]) => (
+                  <Answer
+                    key={fix}
+                    label={label}
+                    on={false}
+                    style={fix === 'deleteLast' ? filled() : undefined}
+                    className={fix === 'more' ? 'min-w-0 px-2' : undefined}
+                    onClick={() => onFix(fix)}
+                    data={{ 'data-best-fix': fix, 'aria-expanded': fix === 'more' ? String(more) : undefined }}
+                  />
+                ))}
+              </div>
+            ) : null}
+            {more || n < 2 ? (
+              <div className="flex flex-nowrap gap-1.5 overflow-hidden" data-best-more>
+                {moreFixes.map(([fix, label]) => (
+                  <Answer key={fix} label={label} on={false} onClick={() => onFix(fix)} data={{ 'data-best-fix': fix }} />
+                ))}
+              </div>
+            ) : null}
+          </div>
+        ) : strokeOpen ? (
+          grid(n, `Shot ${n} · ${names[last]}`)
+        ) : null}
+      </div>
+    )
+  }
   return (
     <>
-      <AnswerRow label={`End · shot ${n} · ${names[last]}`}>
-        {BEST_ENDS.map((label) => (
-          <Answer
-            key={label}
-            label={label}
-            on={endOn === label}
-            tone={label === 'Winner' ? 'chosen' : 'error'}
-            onClick={() => onEnd(label)}
-            data={{ 'data-best-end': label }}
-          />
-        ))}
-      </AnswerRow>
+      {endButtons}
       {note ? (
         <p className="-mt-1 text-xs font-semibold text-primary" data-best-end-note>
           {note}

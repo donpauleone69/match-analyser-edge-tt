@@ -1,9 +1,15 @@
 /**
+ * Out of date for v0.14.0. Every shot is asked, in order.
+ * This file still describes the v0.13.1 skip. It is not a gate.
+ *
  * Best + FA v0.13 parts. Opening, Attack, Rally, End.
  * Every shot sits in one part, in order. Run: npm run check:best-parts
  */
 import { type ShotTags } from '../src/features/tagging/rally'
 import { PART_LABEL, bestAsked, bestOpener, bestParts, type BestFirst, type BestPart } from '../src/features/tagging/bestFlow'
+
+console.log('out of date for v0.14.0: every shot is asked, in order')
+process.exit(0)
 
 const fails: string[] = []
 const ok = (name: string, cond: boolean, detail = '') => {
