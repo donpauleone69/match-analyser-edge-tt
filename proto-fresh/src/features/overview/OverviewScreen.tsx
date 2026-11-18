@@ -97,12 +97,12 @@ function Card({ title, children, note }: { title: string; children: ReactNode; n
   )
 }
 
-function ShareRow({ label, s, tone = 'you' }: { label: string; s: Share; tone?: 'you' | 'kim' }) {
+function ShareRow({ label, s, tone = 'you' }: { label: string; s: Share; tone?: 'you' | 'kim' | 'chalk' }) {
   return (
     <div className="flex items-center gap-2 text-xs">
       <span className="w-24 shrink-0 text-chalk-mute">{label}</span>
       <div className="h-2 flex-1 overflow-hidden rounded-full bg-ink-3">
-        <div className={`h-full rounded-full ${tone === 'you' ? 'bg-you' : 'bg-kim'}`} style={{ width: `${pct(s)}%` }} />
+        <div className={`h-full rounded-full ${tone === 'you' ? 'bg-you' : tone === 'kim' ? 'bg-kim' : 'bg-chalk-mute'}`} style={{ width: `${pct(s)}%` }} />
       </div>
       <span className="w-20 shrink-0 text-right font-mono">
         {s.won}/{s.of} <span className="text-chalk-faint">{s.of ? `${pct(s)}%` : ''}</span>
@@ -156,8 +156,8 @@ function InsightsView({ rallies, section, toast }: { rallies: Draft[]; section: 
           <ShareRow label="Kim's serve" s={x.serve.kims} />
         </Card>
         <Card title="Short or long serve" note="won by the server">
-          <ShareRow label="Short" s={x.depth.short} tone="kim" />
-          <ShareRow label="Long" s={x.depth.long} tone="kim" />
+          <ShareRow label="Short" s={x.depth.short} tone="chalk" />
+          <ShareRow label="Long" s={x.depth.long} tone="chalk" />
         </Card>
         <Card title="Rally length" note="points you won">
           {x.length.map((l) => (
