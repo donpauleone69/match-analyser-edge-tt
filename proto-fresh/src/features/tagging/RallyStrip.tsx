@@ -33,7 +33,7 @@ export function RallyStrip({ d, onCell, onPart, onStar, onCheck, playing, title 
   return (
     <div className="flex flex-col gap-1.5" data-strip>
       <div className="flex h-8 items-center gap-2">
-        <span className="text-sm font-semibold">{title ?? `Rally ${d.no}`}</span>
+        <span className="title text-sm">{title ?? `Rally ${d.no}`}</span>
         {d.saved ? (
           <span className="inline-flex items-center gap-1 rounded-full bg-you/15 px-2 py-0.5 text-[11px] font-semibold text-you">
             <Icon name="check" size={11} />

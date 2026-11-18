@@ -21,7 +21,7 @@ function QuestionHead({ d }: { d: Draft }) {
   return (
     <div className="flex shrink-0 items-end gap-2" data-head>
       <div className="flex min-w-0 flex-col">
-        <span className="text-[22px] font-semibold leading-7">{title}</span>
+        <span className="title text-[22px] leading-7">{title}</span>
         <span className="text-xs text-chalk-mute">
           {sub}
           {sub && !(d.add || d.check || isMis(d)) ? ' · ' : ''}
@@ -65,7 +65,7 @@ function TapPad({ taps, playing, idle, server, onTap }: { taps: number; playing:
         </>
       ) : taps === 0 ? (
         <>
-          <span className="text-base font-semibold">Tap each contact</span>
+          <span className="title text-base">Tap each contact</span>
           <span className="cap">Anywhere in this pad</span>
         </>
       ) : (

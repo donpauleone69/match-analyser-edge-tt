@@ -1,20 +1,26 @@
 /** @type {import('tailwindcss').Config} */
+const v = (name) => `rgb(var(--c-${name}) / <alpha-value>)`
+
 export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
   theme: {
     extend: {
       colors: {
-        ink: { 0: '#0C0E11', 1: '#14171C', 2: '#1D2128', 3: '#282D36', 4: '#353B46' },
-        chalk: { DEFAULT: '#F3F1EC', mute: '#A3A9B3', faint: '#6A717C' },
-        you: { DEFAULT: '#6FE3C1', ink: '#04241B' },
-        kim: { DEFAULT: '#B9A6FF', ink: '#170F38' },
-        ball: { DEFAULT: '#FF7A33', ink: '#2A1000' },
-        flag: { DEFAULT: '#F4D35E', ink: '#2A2100' },
-        alert: { DEFAULT: '#FF5D7D', ink: '#2E0410' },
+        ink: { 0: v('ink-0'), 1: v('ink-1'), 2: v('ink-2'), 3: v('ink-3'), 4: v('ink-4') },
+        chalk: { DEFAULT: v('chalk'), mute: v('chalk-mute'), faint: v('chalk-faint') },
+        you: { DEFAULT: v('you'), ink: v('you-ink') },
+        kim: { DEFAULT: v('kim'), ink: v('kim-ink') },
+        ball: { DEFAULT: v('ball'), ink: v('ball-ink') },
+        flag: { DEFAULT: v('flag'), ink: v('flag-ink') },
+        alert: { DEFAULT: v('alert'), ink: v('alert-ink') },
+        vid: { bg: v('vid-bg'), table: v('vid-table'), line: v('vid-line') },
+        page: v('page'),
+        scrim: v('scrim'),
       },
       fontFamily: {
-        sans: ['"SF Pro Text"', 'system-ui', '-apple-system', '"Segoe UI"', 'Roboto', 'sans-serif'],
-        mono: ['"SF Mono"', 'ui-monospace', '"JetBrains Mono"', 'Menlo', 'monospace'],
+        sans: ['var(--font-sans)'],
+        mono: ['var(--font-mono)'],
+        display: ['var(--font-display)'],
       },
       fontSize: {
         cap: ['10px', { lineHeight: '12px', letterSpacing: '0.08em' }],
@@ -23,7 +29,7 @@ export default {
         base: ['15px', { lineHeight: '20px' }],
         num: ['28px', { lineHeight: '30px' }],
       },
-      borderRadius: { btn: '10px', cell: '8px', card: '14px' },
+      borderRadius: { btn: 'var(--r-btn)', cell: 'var(--r-cell)', card: 'var(--r-card)' },
     },
   },
   plugins: [],

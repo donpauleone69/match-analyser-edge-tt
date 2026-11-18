@@ -10,8 +10,9 @@ body,
 
 body {
   margin: 0;
-  background: #07080a;
-  color: #f3f1ec;
+  background: rgb(var(--c-page));
+  color: rgb(var(--c-chalk));
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
   font-feature-settings: 'tnum' 1;
@@ -27,6 +28,25 @@ button {
 @layer components {
   .cap {
     @apply text-cap font-bold uppercase text-chalk-faint;
+  }
+  .title {
+    font-family: var(--font-display);
+    font-weight: var(--title-weight);
+    letter-spacing: var(--title-tracking);
+  }
+}
+
+button:focus-visible {
+  outline: 2px solid rgb(var(--c-chalk));
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    transition-duration: 1ms !important;
   }
 }
 

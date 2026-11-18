@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b",
     "check:logic": "node --experimental-strip-types scripts/logic.check.ts",
+    "check:contrast": "node --experimental-strip-types scripts/contrast.check.ts",
     "preview": "vite preview"
   },
   "dependencies": {

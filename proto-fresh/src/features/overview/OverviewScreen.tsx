@@ -89,7 +89,7 @@ function Card({ title, children, note }: { title: string; children: ReactNode; n
   return (
     <div className="flex flex-col gap-2 rounded-card bg-ink-1 p-3">
       <div className="flex items-baseline gap-2">
-        <span className="text-sm font-semibold">{title}</span>
+        <span className="title text-sm">{title}</span>
         {note ? <span className="text-[11px] text-chalk-faint">{note}</span> : null}
       </div>
       {children}
