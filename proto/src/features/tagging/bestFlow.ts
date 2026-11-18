@@ -577,6 +577,14 @@ export type BestTiming = {
 }
 
 export const DEFAULT_BEST_TIMING: BestTiming = {
+  reaction: 0,
+  lead: 500,
+  end: 300,
+  min: 0,
+}
+
+/** v0.15.0 defaults. A device that saved only these moves to the new defaults. */
+const PREVIOUS_DEFAULT_BEST_TIMING: BestTiming = {
   reaction: 300,
   lead: 200,
   end: 200,
@@ -591,17 +599,24 @@ function timingNumber(value: unknown, fallback: number): number {
   return Math.round(n)
 }
 
+function sameTiming(a: BestTiming, b: BestTiming) {
+  return a.reaction === b.reaction && a.lead === b.lead && a.end === b.end && a.min === b.min
+}
+
 export function loadBestTiming(): BestTiming {
   try {
     const raw = localStorage.getItem(TIMING_KEY)
     if (!raw) return DEFAULT_BEST_TIMING
     const parsed = JSON.parse(raw) as Partial<BestTiming>
-    return {
+    const loaded: BestTiming = {
       reaction: timingNumber(parsed.reaction, DEFAULT_BEST_TIMING.reaction),
       lead: timingNumber(parsed.lead, DEFAULT_BEST_TIMING.lead),
       end: timingNumber(parsed.end, DEFAULT_BEST_TIMING.end),
       min: timingNumber(parsed.min, DEFAULT_BEST_TIMING.min),
     }
+    if (!sameTiming(loaded, PREVIOUS_DEFAULT_BEST_TIMING)) return loaded
+    saveBestTiming(DEFAULT_BEST_TIMING)
+    return DEFAULT_BEST_TIMING
   } catch {
     return DEFAULT_BEST_TIMING
   }
