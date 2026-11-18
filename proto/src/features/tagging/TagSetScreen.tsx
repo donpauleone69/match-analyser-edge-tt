@@ -187,7 +187,6 @@ import {
   bestSetPoint,
   bestSwitchServer,
   bestTossInstead,
-  asServeFault,
   canOpenCell,
   carryBest,
   cellTarget,
@@ -522,7 +521,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
 
   const slotGuard = useRef(0)
   const panelGuard = useRef(0)
-  const saveBestRef = useRef<(d: Draft) => void>(() => {})
   const rightGuard = useRef(0)
   const rightKindSeen = useRef<string | null>(null)
   /** Dim until this moment. Only the guard after the idle close sets it. */
@@ -572,7 +570,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const bestOn =
     isBestFlow(flowLock) && !edit && !review && !set.finished && !draftGone && Boolean(live?.closed)
   const liveCount = live?.contacts.length ?? 0
-  const liveClosed = Boolean(live?.closed)
   const detailing = Boolean(detail && isIdeaFlow(flowWanted) && detail.flow === flowWanted)
   const detailQ = !detail || !detailing ? null : nextSweep(set.rallies, detail.sweep, names)
   /** End is on screen with no result, and whenever a press has opened it. */
@@ -945,18 +942,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     const id = setTimeout(() => setLate(null), Math.max(0, late.until - Date.now()))
     return () => clearTimeout(id)
   }, [late])
-
-  // One contact is a serve fault. Wait out a late tap, then save with no question.
-  useEffect(() => {
-    if (!bestOn || liveCount !== 1 || !liveClosed || late) return
-    const id = setTimeout(() => {
-      const d = latest.current.live
-      if (!d?.closed || d.contacts.length !== 1 || !d.best) return
-      if (!isBestFlow(latest.current.flowWanted)) return
-      saveBestRef.current(asServeFault(d))
-    }, 40)
-    return () => clearTimeout(id)
-  }, [bestOn, liveCount, liveClosed, late])
 
   // The slot and the panel guard themselves whenever what they hold changes.
   // Result to wing and stroke is the one step that swaps nothing: those rows stay put.
@@ -1751,8 +1736,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     }
     arm(GUARD_AFTER_CLOSE_MS)
   }
-  saveBestRef.current = saveBest
-
   /** Part buttons and ★ on the saved row change the saved rally. The video keeps playing. */
   const updateSaved = (d: Draft) => {
     if (!bestSaved || readOnly) return
@@ -2985,7 +2968,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const bestRowDraft = bestRowSaved ? bestSaved!.draft : active
   /** What the question area shows. When it changes, the button now under the thumb waits out a double tap. */
   const bestPanelKey = bestQ && live ? bestQuestionKey(live, bestRallyOne, answerLayout, endBack) : ''
-  const padSplit = Boolean(landscape && answerLayout === 'pad' && bestOn && !bestAdd && !bestOver && liveCount > 1)
+  const padSplit = Boolean(landscape && answerLayout === 'pad' && bestOn && !bestAdd && !bestOver && liveCount > 0)
   useLayoutEffect(() => {
     if (bestPanelKey) panelGuard.current = Math.max(panelGuard.current, Date.now() + GUARD_BEST_SWAP_MS)
   }, [bestPanelKey])
@@ -3350,7 +3333,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                 Set over at {bestOver}
               </p>
             ) : null}
-            {bestOn && live?.best && bestQ && live.contacts.length > 1 ? (
+            {bestOn && live?.best && bestQ && live.contacts.length > 0 ? (
               <BestPanel
                 draft={live}
                 names={names}
@@ -3390,10 +3373,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                 }}
                 onDeleteLast={() => onBestDropShot(live.contacts.length)}
               />
-            ) : bestOn && liveCount === 1 ? (
-              <p className="pt-2 text-sm font-semibold text-primary" data-best-fault>
-                Serve fault
-              </p>
             ) : null}
             {!zoneOn && review ? (
               <div data-review-panel className="rounded-md border border-border bg-bg-surface px-3 py-2 space-y-2">

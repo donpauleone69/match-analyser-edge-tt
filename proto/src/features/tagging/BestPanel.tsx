@@ -473,7 +473,7 @@ export function BestPanel({
           onEnd={onEnd}
           onPoint={onPoint}
           onFix={onFix}
-          aside={deleteLast}
+          aside={n === 1 ? serverSwitch : deleteLast}
         />
       ) : null}
 

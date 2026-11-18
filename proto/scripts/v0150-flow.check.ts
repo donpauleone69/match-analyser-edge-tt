@@ -1,13 +1,12 @@
 /**
  * v0.15.0 in-order rally trace. No browser.
  * Serve, each shot, then End. The winner comes from the server, the count and End.
- * One contact is a serve fault. Run: npm run check:v0150
+ * One contact asks End: Winner is an ace, an error a serve fault. Run: npm run check:v0150
  */
 import type { MatchRecord, SetData } from '../src/data/demoStore'
 import { taggedScore } from '../src/data/demoStore'
 import {
   BEST_ENDS,
-  asServeFault,
   bestAdvance,
   bestAt,
   bestDeleteLast,
@@ -101,19 +100,23 @@ function walk(n: number, end: BestEnd, server: Side = 'me'): { questions: string
   return { questions, draft: d }
 }
 
-eq('order 1', questionOrder(1), [])
+eq('order 1', questionOrder(1), ['end'])
 eq('order 2', questionOrder(2), ['serve', 'shot 2', 'end'])
 eq('order 4', questionOrder(4), ['serve', 'shot 2', 'shot 3', 'shot 4', 'end'])
-eq('taps 1', bestTaps(1), 1)
+eq('taps 1', bestTaps(1), 2)
 eq('taps 3', bestTaps(3), 7)
 eq('wide stays on buttons', BEST_ENDS.includes('Wide'), true)
 
-const fault = asServeFault(openRally('me', 1))
-eq('fault winner', fault.best?.point, 'them')
-eq('fault no route', routeAfter(fault, true), null)
-const faultRally = bestRally(fault, 'r1', fault.best!.point!, false)
+const fault = walk(1, 'Net')
+eq('fault asks End only', fault.questions, ['end'])
+eq('fault winner', fault.draft.best?.point, 'them')
+const faultRally = bestRally(fault.draft, 'r1', fault.draft.best!.point!, false)
 eq('fault label', faultRally.idea?.result, 'Serve fault')
-eq('fault receiver', faultRally.winner, otherSide(fault.server))
+eq('fault receiver', faultRally.winner, otherSide(fault.draft.server))
+const ace = walk(1, 'Winner')
+eq('ace asks End only', ace.questions, ['end'])
+eq('ace to the server', ace.draft.best?.point, ace.draft.server)
+eq('ace label', bestRally(ace.draft, 'r1', ace.draft.best!.point!, false).idea?.result, 'Ace')
 
 const two = walk(2, 'Winner')
 eq('2 questions', two.questions, ['serve', 'shot 2', 'end'])
@@ -150,9 +153,10 @@ let down = openRally('me', 2)
 down = setDepth(down, 'Long')
 down = setWingStroke(down, 2, 'FH', 'Control')
 down = bestSetEnd(down, 'Winner')
-const toFault = bestAdvance(bestDeleteLast(down), false)
-eq('down to one saves', toFault.save, true)
-eq('down to one is a fault', toFault.draft.best?.point, 'them')
+const toOne = bestAdvance(bestDeleteLast(down), false)
+eq('down to one does not save', toOne.save, false)
+eq('down to one asks End', toOne.draft.best?.step, 'end')
+eq('down to one cleared End', toOne.draft.ending, null)
 
 const before = bestQuestionKey(openRally('me', 3), false, 'pad')
 const served = setDepth(openRally('me', 3), 'Short')
@@ -165,7 +169,7 @@ let match = blankMatch()
 let score: Points = ZERO
 const runSave = (n: number, end: BestEnd) => {
   const server = serverAt(match.sets[0].firstServer, taggedScore(match.sets[0]) ?? ZERO)
-  const w = n === 1 ? { draft: asServeFault(openRally(server, 1)), questions: [] as string[] } : walk(n, end, server)
+  const w = walk(n, end, server)
   const winner = w.draft.best?.point
   if (!winner) throw new Error('no winner')
   const rally = bestRally(w.draft, `r-${n}-${end}`, winner, false)
@@ -174,7 +178,7 @@ const runSave = (n: number, end: BestEnd) => {
   return { questions: w.questions, winner, result: rally.idea?.result }
 }
 const a = runSave(1, 'Net')
-eq('rally one fault questions', a.questions, [])
+eq('rally one fault questions', a.questions, ['end'])
 eq('rally one fault score side', a.winner, 'them')
 const b = runSave(3, 'Winner')
 eq('second rally in order', b.questions, questionOrder(3))
