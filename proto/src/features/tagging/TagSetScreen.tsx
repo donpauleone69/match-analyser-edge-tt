@@ -1884,7 +1884,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       return
     }
     if (fix === 'switch') {
-      routeBest(bestSwitchServer(live))
+      routeBest(bestSwitchServer(live, rallyOneNow()))
       return
     }
     routeBest({ ...live, best: carryBest(live, { kept: true }) })
@@ -3356,7 +3356,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                 onServe={onBestServe}
                 onServer={() => {
                   if (!live) return
-                  const next = bestSwitchServer(live)
+                  const next = bestSwitchServer(live, bestRallyOne)
                   if (bestRallyOne) mutateMatch(match.id, (m) => flipFirstServer(m, set.setId))
                   routeBest(next, { save: false })
                 }}

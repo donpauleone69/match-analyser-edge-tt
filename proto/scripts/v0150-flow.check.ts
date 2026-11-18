@@ -10,6 +10,7 @@ import {
   bestAdvance,
   bestAt,
   bestDeleteLast,
+  bestMismatch,
   bestQuestionKey,
   bestRally,
   bestSetEnd,
@@ -196,6 +197,11 @@ eq('rally one after the switch derives', r1s.draft.best?.point, 'them')
 const r1a = walkOne(1, 'Winner', 'them', false)
 eq('rally one ace asks Point to', r1a.questions, ['end', 'point'])
 eq('rally one ace sets the server', r1a.draft.server, 'them')
+
+const reopened = walk(4, 'Winner').draft
+const switched = bestAdvance(bestSwitchServer({ ...reopened, best: { ...reopened.best!, step: 'serve' } }), false)
+eq('switch on a reopened rally re-derives the point', switched.draft.best?.point, otherSide(reopened.best!.point!))
+eq('switch on a reopened rally is not a mismatch', bestMismatch(switched.draft, false), false)
 
 let match = blankMatch()
 let score: Points = ZERO

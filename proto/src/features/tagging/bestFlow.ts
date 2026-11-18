@@ -517,9 +517,10 @@ export function bestTossInstead(d: Draft, rallyOne = false): Draft {
   return { ...next, best: carryBest(next, { cut: undefined }) }
 }
 
-/** Switch server: every hitter flips. Keep as is goes, so the check runs again. */
-export function bestSwitchServer(d: Draft): Draft {
-  return keepBestMarks({ ...d, server: otherSide(d.server), serveChecked: true, best: carryBest(d, { kept: undefined }) })
+/** Switch server: every hitter flips, and so does a worked out winner. Keep as is goes, so the check runs again. */
+export function bestSwitchServer(d: Draft, rallyOne = false): Draft {
+  const next = keepBestMarks({ ...d, server: otherSide(d.server), serveChecked: true, best: carryBest(d, { kept: undefined }) })
+  return settlePoint(next, rallyOne)
 }
 
 /** Point to. On rally one it also sets the server, since nothing else knows it yet. */
