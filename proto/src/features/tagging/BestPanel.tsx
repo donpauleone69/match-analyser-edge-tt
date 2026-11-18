@@ -4,7 +4,6 @@ import { Answer, AnswerRow, StrokeGrid, restStyle } from './AnswerCells'
 import { CornerPad } from './CornerPad'
 import {
   BEST_ENDS,
-  BEST_SERVE,
   PART_LABEL,
   STROKE_GRID,
   bestEndOf,
@@ -96,10 +95,13 @@ const PAD_STROKE: Record<string, { bg: string; fg: string }> = {
   'FH:Control': { bg: '#fed7aa', fg: '#0b1220' },
 }
 
-const PAD_SERVE = [
-  { label: 'Short', bg: '#0f766e', fg: '#fff' },
-  { label: 'Long', bg: '#6d28d9', fg: '#fff' },
-] as const
+/** Receiver's side, right-hander. Bottom Short, top Long, left BH, right FH. */
+const PAD_SERVE: { depth: 'Short' | 'Long'; wing: 'BH' | 'FH'; label: string; bg: string; fg: string }[] = [
+  { depth: 'Long', wing: 'BH', label: 'BH Long', bg: '#1d4ed8', fg: '#fff' },
+  { depth: 'Long', wing: 'FH', label: 'FH Long', bg: '#c2410c', fg: '#fff' },
+  { depth: 'Short', wing: 'BH', label: 'BH Short', bg: '#bfdbfe', fg: '#0b1220' },
+  { depth: 'Short', wing: 'FH', label: 'FH Short', bg: '#fed7aa', fg: '#0b1220' },
+]
 
 /** Winner takes the left half. Long is top right, In net bottom right. Net is the stored end. */
 const PAD_ENDS: { end: BestEnd; label: string; bg: string; style: CSSProperties }[] = [
@@ -352,7 +354,7 @@ export function BestPanel({
   onBack: (back: PadBack) => void
   onEnd: (end: BestEnd) => void
   onPoint: (side: Side) => void
-  onServe: (depth: string) => void
+  onServe: (depth: string, wing: Wing) => void
   onServer: () => void
   onStroke: (shot: number, wing: Wing, stroke: 'Attack' | 'Control') => void
   onFix: (fix: BestFix) => void
@@ -485,22 +487,29 @@ export function BestPanel({
               aside={serveAside}
               split={sides}
               columns="1fr 1fr"
-              rows="1fr"
+              rows="1fr 1fr"
               regions={PAD_SERVE.map((cell) => ({
                 key: cell.label,
                 label: cell.label,
-                side: cell.label === 'Short' ? ('left' as const) : ('right' as const),
-                on: draft.shots[0]?.depth === cell.label,
+                side: cell.wing === 'BH' ? ('left' as const) : ('right' as const),
+                on: draft.shots[0]?.depth === cell.depth && draft.shots[0]?.wing === cell.wing,
                 bg: cell.bg,
                 fg: cell.fg,
-                onClick: () => onServe(cell.label),
+                onClick: () => onServe(cell.depth, cell.wing),
                 data: { 'data-best-serve': cell.label },
+                style: { gridColumn: cell.wing === 'BH' ? '1' : '2', gridRow: cell.depth === 'Long' ? '1' : '2' },
               }))}
             />
           ) : (
             <AnswerRow label={`Serve · ${names[draft.server]}`} aside={serveAside}>
-              {BEST_SERVE.map((label) => (
-                <Answer key={label} label={label} on={draft.shots[0]?.depth === label} onClick={() => onServe(label)} data={{ 'data-best-serve': label }} />
+              {PAD_SERVE.map((cell) => (
+                <Answer
+                  key={cell.label}
+                  label={cell.label}
+                  on={draft.shots[0]?.depth === cell.depth && draft.shots[0]?.wing === cell.wing}
+                  onClick={() => onServe(cell.depth, cell.wing)}
+                  data={{ 'data-best-serve': cell.label }}
+                />
               ))}
             </AnswerRow>
           )}

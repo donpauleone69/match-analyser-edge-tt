@@ -533,9 +533,10 @@ export function bestSetEnd(d: Draft, end: BestEnd, rallyOne = false): Draft {
   return settlePoint({ ...d, ending: end, best: carryBest(d, { end }) }, rallyOne)
 }
 
-export function setDepth(d: Draft, depth: string): Draft {
+/** One serve tap: length in `depth`, landing corner in `wing`. Right-handers: BH left, FH right. */
+export function setDepth(d: Draft, depth: string, wing?: Wing): Draft {
   const shots = d.shots.slice()
-  shots[0] = { ...shots[0], depth }
+  shots[0] = wing ? { ...shots[0], depth, wing } : { ...shots[0], depth }
   return { ...d, shots, best: carryBest(d, { cut: undefined }) }
 }
 
@@ -736,7 +737,7 @@ export function bestPlace(s: { draft: Draft | null; rallies: RallyData[]; finish
   return `Rally ${n}, live`
 }
 
-/** The saved rally. Strokes are kept on asked shots only. The first attack is a shot when it is known. */
+/** The saved rally. Strokes are kept on asked shots only. The serve keeps its landing wing. */
 export function bestRally(d: Draft, id: string, winner: Side, kept: boolean): RallyData {
   const n = d.contacts.length
   const first = d.best?.first
@@ -747,8 +748,8 @@ export function bestRally(d: Draft, id: string, winner: Side, kept: boolean): Ra
   const review = order.filter((part) => d.best?.review?.includes(part))
   const shots = d.shots.map((shot, i) => {
     if (bestAsked(n, i + 1) || (!shot.wing && !shot.stroke)) return { ...shot }
-    const { wing: _wing, stroke: _stroke, ...rest } = shot
-    return rest
+    const { wing, stroke: _stroke, ...rest } = shot
+    return i === 0 && wing ? { ...rest, wing } : rest
   })
   return {
     id,
