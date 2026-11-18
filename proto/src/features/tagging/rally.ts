@@ -76,18 +76,30 @@ export const SPEED_STEPS = [0.5, 0.75, 1, 1.25, 1.5, 2] as const
 /** Rally Row groups. Opening, Attack, Rally, End. The same ids are the review marks. */
 export type BestPart = 'opening' | 'attack' | 'rally' | 'end'
 
+/** Questions in the order they are asked. `fourth` is shot 4, asked on 7 shots or more. */
+export type BestStep = 'end' | 'serve' | 'receive' | 'third' | 'fourth' | 'shots'
+
+/** Who attacked first. Covers the shots never asked. */
+export type BestFirst = 'me' | 'them' | 'none'
+
 /** In-progress Best + FA. The other flows never set this. */
 export type BestMark = {
   flow: 'bestfa'
-  step?: 'serve' | 'receive' | 'third' | 'middle' | 'finish'
-  /** Who attacked first, when that question was answered. */
-  first?: string
-  /** End button. BH and FH are winners. Net, Long and Wide are errors. */
-  end?: 'BH' | 'FH' | 'Net' | 'Long' | 'Wide'
-  /** Who was attacking at the end of the Rally part. */
-  middle?: 'me' | 'them' | 'none'
+  /** The question open now. */
+  step?: BestStep
+  /** The End shot open while `step` is `shots`. */
+  endPage?: number
+  /** End button. Winner means the last hitter won. Net, Long and Wide are errors. */
+  end?: 'Winner' | 'Net' | 'Long' | 'Wide'
+  /** Point to. Kept through every contact edit. */
+  point?: Side
+  /** Keep as is: saved with "Check the point". */
+  kept?: true
+  first?: BestFirst
   /** Parts marked for review, in row order. */
   review?: BestPart[]
+  /** The contact Delete last removed, while Serve can still offer Delete first instead. Draft only. */
+  cut?: number
 }
 
 export type ShotTags = {
@@ -808,10 +820,8 @@ export type IdeaTag = {
   serve?: string
   /** Shot number to the button that was pressed. */
   shots?: Record<number, string>
-  /** Who attacked first. Best + FA. */
-  first?: string
-  /** Who was attacking at the end of the Rally part. Best and Best + FA. */
-  middle?: 'me' | 'them' | 'none'
+  /** Who attacked first, from the optional Best + FA question. */
+  first?: BestFirst
   /** Parts marked for review. Same ids as the Rally Row. */
   review?: BestPart[]
   /** Finish wing, Rally Spine only. */
