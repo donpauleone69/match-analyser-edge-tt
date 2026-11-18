@@ -16,11 +16,13 @@ import {
   mismatchLine,
   partsOf,
   pointDone,
+  padFocus,
   rallyPage,
   stepShot,
   strokeLabel,
   type AnswerLayout,
   type BestAt,
+  type PadBack,
   type BestEnd,
   type BestFirst,
   type BestPart,
@@ -326,6 +328,8 @@ export function BestPanel({
   more,
   note,
   layout,
+  back,
+  onBack,
   onEnd,
   onPoint,
   onServe,
@@ -345,6 +349,9 @@ export function BestPanel({
   /** "New last shot. End again." on End, "Serve length left with that contact." on Serve. */
   note: string | null
   layout: AnswerLayout
+  /** Corner pad: which End question to show again. Null follows the one still open. */
+  back: PadBack
+  onBack: (back: PadBack) => void
   onEnd: (end: BestEnd) => void
   onPoint: (side: Side) => void
   onServe: (depth: string) => void
@@ -428,6 +435,7 @@ export function BestPanel({
       data-best-page={at.page ?? ''}
       data-best-rally={rallyNo}
       data-answer-layout={layout}
+      data-pad-phase={layout === 'pad' && at.step === 'end' ? padFocus(draft, rallyOne, back) : undefined}
     >
       {at.step === 'end' ? (
         <EndPage
@@ -437,6 +445,8 @@ export function BestPanel({
           more={more}
           note={note}
           layout={layout}
+          back={back}
+          onBack={onBack}
           onEnd={onEnd}
           onPoint={onPoint}
           onFix={onFix}
@@ -509,6 +519,11 @@ export function BestPanel({
   )
 }
 
+function endWord(end: BestEnd | null): string {
+  if (end === 'Net') return 'In net'
+  return end ?? ''
+}
+
 function EndPage({
   draft,
   names,
@@ -516,6 +531,8 @@ function EndPage({
   more,
   note,
   layout,
+  back,
+  onBack,
   onEnd,
   onPoint,
   onFix,
@@ -527,6 +544,8 @@ function EndPage({
   more: boolean
   note: string | null
   layout: AnswerLayout
+  back: PadBack
+  onBack: (back: PadBack) => void
   onEnd: (end: BestEnd) => void
   onPoint: (side: Side) => void
   onFix: (fix: BestFix) => void
@@ -556,79 +575,129 @@ function EndPage({
       ))}
     </AnswerRow>
   )
-  const endPad = (fill: boolean) => (
-    <CornerPad
-      label={endLabel}
-      fill={fill}
-      columns="1fr 1fr"
-      rows="1fr 1fr"
-      regions={PAD_ENDS.map((cell) => ({
-        key: cell.end,
-        label: cell.label,
-        on: endOn === cell.end,
-        bg: cell.bg,
-        fg: '#fff',
-        onClick: () => onEnd(cell.end),
-        data: { 'data-best-end': cell.end },
-        style: cell.style,
-      }))}
-    />
+  const pointButtons = (
+    <AnswerRow label="Point to">
+      {(['me', 'them'] as const).map((side) => (
+        <Answer
+          key={side}
+          label={names[side]}
+          on={point === side}
+          disabled={!draft.ending}
+          className={!draft.ending ? 'opacity-40' : undefined}
+          style={lit === side ? hinted() : undefined}
+          onClick={() => onPoint(side)}
+          data={{ 'data-point-to': names[side], 'data-point-hint': lit === side ? '' : undefined, 'data-point-on': point === side ? '' : undefined }}
+        />
+      ))}
+    </AnswerRow>
   )
-  const strokeOpen = pointDone(draft, rallyOne) && !mismatch && n >= 2
-  if (layout === 'pad') {
-    return (
-      <div className="flex min-h-0 flex-1 flex-col gap-2">
-        {strokeOpen ? endPad(false) : endPad(true)}
-        {note ? (
-          <p className="-mt-1 text-xs font-semibold text-primary" data-best-end-note>
-            {note}
-          </p>
-        ) : null}
-        <AnswerRow label="Point to">
-          {(['me', 'them'] as const).map((side) => (
+  const mismatchBlock = mismatch ? (
+    <div className="flex flex-col gap-1.5" data-best-mismatch>
+      <p className="text-sm font-semibold leading-4 text-warning" data-best-line>
+        {mismatchLine(draft, names)}
+      </p>
+      {fixes.length ? (
+        <div className="flex flex-nowrap gap-1.5 overflow-hidden" data-best-fixes>
+          {fixes.map(([fix, label]) => (
             <Answer
-              key={side}
-              label={names[side]}
-              on={point === side}
-              disabled={!draft.ending}
-              className={!draft.ending ? 'opacity-40' : undefined}
-              style={lit === side ? hinted() : undefined}
-              onClick={() => onPoint(side)}
-              data={{ 'data-point-to': names[side], 'data-point-hint': lit === side ? '' : undefined, 'data-point-on': point === side ? '' : undefined }}
+              key={fix}
+              label={label}
+              on={false}
+              style={fix === 'deleteLast' ? filled() : undefined}
+              className={fix === 'more' ? 'min-w-0 px-2' : undefined}
+              onClick={() => onFix(fix)}
+              data={{ 'data-best-fix': fix, 'aria-expanded': fix === 'more' ? String(more) : undefined }}
             />
           ))}
-        </AnswerRow>
-        {mismatch ? (
-          <div className="flex flex-col gap-1.5" data-best-mismatch>
-            <p className="text-sm font-semibold leading-4 text-warning" data-best-line>
-              {mismatchLine(draft, names)}
-            </p>
-            {fixes.length ? (
-              <div className="flex flex-nowrap gap-1.5 overflow-hidden" data-best-fixes>
-                {fixes.map(([fix, label]) => (
-                  <Answer
-                    key={fix}
-                    label={label}
-                    on={false}
-                    style={fix === 'deleteLast' ? filled() : undefined}
-                    className={fix === 'more' ? 'min-w-0 px-2' : undefined}
-                    onClick={() => onFix(fix)}
-                    data={{ 'data-best-fix': fix, 'aria-expanded': fix === 'more' ? String(more) : undefined }}
-                  />
-                ))}
-              </div>
-            ) : null}
-            {more || n < 2 ? (
-              <div className="flex flex-nowrap gap-1.5 overflow-hidden" data-best-more>
-                {moreFixes.map(([fix, label]) => (
-                  <Answer key={fix} label={label} on={false} onClick={() => onFix(fix)} data={{ 'data-best-fix': fix }} />
-                ))}
-              </div>
-            ) : null}
-          </div>
-        ) : strokeOpen ? (
-          grid(n, `Shot ${n} · ${names[last]}`)
-        ) : null}
+        </div>
+      ) : null}
+      {more || n < 2 ? (
+        <div className="flex flex-nowrap gap-1.5 overflow-hidden" data-best-more>
+          {moreFixes.map(([fix, label]) => (
+            <Answer key={fix} label={label} on={false} onClick={() => onFix(fix)} data={{ 'data-best-fix': fix }} />
+          ))}
+        </div>
+      ) : null}
+    </div>
+  ) : null
+  const remind = (which: 'end' | 'point', label: string) => (
+    <button
+      type="button"
+      className="shrink-0 text-xs font-semibold text-primary"
+      data-pad-back={which}
+      onClick={() => onBack(which)}
+    >
+      {label}
+    </button>
+  )
+  if (layout === 'pad') {
+    const phase = padFocus(draft, rallyOne, back)
+    const noteLine = note ? (
+      <p className="shrink-0 text-xs font-semibold text-primary" data-best-end-note>
+        {note}
+      </p>
+    ) : null
+    if (phase === 'end') {
+      return (
+        <div className="flex min-h-0 flex-1 flex-col gap-2">
+          <CornerPad
+            label={endLabel}
+            columns="1fr 1fr"
+            rows="1fr 1fr"
+            regions={PAD_ENDS.map((cell) => ({
+              key: cell.end,
+              label: cell.label,
+              on: endOn === cell.end,
+              bg: cell.bg,
+              fg: '#fff',
+              onClick: () => onEnd(cell.end),
+              data: { 'data-best-end': cell.end },
+              style: cell.style,
+            }))}
+          />
+          {noteLine}
+          {point ? remind('point', names[point]) : pointButtons}
+        </div>
+      )
+    }
+    if (phase === 'point') {
+      return (
+        <div className="flex min-h-0 flex-1 flex-col gap-2">
+          {draft.ending ? remind('end', endWord(endOn)) : null}
+          {noteLine}
+          <CornerPad
+            label="Point to"
+            columns="1fr 1fr"
+            rows="1fr"
+            regions={(['me', 'them'] as const).map((side) => ({
+              key: side,
+              label: names[side],
+              on: point === side,
+              bg: side === 'me' ? 'var(--color-side-me)' : 'var(--color-side-them)',
+              fg: '#fff',
+              onClick: () => onPoint(side),
+              data: {
+                'data-point-to': names[side],
+                'data-point-hint': lit === side ? '' : undefined,
+                'data-point-on': point === side ? '' : undefined,
+              },
+            }))}
+          />
+          {mismatchBlock}
+        </div>
+      )
+    }
+    return (
+      <div className="flex min-h-0 flex-1 flex-col gap-2">
+        <div className="flex shrink-0 items-center gap-2">
+          {remind('end', endWord(endOn))}
+          <span className="text-xs text-muted" aria-hidden>
+            ·
+          </span>
+          {point ? remind('point', names[point]) : null}
+        </div>
+        {noteLine}
+        {grid(n, `Shot ${n} · ${names[last]}`)}
       </div>
     )
   }

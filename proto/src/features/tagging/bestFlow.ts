@@ -259,6 +259,21 @@ export function endDone(d: Q, rallyOne: boolean): boolean {
   return pointDone(d, rallyOne) && (n < 2 || Boolean(d.shots[n - 1]?.stroke))
 }
 
+/** Revisit an earlier End question. Absent means the one still to answer. */
+export type PadBack = 'end' | 'point' | null
+
+/**
+ * The one End question the corner pad shows. Outcome, then Point to, then the
+ * last stroke. A point that disagrees stays on Point to.
+ */
+export function padFocus(d: Q, rallyOne: boolean, back: PadBack = null): 'end' | 'point' | 'stroke' {
+  if (back === 'end' || back === 'point') return back
+  if (!d.ending) return 'end'
+  if (!pointDone(d, rallyOne)) return 'point'
+  if (d.contacts.length >= 2) return 'stroke'
+  return 'point'
+}
+
 export function nextEndShot(d: Pick<Draft, 'contacts' | 'shots'>): number | null {
   return endShots(d.contacts.length).find((k) => !d.shots[k - 1]?.stroke) ?? null
 }
