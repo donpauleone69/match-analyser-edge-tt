@@ -468,6 +468,119 @@ button[disabled] {
 .tag-side-list {
   display: none;
 }
+/* In-order pad on a landscape window: video and the question sit in the middle.
+   The corner halves are the full-height wings. Portrait keeps the stacked pad. */
+.tag-flow {
+  display: contents;
+}
+.pad-wing {
+  display: none;
+}
+.tag-set[data-pad-split] {
+  flex-direction: row;
+  max-width: none;
+  margin-inline: 0;
+}
+.tag-set[data-pad-split] .tag-flow {
+  display: flex;
+  flex-direction: column;
+  flex: 1.15 1 0;
+  min-width: 0;
+  min-height: 0;
+}
+.tag-set[data-pad-split] .pad-wing {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+  min-width: 4.75rem;
+  max-width: 46%;
+  gap: 4px;
+  padding: 4px;
+  min-height: 0;
+}
+.tag-set[data-pad-split] .tag-media {
+  flex: 0 0 auto;
+  max-height: none;
+  border-right: none;
+}
+.tag-set[data-pad-split] .tag-picture {
+  max-height: 32vh;
+  max-height: 32dvh;
+}
+.tag-set[data-pad-split] .tag-entry {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.tag-set[data-pad-split] .tag-side-list {
+  display: none;
+}
+.tag-set[data-pad-split] .tag-narrow-only {
+  display: inline-flex !important;
+}
+/*
+  Phone held sideways (about 660 by 393). The same wings, sized for a thumb:
+  full height of the short screen, wide enough to hit without aiming, clear of
+  the side and bottom insets. The picture gives up height so the contact pad
+  stays a real target between questions. Taller landscape screens keep the
+  sizes above.
+*/
+@media (orientation: landscape) and (max-height: 500px) {
+  .tag-picture {
+    max-height: 5.25rem;
+  }
+  .tag-set [data-tag-zone='pad'] {
+    flex: 1 0 auto;
+    min-height: 5.5rem;
+  }
+  .tag-set[data-pad-split] .pad-wing {
+    flex: 0 0 10.5rem;
+    width: 10.5rem;
+    min-width: 8.5rem;
+    max-width: 34%;
+    gap: 0;
+    padding: 0.375rem;
+    padding-top: 1.15rem;
+    padding-bottom: max(0.375rem, env(safe-area-inset-bottom));
+  }
+  .tag-set[data-pad-split] [data-pad-wing='left'] {
+    padding-left: max(0.375rem, env(safe-area-inset-left));
+  }
+  .tag-set[data-pad-split] [data-pad-wing='right'] {
+    padding-right: max(0.375rem, env(safe-area-inset-right));
+  }
+  .tag-set[data-pad-split] .pad-hits {
+    gap: 0.5rem;
+  }
+  .tag-set[data-pad-split] .pad-region {
+    min-height: 4.75rem;
+    padding-inline: 0.25rem;
+    border-radius: 0.625rem;
+    font-size: 1.25rem;
+    line-height: 1.15;
+    white-space: normal;
+  }
+  .tag-set[data-pad-split] .tag-flow {
+    flex: 1 1 0;
+    overflow: hidden;
+  }
+  .tag-set[data-pad-split] .tag-media header select,
+  .tag-set[data-pad-split] .tag-media header [data-swap-video] {
+    display: none;
+  }
+  .tag-set[data-pad-split] .tag-picture {
+    max-height: 8.25rem;
+  }
+  .tag-set[data-pad-split] [data-scene-label],
+  .tag-set[data-pad-split] [data-caption],
+  .tag-set[data-pad-split] [data-bat] + p {
+    display: none;
+  }
+  .tag-set[data-pad-split] [data-best-not-shot],
+  .tag-set[data-pad-split] [data-best-delete-last] {
+    min-height: 2.75rem;
+    padding-inline: 0.5rem;
+  }
+}
 @media (min-width: 700px) and (orientation: landscape) {
   .tag-set {
     flex-direction: row;

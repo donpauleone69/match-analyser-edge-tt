@@ -76,7 +76,10 @@ export const SPEED_STEPS = [0.5, 0.75, 1, 1.25, 1.5, 2] as const
 /** Rally Row groups. Opening, Attack, Rally, End. The same ids are the review marks. */
 export type BestPart = 'opening' | 'attack' | 'rally' | 'end'
 
-/** Questions in the order they are asked. `fourth` is shot 4, asked on 7 shots or more. */
+/**
+ * Questions in the order they are asked. Serve, then each later shot (`shots`),
+ * then End. `receive`, `third` and `fourth` still load from an older draft.
+ */
 export type BestStep = 'end' | 'serve' | 'receive' | 'third' | 'fourth' | 'shots'
 
 /** Who attacked first. Covers the shots never asked. */
@@ -87,7 +90,7 @@ export type BestMark = {
   flow: 'bestfa'
   /** The question open now. */
   step?: BestStep
-  /** The End shot open while `step` is `shots`. */
+  /** The shot open while `step` is `shots`. */
   endPage?: number
   /** End button. Winner means the last hitter won. Net, Long and Wide are errors. */
   end?: 'Winner' | 'Net' | 'Long' | 'Wide'

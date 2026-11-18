@@ -1,0 +1,188 @@
+/**
+ * v0.15.0 in-order rally trace. No browser.
+ * Serve, each shot, then End. The winner comes from the server, the count and End.
+ * One contact is a serve fault. Run: npm run check:v0150
+ */
+import type { MatchRecord, SetData } from '../src/data/demoStore'
+import { taggedScore } from '../src/data/demoStore'
+import {
+  BEST_ENDS,
+  asServeFault,
+  bestAdvance,
+  bestAt,
+  bestDeleteLast,
+  bestQuestionKey,
+  bestRally,
+  bestSetEnd,
+  bestTaps,
+  padFocus,
+  questionOrder,
+  removeBestContact,
+  routeAfter,
+  setDepth,
+  setWingStroke,
+  type BestEnd,
+} from '../src/features/tagging/bestFlow'
+import { saveRally } from '../src/features/tagging/matchOps'
+import { addContact, emptyDraft, otherSide, winnerOf, type Draft, type Side, type Wing } from '../src/features/tagging/rally'
+import { addPoint, serverAt, ZERO, type Points } from '../src/features/tagging/score'
+
+const fails: string[] = []
+const ok = (name: string, cond: boolean, detail = '') => {
+  if (cond) console.log(`PASS  ${name}`)
+  else {
+    fails.push(`${name} ${detail}`.trim())
+    console.log(`FAIL  ${name} ${detail}`.trim())
+  }
+}
+const eq = (name: string, got: unknown, want: unknown) =>
+  ok(name, JSON.stringify(got) === JSON.stringify(want), `got ${JSON.stringify(got)} want ${JSON.stringify(want)}`)
+
+function blankMatch(): MatchRecord {
+  const set: SetData = {
+    setId: 1,
+    entered: { me: '', them: '' },
+    skipped: false,
+    finished: false,
+    firstServer: 'me',
+    rallies: [],
+    draft: null,
+  }
+  return {
+    id: 'm-trace',
+    opponent: 'Kim',
+    event: '',
+    date: '',
+    result: { me: null, them: null },
+    videos: [{ id: 'v', fileName: 'trace.mp4', sizeMb: 1, archived: false, kind: 'demo', durationS: 600 }],
+    sets: [set],
+    tagDone: false,
+  }
+}
+
+function openRally(server: Side, n: number): Draft {
+  let d = emptyDraft('v', server)
+  for (let i = 0; i < n; i++) d = addContact(d, 10 + i * 0.4)
+  return { ...d, closed: true, best: { flow: 'bestfa', step: 'serve' } }
+}
+
+function question(d: Draft): string {
+  const at = bestAt(d, false)
+  if (at.step === 'end') return padFocus(d, false, null)
+  if (at.step === 'shots') return `shot ${at.page}`
+  return at.step
+}
+
+function answer(d: Draft, q: string, end: BestEnd): Draft {
+  if (q === 'end') return bestSetEnd(d, end)
+  if (q === 'point') return d
+  if (q === 'serve') return setDepth(d, 'Short')
+  const at = bestAt(d, false)
+  const shot = at.page ?? d.contacts.length
+  const wing: Wing = shot % 2 === 0 ? 'FH' : 'BH'
+  return setWingStroke(d, shot, wing, shot === 3 ? 'Attack' : 'Control')
+}
+
+function walk(n: number, end: BestEnd, server: Side = 'me'): { questions: string[]; draft: Draft } {
+  let d = openRally(server, n)
+  const questions: string[] = []
+  for (let i = 0; i < 40; i++) {
+    const at = routeAfter(d, false)
+    if (!at) break
+    d = { ...d, best: { ...d.best!, step: at.step, endPage: at.page } }
+    const q = question(d)
+    if (q === 'point') throw new Error('Point to was asked')
+    questions.push(q)
+    const next = answer(d, q, end)
+    const moved = bestAdvance(next, false)
+    d = moved.draft
+    if (moved.save) break
+  }
+  return { questions, draft: d }
+}
+
+eq('order 1', questionOrder(1), [])
+eq('order 2', questionOrder(2), ['serve', 'shot 2', 'end'])
+eq('order 4', questionOrder(4), ['serve', 'shot 2', 'shot 3', 'shot 4', 'end'])
+eq('taps 1', bestTaps(1), 1)
+eq('taps 3', bestTaps(3), 7)
+eq('wide stays on buttons', BEST_ENDS.includes('Wide'), true)
+
+const fault = asServeFault(openRally('me', 1))
+eq('fault winner', fault.best?.point, 'them')
+eq('fault no route', routeAfter(fault, true), null)
+const faultRally = bestRally(fault, 'r1', fault.best!.point!, false)
+eq('fault label', faultRally.idea?.result, 'Serve fault')
+eq('fault receiver', faultRally.winner, otherSide(fault.server))
+
+const two = walk(2, 'Winner')
+eq('2 questions', two.questions, ['serve', 'shot 2', 'end'])
+eq('2 winner', winnerOf(two.draft), 'them')
+eq('2 point stored', two.draft.best?.point, 'them')
+eq('2 no point question', two.questions.includes('point'), false)
+
+const three = walk(3, 'Long')
+eq('3 questions', three.questions, ['serve', 'shot 2', 'shot 3', 'end'])
+eq('3 winner is the receiver', winnerOf(three.draft), 'them')
+
+const four = walk(4, 'Net')
+eq('4 questions', four.questions, questionOrder(4))
+eq('4 shot 3 saved Attack', four.draft.shots[2]?.stroke, 'Attack')
+
+let dropped = openRally('me', 4)
+dropped = setDepth(dropped, 'Short')
+dropped = setWingStroke(dropped, 2, 'BH', 'Control')
+dropped = setWingStroke(dropped, 3, 'FH', 'Attack')
+dropped = { ...dropped, best: { flow: 'bestfa', step: 'shots', endPage: 4 } }
+const afterNot = bestAdvance(removeBestContact(dropped, 4), false)
+eq('not a shot goes to End', afterNot.draft.best?.step, 'end')
+eq('not a shot keeps 3', afterNot.draft.contacts.length, 3)
+eq('not a shot does not save yet', afterNot.save, false)
+
+let ended = walk(4, 'Winner').draft
+const back = bestAdvance(bestDeleteLast(ended), false)
+eq('delete last asks End', back.draft.best?.step, 'end')
+eq('delete last cleared End', back.draft.ending, null)
+eq('delete last count', back.draft.contacts.length, 3)
+eq('delete last keeps shot 3', back.draft.shots[2]?.stroke, 'Attack')
+
+let down = openRally('me', 2)
+down = setDepth(down, 'Long')
+down = setWingStroke(down, 2, 'FH', 'Control')
+down = bestSetEnd(down, 'Winner')
+const toFault = bestAdvance(bestDeleteLast(down), false)
+eq('down to one saves', toFault.save, true)
+eq('down to one is a fault', toFault.draft.best?.point, 'them')
+
+const before = bestQuestionKey(openRally('me', 3), false, 'pad')
+const served = setDepth(openRally('me', 3), 'Short')
+const afterServe = bestAdvance(served, false).draft
+eq('guard key changes on serve', before !== bestQuestionKey(afterServe, false, 'pad'), true)
+eq('guard key same across layouts until the question changes', bestQuestionKey(afterServe, false, 'buttons') !== bestQuestionKey(afterServe, false, 'pad'), true)
+eq('same question same key', bestQuestionKey(afterServe, false, 'pad'), bestQuestionKey(afterServe, false, 'pad'))
+
+let match = blankMatch()
+let score: Points = ZERO
+const runSave = (n: number, end: BestEnd) => {
+  const server = serverAt(match.sets[0].firstServer, taggedScore(match.sets[0]) ?? ZERO)
+  const w = n === 1 ? { draft: asServeFault(openRally(server, 1)), questions: [] as string[] } : walk(n, end, server)
+  const winner = w.draft.best?.point
+  if (!winner) throw new Error('no winner')
+  const rally = bestRally(w.draft, `r-${n}-${end}`, winner, false)
+  match = saveRally(match, 1, rally)
+  score = addPoint(score, winner)
+  return { questions: w.questions, winner, result: rally.idea?.result }
+}
+const a = runSave(1, 'Net')
+eq('rally one fault questions', a.questions, [])
+eq('rally one fault score side', a.winner, 'them')
+const b = runSave(3, 'Winner')
+eq('second rally in order', b.questions, questionOrder(3))
+eq('second rally winner', b.winner, winnerOf(walk(3, 'Winner', serverAt('me', { me: 0, them: 1 })).draft))
+ok('score moved', score.me + score.them === 2, JSON.stringify(score))
+
+if (fails.length) {
+  console.log(`\n${fails.length} failed`)
+  process.exit(1)
+}
+console.log('\nall passed')
