@@ -27,7 +27,6 @@ import {
   endShots,
   faLine,
   mismatchLine,
-  nobodyHidden,
   partsOf,
   PART_LABEL,
   rallyPage,
@@ -183,9 +182,14 @@ for (let n = 1; n <= 13; n++) {
       // Who attacked first? only with unasked shots and no attack on 2, 3, 4.
       const want = n >= 8 && ![2, 3, 4].some((k) => d.shots[k - 1]?.stroke === 'Attack')
       if (asksWhoFirst(d) !== want) ok(`who first ${tag}`, false)
-      // Nobody hidden exactly when an End shot is an attack.
-      const hidden = [n - 2, n - 1, n].some((k) => k >= 2 && d.shots[k - 1]?.stroke === 'Attack')
-      if (nobodyHidden(d) !== hidden) ok(`nobody hidden ${tag}`, false)
+      // Nobody passes the unasked shots: the first attack is then the first asked attack after them.
+      if (first === 'none' && want && [2, 3, 4].every((k) => d.shots[k - 1]?.stroke)) {
+        const later = [n - 2, n - 1, n].find((k) => d.shots[k - 1]?.stroke === 'Attack')
+        const known = [n - 2, n - 1, n].every((k) => d.shots[k - 1]?.stroke) || later !== undefined
+        const firstBlank = [n - 2, n - 1, n].find((k) => !d.shots[k - 1]?.stroke)
+        const expectFa = firstBlank !== undefined && (later === undefined || firstBlank < later) ? null : (later ?? null)
+        if (known && fa !== expectFa) ok(`nobody fa ${tag}`, false, `${fa} vs ${expectFa}`)
+      }
     }
   }
 }
@@ -296,7 +300,6 @@ for (let n = 1; n <= 13; n++) {
   ok('R9 shot 8 page has the question', rallyPage(walk(closed(10), false, []).d, 8) === true)
   eq('R9 9 reads Counter after 8 attack', strokeRole(w.d, 9), 'Counter')
   eq('R9 10 relabels to Counter', strokeRole(w.d, 10), 'Counter')
-  ok('R9 Nobody hidden', nobodyHidden(w.d))
   const loop = bestLoop(walk(closed(10), false, []).d, { step: 'shots', page: 8 })
   ok('R9 shot 8 page loops from shot 5', loop.a < 14 && loop.a > 13.5 && loop.b > 17 && loop.b <= 18, `${loop.a}..${loop.b}`)
 }
@@ -323,6 +326,17 @@ for (let n = 1; n <= 13; n++) {
   ok('R11 cell 10 opens', canOpenCell(before, 10, false))
   const mis = bestSetPoint(before, 'me', false)
   ok('R11 cell 2 shut while it disagrees', !canOpenCell(mis, 2, false))
+}
+// Winner already an attack on End: Nobody makes the last shot the first attack.
+{
+  const d = bestSetFirst(tagged(10, { 2: 'C', 3: 'C', 4: 'C', 8: 'C', 9: 'C', 10: 'A' }), 'none')
+  eq('winner Nobody FA', bestRally(d, 'r', 'me', false).fa, 10)
+  eq('winner Nobody parts', show(d), 'Opening 1-9, Attack 10')
+  const named = bestSetFirst(tagged(10, { 2: 'C', 3: 'C', 4: 'C', 8: 'C', 9: 'C', 10: 'A' }), 'them')
+  eq('winner named keeps parts', show(named), 'Opening 1-4, Rally 5-7, End 8-10')
+  eq('winner named list', faLine(bestRally(named, 'r', 'me', false), names), 'FA Kim')
+  const counter = bestSetFirst(tagged(10, { 2: 'C', 3: 'C', 4: 'C', 8: 'C', 9: 'A', 10: 'A' }), 'none')
+  eq('Nobody, 9 attack and 10 counter: FA 9', bestRally(counter, 'r', 'me', false).fa, 9)
 }
 // R12 Rally skip and Nobody.
 {

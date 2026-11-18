@@ -186,6 +186,7 @@ import {
   bestSwitchServer,
   bestTossInstead,
   canOpenCell,
+  pointDone,
   carryBest,
   cellTarget,
   keepBestMarks,
@@ -249,6 +250,8 @@ type Toast = { text: string; undo?: () => void; extra?: { label: string; run: ()
 const GUARD_AFTER_CLOSE_MS = 1000
 const GUARD_AFTER_SWAP_MS = 600
 const GUARD_DELETE_AFTER_TAP_MS = 300
+/** A Best + FA question or fix row just drew: the second half of a double tap lands on nothing. */
+const GUARD_BEST_SWAP_MS = 450
 /** The guard after the idle close looks it. A slot swap ignores presses and does not dim. */
 const BUSY = 'opacity-40'
 
@@ -1669,7 +1672,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     const endG = offsetOf(rally.videoId) + rally.contacts[rally.contacts.length - 1]
     p.setLoop(null)
     p.setBoundary(null)
-    p.setRate(CAPTURE_SPEED)
+    p.setRate(watchRate.current)
     p.setFloor(Math.max(floorG, endG))
     p.seek(endG)
     if (winsNow) {
@@ -1775,7 +1778,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     setBestHoldOn(false)
     const p = playerRef.current
     p.setBoundary(null)
-    p.setRate(CAPTURE_SPEED)
+    p.setRate(watchRate.current)
     p.play()
   }
 
@@ -2896,11 +2899,29 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   }, [player.time, player.playing])
 
   const flowShown: FlowName = mode === 'tagging' && flowLock ? flowLock : flowWanted
+  /** A rally whose taps have closed stays on its flow. The picker shows that flow and waits. */
+  const flowLocked = mode === 'tagging' && flowLock !== null
   const bestRallyOne = set.rallies.length === 0
   const bestQ: BestAt | null = bestOn && live ? bestAt(live, bestRallyOne) : null
   /** The saved row shows until the next rally's first contact. */
   const bestRowSaved = Boolean(bestSaved && (!live || live.contacts.length === 0))
   const bestRowDraft = bestRowSaved ? bestSaved!.draft : active
+  /** What the question area shows. When it changes, the button now under the thumb waits out a double tap. */
+  const bestPanelKey =
+    bestQ && live
+      ? [
+          bestQ.step,
+          bestQ.page ?? '',
+          bestMismatch(live, bestRallyOne),
+          pointDone(live, bestRallyOne),
+          live.contacts.length,
+          bestMore,
+          live.best?.cut ?? '',
+        ].join(':')
+      : ''
+  useLayoutEffect(() => {
+    if (bestPanelKey) panelGuard.current = Math.max(panelGuard.current, Date.now() + GUARD_BEST_SWAP_MS)
+  }, [bestPanelKey])
   const bestAccount = (() => {
     if (!isBestFlow(flowShown) || !live || live.contacts.length === 0) return null
     const rallyOne = set.rallies.length === 0
@@ -2957,7 +2978,9 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
           <select
             data-flow-toggle=""
             aria-label="Flow"
-            value={flowWanted}
+            title={flowLocked ? 'The open rally keeps its flow' : undefined}
+            disabled={flowLocked}
+            value={flowShown}
             onChange={(e) => onFlowPick(e.target.value)}
             className="h-7 w-[5.6rem] shrink-0 appearance-none truncate rounded-md border border-border bg-bg-card px-1.5 text-[11px] font-medium text-primary"
           >
@@ -4133,7 +4156,7 @@ function SetHeader({ match, set, children }: SetHeaderProps) {
       </Link>
       <div className="min-w-0 flex-1 flex items-baseline gap-2">
         <h1 className="shrink-0 whitespace-nowrap text-base font-bold text-primary">Set {set.setId}</h1>
-        <p className="text-xs text-muted truncate">{matchLabel(match)}</p>
+        <p className="hidden truncate text-xs text-muted min-[480px]:block">{matchLabel(match)}</p>
       </div>
       {children}
     </header>

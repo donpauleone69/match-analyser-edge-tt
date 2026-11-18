@@ -43,7 +43,7 @@ export async function state(page) {
   return page.evaluate(() => {
     const panel = document.querySelector('[data-best-panel]')
     const chips = [...document.querySelectorAll('[data-best-chip]')]
-    const parts = [...document.querySelectorAll('[data-best-part]')].map((b) => `${b.textContent}:${b.dataset.from}-${b.dataset.to}`)
+    const parts = [...document.querySelectorAll('[data-best-part]')].map((b) => `${b.dataset.label}:${b.dataset.from}-${b.dataset.to}`)
     const strokeBtns = [...document.querySelectorAll('[data-stroke-shot] [data-cell]')].map((b) => b.textContent)
     const tagSet = document.querySelector('.tag-set')
     return {
@@ -102,6 +102,13 @@ export async function fit(page) {
       for (const el of document.querySelectorAll(sel)) {
         if (el.scrollWidth > el.clientWidth + 1) bad.push(`${sel} w ${el.scrollWidth}>${el.clientWidth}`)
       }
+    }
+    for (const b of document.querySelectorAll('[data-best-part]')) {
+      const label = b.firstElementChild
+      if (label && label.getBoundingClientRect().width > b.clientWidth + 1) bad.push(`part ${b.dataset.bestPart} label ${Math.round(label.getBoundingClientRect().width)}>${b.clientWidth}`)
+    }
+    for (const h of document.querySelectorAll('.tag-set header, header h1')) {
+      if (h.scrollWidth > h.clientWidth + 1) bad.push(`header w ${h.scrollWidth}>${h.clientWidth}`)
     }
     return bad.join('; ')
   })

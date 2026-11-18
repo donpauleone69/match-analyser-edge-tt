@@ -1,4 +1,4 @@
-import { type CSSProperties, type ReactNode } from 'react'
+import { useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { cn } from '@/helpers/utils'
 import { Answer, AnswerRow, StrokeGrid, restStyle } from './AnswerCells'
 import {
@@ -13,7 +13,6 @@ import {
   canOpenCell,
   cellMark,
   mismatchLine,
-  nobodyHidden,
   partsOf,
   pointDone,
   rallyPage,
@@ -32,13 +31,55 @@ function checkingOn(): CSSProperties {
   return { backgroundColor: 'var(--color-warning)', borderColor: 'var(--color-warning)', color: '#0b1220' }
 }
 
-/** The worked out Point to: an outline and a tint, not the filled chosen look. */
+/** The worked out Point to: a dashed brand edge on the rest fill, so it never reads as chosen. */
 function hinted(): CSSProperties {
-  return {
-    backgroundColor: 'color-mix(in srgb, var(--color-brand-primary) 32%, var(--tag-cell-rest))',
-    borderColor: 'var(--color-brand-primary)',
-    boxShadow: 'inset 0 0 0 2px var(--color-brand-primary)',
-  }
+  return { ...restStyle(), borderStyle: 'dashed', borderColor: 'var(--color-brand-primary)' }
+}
+
+const PART_SHORT: Record<BestPart, string> = { opening: 'Open', rally: 'Rally', attack: 'Att', end: 'End' }
+
+/** Longest label that fits its button, then smaller type, then shorter words. Never spills. */
+function PartLabel({ part, marked }: { part: BestPart; marked: boolean }) {
+  const ref = useRef<HTMLSpanElement>(null)
+  const tries: { text: string; size: number }[] = [
+    ...(marked ? [{ text: `⚑ ${PART_LABEL[part]}`, size: 10 }] : []),
+    { text: PART_LABEL[part], size: 10 },
+    { text: PART_LABEL[part], size: 9 },
+    { text: PART_LABEL[part], size: 8 },
+    { text: PART_SHORT[part], size: 9 },
+    { text: PART_SHORT[part], size: 8 },
+    { text: PART_SHORT[part].slice(0, 1), size: 9 },
+  ]
+  const [pick, setPick] = useState(0)
+  const key = `${part}:${marked}`
+  useLayoutEffect(() => {
+    const el = ref.current
+    const box = el?.parentElement
+    if (!el || !box) return
+    const fit = () => {
+      const room = box.clientWidth - 4
+      let i = 0
+      for (; i < tries.length - 1; i++) {
+        el.textContent = tries[i].text
+        el.style.fontSize = `${tries[i].size}px`
+        if (el.scrollWidth <= room) break
+      }
+      el.textContent = tries[i].text
+      el.style.fontSize = `${tries[i].size}px`
+      setPick(i)
+    }
+    fit()
+    const watch = new ResizeObserver(fit)
+    watch.observe(box)
+    return () => watch.disconnect()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key])
+  const shown = tries[Math.min(pick, tries.length - 1)]
+  return (
+    <span ref={ref} className="inline-block whitespace-nowrap" style={{ fontSize: shown.size }}>
+      {shown.text}
+    </span>
+  )
 }
 
 function filled(): CSSProperties {
@@ -228,10 +269,12 @@ export function BestRallyRow({
                   type="button"
                   data-best-part={p.part}
                   data-best-review={p.part}
+                  data-label={marked ? `⚑ ${PART_LABEL[p.part]}` : PART_LABEL[p.part]}
                   data-from={p.from}
                   data-to={p.to}
                   aria-pressed={marked}
-                  className="h-7 min-w-0 overflow-visible whitespace-nowrap rounded-md border px-0 text-[10px] font-semibold"
+                  aria-label={`${marked ? 'Unmark' : 'Mark'} ${PART_LABEL[p.part]} for review`}
+                  className="flex h-7 min-w-0 items-center justify-center overflow-hidden whitespace-nowrap rounded-md border px-0 font-semibold"
                   style={{
                     gridRow: 2,
                     gridColumn: `${p.from + g} / span ${p.to - p.from + 1}`,
@@ -239,7 +282,7 @@ export function BestRallyRow({
                   }}
                   onClick={() => onPart(p.part)}
                 >
-                  {marked ? `⚑ ${PART_LABEL[p.part]}` : PART_LABEL[p.part]}
+                  <PartLabel part={p.part} marked={marked} />
                 </button>
               )
             })
@@ -371,9 +414,7 @@ export function BestPanel({
         <>
           {rallyPage(draft, at.page) ? (
             <AnswerRow label="Who attacked first?">
-              {(['me', 'them', 'none'] as const)
-                .filter((who) => who !== 'none' || !nobodyHidden(draft) || draft.best?.first === 'none')
-                .map((who) => (
+              {(['me', 'them', 'none'] as const).map((who) => (
                   <Answer
                     key={who}
                     label={who === 'none' ? 'Nobody' : names[who]}
@@ -445,7 +486,7 @@ function EndPage({
           <Answer
             key={side}
             label={names[side]}
-            on={point === side && !mismatch}
+            on={point === side}
             disabled={!draft.ending}
             className={!draft.ending ? 'opacity-40' : undefined}
             style={lit === side ? hinted() : undefined}

@@ -220,13 +220,6 @@ export function rallyPage(d: Pick<Draft, 'contacts' | 'shots'>, page: number | u
   return asksWhoFirst(d) && page !== undefined && page === endShots(d.contacts.length)[0]
 }
 
-/** Nobody is hidden once an End shot is tagged an attack. */
-export function nobodyHidden(d: Pick<Draft, 'contacts' | 'shots'>): boolean {
-  const n = d.contacts.length
-  for (let k = Math.max(2, n - 2); k <= n; k++) if (isAttack(d.shots[k - 1])) return true
-  return false
-}
-
 /** The winner End, the server and the contact count give. None on rally one, where the server is not known. */
 export function bestHint(d: Pick<Draft, 'server' | 'contacts' | 'ending'>, rallyOne: boolean): Side | null {
   if (rallyOne) return null
