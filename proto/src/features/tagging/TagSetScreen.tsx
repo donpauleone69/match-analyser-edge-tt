@@ -193,6 +193,7 @@ import {
   keepBestMarks,
   loadAnswerLayout,
   loadBestTiming,
+  pointDone,
   removeBestContact,
   routeAfter,
   saveAnswerLayout,
@@ -1773,7 +1774,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     if (!live) return
     setEndBack(null)
     setBestNote(null)
-    routeBest(bestSetEnd(live, end))
+    routeBest(bestSetEnd(live, end, rallyOneNow()))
   }
 
   const onBestPoint = (side: Side) => {
@@ -1847,7 +1848,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     const rallyOne = before.rallies.length === 0
     setEndBack(null)
     setBestNote(null)
-    routeBest(shot === live.contacts.length ? bestDeleteLast(live) : removeBestContact(live, shot))
+    routeBest(shot === live.contacts.length ? bestDeleteLast(live) : removeBestContact(live, shot, rallyOne))
     withUndo('Shot removed', before, () => {
       const back = before.draft
       if (back?.closed) playBest(back, bestAt(back, rallyOne))
@@ -1879,7 +1880,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     }
     if (fix === 'deleteFirst') {
       setBestNote(live.shots[0]?.depth ? 'Serve length left with that contact.' : null)
-      routeBest(bestDeleteFirst(live))
+      routeBest(bestDeleteFirst(live, rallyOneNow()))
       return
     }
     if (fix === 'switch') {
@@ -1897,9 +1898,9 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     let next: Draft
     if (live.closed && shot === n) next = bestDeleteLast(live)
     else if (live.closed && shot === 1) {
-      next = bestDeleteFirst(live)
+      next = bestDeleteFirst(live, rallyOneNow())
       if (live.shots[0]?.depth) setBestNote('Serve length left with that contact.')
-    } else next = removeBestContact(live, shot)
+    } else next = removeBestContact(live, shot, rallyOneNow())
     writeDraft(next)
     if (next.closed) playCheck(next)
     else playOpenCheck(next)
@@ -2974,7 +2975,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   }, [bestPanelKey])
   const bestAccount = (() => {
     if (!isBestFlow(flowShown) || !live || live.contacts.length === 0) return null
-    const winner = live.ending ? winnerOf(live) : null
+    const winner = pointDone(live, bestRallyOne) ? winnerOf(live) : null
     return {
       hitters: bestHitters(live).join(','),
       winner: winner ?? '',
@@ -3365,7 +3366,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                 back={endBack}
                 onBack={setEndBack}
                 onFix={onBestFix}
-                onTossInstead={() => routeBest(bestTossInstead(live), { save: false })}
+                onTossInstead={() => routeBest(bestTossInstead(live, bestRallyOne), { save: false })}
                 onNotShot={() => {
                   if (!live || !bestQ) return
                   const shot = bestQ.step === 'serve' ? 1 : (bestQ.page ?? live.contacts.length)

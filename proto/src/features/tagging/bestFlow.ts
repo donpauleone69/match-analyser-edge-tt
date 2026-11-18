@@ -252,12 +252,33 @@ export function mismatchLine(d: Pick<Draft, 'server' | 'contacts' | 'ending' | '
   return `Point to ${names[point]}, but shot ${n}, ${what}, is ${possessive(hitterOf(d.server, n), names)}.`
 }
 
-type Q = Pick<Draft, 'server' | 'contacts' | 'shots' | 'ending' | 'best'>
+type Q = Pick<Draft, 'server' | 'contacts' | 'shots' | 'ending' | 'best' | 'serveChecked'>
 
-/** The winner is known, and it agrees with Point to when that was answered. */
+/** Rally one of a set: the server is the set's default until the server switch confirms it. */
+export function serverKnown(d: Pick<Draft, 'serveChecked'>, rallyOne: boolean): boolean {
+  return !rallyOne || Boolean(d.serveChecked)
+}
+
+/**
+ * The point once End or the contacts change. A known server gives the winner.
+ * With the server not known, Point to stands and the server follows from it.
+ */
+export function settlePoint(d: Draft, rallyOne: boolean): Draft {
+  if (!d.ending) return d
+  if (!serverKnown(d, rallyOne)) {
+    const point = d.best?.point
+    return point ? { ...d, server: serverForWinner(d, point) } : d
+  }
+  const winner = winnerOf(d)
+  if (!winner || d.best?.point === winner) return d
+  return { ...d, best: carryBest(d, { point: winner }) }
+}
+
+/** The winner is known: from the server, or from Point to while the server is not known. */
 export function pointDone(d: Q, rallyOne: boolean): boolean {
   if (!d.ending || bestMismatch(d, rallyOne)) return false
-  return Boolean(winnerOf(d) || d.best?.point)
+  if (!serverKnown(d, rallyOne)) return Boolean(d.best?.point)
+  return Boolean(winnerOf(d))
 }
 
 /** End is done once the result is in and the winner follows from it. */
@@ -270,8 +291,8 @@ export type PadBack = 'end' | 'point' | null
 
 /**
  * The result question. End, then Point to only when the winner does not
- * follow from the server, the contact count and End. A point that disagrees
- * stays on Point to.
+ * follow from the server, the contact count and End: rally one, until the
+ * server switch is used. A point that disagrees stays on Point to.
  */
 export function padFocus(d: Q, rallyOne: boolean, back: PadBack = null): 'end' | 'point' {
   if (back === 'end' || back === 'point') return back
@@ -448,7 +469,7 @@ function withoutServeStroke(shot: ShotTags | undefined): ShotTags {
  * last contact clears End, because End belonged to that shot. When End stays,
  * the winner is worked out again from the new count.
  */
-export function removeBestContact(d: Draft, shot: number): Draft {
+export function removeBestContact(d: Draft, shot: number, rallyOne = false): Draft {
   const i = shot - 1
   if (i < 0 || i >= d.contacts.length || d.contacts.length < 2) return d
   const shots = d.shots.filter((_, j) => j !== i)
@@ -465,9 +486,8 @@ export function removeBestContact(d: Draft, shot: number): Draft {
     best: carryBest(d, removedLast ? { kept: undefined, end: undefined, point: undefined } : { kept: undefined }),
   }
   const kept = keepBestMarks(next)
-  if (removedLast || !kept.ending) return kept
-  const winner = winnerOf(kept)
-  return { ...kept, best: carryBest(kept, { point: winner ?? undefined }) }
+  if (removedLast) return kept
+  return settlePoint(kept, rallyOne)
 }
 
 /** Delete last. Before the serve is answered, Serve can offer Delete first instead. */
@@ -479,13 +499,13 @@ export function bestDeleteLast(d: Draft): Draft {
   return { ...next, best: carryBest(next, { cut }) }
 }
 
-export function bestDeleteFirst(d: Draft): Draft {
-  const next = removeBestContact(d, 1)
+export function bestDeleteFirst(d: Draft, rallyOne = false): Draft {
+  const next = removeBestContact(d, 1, rallyOne)
   return { ...next, best: carryBest(next, { cut: undefined }) }
 }
 
 /** Shot 1 was the toss after all: the contact Delete last took comes back with the last stroke, and shot 1 goes. */
-export function bestTossInstead(d: Draft): Draft {
+export function bestTossInstead(d: Draft, rallyOne = false): Draft {
   const cut = d.best?.cut
   const n = d.contacts.length
   if (cut === undefined || n < 1) return d
@@ -493,7 +513,7 @@ export function bestTossInstead(d: Draft): Draft {
   const { wing, stroke, ...lastRest } = last
   const shots = [...d.shots.slice(0, n - 1), lastRest, wing && stroke ? { wing, stroke } : {}]
   const back: Draft = { ...d, contacts: [...d.contacts, cut], shots, end: null }
-  const next = removeBestContact(back, 1)
+  const next = removeBestContact(back, 1, rallyOne)
   return { ...next, best: carryBest(next, { cut: undefined }) }
 }
 
@@ -508,11 +528,8 @@ export function bestSetPoint(d: Draft, side: Side, rallyOne: boolean): Draft {
   return { ...d, server, best: carryBest(d, { point: side }) }
 }
 
-export function bestSetEnd(d: Draft, end: BestEnd): Draft {
-  const next: Draft = { ...d, ending: end, best: carryBest(d, { end }) }
-  const winner = winnerOf(next)
-  if (!winner) return next
-  return { ...next, best: carryBest(next, { point: winner }) }
+export function bestSetEnd(d: Draft, end: BestEnd, rallyOne = false): Draft {
+  return settlePoint({ ...d, ending: end, best: carryBest(d, { end }) }, rallyOne)
 }
 
 export function setDepth(d: Draft, depth: string): Draft {

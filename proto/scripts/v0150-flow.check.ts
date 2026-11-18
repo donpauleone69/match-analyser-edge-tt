@@ -13,6 +13,8 @@ import {
   bestQuestionKey,
   bestRally,
   bestSetEnd,
+  bestSetPoint,
+  bestSwitchServer,
   bestTaps,
   padFocus,
   questionOrder,
@@ -164,6 +166,36 @@ const afterServe = bestAdvance(served, false).draft
 eq('guard key changes on serve', before !== bestQuestionKey(afterServe, false, 'pad'), true)
 eq('guard key same across layouts until the question changes', bestQuestionKey(afterServe, false, 'buttons') !== bestQuestionKey(afterServe, false, 'pad'), true)
 eq('same question same key', bestQuestionKey(afterServe, false, 'pad'), bestQuestionKey(afterServe, false, 'pad'))
+
+function walkOne(n: number, end: BestEnd, point: Side, switchFirst: boolean): { questions: string[]; draft: Draft; saved: boolean } {
+  let d = openRally('me', n)
+  if (switchFirst) d = bestSwitchServer(d, true)
+  const questions: string[] = []
+  for (let i = 0; i < 40; i++) {
+    const at = routeAfter(d, true)
+    if (!at) return { questions, draft: d, saved: true }
+    d = { ...d, best: { ...d.best!, step: at.step, endPage: at.page } }
+    const q = at.step === 'end' ? padFocus(d, true, null) : at.step === 'shots' ? `shot ${at.page}` : at.step
+    questions.push(q)
+    const next =
+      q === 'point' ? bestSetPoint(d, point, true) : q === 'end' ? bestSetEnd(d, end, true) : answer(d, q, end)
+    const moved = bestAdvance(next, true)
+    d = moved.draft
+    if (moved.save) return { questions, draft: d, saved: true }
+  }
+  return { questions, draft: d, saved: false }
+}
+const r1 = walkOne(3, 'Winner', 'them', false)
+eq('rally one asks Point to last', r1.questions, [...questionOrder(3), 'point'])
+eq('rally one point stands', r1.draft.best?.point, 'them')
+eq('rally one server follows the point', winnerOf(r1.draft), 'them')
+eq('rally one server worked out', r1.draft.server, 'them')
+const r1s = walkOne(3, 'Winner', 'them', true)
+eq('rally one after the switch has no Point to', r1s.questions, questionOrder(3))
+eq('rally one after the switch derives', r1s.draft.best?.point, 'them')
+const r1a = walkOne(1, 'Winner', 'them', false)
+eq('rally one ace asks Point to', r1a.questions, ['end', 'point'])
+eq('rally one ace sets the server', r1a.draft.server, 'them')
 
 let match = blankMatch()
 let score: Points = ZERO
