@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -168,6 +169,7 @@ import {
 } from './ideaFlow'
 import { EndPanel, ShotPanel, TimeRow, TrimRow } from './ShotPanel'
 import { BestPanel, BestRallyRow, type BestFix } from './BestPanel'
+import { PadWingContext } from './CornerPad'
 import { BestTimingControl } from './BestTimingControl'
 import {
   BEST_SHOT_RATE,
@@ -179,21 +181,21 @@ import {
   bestLoop,
   bestMismatch,
   bestPlace,
+  bestQuestionKey,
   bestRally,
   bestSetEnd,
-  bestSetFirst,
   bestSetPoint,
   bestSwitchServer,
   bestTossInstead,
   canOpenCell,
-  pointDone,
-  padFocus,
   carryBest,
   cellTarget,
   keepBestMarks,
   loadAnswerLayout,
   loadBestTiming,
+  pointDone,
   removeBestContact,
+  routeAfter,
   saveAnswerLayout,
   saveBestTiming,
   setDepth,
@@ -285,8 +287,10 @@ const watchRates = new Map<string, number>()
 
 const scoreKey = (p: Points) => `${p.me}-${p.them}`
 
-function guardClicks(until: RefObject<number>) {
+/** `pass` lets a press on a matching element through the guard. */
+function guardClicks(until: RefObject<number>, pass?: string) {
   return (e: MouseEvent) => {
+    if (pass && e.target instanceof Element && e.target.closest(pass)) return
     if (Date.now() < until.current) {
       e.preventDefault()
       e.stopPropagation()
@@ -379,6 +383,21 @@ function selectionAfter(prev: Stage, next: Stage, d: Draft, current: Mark | null
   return current
 }
 
+const NO_WINGS = { left: null, right: null }
+
+/** Phone landscape and any window wider than it is tall. Portrait stays stacked. */
+function useLandscape() {
+  const [land, setLand] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia('(orientation: landscape), (min-aspect-ratio: 1/1)')
+    const apply = () => setLand(mq.matches)
+    apply()
+    mq.addEventListener('change', apply)
+    return () => mq.removeEventListener('change', apply)
+  }, [])
+  return land
+}
+
 function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: TagLock }) {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -432,6 +451,14 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const [bestNote, setBestNote] = useState<string | null>(null)
   const [timing, setTiming] = useState(loadBestTiming)
   const [answerLayout, setAnswerLayoutState] = useState(loadAnswerLayout)
+  const landscape = useLandscape()
+  const [padWings, setPadWings] = useState<{ left: HTMLElement | null; right: HTMLElement | null }>({ left: null, right: null })
+  const setLeftWing = useCallback((node: HTMLDivElement | null) => {
+    setPadWings((w) => (w.left === node ? w : { ...w, left: node }))
+  }, [])
+  const setRightWing = useCallback((node: HTMLDivElement | null) => {
+    setPadWings((w) => (w.right === node ? w : { ...w, right: node }))
+  }, [])
   const [bestSpan, setBestSpan] = useState<{ a: number; b: number } | null>(null)
   const loopWhat = useRef<{ what: BestLoopWhat; rate: number } | null>(null)
   const setBestTiming = (next: BestTiming) => {
@@ -545,6 +572,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   /** Best or Best + FA, contacts closed, this rally's steps open. */
   const bestOn =
     isBestFlow(flowLock) && !edit && !review && !set.finished && !draftGone && Boolean(live?.closed)
+  const liveCount = live?.contacts.length ?? 0
   const detailing = Boolean(detail && isIdeaFlow(flowWanted) && detail.flow === flowWanted)
   const detailQ = !detail || !detailing ? null : nextSweep(set.rallies, detail.sweep, names)
   /** End is on screen with no result, and whenever a press has opened it. */
@@ -1091,7 +1119,12 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     if (!d || d.closed || d.contacts.length === 0) return
     const wanted = latest.current.flowWanted
     const best = isBestFlow(wanted)
-    const closed: Draft = best ? { ...d, closed: true, best: carryBest(d, { step: 'end', endPage: undefined }) } : { ...d, closed: true }
+    const base = best ? { ...d, closed: true, best: carryBest(d, {}) } : d
+    const open: BestAt =
+      best && d.contacts.length > 1
+        ? (routeAfter(base, s.rallies.length === 0) ?? { step: 'serve' })
+        : { step: 'end' }
+    const closed: Draft = best ? withStep(base, open) : { ...d, closed: true }
     mutateMatch(m.id, (cur) => setDraft(cur, s.setId, closed))
     const p = playerRef.current
     const at = p.getTime()
@@ -1116,7 +1149,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       setBestAdd(false)
       setBestCheck(false)
       setBestMore(false)
-      playBest(closed, { step: 'end' })
+      playBest(closed, open)
     } else if (isIdeaFlow(wanted)) {
       setSelected(null)
       setEndOpen(false)
@@ -1647,12 +1680,13 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
 
   /** The last answer: the rally is saved, the score moves and the video plays on. */
   const saveBest = (d0: Draft) => {
-    const winner = d0.best?.point
+    const derived = winnerOf(d0)
+    const winner = derived ?? d0.best?.point ?? null
     if (!d0.ending || !d0.best || !winner) return
     const kept = Boolean(d0.best.kept)
     const rally1 = set.rallies.length === 0
-    let d = d0
-    if (rally1) d = { ...d, server: serverForWinner(d, winner), serveChecked: true }
+    let d = derived && d0.best.point !== derived ? { ...d0, best: carryBest(d0, { point: derived }) } : d0
+    if (rally1) d = { ...d, serveChecked: true }
     const rally = bestRally(d, `r-${Date.now()}`, winner, kept)
     const before = set
     const after = addPoint(score, winner)
@@ -1705,7 +1739,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     }
     arm(GUARD_AFTER_CLOSE_MS)
   }
-
   /** Part buttons and ★ on the saved row change the saved rally. The video keeps playing. */
   const updateSaved = (d: Draft) => {
     if (!bestSaved || readOnly) return
@@ -1743,7 +1776,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     if (!live) return
     setEndBack(null)
     setBestNote(null)
-    routeBest(bestSetEnd(live, end))
+    routeBest(bestSetEnd(live, end, rallyOneNow()))
   }
 
   const onBestPoint = (side: Side) => {
@@ -1805,10 +1838,23 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     if (serveAt !== undefined && local < serveAt - 0.02) return
     const t = addedContactTime(live, local, fenceOf(live), ceilOf(live), timing.reaction / 1000)
     if (serveAt !== undefined && t < serveAt) return
-    const { draft: next, shot } = insertContact(live, t)
+    const { draft: next } = insertContact(live, t)
     setBestAdd(false)
-    setBestNote(shot > live.contacts.length ? 'New last shot. End again.' : null)
+    setBestNote(null)
     routeBest(keepBestMarks({ ...next, best: carryBest(next, { kept: undefined }) }))
+  }
+
+  const onBestDropShot = (shot: number) => {
+    if (!live || live.contacts.length < 2) return
+    const before = set
+    const rallyOne = before.rallies.length === 0
+    setEndBack(null)
+    setBestNote(null)
+    routeBest(shot === live.contacts.length ? bestDeleteLast(live) : removeBestContact(live, shot, rallyOne))
+    withUndo('Shot removed', before, () => {
+      const back = before.draft
+      if (back?.closed) playBest(back, bestAt(back, rallyOne))
+    })
   }
 
   const onBestFix = (fix: BestFix) => {
@@ -1836,11 +1882,11 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     }
     if (fix === 'deleteFirst') {
       setBestNote(live.shots[0]?.depth ? 'Serve length left with that contact.' : null)
-      routeBest(bestDeleteFirst(live))
+      routeBest(bestDeleteFirst(live, rallyOneNow()))
       return
     }
     if (fix === 'switch') {
-      routeBest(bestSwitchServer(live))
+      routeBest(bestSwitchServer(live, rallyOneNow()))
       return
     }
     routeBest({ ...live, best: carryBest(live, { kept: true }) })
@@ -1854,9 +1900,9 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     let next: Draft
     if (live.closed && shot === n) next = bestDeleteLast(live)
     else if (live.closed && shot === 1) {
-      next = bestDeleteFirst(live)
+      next = bestDeleteFirst(live, rallyOneNow())
       if (live.shots[0]?.depth) setBestNote('Serve length left with that contact.')
-    } else next = removeBestContact(live, shot)
+    } else next = removeBestContact(live, shot, rallyOneNow())
     writeDraft(next)
     if (next.closed) playCheck(next)
     else playOpenCheck(next)
@@ -2924,27 +2970,14 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const bestRowSaved = Boolean(bestSaved && (!live || live.contacts.length === 0))
   const bestRowDraft = bestRowSaved ? bestSaved!.draft : active
   /** What the question area shows. When it changes, the button now under the thumb waits out a double tap. */
-  const bestPanelKey =
-    bestQ && live
-      ? [
-          bestQ.step,
-          bestQ.page ?? '',
-          answerLayout === 'pad' ? padFocus(live, bestRallyOne, endBack) : '',
-          bestMismatch(live, bestRallyOne),
-          pointDone(live, bestRallyOne),
-          live.contacts.length,
-          bestMore,
-          live.best?.cut ?? '',
-        ].join(':')
-      : ''
+  const bestPanelKey = bestQ && live ? bestQuestionKey(live, bestRallyOne, answerLayout, endBack) : ''
+  const padSplit = Boolean(landscape && answerLayout === 'pad' && bestOn && !bestAdd && !bestOver && liveCount > 0)
   useLayoutEffect(() => {
     if (bestPanelKey) panelGuard.current = Math.max(panelGuard.current, Date.now() + GUARD_BEST_SWAP_MS)
   }, [bestPanelKey])
   const bestAccount = (() => {
     if (!isBestFlow(flowShown) || !live || live.contacts.length === 0) return null
-    const rallyOne = set.rallies.length === 0
-    // Rally 1 has no hint until Point to. The score overlay stays on saved rallies either way.
-    const winner = !rallyOne && live.ending ? winnerOf(live) : null
+    const winner = pointDone(live, bestRallyOne) ? winnerOf(live) : null
     return {
       hitters: bestHitters(live).join(','),
       winner: winner ?? '',
@@ -2960,8 +2993,11 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   }
 
   return (
+    <PadWingContext.Provider value={padSplit ? padWings : NO_WINGS}>
     <div
       className="tag-set bg-bg-app"
+      data-pad-split={padSplit ? '' : undefined}
+      data-answer-layout={isBestFlow(flowShown) ? answerLayout : undefined}
       data-tag-mode={mode}
       data-flow={flowShown}
       data-best-look={bestLook ? '' : undefined}
@@ -2991,6 +3027,15 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       data-no-attack={active?.noAttack ? 'yes' : 'no'}
     >
       {/* Left on desktop, top on phone: header, picture, timeline, rally list. */}
+      {padSplit ? (
+        <div
+          className="pad-wing"
+          data-pad-wing="left"
+          ref={setLeftWing}
+          onClickCapture={guardClicks(panelGuard)}
+        />
+      ) : null}
+      <div className="tag-flow">
       <div className="tag-media">
         <SetHeader match={match} set={set}>
           <select
@@ -3109,6 +3154,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
         </div>
 
         {/* The white band. One line under the shot row, then the column down to the foot. */}
+        {/* The Best questions sit above the late tap, so in the second after the close only the late tap gets through. */}
         <div
           ref={body}
           data-tag-body
@@ -3117,7 +3163,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
             bestOn && answerLayout === 'pad' && 'overflow-hidden',
             zoneOn && 'pb-3'
           )}
-          onClickCapture={late ? undefined : guardClicks(panelGuard)}
+          onClickCapture={!late ? guardClicks(panelGuard) : bestOn ? guardClicks(panelGuard, '[data-late-tap]') : undefined}
         >
           {late && slotKind === 'save' && active ? (
             <button
@@ -3291,7 +3337,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                 Set over at {bestOver}
               </p>
             ) : null}
-            {bestOn && live?.best && bestQ ? (
+            {bestOn && live?.best && bestQ && live.contacts.length > 0 ? (
               <BestPanel
                 draft={live}
                 names={names}
@@ -3312,15 +3358,24 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                 onPoint={onBestPoint}
                 onServe={onBestServe}
                 onServer={() => {
-                  if (!bestRallyOne) routeBest(bestSwitchServer(live), { save: false })
+                  if (!live) return
+                  const next = bestSwitchServer(live, bestRallyOne)
+                  if (bestRallyOne) mutateMatch(match.id, (m) => flipFirstServer(m, set.setId))
+                  routeBest(next, { save: false })
                 }}
                 onStroke={onBestStroke}
-                onFirst={(first) => writeDraft(bestSetFirst(live, first))}
                 layout={answerLayout}
+                sides={padSplit}
                 back={endBack}
                 onBack={setEndBack}
                 onFix={onBestFix}
-                onTossInstead={() => routeBest(bestTossInstead(live), { save: false })}
+                onTossInstead={() => routeBest(bestTossInstead(live, bestRallyOne), { save: false })}
+                onNotShot={() => {
+                  if (!live || !bestQ) return
+                  const shot = bestQ.step === 'serve' ? 1 : (bestQ.page ?? live.contacts.length)
+                  onBestDropShot(shot)
+                }}
+                onDeleteLast={() => onBestDropShot(live.contacts.length)}
               />
             ) : null}
             {!zoneOn && review ? (
@@ -4005,7 +4060,17 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
           </div>
         ) : null}
       </div>
+      </div>
+      {padSplit ? (
+        <div
+          className="pad-wing"
+          data-pad-wing="right"
+          ref={setRightWing}
+          onClickCapture={guardClicks(panelGuard)}
+        />
+      ) : null}
     </div>
+    </PadWingContext.Provider>
   )
 }
 

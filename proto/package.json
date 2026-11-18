@@ -12,7 +12,8 @@
     "check:item6": "esbuild scripts/item6-switch.ts --bundle --platform=node --format=esm --outfile=/tmp/item6-switch.mjs && node /tmp/item6-switch.mjs",
     "check:best-parts": "esbuild scripts/best-parts.check.ts --bundle --platform=node --format=esm --outfile=/tmp/best-parts.check.mjs && node /tmp/best-parts.check.mjs",
     "check:best-steps": "esbuild scripts/best-steps.check.ts --bundle --platform=node --format=esm --outfile=/tmp/best-steps.check.mjs && node /tmp/best-steps.check.mjs",
-    "check:v0141": "esbuild scripts/v0141-flow.check.ts --bundle --platform=node --format=esm --alias:@=./src --outfile=/tmp/v0141-flow.check.mjs && node /tmp/v0141-flow.check.mjs"
+    "check:v0141": "npm run check:v0150",
+    "check:v0150": "esbuild scripts/v0150-flow.check.ts --bundle --platform=node --format=esm --alias:@=./src --outfile=/tmp/v0150-flow.check.mjs && node /tmp/v0150-flow.check.mjs"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",

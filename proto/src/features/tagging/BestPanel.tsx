@@ -15,16 +15,12 @@ import {
   cellMark,
   mismatchLine,
   partsOf,
-  pointDone,
   padFocus,
-  rallyPage,
   stepShot,
-  strokeLabel,
   type AnswerLayout,
   type BestAt,
   type PadBack,
   type BestEnd,
-  type BestFirst,
   type BestPart,
 } from './bestFlow'
 import { hitterOf, type Draft, type Side, type Wing } from './rally'
@@ -335,9 +331,11 @@ export function BestPanel({
   onServe,
   onServer,
   onStroke,
-  onFirst,
   onFix,
   onTossInstead,
+  onNotShot,
+  onDeleteLast,
+  sides = false,
 }: {
   draft: Draft
   names: Record<Side, string>
@@ -346,10 +344,10 @@ export function BestPanel({
   rallyNo: number
   /** The second fix row is open. */
   more: boolean
-  /** "New last shot. End again." on End, "Serve length left with that contact." on Serve. */
+  /** A short note under the open question. */
   note: string | null
   layout: AnswerLayout
-  /** Corner pad: which End question to show again. Null follows the one still open. */
+  /** Corner pad: which result question to show again. Null follows the one still open. */
   back: PadBack
   onBack: (back: PadBack) => void
   onEnd: (end: BestEnd) => void
@@ -357,29 +355,46 @@ export function BestPanel({
   onServe: (depth: string) => void
   onServer: () => void
   onStroke: (shot: number, wing: Wing, stroke: 'Attack' | 'Control') => void
-  onFirst: (first: BestFirst) => void
   onFix: (fix: BestFix) => void
   onTossInstead: () => void
+  onNotShot: () => void
+  onDeleteLast: () => void
+  /** Landscape pad: quadrant halves sit in the side wings. */
+  sides?: boolean
 }) {
   const n = draft.contacts.length
   const shot = stepShot(n, at.step, at.page)
   const hitter = hitterOf(draft.server, shot)
-  const grid = (k: number, title: string, fill = true) => {
+  const toolBtn = 'shrink-0 rounded-md border border-border px-1.5 py-0.5 text-[11px] font-semibold text-muted'
+  const notShot = (
+    <button type="button" className={toolBtn} data-best-not-shot onClick={onNotShot}>
+      Not a shot
+    </button>
+  )
+  const deleteLast =
+    n >= 2 ? (
+      <button type="button" className={toolBtn} data-best-delete-last onClick={onDeleteLast}>
+        Delete last
+      </button>
+    ) : null
+  const grid = (k: number, title: string) => {
     const saved = draft.shots[k - 1]
-    const cells = STROKE_GRID.map((row) => row.map((c) => ({ ...c, label: strokeLabel(draft, k, c.wing, c.stroke) })))
+    const cells = STROKE_GRID.map((row) => row.map((c) => ({ ...c, label: `${c.wing} ${c.stroke}` })))
     if (layout === 'pad') {
       return (
         <CornerPad
           shot={k}
           label={title}
-          fill={fill}
+          split={sides}
           columns="1fr 1fr"
           rows="1fr 1fr"
+          aside={notShot}
           regions={cells.flat().map((c) => {
             const tone = PAD_STROKE[`${c.wing}:${c.stroke}`]
             return {
               key: `${c.wing}-${c.stroke}`,
               label: c.label,
+              side: c.wing === 'BH' ? ('left' as const) : ('right' as const),
               on: saved?.wing === c.wing && saved?.stroke === c.stroke,
               bg: tone.bg,
               fg: tone.fg,
@@ -395,47 +410,54 @@ export function BestPanel({
         shot={k}
         label={title}
         rows={cells}
+        aside={notShot}
         isOn={(c) => saved?.wing === c.wing && saved?.stroke === c.stroke}
         onPick={(c) => onStroke(k, c.wing, c.stroke)}
       />
     )
   }
-  const serverSwitch =
-    rallyOne ? null : (
-      <button
-        type="button"
-        role="switch"
-        data-best-server={draft.server}
-        aria-label={`${names[draft.server]} serving`}
-        aria-checked={draft.server === 'them'}
-        className="inline-flex h-7 shrink-0 items-center rounded-full border border-border bg-bg-card p-0.5"
-        onClick={onServer}
-      >
-        {(['me', 'them'] as const).map((side) => (
-          <span
-            key={side}
-            className="rounded-full px-2 text-xs font-semibold leading-6"
-            style={
-              draft.server === side
-                ? { backgroundColor: side === 'me' ? 'var(--color-side-me)' : 'var(--color-side-them)', color: '#fff' }
-                : { color: 'var(--color-text-muted)' }
-            }
-          >
-            {names[side]}
-          </span>
-        ))}
-      </button>
-    )
+  const serverSwitch = (
+    <button
+      type="button"
+      role="switch"
+      data-best-server={draft.server}
+      aria-label={`${names[draft.server]} serving`}
+      aria-checked={draft.server === 'them'}
+      className="inline-flex h-7 shrink-0 items-center rounded-full border border-border bg-bg-card p-0.5"
+      onClick={onServer}
+    >
+      {(['me', 'them'] as const).map((side) => (
+        <span
+          key={side}
+          className="rounded-full px-2 text-xs font-semibold leading-6"
+          style={
+            draft.server === side
+              ? { backgroundColor: side === 'me' ? 'var(--color-side-me)' : 'var(--color-side-them)', color: '#fff' }
+              : { color: 'var(--color-text-muted)' }
+          }
+        >
+          {names[side]}
+        </span>
+      ))}
+    </button>
+  )
+  const serveAside = (
+    <span className="flex shrink-0 items-center gap-1.5">
+      {serverSwitch}
+      {notShot}
+    </span>
+  )
 
   return (
     <div
-      className={cn('relative z-20 flex flex-col gap-2.5 pt-2', layout === 'pad' && 'min-h-0 flex-1')}
+      className={cn('relative z-20 flex flex-col gap-2.5 pt-2', layout === 'pad' && !sides && 'min-h-0 flex-1')}
       data-best-panel
       data-best-step={at.step}
       data-best-page={at.page ?? ''}
       data-best-rally={rallyNo}
       data-answer-layout={layout}
-      data-pad-phase={layout === 'pad' && at.step === 'end' ? padFocus(draft, rallyOne, back) : undefined}
+      data-pad-phase={at.step === 'end' ? padFocus(draft, rallyOne, back) : undefined}
+      data-pad-sides={sides ? '' : undefined}
     >
       {at.step === 'end' ? (
         <EndPage
@@ -445,26 +467,29 @@ export function BestPanel({
           more={more}
           note={note}
           layout={layout}
+          sides={sides}
           back={back}
           onBack={onBack}
           onEnd={onEnd}
           onPoint={onPoint}
           onFix={onFix}
-          grid={grid}
+          aside={n === 1 ? serverSwitch : deleteLast}
         />
       ) : null}
 
       {at.step === 'serve' ? (
-        <div className={cn('flex flex-col gap-2.5', layout === 'pad' && 'min-h-0 flex-1')}>
+        <div className={cn('flex flex-col gap-2.5', layout === 'pad' && !sides && 'min-h-0 flex-1')}>
           {layout === 'pad' ? (
             <CornerPad
               label={`Serve · ${names[draft.server]}`}
-              aside={serverSwitch}
+              aside={serveAside}
+              split={sides}
               columns="1fr 1fr"
               rows="1fr"
               regions={PAD_SERVE.map((cell) => ({
                 key: cell.label,
                 label: cell.label,
+                side: cell.label === 'Short' ? ('left' as const) : ('right' as const),
                 on: draft.shots[0]?.depth === cell.label,
                 bg: cell.bg,
                 fg: cell.fg,
@@ -473,7 +498,7 @@ export function BestPanel({
               }))}
             />
           ) : (
-            <AnswerRow label={`Serve · ${names[draft.server]}`} aside={serverSwitch}>
+            <AnswerRow label={`Serve · ${names[draft.server]}`} aside={serveAside}>
               {BEST_SERVE.map((label) => (
                 <Answer key={label} label={label} on={draft.shots[0]?.depth === label} onClick={() => onServe(label)} data={{ 'data-best-serve': label }} />
               ))}
@@ -493,35 +518,9 @@ export function BestPanel({
         </div>
       ) : null}
 
-      {at.step === 'receive' ? grid(2, `Receive · ${names[hitter]}`) : null}
-      {at.step === 'third' ? grid(3, `Third · ${names[hitter]}`) : null}
-      {at.step === 'fourth' ? grid(4, `Shot 4 · ${names[hitter]}`) : null}
-
-      {at.step === 'shots' ? (
-        <>
-          {rallyPage(draft, at.page) ? (
-            <AnswerRow label="Who attacked first?">
-              {(['me', 'them', 'none'] as const).map((who) => (
-                  <Answer
-                    key={who}
-                    label={who === 'none' ? 'Nobody' : names[who]}
-                    on={draft.best?.first === who}
-                    onClick={() => onFirst(who)}
-                    data={{ 'data-best-first': who }}
-                  />
-                ))}
-            </AnswerRow>
-          ) : null}
-          {grid(shot, `Shot ${shot} · ${names[hitter]}`)}
-        </>
-      ) : null}
+      {at.step === 'shots' ? grid(shot, `Shot ${shot} · ${names[hitter]}`) : null}
     </div>
   )
-}
-
-function endWord(end: BestEnd | null): string {
-  if (end === 'Net') return 'In net'
-  return end ?? ''
 }
 
 function EndPage({
@@ -531,12 +530,13 @@ function EndPage({
   more,
   note,
   layout,
+  sides,
   back,
   onBack,
   onEnd,
   onPoint,
   onFix,
-  grid,
+  aside,
 }: {
   draft: Draft
   names: Record<Side, string>
@@ -544,12 +544,13 @@ function EndPage({
   more: boolean
   note: string | null
   layout: AnswerLayout
+  sides: boolean
   back: PadBack
   onBack: (back: PadBack) => void
   onEnd: (end: BestEnd) => void
   onPoint: (side: Side) => void
   onFix: (fix: BestFix) => void
-  grid: (shot: number, title: string) => ReactNode
+  aside: ReactNode
 }) {
   const n = draft.contacts.length
   const last = hitterOf(draft.server, n)
@@ -557,40 +558,15 @@ function EndPage({
   const lit = draft.ending ? bestHint(draft, rallyOne) : null
   const mismatch = bestMismatch(draft, rallyOne)
   const point = draft.best?.point
-  const fixes: [BestFix, string][] =
-    n < 2 ? [] : [['deleteLast', 'Delete last'], ['deleteFirst', 'Delete first'], ['check', 'Check'], ['more', 'More']]
+  const phase = padFocus(draft, rallyOne, back)
+  const endLabel = `End · ${names[last]}`
+  const noteLine = note ? (
+    <p className="shrink-0 text-xs font-semibold text-primary" data-best-end-note>
+      {note}
+    </p>
+  ) : null
+  const fixes: [BestFix, string][] = n < 2 ? [] : [['deleteFirst', 'Delete first'], ['check', 'Check'], ['more', 'More']]
   const moreFixes: [BestFix, string][] = [['add', 'Add missed'], ['switch', 'Switch server'], ['keep', 'Keep as is']]
-  const endLabel = `End · shot ${n} · ${names[last]}`
-  const endButtons = (
-    <AnswerRow label={endLabel}>
-      {BEST_ENDS.map((label) => (
-        <Answer
-          key={label}
-          label={label}
-          on={endOn === label}
-          tone={label === 'Winner' ? 'chosen' : 'error'}
-          onClick={() => onEnd(label)}
-          data={{ 'data-best-end': label }}
-        />
-      ))}
-    </AnswerRow>
-  )
-  const pointButtons = (
-    <AnswerRow label="Point to">
-      {(['me', 'them'] as const).map((side) => (
-        <Answer
-          key={side}
-          label={names[side]}
-          on={point === side}
-          disabled={!draft.ending}
-          className={!draft.ending ? 'opacity-40' : undefined}
-          style={lit === side ? hinted() : undefined}
-          onClick={() => onPoint(side)}
-          data={{ 'data-point-to': names[side], 'data-point-hint': lit === side ? '' : undefined, 'data-point-on': point === side ? '' : undefined }}
-        />
-      ))}
-    </AnswerRow>
-  )
   const mismatchBlock = mismatch ? (
     <div className="flex flex-col gap-1.5" data-best-mismatch>
       <p className="text-sm font-semibold leading-4 text-warning" data-best-line>
@@ -603,7 +579,6 @@ function EndPage({
               key={fix}
               label={label}
               on={false}
-              style={fix === 'deleteLast' ? filled() : undefined}
               className={fix === 'more' ? 'min-w-0 px-2' : undefined}
               onClick={() => onFix(fix)}
               data={{ 'data-best-fix': fix, 'aria-expanded': fix === 'more' ? String(more) : undefined }}
@@ -611,7 +586,7 @@ function EndPage({
           ))}
         </div>
       ) : null}
-      {more || n < 2 ? (
+      {more ? (
         <div className="flex flex-nowrap gap-1.5 overflow-hidden" data-best-more>
           {moreFixes.map(([fix, label]) => (
             <Answer key={fix} label={label} on={false} onClick={() => onFix(fix)} data={{ 'data-best-fix': fix }} />
@@ -620,58 +595,25 @@ function EndPage({
       ) : null}
     </div>
   ) : null
-  const remind = (which: 'end' | 'point', label: string) => (
-    <button
-      type="button"
-      className="shrink-0 text-xs font-semibold text-primary"
-      data-pad-back={which}
-      onClick={() => onBack(which)}
-    >
-      {label}
-    </button>
-  )
-  if (layout === 'pad') {
-    const phase = padFocus(draft, rallyOne, back)
-    const noteLine = note ? (
-      <p className="shrink-0 text-xs font-semibold text-primary" data-best-end-note>
-        {note}
-      </p>
+  if (phase === 'point') {
+    const backEnd = draft.ending ? (
+      <button type="button" className="shrink-0 text-xs font-semibold text-primary" data-pad-back="end" onClick={() => onBack('end')}>
+        {endOn === 'Net' ? 'In net' : (endOn ?? 'End')}
+      </button>
     ) : null
-    if (phase === 'end') {
+    if (layout === 'pad') {
       return (
-        <div className="flex min-h-0 flex-1 flex-col gap-2">
-          <CornerPad
-            label={endLabel}
-            columns="1fr 1fr"
-            rows="1fr 1fr"
-            regions={PAD_ENDS.map((cell) => ({
-              key: cell.end,
-              label: cell.label,
-              on: endOn === cell.end,
-              bg: cell.bg,
-              fg: '#fff',
-              onClick: () => onEnd(cell.end),
-              data: { 'data-best-end': cell.end },
-              style: cell.style,
-            }))}
-          />
-          {noteLine}
-          {point ? remind('point', names[point]) : pointButtons}
-        </div>
-      )
-    }
-    if (phase === 'point') {
-      return (
-        <div className="flex min-h-0 flex-1 flex-col gap-2">
-          {draft.ending ? remind('end', endWord(endOn)) : null}
-          {noteLine}
+        <div className={cn('flex flex-col gap-2', !sides && 'min-h-0 flex-1')}>
           <CornerPad
             label="Point to"
+            split={sides}
+            aside={backEnd}
             columns="1fr 1fr"
             rows="1fr"
             regions={(['me', 'them'] as const).map((side) => ({
               key: side,
               label: names[side],
+              side: side === 'me' ? ('left' as const) : ('right' as const),
               on: point === side,
               bg: side === 'me' ? 'var(--color-side-me)' : 'var(--color-side-them)',
               fg: '#fff',
@@ -683,77 +625,72 @@ function EndPage({
               },
             }))}
           />
+          {noteLine}
           {mismatchBlock}
         </div>
       )
     }
     return (
-      <div className="flex min-h-0 flex-1 flex-col gap-2">
-        <div className="flex shrink-0 items-center gap-2">
-          {remind('end', endWord(endOn))}
-          <span className="text-xs text-muted" aria-hidden>
-            ·
-          </span>
-          {point ? remind('point', names[point]) : null}
-        </div>
+      <div className="flex flex-col gap-2">
+        <AnswerRow label="Point to" aside={backEnd}>
+          {(['me', 'them'] as const).map((side) => (
+            <Answer
+              key={side}
+              label={names[side]}
+              on={point === side}
+              style={lit === side ? hinted() : undefined}
+              onClick={() => onPoint(side)}
+              data={{ 'data-point-to': names[side], 'data-point-hint': lit === side ? '' : undefined, 'data-point-on': point === side ? '' : undefined }}
+            />
+          ))}
+        </AnswerRow>
         {noteLine}
-        {grid(n, `Shot ${n} · ${names[last]}`)}
+        {mismatchBlock}
+      </div>
+    )
+  }
+  if (layout === 'pad') {
+    return (
+      <div className={cn('flex flex-col gap-2', !sides && 'min-h-0 flex-1')}>
+        <CornerPad
+          label={endLabel}
+          split={sides}
+          aside={aside}
+          columns="1fr 1fr"
+          rows="1fr 1fr"
+          regions={PAD_ENDS.map((cell) => ({
+            key: cell.end,
+            label: cell.label,
+            side: cell.end === 'Winner' ? ('left' as const) : ('right' as const),
+            on: endOn === cell.end,
+            bg: cell.bg,
+            fg: '#fff',
+            onClick: () => onEnd(cell.end),
+            data: { 'data-best-end': cell.end },
+            style: cell.style,
+          }))}
+        />
+        {noteLine}
+        {mismatchBlock}
       </div>
     )
   }
   return (
-    <>
-      {endButtons}
-      {note ? (
-        <p className="-mt-1 text-xs font-semibold text-primary" data-best-end-note>
-          {note}
-        </p>
-      ) : null}
-      <AnswerRow label="Point to">
-        {(['me', 'them'] as const).map((side) => (
+    <div className="flex flex-col gap-2">
+      <AnswerRow label={endLabel} aside={aside}>
+        {BEST_ENDS.map((label) => (
           <Answer
-            key={side}
-            label={names[side]}
-            on={point === side}
-            disabled={!draft.ending}
-            className={!draft.ending ? 'opacity-40' : undefined}
-            style={lit === side ? hinted() : undefined}
-            onClick={() => onPoint(side)}
-            data={{ 'data-point-to': names[side], 'data-point-hint': lit === side ? '' : undefined, 'data-point-on': point === side ? '' : undefined }}
+            key={label}
+            label={label}
+            on={endOn === label}
+            tone={label === 'Winner' ? 'chosen' : 'error'}
+            onClick={() => onEnd(label)}
+            data={{ 'data-best-end': label }}
           />
         ))}
       </AnswerRow>
-      {mismatch ? (
-        <div className="flex flex-col gap-1.5" data-best-mismatch>
-          <p className="text-sm font-semibold leading-4 text-warning" data-best-line>
-            {mismatchLine(draft, names)}
-          </p>
-          {fixes.length ? (
-            <div className="flex flex-nowrap gap-1.5 overflow-hidden" data-best-fixes>
-              {fixes.map(([fix, label]) => (
-                <Answer
-                  key={fix}
-                  label={label}
-                  on={false}
-                  style={fix === 'deleteLast' ? filled() : undefined}
-                  className={fix === 'more' ? 'min-w-0 px-2' : undefined}
-                  onClick={() => onFix(fix)}
-                  data={{ 'data-best-fix': fix, 'aria-expanded': fix === 'more' ? String(more) : undefined }}
-                />
-              ))}
-            </div>
-          ) : null}
-          {more || n < 2 ? (
-            <div className="flex flex-nowrap gap-1.5 overflow-hidden" data-best-more>
-              {moreFixes.map(([fix, label]) => (
-                <Answer key={fix} label={label} on={false} onClick={() => onFix(fix)} data={{ 'data-best-fix': fix }} />
-              ))}
-            </div>
-          ) : null}
-        </div>
-      ) : pointDone(draft, rallyOne) && n >= 2 ? (
-        grid(n, `Shot ${n} · ${names[last]}`)
-      ) : null}
-    </>
+      {noteLine}
+      {mismatchBlock}
+    </div>
   )
 }

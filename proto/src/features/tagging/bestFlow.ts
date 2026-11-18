@@ -1,9 +1,10 @@
 /**
  * Best + FA (`?flow=bestfa`, the default).
- * Contacts, idle close, then the questions on the Rally Row: the last shot
- * with End and Point to, then Serve, Receive, Third, shot 4 on 7 shots or
- * more, then every later shot in rally order. Every shot is asked. The last
- * answer saves.
+ * Contacts, idle close, then one question per screen in contact order:
+ * Serve, each later shot, then End. The winner follows from the server, the
+ * contact count and End. Point to is asked only when that winner is missing.
+ * One contact asks End only: Winner is an ace, an error is a serve fault.
+ * The last answer saves.
  * Pure: no React, no store. The other flows do not use this file.
  */
 
@@ -45,7 +46,7 @@ export function bestEndOf(d: { ending: Ending | null; best?: { end?: string } })
   return isBestEnd(d.ending) ? d.ending : null
 }
 
-export const BEST_STEPS: readonly BestStep[] = ['end', 'serve', 'receive', 'third', 'fourth', 'shots']
+export const BEST_STEPS: readonly BestStep[] = ['serve', 'shots', 'end']
 
 /** Four parts. Rally is the part between Attack and End. */
 export const PART_LABEL: Record<BestPart, string> = {
@@ -143,36 +144,40 @@ export function partsOf(d: Pick<Draft, 'contacts' | 'shots' | 'best'>): BestPart
 }
 
 /**
- * Shots asked after the named early ones, one page each, in rally order.
- * Shot 4 is its own step from 7 shots. The last shot is asked first, on End.
+ * Shots after Serve, one page each, including the last. End is not a shot page.
+ * Kept so older checks still import it. The walk uses `nextStroke`.
  */
 export function endShots(n: number): number[] {
   const out: number[] = []
-  const from = n >= BEST_FOURTH_FROM ? 5 : 4
-  for (let k = from; k <= n - 1; k++) out.push(k)
+  for (let k = 2; k <= n; k++) out.push(k)
   return out
 }
 
+/** Serve, then the shot pages, then End. One contact has End only. */
 export function stepsFor(d: Pick<Draft, 'contacts'>): BestStep[] {
-  const n = d.contacts.length
-  return BEST_STEPS.filter((s) => {
-    if (s === 'serve') return n >= 2
-    if (s === 'receive') return n >= 3
-    if (s === 'third') return n >= 4
-    if (s === 'fourth') return n >= BEST_FOURTH_FROM
-    if (s === 'shots') return endShots(n).length > 0
-    return true
-  })
+  if (d.contacts.length === 0) return []
+  if (d.contacts.length === 1) return ['end']
+  return [...BEST_STEPS]
 }
 
-/** The shot a step tags. End tags the last shot, `shots` the page open. */
+/** The shot a step tags. End tags the last shot. `shots` is the page open. */
 export function stepShot(n: number, step: BestStep, page?: number): number {
   if (step === 'serve') return 1
   if (step === 'receive') return 2
   if (step === 'third') return 3
   if (step === 'fourth') return 4
-  if (step === 'shots') return page ?? endShots(n)[0] ?? n
+  if (step === 'shots') return page !== undefined && page >= 1 && page <= n ? page : n
   return n
+}
+
+/** One contact: End (ace or serve fault). Two or more: Serve, shot 2 through the last, End. */
+export function questionOrder(n: number): string[] {
+  if (n <= 0) return []
+  if (n === 1) return ['end']
+  const order = ['serve']
+  for (let k = 2; k <= n; k++) order.push(`shot ${k}`)
+  order.push('end')
+  return order
 }
 
 /** Attack after an asked attack is a Counter. It saves as Attack and is read from the shot before. */
@@ -247,123 +252,174 @@ export function mismatchLine(d: Pick<Draft, 'server' | 'contacts' | 'ending' | '
   return `Point to ${names[point]}, but shot ${n}, ${what}, is ${possessive(hitterOf(d.server, n), names)}.`
 }
 
-type Q = Pick<Draft, 'server' | 'contacts' | 'shots' | 'ending' | 'best'>
+type Q = Pick<Draft, 'server' | 'contacts' | 'shots' | 'ending' | 'best' | 'serveChecked'>
 
+/** Rally one of a set: the server is the set's default until the server switch confirms it. */
+export function serverKnown(d: Pick<Draft, 'serveChecked'>, rallyOne: boolean): boolean {
+  return !rallyOne || Boolean(d.serveChecked)
+}
+
+/**
+ * The point once End or the contacts change. A known server gives the winner.
+ * With the server not known, Point to stands and the server follows from it.
+ */
+export function settlePoint(d: Draft, rallyOne: boolean): Draft {
+  if (!d.ending) return d
+  if (!serverKnown(d, rallyOne)) {
+    const point = d.best?.point
+    return point ? { ...d, server: serverForWinner(d, point) } : d
+  }
+  const winner = winnerOf(d)
+  if (!winner || d.best?.point === winner) return d
+  return { ...d, best: carryBest(d, { point: winner }) }
+}
+
+/** The winner is known: from the server, or from Point to while the server is not known. */
 export function pointDone(d: Q, rallyOne: boolean): boolean {
-  return Boolean(d.ending && d.best?.point) && !bestMismatch(d, rallyOne)
+  if (!d.ending || bestMismatch(d, rallyOne)) return false
+  if (!serverKnown(d, rallyOne)) return Boolean(d.best?.point)
+  return Boolean(winnerOf(d))
 }
 
-/** End is done once the point agrees and, on 2 shots or more, the last stroke is in. */
+/** End is done once the result is in and the winner follows from it. */
 export function endDone(d: Q, rallyOne: boolean): boolean {
-  const n = d.contacts.length
-  return pointDone(d, rallyOne) && (n < 2 || Boolean(d.shots[n - 1]?.stroke))
+  return pointDone(d, rallyOne)
 }
 
-/** Revisit an earlier End question. Absent means the one still to answer. */
+/** Revisit End or Point to. Absent means the one still to answer. */
 export type PadBack = 'end' | 'point' | null
 
 /**
- * The one End question the corner pad shows. Outcome, then Point to, then the
- * last stroke. A point that disagrees stays on Point to.
+ * The result question. End, then Point to only when the winner does not
+ * follow from the server, the contact count and End: rally one, until the
+ * server switch is used. A point that disagrees stays on Point to.
  */
-export function padFocus(d: Q, rallyOne: boolean, back: PadBack = null): 'end' | 'point' | 'stroke' {
+export function padFocus(d: Q, rallyOne: boolean, back: PadBack = null): 'end' | 'point' {
   if (back === 'end' || back === 'point') return back
   if (!d.ending) return 'end'
   if (!pointDone(d, rallyOne)) return 'point'
-  if (d.contacts.length >= 2) return 'stroke'
-  return 'point'
+  return 'end'
 }
 
+/** The first stroke from shot 2 still open, including the last shot. */
+export function nextStroke(d: Pick<Draft, 'contacts' | 'shots'>): number | null {
+  const n = d.contacts.length
+  for (let k = 2; k <= n; k++) {
+    const shot = d.shots[k - 1]
+    if (!shot?.wing || !shot.stroke) return k
+  }
+  return null
+}
+
+/** @deprecated The walk uses `nextStroke`. Kept so older checks still import it. */
 export function nextEndShot(d: Pick<Draft, 'contacts' | 'shots'>): number | null {
-  return endShots(d.contacts.length).find((k) => !d.shots[k - 1]?.stroke) ?? null
+  return nextStroke(d)
 }
 
 export function stepDone(d: Q, step: BestStep, rallyOne: boolean): boolean {
   if (step === 'end') return endDone(d, rallyOne)
   if (step === 'serve') return Boolean(d.shots[0]?.depth)
-  if (step === 'shots') return nextEndShot(d) === null
+  if (step === 'shots') return nextStroke(d) === null
   return Boolean(d.shots[stepShot(d.contacts.length, step) - 1]?.stroke)
 }
 
 export type BestAt = { step: BestStep; page?: number }
 
-/** The first question not done, in order. Null when every one is: the rally saves. */
+/** The first question not done, in contact order. Null when every one is: the rally saves. */
 export function routeAfter(d: Q, rallyOne: boolean): BestAt | null {
+  const n = d.contacts.length
+  if (n === 0) return null
   if (bestMismatch(d, rallyOne)) return { step: 'end' }
-  const step = stepsFor(d).find((s) => !stepDone(d, s, rallyOne))
-  if (!step) return null
-  return step === 'shots' ? { step, page: nextEndShot(d) ?? endShots(d.contacts.length)[0] } : { step }
+  if (n >= 2) {
+    if (!d.shots[0]?.depth) return { step: 'serve' }
+    const stroke = nextStroke(d)
+    if (stroke) return { step: 'shots', page: stroke }
+  }
+  if (!endDone(d, rallyOne)) return { step: 'end' }
+  return null
 }
 
 /** Where the open rally stands. A step the rally no longer has falls back to the route. */
 export function bestAt(d: Q, rallyOne: boolean): BestAt {
+  const n = d.contacts.length
+  if (n <= 1) return { step: 'end' }
   if (bestMismatch(d, rallyOne)) return { step: 'end' }
   const step = d.best?.step
-  const n = d.contacts.length
-  if (step && stepsFor(d).includes(step)) {
-    if (step !== 'shots') return { step }
-    const ks = endShots(n)
-    const page = d.best?.endPage
-    return { step, page: page !== undefined && ks.includes(page) ? page : (nextEndShot(d) ?? ks[0]) }
+  if (step === 'serve' || step === 'end') return { step }
+  if (step === 'shots' || step === 'receive' || step === 'third' || step === 'fourth') {
+    const page = step === 'receive' ? 2 : step === 'third' ? 3 : step === 'fourth' ? 4 : d.best?.endPage
+    if (page !== undefined && page >= 2 && page <= n) return { step: 'shots', page }
   }
-  return routeAfter(d, rallyOne) ?? { step: 'end' }
+  return routeAfter(d, rallyOne) ?? { step: 'serve' }
 }
 
-/** The question a cell opens. Null for a shot that is never asked and not covered by Who attacked first? */
-export function cellTarget(d: Pick<Draft, 'contacts' | 'shots'>, shot: number): BestAt | null {
+/**
+ * What the question area shows. The 450 ms guard arms when this changes, so a
+ * second tap does not land on the next question. The same for both layouts.
+ */
+export function bestQuestionKey(
+  d: Q,
+  rallyOne: boolean,
+  layout: 'buttons' | 'pad',
+  back: PadBack = null,
+): string {
+  if (d.contacts.length === 0) return ''
+  const at = bestAt(d, rallyOne)
+  const phase = at.step === 'end' ? padFocus(d, rallyOne, back) : ''
+  return [layout, at.step, at.page ?? '', phase, d.contacts.length].join(':')
+}
+
+/** The question a cell opens. The last cell opens End once that stroke and End are in. One contact opens End. */
+export function cellTarget(d: Pick<Draft, 'contacts' | 'shots' | 'ending'>, shot: number): BestAt | null {
   const n = d.contacts.length
   if (shot < 1 || shot > n) return null
-  if (shot === n) return { step: 'end' }
+  if (n === 1) return { step: 'end' }
   if (shot === 1) return { step: 'serve' }
-  if (shot === 2) return { step: 'receive' }
-  if (shot === 3) return { step: 'third' }
-  if (shot === 4 && n >= BEST_FOURTH_FROM) return { step: 'fourth' }
-  const ks = endShots(n)
-  if (ks.includes(shot)) return { step: 'shots', page: shot }
-  if (asksWhoFirst(d)) return { step: 'shots', page: ks[0] }
-  return null
+  const last = d.shots[n - 1]
+  if (shot === n && last?.wing && last.stroke && d.ending) return { step: 'end' }
+  return { step: 'shots', page: shot }
 }
 
-const isWhoCell = (d: Pick<Draft, 'contacts' | 'shots'>, shot: number) =>
-  asksWhoFirst(d) && unaskedShots(d.contacts.length).includes(shot)
-
-/** now: asked now. done: answered. todo: still to ask. off: not asked, or Who attacked first? skipped. */
+/** now: asked now. done: answered. todo: still to ask. off: not on this rally. */
 export type CellMark = 'now' | 'done' | 'todo' | 'off'
 
 /** `at` is the open question, or null on the saved row. */
 export function cellMark(d: Q, shot: number, rallyOne: boolean, at: BestAt | null): CellMark {
-  const t = cellTarget(d, shot)
-  if (!t) return 'off'
-  if (at && t.step === at.step && (t.step !== 'shots' || t.page === at.page)) return 'now'
-  if (isWhoCell(d, shot)) {
-    if (d.best?.first) return 'done'
-    const ks = endShots(d.contacts.length)
-    return !at || d.shots[ks[0] - 1]?.stroke ? 'off' : 'todo'
-  }
   const n = d.contacts.length
+  if (shot < 1 || shot > n) return 'off'
+  if (at?.step === 'end' && shot === n) return 'now'
+  if (at?.step === 'serve' && shot === 1) return 'now'
+  if (at?.step === 'shots' && at.page === shot) return 'now'
   const done =
-    shot === n ? endDone(d, rallyOne) : shot === 1 ? Boolean(d.shots[0]?.depth) : Boolean(d.shots[shot - 1]?.stroke)
+    n === 1
+      ? endDone(d, rallyOne)
+      : shot === 1
+        ? Boolean(d.shots[0]?.depth)
+        : shot === n && d.ending
+          ? endDone(d, rallyOne)
+          : Boolean(d.shots[shot - 1]?.wing && d.shots[shot - 1]?.stroke)
   if (done) return 'done'
   return at ? 'todo' : 'off'
 }
 
-/** Only the last cell opens until the point agrees, and while it disagrees. */
+/** A cell opens when it is the question on screen, or its answer is already in. */
 export function canOpenCell(d: Q, shot: number, rallyOne: boolean): boolean {
-  const t = cellTarget(d, shot)
-  if (!t) return false
-  return t.step === 'end' || pointDone(d, rallyOne)
+  if (!cellTarget(d, shot)) return false
+  const at = bestAt(d, rallyOne)
+  const n = d.contacts.length
+  if (at.step === 'end' && shot === n) return true
+  if (at.step === 'serve' && shot === 1) return true
+  if (at.step === 'shots' && at.page === shot) return true
+  if (n === 1) return Boolean(d.ending)
+  if (shot === 1) return Boolean(d.shots[0]?.depth)
+  return Boolean(d.shots[shot - 1]?.wing && d.shots[shot - 1]?.stroke)
 }
 
-/** Taps per rally: one per contact and one per required answer. Who attacked first? is not counted. */
+/** Taps per rally: one per contact, plus Serve, each later stroke and End. One contact is the contact and End. */
 export function bestTaps(n: number): number {
   if (n <= 0) return 0
-  const steps = stepsFor({ contacts: Array.from({ length: n }, (_, i) => i) })
-  let answers = 2
-  if (n >= 2) answers += 1
-  for (const s of steps) {
-    if (s === 'serve' || s === 'receive' || s === 'third' || s === 'fourth') answers += 1
-  }
-  return n + answers + endShots(n).length
+  if (n === 1) return 2
+  return 2 * n + 1
 }
 
 /** One `best` object built from a patch. A field set to undefined goes. */
@@ -390,10 +446,15 @@ export function withStep(d: Draft, at: BestAt): Draft {
   return { ...d, best: carryBest(d, { step: at.step, endPage: at.step === 'shots' ? at.page : undefined }) }
 }
 
-/** After an answer: the first question not done opens, or the rally saves when there is none. */
+/** After an answer: the next question opens, or the rally saves when none remain. */
 export function bestAdvance(d: Draft, rallyOne: boolean): { draft: Draft; save: boolean } {
   const at = routeAfter(d, rallyOne)
-  return at ? { draft: withStep(d, at), save: false } : { draft: d, save: true }
+  if (!at) {
+    const winner = winnerOf(d)
+    const draft = winner && d.best?.point !== winner ? { ...d, best: carryBest(d, { point: winner }) } : d
+    return { draft, save: true }
+  }
+  return { draft: withStep(d, at), save: false }
 }
 
 /** A contact that moves into the serve slot is the serve. It does not keep the stroke of the shot it used to be. */
@@ -404,24 +465,29 @@ function withoutServeStroke(shot: ShotTags | undefined): ShotTags {
 }
 
 /**
- * Drop one contact. Tags stay with the contacts that remain. End and Point to stay:
- * they describe the real last shot and the point, not a contact. Keep as is goes.
+ * Drop one contact. Tags stay with the contacts that remain. Removing the
+ * last contact clears End, because End belonged to that shot. When End stays,
+ * the winner is worked out again from the new count.
  */
-export function removeBestContact(d: Draft, shot: number): Draft {
+export function removeBestContact(d: Draft, shot: number, rallyOne = false): Draft {
   const i = shot - 1
   if (i < 0 || i >= d.contacts.length || d.contacts.length < 2) return d
   const shots = d.shots.filter((_, j) => j !== i)
   if (i === 0) shots[0] = withoutServeStroke(shots[0])
+  const removedLast = shot === d.contacts.length
   const next: Draft = {
     ...d,
     contacts: d.contacts.filter((_, j) => j !== i),
     shots,
     start: i === 0 ? null : d.start,
-    end: i === d.contacts.length - 1 ? null : d.end,
+    end: removedLast ? null : d.end,
+    ending: removedLast ? null : d.ending,
     fa: null,
-    best: carryBest(d, { kept: undefined }),
+    best: carryBest(d, removedLast ? { kept: undefined, end: undefined, point: undefined } : { kept: undefined }),
   }
-  return keepBestMarks(next)
+  const kept = keepBestMarks(next)
+  if (removedLast) return kept
+  return settlePoint(kept, rallyOne)
 }
 
 /** Delete last. Before the serve is answered, Serve can offer Delete first instead. */
@@ -433,13 +499,13 @@ export function bestDeleteLast(d: Draft): Draft {
   return { ...next, best: carryBest(next, { cut }) }
 }
 
-export function bestDeleteFirst(d: Draft): Draft {
-  const next = removeBestContact(d, 1)
+export function bestDeleteFirst(d: Draft, rallyOne = false): Draft {
+  const next = removeBestContact(d, 1, rallyOne)
   return { ...next, best: carryBest(next, { cut: undefined }) }
 }
 
 /** Shot 1 was the toss after all: the contact Delete last took comes back with the last stroke, and shot 1 goes. */
-export function bestTossInstead(d: Draft): Draft {
+export function bestTossInstead(d: Draft, rallyOne = false): Draft {
   const cut = d.best?.cut
   const n = d.contacts.length
   if (cut === undefined || n < 1) return d
@@ -447,13 +513,14 @@ export function bestTossInstead(d: Draft): Draft {
   const { wing, stroke, ...lastRest } = last
   const shots = [...d.shots.slice(0, n - 1), lastRest, wing && stroke ? { wing, stroke } : {}]
   const back: Draft = { ...d, contacts: [...d.contacts, cut], shots, end: null }
-  const next = removeBestContact(back, 1)
+  const next = removeBestContact(back, 1, rallyOne)
   return { ...next, best: carryBest(next, { cut: undefined }) }
 }
 
-/** Switch server: every hitter flips. Keep as is goes, so the check runs again. */
-export function bestSwitchServer(d: Draft): Draft {
-  return keepBestMarks({ ...d, server: otherSide(d.server), serveChecked: true, best: carryBest(d, { kept: undefined }) })
+/** Switch server: every hitter flips, and so does a worked out winner. Keep as is goes, so the check runs again. */
+export function bestSwitchServer(d: Draft, rallyOne = false): Draft {
+  const next = keepBestMarks({ ...d, server: otherSide(d.server), serveChecked: true, best: carryBest(d, { kept: undefined }) })
+  return settlePoint(next, rallyOne)
 }
 
 /** Point to. On rally one it also sets the server, since nothing else knows it yet. */
@@ -462,8 +529,8 @@ export function bestSetPoint(d: Draft, side: Side, rallyOne: boolean): Draft {
   return { ...d, server, best: carryBest(d, { point: side }) }
 }
 
-export function bestSetEnd(d: Draft, end: BestEnd): Draft {
-  return { ...d, ending: end, best: carryBest(d, { end }) }
+export function bestSetEnd(d: Draft, end: BestEnd, rallyOne = false): Draft {
+  return settlePoint({ ...d, ending: end, best: carryBest(d, { end }) }, rallyOne)
 }
 
 export function setDepth(d: Draft, depth: string): Draft {
@@ -659,7 +726,8 @@ export function bestRally(d: Draft, id: string, winner: Side, kept: boolean): Ra
   const n = d.contacts.length
   const first = d.best?.first
   const opener = bestOpener(n, d.shots, first)
-  const endLabel = bestEndOf(d)
+  const end = bestEndOf(d)
+  const endLabel = n === 1 && end ? (end === 'Winner' ? 'Ace' : 'Serve fault') : end
   const order = partsOf(d).map((span) => span.part)
   const review = order.filter((part) => d.best?.review?.includes(part))
   const shots = d.shots.map((shot, i) => {

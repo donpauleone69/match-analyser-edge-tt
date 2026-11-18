@@ -97,23 +97,30 @@ export function AnswerRow({ label, children, aside }: { label: ReactNode; childr
 
 export type StrokeCell = { wing: Wing; stroke: 'Attack' | 'Control'; label: string }
 
-/** Two rows of two equal cells: Attack or Counter on top, Control below. BH left, FH right. */
+/** Two rows of two equal cells. BH left, FH right. Attack on top, Control below. */
 export function StrokeGrid({
   label,
   rows,
   isOn,
   onPick,
   shot,
+  aside,
 }: {
   label: ReactNode
   rows: readonly (readonly StrokeCell[])[]
   isOn: (cell: StrokeCell) => boolean
   onPick: (cell: StrokeCell) => void
   shot: number
+  aside?: ReactNode
 }) {
   return (
     <div role="group" aria-label={`Shot ${shot} stroke`} data-row="Stroke" data-stroke-shot={shot} className="flex flex-col gap-1">
-      <Name>{label}</Name>
+      <div className="flex min-w-0 items-center gap-2">
+        <div className="min-w-0 flex-1">
+          <Name>{label}</Name>
+        </div>
+        {aside}
+      </div>
       {rows.map((row, i) => (
         <div key={i} className="grid grid-cols-2 gap-1.5">
           {row.map((cell) => (
