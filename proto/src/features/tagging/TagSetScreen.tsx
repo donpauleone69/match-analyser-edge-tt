@@ -398,6 +398,19 @@ function useLandscape() {
   return land
 }
 
+/** A phone held sideways. Tapping uses the side wings only at this size. */
+function usePhoneLandscape() {
+  const [on, setOn] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia('(orientation: landscape) and (max-height: 500px)')
+    const apply = () => setOn(mq.matches)
+    apply()
+    mq.addEventListener('change', apply)
+    return () => mq.removeEventListener('change', apply)
+  }, [])
+  return on
+}
+
 function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: TagLock }) {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -452,6 +465,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const [timing, setTiming] = useState(loadBestTiming)
   const [answerLayout, setAnswerLayoutState] = useState(loadAnswerLayout)
   const landscape = useLandscape()
+  const phoneLand = usePhoneLandscape()
   const [padWings, setPadWings] = useState<{ left: HTMLElement | null; right: HTMLElement | null }>({ left: null, right: null })
   const setLeftWing = useCallback((node: HTMLDivElement | null) => {
     setPadWings((w) => (w.left === node ? w : { ...w, left: node }))
@@ -1791,10 +1805,10 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     routeBest(setWingStroke(live, shot, wing, stroke))
   }
 
-  const onBestServe = (depth: string) => {
+  const onBestServe = (depth: string, wing: Wing) => {
     if (!live) return
     setBestNote(null)
-    routeBest(setDepth(live, depth))
+    routeBest(setDepth(live, depth, wing))
   }
 
   const onBestCell = (shot: number) => {
@@ -2971,7 +2985,10 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const bestRowDraft = bestRowSaved ? bestSaved!.draft : active
   /** What the question area shows. When it changes, the button now under the thumb waits out a double tap. */
   const bestPanelKey = bestQ && live ? bestQuestionKey(live, bestRallyOne, answerLayout, endBack) : ''
-  const padSplit = Boolean(landscape && answerLayout === 'pad' && bestOn && !bestAdd && !bestOver && liveCount > 0)
+  const tapSplit = Boolean(phoneLand && zoneOn && zoneKind === 'pad' && isBestFlow(flowWanted))
+  const padSplit = Boolean(
+    tapSplit || (landscape && answerLayout === 'pad' && bestOn && !bestAdd && !bestOver && liveCount > 0)
+  )
   useLayoutEffect(() => {
     if (bestPanelKey) panelGuard.current = Math.max(panelGuard.current, Date.now() + GUARD_BEST_SWAP_MS)
   }, [bestPanelKey])
@@ -3033,7 +3050,21 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
           data-pad-wing="left"
           ref={setLeftWing}
           onClickCapture={guardClicks(panelGuard)}
-        />
+        >
+          {tapSplit ? (
+            <button
+              type="button"
+              data-tap-pad=""
+              data-tap-wing="left"
+              className="pad-region min-h-11 flex-1 rounded-md bg-brand-primary text-[22px] font-bold text-on-accent"
+              aria-label={zoneTitle}
+              onClickCapture={guardClicks(slotGuard)}
+              onClick={onPad}
+            >
+              {zoneTitle}
+            </button>
+          ) : null}
+        </div>
       ) : null}
       <div className="tag-flow">
       <div className="tag-media">
@@ -3047,11 +3078,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
             onChange={(e) => onFlowPick(e.target.value)}
             className="h-7 w-[5.6rem] shrink-0 appearance-none truncate rounded-md border border-border bg-bg-card px-1.5 text-[11px] font-medium text-primary"
           >
-            {(Object.keys(FLOW_LABEL) as FlowName[]).map((flow) => (
-              <option key={flow} value={flow}>
-                {FLOW_LABEL[flow]}
-              </option>
-            ))}
+            <option value="bestfa">{FLOW_LABEL.bestfa}</option>
           </select>
           <SwapVideoButton
             matchId={match.id}
@@ -3608,7 +3635,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               </div>
             ) : null}
           </div>
-          {zoneOn ? (
+          {zoneOn && !tapSplit ? (
             <button
               type="button"
               data-tag-zone={zoneKind}
@@ -4067,7 +4094,21 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
           data-pad-wing="right"
           ref={setRightWing}
           onClickCapture={guardClicks(panelGuard)}
-        />
+        >
+          {tapSplit ? (
+            <button
+              type="button"
+              data-tap-pad=""
+              data-tap-wing="right"
+              className="pad-region min-h-11 flex-1 rounded-md bg-brand-primary text-[22px] font-bold text-on-accent"
+              aria-label={zoneTitle}
+              onClickCapture={guardClicks(slotGuard)}
+              onClick={onPad}
+            >
+              {zoneTitle}
+            </button>
+          ) : null}
+        </div>
       ) : null}
     </div>
     </PadWingContext.Provider>

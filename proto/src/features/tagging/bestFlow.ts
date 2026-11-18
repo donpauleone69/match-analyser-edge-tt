@@ -533,9 +533,10 @@ export function bestSetEnd(d: Draft, end: BestEnd, rallyOne = false): Draft {
   return settlePoint({ ...d, ending: end, best: carryBest(d, { end }) }, rallyOne)
 }
 
-export function setDepth(d: Draft, depth: string): Draft {
+/** One serve tap: length in `depth`, landing corner in `wing`. Right-handers: BH left, FH right. */
+export function setDepth(d: Draft, depth: string, wing?: Wing): Draft {
   const shots = d.shots.slice()
-  shots[0] = { ...shots[0], depth }
+  shots[0] = wing ? { ...shots[0], depth, wing } : { ...shots[0], depth }
   return { ...d, shots, best: carryBest(d, { cut: undefined }) }
 }
 
