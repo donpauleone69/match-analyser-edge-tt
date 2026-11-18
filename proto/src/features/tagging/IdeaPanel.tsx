@@ -1,25 +1,10 @@
 import type { ReactNode } from 'react'
-import { cn } from '@/helpers/utils'
+import { Answer, Name } from './AnswerCells'
 import type { DetailQ } from './ideaFlow'
 import type { Draft, Side } from './rally'
 
-const cell =
-  'h-8 shrink-0 rounded-md border px-2.5 text-sm font-semibold inline-flex items-center justify-center whitespace-nowrap'
-
-function rest(): React.CSSProperties {
-  return { backgroundColor: 'var(--tag-cell-rest)', borderColor: 'var(--tag-cell-rest-line)' }
-}
-
-function Name({ children }: { children: string }) {
-  return <p className="h-3 text-[10px] font-bold uppercase leading-3 tracking-[0.025em] text-muted">{children}</p>
-}
-
 function Choice({ label, onClick }: { label: string; onClick: () => void }) {
-  return (
-    <button type="button" data-cell={label} onClick={onClick} className={cn(cell, 'text-primary')} style={rest()}>
-      {label}
-    </button>
-  )
+  return <Answer label={label} on={false} onClick={onClick} />
 }
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
