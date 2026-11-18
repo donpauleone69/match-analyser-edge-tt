@@ -190,13 +190,16 @@ import {
   carryBest,
   cellTarget,
   keepBestMarks,
+  loadAnswerLayout,
   loadBestTiming,
   removeBestContact,
+  saveAnswerLayout,
   saveBestTiming,
   setDepth,
   setWingStroke,
   toggleReview,
   withStep,
+  type AnswerLayout,
   type BestAt,
   type BestEnd,
   type BestLoopWhat,
@@ -427,11 +430,16 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   /** Best + FA: the whole-rally loop, contact check, add, More, and the set-end hold. */
   const [bestNote, setBestNote] = useState<string | null>(null)
   const [timing, setTiming] = useState(loadBestTiming)
+  const [answerLayout, setAnswerLayoutState] = useState(loadAnswerLayout)
   const [bestSpan, setBestSpan] = useState<{ a: number; b: number } | null>(null)
   const loopWhat = useRef<{ what: BestLoopWhat; rate: number } | null>(null)
   const setBestTiming = (next: BestTiming) => {
     setTiming(next)
     saveBestTiming(next)
+  }
+  const setAnswerLayout = (next: AnswerLayout) => {
+    setAnswerLayoutState(next)
+    saveAnswerLayout(next)
   }
   const [bestLook, setBestLook] = useState(false)
   const [bestCheck, setBestCheck] = useState(false)
@@ -3027,7 +3035,9 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
           readOnlyHighlight={readOnly || stage === 'result' || stage === 'endShot'}
           badge={shotBadge}
           extra={
-            isBestFlow(flowShown) ? <BestTimingControl timing={timing} onChange={setBestTiming} /> : null
+            isBestFlow(flowShown) ? (
+              <BestTimingControl timing={timing} onChange={setBestTiming} layout={answerLayout} onLayout={setAnswerLayout} />
+            ) : null
           }
         />
         <div className="tag-side-list">{rallyList}</div>
@@ -3094,6 +3104,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
           data-tag-body
           className={cn(
             'relative flex min-h-0 flex-1 flex-col overflow-y-auto border-t border-border bg-bg-surface px-2 [overflow-anchor:none]',
+            bestOn && answerLayout === 'pad' && 'overflow-hidden',
             zoneOn && 'pb-3'
           )}
           onClickCapture={late ? undefined : guardClicks(panelGuard)}
@@ -3256,7 +3267,15 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
             </div>
           ) : null}
 
-          <div className={cn('space-y-2', panelBusy && !bestOn && BUSY)} data-tag-panel data-details-box>
+          <div
+            className={cn(
+              'space-y-2',
+              panelBusy && !bestOn && BUSY,
+              bestOn && answerLayout === 'pad' && 'flex min-h-0 flex-1 flex-col'
+            )}
+            data-tag-panel
+            data-details-box
+          >
             {bestOver ? (
               <p data-best-over className="pt-1.5 text-sm font-semibold text-primary">
                 Set over at {bestOver}
@@ -3287,6 +3306,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                 }}
                 onStroke={onBestStroke}
                 onFirst={(first) => writeDraft(bestSetFirst(live, first))}
+                layout={answerLayout}
                 onFix={onBestFix}
                 onTossInstead={() => routeBest(bestTossInstead(live), { save: false })}
               />
