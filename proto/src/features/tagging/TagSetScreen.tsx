@@ -2856,7 +2856,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const bestRowSaved = Boolean(bestSaved && (!live || live.contacts.length === 0))
   const bestRowDraft = bestRowSaved ? bestSaved!.draft : active
   /** What the question area shows. When it changes, the button now under the thumb waits out a double tap. */
-  const bestPanelKey = bestQ && live ? bestQuestionKey(live, bestRallyOne, 'pad', endBack) : ''
+  const bestPanelKey = bestQ && live ? bestQuestionKey(live, bestRallyOne, endBack) : ''
   const tapSplit = Boolean(landscape && zoneOn && zoneKind === 'pad' && isBestFlow(flowWanted))
   const padSplit = Boolean(
     tapSplit || (landscape && bestOn && !bestOver && liveCount > 0)
@@ -2893,7 +2893,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     <div
       className="tag-set bg-bg-app"
       data-pad-split={landscape ? '' : undefined}
-      data-answer-layout={isBestFlow(flowShown) ? 'pad' : undefined}
       data-tag-mode={mode}
       data-flow={flowShown}
       data-best-look={bestLook ? '' : undefined}
@@ -3255,7 +3254,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                 onPoint={onBestPoint}
                 onServe={onBestServe}
                 onStroke={onBestStroke}
-                layout="pad"
                 sides={padSplit}
                 back={endBack}
               />

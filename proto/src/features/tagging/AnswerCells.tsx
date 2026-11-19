@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { cn } from '@/helpers/utils'
-import type { StrokeSide, Wing } from './rally'
+import type { StrokeSide } from './rally'
 
 /** The Shot by shot answer look, shared by every flow's questions. */
 export const answerCell =
@@ -77,88 +77,4 @@ export function Answer({
 
 export function Cells({ children, className }: { children: ReactNode; className?: string }) {
   return <div className={cn('flex flex-nowrap gap-1.5', className)}>{children}</div>
-}
-
-/** A labelled line of answers. `showName` off leaves the answers, and an aside if one was passed. */
-export function AnswerRow({
-  label,
-  children,
-  aside,
-  showName = true,
-}: {
-  label: ReactNode
-  children: ReactNode
-  aside?: ReactNode
-  showName?: boolean
-}) {
-  const name = typeof label === 'string' ? label : undefined
-  return (
-    <div role="group" aria-label={name} data-row={name} className="flex flex-col gap-1">
-      {showName || aside ? (
-        <div className="flex min-w-0 items-center gap-2">
-          {showName ? (
-            <div className="min-w-0 flex-1">
-              <Name>{label}</Name>
-            </div>
-          ) : (
-            <span className="flex-1" />
-          )}
-          {aside}
-        </div>
-      ) : null}
-      <Cells>{children}</Cells>
-    </div>
-  )
-}
-
-export type StrokeCell = { wing: Wing; stroke: 'Attack' | 'Control'; label: string }
-
-/** Two rows of two equal cells. BH left, FH right. Attack on top, Control below. */
-export function StrokeGrid({
-  label,
-  rows,
-  isOn,
-  onPick,
-  shot,
-  aside,
-  showName = true,
-}: {
-  label: ReactNode
-  rows: readonly (readonly StrokeCell[])[]
-  isOn: (cell: StrokeCell) => boolean
-  onPick: (cell: StrokeCell) => void
-  shot: number
-  aside?: ReactNode
-  showName?: boolean
-}) {
-  return (
-    <div role="group" aria-label={`Shot ${shot} stroke`} data-row="Stroke" data-stroke-shot={shot} className="flex flex-col gap-1">
-      {showName || aside ? (
-        <div className="flex min-w-0 items-center gap-2">
-          {showName ? (
-            <div className="min-w-0 flex-1">
-              <Name>{label}</Name>
-            </div>
-          ) : (
-            <span className="flex-1" />
-          )}
-          {aside}
-        </div>
-      ) : null}
-      {rows.map((row, i) => (
-        <div key={i} className="grid grid-cols-2 gap-1.5">
-          {row.map((cell) => (
-            <Answer
-              key={cell.label}
-              label={cell.label}
-              on={isOn(cell)}
-              onClick={() => onPick(cell)}
-              className="w-full min-w-0"
-              data={{ 'data-wing': cell.wing, 'data-stroke': cell.stroke }}
-            />
-          ))}
-        </div>
-      ))}
-    </div>
-  )
 }

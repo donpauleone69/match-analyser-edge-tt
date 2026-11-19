@@ -342,18 +342,13 @@ export function bestAt(d: Q, rallyOne: boolean): BestAt {
 
 /**
  * What the question area shows. The 450 ms guard arms when this changes, so a
- * second tap does not land on the next question. The same for both layouts.
+ * second tap does not land on the next question.
  */
-export function bestQuestionKey(
-  d: Q,
-  rallyOne: boolean,
-  layout: 'buttons' | 'pad',
-  back: PadBack = null,
-): string {
+export function bestQuestionKey(d: Q, rallyOne: boolean, back: PadBack = null): string {
   if (d.contacts.length === 0) return ''
   const at = bestAt(d, rallyOne)
   const phase = at.step === 'end' ? padFocus(d, rallyOne, back) : ''
-  return [layout, at.step, at.page ?? '', phase, d.contacts.length].join(':')
+  return [at.step, at.page ?? '', phase, d.contacts.length].join(':')
 }
 
 /** The question a cell opens. The last cell opens End once that stroke and End are in. One contact opens End. */
@@ -613,9 +608,6 @@ export function saveBestTiming(timing: BestTiming) {
     // A private browser can refuse the write. The values still apply for this visit.
   }
 }
-
-/** Answer layout. Buttons is the v0.13.1 cells. Pad is the corner pad. Same questions either way. */
-export type AnswerLayout = 'buttons' | 'pad'
 
 /** Shot loops play at this rate. Lead and end are playback time, so the video window is those times times this rate. */
 export const BEST_SHOT_RATE = 0.75

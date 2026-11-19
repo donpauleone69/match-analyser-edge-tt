@@ -1,9 +1,8 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import { cn } from '@/helpers/utils'
-import { Answer, AnswerRow, StrokeGrid, restStyle } from './AnswerCells'
+import { restStyle } from './AnswerCells'
 import { CornerPad } from './CornerPad'
 import {
-  BEST_ENDS,
   PART_LABEL,
   STROKE_GRID,
   bestEndOf,
@@ -16,7 +15,6 @@ import {
   partsOf,
   padFocus,
   stepShot,
-  type AnswerLayout,
   type BestAt,
   type PadBack,
   type BestEnd,
@@ -28,11 +26,6 @@ import { railCell, shotPaint } from './ShotRail'
 /** Edit opens contact check. Amber, so it is not the same fill as the open question. */
 function checkingOn(): CSSProperties {
   return { backgroundColor: 'var(--color-warning)', borderColor: 'var(--color-warning)', color: '#0b1220' }
-}
-
-/** The worked out Point to: a dashed brand edge on the rest fill, so it never reads as chosen. */
-function hinted(): CSSProperties {
-  return { ...restStyle(), borderStyle: 'dashed', borderColor: 'var(--color-brand-primary)' }
 }
 
 const PART_SHORT: Record<BestPart, string> = { opening: 'Open', rally: 'Rally', attack: 'Att', end: 'End' }
@@ -357,7 +350,6 @@ export function BestPanel({
   at,
   rallyOne,
   rallyNo,
-  layout,
   back,
   onEnd,
   onPoint,
@@ -370,7 +362,6 @@ export function BestPanel({
   at: BestAt
   rallyOne: boolean
   rallyNo: number
-  layout: AnswerLayout
   /** Corner pad: which result question to show again. Null follows the one still open. */
   back: PadBack
   onEnd: (end: BestEnd) => void
@@ -386,51 +377,38 @@ export function BestPanel({
   const grid = (k: number, title: string) => {
     const saved = draft.shots[k - 1]
     const cells = STROKE_GRID.map((row) => row.map((c) => ({ ...c, label: `${c.wing} ${c.stroke}` })))
-    if (layout === 'pad') {
-      return (
-        <CornerPad
-          shot={k}
-          label={title}
-          showName={false}
-          split={sides}
-          columns="1fr 1fr"
-          rows="1fr 1fr"
-          regions={cells.flat().map((c) => {
-            const tone = PAD_STROKE[`${c.wing}:${c.stroke}`]
-            return {
-              key: `${c.wing}-${c.stroke}`,
-              label: c.label,
-              side: c.wing === 'BH' ? ('left' as const) : ('right' as const),
-              on: saved?.wing === c.wing && saved?.stroke === c.stroke,
-              bg: tone.bg,
-              fg: tone.fg,
-              onClick: () => onStroke(k, c.wing, c.stroke),
-              data: { 'data-wing': c.wing, 'data-stroke': c.stroke },
-            }
-          })}
-        />
-      )
-    }
     return (
-      <StrokeGrid
+      <CornerPad
         shot={k}
         label={title}
         showName={false}
-        rows={cells}
-        isOn={(c) => saved?.wing === c.wing && saved?.stroke === c.stroke}
-        onPick={(c) => onStroke(k, c.wing, c.stroke)}
+        split={sides}
+        columns="1fr 1fr"
+        rows="1fr 1fr"
+        regions={cells.flat().map((c) => {
+          const tone = PAD_STROKE[`${c.wing}:${c.stroke}`]
+          return {
+            key: `${c.wing}-${c.stroke}`,
+            label: c.label,
+            side: c.wing === 'BH' ? ('left' as const) : ('right' as const),
+            on: saved?.wing === c.wing && saved?.stroke === c.stroke,
+            bg: tone.bg,
+            fg: tone.fg,
+            onClick: () => onStroke(k, c.wing, c.stroke),
+            data: { 'data-wing': c.wing, 'data-stroke': c.stroke },
+          }
+        })}
       />
     )
   }
 
   return (
     <div
-      className={cn('relative z-20 flex flex-col gap-2.5 pt-2', layout === 'pad' && !sides && 'min-h-0 flex-1')}
+      className={cn('relative z-20 flex flex-col gap-2.5 pt-2', !sides && 'min-h-0 flex-1')}
       data-best-panel
       data-best-step={at.step}
       data-best-page={at.page ?? ''}
       data-best-rally={rallyNo}
-      data-answer-layout={layout}
       data-pad-phase={at.step === 'end' ? padFocus(draft, rallyOne, back) : undefined}
       data-pad-sides={sides ? '' : undefined}
     >
@@ -439,7 +417,6 @@ export function BestPanel({
           draft={draft}
           names={names}
           rallyOne={rallyOne}
-          layout={layout}
           sides={sides}
           back={back}
           onEnd={onEnd}
@@ -448,39 +425,25 @@ export function BestPanel({
       ) : null}
 
       {at.step === 'serve' ? (
-        <div className={cn('flex flex-col gap-2.5', layout === 'pad' && !sides && 'min-h-0 flex-1')}>
-          {layout === 'pad' ? (
-            <CornerPad
-              label={`Serve · ${names[draft.server]}`}
-              showName={false}
-              split={sides}
-              columns="1fr 1fr"
-              rows="1fr 1fr"
-              regions={PAD_SERVE.map((cell) => ({
-                key: cell.label,
-                label: cell.label,
-                side: cell.wing === 'BH' ? ('left' as const) : ('right' as const),
-                on: draft.shots[0]?.depth === cell.depth && draft.shots[0]?.wing === cell.wing,
-                bg: cell.bg,
-                fg: cell.fg,
-                onClick: () => onServe(cell.depth, cell.wing),
-                data: { 'data-best-serve': cell.label },
-                style: { gridColumn: cell.wing === 'BH' ? '1' : '2', gridRow: cell.depth === 'Long' ? '1' : '2' },
-              }))}
-            />
-          ) : (
-            <AnswerRow label={`Serve · ${names[draft.server]}`} showName={false}>
-              {PAD_SERVE.map((cell) => (
-                <Answer
-                  key={cell.label}
-                  label={cell.label}
-                  on={draft.shots[0]?.depth === cell.depth && draft.shots[0]?.wing === cell.wing}
-                  onClick={() => onServe(cell.depth, cell.wing)}
-                  data={{ 'data-best-serve': cell.label }}
-                />
-              ))}
-            </AnswerRow>
-          )}
+        <div className={cn('flex flex-col gap-2.5', !sides && 'min-h-0 flex-1')}>
+          <CornerPad
+            label={`Serve · ${names[draft.server]}`}
+            showName={false}
+            split={sides}
+            columns="1fr 1fr"
+            rows="1fr 1fr"
+            regions={PAD_SERVE.map((cell) => ({
+              key: cell.label,
+              label: cell.label,
+              side: cell.wing === 'BH' ? ('left' as const) : ('right' as const),
+              on: draft.shots[0]?.depth === cell.depth && draft.shots[0]?.wing === cell.wing,
+              bg: cell.bg,
+              fg: cell.fg,
+              onClick: () => onServe(cell.depth, cell.wing),
+              data: { 'data-best-serve': cell.label },
+              style: { gridColumn: cell.wing === 'BH' ? '1' : '2', gridRow: cell.depth === 'Long' ? '1' : '2' },
+            }))}
+          />
         </div>
       ) : null}
 
@@ -493,7 +456,6 @@ function EndPage({
   draft,
   names,
   rallyOne,
-  layout,
   sides,
   back,
   onEnd,
@@ -502,7 +464,6 @@ function EndPage({
   draft: Draft
   names: Record<Side, string>
   rallyOne: boolean
-  layout: AnswerLayout
   sides: boolean
   back: PadBack
   onEnd: (end: BestEnd) => void
@@ -522,71 +483,27 @@ function EndPage({
     </p>
   ) : null
   if (phase === 'point') {
-    if (layout === 'pad') {
-      return (
-        <div className={cn('flex flex-col gap-2', !sides && 'min-h-0 flex-1')}>
-          <CornerPad
-            label="Point to"
-            showName={false}
-            split={sides}
-            columns="1fr 1fr"
-            rows="1fr"
-            regions={(['me', 'them'] as const).map((side) => ({
-              key: side,
-              label: names[side],
-              side: side === 'me' ? ('left' as const) : ('right' as const),
-              on: point === side,
-              bg: side === 'me' ? 'var(--color-side-me)' : 'var(--color-side-them)',
-              fg: '#fff',
-              onClick: () => onPoint(side),
-              data: {
-                'data-point-to': names[side],
-                'data-point-hint': lit === side ? '' : undefined,
-                'data-point-on': point === side ? '' : undefined,
-              },
-            }))}
-          />
-          {mismatchBlock}
-        </div>
-      )
-    }
-    return (
-      <div className="flex flex-col gap-2">
-        <AnswerRow label="Point to" showName={false}>
-          {(['me', 'them'] as const).map((side) => (
-            <Answer
-              key={side}
-              label={names[side]}
-              on={point === side}
-              style={lit === side ? hinted() : undefined}
-              onClick={() => onPoint(side)}
-              data={{ 'data-point-to': names[side], 'data-point-hint': lit === side ? '' : undefined, 'data-point-on': point === side ? '' : undefined }}
-            />
-          ))}
-        </AnswerRow>
-        {mismatchBlock}
-      </div>
-    )
-  }
-  if (layout === 'pad') {
     return (
       <div className={cn('flex flex-col gap-2', !sides && 'min-h-0 flex-1')}>
         <CornerPad
-          label={endLabel}
+          label="Point to"
           showName={false}
           split={sides}
           columns="1fr 1fr"
-          rows="1fr 1fr"
-          regions={PAD_ENDS.map((cell) => ({
-            key: cell.end,
-            label: cell.label,
-            side: cell.end === 'Winner' ? ('left' as const) : ('right' as const),
-            on: endOn === cell.end,
-            bg: cell.bg,
+          rows="1fr"
+          regions={(['me', 'them'] as const).map((side) => ({
+            key: side,
+            label: names[side],
+            side: side === 'me' ? ('left' as const) : ('right' as const),
+            on: point === side,
+            bg: side === 'me' ? 'var(--color-side-me)' : 'var(--color-side-them)',
             fg: '#fff',
-            onClick: () => onEnd(cell.end),
-            data: { 'data-best-end': cell.end },
-            style: cell.style,
+            onClick: () => onPoint(side),
+            data: {
+              'data-point-to': names[side],
+              'data-point-hint': lit === side ? '' : undefined,
+              'data-point-on': point === side ? '' : undefined,
+            },
           }))}
         />
         {mismatchBlock}
@@ -594,19 +511,25 @@ function EndPage({
     )
   }
   return (
-    <div className="flex flex-col gap-2">
-      <AnswerRow label={endLabel} showName={false}>
-        {BEST_ENDS.map((label) => (
-          <Answer
-            key={label}
-            label={label}
-            on={endOn === label}
-            tone={label === 'Winner' ? 'chosen' : 'error'}
-            onClick={() => onEnd(label)}
-            data={{ 'data-best-end': label }}
-          />
-        ))}
-      </AnswerRow>
+    <div className={cn('flex flex-col gap-2', !sides && 'min-h-0 flex-1')}>
+      <CornerPad
+        label={endLabel}
+        showName={false}
+        split={sides}
+        columns="1fr 1fr"
+        rows="1fr 1fr"
+        regions={PAD_ENDS.map((cell) => ({
+          key: cell.end,
+          label: cell.label,
+          side: cell.end === 'Winner' ? ('left' as const) : ('right' as const),
+          on: endOn === cell.end,
+          bg: cell.bg,
+          fg: '#fff',
+          onClick: () => onEnd(cell.end),
+          data: { 'data-best-end': cell.end },
+          style: cell.style,
+        }))}
+      />
       {mismatchBlock}
     </div>
   )
