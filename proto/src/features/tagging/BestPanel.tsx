@@ -21,7 +21,32 @@ import {
   type BestPart,
 } from './bestFlow'
 import { hitterOf, type Draft, type Side, type Wing } from './rally'
-import { railCell, shotPaint } from './ShotRail'
+
+const railCell =
+  'btn-kind-control relative w-full px-1 rounded-md border text-sm font-bold tabular-nums inline-flex items-center justify-center'
+
+/** Player token, or that token at 15%. Open is the solid token. */
+function shotPaint(side: Side, open: boolean, fa: boolean, dim: boolean): CSSProperties {
+  const token = side === 'me' ? 'var(--color-tag-player-a)' : 'var(--color-tag-player-b)'
+  const fill = open ? token : `color-mix(in srgb, ${token} 15%, transparent)`
+  const line = open
+    ? token
+    : fa
+      ? 'var(--color-tag-first-attack)'
+      : side === 'me'
+        ? 'var(--tag-shot-line-a)'
+        : 'var(--tag-shot-line-b)'
+  const ink = open ? 'var(--color-tag-on-solid)' : 'var(--color-text)'
+  return {
+    backgroundColor: fill,
+    borderColor: line,
+    color: ink,
+    ['--shot-fill' as string]: fill,
+    ['--shot-line' as string]: line,
+    ['--shot-ink' as string]: ink,
+    ['--shot-fade' as string]: dim ? '0.6' : '1',
+  }
+}
 
 /** Edit opens contact check. Amber, so it is not the same fill as the open question. */
 function checkingOn(): CSSProperties {

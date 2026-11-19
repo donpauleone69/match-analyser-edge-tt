@@ -45,8 +45,6 @@ export function bestEndOf(d: { ending: Ending | null; best?: { end?: string } })
   return isBestEnd(d.ending) ? d.ending : null
 }
 
-export const BEST_STEPS: readonly BestStep[] = ['serve', 'shots', 'end']
-
 /** Four parts. Rally is the part between Attack and End. */
 export const PART_LABEL: Record<BestPart, string> = {
   opening: 'Opening',
@@ -152,13 +150,6 @@ export function endShots(n: number): number[] {
   return out
 }
 
-/** Serve, then the shot pages, then End. One contact has End only. */
-export function stepsFor(d: Pick<Draft, 'contacts'>): BestStep[] {
-  if (d.contacts.length === 0) return []
-  if (d.contacts.length === 1) return ['end']
-  return [...BEST_STEPS]
-}
-
 /** The shot a step tags. End tags the last shot. `shots` is the page open. */
 export function stepShot(n: number, step: BestStep, page?: number): number {
   if (step === 'serve') return 1
@@ -179,22 +170,7 @@ export function questionOrder(n: number): string[] {
   return order
 }
 
-/** Attack after an asked attack is a Counter. It saves as Attack and is read from the shot before. */
-export function counterAt(d: Pick<Draft, 'contacts' | 'shots'>, shot: number): boolean {
-  const n = d.contacts.length
-  return shot >= 3 && bestAsked(n, shot - 1) && isAttack(d.shots[shot - 2])
-}
-
-export type StrokeRole = 'Attack' | 'Counter' | 'Control'
-
-export function strokeRole(d: Pick<Draft, 'contacts' | 'shots'>, shot: number): StrokeRole | null {
-  const s = d.shots[shot - 1]
-  if (!s?.stroke) return null
-  if (s.stroke !== 'Attack') return 'Control'
-  return counterAt(d, shot) ? 'Counter' : 'Attack'
-}
-
-/** The stroke grid: top row Attack, or Counter after an attack. Bottom row Control. BH left, FH right. */
+/** The stroke grid: top row Attack, bottom row Control. BH left, FH right. */
 export const STROKE_GRID: readonly (readonly { wing: Wing; stroke: 'Attack' | 'Control' }[])[] = [
   [
     { wing: 'BH', stroke: 'Attack' },
@@ -205,11 +181,6 @@ export const STROKE_GRID: readonly (readonly { wing: Wing; stroke: 'Attack' | 'C
     { wing: 'FH', stroke: 'Control' },
   ],
 ]
-
-export function strokeLabel(d: Pick<Draft, 'contacts' | 'shots'>, shot: number, wing: Wing, stroke: string): string {
-  if (stroke !== 'Attack') return `${wing} Control`
-  return `${wing} ${counterAt(d, shot) ? 'Counter' : 'Attack'}`
-}
 
 /**
  * Who attacked first? covered shots that were not asked. Every shot is asked
@@ -486,19 +457,6 @@ export function bestDeleteFirst(d: Draft, rallyOne = false): Draft {
   return { ...next, best: carryBest(next, { cut: undefined }) }
 }
 
-/** Shot 1 was the toss after all: the contact Delete last took comes back with the last stroke, and shot 1 goes. */
-export function bestTossInstead(d: Draft, rallyOne = false): Draft {
-  const cut = d.best?.cut
-  const n = d.contacts.length
-  if (cut === undefined || n < 1) return d
-  const last = d.shots[n - 1] ?? {}
-  const { wing, stroke, ...lastRest } = last
-  const shots = [...d.shots.slice(0, n - 1), lastRest, wing && stroke ? { wing, stroke } : {}]
-  const back: Draft = { ...d, contacts: [...d.contacts, cut], shots, end: null }
-  const next = removeBestContact(back, 1, rallyOne)
-  return { ...next, best: carryBest(next, { cut: undefined }) }
-}
-
 /** Switch server: every hitter flips, and so does a worked out winner. Keep as is goes, so the check runs again. */
 export function bestSwitchServer(d: Draft, rallyOne = false): Draft {
   const next = keepBestMarks({ ...d, server: otherSide(d.server), serveChecked: true, best: carryBest(d, { kept: undefined }) })
@@ -527,11 +485,6 @@ export function setWingStroke(d: Draft, shot: number, wing: Wing, stroke: string
   const i = shot - 1
   shots[i] = { ...shots[i], wing, stroke }
   return keepBestMarks({ ...d, shots })
-}
-
-/** Tap the chosen answer again to clear it. */
-export function bestSetFirst(d: Draft, first: BestFirst): Draft {
-  return keepBestMarks({ ...d, best: carryBest(d, { first: d.best?.first === first ? undefined : first }) })
 }
 
 export function toggleReview(d: Draft, part: BestPart): Draft {
