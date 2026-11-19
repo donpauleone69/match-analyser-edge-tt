@@ -7,7 +7,7 @@ Markdown copied from the Match Analyser Project **Context** (Agent Store) so age
 ## Start here
 
 - [key-documents.md](./key-documents.md) — hub (mirrors the Key documents canvas)
-- [product-brief.md](./product-brief.md) and [product-brief-review.md](./product-brief-review.md)
+- [fresh/product-brief.md](./fresh/product-brief.md) and [product-brief-review.md](./product-brief-review.md)
 - [preferences.md](./preferences.md) — project preferences and decisions
 - [project-context.md](./project-context.md)
 

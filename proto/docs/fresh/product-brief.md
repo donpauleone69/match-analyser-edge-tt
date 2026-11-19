@@ -1,6 +1,6 @@
 # Edge TT Match Analyser: product brief
 
-Updated 19 Nov 2026. Conflicts and sources: [product-brief-review.md](./product-brief-review.md).
+Updated 19 Nov 2026. Conflicts and sources: [product-brief-review.md](../product-brief-review.md).
 
 ## 1. Goal and users
 

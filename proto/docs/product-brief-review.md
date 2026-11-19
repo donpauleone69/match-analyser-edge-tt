@@ -1,6 +1,6 @@
 # Product brief: review note
 
-For [product-brief.md](./product-brief.md). Precedence used: Paul's latest explicit decisions for direction, code on `cursor/mvp-proto-shell-d372` at `7f3b893` (v0.16.1) for what exists. "Transcript #N" means message N in the coordinator transcript (`bc-70b48325-...`, fetched 19 Nov). Store paths are under `/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/`.
+For [product-brief.md](./fresh/product-brief.md). Precedence used: Paul's latest explicit decisions for direction, code on `cursor/mvp-proto-shell-d372` at `7f3b893` (v0.16.1) for what exists. "Transcript #N" means message N in the coordinator transcript (`bc-70b48325-...`, fetched 19 Nov). Store paths are under `/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/`.
 
 ## Conflicts that matter
 

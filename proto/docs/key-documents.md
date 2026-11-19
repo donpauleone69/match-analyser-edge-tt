@@ -8,7 +8,7 @@ Mirrors the [Key documents canvas](https://cursor.com/canvas/store-7c210afe-9d07
 
 | Document | In repo | Notes |
 |----------|---------|-------|
-| Product brief (draft, awaiting Paul's approval) | [product-brief.md](./product-brief.md) · [product-brief-review.md](./product-brief-review.md) | One page: goal, workflow, shared concepts, current focus. For any project working on this codebase. |
+| Product brief (draft, awaiting Paul's approval) | [fresh/product-brief.md](./fresh/product-brief.md) · [product-brief-review.md](./product-brief-review.md) | One page: goal, workflow, shared concepts, current focus. For any project working on this codebase. |
 
 ## For decisions
 
