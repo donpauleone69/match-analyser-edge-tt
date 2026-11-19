@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import { Icon } from '@/ui-mine'
 import type { VideoAsset } from '@/data/demoStore'
 import { cn } from '@/helpers/utils'
@@ -279,8 +279,6 @@ export function VideoStage({
   const video = videos[player.segIndex]
   const pct = (g: number) => `${Math.min(100, Math.max(0, (g / total) * 100))}%`
   const speedIndex = Math.max(0, SPEED_STEPS.indexOf(player.rate as (typeof SPEED_STEPS)[number]))
-  const [captions, setCaptions] = useState(true)
-
   return (
     <div className={className}>
       <div className="tag-picture" data-video-kind={video?.kind}>
@@ -301,7 +299,7 @@ export function VideoStage({
             offset={seg.offset}
             getTime={player.getTime}
             names={names}
-            showCaptions={captions}
+            showCaptions={false}
           />
         ) : null}
 
@@ -373,16 +371,6 @@ export function VideoStage({
           </p>
         ) : null}
 
-        <button
-          type="button"
-          role="switch"
-          aria-checked={captions}
-          aria-label={captions ? 'Captions on' : 'Captions off'}
-          onClick={() => setCaptions((on) => !on)}
-          className="btn-kind-control absolute left-2 bottom-2 px-2 inline-flex items-center justify-center rounded-md bg-black/60 text-[11px] font-semibold text-white hover:bg-black/80"
-        >
-          {captions ? 'Captions on' : 'Captions off'}
-        </button>
         <div className="absolute right-2 bottom-2 flex items-center gap-1">
           <Transport label="Back 10 seconds" onClick={() => onSeek(player.getTime() - 10)}>
             <Icon name="rewind" size="sm" />

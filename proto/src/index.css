@@ -403,10 +403,10 @@ button[disabled] {
 }
 
 /*
-  Item 7. One column by default. Two columns when the screen is wider than it
-  is tall and at least 700 wide. In one column the picture is full width, 16:9,
-  and never more than 45% of the screen height. In two columns it stops at 52%
-  of the height and the whole screen stops growing at 1440 wide.
+  Portrait stacks. Any landscape window uses the wing layout: picture and
+  question in the middle, full-height wings on each side. The wing sizes are
+  the phone ones at every landscape size. Portrait picture stays 16:9 and
+  never more than 45% of the screen height.
 */
 .tag-set {
   height: 100%;
@@ -448,6 +448,7 @@ button[disabled] {
   max-height: 45vh;
   max-height: 45dvh;
   background: #000;
+  /* The picture clips. The settings menu is portaled out so it can draw past this box. */
   overflow: hidden;
   /* The picture's own controls keep the built height. This screen's control height starts under the strip. */
   --btn-kind-control: 2.25rem; /* 36px */
@@ -465,15 +466,15 @@ button[disabled] {
   display: flex;
   flex-direction: column;
 }
-.tag-side-list {
-  display: none;
-}
-/* In-order pad on a landscape window: video and the question sit in the middle.
-   The corner halves are the full-height wings. Portrait keeps the stacked pad. */
+/* Landscape: video and the question sit in the middle. The wings are full height.
+   Portrait keeps the stacked pad. An empty foot strip takes no height. */
 .tag-flow {
   display: contents;
 }
 .pad-wing {
+  display: none;
+}
+.tag-set [data-tag-slot]:not(:has(button, a, input, [data-switch-warning], [data-late-tap])) {
   display: none;
 }
 .tag-set[data-pad-split] {
@@ -484,127 +485,73 @@ button[disabled] {
 .tag-set[data-pad-split] .tag-flow {
   display: flex;
   flex-direction: column;
-  flex: 1.15 1 0;
+  flex: 1 1 0;
   min-width: 0;
   min-height: 0;
+  overflow: hidden;
 }
 .tag-set[data-pad-split] .pad-wing {
   display: flex;
   flex-direction: column;
-  flex: 1 1 0;
-  min-width: 4.75rem;
-  max-width: 46%;
-  gap: 4px;
-  padding: 4px;
+  flex: 0 0 10.5rem;
+  width: 10.5rem;
+  min-width: 8.5rem;
+  max-width: 34%;
+  gap: 0;
+  padding: 0.375rem;
+  padding-bottom: max(0.375rem, env(safe-area-inset-bottom));
   min-height: 0;
 }
+.tag-set[data-pad-split] [data-pad-wing='left'] {
+  padding-left: max(0.375rem, env(safe-area-inset-left));
+}
+.tag-set[data-pad-split] [data-pad-wing='right'] {
+  padding-right: max(0.375rem, env(safe-area-inset-right));
+}
+.tag-set[data-pad-split] .pad-hits {
+  gap: 0.5rem;
+}
+.tag-set[data-pad-split] .pad-region {
+  min-height: 4.75rem;
+  padding-inline: 0.25rem;
+  border-radius: 0.625rem;
+  font-size: 1.25rem;
+  line-height: 1.15;
+  white-space: normal;
+}
 .tag-set[data-pad-split] .tag-media {
-  flex: 0 0 auto;
+  flex: 0 1 auto;
+  min-height: 0;
   max-height: none;
   border-right: none;
 }
+.tag-set[data-pad-split] .tag-media > header {
+  flex-shrink: 0;
+}
+.tag-set[data-pad-split] .tag-media > div {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
 .tag-set[data-pad-split] .tag-picture {
-  max-height: 32vh;
-  max-height: 32dvh;
+  flex: 1 1 auto;
+  max-height: 8.25rem;
+  min-height: 3.5rem;
+}
+.tag-set[data-pad-split] .tag-media button[aria-label='Match timeline'] {
+  flex-shrink: 0;
 }
 .tag-set[data-pad-split] .tag-entry {
-  flex: 1 1 auto;
+  flex: 1 0 auto;
   min-width: 0;
 }
-.tag-set[data-pad-split] .tag-side-list {
-  display: none;
+/* The question, including the mismatch line, keeps a strip. The picture gives up height. */
+.tag-set[data-pad-split] [data-tag-body] {
+  min-height: 4rem;
 }
-.tag-set[data-pad-split] .tag-narrow-only {
-  display: inline-flex !important;
-}
-/*
-  Phone held sideways (about 660 by 393). The same wings, sized for a thumb:
-  full height of the short screen, wide enough to hit without aiming, clear of
-  the side and bottom insets. The picture gives up height so the contact pad
-  stays a real target between questions. Taller landscape screens keep the
-  sizes above.
-*/
-@media (orientation: landscape) and (max-height: 500px) {
-  .tag-picture {
-    max-height: 5.25rem;
-  }
-  .tag-set [data-tag-zone='pad'] {
-    flex: 1 0 auto;
-    min-height: 5.5rem;
-  }
-  .tag-set[data-pad-split] .pad-wing {
-    flex: 0 0 10.5rem;
-    width: 10.5rem;
-    min-width: 8.5rem;
-    max-width: 34%;
-    gap: 0;
-    padding: 0.375rem;
-    padding-bottom: max(0.375rem, env(safe-area-inset-bottom));
-  }
-  .tag-set[data-pad-split] [data-pad-wing='left'] {
-    padding-left: max(0.375rem, env(safe-area-inset-left));
-  }
-  .tag-set[data-pad-split] [data-pad-wing='right'] {
-    padding-right: max(0.375rem, env(safe-area-inset-right));
-  }
-  .tag-set[data-pad-split] .pad-hits {
-    gap: 0.5rem;
-  }
-  .tag-set[data-pad-split] .pad-region {
-    min-height: 4.75rem;
-    padding-inline: 0.25rem;
-    border-radius: 0.625rem;
-    font-size: 1.25rem;
-    line-height: 1.15;
-    white-space: normal;
-  }
-  .tag-set[data-pad-split] .tag-flow {
-    flex: 1 1 0;
-    overflow: hidden;
-  }
-  .tag-set[data-pad-split] .tag-media header select,
-  .tag-set[data-pad-split] .tag-media header [data-swap-video] {
-    display: none;
-  }
-  .tag-set[data-pad-split] .tag-picture {
-    max-height: 8.25rem;
-  }
-  .tag-set[data-pad-split] [data-scene-label],
-  .tag-set[data-pad-split] [data-caption],
-  .tag-set[data-pad-split] [data-bat] + p {
-    display: none;
-  }
-}
-@media (min-width: 700px) and (orientation: landscape) {
-  .tag-set {
-    flex-direction: row;
-    max-width: 1440px;
-    margin-inline: auto;
-  }
-  .tag-media {
-    flex: 3 1 0;
-    min-width: 0;
-    max-height: none;
-    border-right: 1px solid var(--color-border);
-  }
-  .tag-picture {
-    flex-shrink: 0;
-    max-height: 52vh;
-    max-height: 52dvh;
-  }
-  .tag-side-list {
-    display: block;
-    flex: 1 1 auto;
-    min-height: 0;
-    overflow: auto;
-  }
-  .tag-entry {
-    flex: 2 1 0;
-    min-width: 360px;
-  }
-  .tag-narrow-only {
-    display: none !important;
-  }
+.tag-set[data-pad-split] [data-tag-zone='pad'] {
+  flex: 1 0 auto;
+  min-height: 5.5rem;
 }
 
 /* A viewport under 660 high. Cells stay 32 and the foot stays 48. 660 itself is unchanged. */

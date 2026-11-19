@@ -51,18 +51,20 @@ function ShellNavLink({
 }
 
 export function AppShell() {
-  /** Tagging a set takes the whole phone screen: no bottom nav under the pad. */
+  /** Tagging a set takes the whole screen: no top or bottom nav. */
   const tagging = Boolean(useMatch('/matches/:matchId/tag/:setId'))
   return (
     <div className="h-full bg-bg-app flex flex-col">
-      <header className="hidden md:flex shrink-0 items-center justify-between gap-4 border-b border-border bg-bg-shell pl-6 pr-12 lg:pl-8 lg:pr-14 min-h-[var(--btn-kind-main)] z-40">
-        <nav className="flex items-center gap-1" aria-label="Main">
-          {navItems.map((item) => (
-            <ShellNavLink key={item.to} {...item} layout="top" />
-          ))}
-        </nav>
-        <BrandMark />
-      </header>
+      {tagging ? null : (
+        <header className="hidden md:flex shrink-0 items-center justify-between gap-4 border-b border-border bg-bg-shell pl-6 pr-12 lg:pl-8 lg:pr-14 min-h-[var(--btn-kind-main)] z-40">
+          <nav className="flex items-center gap-1" aria-label="Main">
+            {navItems.map((item) => (
+              <ShellNavLink key={item.to} {...item} layout="top" />
+            ))}
+          </nav>
+          <BrandMark />
+        </header>
+      )}
 
       <main
         id="shell-scroll"
