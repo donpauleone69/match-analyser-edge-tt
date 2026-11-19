@@ -4,9 +4,9 @@ Updated 19 Nov 2026. Conflicts and sources: [product-brief-review.md](../product
 
 ## 1. Goal and users
 
-Edge TT Match Analyser lets a table tennis player tag their own match video quickly and accurately, then turns the tags into insights that play back as short video reels. It is for players who film their matches (Paul first, then his coach and club), phone first.
+Edge TT Match Analyser lets a table tennis player tag their own match and match video quickly and accurately, turning the tags into insights. These insights can be viewed per match or globally, as data and as clips that play back as short video reels.
 
-Numbers alone do not show what to fix. The product wins when tagging is fast with eyes on the video and the reels show strengths and weaknesses to watch, download and share with a coach. Separate from Edge TT, the club session app.
+It is for players who film their matches (players first, then coaches), and it is phone first for input and review. The product wins when tagging is fast, painless and accurate, and the data and insights are valuable for coaching, improvement and tracking improvement. The video reels show strengths and weaknesses to watch, download and share with a coach, alongside statistics and data over time.
 
 ## 2. Core workflow
 
