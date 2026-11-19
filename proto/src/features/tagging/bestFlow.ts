@@ -670,6 +670,35 @@ export function bestRally(d: Draft, id: string, winner: Side, kept: boolean): Ra
   }
 }
 
+/** A saved rally back as a closed draft, every answer in, so a cell can reopen one question. */
+export function draftFromRally(r: RallyData): Draft {
+  const end = bestEndOf(r)
+  return {
+    videoId: r.videoId,
+    server: r.server,
+    contacts: [...r.contacts],
+    closed: true,
+    start: r.start,
+    end: r.end,
+    ending: r.ending,
+    fa: r.fa,
+    noAttack: false,
+    shots: r.shots.map((s) => ({ ...s })),
+    highlight: r.highlight,
+    serveChecked: true,
+    best: carryBest(
+      {},
+      {
+        end: end ?? undefined,
+        point: r.winner,
+        kept: r.idea?.check ? true : undefined,
+        first: r.idea?.first,
+        review: r.idea?.review,
+      }
+    ),
+  }
+}
+
 /** Rally list. "Review Rally, End", in row order. */
 export function reviewLine(r: { contacts: number[]; shots: ShotTags[]; idea?: { review?: BestPart[]; first?: BestFirst } }): string {
   const review = r.idea?.review

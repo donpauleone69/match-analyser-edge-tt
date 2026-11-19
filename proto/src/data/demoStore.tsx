@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { emptyDraft, type Draft, type RallyData, type Side } from '@/features/tagging/rally'
+import { type Draft, type RallyData, type Side } from '@/features/tagging/rally'
 import {
   buildScripts,
   matchScript,
@@ -121,7 +121,7 @@ export function lastTaggedSetId(match: MatchRecord): number {
   return lastSetId(match.sets, setHasTagProgress)
 }
 
-function emptySet(setId: number): SetData {
+export function emptySet(setId: number): SetData {
   return {
     setId,
     entered: { me: '', them: '' },
@@ -397,9 +397,6 @@ const CLUB_VIDEOS = [
   demoVideo('v-club-1', 'club-night-part-1.mp4', CLUB_SCRIPTS[0]),
   demoVideo('v-club-2', 'club-night-part-2.mp4', CLUB_SCRIPTS[1]),
 ]
-/** The rally left open in set 2: contacts tapped, waiting for its result. */
-const CLUB_OPEN = CLUB_SCRIPTS[0].rallies[25]
-
 /** League final vs Pat: one video, three sets. Set 2 is tagged 8 - 11. */
 const FINAL_SETS = [
   { firstServer: 'me' as Side, winners: setWinners(21, 11, 7) },
@@ -434,7 +431,7 @@ const SEED: MatchRecord[] = [
     tagDone: false,
   },
   {
-    // Part way through set 2 with a rally left open. Set 4 skipped by choice.
+    // Part way through set 2. Set 4 skipped by choice.
     id: 'm-partial',
     opponent: 'Sam',
     event: 'Club night',
@@ -452,12 +449,6 @@ const SEED: MatchRecord[] = [
         ...emptySet(2),
         entered: { me: '9', them: '11' },
         rallies: ralliesFromScript('v-club-1', CLUB_SCRIPTS[0], 18, 7),
-        draft: {
-          ...emptyDraft('v-club-1', CLUB_OPEN.server),
-          contacts: CLUB_OPEN.contacts,
-          shots: CLUB_OPEN.contacts.map(() => ({})),
-          closed: true,
-        },
       },
       { ...emptySet(3), entered: { me: '11', them: '8' } },
       { ...emptySet(4), entered: { me: '11', them: '6' }, skipped: true },
