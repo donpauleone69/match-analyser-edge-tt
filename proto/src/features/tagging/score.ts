@@ -33,6 +33,21 @@ export function leader(score: Points): Side | null {
   return score.me > score.them ? 'me' : 'them'
 }
 
+/** Who served first in a set, given who serves at `score`. */
+export function firstServerAt(server: Side, score: Points): Side {
+  return serverAt('me', score) === server ? 'me' : 'them'
+}
+
+/** The rally at which the set first reaches a winning score, or -1. */
+export function setEndIndex(winners: Side[]): number {
+  let score = ZERO
+  for (let i = 0; i < winners.length; i++) {
+    score = addPoint(score, winners[i])
+    if (isSetWon(score)) return i
+  }
+  return -1
+}
+
 /** Later sets alternate the first server from set 1. */
 export function firstServerForSet(setOneServer: Side, setId: number): Side {
   return setId % 2 === 1 ? setOneServer : otherSide(setOneServer)

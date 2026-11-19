@@ -171,7 +171,8 @@ export function BestRallyRow({
   onStar: () => void
   onPart: (part: BestPart) => void
   onRally: () => void
-  onServer: () => void
+  /** The server is set on the Start card. Without this the chip is a label. */
+  onServer?: () => void
   onNotShot: () => void
   /** Throws away the rally being tagged. Hidden when there is nothing in progress. */
   onDiscard?: () => void
@@ -187,7 +188,7 @@ export function BestRallyRow({
     ? parts.map((p) => `repeat(${p.to - p.from + 1}, minmax(24px, var(--btn-kind-control)))`).join(' 0px ')
     : `repeat(${n + 1}, minmax(24px, var(--btn-kind-control)))`
   const canDelete = checking && n > 1
-  const canToggleServer = at?.step === 'serve' && !saved
+  const canToggleServer = Boolean(onServer) && at?.step === 'serve' && !saved
 
   return (
     <div className="flex w-full min-w-0 flex-col gap-1" data-best-rail data-best-saved={saved ? '' : undefined}>

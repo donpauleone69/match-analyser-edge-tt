@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Button, Card, Icon, buttonKindTextLink } from '@/ui-mine'
 import { WfBadge } from '@/layout/Wireframe'
@@ -20,17 +21,21 @@ import {
   type SetData,
 } from '@/data/demoStore'
 import {
+  allowedSetNumbers,
   applyTaggedResult,
   applyTaggedScore,
+  clearSet,
   finishMatch,
+  moveSet,
   reopenMatch,
+  restoreSet,
   setInProgress,
 } from '@/features/tagging/matchOps'
 import { cn } from '@/helpers/utils'
 import { TAG_LOCK_LINE, useTagLock } from '@/features/tagging/tagLock'
 import { lastSavedGlobal } from '@/features/tagging/matchOps'
 import { rallyEnd, type Draft } from '@/features/tagging/rally'
-import { lastContactG, segmentsOf, segmentAt, formatClock, toGlobal } from '@/features/tagging/timeline'
+import { firstContactG, lastContactG, segmentsOf, segmentAt, formatClock, toGlobal } from '@/features/tagging/timeline'
 import { AddVideoChoice } from '@/features/match/AddVideoChoice'
 import { VideosCard } from '@/features/match/VideosCard'
 import { isRealResult } from '@/features/match/matchChecks'
@@ -107,6 +112,9 @@ export function MatchTagChecklist() {
   const { getMatch, patchSet, mutateMatch } = useDemo()
   const match = getMatch(matchId)
   const lock = useTagLock(matchId, match)
+  /** Delete set asks once more before it clears the set. */
+  const [askDelete, setAskDelete] = useState<number | null>(null)
+  const [deleted, setDeleted] = useState<SetData | null>(null)
   if (!match) return null
 
   const phase = derivePhase(match)
@@ -159,11 +167,33 @@ export function MatchTagChecklist() {
 
       {resultDiffers(match) ? <ResultFlag match={match} /> : null}
 
+      {deleted ? (
+        <div
+          role="status"
+          className="flex items-center justify-between gap-3 rounded-md bg-neutral-100 pl-3 pr-1 text-sm text-neutral-950"
+        >
+          <span>Set {deleted.setId} deleted</span>
+          <button
+            type="button"
+            className="btn-kind-control min-w-16 rounded-md px-3 font-bold underline hover:bg-neutral-300"
+            onClick={() => {
+              mutateMatch(match.id, (m) => restoreSet(m, deleted))
+              setDeleted(null)
+            }}
+          >
+            Undo
+          </button>
+        </div>
+      ) : null}
+
       <ul className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         {match.sets.map((s) => {
           const state = setState(s)
           const differs = setScoresDiffer(s)
           const gone = setRalliesWithoutVideo(match, s)
+          const editable = !lock && s.rallies.length > 0
+          const firstAt = editable ? firstContactG(segmentsOf(match.videos), s.rallies[0]) : null
+          const moveTo = editable && firstAt !== null ? allowedSetNumbers(match, firstAt, s.setId).filter((n) => n !== s.setId) : []
           return (
             <li key={s.setId}>
               <Card className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
@@ -218,16 +248,63 @@ export function MatchTagChecklist() {
                       Start
                     </Button>
                   ) : null}
-                  {state === 'finished' || state === 'progress' ? (
-                    <Button
-                      kind="control"
-                      variant="secondary"
-                      className={rowAction}
-                      onClick={() => openSet(s.setId)}
-                    >
-                      Open
-                    </Button>
-                  ) : null}
+                  {askDelete === s.setId ? (
+                    <>
+                      <Button
+                        kind="control"
+                        variant="primary"
+                        data-delete-confirm
+                        onClick={() => {
+                          setDeleted(s)
+                          setAskDelete(null)
+                          mutateMatch(match.id, (m) => clearSet(m, s.setId))
+                        }}
+                      >
+                        Delete set {s.setId}
+                      </Button>
+                      <Button kind="control" variant="ghost" onClick={() => setAskDelete(null)}>
+                        Cancel
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      {moveTo.length > 0 ? (
+                        <select
+                          aria-label={`Change set ${s.setId} number`}
+                          className="btn-kind-control rounded-md border border-border bg-bg-card px-2 text-sm text-primary"
+                          value=""
+                          onChange={(e) => {
+                            const to = Number(e.target.value)
+                            if (!to) return
+                            setDeleted(null)
+                            mutateMatch(match.id, (m) => moveSet(m, s.setId, to))
+                          }}
+                        >
+                          <option value="">Set number</option>
+                          {moveTo.map((n) => (
+                            <option key={n} value={n}>
+                              Make it set {n}
+                            </option>
+                          ))}
+                        </select>
+                      ) : null}
+                      {editable ? (
+                        <Button kind="control" variant="ghost" onClick={() => setAskDelete(s.setId)}>
+                          Delete
+                        </Button>
+                      ) : null}
+                      {state === 'finished' || state === 'progress' ? (
+                        <Button
+                          kind="control"
+                          variant="secondary"
+                          className={rowAction}
+                          onClick={() => openSet(s.setId)}
+                        >
+                          Open
+                        </Button>
+                      ) : null}
+                    </>
+                  )}
                 </div>
               </Card>
             </li>
