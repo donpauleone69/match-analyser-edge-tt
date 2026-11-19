@@ -63,6 +63,7 @@ export function CornerPad({
   fill = true,
   shot,
   split = false,
+  showName = true,
 }: {
   label: ReactNode
   regions: PadRegion[]
@@ -74,17 +75,24 @@ export function CornerPad({
   shot?: number
   /** Landscape: halves on the side wings, question name in the middle. */
   split?: boolean
+  /** Off hides the question name. An aside still sits on that line. */
+  showName?: boolean
 }) {
   const name = typeof label === 'string' ? label : undefined
   const wings = useContext(PadWingContext)
-  const heading = (
-    <div className="flex min-w-0 items-center gap-2">
-      <div className="min-w-0 flex-1">
-        <Name>{label}</Name>
+  const heading =
+    showName || aside ? (
+      <div className="flex min-w-0 items-center gap-2">
+        {showName ? (
+          <div className="min-w-0 flex-1">
+            <Name>{label}</Name>
+          </div>
+        ) : (
+          <span className="flex-1" />
+        )}
+        {aside}
       </div>
-      {aside}
-    </div>
-  )
+    ) : null
   const ready = Boolean(split && wings.left && wings.right && regions.every((region) => region.side))
   if (split) {
     const left = regions.filter((region) => region.side !== 'right')
