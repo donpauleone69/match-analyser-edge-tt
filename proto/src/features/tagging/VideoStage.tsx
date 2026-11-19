@@ -225,18 +225,78 @@ function Transport({
   )
 }
 
-/**
- * The picture, the score bug and transport over it, and the match timeline
- * under it: saved rallies as blocks, the open rally as a soft range with a
- * tick per contact, and a line where one video ends and the next begins.
- */
+/** The set timeline: saved rallies, the open rally, and the playhead. */
+export function SetTimeline({
+  player,
+  blocks,
+  open,
+  onSeek,
+  className,
+}: {
+  player: Player
+  blocks: TimelineBlock[]
+  open: { a: number; b: number; ticks: number[] } | null
+  onSeek: (g: number) => void
+  className?: string
+}) {
+  const segs: Segment[] = player.segs
+  const total = totalDuration(segs) || 1
+  const pct = (g: number) => `${Math.min(100, Math.max(0, (g / total) * 100))}%`
+  return (
+    <button
+      type="button"
+      aria-label="Match timeline"
+      className={cn('relative block h-7 min-w-0 shrink cursor-pointer', className)}
+      onClick={(e) => {
+        const box = e.currentTarget.getBoundingClientRect()
+        onSeek(((e.clientX - box.left) / box.width) * total)
+      }}
+    >
+      <span className="relative block h-full bg-bg-elevated border-y border-border overflow-hidden">
+        {blocks.map((b, i) => (
+          <span
+            key={i}
+            className={cn(
+              'absolute top-1 bottom-1 rounded-[1px]',
+              b.winner === 'me' ? 'bg-side-me' : 'bg-side-them',
+              !b.current && 'opacity-40'
+            )}
+            style={{ left: pct(b.a), width: `max(2px, ${((b.b - b.a) / total) * 100}%)` }}
+          />
+        ))}
+        {open ? (
+          <>
+            <span
+              className="absolute top-0 bottom-0 bg-warning/40"
+              style={{ left: pct(open.a), width: `max(3px, ${((open.b - open.a) / total) * 100}%)` }}
+            />
+            {open.ticks.map((g, i) => (
+              <span key={i} className="absolute top-0 bottom-0 w-px bg-warning" style={{ left: pct(g) }} />
+            ))}
+          </>
+        ) : null}
+        {segs.slice(1).map((s) => (
+          <span
+            key={s.id}
+            className="absolute top-0 bottom-0 w-0.5 bg-border-strong"
+            style={{ left: pct(s.offset) }}
+          />
+        ))}
+        <span
+          className="absolute top-0 bottom-0 w-0.5 bg-brand-primary"
+          style={{ left: pct(player.time) }}
+        />
+      </span>
+    </button>
+  )
+}
+
+/** The picture, with the score, the clock, Settings and transport over it. */
 export function VideoStage({
   player,
   videos,
   names,
   bug,
-  blocks,
-  open,
   hint,
   onSeek,
   noForward = false,
@@ -247,14 +307,13 @@ export function VideoStage({
   readOnlyHighlight = false,
   badge = null,
   extra = null,
+  leading = null,
   className,
 }: {
   player: Player
   videos: VideoAsset[]
   names: Record<Side, string>
   bug: { sets: Record<Side, number>; points: Record<Side, number>; server: Side; setId: number }
-  blocks: TimelineBlock[]
-  open: { a: number; b: number; ticks: number[] } | null
   /** A few words over the picture, such as why a step back stopped short. */
   hint: string | null
   /** Seeks go through the screen so it can say why one stopped short. */
@@ -271,13 +330,13 @@ export function VideoStage({
   badge?: { shot: number; side: Side } | null
   /** Drawn over the picture. Does not change the picture's size. */
   extra?: ReactNode
+  /** Top left of the picture, such as Back. The score sits to its right. */
+  leading?: ReactNode
   className?: string
 }) {
   const segs: Segment[] = player.segs
-  const total = totalDuration(segs) || 1
   const seg = segs[player.segIndex]
   const video = videos[player.segIndex]
-  const pct = (g: number) => `${Math.min(100, Math.max(0, (g / total) * 100))}%`
   const speedIndex = Math.max(0, SPEED_STEPS.indexOf(player.rate as (typeof SPEED_STEPS)[number]))
   return (
     <div className={className}>
@@ -303,8 +362,13 @@ export function VideoStage({
           />
         ) : null}
 
+        {leading ? <div className="absolute left-1.5 top-1.5 z-20">{leading}</div> : null}
+
         <div
-          className="absolute left-2 top-2 rounded-md bg-black/70 text-white text-[11px] font-semibold tabular-nums overflow-hidden"
+          className={cn(
+            'absolute top-2 z-10 rounded-md bg-black/70 text-white text-[11px] font-semibold tabular-nums overflow-hidden',
+            leading ? 'left-14' : 'left-2'
+          )}
           role="status"
           aria-label={`Set ${bug.setId}: ${names.me} ${bug.points.me}, ${names.them} ${bug.points.them}. ${servesText(names, bug.server)}.`}
         >
@@ -332,7 +396,8 @@ export function VideoStage({
           <p
             data-shot-badge={badge.shot}
             className={cn(
-              'absolute left-2 top-12 z-20 rounded-md px-3 py-1 text-2xl font-bold tabular-nums text-white',
+              'absolute left-2 z-20 rounded-md px-3 py-1 text-2xl font-bold tabular-nums text-white',
+              leading ? 'top-14' : 'top-12',
               badge.side === 'me' ? 'bg-side-me' : 'bg-side-them'
             )}
           >
@@ -405,53 +470,6 @@ export function VideoStage({
           ) : null}
         </div>
       </div>
-
-      <button
-        type="button"
-        aria-label="Match timeline"
-        className="relative block h-7 w-full shrink-0 cursor-pointer"
-        onClick={(e) => {
-          const box = e.currentTarget.getBoundingClientRect()
-          onSeek(((e.clientX - box.left) / box.width) * total)
-        }}
-      >
-        {/* The stripe fills the 28px strip. */}
-        <span className="relative block h-full bg-bg-elevated border-b border-border overflow-hidden">
-        {blocks.map((b, i) => (
-          <span
-            key={i}
-            className={cn(
-              'absolute top-1 bottom-1 rounded-[1px]',
-              b.winner === 'me' ? 'bg-side-me' : 'bg-side-them',
-              !b.current && 'opacity-40'
-            )}
-            style={{ left: pct(b.a), width: `max(2px, ${((b.b - b.a) / total) * 100}%)` }}
-          />
-        ))}
-        {open ? (
-          <>
-            <span
-              className="absolute top-0 bottom-0 bg-warning/40"
-              style={{ left: pct(open.a), width: `max(3px, ${((open.b - open.a) / total) * 100}%)` }}
-            />
-            {open.ticks.map((g, i) => (
-              <span key={i} className="absolute top-0 bottom-0 w-px bg-warning" style={{ left: pct(g) }} />
-            ))}
-          </>
-        ) : null}
-        {segs.slice(1).map((s) => (
-          <span
-            key={s.id}
-            className="absolute top-0 bottom-0 w-0.5 bg-border-strong"
-            style={{ left: pct(s.offset) }}
-          />
-        ))}
-        <span
-          className="absolute top-0 bottom-0 w-0.5 bg-brand-primary"
-          style={{ left: pct(player.time) }}
-        />
-        </span>
-      </button>
     </div>
   )
 }

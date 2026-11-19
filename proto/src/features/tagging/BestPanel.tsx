@@ -133,6 +133,7 @@ export function BestRallyRow({
   onRally,
   onServer,
   onNotShot,
+  onDiscard,
 }: {
   draft: Draft | null
   label: string
@@ -154,6 +155,8 @@ export function BestRallyRow({
   onRally: () => void
   onServer: () => void
   onNotShot: () => void
+  /** Throws away the rally being tagged. Hidden when there is nothing in progress. */
+  onDiscard?: () => void
 }) {
   const n = draft?.contacts.length ?? 0
   const closed = Boolean(draft?.closed && n > 0)
@@ -183,13 +186,23 @@ export function BestRallyRow({
             Saved
           </span>
         ) : null}
+        {onDiscard ? (
+          <button type="button" data-rally-discard="" className={cn(headButton, 'px-1.5')} onClick={onDiscard}>
+            Discard
+          </button>
+        ) : null}
         <span className="min-w-0 flex-1" />
         <button
           type="button"
           data-best-server={server}
           aria-label={canToggleServer ? `${names[server]} serving. Switch server` : `${names[server]} serving`}
           aria-disabled={!canToggleServer}
-          className={cn(headButton, 'max-w-[5.5rem] rounded-full px-2', !canToggleServer && 'pointer-events-none')}
+          className={cn(
+            headButton,
+            'rounded-full px-2',
+            onDiscard ? 'max-w-[4.25rem]' : 'max-w-[5.5rem]',
+            !canToggleServer && 'pointer-events-none'
+          )}
           style={{
             backgroundColor: server === 'me' ? 'var(--color-side-me)' : 'var(--color-side-them)',
             borderColor: server === 'me' ? 'var(--color-side-me)' : 'var(--color-side-them)',
