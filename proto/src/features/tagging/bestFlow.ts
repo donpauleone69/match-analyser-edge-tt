@@ -29,7 +29,6 @@ import {
 
 export type { BestFirst, BestPart, BestStep }
 
-export const BEST_SERVE = ['Short', 'Long'] as const
 export const BEST_ENDS = ['Winner', 'Net', 'Long', 'Wide'] as const
 export type BestEnd = (typeof BEST_ENDS)[number]
 
@@ -309,18 +308,6 @@ export function nextStroke(d: Pick<Draft, 'contacts' | 'shots'>): number | null 
     if (!shot?.wing || !shot.stroke) return k
   }
   return null
-}
-
-/** @deprecated The walk uses `nextStroke`. Kept so older checks still import it. */
-export function nextEndShot(d: Pick<Draft, 'contacts' | 'shots'>): number | null {
-  return nextStroke(d)
-}
-
-export function stepDone(d: Q, step: BestStep, rallyOne: boolean): boolean {
-  if (step === 'end') return endDone(d, rallyOne)
-  if (step === 'serve') return Boolean(d.shots[0]?.depth)
-  if (step === 'shots') return nextStroke(d) === null
-  return Boolean(d.shots[stepShot(d.contacts.length, step) - 1]?.stroke)
 }
 
 export type BestAt = { step: BestStep; page?: number }
@@ -645,8 +632,8 @@ export function shotLoop(contact: number, next: number, timing: BestTiming, rate
   return { a, b }
 }
 
-/** What a loop plays: a question, the whole rally, or Add missed from the serve. */
-export type BestLoopWhat = BestAt | 'rally' | 'add'
+/** What a loop plays: a question, or the whole rally. */
+export type BestLoopWhat = BestAt | 'rally'
 
 /**
  * Loop the shot being asked, at `rate` (0.75 unless a caller says otherwise).
@@ -666,7 +653,6 @@ export function bestLoop(
   const start = rallyStart(d)
   const end = rallyEnd(d)
   if (what === 'rally') return { a: start, b: end }
-  if (what === 'add') return { a: d.contacts[0] ?? start, b: end }
   const n = d.contacts.length
   const shot = stepShot(n, what.step, what.page)
   const contactAt = (k: number) => d.contacts[k - 1] ?? start
@@ -677,25 +663,6 @@ export function bestLoop(
     return shotLoop(contactAt(from), after(shot), timing, rate)
   }
   return shotLoop(contactAt(shot), after(shot), timing, rate)
-}
-
-/**
- * Video window for one part. Shot 1 starts at the rally start. The last part ends at the rally end.
- * Anything else starts the lead before its first contact and ends the end offset before the next part.
- */
-export function partWindow(d: Draft, part: BestPart, timing: BestTiming = DEFAULT_BEST_TIMING): BestWindow {
-  const parts = partsOf(d)
-  const i = parts.findIndex((span) => span.part === part)
-  const start = rallyStart(d)
-  const end = rallyEnd(d)
-  if (i < 0) return { a: start, b: end }
-  const cur = parts[i]
-  const next = parts[i + 1]
-  const lead = timing.lead / 1000
-  const tail = timing.end / 1000
-  const a = cur.from <= 1 ? start : (d.contacts[cur.from - 1] ?? start) - lead
-  const b = next ? (d.contacts[next.from - 1] ?? end) - tail : end
-  return { a, b: Math.max(a, b) }
 }
 
 export function bestFlowOf(s: { draft: Draft | null; rallies: RallyData[] }): 'bestfa' | null {

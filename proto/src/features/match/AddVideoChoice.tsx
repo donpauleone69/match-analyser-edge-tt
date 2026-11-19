@@ -17,63 +17,6 @@ function probeDuration(src: string): Promise<number> {
 }
 
 /**
- * Plays a file from this device in place of a video, for trying the tagger on
- * real footage. Rallies keep their times. Nothing is stored: a reload brings
- * the demo video back.
- */
-export function SwapVideoButton({ matchId, videoId }: { matchId: string; videoId: string | null }) {
-  const { swapVideo } = useDemo()
-  const input = useRef<HTMLInputElement>(null)
-  const [state, setState] = useState<'idle' | 'reading' | 'failed'>('idle')
-
-  const onFile = async (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    e.target.value = ''
-    if (!file || !videoId) return
-    setState('reading')
-    const src = URL.createObjectURL(file)
-    try {
-      const durationS = await probeDuration(src)
-      swapVideo(matchId, videoId, {
-        fileName: file.name,
-        sizeMb: Math.max(1, Math.round(file.size / 1_000_000)),
-        durationS,
-        src,
-      })
-      setState('idle')
-    } catch {
-      URL.revokeObjectURL(src)
-      setState('failed')
-    }
-  }
-
-  return (
-    <>
-      <Button
-        size="sm"
-        variant="secondary"
-        data-swap-video=""
-        className="px-2.5"
-        aria-label="Play a video from this device instead"
-        title={state === 'failed' ? 'That file could not be played here' : 'Play a video from this device instead'}
-        disabled={!videoId || state === 'reading'}
-        onClick={() => input.current?.click()}
-      >
-        <Icon name="upload" size="xs" />
-      </Button>
-      <input
-        ref={input}
-        type="file"
-        accept="video/*"
-        className="hidden"
-        aria-label="Choose a video file to play"
-        onChange={onFile}
-      />
-    </>
-  )
-}
-
-/**
  * Add video offers two sources: a file from this device, which is the real
  * way in, or the scripted demo video, which only stands in for one in this
  * prototype. A chosen file plays through a blob URL held in memory only.

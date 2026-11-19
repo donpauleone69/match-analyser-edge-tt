@@ -20,12 +20,6 @@ export const isBestFlow = (f: FlowName | null): f is 'bestfa' => f === 'bestfa'
 /** The `flow` value in the address. Anything else, including a removed flow, is Best + FA. */
 export const flowFromParam = (v: string | null): FlowName => (v === 'sequential' || v === 'spine' ? v : 'bestfa')
 
-export const FLOW_LABEL: Record<FlowName, string> = {
-  bestfa: 'Best + FA',
-  sequential: 'Shot by shot',
-  spine: 'Spine',
-}
-
 export type TagLogLine = {
   mode: FlowName
   shots: number

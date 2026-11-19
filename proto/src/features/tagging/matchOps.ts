@@ -71,10 +71,6 @@ export const restoreRally = (m: MatchRecord, setId: number, rallyId: string) =>
     )
   })
 
-/** Swap players on one rally: server, hitters and winner flip. Only that rally changes. */
-export const swapRallyPlayers = (m: MatchRecord, setId: number, rallyId: string) =>
-  inSet(m, setId, (s) => ({ ...s, rallies: s.rallies.map((r) => (r.id === rallyId ? swapPlayers(r) : r)) }))
-
 /**
  * A press in Review serves. `swap` is the other player: server and winner flip.
  * Either press only checks this rally. No other rally is written.

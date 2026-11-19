@@ -186,7 +186,6 @@ import {
   canOpenCell,
   carryBest,
   cellTarget,
-  keepBestMarks,
   loadBestTiming,
   pointDone,
   removeBestContact,
@@ -502,7 +501,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const [bestSaved, setBestSaved] = useState<{ rallyId: string; draft: Draft; before: SetData; floor: number } | null>(null)
   /** Where capture resumed after Check, in the rally video. */
   const [bestResume, setBestResume] = useState<number | null>(null)
-  const [bestAdd, setBestAdd] = useState(false)
   const [bestOver, setBestOver] = useState<string | null>(null)
   const [bestHoldOn, setBestHoldOn] = useState(false)
   const bestHold = useRef(false)
@@ -678,7 +676,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   /** Best step loop, in match time. Shot loops play at 0.75x. A contact check plays at half speed. */
   const playBest = (d: Draft, what: BestLoopWhat, rate?: number) => {
     bestCheckRef.current = false
-    const speed = rate ?? (what === 'add' ? CAPTURE_SPEED : what === 'rally' ? 1 : BEST_SHOT_RATE)
+    const speed = rate ?? (what === 'rally' ? 1 : BEST_SHOT_RATE)
     loopWhat.current = { what, rate: speed }
     const mismatch = bestMismatch(d, latest.current.set.rallies.length === 0)
     const w = bestLoop(d, what, timing, speed, mismatch)
@@ -1155,7 +1153,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       setSelected(null)
       setEndOpen(false)
       setBestLook(false)
-      setBestAdd(false)
       setBestCheck(false)
       playBest(closed, open)
     } else if (isIdeaFlow(wanted)) {
@@ -1566,7 +1563,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     setBestCheck(false)
     bestCheckRef.current = false
     setBestLook(false)
-    setBestAdd(false)
     loopWhat.current = null
     setBestSpan(null)
     clearLiveRally()
@@ -1636,7 +1632,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     writeDraft(next)
     setBestLook(false)
     setBestCheck(false)
-    setBestAdd(false)
     playBest(next, at)
   }
 
@@ -1658,7 +1653,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     const now = bestAt(d, rallyOne)
     const misNow = bestMismatch(d, rallyOne)
     writeDraft(d)
-    setBestAdd(false)
     const moved =
       was.step !== now.step ||
       was.page !== now.page ||
@@ -1700,7 +1694,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     serverChosen.current = false
     setBestLook(false)
     setBestCheck(false)
-    setBestAdd(false)
     setSelected(null)
     setEndOpen(false)
     setTight(false)
@@ -1819,20 +1812,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     p.setBoundary(null)
     p.setRate(watchRate.current)
     p.play()
-  }
-
-  const onBestAddTap = () => {
-    if (!bestAdd || !live || readOnly) return
-    const p = playerRef.current
-    const local = p.getTime() - offsetOf(live.videoId)
-    const serveAt = live.contacts[0]
-    // Before the serve is not a contact. The loop starts at the serve, and a tap there is ignored.
-    if (serveAt !== undefined && local < serveAt - 0.02) return
-    const t = addedContactTime(live, local, fenceOf(live), ceilOf(live), timing.reaction / 1000)
-    if (serveAt !== undefined && t < serveAt) return
-    const { draft: next } = insertContact(live, t)
-    setBestAdd(false)
-    routeBest(keepBestMarks({ ...next, best: carryBest(next, { kept: undefined }) }))
   }
 
   const onBestDropShot = (shot: number) => {
@@ -2468,8 +2447,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   // - and = nudge. K plays or pauses, arrows step 10 seconds.
   const handlers = {
     onPad,
-    bestAdding: bestAdd,
-    onBestAddTap,
     onUndoTap,
     onLet,
     onSwitch,
@@ -2534,13 +2511,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       const rally = now.mode === 'tagging' || now.mode === 'edit'
       const toggle = () => (p.isPlaying() ? p.pause() : p.play())
       const key = e.key.length === 1 ? e.key.toLowerCase() : e.key
-      if (k.bestAdding) {
-        if (key === ' ') {
-          e.preventDefault()
-          if (!e.repeat) k.onBestAddTap()
-        }
-        return
-      }
       if (k.adding) {
         // Add contact is on: Space is the tap, Escape leaves it, and no other key reaches the rally.
         if (key === ' ') {
@@ -2889,7 +2859,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const bestPanelKey = bestQ && live ? bestQuestionKey(live, bestRallyOne, 'pad', endBack) : ''
   const tapSplit = Boolean(landscape && zoneOn && zoneKind === 'pad' && isBestFlow(flowWanted))
   const padSplit = Boolean(
-    tapSplit || (landscape && bestOn && !bestAdd && !bestOver && liveCount > 0)
+    tapSplit || (landscape && bestOn && !bestOver && liveCount > 0)
   )
   useLayoutEffect(() => {
     if (bestPanelKey) panelGuard.current = Math.max(panelGuard.current, Date.now() + GUARD_BEST_SWAP_MS)
@@ -3547,10 +3517,10 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
           else ever appears here while a rally is tapped or tagged.
         */}
         <div
-          data-tag-slot={bestOn && !bestAdd && !bestOver ? 'bestfa' : slotKind}
+          data-tag-slot={bestOn && !bestOver ? 'bestfa' : slotKind}
           className={cn(
             'relative shrink-0 border-t border-border bg-bg-app px-2 pt-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))]',
-            ((bestOn && !bestAdd && !bestOver) || bestHoldOn) && 'hidden'
+            ((bestOn && !bestOver) || bestHoldOn) && 'hidden'
           )}
           onClickCapture={guardClicks(slotGuard)}
         >
@@ -3771,17 +3741,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               </Button>
             </>
           ) : null}
-          {bestAdd ? (
-            <button
-              type="button"
-              data-tap-add
-              onClick={onBestAddTap}
-              className="btn-kind-tap-pad flex-1 min-w-0 rounded-lg px-2 text-lg font-bold leading-tight touch-manipulation select-none active:brightness-90 inline-flex items-center justify-center bg-brand-primary text-on-accent"
-            >
-              Tap the missed contact
-            </button>
-          ) : null}
-          {slotKind === 'pad' && !footStrip && !bestOver && !bestAdd ? (
+          {slotKind === 'pad' && !footStrip && !bestOver ? (
             <button
               type="button"
               data-tap-pad

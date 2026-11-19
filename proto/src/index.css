@@ -380,19 +380,6 @@ button[disabled] {
   animation: tag-idle-drain 2s linear forwards;
 }
 
-/* A rally has just closed: the panel fades in. */
-@keyframes tag-arm {
-  from {
-    opacity: 0.3;
-  }
-  to {
-    opacity: 1;
-  }
-}
-.tag-arm {
-  animation: tag-arm 0.5s ease-out;
-}
-
 /* Add contact is on: only the big button takes a press. The details wait, and look it. */
 [data-tag-adding] [data-tag-panel] {
   pointer-events: none;

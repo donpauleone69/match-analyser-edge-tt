@@ -16,25 +16,21 @@ const MARK_SHOWN_S = 0.9
  * Drawn table, players and ball that follow the script. Stands in for real
  * footage. Seen from above: the bat goes to the ball, the ball is red on an
  * attack, a mark shows where it lands, and the net shakes when it is hit.
- * A caption by the hitter names the wing and stroke until the next contact or 0.8s.
  */
 function StandIn({
   script,
   offset,
   getTime,
   names,
-  showCaptions,
 }: {
   script: VideoScript
   offset: number
   getTime: () => number
   names: Record<Side, string>
-  showCaptions: boolean
 }) {
   const ball = useRef<HTMLDivElement>(null)
   const net = useRef<HTMLDivElement>(null)
   const label = useRef<HTMLParagraphElement>(null)
-  const caption = useRef<HTMLParagraphElement>(null)
   const bats = useRef<Record<Side, HTMLDivElement | null>>({ me: null, them: null })
   const bodies = useRef<Record<Side, HTMLDivElement | null>>({ me: null, them: null })
   const marks = useRef<(HTMLDivElement | null)[]>([])
@@ -94,25 +90,11 @@ function StandIn({
         net.current.dataset.hit = hit ? 'yes' : 'no'
       }
       if (label.current) label.current.textContent = scene.label ?? ''
-      const cap = caption.current
-      if (cap) {
-        if (showCaptions && scene.caption) {
-          const at = scene.bats[scene.caption.side]
-          cap.textContent = scene.caption.text
-          cap.style.opacity = '1'
-          cap.style.top = `${at.y * 100}%`
-          cap.style.left = scene.caption.side === 'me' ? '16%' : 'auto'
-          cap.style.right = scene.caption.side === 'them' ? '16%' : 'auto'
-        } else {
-          cap.textContent = ''
-          cap.style.opacity = '0'
-        }
-      }
       frame = requestAnimationFrame(draw)
     }
     frame = requestAnimationFrame(draw)
     return () => cancelAnimationFrame(frame)
-  }, [script, offset, getTime, showCaptions])
+  }, [script, offset, getTime])
 
   return (
     <div className="absolute inset-0 bg-[#123524] overflow-hidden" aria-label="Demo video">
@@ -184,11 +166,6 @@ function StandIn({
           opacity: 0,
           boxShadow: '0 0 0 2px #fde047, 0 0 12px 4px rgba(253, 224, 71, 0.75)',
         }}
-      />
-      <p
-        ref={caption}
-        data-caption
-        className="absolute z-20 -translate-y-1/2 rounded bg-black/75 px-1.5 py-0.5 text-[11px] font-semibold text-white empty:hidden"
       />
       <p
         ref={label}
@@ -355,7 +332,6 @@ export function VideoStage({
             offset={seg.offset}
             getTime={player.getTime}
             names={names}
-            showCaptions={false}
           />
         ) : null}
 

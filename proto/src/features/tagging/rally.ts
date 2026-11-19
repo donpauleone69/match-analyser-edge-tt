@@ -16,8 +16,6 @@ export const WINGS = ['BH', 'FH'] as const
 export type Wing = (typeof WINGS)[number]
 
 export const ATTACK_STROKES = ['Flick', 'Loop', 'Drive', 'Smash'] as const
-/** Cell order on the Offensive side. Block is first so it stays in one place. */
-export const OFFENSIVE_STROKES = ['Block', 'Flick', 'Loop', 'Drive', 'Smash'] as const
 /** Cell order on the Defensive side. The fifth cell is left empty. */
 export const DEFENSIVE_STROKES_ROW = ['Block', 'Lob', 'Push', 'Chop'] as const
 /** Offensive and Defensive lists joined. Replies and end shots draw from this. */
@@ -53,8 +51,6 @@ export const CONTACT_IDLE_MS = 2000
 export const RALLY_PAD_S = 1
 /** A rally starts this long before the serve contact, which has no toss or routine in it. */
 export const RALLY_LEAD_S = 2
-/** A serve added in front of a late first tap sits this long before it. */
-export const ADD_SERVE_GAP_S = 0.9
 export const NUDGE_STEP_S = 0.1
 export const MARK_LOOP_HALF_S = 0.5
 /**
@@ -206,26 +202,6 @@ export function undoClosedContact(d: Draft): Draft {
     noAttack: n >= 2 ? d.noAttack : false,
     end: null,
   }
-}
-
-/**
- * The first tap was late: put the serve in front of it. Every shot moves up
- * one, so the hitters and the winner come right without a re-tap.
- */
-export function addServe(d: Draft, floor: number): Draft {
-  if (d.contacts.length === 0) return d
-  const first = d.contacts[0]
-  const at = Math.round(Math.max(floor, Math.max(0, first - ADD_SERVE_GAP_S)) * 100) / 100
-  const next: Draft = {
-    ...d,
-    contacts: [Math.min(at, first), ...d.contacts],
-    shots: [{}, ...d.shots],
-    fa: d.fa !== null ? d.fa + 1 : null,
-    noAttack: false,
-    start: null,
-  }
-  // No attack chosen on three shots or more still holds. A shorter rally is asked again.
-  return applyAutoSkip(d.noAttack && d.contacts.length >= 3 ? { ...next, noAttack: true } : next)
 }
 
 /** Add contact loops from this long before the first tap. A serve earlier than that is out of reach. */

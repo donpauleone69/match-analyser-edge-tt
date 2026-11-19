@@ -92,11 +92,6 @@ export function taggedScore(s: SetData): Score | null {
   return s.rallies.length > 0 ? countPoints(s.rallies.map((r) => r.winner)) : null
 }
 
-/** A set is finished when the user says so, not when its rallies have tags. */
-export function setFullyTagged(s: SetData): boolean {
-  return s.finished
-}
-
 export function setHasTagProgress(s: SetData): boolean {
   return s.rallies.length > 0 || s.draft !== null || s.finished
 }
@@ -192,9 +187,6 @@ export function matchSetsWon(match: MatchRecord): Score {
   }
   return won
 }
-
-/** Old name for matchSetsWon, kept so every caller shows the same count. */
-export const taggedSetsWon = matchSetsWon
 
 /**
  * Tagged comes from tagging. With a result entered, the result decides: every
@@ -525,8 +517,6 @@ type DemoContextValue = {
   setEnteredScore: (matchId: string, setId: number, entered: EnteredScore) => void
   /** Adds the scripted demo video, or the given local file video. */
   addVideo: (matchId: string, file?: LocalVideo) => void
-  /** Plays a local file in place of a video, keeping its id so its rallies stay put. In memory only. */
-  swapVideo: (matchId: string, videoId: string, file: LocalVideo) => void
   /** Applies any change to the latest copy of a match (tagging uses this). */
   mutateMatch: (id: string, fn: (current: MatchRecord) => MatchRecord) => void
   moveVideo: (matchId: string, videoId: string, by: -1 | 1) => void
@@ -722,27 +712,6 @@ export function DemoProvider({ children }: { children: ReactNode }) {
     [change]
   )
 
-  const swapVideo = useCallback(
-    (matchId: string, videoId: string, file: LocalVideo) =>
-      change(matchId, (m) => ({
-        ...m,
-        videos: m.videos.map((v) =>
-          v.id === videoId
-            ? {
-                id: v.id,
-                fileName: file.fileName,
-                sizeMb: file.sizeMb,
-                archived: false,
-                kind: 'file' as const,
-                durationS: file.durationS,
-                src: file.src,
-              }
-            : v
-        ),
-      })),
-    [change]
-  )
-
   const moveVideo = useCallback(
     (matchId: string, videoId: string, by: -1 | 1) =>
       change(matchId, (m) => {
@@ -792,7 +761,6 @@ export function DemoProvider({ children }: { children: ReactNode }) {
       setResult,
       setEnteredScore,
       addVideo,
-      swapVideo,
       mutateMatch: change,
       moveVideo,
       removeVideo,
@@ -811,7 +779,6 @@ export function DemoProvider({ children }: { children: ReactNode }) {
       setResult,
       setEnteredScore,
       addVideo,
-      swapVideo,
       change,
       moveVideo,
       removeVideo,
