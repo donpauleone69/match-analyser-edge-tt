@@ -403,14 +403,13 @@ button[disabled] {
 }
 
 /*
-  Portrait stacks: picture sized from the width, questions, rally row at the
-  bottom. Landscape uses the same picture method from the height left after
-  the top bar and the rally row. Wings fill the sides. The rally row is one
+  Portrait is one column: video, set row, rally row, then the shot input.
+  Landscape is three columns: a wing, the middle stack (video, set row,
+  rally row), and a wing. Wings run the full height. The rally row is one
   height in both.
 */
 .tag-set {
-  --tag-head: 2.5rem; /* header h-10 */
-  --tag-timeline: 1.75rem; /* match timeline h-7 */
+  --tag-set: 2.5rem; /* set row: name, timeline, Rallies */
   --tag-rally: 5.125rem; /* 82px: pad 10, controls 32, gap 4, shots 16, gap 4, phases 16 */
   position: relative;
   height: 100%;
@@ -445,8 +444,22 @@ button[disabled] {
   min-height: 0;
   min-width: 0;
 }
-.tag-head {
-  flex: 0 0 auto;
+.tag-setzone {
+  flex: 0 0 var(--tag-set);
+  height: var(--tag-set);
+  min-height: var(--tag-set);
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  background: var(--color-bg-app);
+  min-width: 0;
+}
+.tag-setzone [aria-label='Match timeline'] {
+  flex: 1 1 auto;
+  height: 1.75rem;
+  min-width: 0;
 }
 .tag-media {
   display: flex;
@@ -523,32 +536,30 @@ button[disabled] {
 .tag-set[data-pad-split] {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  grid-template-rows: auto minmax(0, 1fr) auto;
-  grid-template-areas:
-    'head head head'
-    'left media right'
-    'rally rally rally';
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-areas: 'left flow right';
   container-type: size;
   max-width: none;
   margin-inline: 0;
 }
 .tag-set[data-pad-split] .tag-flow {
-  display: contents;
-}
-.tag-set[data-pad-split] .tag-head {
-  grid-area: head;
-}
-.tag-set[data-pad-split] .tag-rally {
-  grid-area: rally;
+  display: flex;
+  flex-direction: column;
+  grid-area: flow;
+  position: relative;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
 }
 .tag-set[data-pad-split] .pad-wing {
   display: flex;
   flex-direction: column;
-  flex: 1 1 0;
+  align-self: stretch;
+  height: 100%;
   width: auto;
   min-width: 0;
   max-width: none;
-  gap: 0;
+  gap: 0.5rem;
   padding: 0.375rem;
   min-height: 0;
 }
@@ -561,10 +572,13 @@ button[disabled] {
   padding-right: max(0.375rem, env(safe-area-inset-right));
 }
 .tag-set[data-pad-split] .pad-hits {
+  flex: 1 1 auto;
+  min-height: 0;
   gap: 0.5rem;
 }
 .tag-set[data-pad-split] .pad-region {
-  min-height: 4.75rem;
+  flex: 1 1 auto;
+  min-height: 0;
   padding-inline: 0.25rem;
   border-radius: 0.625rem;
   font-size: 1.25rem;
@@ -572,12 +586,10 @@ button[disabled] {
   white-space: normal;
 }
 .tag-set[data-pad-split] .tag-media {
-  grid-area: media;
-  justify-self: center;
   align-self: center;
-  width: min(100cqw, calc((100cqh - var(--tag-head) - var(--tag-rally) - var(--tag-timeline)) * 16 / 9));
-  height: calc(100cqh - var(--tag-head) - var(--tag-rally));
-  max-height: calc(100cqh - var(--tag-head) - var(--tag-rally));
+  width: min(100cqw, calc((100cqh - var(--tag-set) - var(--tag-rally)) * 16 / 9));
+  height: calc(100cqh - var(--tag-set) - var(--tag-rally));
+  max-height: calc(100cqh - var(--tag-set) - var(--tag-rally));
   min-height: 0;
   flex: none;
 }
@@ -595,15 +607,13 @@ button[disabled] {
   max-height: none;
   aspect-ratio: auto;
 }
-.tag-set[data-pad-split] .tag-media button[aria-label='Match timeline'] {
-  flex: 0 0 var(--tag-timeline);
-  height: var(--tag-timeline);
-}
-/* Questions stay mounted for the wing portals. They do not take a row. */
+/* Questions stay mounted for the wing portals. They cover the picture only. */
 .tag-set[data-pad-split] .tag-entry {
   position: absolute;
-  grid-area: media;
-  inset: 0;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: calc(100% - var(--tag-set) - var(--tag-rally));
   z-index: 4;
   display: flex;
   flex-direction: column;

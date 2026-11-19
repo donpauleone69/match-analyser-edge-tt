@@ -211,7 +211,7 @@ import { ShotRail } from './ShotRail'
 import { TAG_LOCK_LINE, useTagLock, type TagLock } from './tagLock'
 import { firstContactG, lastContactG, segmentAt, segmentsOf, toGlobal, totalDuration, type Segment } from './timeline'
 import { usePlayer, type Window } from './usePlayer'
-import { VideoStage, type TimelineBlock } from './VideoStage'
+import { SetTimeline, VideoStage, type TimelineBlock } from './VideoStage'
 
 /** Route entry: checks the set can be shown, then mounts the tagger per set. */
 export function TagSetScreen() {
@@ -1563,11 +1563,12 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   }
 
   /**
-   * Re-tap: the taps are dropped and the video goes back to just before the
-   * serve, to tap the same rally again. Undo brings the taps back.
+   * Drops the taps of the rally being tagged and puts the video just before
+   * the serve, so the same rally can be tapped again. Undo brings the taps back.
+   * Saved rallies are left as they are.
    */
-  const onRetap = () => {
-    if (!live || live.contacts.length === 0 || addOn) return
+  const clearLiveRally = () => {
+    if (!live || live.contacts.length === 0) return
     const p = playerRef.current
     const before = set.draft && !set.draft.closed ? { ...set, draft: { ...set.draft, closed: true } } : set
     const off = offsetOf(live.videoId)
@@ -1612,6 +1613,28 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
         }
       },
     })
+  }
+
+  const onRetap = () => {
+    if (addOn) return
+    clearLiveRally()
+  }
+
+  /**
+   * Throws away the rally being tagged. Saved rallies stay. A late tap in the
+   * second after the close does not land here.
+   */
+  const onDiscardProgress = () => {
+    if (readOnly || !live || live.contacts.length === 0) return
+    if (late && Date.now() < late.until) return
+    setAdding(null)
+    setBestCheck(false)
+    bestCheckRef.current = false
+    setBestLook(false)
+    setBestAdd(false)
+    loopWhat.current = null
+    setBestSpan(null)
+    clearLiveRally()
   }
 
   /** Save writes the rally, moves the score and lets the video run on. */
@@ -3070,33 +3093,12 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
         </div>
       ) : null}
       <div className="tag-flow">
-      <div className="tag-head">
-        <SetHeader match={match} set={set}>
-          <Button
-            size="sm"
-            variant="secondary"
-            className="px-3"
-            aria-expanded={listOpen}
-            onClick={() => (listOpen ? closeList() : openList())}
-          >
-            <Icon name="list" size="xs" />
-            Rallies {set.rallies.length}
-            {cont.checkCount > 0 ? (
-              <span className="rounded-full bg-warning px-1.5 text-[10px] font-bold text-neutral-950" data-mark-count>
-                {cont.checkCount}
-              </span>
-            ) : null}
-          </Button>
-        </SetHeader>
-      </div>
       <div className="tag-media">
         <VideoStage
           player={player}
           videos={match.videos}
           names={names}
           bug={{ sets: setsWon, points: shownScore, server: shownServer, setId: set.setId }}
-          blocks={blocks}
-          open={openRange}
           hint={hint}
           onSeek={seekTo}
           noForward={mode === 'tapping'}
@@ -3106,6 +3108,15 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
           onHighlight={() => active && writeDraft({ ...active, highlight: !active.highlight })}
           readOnlyHighlight={readOnly || stage === 'result' || stage === 'endShot'}
           badge={shotBadge}
+          leading={
+            <Link
+              to={`/matches/${match.id}/tag`}
+              aria-label="Back"
+              className="btn-kind-control btn-kind-square inline-flex items-center justify-center rounded-md bg-black/60 text-white hover:bg-black/80"
+            >
+              <Icon name="chevron-left" size="sm" />
+            </Link>
+          }
           extra={
             isBestFlow(flowShown) ? (
               <BestTimingControl
@@ -3120,8 +3131,103 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
           }
         />
       </div>
+      <div className="tag-setzone">
+        <h1 className="min-w-0 shrink truncate text-sm font-bold text-primary">Set {set.setId}</h1>
+        <SetTimeline player={player} blocks={blocks} open={openRange} onSeek={seekTo} />
+        <Button
+          size="sm"
+          variant="secondary"
+          className="shrink-0 px-2"
+          aria-expanded={listOpen}
+          onClick={() => (listOpen ? closeList() : openList())}
+        >
+          <Icon name="list" size="xs" />
+          Rallies {set.rallies.length}
+          {cont.checkCount > 0 ? (
+            <span className="rounded-full bg-warning px-1.5 text-[10px] font-bold text-neutral-950" data-mark-count>
+              {cont.checkCount}
+            </span>
+          ) : null}
+        </Button>
+      </div>
 
-      {/* Questions and the foot. The rally row sits under this, at the bottom of the screen. */}
+      <div className="tag-rally">
+        {tapped > 0 && lastTap !== null ? (
+          <span
+            key={lastTap}
+            aria-hidden
+            data-shot-timer=""
+            className="tag-idle-bar pointer-events-none absolute left-0 right-0 top-0 z-10 h-1.5 bg-brand-primary/50"
+          />
+        ) : null}
+        {isBestFlow(flowShown) && !edit ? (
+          <BestRallyRow
+            draft={bestRowDraft}
+            at={bestQ}
+            rallyOne={bestRowSaved ? set.rallies.length <= 1 : bestRallyOne}
+            saved={bestRowSaved}
+            flash={
+              bestCheck && active
+                ? active.contacts.findIndex((c) => Math.abs(c - (player.time - offsetOf(active.videoId))) < 0.12)
+                : -1
+            }
+            label={`Rally ${bestRowSaved ? set.rallies.length : set.rallies.length + 1}`}
+            names={names}
+            server={bestRowDraft?.server ?? nextServer}
+            checking={bestCheck}
+            onCell={onBestCell}
+            onMinus={onBestMinus}
+            onCheck={onBestCheck}
+            onStar={onBestStar}
+            onServer={() => {
+              if (!live) return
+              const next = bestSwitchServer(live, bestRallyOne)
+              if (bestRallyOne) mutateMatch(match.id, (m) => flipFirstServer(m, set.setId))
+              routeBest(next, { save: false })
+            }}
+            onNotShot={() => {
+              if (!live || !bestQ) return
+              const shot = bestQ.step === 'serve' ? 1 : (bestQ.page ?? live.contacts.length)
+              onBestDropShot(shot)
+            }}
+            onPart={onBestPart}
+            onRally={() => {
+              if (!live) return
+              setBestLook(true)
+              setBestCheck(false)
+              playBest(live, 'rally')
+            }}
+            onDiscard={
+              !readOnly && !bestRowSaved && live && live.contacts.length > 0 ? onDiscardProgress : undefined
+            }
+          />
+        ) : isBestFlow(flowShown) && !edit ? null : active || mode === 'watch' ? (
+          <ShotRail
+            draft={active}
+            selected={selected}
+            liveShot={liveShot}
+            endOpen={showEnd}
+            onShot={onShot}
+            onEnd={onEnd}
+            reach={
+              seqLive
+                ? {
+                    shot: (n: number) =>
+                      walk?.kind === 'ready' || passedRef.current.has(n) || (walk?.kind === 'shot' && walk.shot === n),
+                    end:
+                      walk?.kind === 'ready' ||
+                      walk?.kind === 'end' ||
+                      endAnsweredRef.current ||
+                      furthestRef.current?.kind === 'end' ||
+                      furthestRef.current?.kind === 'ready',
+                  }
+                : null
+            }
+          />
+        ) : null}
+      </div>
+
+      {/* Shot input. Landscape portals the answers into the wings. */}
       <div className="tag-entry">
         {/* The white band. One line under the shot row, then the column down to the foot. */}
         {/* The Best questions sit above the late tap, so in the second after the close only the late tap gets through. */}
@@ -3963,78 +4069,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
             </div>
             <div className="flex-1 min-h-0 overflow-y-auto">{rallyList}</div>
           </div>
-        ) : null}
-      </div>
-      <div className="tag-rally">
-        {tapped > 0 && lastTap !== null ? (
-          <span
-            key={lastTap}
-            aria-hidden
-            data-shot-timer=""
-            className="tag-idle-bar pointer-events-none absolute left-0 right-0 top-0 z-10 h-1.5 bg-brand-primary/50"
-          />
-        ) : null}
-        {isBestFlow(flowShown) && !edit ? (
-          <BestRallyRow
-            draft={bestRowDraft}
-            at={bestQ}
-            rallyOne={bestRowSaved ? set.rallies.length <= 1 : bestRallyOne}
-            saved={bestRowSaved}
-            flash={
-              bestCheck && active
-                ? active.contacts.findIndex((c) => Math.abs(c - (player.time - offsetOf(active.videoId))) < 0.12)
-                : -1
-            }
-            label={`Rally ${bestRowSaved ? set.rallies.length : set.rallies.length + 1}`}
-            names={names}
-            server={bestRowDraft?.server ?? nextServer}
-            checking={bestCheck}
-            onCell={onBestCell}
-            onMinus={onBestMinus}
-            onCheck={onBestCheck}
-            onStar={onBestStar}
-            onServer={() => {
-              if (!live) return
-              const next = bestSwitchServer(live, bestRallyOne)
-              if (bestRallyOne) mutateMatch(match.id, (m) => flipFirstServer(m, set.setId))
-              routeBest(next, { save: false })
-            }}
-            onNotShot={() => {
-              if (!live || !bestQ) return
-              const shot = bestQ.step === 'serve' ? 1 : (bestQ.page ?? live.contacts.length)
-              onBestDropShot(shot)
-            }}
-            onPart={onBestPart}
-            onRally={() => {
-              if (!live) return
-              setBestLook(true)
-              setBestCheck(false)
-              playBest(live, 'rally')
-            }}
-          />
-        ) : isBestFlow(flowShown) && !edit ? null : active || mode === 'watch' ? (
-          <ShotRail
-            draft={active}
-            selected={selected}
-            liveShot={liveShot}
-            endOpen={showEnd}
-            onShot={onShot}
-            onEnd={onEnd}
-            reach={
-              seqLive
-                ? {
-                    shot: (n: number) =>
-                      walk?.kind === 'ready' || passedRef.current.has(n) || (walk?.kind === 'shot' && walk.shot === n),
-                    end:
-                      walk?.kind === 'ready' ||
-                      walk?.kind === 'end' ||
-                      endAnsweredRef.current ||
-                      furthestRef.current?.kind === 'end' ||
-                      furthestRef.current?.kind === 'ready',
-                  }
-                : null
-            }
-          />
         ) : null}
       </div>
       </div>
