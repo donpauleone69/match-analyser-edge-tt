@@ -403,12 +403,16 @@ button[disabled] {
 }
 
 /*
-  Portrait stacks. Any landscape window uses the wing layout: picture and
-  question in the middle, full-height wings on each side. The wing sizes are
-  the phone ones at every landscape size. Portrait picture stays 16:9 and
-  never more than 45% of the screen height.
+  Portrait stacks: picture sized from the width, questions, rally row at the
+  bottom. Landscape uses the same picture method from the height left after
+  the top bar and the rally row. Wings fill the sides. The rally row is one
+  height in both.
 */
 .tag-set {
+  --tag-head: 2.5rem; /* header h-10 */
+  --tag-timeline: 1.75rem; /* match timeline h-7 */
+  --tag-rally: 5.125rem; /* 82px: pad 10, controls 32, gap 4, shots 16, gap 4, phases 16 */
+  position: relative;
   height: 100%;
   min-height: 0;
   display: flex;
@@ -434,12 +438,55 @@ button[disabled] {
     --btn-kind-tap-pad: 3rem; /* 48px */
   }
 }
+.tag-flow {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+}
+.tag-head {
+  flex: 0 0 auto;
+}
 .tag-media {
   display: flex;
   flex-direction: column;
   flex: 0 0 auto;
   min-height: 0;
   max-height: 100%;
+}
+.tag-rally {
+  position: relative;
+  flex: 0 0 var(--tag-rally);
+  height: var(--tag-rally);
+  min-height: var(--tag-rally);
+  box-sizing: border-box;
+  padding: 0.375rem 0.5rem 0.25rem;
+  background: var(--color-bg-app);
+  overflow: visible;
+}
+/* Shots and phase tags are one slim height. The phase hit area reaches up over the shots. */
+.tag-rally [data-best-chip],
+.tag-rally [data-best-cells] > span {
+  position: relative;
+  z-index: 3;
+  height: 1rem;
+  min-height: 0;
+  font-size: 0.75rem;
+  line-height: 1;
+}
+.tag-rally [data-best-part] {
+  position: relative;
+  z-index: 4;
+}
+.tag-rally [data-best-part]::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  /* 16px tag, plus the gap and the lower part of the shot row. */
+  top: -0.75rem;
 }
 .tag-picture {
   position: relative;
@@ -466,11 +513,7 @@ button[disabled] {
   display: flex;
   flex-direction: column;
 }
-/* Landscape: video and the question sit in the middle. The wings are full height.
-   Portrait keeps the stacked pad. An empty foot strip takes no height. */
-.tag-flow {
-  display: contents;
-}
+/* An empty foot strip takes no height. Wings are landscape only. */
 .pad-wing {
   display: none;
 }
@@ -478,34 +521,43 @@ button[disabled] {
   display: none;
 }
 .tag-set[data-pad-split] {
-  flex-direction: row;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    'head head head'
+    'left media right'
+    'rally rally rally';
+  container-type: size;
   max-width: none;
   margin-inline: 0;
 }
 .tag-set[data-pad-split] .tag-flow {
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 0;
-  min-width: 0;
-  min-height: 0;
-  overflow: hidden;
+  display: contents;
+}
+.tag-set[data-pad-split] .tag-head {
+  grid-area: head;
+}
+.tag-set[data-pad-split] .tag-rally {
+  grid-area: rally;
 }
 .tag-set[data-pad-split] .pad-wing {
   display: flex;
   flex-direction: column;
-  flex: 0 0 10.5rem;
-  width: 10.5rem;
-  min-width: 8.5rem;
-  max-width: 34%;
+  flex: 1 1 0;
+  width: auto;
+  min-width: 0;
+  max-width: none;
   gap: 0;
   padding: 0.375rem;
-  padding-bottom: max(0.375rem, env(safe-area-inset-bottom));
   min-height: 0;
 }
 .tag-set[data-pad-split] [data-pad-wing='left'] {
+  grid-area: left;
   padding-left: max(0.375rem, env(safe-area-inset-left));
 }
 .tag-set[data-pad-split] [data-pad-wing='right'] {
+  grid-area: right;
   padding-right: max(0.375rem, env(safe-area-inset-right));
 }
 .tag-set[data-pad-split] .pad-hits {
@@ -520,38 +572,60 @@ button[disabled] {
   white-space: normal;
 }
 .tag-set[data-pad-split] .tag-media {
-  flex: 0 1 auto;
+  grid-area: media;
+  justify-self: center;
+  align-self: center;
+  width: min(100cqw, calc((100cqh - var(--tag-head) - var(--tag-rally) - var(--tag-timeline)) * 16 / 9));
+  height: calc(100cqh - var(--tag-head) - var(--tag-rally));
+  max-height: calc(100cqh - var(--tag-head) - var(--tag-rally));
   min-height: 0;
-  max-height: none;
-  border-right: none;
-}
-.tag-set[data-pad-split] .tag-media > header {
-  flex-shrink: 0;
+  flex: none;
 }
 .tag-set[data-pad-split] .tag-media > div {
   display: flex;
   flex-direction: column;
+  height: 100%;
   min-height: 0;
 }
 .tag-set[data-pad-split] .tag-picture {
   flex: 1 1 auto;
-  max-height: 8.25rem;
-  min-height: 3.5rem;
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  max-height: none;
+  aspect-ratio: auto;
 }
 .tag-set[data-pad-split] .tag-media button[aria-label='Match timeline'] {
-  flex-shrink: 0;
+  flex: 0 0 var(--tag-timeline);
+  height: var(--tag-timeline);
 }
+/* Questions stay mounted for the wing portals. They do not take a row. */
 .tag-set[data-pad-split] .tag-entry {
-  flex: 1 0 auto;
-  min-width: 0;
+  position: absolute;
+  grid-area: media;
+  inset: 0;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: 0;
+  pointer-events: none;
+  background: transparent;
 }
-/* The question, including the mismatch line, keeps a strip. The picture gives up height. */
+.tag-set[data-pad-split] .tag-entry > * {
+  pointer-events: auto;
+}
 .tag-set[data-pad-split] [data-tag-body] {
-  min-height: 4rem;
+  flex: 0 1 auto;
+  min-height: 0;
+  max-height: 45%;
+  padding-bottom: 0;
+  border-top-width: 0;
+  background: transparent;
 }
-.tag-set[data-pad-split] [data-tag-zone='pad'] {
-  flex: 1 0 auto;
-  min-height: 5.5rem;
+.tag-set[data-pad-split] [data-best-panel] {
+  padding-top: 0;
+  gap: 0;
 }
 
 /* A viewport under 660 high. Cells stay 32 and the foot stays 48. 660 itself is unchanged. */

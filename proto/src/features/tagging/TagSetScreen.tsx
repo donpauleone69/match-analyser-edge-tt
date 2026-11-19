@@ -1836,6 +1836,8 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     if (!live.closed || !canOpenCell(live, shot, rallyOneNow())) return
     const target = cellTarget(live, shot)
     if (!target) return
+    // The last cell opens End, including while Point to is up.
+    if (target.step === 'end') setEndBack('end')
     showBest(live, target)
   }
 
@@ -3068,7 +3070,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
         </div>
       ) : null}
       <div className="tag-flow">
-      <div className="tag-media">
+      <div className="tag-head">
         <SetHeader match={match} set={set}>
           <Button
             size="sm"
@@ -3086,6 +3088,8 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
             ) : null}
           </Button>
         </SetHeader>
+      </div>
+      <div className="tag-media">
         <VideoStage
           player={player}
           videos={match.videos}
@@ -3117,73 +3121,8 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
         />
       </div>
 
-      {/* Below the picture: rail, status, panel, then one slot. */}
+      {/* Questions and the foot. The rally row sits under this, at the bottom of the screen. */}
       <div className="tag-entry">
-        <div className="shrink-0 bg-bg-app px-2 pt-1.5">
-          {isBestFlow(flowShown) && !edit ? (
-            <BestRallyRow
-              draft={bestRowDraft}
-              at={bestQ}
-              rallyOne={bestRowSaved ? set.rallies.length <= 1 : bestRallyOne}
-              saved={bestRowSaved}
-              flash={
-                bestCheck && active
-                  ? active.contacts.findIndex((c) => Math.abs(c - (player.time - offsetOf(active.videoId))) < 0.12)
-                  : -1
-              }
-              label={`Rally ${bestRowSaved ? set.rallies.length : set.rallies.length + 1}`}
-              names={names}
-              server={bestRowDraft?.server ?? nextServer}
-              checking={bestCheck}
-              onCell={onBestCell}
-              onMinus={onBestMinus}
-              onCheck={onBestCheck}
-              onStar={onBestStar}
-              onServer={() => {
-                if (!live) return
-                const next = bestSwitchServer(live, bestRallyOne)
-                if (bestRallyOne) mutateMatch(match.id, (m) => flipFirstServer(m, set.setId))
-                routeBest(next, { save: false })
-              }}
-              onNotShot={() => {
-                if (!live || !bestQ) return
-                const shot = bestQ.step === 'serve' ? 1 : (bestQ.page ?? live.contacts.length)
-                onBestDropShot(shot)
-              }}
-              onPart={onBestPart}
-              onRally={() => {
-                if (!live) return
-                setBestLook(true)
-                setBestCheck(false)
-                playBest(live, 'rally')
-              }}
-            />
-          ) : isBestFlow(flowShown) && !edit ? null : active || mode === 'watch' ? (
-            <ShotRail
-              draft={active}
-              selected={selected}
-              liveShot={liveShot}
-              endOpen={showEnd}
-              onShot={onShot}
-              onEnd={onEnd}
-              reach={
-                seqLive
-                  ? {
-                      shot: (n: number) =>
-                        walk?.kind === 'ready' || passedRef.current.has(n) || (walk?.kind === 'shot' && walk.shot === n),
-                      end:
-                        walk?.kind === 'ready' ||
-                        walk?.kind === 'end' ||
-                        endAnsweredRef.current ||
-                        furthestRef.current?.kind === 'end' ||
-                        furthestRef.current?.kind === 'ready',
-                    }
-                  : null
-              }
-            />
-          ) : null}
-        </div>
-
         {/* The white band. One line under the shot row, then the column down to the foot. */}
         {/* The Best questions sit above the late tap, so in the second after the close only the late tap gets through. */}
         <div
@@ -3236,13 +3175,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                 onResult={onIdeaResult}
               />
             </div>
-          ) : null}
-          {tapped > 0 && lastTap !== null ? (
-            <span
-              key={lastTap}
-              aria-hidden
-              className="tag-idle-bar pointer-events-none absolute left-0 right-0 top-0 h-1.5 bg-brand-primary/50"
-            />
           ) : null}
           {/* Status, with the rally's second-rank actions beside it, away from the thumb. */}
           <div
@@ -3382,7 +3314,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                 layout={answerLayout}
                 sides={padSplit}
                 back={endBack}
-                onBack={setEndBack}
               />
             ) : null}
             {!zoneOn && review ? (
@@ -4032,6 +3963,78 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
             </div>
             <div className="flex-1 min-h-0 overflow-y-auto">{rallyList}</div>
           </div>
+        ) : null}
+      </div>
+      <div className="tag-rally">
+        {tapped > 0 && lastTap !== null ? (
+          <span
+            key={lastTap}
+            aria-hidden
+            data-shot-timer=""
+            className="tag-idle-bar pointer-events-none absolute left-0 right-0 top-0 z-10 h-1.5 bg-brand-primary/50"
+          />
+        ) : null}
+        {isBestFlow(flowShown) && !edit ? (
+          <BestRallyRow
+            draft={bestRowDraft}
+            at={bestQ}
+            rallyOne={bestRowSaved ? set.rallies.length <= 1 : bestRallyOne}
+            saved={bestRowSaved}
+            flash={
+              bestCheck && active
+                ? active.contacts.findIndex((c) => Math.abs(c - (player.time - offsetOf(active.videoId))) < 0.12)
+                : -1
+            }
+            label={`Rally ${bestRowSaved ? set.rallies.length : set.rallies.length + 1}`}
+            names={names}
+            server={bestRowDraft?.server ?? nextServer}
+            checking={bestCheck}
+            onCell={onBestCell}
+            onMinus={onBestMinus}
+            onCheck={onBestCheck}
+            onStar={onBestStar}
+            onServer={() => {
+              if (!live) return
+              const next = bestSwitchServer(live, bestRallyOne)
+              if (bestRallyOne) mutateMatch(match.id, (m) => flipFirstServer(m, set.setId))
+              routeBest(next, { save: false })
+            }}
+            onNotShot={() => {
+              if (!live || !bestQ) return
+              const shot = bestQ.step === 'serve' ? 1 : (bestQ.page ?? live.contacts.length)
+              onBestDropShot(shot)
+            }}
+            onPart={onBestPart}
+            onRally={() => {
+              if (!live) return
+              setBestLook(true)
+              setBestCheck(false)
+              playBest(live, 'rally')
+            }}
+          />
+        ) : isBestFlow(flowShown) && !edit ? null : active || mode === 'watch' ? (
+          <ShotRail
+            draft={active}
+            selected={selected}
+            liveShot={liveShot}
+            endOpen={showEnd}
+            onShot={onShot}
+            onEnd={onEnd}
+            reach={
+              seqLive
+                ? {
+                    shot: (n: number) =>
+                      walk?.kind === 'ready' || passedRef.current.has(n) || (walk?.kind === 'shot' && walk.shot === n),
+                    end:
+                      walk?.kind === 'ready' ||
+                      walk?.kind === 'end' ||
+                      endAnsweredRef.current ||
+                      furthestRef.current?.kind === 'end' ||
+                      furthestRef.current?.kind === 'ready',
+                  }
+                : null
+            }
+          />
         ) : null}
       </div>
       </div>

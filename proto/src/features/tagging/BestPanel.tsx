@@ -226,7 +226,7 @@ export function BestRallyRow({
         </button>
       </div>
       <div
-        className="grid min-w-0 justify-start gap-x-1 gap-y-1 overflow-hidden"
+        className="grid min-w-0 justify-start gap-x-1 gap-y-1"
         style={{ gridTemplateColumns: columns }}
         data-best-cells
       >
@@ -303,6 +303,8 @@ export function BestRallyRow({
             {n + 1}
           </span>
         ) : null}
+        {/* The phase row is always here, so the rally row stays the same height. */}
+        <span aria-hidden data-best-phases="" className="h-4" style={{ gridRow: 2, gridColumn: '1 / -1' }} />
         {closed && draft
           ? parts.map((p, g) => {
               const marked = Boolean(draft.best?.review?.includes(p.part))
@@ -317,7 +319,7 @@ export function BestRallyRow({
                   data-to={p.to}
                   aria-pressed={marked}
                   aria-label={`${marked ? 'Unmark' : 'Mark'} ${PART_LABEL[p.part]} for review`}
-                  className="flex h-7 min-w-0 items-center justify-center overflow-hidden whitespace-nowrap rounded-md border px-0 font-semibold"
+                  className="flex h-4 min-w-0 items-center justify-center whitespace-nowrap rounded-md border px-0 font-semibold"
                   style={{
                     gridRow: 2,
                     gridColumn: `${p.from + g} / span ${p.to - p.from + 1}`,
@@ -344,7 +346,6 @@ export function BestPanel({
   rallyNo,
   layout,
   back,
-  onBack,
   onEnd,
   onPoint,
   onServe,
@@ -359,7 +360,6 @@ export function BestPanel({
   layout: AnswerLayout
   /** Corner pad: which result question to show again. Null follows the one still open. */
   back: PadBack
-  onBack: (back: PadBack) => void
   onEnd: (end: BestEnd) => void
   onPoint: (side: Side) => void
   onServe: (depth: string, wing: Wing) => void
@@ -429,7 +429,6 @@ export function BestPanel({
           layout={layout}
           sides={sides}
           back={back}
-          onBack={onBack}
           onEnd={onEnd}
           onPoint={onPoint}
         />
@@ -484,7 +483,6 @@ function EndPage({
   layout,
   sides,
   back,
-  onBack,
   onEnd,
   onPoint,
 }: {
@@ -494,7 +492,6 @@ function EndPage({
   layout: AnswerLayout
   sides: boolean
   back: PadBack
-  onBack: (back: PadBack) => void
   onEnd: (end: BestEnd) => void
   onPoint: (side: Side) => void
 }) {
@@ -512,11 +509,6 @@ function EndPage({
     </p>
   ) : null
   if (phase === 'point') {
-    const backEnd = draft.ending ? (
-      <button type="button" className="shrink-0 text-xs font-semibold text-primary" data-pad-back="end" onClick={() => onBack('end')}>
-        {endOn === 'Net' ? 'In net' : (endOn ?? 'End')}
-      </button>
-    ) : null
     if (layout === 'pad') {
       return (
         <div className={cn('flex flex-col gap-2', !sides && 'min-h-0 flex-1')}>
@@ -524,7 +516,6 @@ function EndPage({
             label="Point to"
             showName={false}
             split={sides}
-            aside={backEnd}
             columns="1fr 1fr"
             rows="1fr"
             regions={(['me', 'them'] as const).map((side) => ({
@@ -548,7 +539,7 @@ function EndPage({
     }
     return (
       <div className="flex flex-col gap-2">
-        <AnswerRow label="Point to" showName={false} aside={backEnd}>
+        <AnswerRow label="Point to" showName={false}>
           {(['me', 'them'] as const).map((side) => (
             <Answer
               key={side}
