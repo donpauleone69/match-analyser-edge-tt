@@ -27,8 +27,8 @@ import {
   type MatchRecord,
   type SetData,
 } from '@/data/demoStore'
-import { AddVideoChoice, SwapVideoButton } from '@/features/match/AddVideoChoice'
-import { isRealResult, matchLabel } from '@/features/match/matchChecks'
+import { AddVideoChoice } from '@/features/match/AddVideoChoice'
+import { isRealResult } from '@/features/match/matchChecks'
 import { cn } from '@/helpers/utils'
 import {
   GAP_REVIEW_RATE,
@@ -144,7 +144,6 @@ import {
 } from './sequence'
 import { NO_ATTACK_KEY, applyPanelKey } from './shotKeys'
 import {
-  FLOW_LABEL,
   copyTagLog,
   countOptional,
   editNote,
@@ -384,11 +383,13 @@ function selectionAfter(prev: Stage, next: Stage, d: Draft, current: Mark | null
 
 const NO_WINGS = { left: null, right: null }
 
-/** Phone landscape and any window wider than it is tall. Portrait stays stacked. */
+/** Any landscape window, and a square one. Portrait stays stacked. */
+const LANDSCAPE_QUERY = '(orientation: landscape), (min-aspect-ratio: 1/1)'
+
 function useLandscape() {
   const [land, setLand] = useState(false)
   useEffect(() => {
-    const mq = window.matchMedia('(orientation: landscape), (min-aspect-ratio: 1/1)')
+    const mq = window.matchMedia(LANDSCAPE_QUERY)
     const apply = () => setLand(mq.matches)
     apply()
     mq.addEventListener('change', apply)
@@ -397,22 +398,44 @@ function useLandscape() {
   return land
 }
 
-/** A phone held sideways. Tapping uses the side wings only at this size. */
-function usePhoneLandscape() {
-  const [on, setOn] = useState(false)
-  useEffect(() => {
-    const mq = window.matchMedia('(orientation: landscape) and (max-height: 500px)')
-    const apply = () => setOn(mq.matches)
-    apply()
-    mq.addEventListener('change', apply)
-    return () => mq.removeEventListener('change', apply)
-  }, [])
-  return on
+/** The landscape tap wing. Same words as the portrait zone, on the green fill. */
+function WingTap({
+  side,
+  title,
+  line,
+  dim,
+  guard,
+  onTap,
+}: {
+  side: 'left' | 'right'
+  title: string
+  line: string
+  dim: boolean
+  guard: (e: MouseEvent) => void
+  onTap: () => void
+}) {
+  return (
+    <button
+      type="button"
+      data-tap-pad=""
+      data-tap-wing={side}
+      className={cn(
+        'pad-region flex min-h-11 flex-1 flex-col items-center justify-center rounded-md bg-brand-primary px-1 text-center text-[22px] font-bold leading-tight text-on-accent',
+        dim && 'opacity-60'
+      )}
+      aria-label={title}
+      onClickCapture={guard}
+      onClick={onTap}
+    >
+      <span>{title}</span>
+      <span className="mt-0.5 max-w-full text-sm font-medium leading-snug opacity-80">{line}</span>
+    </button>
+  )
 }
 
 function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: TagLock }) {
   const navigate = useNavigate()
-  const [searchParams, setSearchParams] = useSearchParams()
+  const [searchParams] = useSearchParams()
   const cellsOutlined = searchParams.get('cells') === 'outlined'
   /** The address. A rally already open keeps the mode it started with. */
   const flowWanted: FlowName = flowFromParam(searchParams.get('flow'))
@@ -463,7 +486,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const [timing, setTiming] = useState(loadBestTiming)
   const [answerLayout, setAnswerLayoutState] = useState(loadAnswerLayout)
   const landscape = useLandscape()
-  const phoneLand = usePhoneLandscape()
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const [padWings, setPadWings] = useState<{ left: HTMLElement | null; right: HTMLElement | null }>({ left: null, right: null })
   const setLeftWing = useCallback((node: HTMLDivElement | null) => {
     setPadWings((w) => (w.left === node ? w : { ...w, left: node }))
@@ -2908,6 +2931,16 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
             : lastSaved && !lastSaved.point && have.has(lastSaved.videoId)
               ? 'edit-last'
               : 'none'
+  /** A foot control is showing. With none, the strip collapses and the tap zone grows. */
+  const footAction = Boolean(
+    footStrip &&
+      ((mode === 'tagging' && stage === 'pickFa') ||
+        rightKind === 'edit-last' ||
+        rightKind === 'finish' ||
+        rightKind === 'back-to-live' ||
+        rightKind === 'delete-last' ||
+        (rightKind === 'no-attack' && askNoAttack))
+  )
   const rightBoxClass =
     'btn-kind-tap-pad w-28 shrink-0 rounded-lg border border-border bg-transparent px-3 text-sm font-medium text-primary whitespace-nowrap disabled:opacity-40'
   useLayoutEffect(() => {
@@ -2925,8 +2958,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   }, [player.time, player.playing])
 
   const flowShown: FlowName = mode === 'tagging' && flowLock ? flowLock : flowWanted
-  /** A rally whose taps have closed stays on its flow. The picker shows that flow and waits. */
-  const flowLocked = mode === 'tagging' && flowLock !== null
   const bestRallyOne = set.rallies.length === 0
   const bestQ: BestAt | null = bestOn && live ? bestAt(live, bestRallyOne) : null
   useEffect(() => {
@@ -2937,13 +2968,24 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const bestRowDraft = bestRowSaved ? bestSaved!.draft : active
   /** What the question area shows. When it changes, the button now under the thumb waits out a double tap. */
   const bestPanelKey = bestQ && live ? bestQuestionKey(live, bestRallyOne, answerLayout, endBack) : ''
-  const tapSplit = Boolean(phoneLand && zoneOn && zoneKind === 'pad' && isBestFlow(flowWanted))
+  const tapSplit = Boolean(landscape && zoneOn && zoneKind === 'pad' && isBestFlow(flowWanted))
   const padSplit = Boolean(
     tapSplit || (landscape && answerLayout === 'pad' && bestOn && !bestAdd && !bestOver && liveCount > 0)
   )
   useLayoutEffect(() => {
     if (bestPanelKey) panelGuard.current = Math.max(panelGuard.current, Date.now() + GUARD_BEST_SWAP_MS)
   }, [bestPanelKey])
+  // A rotate moves the control under the thumb. The same wait as a question swap.
+  useEffect(() => {
+    const mq = window.matchMedia(LANDSCAPE_QUERY)
+    const onChange = () => {
+      const until = Date.now() + GUARD_BEST_SWAP_MS
+      panelGuard.current = Math.max(panelGuard.current, until)
+      slotGuard.current = Math.max(slotGuard.current, until)
+    }
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
   const bestAccount = (() => {
     if (!isBestFlow(flowShown) || !live || live.contacts.length === 0) return null
     const winner = pointDone(live, bestRallyOne) ? winnerOf(live) : null
@@ -2954,18 +2996,14 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       next: '',
     }
   })()
-  const onFlowPick = (flow: string) => {
-    const next = new URLSearchParams(searchParams)
-    next.set('flow', flow)
-    setSearchParams(next, { replace: true })
-    setDetail(null)
-  }
+  /** Rally list and Settings sit over part of the screen. Taps on the zone and wings wait. */
+  const coverTaps = listOpen || (settingsOpen && isBestFlow(flowShown))
 
   return (
     <PadWingContext.Provider value={padSplit ? padWings : NO_WINGS}>
     <div
       className="tag-set bg-bg-app"
-      data-pad-split={padSplit ? '' : undefined}
+      data-pad-split={landscape ? '' : undefined}
       data-answer-layout={isBestFlow(flowShown) ? answerLayout : undefined}
       data-tag-mode={mode}
       data-flow={flowShown}
@@ -2995,51 +3033,33 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       data-fa={active?.fa ?? ''}
       data-no-attack={active?.noAttack ? 'yes' : 'no'}
     >
-      {/* Left on desktop, top on phone: header, picture, timeline, rally list. */}
-      {padSplit ? (
+      {/* Wings stay up in landscape and go blank when there is nothing to tap. */}
+      {landscape ? (
         <div
-          className="pad-wing"
+          className={cn('pad-wing', coverTaps && 'pointer-events-none')}
           data-pad-wing="left"
           ref={setLeftWing}
-          onClickCapture={guardClicks(panelGuard)}
+          onClickCapture={tapSplit ? undefined : guardClicks(panelGuard)}
         >
           {tapSplit ? (
-            <button
-              type="button"
-              data-tap-pad=""
-              data-tap-wing="left"
-              className="pad-region min-h-11 flex-1 rounded-md bg-brand-primary text-[22px] font-bold text-on-accent"
-              aria-label={zoneTitle}
-              onClickCapture={guardClicks(slotGuard)}
-              onClick={onPad}
-            >
-              {zoneTitle}
-            </button>
+            <WingTap
+              side="left"
+              title={zoneTitle}
+              line={zoneLine}
+              dim={deleteMode}
+              guard={guardClicks(slotGuard)}
+              onTap={onPad}
+            />
           ) : null}
         </div>
       ) : null}
       <div className="tag-flow">
       <div className="tag-media">
         <SetHeader match={match} set={set}>
-          <select
-            data-flow-toggle=""
-            aria-label="Flow"
-            title={flowLocked ? 'The open rally keeps its flow' : undefined}
-            disabled={flowLocked}
-            value={flowShown}
-            onChange={(e) => onFlowPick(e.target.value)}
-            className="h-7 w-[5.6rem] shrink-0 appearance-none truncate rounded-md border border-border bg-bg-card px-1.5 text-[11px] font-medium text-primary"
-          >
-            <option value="bestfa">{FLOW_LABEL.bestfa}</option>
-          </select>
-          <SwapVideoButton
-            matchId={match.id}
-            videoId={match.videos[segmentAt(segs, player.time)?.index ?? 0]?.id ?? null}
-          />
           <Button
             size="sm"
             variant="secondary"
-            className="tag-narrow-only px-3"
+            className="px-3"
             aria-expanded={listOpen}
             onClick={() => (listOpen ? closeList() : openList())}
           >
@@ -3070,14 +3090,20 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
           badge={shotBadge}
           extra={
             isBestFlow(flowShown) ? (
-              <BestTimingControl timing={timing} onChange={setBestTiming} layout={answerLayout} onLayout={setAnswerLayout} />
+              <BestTimingControl
+                timing={timing}
+                onChange={setBestTiming}
+                layout={answerLayout}
+                onLayout={setAnswerLayout}
+                open={settingsOpen}
+                onOpen={setSettingsOpen}
+              />
             ) : null
           }
         />
-        <div className="tag-side-list">{rallyList}</div>
       </div>
 
-      {/* Right on a wide screen, below on a phone: rail, status, panel, then one slot. */}
+      {/* Below the picture: rail, status, panel, then one slot. */}
       <div className="tag-entry">
         <div className="shrink-0 bg-bg-app px-2 pt-1.5">
           {isBestFlow(flowShown) && !edit ? (
@@ -3584,6 +3610,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               className={cn(
                 'flex min-h-0 flex-1 flex-col items-center justify-center rounded-lg text-center cursor-pointer touch-manipulation select-none active:bg-bg-app disabled:cursor-default disabled:opacity-40 disabled:active:bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-primary',
                 deleteMode && 'opacity-60',
+                coverTaps && 'pointer-events-none',
               )}
               aria-label={zoneTitle}
               onClickCapture={guardClicks(slotGuard)}
@@ -3738,43 +3765,9 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               <span className="ml-1.5 min-w-0 truncate">{names[padServer]} serving</span>
             </button>
           ) : null}
-          {footStrip ? (
+          {footAction ? (
             <>
-              <div className="min-w-0 flex-1 flex flex-col justify-center">
-                {mode === 'watch' && gap ? (
-                  <p className="truncate text-xs leading-4 font-semibold text-primary">
-                    Add rally before rally {gap.index + 1}
-                  </p>
-                ) : mode === 'watch' && !gap ? (
-                  lastSaved ? (
-                    <>
-                      <p data-last-saved className="truncate text-xs leading-4 font-semibold text-primary">
-                        {noteBand ? (
-                          <span className="mr-1 inline-block h-2 w-2 rounded-full bg-warning" aria-hidden />
-                        ) : null}
-                        Rally {lastSavedIndex + 1} · {names[lastSaved.winner]} won
-                        {lastSaved.point ? ' · point' : savedTail(lastSaved, false)}
-                      </p>
-                      {noteBand ? (
-                        <p data-mark-note className="truncate text-xs leading-4 font-semibold text-primary">
-                          Check in Rallies
-                        </p>
-                      ) : (
-                        <p data-tag-where className="truncate text-xs leading-4 text-muted tabular-nums">
-                          {formatScore(score)} · {minutesLeft(totalDuration(segs) - player.time)} left
-                        </p>
-                      )}
-                    </>
-                  ) : (
-                    <>
-                      <p className="truncate text-xs leading-4 font-semibold text-primary">{setLine}</p>
-                      <p data-tag-where className="truncate text-xs leading-4 text-muted tabular-nums">
-                        {minutesLeft(totalDuration(segs) - player.time)} left
-                      </p>
-                    </>
-                  )
-                ) : null}
-              </div>
+              <div className="min-w-0 flex-1" />
               {mode === 'tagging' && stage === 'pickFa' ? (
                 <button
                   type="button"
@@ -4009,9 +4002,9 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
           ) : null}
         </div>
 
-        {/* Phone: the rally list opens over the panel. Desktop shows it on the left. */}
+        {/* The rally list opens over the panel. The wings stay up beside it. */}
         {listOpen ? (
-          <div className="tag-narrow-only absolute inset-0 z-30 bg-bg-app flex flex-col" role="dialog" aria-label="Rallies">
+          <div className="absolute inset-0 z-30 bg-bg-app flex flex-col" role="dialog" aria-label="Rallies">
             <div className="px-2 flex items-center justify-between border-b border-border">
               <p className="text-sm font-semibold text-primary">Set {set.setId}</p>
               <button
@@ -4028,25 +4021,22 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
         ) : null}
       </div>
       </div>
-      {padSplit ? (
+      {landscape ? (
         <div
-          className="pad-wing"
+          className={cn('pad-wing', coverTaps && 'pointer-events-none')}
           data-pad-wing="right"
           ref={setRightWing}
-          onClickCapture={guardClicks(panelGuard)}
+          onClickCapture={tapSplit ? undefined : guardClicks(panelGuard)}
         >
           {tapSplit ? (
-            <button
-              type="button"
-              data-tap-pad=""
-              data-tap-wing="right"
-              className="pad-region min-h-11 flex-1 rounded-md bg-brand-primary text-[22px] font-bold text-on-accent"
-              aria-label={zoneTitle}
-              onClickCapture={guardClicks(slotGuard)}
-              onClick={onPad}
-            >
-              {zoneTitle}
-            </button>
+            <WingTap
+              side="right"
+              title={zoneTitle}
+              line={zoneLine}
+              dim={deleteMode}
+              guard={guardClicks(slotGuard)}
+              onTap={onPad}
+            />
           ) : null}
         </div>
       ) : null}
@@ -4232,10 +4222,7 @@ function SetHeader({ match, set, children }: SetHeaderProps) {
       >
         <Icon name="chevron-left" size="sm" />
       </Link>
-      <div className="min-w-0 flex-1 flex items-baseline gap-2">
-        <h1 className="shrink-0 whitespace-nowrap text-base font-bold text-primary">Set {set.setId}</h1>
-        <p className="hidden truncate text-xs text-muted min-[480px]:block">{matchLabel(match)}</p>
-      </div>
+      <h1 className="min-w-0 flex-1 truncate text-base font-bold text-primary">Set {set.setId}</h1>
       {children}
     </header>
   )
