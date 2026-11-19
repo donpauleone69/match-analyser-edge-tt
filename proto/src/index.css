@@ -396,7 +396,7 @@ button[disabled] {
   height in both.
 */
 .tag-set {
-  --tag-set: 2.5rem; /* set row: name, timeline, Rallies */
+  --tag-set: 2.5rem; /* set row: name, rally pills, Edit Set */
   --tag-rally: 5.125rem; /* 82px: pad 10, controls 32, gap 4, shots 16, gap 4, phases 16 */
   position: relative;
   height: 100%;
@@ -437,10 +437,68 @@ button[disabled] {
   background: var(--color-bg-app);
   min-width: 0;
 }
-.tag-setzone [aria-label='Match timeline'] {
+.tag-pills {
+  display: flex;
   flex: 1 1 auto;
-  height: 1.75rem;
+  align-items: center;
+  gap: 0.25rem;
   min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.tag-pills::-webkit-scrollbar {
+  display: none;
+}
+.tag-pill {
+  height: 24px;
+  min-width: 24px;
+  flex: 0 0 auto;
+  border-radius: 0.375rem;
+  padding: 0 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-tag-on-solid);
+}
+.tag-seek {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 16;
+  height: 20px;
+  touch-action: none;
+  cursor: pointer;
+}
+.tag-seek-track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.45);
+}
+.tag-seek-mark {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: #fff;
+}
+.tag-seek-band {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: color-mix(in srgb, var(--color-warning) 75%, transparent);
+}
+.tag-seek-head {
+  position: absolute;
+  top: -3px;
+  bottom: -1px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--color-brand-primary);
 }
 .tag-media {
   display: flex;
@@ -594,7 +652,7 @@ button[disabled] {
   left: 0;
   right: 0;
   top: 0;
-  height: calc(100% - var(--tag-set) - var(--tag-rally));
+  height: calc(100% - var(--tag-set) - var(--tag-rally) - 20px);
   z-index: 4;
   display: flex;
   flex-direction: column;

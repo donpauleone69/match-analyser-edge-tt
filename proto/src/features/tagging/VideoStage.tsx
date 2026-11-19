@@ -4,7 +4,7 @@ import type { VideoAsset } from '@/data/demoStore'
 import { cn } from '@/helpers/utils'
 import { SPEED_STEPS, servesText, type Side } from './rally'
 import { sceneAt, type VideoScript } from './script'
-import { totalDuration, type Segment } from './timeline'
+import { type Segment } from './timeline'
 import type { Player } from './usePlayer'
 
 const MARKS = [0, 1, 2, 3]
@@ -175,8 +175,6 @@ function StandIn({
   )
 }
 
-export type TimelineBlock = { a: number; b: number; winner: Side; current: boolean }
-
 function Transport({
   onClick,
   label,
@@ -201,69 +199,60 @@ function Transport({
   )
 }
 
-/** The set timeline: saved rallies, the open rally, and the playhead. */
-export function SetTimeline({
-  player,
-  blocks,
-  open,
+/** Thin seek bar along the bottom of the picture. One video, rally ticks, playhead. */
+export function PictureSeek({
+  span,
+  time,
+  markers,
+  band,
   onSeek,
-  className,
 }: {
-  player: Player
-  blocks: TimelineBlock[]
-  open: { a: number; b: number; ticks: number[] } | null
+  /** Global times the bar covers. A set's video, start to end. */
+  span: { a: number; b: number }
+  time: number
+  /** This set's rally starts, in global time. */
+  markers: number[]
+  /** The open rally, drawn as a warning band. */
+  band: { a: number; b: number } | null
   onSeek: (g: number) => void
-  className?: string
 }) {
-  const segs: Segment[] = player.segs
-  const total = totalDuration(segs) || 1
-  const pct = (g: number) => `${Math.min(100, Math.max(0, (g / total) * 100))}%`
+  const width = Math.max(0.001, span.b - span.a)
+  const pct = (g: number) => `${Math.min(100, Math.max(0, ((g - span.a) / width) * 100))}%`
+  const fromX = (clientX: number, box: DOMRect) => span.a + ((clientX - box.left) / Math.max(1, box.width)) * width
   return (
-    <button
-      type="button"
-      aria-label="Match timeline"
-      className={cn('relative block h-7 min-w-0 shrink cursor-pointer', className)}
-      onClick={(e) => {
-        const box = e.currentTarget.getBoundingClientRect()
-        onSeek(((e.clientX - box.left) / box.width) * total)
+    <div
+      className="tag-seek"
+      data-seek=""
+      aria-label="Seek"
+      onPointerDown={(e) => {
+        if (e.button !== 0) return
+        const node = e.currentTarget
+        const box = node.getBoundingClientRect()
+        node.setPointerCapture(e.pointerId)
+        onSeek(fromX(e.clientX, box))
+        const move = (ev: PointerEvent) => onSeek(fromX(ev.clientX, box))
+        const up = () => {
+          node.removeEventListener('pointermove', move)
+          node.removeEventListener('pointerup', up)
+        }
+        node.addEventListener('pointermove', move)
+        node.addEventListener('pointerup', up)
       }}
     >
-      <span className="relative block h-full bg-bg-elevated border-y border-border overflow-hidden">
-        {blocks.map((b, i) => (
+      <span className="tag-seek-track">
+        {band ? (
           <span
-            key={i}
-            className={cn(
-              'absolute top-1 bottom-1 rounded-[1px]',
-              b.winner === 'me' ? 'bg-side-me' : 'bg-side-them',
-              !b.current && 'opacity-40'
-            )}
-            style={{ left: pct(b.a), width: `max(2px, ${((b.b - b.a) / total) * 100}%)` }}
+            className="tag-seek-band"
+            data-seek-band=""
+            style={{ left: pct(band.a), width: `max(3px, ${((Math.max(band.a, band.b) - band.a) / width) * 100}%)` }}
           />
-        ))}
-        {open ? (
-          <>
-            <span
-              className="absolute top-0 bottom-0 bg-warning/40"
-              style={{ left: pct(open.a), width: `max(3px, ${((open.b - open.a) / total) * 100}%)` }}
-            />
-            {open.ticks.map((g, i) => (
-              <span key={i} className="absolute top-0 bottom-0 w-px bg-warning" style={{ left: pct(g) }} />
-            ))}
-          </>
         ) : null}
-        {segs.slice(1).map((s) => (
-          <span
-            key={s.id}
-            className="absolute top-0 bottom-0 w-0.5 bg-border-strong"
-            style={{ left: pct(s.offset) }}
-          />
+        {markers.map((g, i) => (
+          <span key={i} className="tag-seek-mark" data-seek-mark="" style={{ left: pct(g) }} />
         ))}
-        <span
-          className="absolute top-0 bottom-0 w-0.5 bg-brand-primary"
-          style={{ left: pct(player.time) }}
-        />
+        <span className="tag-seek-head" style={{ left: pct(time) }} />
       </span>
-    </button>
+    </div>
   )
 }
 
@@ -279,6 +268,7 @@ export function VideoStage({
   onRate,
   settings = null,
   leading = null,
+  seek,
   className,
 }: {
   player: Player
@@ -296,6 +286,8 @@ export function VideoStage({
   settings?: ReactNode
   /** Top left of the picture, such as Back. The score sits to its right. */
   leading?: ReactNode
+  /** The picture's seek bar. There is no other one. */
+  seek: ReactNode
   className?: string
 }) {
   const segs: Segment[] = player.segs
@@ -354,13 +346,15 @@ export function VideoStage({
           <p
             role="status"
             data-video-hint
-            className="absolute left-2 bottom-2 max-w-[55%] rounded-md bg-black/75 px-2 py-1 text-xs font-semibold text-white"
+            className="absolute left-2 bottom-7 max-w-[55%] rounded-md bg-black/75 px-2 py-1 text-xs font-semibold text-white"
           >
             {hint}
           </p>
         ) : null}
 
-        <div className="absolute right-2 bottom-2 flex items-center gap-1">
+        {seek}
+
+        <div className="tag-playback absolute right-2 bottom-5 z-20 flex items-center gap-1">
           <Transport label="Back 10 seconds" onClick={() => onSeek(player.getTime() - 10)}>
             <Icon name="rewind" size="sm" />
           </Transport>

@@ -143,7 +143,7 @@ import { useActionGuard, type ActionGuard } from './pressGuard'
 import { TAG_LOCK_LINE, useTagLock, type TagLock } from './tagLock'
 import { segmentAt, segmentsOf, toGlobal, type Segment } from './timeline'
 import { usePlayer, type Window } from './usePlayer'
-import { SetTimeline, VideoStage, type TimelineBlock } from './VideoStage'
+import { PictureSeek, VideoStage } from './VideoStage'
 
 type FlowName = 'bestfa'
 
@@ -281,6 +281,31 @@ function WingTap({
       <span>{title}</span>
       <span className="mt-0.5 max-w-full text-sm font-medium leading-snug opacity-80">{line}</span>
     </button>
+  )
+}
+
+/** This set's saved rallies, numbered in order. Newest stays at the right. */
+function SetPills({ rallies, onPick }: { rallies: RallyData[]; onPick: (r: RallyData) => void }) {
+  const scroller = useRef<HTMLDivElement>(null)
+  const pills = rallies.flatMap((r, i) => (r.point ? [] : [{ r, n: i + 1 }]))
+  useLayoutEffect(() => {
+    const el = scroller.current
+    if (el) el.scrollLeft = el.scrollWidth
+  }, [pills.length])
+  return (
+    <div ref={scroller} className="tag-pills" data-set-pills>
+      {pills.map(({ r, n }) => (
+        <button
+          key={r.id}
+          type="button"
+          data-set-pill={n}
+          className={cn('tag-pill', r.winner === 'me' ? 'bg-side-me' : 'bg-side-them')}
+          onClick={() => onPick(r)}
+        >
+          {n}
+        </button>
+      ))}
+    </div>
   )
 }
 
@@ -1065,6 +1090,16 @@ function TagSet({
   /** Rallies Edit Set can pick: saved, with video. */
   const pickable = set.rallies.filter((r) => !r.point && have.has(r.videoId))
 
+  const openEditRally = (r: RallyData) => {
+    if (live && live.contacts.length > 0) {
+      setHint(`Save or discard rally ${set.rallies.length + 1} first`)
+      return
+    }
+    if (r.point || !have.has(r.videoId)) return
+    setToast(null)
+    loopPick(r)
+  }
+
   const onEditSet = () => {
     if (editPick !== null) {
       doneEdit()
@@ -1568,17 +1603,16 @@ function TagSet({
     }
   }, [])
 
-  // Timeline: every saved rally of the match, this set's at full strength.
-  const blocks = useMemo<TimelineBlock[]>(() => {
+  const seekSeg = player.segs[player.segIndex]
+  const seekSpan = seekSeg ? { a: seekSeg.offset, b: seekSeg.offset + seekSeg.duration } : { a: 0, b: 1 }
+  const seekMarkers = useMemo(() => {
     const all = segmentsOf(match.videos)
-    return match.sets.flatMap((s) =>
-      s.rallies.flatMap((r) => {
-        const off = toGlobal(all, r.videoId, 0)
-        if (off === null || r.point) return []
-        return [{ a: off + r.start, b: off + r.end, winner: r.winner, current: s.setId === set.setId }]
-      })
-    )
-  }, [match.videos, match.sets, set.setId])
+    return set.rallies.flatMap((r) => {
+      if (r.point) return []
+      const g = toGlobal(all, r.videoId, r.contacts[0] ?? r.start)
+      return g === null ? [] : [g]
+    })
+  }, [match.videos, set.rallies])
 
   const openRange = active
     ? {
@@ -1794,6 +1828,15 @@ function TagSet({
                 onOpen={setSettingsOpen}
               />
           }
+          seek={
+            <PictureSeek
+              span={seekSpan}
+              time={player.time}
+              markers={seekMarkers}
+              band={openRange ? { a: openRange.a, b: openRange.b } : null}
+              onSeek={seekTo}
+            />
+          }
         />
       </div>
       <div className="tag-setzone">
@@ -1806,7 +1849,7 @@ function TagSet({
             </span>
           </div>
         ) : (
-          <SetTimeline player={player} blocks={blocks} open={openRange} onSeek={seekTo} />
+          <SetPills rallies={set.rallies} onPick={openEditRally} />
         )}
         <Button
           size="sm"
