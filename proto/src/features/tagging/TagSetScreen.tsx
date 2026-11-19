@@ -34,7 +34,6 @@ import {
   GAP_REVIEW_RATE,
   SERVE_REVIEW_AFTER_S,
   SERVE_REVIEW_BEFORE_S,
-  bandLine,
   breakForReview,
   reviewSwapLine,
   walkServes,
@@ -172,7 +171,7 @@ import {
 } from './bestFlow'
 import { ShotRail } from './ShotRail'
 import { TAG_LOCK_LINE, useTagLock, type TagLock } from './tagLock'
-import { firstContactG, lastContactG, segmentAt, segmentsOf, toGlobal, totalDuration, type Segment } from './timeline'
+import { firstContactG, lastContactG, segmentAt, segmentsOf, toGlobal, type Segment } from './timeline'
 import { usePlayer, type Window } from './usePlayer'
 import { SetTimeline, VideoStage, type TimelineBlock } from './VideoStage'
 
@@ -222,26 +221,9 @@ const GUARD_BEST_SWAP_MS = 450
 /** The guard after the idle close looks it. A slot swap ignores presses and does not dim. */
 const BUSY = 'opacity-40'
 
-/** Shot count, result and check, with no empty trailing separator. */
-function savedTail(r: RallyData, withShots = true): string {
-  const end = r.idea?.result ?? r.ending ?? ''
-  const check = r.idea?.check ?? ''
-  const shots = `${r.contacts.length} ${r.contacts.length === 1 ? 'shot' : 'shots'}`
-  const parts = withShots ? [shots] : []
-  if (end) parts.push(end)
-  if (check) parts.push(check)
-  if (!withShots) return parts.length ? ` · ${parts.join(' · ')}` : ''
-  return parts.join(' · ')
-}
 const HINT_MS = 2500
 /** Back, between rallies: far enough to see a serve again. */
 const BACK_S = 5
-
-/** "3:20", for the video that is left. */
-function minutesLeft(seconds: number): string {
-  const t = Math.max(0, Math.round(seconds))
-  return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`
-}
 
 /** Watching speed per match, kept while the app is open. */
 const watchRates = new Map<string, number>()
@@ -430,7 +412,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const [serverPick, setServerPick] = useState<Side | null>(null)
   /** Switch was pressed for the rally now being tagged, even if it was switched back. */
   const serverChosen = useRef(false)
-  const [lastSavedId, setLastSavedId] = useState<string | null>(null)
   /**
    * The mode locked when tapping ended. Null between rallies, so the address
    * applies to the next one. Cleared on Save and on Discard.
@@ -1197,7 +1178,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     clock.current = null
     pendingDiscard.current = null
     setFlowLock(null)
-    setLastSavedId(rally.id)
     setServerPick(null)
     serverChosen.current = false
     const endG = offsetOf(rally.videoId) + rally.contacts[rally.contacts.length - 1]
@@ -1306,7 +1286,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     pendingDiscard.current = null
     setBestSaved({ rallyId: rally.id, draft: { ...d, closed: true }, before, floor: floorG })
     setFlowLock(null)
-    setLastSavedId(rally.id)
     setServerPick(null)
     serverChosen.current = false
     setBestLook(false)
@@ -1625,7 +1604,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     const before = set
     leaveGap()
     mutateMatch(match.id, (m) => insertRallyAt(m, set.setId, point, index))
-    setLastSavedId(point.id)
     setKeptAt(null)
     withUndo('Point added', before)
   }
@@ -2191,20 +2169,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     active && stage && (mode === 'tagging' || mode === 'edit')
       ? windowFor(active, selected, stage, tight)
       : null
-  /** Where am I: one line, between rallies and on coming back. */
-  const whereLine = [
-    setLine,
-    servesText(names, live?.server ?? nextServer),
-    `${set.rallies.length} saved`,
-    `${minutesLeft(totalDuration(segs) - player.time)} left`,
-  ].join(' · ')
-  const lastSavedIndex = (() => {
-    const i = lastSavedId ? set.rallies.findIndex((r) => r.id === lastSavedId) : -1
-    return i >= 0 ? i : set.rallies.length - 1
-  })()
-  const lastSaved = set.rallies[lastSavedIndex] ?? null
-  const noteBand =
-    cont.bands.find((b) => lastSavedIndex >= b.from && lastSavedIndex <= b.to) ?? null
   const gapIndex = review?.kind === 'gaps' ? review.gaps[review.at] : null
   const reviewLine =
     review?.kind === 'ask' && review.rule.cursor !== null
@@ -2823,45 +2787,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                   </Button>
                 }
               />
-            ) : null}
-            {!zoneOn && mode === 'watch' && !gap && !atEnd && lastSaved && !bestOver && !bestHoldOn ? (
-              <div
-                data-last-saved
-                className="rounded-md border border-border bg-bg-surface pl-3 pr-1.5 py-1.5 flex items-center gap-2"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm text-primary truncate">
-                    <span className="font-semibold">
-                      Rally {lastSavedIndex + 1} · {names[lastSaved.winner]} won
-                    </span>
-                    {lastSaved.point ? ' · point, no video' : ` · ${savedTail(lastSaved)}`}
-                  </p>
-                  {noteBand ? (
-                    <p className="text-xs font-semibold text-primary" data-mark-note>
-                      <span className="mr-1 inline-block h-2 w-2 rounded-full bg-warning" aria-hidden />
-                      Check in Rallies: {bandLine(noteBand, set.rallies, set.firstServer)}
-                    </p>
-                  ) : null}
-                </div>
-                {lastSaved.point || !have.has(lastSaved.videoId) ? null : (
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    className="min-w-11 px-3 lg:min-w-0 lg:px-2.5 shrink-0"
-                    onClick={() => openRally(lastSaved, lastSavedIndex)}
-                  >
-                    Edit
-                  </Button>
-                )}
-              </div>
-            ) : null}
-            {!zoneOn && (mode === 'watch' || mode === 'tapping' || mode === 'setPoint') && !atEnd && !bestOver && !bestHoldOn ? (
-              <p
-                data-tag-where
-                className="h-5 px-1 text-xs leading-5 text-muted tabular-nums truncate"
-              >
-                {whereLine}
-              </p>
             ) : null}
             {!zoneOn && finishKept && !bestOver && !bestHoldOn ? (
               <div data-finish-card>
