@@ -574,14 +574,12 @@ export type BestTiming = {
   reaction: number
   lead: number
   end: number
-  min: number
 }
 
 export const DEFAULT_BEST_TIMING: BestTiming = {
   reaction: 0,
   lead: 500,
   end: 300,
-  min: 0,
 }
 
 /** v0.15.0 defaults. A device that saved only these moves to the new defaults. */
@@ -589,7 +587,6 @@ const PREVIOUS_DEFAULT_BEST_TIMING: BestTiming = {
   reaction: 300,
   lead: 200,
   end: 200,
-  min: 1000,
 }
 
 const TIMING_KEY = 'edge-tt.best-timing'
@@ -601,7 +598,7 @@ function timingNumber(value: unknown, fallback: number): number {
 }
 
 function sameTiming(a: BestTiming, b: BestTiming) {
-  return a.reaction === b.reaction && a.lead === b.lead && a.end === b.end && a.min === b.min
+  return a.reaction === b.reaction && a.lead === b.lead && a.end === b.end
 }
 
 export function loadBestTiming(): BestTiming {
@@ -613,7 +610,6 @@ export function loadBestTiming(): BestTiming {
       reaction: timingNumber(parsed.reaction, DEFAULT_BEST_TIMING.reaction),
       lead: timingNumber(parsed.lead, DEFAULT_BEST_TIMING.lead),
       end: timingNumber(parsed.end, DEFAULT_BEST_TIMING.end),
-      min: timingNumber(parsed.min, DEFAULT_BEST_TIMING.min),
     }
     if (!sameTiming(loaded, PREVIOUS_DEFAULT_BEST_TIMING)) return loaded
     saveBestTiming(DEFAULT_BEST_TIMING)
@@ -634,39 +630,18 @@ export function saveBestTiming(timing: BestTiming) {
 /** Answer layout. Buttons is the v0.13.1 cells. Pad is the corner pad. Same questions either way. */
 export type AnswerLayout = 'buttons' | 'pad'
 
-const LAYOUT_KEY = 'edge-tt.answer-layout'
-
-export function loadAnswerLayout(): AnswerLayout {
-  try {
-    const raw = localStorage.getItem(LAYOUT_KEY)
-    if (raw === 'buttons' || raw === 'pad') return raw
-  } catch {
-    // A private browser can refuse the read. The pad is the layout for this version.
-  }
-  return 'pad'
-}
-
-export function saveAnswerLayout(layout: AnswerLayout) {
-  try {
-    localStorage.setItem(LAYOUT_KEY, layout)
-  } catch {
-    // The choice still applies for this visit.
-  }
-}
-
-/** Shot loops play at this rate. Lead, end and minimum are playback time, so the video window is those times times this rate. */
+/** Shot loops play at this rate. Lead and end are playback time, so the video window is those times times this rate. */
 export const BEST_SHOT_RATE = 0.75
 
 /**
- * One shot. `lead`, `end` and `min` are milliseconds of playback, so they scale with `rate`
+ * One shot. `lead` and `end` are milliseconds of playback, so they scale with `rate`
  * (at 0.75x, 200 ms of playback is 150 ms of video). The reaction buffer is not applied here.
  */
 export function shotLoop(contact: number, next: number, timing: BestTiming, rate = BEST_SHOT_RATE): BestWindow {
   const lead = (timing.lead / 1000) * rate
   const tail = (timing.end / 1000) * rate
-  const min = (timing.min / 1000) * rate
   const a = contact - lead
-  const b = Math.max(next - tail, a + min)
+  const b = Math.max(next - tail, a)
   return { a, b }
 }
 
@@ -676,7 +651,7 @@ export type BestLoopWhat = BestAt | 'rally' | 'add'
 /**
  * Loop the shot being asked, at `rate` (0.75 unless a caller says otherwise).
  * It starts `lead` of playback before that contact and ends `end` of playback
- * before the next contact, or `min` after the start, whichever is later. The
+ * before the next contact, or at the start, whichever is later. The
  * last shot runs to the rally end. While the point does not add up, End loops
  * the last two contacts. The page with Who attacked first? loops from the
  * first unasked shot to its own shot. Times are seconds in the rally's video.

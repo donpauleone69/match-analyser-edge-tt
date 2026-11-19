@@ -2,7 +2,7 @@
  * Test-only clock. Off unless `proto-test-speed` in localStorage is a number
  * from 2 to 16, set before the page loads. A person never sees it: nothing
  * in the speed control changes. The demo clock, Date.now and the timers
- * (the 2 second close, the guards, the late tap) move by the same factor,
+ * (the 2 second close, the guards) move by the same factor,
  * so a 2 second close is still 2 seconds of video.
  */
 const KEY = 'proto-test-speed'
