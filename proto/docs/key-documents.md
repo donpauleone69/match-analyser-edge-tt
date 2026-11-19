@@ -28,7 +28,7 @@ Mirrors the [Key documents canvas](https://cursor.com/canvas/store-7c210afe-9d07
 
 | Build | Link | Notes |
 |-------|------|-------|
-| v0.16.7 | | Click guards removed (1000, 600, 450 and 300 ms), including Discard waiting them out. A tap right after a question appears counts. The 2 second idle close stays. |
+| v0.16.7 | [PR #147](https://github.com/donpauleone69/match-analyser-edge-tt/pull/147) | Click guards removed (1000, 600, 450 and 300 ms), including Discard waiting them out. A tap right after a question appears counts. The 2 second idle close stays. |
 | v0.16.6 | [PR #146](https://github.com/donpauleone69/match-analyser-edge-tt/pull/146) | Latest merged on proto (37e7e62). Version in video Settings. Dead-code prune. Removes Sequential and Spine flows, buttons layout, ?flow and ?cells switches, old live UI, foot line (Finish set kept), timing log, highlight star and old edit panel. Saved rallies open in Best+FA. proto/src 17,063 to 12,827 lines. |
 | v0.16.5 | [PR #145](https://github.com/donpauleone69/match-analyser-edge-tt/pull/145) | Latest merged on proto (4b3e07b). Version in video Settings. Removes late tap, Minimum, layout toggle, video clock and shot badge. Settings in playback row after Mute. Opus review: SHIP. |
 | v0.16.4 | [PR #144](https://github.com/donpauleone69/match-analyser-edge-tt/pull/144) | Latest merged on proto (d303eda). Version in video Settings. Top Nav removed with Back on video; Set Zone one row with set name and Rallies; portrait Video, Set, Rally, Shot Input; landscape three columns with full-height wings; Discard for the rally in progress. |
