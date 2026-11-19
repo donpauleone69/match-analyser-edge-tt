@@ -29,7 +29,6 @@ import {
 
 export type { BestFirst, BestPart, BestStep }
 
-export const BEST_SERVE = ['Short', 'Long'] as const
 export const BEST_ENDS = ['Winner', 'Net', 'Long', 'Wide'] as const
 export type BestEnd = (typeof BEST_ENDS)[number]
 
@@ -45,8 +44,6 @@ export function bestEndOf(d: { ending: Ending | null; best?: { end?: string } })
   if (saved && isBestEnd(saved)) return d.ending === saved ? saved : null
   return isBestEnd(d.ending) ? d.ending : null
 }
-
-export const BEST_STEPS: readonly BestStep[] = ['serve', 'shots', 'end']
 
 /** Four parts. Rally is the part between Attack and End. */
 export const PART_LABEL: Record<BestPart, string> = {
@@ -153,13 +150,6 @@ export function endShots(n: number): number[] {
   return out
 }
 
-/** Serve, then the shot pages, then End. One contact has End only. */
-export function stepsFor(d: Pick<Draft, 'contacts'>): BestStep[] {
-  if (d.contacts.length === 0) return []
-  if (d.contacts.length === 1) return ['end']
-  return [...BEST_STEPS]
-}
-
 /** The shot a step tags. End tags the last shot. `shots` is the page open. */
 export function stepShot(n: number, step: BestStep, page?: number): number {
   if (step === 'serve') return 1
@@ -180,22 +170,7 @@ export function questionOrder(n: number): string[] {
   return order
 }
 
-/** Attack after an asked attack is a Counter. It saves as Attack and is read from the shot before. */
-export function counterAt(d: Pick<Draft, 'contacts' | 'shots'>, shot: number): boolean {
-  const n = d.contacts.length
-  return shot >= 3 && bestAsked(n, shot - 1) && isAttack(d.shots[shot - 2])
-}
-
-export type StrokeRole = 'Attack' | 'Counter' | 'Control'
-
-export function strokeRole(d: Pick<Draft, 'contacts' | 'shots'>, shot: number): StrokeRole | null {
-  const s = d.shots[shot - 1]
-  if (!s?.stroke) return null
-  if (s.stroke !== 'Attack') return 'Control'
-  return counterAt(d, shot) ? 'Counter' : 'Attack'
-}
-
-/** The stroke grid: top row Attack, or Counter after an attack. Bottom row Control. BH left, FH right. */
+/** The stroke grid: top row Attack, bottom row Control. BH left, FH right. */
 export const STROKE_GRID: readonly (readonly { wing: Wing; stroke: 'Attack' | 'Control' }[])[] = [
   [
     { wing: 'BH', stroke: 'Attack' },
@@ -206,11 +181,6 @@ export const STROKE_GRID: readonly (readonly { wing: Wing; stroke: 'Attack' | 'C
     { wing: 'FH', stroke: 'Control' },
   ],
 ]
-
-export function strokeLabel(d: Pick<Draft, 'contacts' | 'shots'>, shot: number, wing: Wing, stroke: string): string {
-  if (stroke !== 'Attack') return `${wing} Control`
-  return `${wing} ${counterAt(d, shot) ? 'Counter' : 'Attack'}`
-}
 
 /**
  * Who attacked first? covered shots that were not asked. Every shot is asked
@@ -311,18 +281,6 @@ export function nextStroke(d: Pick<Draft, 'contacts' | 'shots'>): number | null 
   return null
 }
 
-/** @deprecated The walk uses `nextStroke`. Kept so older checks still import it. */
-export function nextEndShot(d: Pick<Draft, 'contacts' | 'shots'>): number | null {
-  return nextStroke(d)
-}
-
-export function stepDone(d: Q, step: BestStep, rallyOne: boolean): boolean {
-  if (step === 'end') return endDone(d, rallyOne)
-  if (step === 'serve') return Boolean(d.shots[0]?.depth)
-  if (step === 'shots') return nextStroke(d) === null
-  return Boolean(d.shots[stepShot(d.contacts.length, step) - 1]?.stroke)
-}
-
 export type BestAt = { step: BestStep; page?: number }
 
 /** The first question not done, in contact order. Null when every one is: the rally saves. */
@@ -355,18 +313,13 @@ export function bestAt(d: Q, rallyOne: boolean): BestAt {
 
 /**
  * What the question area shows. The 450 ms guard arms when this changes, so a
- * second tap does not land on the next question. The same for both layouts.
+ * second tap does not land on the next question.
  */
-export function bestQuestionKey(
-  d: Q,
-  rallyOne: boolean,
-  layout: 'buttons' | 'pad',
-  back: PadBack = null,
-): string {
+export function bestQuestionKey(d: Q, rallyOne: boolean, back: PadBack = null): string {
   if (d.contacts.length === 0) return ''
   const at = bestAt(d, rallyOne)
   const phase = at.step === 'end' ? padFocus(d, rallyOne, back) : ''
-  return [layout, at.step, at.page ?? '', phase, d.contacts.length].join(':')
+  return [at.step, at.page ?? '', phase, d.contacts.length].join(':')
 }
 
 /** The question a cell opens. The last cell opens End once that stroke and End are in. One contact opens End. */
@@ -504,19 +457,6 @@ export function bestDeleteFirst(d: Draft, rallyOne = false): Draft {
   return { ...next, best: carryBest(next, { cut: undefined }) }
 }
 
-/** Shot 1 was the toss after all: the contact Delete last took comes back with the last stroke, and shot 1 goes. */
-export function bestTossInstead(d: Draft, rallyOne = false): Draft {
-  const cut = d.best?.cut
-  const n = d.contacts.length
-  if (cut === undefined || n < 1) return d
-  const last = d.shots[n - 1] ?? {}
-  const { wing, stroke, ...lastRest } = last
-  const shots = [...d.shots.slice(0, n - 1), lastRest, wing && stroke ? { wing, stroke } : {}]
-  const back: Draft = { ...d, contacts: [...d.contacts, cut], shots, end: null }
-  const next = removeBestContact(back, 1, rallyOne)
-  return { ...next, best: carryBest(next, { cut: undefined }) }
-}
-
 /** Switch server: every hitter flips, and so does a worked out winner. Keep as is goes, so the check runs again. */
 export function bestSwitchServer(d: Draft, rallyOne = false): Draft {
   const next = keepBestMarks({ ...d, server: otherSide(d.server), serveChecked: true, best: carryBest(d, { kept: undefined }) })
@@ -545,11 +485,6 @@ export function setWingStroke(d: Draft, shot: number, wing: Wing, stroke: string
   const i = shot - 1
   shots[i] = { ...shots[i], wing, stroke }
   return keepBestMarks({ ...d, shots })
-}
-
-/** Tap the chosen answer again to clear it. */
-export function bestSetFirst(d: Draft, first: BestFirst): Draft {
-  return keepBestMarks({ ...d, best: carryBest(d, { first: d.best?.first === first ? undefined : first }) })
 }
 
 export function toggleReview(d: Draft, part: BestPart): Draft {
@@ -582,11 +517,12 @@ export const DEFAULT_BEST_TIMING: BestTiming = {
   end: 300,
 }
 
-/** v0.15.0 defaults. A device that saved only these moves to the new defaults. */
-const PREVIOUS_DEFAULT_BEST_TIMING: BestTiming = {
+/** v0.15.0 defaults, including the old minimum. A device that saved only these moves to the new defaults. */
+const PREVIOUS_DEFAULT_BEST_TIMING = {
   reaction: 300,
   lead: 200,
   end: 200,
+  min: 1000,
 }
 
 const TIMING_KEY = 'edge-tt.best-timing'
@@ -597,21 +533,28 @@ function timingNumber(value: unknown, fallback: number): number {
   return Math.round(n)
 }
 
-function sameTiming(a: BestTiming, b: BestTiming) {
-  return a.reaction === b.reaction && a.lead === b.lead && a.end === b.end
+/** True only for the untouched v0.15.0 save. A different minimum is a custom timing and stays. */
+function savedIsPreviousDefault(parsed: { reaction?: unknown; lead?: unknown; end?: unknown; min?: unknown }): boolean {
+  const prev = PREVIOUS_DEFAULT_BEST_TIMING
+  return (
+    timingNumber(parsed.reaction, -1) === prev.reaction &&
+    timingNumber(parsed.lead, -1) === prev.lead &&
+    timingNumber(parsed.end, -1) === prev.end &&
+    timingNumber(parsed.min, -1) === prev.min
+  )
 }
 
 export function loadBestTiming(): BestTiming {
   try {
     const raw = localStorage.getItem(TIMING_KEY)
     if (!raw) return DEFAULT_BEST_TIMING
-    const parsed = JSON.parse(raw) as Partial<BestTiming>
+    const parsed = JSON.parse(raw) as { reaction?: unknown; lead?: unknown; end?: unknown; min?: unknown }
     const loaded: BestTiming = {
       reaction: timingNumber(parsed.reaction, DEFAULT_BEST_TIMING.reaction),
       lead: timingNumber(parsed.lead, DEFAULT_BEST_TIMING.lead),
       end: timingNumber(parsed.end, DEFAULT_BEST_TIMING.end),
     }
-    if (!sameTiming(loaded, PREVIOUS_DEFAULT_BEST_TIMING)) return loaded
+    if (!savedIsPreviousDefault(parsed)) return loaded
     saveBestTiming(DEFAULT_BEST_TIMING)
     return DEFAULT_BEST_TIMING
   } catch {
@@ -626,9 +569,6 @@ export function saveBestTiming(timing: BestTiming) {
     // A private browser can refuse the write. The values still apply for this visit.
   }
 }
-
-/** Answer layout. Buttons is the v0.13.1 cells. Pad is the corner pad. Same questions either way. */
-export type AnswerLayout = 'buttons' | 'pad'
 
 /** Shot loops play at this rate. Lead and end are playback time, so the video window is those times times this rate. */
 export const BEST_SHOT_RATE = 0.75
@@ -645,8 +585,8 @@ export function shotLoop(contact: number, next: number, timing: BestTiming, rate
   return { a, b }
 }
 
-/** What a loop plays: a question, the whole rally, or Add missed from the serve. */
-export type BestLoopWhat = BestAt | 'rally' | 'add'
+/** What a loop plays: a question, or the whole rally. */
+export type BestLoopWhat = BestAt | 'rally'
 
 /**
  * Loop the shot being asked, at `rate` (0.75 unless a caller says otherwise).
@@ -666,7 +606,6 @@ export function bestLoop(
   const start = rallyStart(d)
   const end = rallyEnd(d)
   if (what === 'rally') return { a: start, b: end }
-  if (what === 'add') return { a: d.contacts[0] ?? start, b: end }
   const n = d.contacts.length
   const shot = stepShot(n, what.step, what.page)
   const contactAt = (k: number) => d.contacts[k - 1] ?? start
@@ -677,25 +616,6 @@ export function bestLoop(
     return shotLoop(contactAt(from), after(shot), timing, rate)
   }
   return shotLoop(contactAt(shot), after(shot), timing, rate)
-}
-
-/**
- * Video window for one part. Shot 1 starts at the rally start. The last part ends at the rally end.
- * Anything else starts the lead before its first contact and ends the end offset before the next part.
- */
-export function partWindow(d: Draft, part: BestPart, timing: BestTiming = DEFAULT_BEST_TIMING): BestWindow {
-  const parts = partsOf(d)
-  const i = parts.findIndex((span) => span.part === part)
-  const start = rallyStart(d)
-  const end = rallyEnd(d)
-  if (i < 0) return { a: start, b: end }
-  const cur = parts[i]
-  const next = parts[i + 1]
-  const lead = timing.lead / 1000
-  const tail = timing.end / 1000
-  const a = cur.from <= 1 ? start : (d.contacts[cur.from - 1] ?? start) - lead
-  const b = next ? (d.contacts[next.from - 1] ?? end) - tail : end
-  return { a, b: Math.max(a, b) }
 }
 
 export function bestFlowOf(s: { draft: Draft | null; rallies: RallyData[] }): 'bestfa' | null {

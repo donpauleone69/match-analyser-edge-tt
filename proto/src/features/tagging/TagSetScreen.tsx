@@ -9,7 +9,7 @@ import {
   type ReactNode,
   type RefObject,
 } from 'react'
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Button, Icon, buttonKindTapPadSquare, buttonKindTextLink } from '@/ui-mine'
 import { WfEmpty } from '@/layout/Wireframe'
 import {
@@ -34,7 +34,6 @@ import {
   GAP_REVIEW_RATE,
   SERVE_REVIEW_AFTER_S,
   SERVE_REVIEW_BEFORE_S,
-  bandLine,
   breakForReview,
   reviewSwapLine,
   walkServes,
@@ -53,7 +52,6 @@ import {
   applyTaggedScore,
   confirmServe,
   deleteRally,
-  earlierSetsEnd,
   finishMatch,
   finishSet,
   flipFirstServer,
@@ -75,43 +73,23 @@ import {
   CONTACT_IDLE_MS,
   MARK_LOOP_HALF_S,
   NORMAL_SPEED,
-  NUDGE_STEP_S,
   SHOT_LOOP_HOLD_S,
-  TAP_LATENCY_S,
   addContact,
-  addContactWindow,
-  addedContactText,
-  addedContactTime,
   canSave,
   captureContactTime,
-  draftFromRally,
   emptyDraft,
-  endShot,
-  insertContact,
   loopShotOf,
-  reopenFaPick,
-  shotAtTime,
-  isAttackStroke,
   tapIgnored,
-  faRefusal,
-  faRefusalText,
-  markFa,
-  noAttackOffered,
   markTime,
-  nudgeMark,
   otherSide,
   pointRally,
   rallyEnd,
   rallyFromDraft,
   rallyStart,
   retapStart,
-  servesText,
   shotWindow,
   stageOf,
   statusText,
-  toggleNoAttack,
-  undoClosedContact,
-  serverForWinner,
   winnerOf,
   undoContact,
   type Draft,
@@ -119,52 +97,12 @@ import {
   type MarkKind,
   type RallyData,
   type Side,
-  type Wing,
   type Stage,
+  type Wing,
 } from './rally'
 import { RallyList, type RallyListActions } from './RallyList'
 import { ZERO, addPoint, isSetWon, type Points } from './score'
 import { AnswerKeyPanel } from './AnswerKeyPanel'
-import {
-  afterRevisit,
-  applySeqKey,
-  beforeAttack,
-  defensiveToEnd,
-  firstSaveGap,
-  nextAllowed,
-  nextStop,
-  openAt,
-  pressSide,
-  settleLastStroke,
-  shotComplete,
-  type SeqPlace,
-  type SeqStop,
-} from './sequence'
-import { NO_ATTACK_KEY, applyPanelKey } from './shotKeys'
-import {
-  copyTagLog,
-  countOptional,
-  editNote,
-  flowFromParam,
-  isBestFlow,
-  isIdeaFlow,
-  isWalkFlow,
-  pushTagLog,
-  type FlowName,
-  type TagLogLine,
-} from './tagLog'
-import { IdeaDetailPanel, IdeaLivePanel } from './IdeaPanel'
-import {
-  SPINE_IDLE_S,
-  applyDetail,
-  correctResult,
-  liveRally,
-  nextSweep,
-  spineEnding,
-  sweepState,
-  type Sweep,
-} from './ideaFlow'
-import { EndPanel, ShotPanel, TimeRow, TrimRow } from './ShotPanel'
 import { BestPanel, BestRallyRow } from './BestPanel'
 import { PadWingContext } from './CornerPad'
 import { BestTimingControl } from './BestTimingControl'
@@ -186,7 +124,6 @@ import {
   canOpenCell,
   carryBest,
   cellTarget,
-  keepBestMarks,
   loadBestTiming,
   pointDone,
   removeBestContact,
@@ -202,11 +139,12 @@ import {
   type BestPart,
   type BestTiming,
 } from './bestFlow'
-import { ShotRail } from './ShotRail'
 import { TAG_LOCK_LINE, useTagLock, type TagLock } from './tagLock'
-import { firstContactG, lastContactG, segmentAt, segmentsOf, toGlobal, totalDuration, type Segment } from './timeline'
+import { segmentAt, segmentsOf, toGlobal, type Segment } from './timeline'
 import { usePlayer, type Window } from './usePlayer'
 import { SetTimeline, VideoStage, type TimelineBlock } from './VideoStage'
+
+type FlowName = 'bestfa'
 
 /** Route entry: checks the set can be shown, then mounts the tagger per set. */
 export function TagSetScreen() {
@@ -254,49 +192,23 @@ const GUARD_BEST_SWAP_MS = 450
 /** The guard after the idle close looks it. A slot swap ignores presses and does not dim. */
 const BUSY = 'opacity-40'
 
-/** Shot count, result and check, with no empty trailing separator. */
-function savedTail(r: RallyData, withShots = true): string {
-  const end = r.idea?.result ?? r.ending ?? ''
-  const check = r.idea?.check ?? ''
-  const shots = `${r.contacts.length} ${r.contacts.length === 1 ? 'shot' : 'shots'}`
-  const parts = withShots ? [shots] : []
-  if (end) parts.push(end)
-  if (check) parts.push(check)
-  if (!withShots) return parts.length ? ` · ${parts.join(' · ')}` : ''
-  return parts.join(' · ')
-}
 const HINT_MS = 2500
 /** Back, between rallies: far enough to see a serve again. */
 const BACK_S = 5
-
-/** "3:20", for the video that is left. */
-function minutesLeft(seconds: number): string {
-  const t = Math.max(0, Math.round(seconds))
-  return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`
-}
 
 /** Watching speed per match, kept while the app is open. */
 const watchRates = new Map<string, number>()
 
 const scoreKey = (p: Points) => `${p.me}-${p.them}`
 
-/** `pass` lets a press on a matching element through the guard. */
-function guardClicks(until: RefObject<number>, pass?: string) {
+/** Swallows a press while the guard is up. */
+function guardClicks(until: RefObject<number>) {
   return (e: MouseEvent) => {
-    if (pass && e.target instanceof Element && e.target.closest(pass)) return
     if (Date.now() < until.current) {
       e.preventDefault()
       e.stopPropagation()
     }
   }
-}
-type Editing = { id: string; index: number; draft: Draft; /** As opened, so Switch back clears dirty. */ baseline: Draft; dirty: boolean }
-
-function editDirty(baseline: Draft, next: Draft, id: string): boolean {
-  const a = rallyFromDraft(baseline, id)
-  const b = rallyFromDraft(next, id)
-  if (!a || !b) return true
-  return JSON.stringify(a) !== JSON.stringify(b)
 }
 /** A rally being added between two saved ones: the stretch of video it may use. */
 type Gap = { index: number; a: number; b: number }
@@ -316,52 +228,6 @@ type ReviewRun =
   | { kind: 'leave'; breakId: string }
 type SetHeaderProps = { match: MatchRecord; set: SetData; children?: ReactNode }
 
-/** Times for one rally, kept off the rally and written when it is saved. */
-type RallyClock = {
-  mode: FlowName
-  firstTap: number
-  tapsEnded: number
-  presses: number
-  nexts: number
-  loops: number
-  reopened: number
-  changed: number
-  discards: number
-}
-
-function freshClock(mode: FlowName): RallyClock {
-  return {
-    mode,
-    firstTap: Date.now(),
-    tapsEnded: 0,
-    presses: 0,
-    nexts: 0,
-    loops: 0,
-    reopened: 0,
-    changed: 0,
-    discards: 0,
-  }
-}
-
-function lineFrom(c: RallyClock, d: Draft | null, edit?: string): TagLogLine {
-  const now = Date.now()
-  return {
-    mode: c.mode,
-    shots: d?.contacts.length ?? 0,
-    server: d?.server ?? 'me',
-    fa: d?.fa ?? null,
-    answerMs: Math.max(0, now - (c.tapsEnded || c.firstTap)),
-    totalMs: Math.max(0, now - c.firstTap),
-    presses: c.presses,
-    nexts: c.nexts,
-    loops: c.loops,
-    reopened: c.reopened,
-    changed: c.changed,
-    discards: c.discards,
-    optional: d ? countOptional(d) : 0,
-    ...(edit ? { edit } : {}),
-  }
-}
 
 /** The stage-driven choice of what is selected after a change. */
 function selectionAfter(prev: Stage, next: Stage, d: Draft, current: Mark | null): Mark | null {
@@ -432,10 +298,8 @@ function WingTap({
 
 function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: TagLock }) {
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
-  const cellsOutlined = searchParams.get('cells') === 'outlined'
-  /** The address. A rally already open keeps the mode it started with. */
-  const flowWanted: FlowName = flowFromParam(searchParams.get('flow'))
+  /** The address no longer picks a flow. Every rally is Best + FA. */
+  const flowWanted: FlowName = 'bestfa'
   const { mutateMatch } = useDemo()
   const player = usePlayer(match.videos)
   const playerRef = useRef(player)
@@ -443,11 +307,8 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const names: Record<Side, string> = { me: 'You', them: match.opponent.trim() || 'Opponent' }
 
   const [selected, setSelected] = useState<Mark | null>(null)
-  /** End opened by a press. The result step shows End whether or not this is set. */
-  const [endOpen, setEndOpen] = useState(false)
   /** After a nudge the loop tightens around the mark that moved. */
   const [tight, setTight] = useState(false)
-  const [edit, setEdit] = useState<Editing | null>(null)
   const [toast, setToast] = useState<Toast | null>(null)
   /** The score at which the user chose to keep tagging past a won set. */
   const [keptAt, setKeptAt] = useState<string | null>(null)
@@ -455,8 +316,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const [listOpen, setListOpen] = useState(false)
   const [lastTap, setLastTap] = useState<number | null>(null)
   const [hint, setHint] = useState<string | null>(null)
-  /** Why a first attack press was refused. Shown on the status line until the step changes. */
-  const [faSaid, setFaSaid] = useState<string | null>(null)
   /** Redraws when a guard starts and when it ends, so guarded controls can dim. */
   const [, setGuardTick] = useState(0)
   const guardTimers = useRef<number[]>([])
@@ -465,15 +324,11 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const [serverPick, setServerPick] = useState<Side | null>(null)
   /** Switch was pressed for the rally now being tagged, even if it was switched back. */
   const serverChosen = useRef(false)
-  const [lastSavedId, setLastSavedId] = useState<string | null>(null)
   /**
    * The mode locked when tapping ended. Null between rallies, so the address
    * applies to the next one. Cleared on Save and on Discard.
    */
   const [flowLock, setFlowLock] = useState<FlowName | null>(null)
-  /** A spine sweep. Null during the live pass. */
-  const [detail, setDetail] = useState<{ flow: 'spine'; sweep: Sweep } | null>(null)
-  const detailRef = useRef(detail)
   /** Best + FA: loop timings, contact check, add, and the set-end hold. */
   const [timing, setTiming] = useState(loadBestTiming)
   const landscape = useLandscape()
@@ -502,47 +357,19 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const [bestSaved, setBestSaved] = useState<{ rallyId: string; draft: Draft; before: SetData; floor: number } | null>(null)
   /** Where capture resumed after Check, in the rally video. */
   const [bestResume, setBestResume] = useState<number | null>(null)
-  const [bestAdd, setBestAdd] = useState(false)
   const [bestOver, setBestOver] = useState<string | null>(null)
   const [bestHoldOn, setBestHoldOn] = useState(false)
   const bestHold = useRef(false)
   const bestCheckRef = useRef(false)
-  detailRef.current = detail
-  /** The last saved idea rally, open so its winner or result can be changed. */
-  const [fixLast, setFixLast] = useState(false)
-  const fixRef = useRef(false)
-  fixRef.current = fixLast
   /** Set before the walk starts, so the first clip uses the right pause. */
   const flowLockRef = useRef<FlowName | null>(null)
   flowLockRef.current = flowLock
-  /** Who won the open rally, given on End. With the result it sets the server. */
-  const [wonByPick, setWonByPick] = useState<Side | null>(null)
-  /** Which stop the shot by shot walk has open. Null on the other flows. */
-  const [walk, setWalkState] = useState<SeqPlace | null>(null)
-  const walkRef = useRef<SeqPlace | null>(null)
-  const furthestRef = useRef<SeqPlace | null>(null)
-  const revisitingRef = useRef(false)
-  const endAnsweredRef = useRef(false)
-  const passedRef = useRef<Set<number>>(new Set())
-  const seqBlock = useRef('')
-  const [, setPassedTick] = useState(0)
-  const setWalk = (place: SeqPlace | null) => {
-    walkRef.current = place
-    setWalkState(place)
-  }
-  /** Side log for the rally being tagged. Not stored on the rally. */
-  const clock = useRef<RallyClock | null>(null)
-  /** A Discard that has not been undone and has not been written yet. */
-  const pendingDiscard = useRef<{ clock: RallyClock; draft: Draft; place: SeqPlace | null } | null>(null)
   const [review, setReviewState] = useState<ReviewRun | null>(null)
   const reviewRef = useRef<ReviewRun | null>(null)
   const setReview = (next: ReviewRun | null) => {
     reviewRef.current = next
     setReviewState(next)
   }
-  /** Add contact is on: the taps it was started on, and the speed to go back to. */
-  const [adding, setAdding] = useState<{ contacts: number[]; rate: number } | null>(null)
-
   const slotGuard = useRef(0)
   const panelGuard = useRef(0)
   const rightGuard = useRef(0)
@@ -572,38 +399,12 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const draftGone = set.draft !== null && !have.has(set.draft.videoId)
   const live = draftGone ? null : set.draft
   const readOnly = lock !== null
-  const active = edit ? edit.draft : live
+  const active = live
   const stage = active ? stageOf(active) : null
-  const wonBy: Side | null = !active
-    ? null
-    : !edit && wonByPick
-      ? wonByPick
-      : active.ending && (edit || active.serveChecked)
-        ? winnerOf(active)
-        : null
-  useEffect(() => {
-    if (!live?.closed) setWonByPick(null)
-  }, [live?.closed])
-  /** Shot by shot is on for this rally: locked when the taps closed, off in edit and review. */
-  const seqLive =
-    isWalkFlow(flowLock) && !edit && !review && !set.finished && !draftGone && Boolean(live?.closed)
-  /** Rally Spine: the live pass is waiting for its one row. */
-  const ideaLive =
-    isIdeaFlow(flowLock) && !edit && !review && !detail && !set.finished && !draftGone && Boolean(live?.closed)
-  /** Best or Best + FA, contacts closed, this rally's steps open. */
-  const bestOn =
-    isBestFlow(flowLock) && !edit && !review && !set.finished && !draftGone && Boolean(live?.closed)
+  /** Best + FA, contacts closed, this rally's steps open. */
+  const bestOn = !review && !set.finished && !draftGone && Boolean(live?.closed)
   const liveCount = live?.contacts.length ?? 0
-  const detailing = Boolean(detail && isIdeaFlow(flowWanted) && detail.flow === flowWanted)
-  const detailQ = !detail || !detailing ? null : nextSweep(set.rallies, detail.sweep, names)
   /** End is on screen with no result, and whenever a press has opened it. */
-  const showEnd = bestOn
-    ? false
-    : ideaLive
-    ? false
-    : seqLive
-      ? walk?.kind === 'end'
-      : Boolean(active && active.closed && stage && stage !== 'contacts' && (stage === 'result' || endOpen))
   const score = taggedScore(set) ?? ZERO
   const entered = parseEntered(set.entered)
   /** The set, walked in video order and marked where it does not add up. Nothing is changed by it. */
@@ -616,45 +417,24 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const floorG = gap ? gap.a : liveFloor
   const reachedEntered = entered !== null && entered.me === score.me && entered.them === score.them
   const setWon = set.rallies.length > 0 && (isSetWon(score) || (reachedEntered && isSetWon(entered)))
-  const mode = edit
-    ? 'edit'
-    : set.finished
-      ? 'finished'
-      : draftGone
-        ? 'blocked'
-        : live
-        ? live.closed
-          ? 'tagging'
-          : 'tapping'
-        : setWon && !gap && keptAt !== scoreKey(score)
-          ? 'setPoint'
-          : 'watch'
-  /** Add contact holds only for the taps it was started on. Any other rally on screen ends it. */
-  const addOn =
-    adding !== null && active !== null && active.closed && !readOnly && adding.contacts === active.contacts
-  const fixRally = (() => {
-    if (!fixLast || detailing || !isIdeaFlow(flowWanted)) return null
-    const i = lastSavedId ? set.rallies.findIndex((r) => r.id === lastSavedId) : -1
-    const rally = set.rallies[i >= 0 ? i : set.rallies.length - 1] ?? null
-    if (!rally?.idea || rally.idea.flow !== flowWanted) return null
-    return rally
-  })()
-  const fixing = fixRally !== null
+  const mode = set.finished
+    ? 'finished'
+    : draftGone
+      ? 'blocked'
+      : live
+      ? live.closed
+        ? 'tagging'
+        : 'tapping'
+      : setWon && !gap && keptAt !== scoreKey(score)
+        ? 'setPoint'
+        : 'watch'
   /** What sits in the bottom slot. A change of it guards the slot for a moment. */
-  const slotKind = detailing || fixing
-    ? 'detail'
-    : addOn
-      ? 'add'
-      : mode === 'tagging'
-        ? 'save'
-        : mode === 'edit' || mode === 'finished'
-          ? mode
-          : 'pad'
+  const slotKind = mode === 'tagging' ? 'save' : mode === 'finished' ? 'finished' : 'pad'
 
-  const latest = useRef({ live, set, match, floorG, segs, mode, selected, tight, edit, nextServer, stage, flowWanted })
+  const latest = useRef({ live, set, match, floorG, segs, mode, selected, tight, nextServer, stage, flowWanted })
   useEffect(() => {
     playerRef.current = player
-    latest.current = { live, set, match, floorG, segs, mode, selected, tight, edit, nextServer, stage, flowWanted }
+    latest.current = { live, set, match, floorG, segs, mode, selected, tight, nextServer, stage, flowWanted }
   })
 
   /** Play ran into the saved rally ahead of the gap. */
@@ -678,7 +458,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   /** Best step loop, in match time. Shot loops play at 0.75x. A contact check plays at half speed. */
   const playBest = (d: Draft, what: BestLoopWhat, rate?: number) => {
     bestCheckRef.current = false
-    const speed = rate ?? (what === 'add' ? CAPTURE_SPEED : what === 'rally' ? 1 : BEST_SHOT_RATE)
+    const speed = rate ?? (what === 'rally' ? 1 : BEST_SHOT_RATE)
     loopWhat.current = { what, rate: speed }
     const mismatch = bestMismatch(d, latest.current.set.rallies.length === 0)
     const w = bestLoop(d, what, timing, speed, mismatch)
@@ -778,80 +558,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     return clamp({ a: rallyStart(d), b: rallyEnd(d) })
   }
 
-  const applyLoop = (w: Window, seekTo?: number) => {
-    const p = playerRef.current
-    const current = p.getLoop()
-    const changed = !current || Math.abs(current.a - w.a) > 0.01 || Math.abs(current.b - w.b) > 0.01
-    p.setLoop(w)
-    if (changed || seekTo !== undefined) {
-      p.seek(seekTo ?? w.a)
-      p.play()
-    }
-  }
-
-  /**
-   * The clip for the shot that is waiting. End uses the last shot.
-   * The loop is not restarted while that shot stays open.
-   */
-  const applySeqLoop = (d: Draft, place: SeqPlace) => {
-    const off = offsetOf(d.videoId)
-    const max = durationOf(d.videoId)
-    const clamp = (w: Window): Window => ({
-      a: off + Math.max(0, w.a),
-      b: off + Math.min(max, Math.max(w.b, w.a + 0.3)),
-      ...(w.hold ? { hold: w.hold } : {}),
-    })
-    if (place.kind === 'ready') {
-      seqBlock.current = 'rally'
-      applyLoop(clamp({ a: rallyStart(d), b: rallyEnd(d) }))
-      return
-    }
-    const shot = place.kind === 'end' ? d.contacts.length : place.shot
-    const key = `shot-${shot}`
-    const w = clamp({ ...shotWindow(d, shot), hold: SHOT_LOOP_HOLD_S })
-    if (seqBlock.current === key) {
-      playerRef.current.setLoop(w)
-      return
-    }
-    seqBlock.current = key
-    applyLoop(w)
-  }
-
-  const seqGo = (d: Draft, dest: SeqPlace, guard: boolean) => {
-    revisitingRef.current = false
-    const n = d.contacts.length
-    const rank = (p: SeqPlace) => (p.kind === 'shot' ? p.shot : p.kind === 'end' ? n - 0.5 : n + 1)
-    if (!furthestRef.current || rank(dest) > rank(furthestRef.current)) furthestRef.current = dest
-    setWalk(dest)
-    if (dest.kind === 'shot') {
-      passedRef.current.add(dest.shot)
-      setPassedTick((n) => n + 1)
-      setSelected({ kind: 'shot', shot: dest.shot })
-      setEndOpen(false)
-    } else if (dest.kind === 'end') {
-      setSelected(null)
-      setEndOpen(true)
-    } else {
-      setSelected(null)
-      setEndOpen(false)
-    }
-    setTight(false)
-    applySeqLoop(d, dest)
-    if (guard) arm(0, GUARD_AFTER_SWAP_MS)
-  }
-
-  const startSeq = (d: Draft, place: SeqPlace) => {
-    const reached = new Set<number>()
-    const upTo = place.kind === 'shot' ? place.shot : place.kind === 'ready' ? d.contacts.length : 0
-    for (let shot = 1; shot <= upTo; shot++) reached.add(shot)
-    passedRef.current = reached
-    endAnsweredRef.current = place.kind === 'ready' || Boolean(d.ending && place.kind === 'end')
-    furthestRef.current = null
-    revisitingRef.current = false
-    seqBlock.current = ''
-    seqGo(d, place, false)
-  }
-
   /** Puts the video where this set stands: the open rally, or the last saved one. */
   const park = (draft: Draft | null, finished: boolean, floor: number) => {
     const p = playerRef.current
@@ -881,8 +587,8 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   // video is parked on the frame where tagging stopped.
   useEffect(() => {
     let draft = set.draft
-    const modeNow: FlowName = flowFromParam(searchParams.get('flow'))
-    const bestOpen = Boolean(isBestFlow(modeNow) && draft && !draft.closed && draft.contacts.length > 0)
+    const modeNow: FlowName = 'bestfa'
+    const bestOpen = Boolean(draft && !draft.closed && draft.contacts.length > 0)
     if (draft && !draft.closed && !bestOpen) {
       draft = draft.contacts.length > 0 ? { ...draft, closed: true } : null
       const fixed = draft
@@ -891,23 +597,13 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     if (draft && draft.closed && draft.contacts.length > 0) {
       flowLockRef.current = modeNow
       setFlowLock(modeNow)
-      clock.current = { ...freshClock(modeNow), tapsEnded: Date.now() }
     }
     if (bestOpen && draft) {
       flowLockRef.current = modeNow
       setFlowLock(modeNow)
-      clock.current = freshClock(modeNow)
     }
     park(draft, set.finished, floorG)
-    if (draft && draft.closed && draft.contacts.length > 0 && isIdeaFlow(modeNow)) {
-      const p = playerRef.current
-      p.setLoop(null)
-      p.pause()
-    }
-    if (draft && draft.closed && draft.contacts.length > 0 && isWalkFlow(modeNow)) {
-      startSeq(draft, openAt(draft))
-    }
-    if (draft && isBestFlow(modeNow) && draft.contacts.length > 0) {
+    if (draft && draft.contacts.length > 0) {
       if (draft.closed) playBest(draft, bestAt(draft, set.rallies.length === 0))
       else {
         const p = playerRef.current
@@ -929,13 +625,11 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   // A message belongs to the rally or review on screen. It goes when that changes:
   // the rally is saved, the next serve is tapped, a saved rally is opened or closed,
   // or a review is left. The next press inside a review is a new screen, so it replaces it.
-  const messageScene = edit
-    ? `edit:${edit.id}`
-    : review
-      ? `review:${review.kind}:${review.kind === 'ask' ? review.rule.cursor : review.kind === 'gaps' ? review.at : 0}`
-      : live
-        ? `live:${live.contacts[0] ?? ''}`
-        : 'between'
+  const messageScene = review
+    ? `review:${review.kind}:${review.kind === 'ask' ? review.rule.cursor : review.kind === 'gaps' ? review.at : 0}`
+    : live
+      ? `live:${live.contacts[0] ?? ''}`
+      : 'between'
   const messageHome = useRef(messageScene)
   const messageShown = useRef<Toast | null>(null)
   useEffect(() => {
@@ -957,16 +651,10 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     return () => clearTimeout(id)
   }, [hint])
 
-  useEffect(() => {
-    if (adding && !addOn) setAdding(null)
-  }, [adding, addOn])
-
   // The slot and the panel guard themselves whenever what they hold changes.
-  // Result to wing and stroke is the one step that swaps nothing: those rows stay put.
   const selKey = selected ? (selected.kind === 'shot' ? `shot-${selected.shot}` : selected.kind) : ''
-  const stepKey = `${mode}:${stage === 'result' || stage === 'endShot' ? 'end' : stage}:${selKey}`
+  const stepKey = `${mode}:${stage ?? ''}:${selKey}`
   const lastSlot = useRef(slotKind)
-  useEffect(() => setFaSaid(null), [stepKey])
   const lastStep = useRef(stepKey)
   useLayoutEffect(() => {
     if (lastSlot.current !== slotKind) arm(GUARD_AFTER_SWAP_MS)
@@ -993,138 +681,16 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
 
   const onRate = (rate: number) => {
     playerRef.current.setRate(rate)
-    if (!live && !edit) {
+    if (!live) {
       watchRate.current = rate
       watchRates.set(match.id, rate)
     }
   }
 
-  /** Writes the rally being worked on: the past rally in edit, else the draft. */
+  /** Writes the open rally. */
   const writeDraft = (next: Draft) => {
     if (readOnly) return
-    if (edit) setEdit({ ...edit, draft: next, dirty: editDirty(edit.baseline, next, edit.id) })
-    else mutateMatch(match.id, (m) => setDraft(m, set.setId, next))
-  }
-
-  /** Where End goes once it has a result: the last shot's details, or Ready. */
-  const afterEnd = (d: Draft, place: SeqStop): SeqPlace => nextStop(d, place)
-
-  /** A tag change, then the hand-over the real app does between steps. */
-  const seqOnAnswer = (nextIn: Draft) => {
-    const place = walkRef.current
-    const next = place?.kind === 'shot' && place.shot === endShot(nextIn) ? settleLastStroke(nextIn) : nextIn
-    writeDraft(next)
-    if (!place || place.kind === 'ready') return
-    if (place.kind === 'end') {
-      if (next.ending) endAnsweredRef.current = true
-      const dest = afterEnd(next, place)
-      if (dest.kind !== 'end') seqGo(next, dest, true)
-      return
-    }
-    if (!shotComplete(next, place.shot)) return
-    const dest = revisitingRef.current
-      ? afterRevisit(next, furthestRef.current ?? place, endAnsweredRef.current)
-      : nextStop(next, place)
-    seqGo(next, dest, true)
-  }
-
-  const onSeqSide = (side: 'offensive' | 'defensive') => {
-    const place = walkRef.current
-    if (!active || place?.kind !== 'shot') return
-    const pressed = pressSide(active, place.shot, side)
-    if (pressed.draft !== active) writeDraft(pressed.draft)
-    const draft = pressed.draft
-    if (pressed.cleared) {
-      furthestRef.current = place
-      revisitingRef.current = false
-      seqGo(draft, nextStop(draft, place), true)
-      return
-    }
-    if (pressed.advance) {
-      const dest = revisitingRef.current
-        ? afterRevisit(draft, furthestRef.current ?? place, endAnsweredRef.current)
-        : nextStop(draft, place)
-      seqGo(draft, dest, true)
-      return
-    }
-    if (shotComplete(draft, place.shot)) {
-      const dest = revisitingRef.current
-        ? afterRevisit(draft, furthestRef.current ?? place, endAnsweredRef.current)
-        : nextStop(draft, place)
-      seqGo(draft, dest, true)
-    }
-  }
-
-  const onNext = () => {
-    const place = walkRef.current
-    if (!active || !place || place.kind === 'ready') return
-    if (!nextAllowed(active, place)) return
-    if (clock.current) clock.current.nexts++
-    if (place.kind === 'shot' && beforeAttack(active, place.shot)) {
-      onSeqSide('defensive')
-      return
-    }
-    const dest = revisitingRef.current
-      ? afterRevisit(active, furthestRef.current ?? place, endAnsweredRef.current)
-      : place.kind === 'end'
-        ? afterEnd(active, place)
-        : nextStop(active, place)
-    seqGo(active, dest, true)
-  }
-
-  /** The server that fits who won and the result. The first rally of a set also sets who served first. */
-  const withWinner = (d: Draft, winner: Side): Draft => {
-    const server = serverForWinner(d, winner)
-    if (!edit && !gap && set.rallies.length === 0 && server !== set.firstServer) {
-      mutateMatch(match.id, (m) => flipFirstServer(m, set.setId))
-    }
-    return { ...d, server, serveChecked: true }
-  }
-
-  const onWonBy = (side: Side) => {
-    if (!active || readOnly) return
-    if (!edit) setWonByPick(side)
-    if (active.ending && winnerOf(active) !== side) change(withWinner(active, side))
-  }
-
-  const change = (asked: Draft) => {
-    if (!active) return
-    let next = asked
-    if (next.ending && next.ending !== active.ending) {
-      if (!wonBy) return
-      next = withWinner(next, wonBy)
-    }
-    if (clock.current) {
-      if (active.ending && next.ending && active.ending !== next.ending) clock.current.changed++
-      if (active.fa !== null && active.fa !== next.fa) clock.current.changed++
-      const count = Math.max(active.shots.length, next.shots.length)
-      for (let i = 0; i < count; i++) {
-        const was = active.shots[i]
-        const now = next.shots[i]
-        if (was?.stroke && now?.stroke && was.stroke !== now.stroke) clock.current.changed++
-        if (was?.wing && now?.wing && was.wing !== now.wing) clock.current.changed++
-      }
-    }
-    if (isWalkFlow(flowLock) && !edit && !review && mode === 'tagging' && walkRef.current) {
-      seqOnAnswer(next)
-      return
-    }
-    const prev = stageOf(active)
-    const st = stageOf(next)
-    const sel = selectionAfter(prev, st, next, selected)
-    const handoff = prev === 'result' && st !== 'result'
-    writeDraft(next)
-    setSelected(sel)
-    // The first result swaps End for the last shot (or for nothing, on one shot).
-    // A later result, pressed while End is open, does the same swap. Either way the band pauses.
-    if (handoff || (endOpen && sel?.kind === 'shot' && active.ending !== next.ending)) {
-      setEndOpen(false)
-      arm(0, GUARD_AFTER_SWAP_MS)
-    } else if (sel?.kind === 'shot') {
-      setEndOpen(false)
-    }
-    setTight(false)
-    applyLoop(windowFor(next, sel, st, false))
+    mutateMatch(match.id, (m) => setDraft(m, set.setId, next))
   }
 
   /** Closes the rally. The second after the close ignores a tap. */
@@ -1132,108 +698,41 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     const { live: d, set: s, match: m } = latest.current
     if (!d || d.closed || d.contacts.length === 0) return
     const wanted = latest.current.flowWanted
-    const best = isBestFlow(wanted)
-    const base = best ? { ...d, closed: true, best: carryBest(d, {}) } : d
+    const base = { ...d, closed: true, best: carryBest(d, {}) }
     const open: BestAt =
-      best && d.contacts.length > 1
-        ? (routeAfter(base, s.rallies.length === 0) ?? { step: 'serve' })
-        : { step: 'end' }
-    const closed: Draft = best ? withStep(base, open) : { ...d, closed: true }
+      d.contacts.length > 1 ? (routeAfter(base, s.rallies.length === 0) ?? { step: 'serve' }) : { step: 'end' }
+    const closed: Draft = withStep(base, open)
     mutateMatch(m.id, (cur) => setDraft(cur, s.setId, closed))
     const p = playerRef.current
-    if (best || isIdeaFlow(wanted)) {
-      p.setLoop(null)
-      p.pause()
-      // Spine shows the last contact.
-      if (wanted === 'spine') p.seek(offsetOf(d.videoId) + d.contacts[d.contacts.length - 1])
-    }
+    p.setLoop(null)
+    p.pause()
     p.setBoundary(null)
     setLastTap(null)
     flowLockRef.current = wanted
     setFlowLock(wanted)
-    if (best) {
-      setSelected(null)
-      setEndOpen(false)
-      setBestLook(false)
-      setBestAdd(false)
-      setBestCheck(false)
-      playBest(closed, open)
-    } else if (isIdeaFlow(wanted)) {
-      setSelected(null)
-      setEndOpen(false)
-    } else if (isWalkFlow(wanted)) {
-      startSeq(closed, openAt(closed))
-    }
-    if (!clock.current) clock.current = freshClock(wanted)
-    clock.current.mode = wanted
-    clock.current.tapsEnded = Date.now()
+    setSelected(null)
+    setBestLook(false)
+    setBestCheck(false)
+    playBest(closed, open)
     // A tap that comes late never lands on Save, Discard or a chip. The whole second.
     arm(GUARD_AFTER_CLOSE_MS, GUARD_AFTER_CLOSE_MS, GUARD_AFTER_CLOSE_MS)
   }
 
-  // Two seconds with no tap closes the rally. Spine measures 1.2s of video, so a slow exchange at 0.75x stays open.
+  // Two seconds with no tap closes the rally.
   useEffect(() => {
     if (mode !== 'tapping' || lastTap === null) return
-    if (latest.current.flowWanted !== 'spine') {
-      const id = setTimeout(() => {
-        if (bestCheckRef.current && isBestFlow(latest.current.flowWanted)) return
-        closeContacts()
-      }, CONTACT_IDLE_MS)
-      return () => clearTimeout(id)
-    }
-    const start = playerRef.current.getTime()
-    let raf = 0
-    const tick = () => {
-      if (latest.current.mode !== 'tapping') return
-      if (playerRef.current.getTime() - start >= SPINE_IDLE_S) {
-        closeContacts()
-        return
-      }
-      raf = requestAnimationFrame(tick)
-    }
-    raf = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(raf)
+    const id = setTimeout(() => {
+      if (bestCheckRef.current) return
+      closeContacts()
+    }, CONTACT_IDLE_MS)
+    return () => clearTimeout(id)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, lastTap])
 
-  useEffect(() => {
-    setDetail((cur) => (cur && cur.flow !== flowWanted ? null : cur))
-    setFixLast(false)
-  }, [flowWanted])
-
-  /** Detail pass and sweeps loop the contact the question is about. */
-  useEffect(() => {
-    if (!detail) return
-    if (!detailQ) {
-      setDetail(null)
-      const p = playerRef.current
-      p.setLoop(null)
-      p.setRate(watchRate.current)
-      return
-    }
-    const r = set.rallies[detailQ.index]
-    if (!r) return
-    const d = draftFromRally(r)
-    const off = offsetOf(r.videoId)
-    const max = durationOf(r.videoId)
-    const raw = shotWindow(d, detailQ.contact)
-    const w = {
-      a: off + Math.max(0, raw.a),
-      b: off + Math.min(max, Math.max(raw.b, raw.a + 0.3)),
-      hold: SHOT_LOOP_HOLD_S,
-    }
-    const p = playerRef.current
-    p.setRate(1)
-    p.setLoop(w)
-    p.seek(w.a)
-    p.play()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [detail, detailQ?.index, detailQ?.kind, detailQ?.contact, detailQ?.shot])
-
   /** The pad: plays when paused with nothing tapped, otherwise records a contact. */
   const onPad = () => {
-    if (detailRef.current || fixRef.current || bestHold.current) return
-    if (bestCheckRef.current && isBestFlow(latest.current.flowWanted)) return
+    if (bestHold.current) return
+    if (bestCheckRef.current) return
     const p = playerRef.current
     if (mode === 'setPoint') {
       onKeepTagging()
@@ -1242,7 +741,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     if (mode !== 'watch' && mode !== 'tapping') return
     const tapped = live?.contacts.length ?? 0
     if (!p.isPlaying() && tapped === 0) {
-      if (isBestFlow(latest.current.flowWanted)) p.setRate(CAPTURE_SPEED)
+      p.setRate(CAPTURE_SPEED)
       p.play()
       // The pad now means Tap serve: a double press on Play is not a serve.
       arm(GUARD_AFTER_SWAP_MS)
@@ -1254,7 +753,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     const local = g - seg.offset
     const floorLocal = tapped > 0 ? live!.contacts[tapped - 1] : Math.max(0, floorG - seg.offset)
     // Reaction is video time. A slower playback speed does not shrink it.
-    const latency = isBestFlow(latest.current.flowWanted) ? timing.reaction / 1000 : TAP_LATENCY_S
+    const latency = timing.reaction / 1000
     const stored = Math.round(captureContactTime(local, floorLocal, latency) * 100) / 100
     if (tapped > 0 && tapIgnored(live!, stored)) return
     const server = nextServer
@@ -1264,16 +763,11 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       const base = serverChosen.current ? { ...fresh, serveChecked: true } : fresh
       const added = addContact(base, stored)
       const flow = latest.current.flowWanted
-      const stamped = isBestFlow(flow) ? { ...added, best: { ...(added.best ?? { flow }), flow } } : added
+      const stamped = { ...added, best: { ...(added.best ?? { flow }), flow } }
       return setDraft(m, set.setId, stamped)
     })
     if (tapped === 0) {
       setBestSaved(null)
-      if (pendingDiscard.current) {
-        pushTagLog(lineFrom(pendingDiscard.current.clock, pendingDiscard.current.draft))
-        pendingDiscard.current = null
-      }
-      clock.current = freshClock(latest.current.flowWanted)
       p.setRate(CAPTURE_SPEED)
       // A rally never spans two videos: the end of this one closes it.
       p.setBoundary(seg.offset + seg.duration, () => closeContacts())
@@ -1283,47 +777,11 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     rightGuard.current = Math.max(rightGuard.current, Date.now() + GUARD_DELETE_AFTER_TAP_MS)
   }
 
-  /**
-   * Delete last takes the last tap back, while tapping and after the rally closes.
-   * After the close the tap before becomes the end shot and its result is asked.
-   */
+  /** Delete last while the rally is still being tapped. */
   const onUndoTap = () => {
-    if (addOn) return
-    if (edit) {
-      // A saved rally keeps its serve: taking that away is Delete rally.
-      if (!readOnly && edit.draft.contacts.length > 1) change(undoClosedContact(edit.draft))
-      return
-    }
-    if (!live || live.contacts.length === 0) return
+    if (!live || live.closed || live.contacts.length === 0) return
     const p = playerRef.current
     const removed = live.contacts[live.contacts.length - 1]
-    if (live.closed) {
-      if (isIdeaFlow(flowLock) && live.contacts.length > 1) {
-        const next = undoClosedContact(live)
-        writeDraft(next)
-        const p = playerRef.current
-        p.setLoop(null)
-        p.pause()
-        p.seek(offsetOf(live.videoId) + next.contacts[next.contacts.length - 1])
-        return
-      }
-      if (live.contacts.length > 1) {
-        change(undoClosedContact(live))
-        return
-      }
-      // The only tap: the rally goes, and the video carries on from there.
-      const before = set
-      mutateMatch(match.id, (m) => setDraft(m, set.setId, null))
-      p.setLoop(null)
-      p.setBoundary(null)
-      p.setRate(watchRate.current)
-      p.seek(offsetOf(live.videoId) + removed)
-      p.play()
-      setSelected(null)
-      setServerPick(null)
-      withUndo('Unsaved rally cleared', before, () => park(before.draft, false, floorG))
-      return
-    }
     const next = undoContact(live)
     if (next.contacts.length === 0) {
       mutateMatch(match.id, (m) => setDraft(m, set.setId, null))
@@ -1335,121 +793,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       setLastTap(Date.now())
     }
     p.seek(offsetOf(live.videoId) + removed)
-  }
-
-  /**
-   * Shot by shot: an extra tap found once the walk has opened. The tap before
-   * becomes the last shot and the result is asked again. The walk stays on the
-   * open shot when it is still in the rally, otherwise it goes to the first
-   * thing Save needs. A one shot rally opens on End, as it does after tapping.
-   */
-  const onSeqDeleteLast = () => {
-    if (readOnly || !live || !live.closed || live.contacts.length < 2) return
-    const next = undoClosedContact(live)
-    const n = next.contacts.length
-    writeDraft(next)
-    if (clock.current) clock.current.changed++
-    const place = walkRef.current
-    const far = furthestRef.current
-    passedRef.current = new Set([...passedRef.current].filter((shot) => shot <= n))
-    furthestRef.current = far?.kind === 'shot' && far.shot <= n ? far : null
-    endAnsweredRef.current = false
-    seqBlock.current = ''
-    const stay = n > 1 && place?.kind === 'shot' && place.shot <= n
-    seqGo(next, stay ? place : (firstSaveGap(next) ?? { kind: 'end' }), true)
-  }
-
-  const onShot = (shot: number) => {
-    if (!active || !stage) return
-    if (isWalkFlow(flowLock) && !edit && !review && mode === 'tagging') {
-      const place = walkRef.current
-      if (place?.kind === 'shot' && place.shot === shot) {
-        if (revisitingRef.current) {
-          seqGo(active, afterRevisit(active, furthestRef.current ?? place, endAnsweredRef.current), false)
-        }
-        return
-      }
-      const openable = place?.kind === 'ready' || passedRef.current.has(shot)
-      if (!openable || shot > active.contacts.length) return
-      if (clock.current) clock.current.reopened++
-      revisitingRef.current = true
-      setWalk({ kind: 'shot', shot })
-      setSelected({ kind: 'shot', shot })
-      setEndOpen(false)
-      setTight(false)
-      applySeqLoop(active, { kind: 'shot', shot })
-      return
-    }
-    const mark: Mark = { kind: 'shot', shot }
-    if (!readOnly && stage === 'result') return
-    if (!readOnly && stage === 'pickFa') return
-    // While the last shot is being asked, a press does nothing unless End is what is open.
-    if (!readOnly && stage === 'endShot' && !showEnd) return
-    // After the press, the shot before or after moves the first attack.
-    if (!readOnly && stage === 'faShot') {
-      const refused = faRefusal(active, shot)
-      setFaSaid(refused ? faRefusalText(refused) : null)
-      if (!refused) {
-        setEndOpen(false)
-        change(markFa(active, shot))
-      }
-      return
-    }
-    const same = selected?.kind === 'shot' && selected.shot === shot
-    if (!same && stage === 'ready' && clock.current) clock.current.reopened++
-    const sel = same ? null : mark
-    setEndOpen(false)
-    setSelected(sel)
-    setTight(false)
-    applyLoop(windowFor(active, sel, stage, false))
-  }
-
-  /** Open End, or close it. With no result it stays open. Opening it closes any shot. */
-  const onEnd = () => {
-    if (!active || !stage || stage === 'contacts' || readOnly) return
-    if (isWalkFlow(flowLock) && !edit && !review && mode === 'tagging') {
-      const place = walkRef.current
-      const reached =
-        place?.kind === 'ready' || place?.kind === 'end' || endAnsweredRef.current || furthestRef.current?.kind === 'end'
-      if (!reached) return
-      if (place?.kind === 'end') {
-        if (!active.ending) return
-        if (canSave(active)) seqGo(active, { kind: 'ready' }, false)
-        return
-      }
-      revisitingRef.current = true
-      setWalk({ kind: 'end' })
-      setSelected(null)
-      setEndOpen(true)
-      applySeqLoop(active, { kind: 'end' })
-      return
-    }
-    if (stage !== 'result' && endOpen) {
-      setEndOpen(false)
-      return
-    }
-    setEndOpen(true)
-    if (selected) {
-      setSelected(null)
-      setTight(false)
-      applyLoop(windowFor(active, null, stage, false))
-    }
-  }
-
-  const onMark = (mark: Mark) => {
-    if (!active || !stage) return
-    const sel = selected?.kind === mark.kind ? null : mark
-    setSelected(sel)
-    setTight(false)
-    applyLoop(windowFor(active, sel, stage, false))
-  }
-
-  const onNudge = (delta: number) => {
-    if (!active || !stage || !selected || readOnly) return
-    const next = nudgeMark(active, selected, delta, durationOf(active.videoId))
-    writeDraft(next)
-    setTight(true)
-    applyLoop(windowFor(next, selected, stage, true))
   }
 
   const withUndo = (text: string, before: SetData, after?: () => void) =>
@@ -1470,35 +813,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   }
 
   /**
-   * Let: the taps are dropped, no point is counted, and the video carries on.
-   * It is also the way out of a rally tapped by mistake. Undo brings it back.
-   */
-  const onLet = () => {
-    if (!live || addOn) return
-    const p = playerRef.current
-    const before = set.draft && !set.draft.closed ? { ...set, draft: { ...set.draft, closed: true } } : set
-    const off = offsetOf(live.videoId)
-    mutateMatch(match.id, (m) => setDraft(m, set.setId, null))
-    p.setLoop(null)
-    p.setBoundary(null)
-    p.setRate(watchRate.current)
-    if (live.closed) p.seek(off + live.contacts[live.contacts.length - 1])
-    p.play()
-    setSelected(null)
-    setLastTap(null)
-    setServerPick(null)
-    serverChosen.current = false
-    setToast({
-      text: 'Let, no point',
-      undo: () => {
-        mutateMatch(match.id, (m) => restoreSet(m, before))
-        setToast(null)
-        park(before.draft, false, floorG)
-      },
-    })
-  }
-
-  /**
    * Drops the taps of the rally being tagged and puts the video just before
    * the serve, so the same rally can be tapped again. Undo brings the taps back.
    * Saved rallies are left as they are.
@@ -1516,42 +830,25 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     p.seek(at)
     p.play()
     setSelected(null)
-    setEndOpen(false)
     setTight(false)
     setLastTap(null)
     // The tap button takes the place of Discard and Save, so the next press waits a second.
     arm(GUARD_AFTER_CLOSE_MS)
     // The same rally is tapped again, so it keeps the server it had.
     if (set.rallies.length > 0) setServerPick(live.server === expected ? null : live.server)
-    if (clock.current) {
-      clock.current.presses++
-      clock.current.discards++
-      pendingDiscard.current = { clock: clock.current, draft: live, place: walkRef.current }
-      clock.current = null
-    }
-    setWalk(null)
     setFlowLock(null)
     setToast({
       text: 'Taps cleared',
       undo: () => {
         mutateMatch(match.id, (m) => restoreSet(m, before))
         setToast(null)
-        const held = pendingDiscard.current
-        pendingDiscard.current = null
-        if (held) {
-          clock.current = held.clock
-          setFlowLock(held.clock.mode)
-        }
+        setFlowLock('bestfa')
         park(before.draft, false, floorG)
-        if (held && isWalkFlow(held.clock.mode) && held.place && before.draft) {
-          startSeq(before.draft, held.place)
-        }
       },
     })
   }
 
   const onRetap = () => {
-    if (addOn) return
     clearLiveRally()
   }
 
@@ -1562,27 +859,20 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const onDiscardProgress = () => {
     if (readOnly || !live || live.contacts.length === 0) return
     if (Date.now() < slotGuard.current) return
-    setAdding(null)
     setBestCheck(false)
     bestCheckRef.current = false
     setBestLook(false)
-    setBestAdd(false)
     loopWhat.current = null
     setBestSpan(null)
     clearLiveRally()
   }
 
   /** Save writes the rally, moves the score and lets the video run on. */
-  const commitRally = (rally: RallyData, logged: Draft) => {
+  const commitRally = (rally: RallyData) => {
     const p = playerRef.current
     const before = set
     mutateMatch(match.id, (m) => saveRally(m, set.setId, rally))
-    if (clock.current) pushTagLog(lineFrom(clock.current, logged))
-    clock.current = null
-    pendingDiscard.current = null
-    setWalk(null)
     setFlowLock(null)
-    setLastSavedId(rally.id)
     setServerPick(null)
     serverChosen.current = false
     const endG = offsetOf(rally.videoId) + rally.contacts[rally.contacts.length - 1]
@@ -1598,7 +888,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       p.seek(liveFloor)
       p.pause()
       setSelected(null)
-      setEndOpen(false)
       setTight(false)
       setKeptAt(null)
       arm(GUARD_AFTER_CLOSE_MS)
@@ -1613,19 +902,17 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     if (isSetWon(after) || atEntered) p.pause()
     else p.play()
     setSelected(null)
-    setEndOpen(false)
     setTight(false)
     setKeptAt(null)
-    setFixLast(false)
     arm(GUARD_AFTER_CLOSE_MS)
   }
 
   const onSave = () => {
-    if (isBestFlow(flowLockRef.current)) return
+    if (flowWanted === 'bestfa') return
     if (!live || !canSave(live)) return
     const rally = rallyFromDraft(live, `r-${Date.now()}`)
     if (!rally) return
-    commitRally(rally, live)
+    commitRally(rally)
   }
 
   const rallyOneNow = () => set.rallies.length === 0
@@ -1636,7 +923,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     writeDraft(next)
     setBestLook(false)
     setBestCheck(false)
-    setBestAdd(false)
     playBest(next, at)
   }
 
@@ -1658,7 +944,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     const now = bestAt(d, rallyOne)
     const misNow = bestMismatch(d, rallyOne)
     writeDraft(d)
-    setBestAdd(false)
     const moved =
       was.step !== now.step ||
       was.page !== now.page ||
@@ -1689,20 +974,13 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       const base = rally1 && d.server !== set.firstServer ? flipFirstServer(m, set.setId) : m
       return saveRally(base, set.setId, rally)
     })
-    if (clock.current) pushTagLog(lineFrom(clock.current, d))
-    clock.current = null
-    pendingDiscard.current = null
     setBestSaved({ rallyId: rally.id, draft: { ...d, closed: true }, before, floor: floorG })
-    setWalk(null)
     setFlowLock(null)
-    setLastSavedId(rally.id)
     setServerPick(null)
     serverChosen.current = false
     setBestLook(false)
     setBestCheck(false)
-    setBestAdd(false)
     setSelected(null)
-    setEndOpen(false)
     setTight(false)
     const p = playerRef.current
     const endG = offsetOf(rally.videoId) + rally.contacts[rally.contacts.length - 1]
@@ -1755,7 +1033,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     setKeptAt(null)
     flowLockRef.current = 'bestfa'
     setFlowLock('bestfa')
-    clock.current = { ...freshClock('bestfa'), tapsEnded: Date.now() }
     const p = playerRef.current
     p.setBoundary(null)
     p.setFloor(bestSaved.floor)
@@ -1821,20 +1098,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     p.play()
   }
 
-  const onBestAddTap = () => {
-    if (!bestAdd || !live || readOnly) return
-    const p = playerRef.current
-    const local = p.getTime() - offsetOf(live.videoId)
-    const serveAt = live.contacts[0]
-    // Before the serve is not a contact. The loop starts at the serve, and a tap there is ignored.
-    if (serveAt !== undefined && local < serveAt - 0.02) return
-    const t = addedContactTime(live, local, fenceOf(live), ceilOf(live), timing.reaction / 1000)
-    if (serveAt !== undefined && t < serveAt) return
-    const { draft: next } = insertContact(live, t)
-    setBestAdd(false)
-    routeBest(keepBestMarks({ ...next, best: carryBest(next, { kept: undefined }) }))
-  }
-
   const onBestDropShot = (shot: number) => {
     if (!live || live.contacts.length < 2) return
     const before = set
@@ -1882,146 +1145,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     else playCheck(live)
   }
 
-  /** Rally Spine: Winner means the last hitter won. Net, Long or Wide means they lost. */
-  const onIdeaResult = (result: string) => {
-    if (fixRef.current) {
-      if (fixRally?.idea?.flow === 'spine') {
-        const next = correctResult(fixRally, result)
-        if (next) mutateMatch(match.id, (m) => replaceRally(m, set.setId, next))
-      }
-      return
-    }
-    if (!live?.closed || flowLock !== 'spine') return
-    const ending = spineEnding(result)
-    if (!ending) return
-    const winner = winnerOf({ server: live.server, contacts: live.contacts, ending })
-    if (!winner) return
-    commitRally(liveRally(live, `r-${Date.now()}`, winner, ending, { flow: 'spine', result }), live)
-  }
-
-  const onDetailPick = (code: string) => {
-    if (!detailQ) return
-    const rally = set.rallies[detailQ.index]
-    if (!rally) return
-    const next = applyDetail(rally, detailQ, code)
-    mutateMatch(match.id, (m) => replaceRally(m, set.setId, next))
-  }
-
-  const onDetailBack = () => {
-    setDetail(null)
-    const p = playerRef.current
-    p.setLoop(null)
-    p.setRate(watchRate.current)
-    p.pause()
-  }
-
-  /**
-   * Switch: the other player serves this rally. Only this rally changes; the
-   * rallies after it follow from it. Before a set has a rally it sets who serves first.
-   */
-  const onSwitch = () => {
-    if (readOnly) return
-    if (isBestFlow(latest.current.flowWanted) && !edit) return
-    // Editing a saved rally: the same Switch, for that rally only.
-    serverChosen.current = true
-    if (edit) {
-      writeDraft({ ...edit.draft, server: otherSide(edit.draft.server), serveChecked: true })
-      return
-    }
-    if (mode !== 'watch' && mode !== 'tagging') return
-    if (set.rallies.length === 0) mutateMatch(match.id, (m) => flipFirstServer(m, set.setId))
-    else if (!live) setServerPick(nextServer === expected ? otherSide(expected) : null)
-    if (live) writeDraft({ ...live, server: otherSide(live.server), serveChecked: true })
-  }
-
-  /** Who serves first, before a rally is saved, and who serves the rally in progress. */
-  const onIdeaServer = () => {
-    if (readOnly || !isIdeaFlow(flowWanted)) return
-    if (set.rallies.length === 0) mutateMatch(match.id, (m) => flipFirstServer(m, set.setId))
-    else if (!live) setServerPick(nextServer === expected ? otherSide(expected) : null)
-    if (live) writeDraft({ ...live, server: otherSide(live.server), serveChecked: true })
-  }
-
-  /**
-   * The last contact of the rally saved before the open one, in the open
-   * rally's own video. An added contact never goes behind it.
-   */
-  const fenceOf = (d: Draft): number | null => {
-    const prev = edit && edit.index > 0 ? set.rallies[edit.index - 1] : null
-    const g = edit ? (prev ? (lastContactG(segs, prev) ?? 0) : earlierSetsEnd(match, set.setId)) : floorG
-    const off = offsetOf(d.videoId)
-    return g > off ? g - off : null
-  }
-
-  /** An added contact also stays in front of the saved rally that follows, and inside the video. */
-  const ceilOf = (d: Draft): number => {
-    const off = offsetOf(d.videoId)
-    const max = durationOf(d.videoId)
-    const next = edit ? set.rallies[edit.index + 1] : null
-    const g = edit ? (next ? firstContactG(segs, next) : null) : gap ? gap.b : null
-    return g !== null && g > off && g - off < max ? Math.max(0, g - off - 0.05) : max
-  }
-
-  /**
-   * Add contact, for a missed serve or a missed contact anywhere in the rally.
-   * The whole rally loops from 4 seconds before the first tap and the big
-   * button takes one tap. Pressed again it is off, and nothing has changed.
-   */
-  const onAddContact = () => {
-    if (!active || !active.closed || !stage || readOnly) return
-    const p = playerRef.current
-    if (addOn && adding) {
-      setAdding(null)
-      p.setRate(adding.rate)
-      applyLoop(windowFor(active, selected, stage, tight))
-      return
-    }
-    const off = offsetOf(active.videoId)
-    const w = addContactWindow(active, fenceOf(active))
-    // Same fence as the tap: not behind the previous rally, and before the next one.
-    const end = Math.min(w.b, ceilOf(active))
-    setAdding({ contacts: active.contacts, rate: player.rate })
-    p.setRate(CAPTURE_SPEED)
-    p.setLoop({ a: off + w.a, b: off + end })
-    p.seek(off + w.a)
-    p.play()
-  }
-
-  /** The tap while Add contact is on: one contact goes in, in time order, and tagging carries on. */
-  const onAddTap = () => {
-    if (!addOn || !adding || !active || readOnly) return
-    const p = playerRef.current
-    const was = active
-    const wasEdit = edit
-    const wasSelected = selected
-    const t = addedContactTime(was, p.getTime() - offsetOf(was.videoId), fenceOf(was), ceilOf(was))
-    const { draft: next, shot } = insertContact(was, t)
-    const st = stageOf(next)
-    // Ready: the new shot opens, so its time can be stepped. While a step is asked, that step's shot stays.
-    const sel: Mark | null = st === 'ready' ? { kind: 'shot', shot } : selectionAfter('contacts', st, next, null)
-    setAdding(null)
-    p.setRate(adding.rate)
-    writeDraft(next)
-    setSelected(sel)
-    setTight(false)
-    applyLoop(windowFor(next, sel, st, false))
-    setToast({
-      text: addedContactText(was, next, shot, names),
-      undo: () => {
-        setToast(null)
-        // Only while that rally is still the one open.
-        const now = latest.current
-        const open = now.edit ? now.edit.draft : now.live
-        if (!open || open.videoId !== was.videoId || !open.contacts.includes(t)) return
-        if (wasEdit) setEdit(wasEdit)
-        else mutateMatch(match.id, (m) => setDraft(m, set.setId, was))
-        setSelected(wasSelected)
-        setTight(false)
-        applyLoop(windowFor(was, wasSelected, stageOf(was), false))
-      },
-    })
-  }
-
   const leaveGap = () => {
     if (!gap) return
     setGap(null)
@@ -2035,7 +1158,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     if (readOnly || live || set.finished) return
     const w = gapWindow(match, set.setId, index)
     if (!w) return
-    setEdit(null)
     setListOpen(false)
     listResume.current = false
     setToast(null)
@@ -2070,7 +1192,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     const before = set
     leaveGap()
     mutateMatch(match.id, (m) => insertRallyAt(m, set.setId, point, index))
-    setLastSavedId(point.id)
     setKeptAt(null)
     withUndo('Point added', before)
   }
@@ -2129,12 +1250,10 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     p.play()
   }
 
-  const reviewHoldLine = reviewHold({ draftOpen: set.draft !== null, editDirty: Boolean(edit?.dirty) })
+  const reviewHoldLine = reviewHold({ draftOpen: set.draft !== null, editDirty: false })
 
   const openReviewRun = (run: ReviewRun) => {
     if (readOnly || set.finished || reviewHoldLine) return false
-    setEdit(null)
-    setAdding(null)
     setGap(null)
     setListOpen(false)
     listResume.current = false
@@ -2281,106 +1400,22 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
           },
         }
 
-  const showEdit = (next: Editing) => {
-    setEdit(next)
-    setSelected(null)
-    setEndOpen(stageOf(next.draft) === 'result')
-    setTight(false)
-    setListOpen(false)
-    listResume.current = false
-    const p = playerRef.current
-    p.setBoundary(null)
-    p.setRate(NORMAL_SPEED)
-    const w = windowFor(next.draft, null, 'ready', false)
-    p.setLoop(w)
-    p.seek(w.a)
-    p.play()
-  }
-
-  const openRally = (r: RallyData, index: number) => {
+  const openRally = (r: RallyData, _index: number) => {
     if (!have.has(r.videoId) || r.point || (live && !live.closed)) return
     if (gap) {
       setGap(null)
       setServerPick(null)
     }
-    if (r.idea) {
-      const p = playerRef.current
-      p.setLoop(null)
-      p.setRate(watchRate.current)
-      p.seek(offsetOf(r.videoId) + (r.contacts[r.contacts.length - 1] ?? r.start))
-      p.pause()
-      const savedIndex = lastSavedId ? set.rallies.findIndex((row) => row.id === lastSavedId) : -1
-      const saved = set.rallies[savedIndex >= 0 ? savedIndex : set.rallies.length - 1]
-      setFixLast(Boolean(isIdeaFlow(flowWanted) && r.idea.flow === flowWanted && saved && r.id === saved.id))
-      return
-    }
-    const baseline = draftFromRally(r)
-    showEdit({ id: r.id, index, draft: baseline, baseline, dirty: false })
-  }
-
-  const leaveEdit = () => {
-    setEdit(null)
-    park(live, set.finished, floorG)
-  }
-
-  /** Back to live. Unsaved changes are dropped, with Undo to pick them up again. */
-  const closeEdit = () => {
-    const dropped = edit
-    leaveEdit()
-    if (dropped && dropped.dirty && !readOnly) {
-      setToast({
-        text: `Rally ${dropped.index + 1}: changes dropped`,
-        undo: () => {
-          setToast(null)
-          showEdit(dropped)
-        },
-      })
-    }
-  }
-
-  const onSaveEdit = () => {
-    if (!edit || readOnly || !edit.dirty) return
-    const rally = rallyFromDraft(edit.draft, edit.id)
-    if (!rally) return
-    const prev = set.rallies.find((r) => r.id === edit.id)
-    const kept: RallyData = {
-      ...rally,
-      ...(prev?.left ? { left: prev.left } : {}),
-      ...(prev?.idea ? { idea: prev.idea } : {}),
-      ...(rally.serveChecked || prev?.serveChecked ? { serveChecked: true } : {}),
-    }
-    mutateMatch(match.id, (m) => replaceRally(m, set.setId, kept))
-    if (prev) {
-      pushTagLog({
-        ...lineFrom(freshClock(flowWanted), edit.draft, editNote(prev, kept)),
-        shots: kept.contacts.length,
-        server: kept.server,
-        fa: kept.fa,
-        answerMs: 0,
-        totalMs: 0,
-      })
-    }
-    leaveEdit()
-  }
-
-  const onDeleteEdit = () => {
-    if (!edit || readOnly) return
-    const before = set
-    mutateMatch(match.id, (m) => deleteRally(m, set.setId, edit.id))
-    setEdit(null)
-    const remaining = set.rallies.filter((r) => r.id !== edit.id)
-    const floor = lastSavedGlobal(
-      { ...match, sets: match.sets.map((s) => (s.setId === set.setId ? { ...s, rallies: remaining } : s)) },
-      set.setId
-    )
-    park(live, set.finished, floor)
-    setKeptAt(null)
-    withUndo('Rally deleted', before)
+    const p = playerRef.current
+    p.setLoop(null)
+    p.setRate(watchRate.current)
+    p.seek(offsetOf(r.videoId) + (r.contacts[r.contacts.length - 1] ?? r.start))
+    p.pause()
   }
 
   const level = score.me === score.them
   /** A set can be finished once it has a rally, nothing is open, and one side leads. */
-  const canFinishNow = !set.finished && !live && !draftGone && !edit && set.rallies.length > 0
+  const canFinishNow = !set.finished && !live && !draftGone && set.rallies.length > 0
   const canFinish = canFinishNow && !level
 
   const onFinishSet = () => {
@@ -2420,102 +1455,15 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     listResume.current = false
   }
 
-  /** Pick step: the shot on screen a reaction earlier becomes the first attack. */
-  const onPickFa = () => {
-    if (!active || readOnly || stageOf(active) !== 'pickFa') return
-    const shot = shotAtTime(active, playerRef.current.getTime() - offsetOf(active.videoId), TAP_LATENCY_S)
-    const refused = faRefusal(active, shot ?? 0)
-    setFaSaid(refused ? faRefusalText(refused) : null)
-    if (!shot || refused) return
-    change(markFa(active, shot))
-    // Whatever the stage opens next, a second press waits a second.
-    arm(0, GUARD_AFTER_CLOSE_MS)
-  }
-
-  const onNoAttack = () => {
-    if (!active || readOnly || stageOf(active) !== 'pickFa') return
-    if (isAttackStroke(active.shots[endShot(active) - 1]?.stroke ?? '')) return
-    change(toggleNoAttack(active))
-    arm(GUARD_AFTER_SWAP_MS)
-  }
-
-  /** Back to the same pick step. One way to change. */
-  const onChangeFa = () => {
-    if (!active || readOnly) return
-    const next = reopenFaPick(active)
-    if (next !== active) {
-      change(next)
-      // The zone comes back where the Ready line was.
-      arm(0, GUARD_AFTER_SWAP_MS)
-    }
-  }
-
-  const n = active ? active.contacts.length : 0
-  /** No attack is the one row at the pick step, from three shots up. */
-  const askNoAttack =
-    active !== null &&
-    active.closed &&
-    !readOnly &&
-    n >= 3 &&
-    stage === 'pickFa' &&
-    noAttackOffered(active) &&
-    !isAttackStroke(active.shots[n - 1]?.stroke ?? '')
-
   // Keys (desktop). Space is the pad. Backspace deletes a tap while tapping
-  // and steps back 5 seconds between rallies. Enter saves whenever Save is
-  // lit. 1 to 9 pick a shot, 0 is No attack. Top row is the result, home row
-  // the wing, bottom row the stroke. In edit, [ and ] pick the marks and
-  // - and = nudge. K plays or pauses, arrows step 10 seconds.
+  // and steps back 5 seconds between rallies. K plays or pauses, arrows step 10 seconds.
   const handlers = {
     onPad,
-    bestAdding: bestAdd,
-    onBestAddTap,
     onUndoTap,
-    onLet,
-    onSwitch,
     onSave,
-    onSaveEdit,
-    onShot,
-    onMark,
-    onNudge,
-    onNoAttack,
-    onAddContact,
-    onAddTap,
-    adding: addOn,
-    onPickFa,
-    seq: seqLive,
-    endShown: showEnd,
-    onWonBy,
-    onNext,
-    onSeqKey: (key: string) => {
-      if (!active) return
-      const place = walkRef.current
-      if (!place || place.kind === 'ready') {
-        if (/^[1-9]$/.test(key)) onShot(Number(key))
-        return
-      }
-      const result = applySeqKey(active, place, key)
-      if (!result) return
-      if (result.kind === 'next') onNext()
-      else if (result.kind === 'side') onSeqSide(result.side)
-      else if (result.kind === 'noAttack') {
-        const next = defensiveToEnd(active)
-        writeDraft(next)
-        furthestRef.current = place.kind === 'shot' ? place : { kind: 'shot', shot: 1 }
-        const dest: SeqPlace = next.ending ? { kind: 'shot', shot: next.contacts.length } : { kind: 'end' }
-        seqGo(next, dest, true)
-      } else if (result.kind === 'open') onShot(result.shot)
-      else if (result.kind === 'draft') change(result.draft)
-    },
     reviewing: review !== null,
-    detailing,
-    onDetailBack,
     onReviewSame: () => onReviewPress('same'),
-    change,
     seekTo,
-    askNoAttack,
-    readOnly,
-    active,
   }
   const keys = useRef(handlers)
   useEffect(() => {
@@ -2531,28 +1479,8 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       const p = playerRef.current
       const now = latest.current
       const k = keys.current
-      const rally = now.mode === 'tagging' || now.mode === 'edit'
       const toggle = () => (p.isPlaying() ? p.pause() : p.play())
       const key = e.key.length === 1 ? e.key.toLowerCase() : e.key
-      if (k.bestAdding) {
-        if (key === ' ') {
-          e.preventDefault()
-          if (!e.repeat) k.onBestAddTap()
-        }
-        return
-      }
-      if (k.adding) {
-        // Add contact is on: Space is the tap, Escape leaves it, and no other key reaches the rally.
-        if (key === ' ') {
-          e.preventDefault()
-          if (!e.repeat && Date.now() >= slotGuard.current) k.onAddTap()
-        } else if (key === 'Escape') {
-          k.onAddContact()
-        } else if (key === 'Backspace' || key === 'Enter') {
-          e.preventDefault()
-        }
-        return
-      }
       if (k.reviewing) {
         if (key === ' ' && !e.repeat) {
           e.preventDefault()
@@ -2560,29 +1488,19 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
         }
         return
       }
-      if (k.detailing) {
-        if (key === 'Escape') k.onDetailBack()
-        if (key === ' ' || key === 'Enter' || key === 'Backspace') e.preventDefault()
-        return
-      }
       if (key === ' ') {
         e.preventDefault()
         if (e.repeat) return
         if (Date.now() < slotGuard.current) return
-        if (now.stage === 'pickFa' && !k.seq && (now.mode === 'tagging' || now.mode === 'edit')) {
-          k.onPickFa()
-          return
-        }
         if (now.mode === 'watch' || now.mode === 'tapping' || now.mode === 'setPoint') k.onPad()
-        // While tagging, the slot is Save: a Space that comes too late does nothing.
+        // While tagging, a Space that comes too late does nothing.
         else if (now.mode !== 'tagging') toggle()
       } else if (key === 'Enter') {
-        if (!rally) return
+        if (now.mode !== 'tagging') return
         // Enter is Save here. It must not click whatever the mouse last pressed.
         e.preventDefault()
         if (e.repeat || Date.now() < slotGuard.current) return
-        if (now.mode === 'tagging') k.onSave()
-        else k.onSaveEdit()
+        k.onSave()
       } else if (key === 'k') {
         toggle()
       } else if (key === 'Backspace') {
@@ -2594,34 +1512,10 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
           e.preventDefault()
           k.seekTo(p.getTime() - BACK_S)
         }
-      } else if (key === 'p' && (now.mode === 'watch' || now.mode === 'tagging')) {
-        if (!e.repeat && Date.now() >= slotGuard.current) k.onSwitch()
       } else if (key === 'ArrowLeft') {
         k.seekTo(p.getTime() - 10)
       } else if (key === 'ArrowRight') {
         k.seekTo(p.getTime() + 10)
-      } else if (!rally || !k.active || !k.active.closed) {
-        return
-      } else if ((key === 'u' || key === 'i') && k.endShown) {
-        e.preventDefault()
-        k.onWonBy(key === 'u' ? 'me' : 'them')
-      } else if (k.seq && k.active && (key === 'n' || key === 'a' || key === '0' || /^[1-9sdfghqwertyzx]$/.test(key))) {
-        e.preventDefault()
-        k.onSeqKey(key)
-      } else if (/^[1-9]$/.test(key)) {
-        k.onShot(Number(key))
-      } else if (k.readOnly) {
-        return
-      } else if (key === NO_ATTACK_KEY) {
-        if (k.askNoAttack) k.onNoAttack()
-      } else if (key === '[' || key === ']') {
-        // Trim belongs to a saved rally.
-        if (now.mode === 'edit') k.onMark({ kind: key === '[' ? 'start' : 'end' })
-      } else if ((key === '-' || key === '=') && now.mode === 'edit') {
-        if (now.selected) k.onNudge(key === '-' ? -NUDGE_STEP_S : NUDGE_STEP_S)
-      } else if (now.selected?.kind === 'shot') {
-        const next = applyPanelKey(k.active, now.selected.shot, key)
-        if (next) k.change(next)
       }
     }
     // Space clicks a focused button on key up: stop that too.
@@ -2658,15 +1552,11 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       }
     : null
 
-  const editScore: Points | null = edit
-    ? set.rallies.slice(0, edit.index).reduce<Points>((acc, r) => addPoint(acc, r.winner), ZERO)
-    : null
-  const shownScore = editScore ?? score
+  const shownScore = score
   const reviewRally = review?.kind === 'ask' && review.rule.cursor !== null ? review.rule.rallies[review.rule.cursor] : null
-  const shownServer = reviewRally ? reviewRally.server : edit ? edit.draft.server : (live?.server ?? nextServer)
+  const shownServer = reviewRally ? reviewRally.server : (live?.server ?? nextServer)
   const setsWon = matchSetsWon(match)
   const atEnd = player.atEnd && (mode === 'watch' || mode === 'setPoint')
-  const ready = stage === 'ready'
   const tapped = live && !live.closed ? live.contacts.length : 0
   /** Finish is offered in the panel at set point and when the video runs out. */
   const finishCard = canFinishNow && (mode === 'setPoint' || atEnd)
@@ -2675,29 +1565,8 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const slotGrey = Date.now() < closeGrey.current
   const panelBusy = Date.now() < panelGuard.current
   const setLine = `Set ${set.setId} · ${formatScore(score)}`
-  /** The shot on screen while a closed rally loops. */
-  const playLocal = active ? player.time - offsetOf(active.videoId) : 0
-  const liveShot =
-    active && active.closed ? active.contacts.filter((c) => c <= playLocal + 0.05).length || null : null
-  const loopNow = seqLive
-    ? player.getLoop()
-    : active && stage && (mode === 'tagging' || mode === 'edit')
-      ? windowFor(active, selected, stage, tight)
-      : null
-  /** Where am I: one line, between rallies and on coming back. */
-  const whereLine = [
-    setLine,
-    servesText(names, live?.server ?? nextServer),
-    `${set.rallies.length} saved`,
-    `${minutesLeft(totalDuration(segs) - player.time)} left`,
-  ].join(' · ')
-  const lastSavedIndex = (() => {
-    const i = lastSavedId ? set.rallies.findIndex((r) => r.id === lastSavedId) : -1
-    return i >= 0 ? i : set.rallies.length - 1
-  })()
-  const lastSaved = set.rallies[lastSavedIndex] ?? null
-  const noteBand =
-    cont.bands.find((b) => lastSavedIndex >= b.from && lastSavedIndex <= b.to) ?? null
+  const loopNow =
+    active && stage && mode === 'tagging' ? windowFor(active, selected, stage, tight) : null
   const gapIndex = review?.kind === 'gaps' ? review.gaps[review.at] : null
   const reviewLine =
     review?.kind === 'ask' && review.rule.cursor !== null
@@ -2708,47 +1577,25 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
           ? 'Neither gap has the rally'
           : null
 
-  const summaryText = active
-    ? `${active.contacts.length} ${active.contacts.length === 1 ? 'shot' : 'shots'}${
-        active.fa !== null ? ` · First attack shot ${active.fa}` : active.noAttack ? ' · No attack' : ''
-      }`
-    : ''
   const status = bestOn
     ? (bestPlace({ draft: live, rallies: set.rallies, finished: set.finished }) ?? 'Details')
     : bestOver
       ? `Set over at ${bestOver}`
-    : reviewLine
-    ? reviewLine
-    : faSaid && active && (stage === 'pickFa' || stage === 'faShot')
-      ? faSaid
-    :
-    mode === 'finished'
-      ? `Set ${set.setId} finished · ${formatScore(score)}`
-      : mode === 'setPoint'
-        ? `Set ${set.setId} reached ${formatScore(score)}`
-        : mode === 'blocked'
-          ? setLine
-          : mode === 'edit' && edit
-            ? addOn
-              ? `Rally ${edit.index + 1} · Adding a contact`
-              : readOnly || (ready && !edit.dirty)
-              ? `Rally ${edit.index + 1} · ${edit.draft.contacts.length} ${edit.draft.contacts.length === 1 ? 'shot' : 'shots'}`
-              : `Rally ${edit.index + 1} · ${ready ? 'Ready to save changes' : statusText(edit.draft)}`
-          : detailing && detailQ
-            ? detailQ.title
-          : active
-            ? addOn
-              ? 'Adding a contact'
-              : ideaLive && live
-                ? `${live.contacts.length} ${live.contacts.length === 1 ? 'shot' : 'shots'}`
-                : mode === 'tagging' && ready && !faSaid
-                  ? summaryText
-                  : statusText(active)
-            : gap
-              ? `Add rally before rally ${gap.index + 1}`
-              : player.playing && !atEnd
-                ? 'Tap each contact'
-                : setLine
+      : reviewLine
+        ? reviewLine
+        : mode === 'finished'
+          ? `Set ${set.setId} finished · ${formatScore(score)}`
+          : mode === 'setPoint'
+            ? `Set ${set.setId} reached ${formatScore(score)}`
+            : mode === 'blocked'
+              ? setLine
+              : active
+                ? statusText(active)
+                : gap
+                  ? `Add rally before rally ${gap.index + 1}`
+                  : player.playing && !atEnd
+                    ? 'Tap each contact'
+                    : setLine
 
   const rallyList = (
     <>
@@ -2759,7 +1606,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       marks={cont.marks}
       scoreMark={cont.score}
       nextServer={cont.next}
-      editingId={edit?.id ?? null}
+      editingId={null}
       addingAt={gap ? gap.index : null}
       hasVideo={(id) => have.has(id)}
       onOpen={openRally}
@@ -2767,99 +1614,36 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       score={score}
       onFinish={onFinishSet}
       actions={listActions}
-      onCopyTimings={
-        searchParams.has('flow')
-          ? () => {
-              void copyTagLog().then((done) => setHint(done ? 'Timings copied' : 'Could not copy timings'))
-            }
-          : undefined
-      }
     />
     <AnswerKeyPanel videos={match.videos} rallies={set.rallies} names={names} />
     </>
   )
-  const padServer = edit ? edit.draft.server : live?.server ?? nextServer
-  const switchWarn =
-    !readOnly && (mode === 'watch' || mode === 'tagging') && !atEnd && padServer !== expected
-  const switchWarnRally = gap ? gap.index + 1 : set.rallies.length + 1
-  const switchOn = !readOnly && !atEnd && (mode === 'watch' || mode === 'tagging' || mode === 'edit')
+  const padServer = live?.server ?? nextServer
   const rowButton = cn('px-3 shrink-0', slotGrey && BUSY)
-  /** The four rally actions: one width each, the label on two lines where it needs them. */
-  const actionButton = cn('w-14 shrink-0 px-0.5 text-xs leading-tight text-center', slotGrey && BUSY)
-  /** Slot controls never change size, not even while pressed. The height is the tap pad. */
-  const slotButton = cn('rounded-lg text-lg active:scale-100 active:brightness-90', slotGrey && BUSY)
-  /** Watch, tapping and answering use the plain words line. Edit and the special states keep the built band. */
+  /** Watch, tapping and answering use the plain words line. */
   const livePlain = !review && (mode === 'watch' || mode === 'tapping' || mode === 'tagging')
-  const refusalLine = Boolean(faSaid && stage === 'faShot')
-  const lineHidden = livePlain && (selected?.kind === 'shot' || showEnd) && !refusalLine
-  const changeOffered = Boolean(
-    !readOnly && ready && n >= 3 && active && (active.fa !== null || active.noAttack)
-  )
-  const lineButton =
-    'btn-kind-control shrink-0 rounded-md border border-border bg-transparent px-3 text-sm font-medium text-primary'
-  // Live tagging only. The answer area, edit, set point, the end of the video, blocked, finished and review keep the built band.
+  const lineHidden = Boolean(livePlain && selected?.kind === 'shot')
+  // The tap zone while a rally is open or waiting. Answering keeps the corner pad.
   const zoneOn =
-    !bestOn &&
-    !bestOver &&
-    !bestHoldOn &&
-    !seqLive &&
-    !review &&
-    !edit &&
-    !detailing &&
-    !fixing &&
-    (mode === 'tapping' || (mode === 'watch' && !atEnd) || (mode === 'tagging' && stage === 'pickFa' && !showEnd))
-  const zoneKind = mode === 'tagging' ? 'fa' : 'pad'
-  const bestPass = isBestFlow(flowWanted) && !edit
-  const deleteMode = bestCheck && isBestFlow(flowWanted) && !edit
+    !bestOn && !bestOver && !bestHoldOn && !review && (mode === 'tapping' || (mode === 'watch' && !atEnd))
+  const deleteMode = bestCheck
   const padTitle = deleteMode
     ? 'Delete mode'
     : tapped > 0
       ? `Tap shot ${tapped + 1}`
       : player.playing
-        ? bestPass
-          ? 'Tap serve'
-          : `Tap serve · ${names[padServer]}`
+        ? 'Tap serve'
         : 'Play'
-  const zoneTitle = zoneKind === 'fa' ? 'First attack' : padTitle
-  const zoneLine = deleteMode
-    ? 'Tap a minus to remove a contact'
-    : zoneKind === 'fa'
-      ? (faSaid ?? 'Tap when you see the first attack')
-      : bestPass
-        ? `Rally ${set.rallies.length + 1}, live`
-        : 'Tap the screen every time the ball is hit'
-  const footStrip = !seqLive && (zoneOn || (mode === 'tagging' && stage === 'pickFa' && !review && !bestOn))
+  const zoneTitle = padTitle
+  const zoneLine = deleteMode ? 'Tap a minus to remove a contact' : `Rally ${set.rallies.length + 1}, live`
+  const footStrip = zoneOn || (mode === 'tagging' && stage === 'pickFa' && !review && !bestOn)
   /** An extra tap found after the taps closed. One tap left is Discard's job. */
   const deleteLastOn = Boolean(
-    mode === 'tagging' && !edit && !review && !readOnly && !bestOn && live?.closed && live.contacts.length > 1
+    mode === 'tagging' && !review && !readOnly && !bestOn && live?.closed && live.contacts.length > 1
   )
-  const rightKind = !footStrip
-    ? 'none'
-    : isBestFlow(flowWanted)
-      ? finishKept
-        ? 'finish'
-        : 'none'
-      : mode === 'tapping'
-        ? 'delete-last'
-      : mode === 'tagging' && stage === 'pickFa'
-        ? 'no-attack'
-        : gap
-          ? 'back-to-live'
-          : finishKept
-            ? 'finish'
-            : lastSaved && !lastSaved.point && have.has(lastSaved.videoId)
-              ? 'edit-last'
-              : 'none'
+  const rightKind = !footStrip ? 'none' : finishKept ? 'finish' : 'none'
   /** A foot control is showing. With none, the strip collapses and the tap zone grows. */
-  const footAction = Boolean(
-    footStrip &&
-      ((mode === 'tagging' && stage === 'pickFa') ||
-        rightKind === 'edit-last' ||
-        rightKind === 'finish' ||
-        rightKind === 'back-to-live' ||
-        rightKind === 'delete-last' ||
-        (rightKind === 'no-attack' && askNoAttack))
-  )
+  const footAction = Boolean(footStrip && ((mode === 'tagging' && stage === 'pickFa') || rightKind === 'finish'))
   const rightBoxClass =
     'btn-kind-tap-pad w-28 shrink-0 rounded-lg border border-border bg-transparent px-3 text-sm font-medium text-primary whitespace-nowrap disabled:opacity-40'
   useLayoutEffect(() => {
@@ -2868,13 +1652,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     }
     rightKindSeen.current = rightKind
   }, [rightKind])
-
-  // A loop round: the playhead jumps back while this rally is still the one being tagged.
-  const playedAt = useRef(player.time)
-  useEffect(() => {
-    if (clock.current && player.playing && player.time + 0.4 < playedAt.current) clock.current.loops++
-    playedAt.current = player.time
-  }, [player.time, player.playing])
 
   const flowShown: FlowName = mode === 'tagging' && flowLock ? flowLock : flowWanted
   const bestRallyOne = set.rallies.length === 0
@@ -2886,10 +1663,10 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const bestRowSaved = Boolean(bestSaved && (!live || live.contacts.length === 0))
   const bestRowDraft = bestRowSaved ? bestSaved!.draft : active
   /** What the question area shows. When it changes, the button now under the thumb waits out a double tap. */
-  const bestPanelKey = bestQ && live ? bestQuestionKey(live, bestRallyOne, 'pad', endBack) : ''
-  const tapSplit = Boolean(landscape && zoneOn && zoneKind === 'pad' && isBestFlow(flowWanted))
+  const bestPanelKey = bestQ && live ? bestQuestionKey(live, bestRallyOne, endBack) : ''
+  const tapSplit = Boolean(landscape && zoneOn)
   const padSplit = Boolean(
-    tapSplit || (landscape && bestOn && !bestAdd && !bestOver && liveCount > 0)
+    tapSplit || (landscape && bestOn && !bestOver && liveCount > 0)
   )
   useLayoutEffect(() => {
     if (bestPanelKey) panelGuard.current = Math.max(panelGuard.current, Date.now() + GUARD_BEST_SWAP_MS)
@@ -2906,7 +1683,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     return () => mq.removeEventListener('change', onChange)
   }, [])
   const bestAccount = (() => {
-    if (!isBestFlow(flowShown) || !live || live.contacts.length === 0) return null
+    if (!live || live.contacts.length === 0) return null
     const winner = pointDone(live, bestRallyOne) ? winnerOf(live) : null
     return {
       hitters: bestHitters(live).join(','),
@@ -2916,23 +1693,17 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     }
   })()
   /** Rally list and Settings sit over part of the screen. Taps on the zone and wings wait. */
-  const coverTaps = listOpen || (settingsOpen && isBestFlow(flowShown))
+  const coverTaps = listOpen || settingsOpen
 
   return (
     <PadWingContext.Provider value={padSplit ? padWings : NO_WINGS}>
     <div
       className="tag-set bg-bg-app"
       data-pad-split={landscape ? '' : undefined}
-      data-answer-layout={isBestFlow(flowShown) ? 'pad' : undefined}
       data-tag-mode={mode}
       data-flow={flowShown}
       data-best-look={bestLook ? '' : undefined}
-      onClick={() => {
-        if (clock.current) clock.current.presses++
-      }}
-      data-cells={cellsOutlined ? 'outlined' : undefined}
       data-tag-stage={stage ?? ''}
-      data-tag-adding={addOn ? '' : undefined}
       data-review={review?.kind ?? ''}
       data-playing={player.playing}
       data-rate={player.rate}
@@ -2948,7 +1719,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       data-best-resume={bestResume === null ? undefined : String(bestResume)}
       data-loop-a={loopNow ? loopNow.a.toFixed(3) : ''}
       data-loop-b={loopNow ? loopNow.b.toFixed(3) : ''}
-      data-loop-hold={seqLive ? String(SHOT_LOOP_HOLD_S) : ''}
       data-fa={active?.fa ?? ''}
       data-no-attack={active?.noAttack ? 'yes' : 'no'}
     >
@@ -2984,10 +1754,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
           onSeek={seekTo}
           noForward={mode === 'tapping'}
           onRate={onRate}
-          highlightOn={Boolean(active && active.closed && !bestOn && (!readOnly || active.highlight))}
-          highlight={Boolean(active?.highlight)}
-          onHighlight={() => active && writeDraft({ ...active, highlight: !active.highlight })}
-          readOnlyHighlight={readOnly || stage === 'result' || stage === 'endShot'}
           leading={
             <Link
               to={`/matches/${match.id}/tag`}
@@ -2998,14 +1764,12 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
             </Link>
           }
           settings={
-            isBestFlow(flowShown) ? (
-              <BestTimingControl
+            <BestTimingControl
                 timing={timing}
                 onChange={setBestTiming}
                 open={settingsOpen}
                 onOpen={setSettingsOpen}
               />
-            ) : null
           }
         />
       </div>
@@ -3038,8 +1802,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
             className="tag-idle-bar pointer-events-none absolute left-0 right-0 top-0 z-10 h-1.5 bg-brand-primary/50"
           />
         ) : null}
-        {isBestFlow(flowShown) && !edit ? (
-          <BestRallyRow
+        <BestRallyRow
             draft={bestRowDraft}
             at={bestQ}
             rallyOne={bestRowSaved ? set.rallies.length <= 1 : bestRallyOne}
@@ -3079,30 +1842,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               !readOnly && !bestRowSaved && live && live.contacts.length > 0 ? onDiscardProgress : undefined
             }
           />
-        ) : isBestFlow(flowShown) && !edit ? null : active || mode === 'watch' ? (
-          <ShotRail
-            draft={active}
-            selected={selected}
-            liveShot={liveShot}
-            endOpen={showEnd}
-            onShot={onShot}
-            onEnd={onEnd}
-            reach={
-              seqLive
-                ? {
-                    shot: (n: number) =>
-                      walk?.kind === 'ready' || passedRef.current.has(n) || (walk?.kind === 'shot' && walk.shot === n),
-                    end:
-                      walk?.kind === 'ready' ||
-                      walk?.kind === 'end' ||
-                      endAnsweredRef.current ||
-                      furthestRef.current?.kind === 'end' ||
-                      furthestRef.current?.kind === 'ready',
-                  }
-                : null
-            }
-          />
-        ) : null}
       </div>
 
       {/* Shot input. Landscape portals the answers into the wings. */}
@@ -3118,38 +1857,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
           )}
           onClickCapture={guardClicks(panelGuard)}
         >
-          {ideaLive && live ? (
-            <div className="relative z-20">
-              <IdeaLivePanel
-                draft={live}
-                names={names}
-                onResult={onIdeaResult}
-                onLet={onLet}
-              />
-            </div>
-          ) : null}
-          {fixing && fixRally ? (
-            <div className="relative z-20" data-idea-fix="">
-              <div className="flex items-center justify-between pt-2.5">
-                <p className="text-xs font-semibold text-muted">
-                  Rally {set.rallies.findIndex((r) => r.id === fixRally.id) + 1}
-                </p>
-                <button
-                  type="button"
-                  className="text-xs font-semibold text-primary"
-                  data-idea-fix-done=""
-                  onClick={() => setFixLast(false)}
-                >
-                  Done
-                </button>
-              </div>
-              <IdeaLivePanel
-                draft={draftFromRally(fixRally)}
-                names={names}
-                onResult={onIdeaResult}
-              />
-            </div>
-          ) : null}
           {/* Status, with the rally's second-rank actions beside it, away from the thumb. */}
           <div
             data-words-line={livePlain ? '' : undefined}
@@ -3158,21 +1865,20 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               livePlain ? 'mt-2.5 min-h-[var(--btn-kind-control)] items-center' : 'mb-1.5 items-stretch',
               zoneOn && 'hidden',
               (bestOn || bestOver || bestHoldOn) && 'hidden',
-              livePlain ? lineHidden && 'hidden' : mode !== 'edit' && (selected?.kind === 'shot' || showEnd) && 'hidden'
+              lineHidden && 'hidden'
             )}
             onClickCapture={guardClicks(slotGuard)}
           >
             <p
               role="status"
               data-tag-status
-              data-fa-summary={livePlain && mode === 'tagging' && ready ? '' : undefined}
               className={cn(
                 'min-w-0 flex-1 text-sm leading-tight',
                 livePlain
                   ? 'flex items-center font-normal text-primary'
                   : cn(
                       'flex min-h-[var(--btn-kind-control)] items-center rounded-md border-l-4 px-2 py-1 font-semibold',
-                      ready || mode === 'finished'
+                      mode === 'finished'
                         ? 'border-success bg-success/15 text-primary'
                         : active && active.closed
                           ? 'border-warning bg-warning/15 text-primary'
@@ -3182,46 +1888,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
             >
               {status}
             </p>
-            {livePlain && mode === 'tagging' && ready && !selected && !showEnd && changeOffered && !seqLive ? (
-              <button type="button" data-action="change-fa" className={lineButton} onClick={onChangeFa}>
-                Change
-              </button>
-            ) : null}
-            {/* Edit keeps Back to live, Delete last and Add contact. Live tagging does not. */}
-            {mode === 'edit' && !readOnly ? (
-              <div className="flex shrink-0 items-stretch gap-2" data-tag-actions>
-                <Button
-                  kind="control"
-                  variant="secondary"
-                  className={cn(actionButton, 'w-[7.25rem]')}
-                  onClick={closeEdit}
-                >
-                  Back to live
-                </Button>
-                <Button
-                  kind="control"
-                  variant="secondary"
-                  className={actionButton}
-                  data-action="delete-last"
-                  title="Delete the last contact"
-                  disabled={addOn || n <= 1}
-                  onClick={onUndoTap}
-                >
-                  Delete last
-                </Button>
-                <Button
-                  kind="control"
-                  variant={addOn ? 'primary' : 'secondary'}
-                  className={actionButton}
-                  data-action="add-contact"
-                  title="Add a missed contact"
-                  aria-pressed={addOn}
-                  onClick={onAddContact}
-                >
-                  Add contact
-                </Button>
-              </div>
-            ) : null}
             {mode === 'blocked' ? (
               <Button kind="control" variant="secondary" className={rowButton} onClick={onDiscardGone}>
                 Discard rally
@@ -3285,7 +1951,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                 onPoint={onBestPoint}
                 onServe={onBestServe}
                 onStroke={onBestStroke}
-                layout="pad"
                 sides={padSplit}
                 back={endBack}
               />
@@ -3352,130 +2017,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                 lock={lock}
               />
             ) : null}
-            {!zoneOn && active && active.closed && !showEnd && mode !== 'tagging' && (readOnly || (ready && !selected)) ? (
-              <div
-                data-fa-summary
-                data-ready-summary
-                className="rounded-md border border-border bg-bg-surface px-3 py-1.5 flex items-center justify-between gap-2"
-              >
-                <p className="min-w-0 flex-1 truncate text-sm font-semibold text-primary">
-                  {active.contacts.length} {active.contacts.length === 1 ? 'shot' : 'shots'}
-                  {active.fa !== null ? ` · First attack shot ${active.fa}` : active.noAttack ? ' · No attack' : ''}
-                </p>
-                {readOnly || !(ready && n >= 3 && (active.fa !== null || active.noAttack)) ? null : (
-                  <Button kind="control" variant="secondary" onClick={onChangeFa}>
-                    Change
-                  </Button>
-                )}
-              </div>
-            ) : null}
-            {askNoAttack && !showEnd && mode === 'edit' ? (
-              <div className="rounded-md border border-border bg-bg-surface p-3" data-no-attack-row>
-                <Button kind="control" variant="secondary" onClick={onNoAttack}>
-                  No attack
-                </Button>
-              </div>
-            ) : null}
-            {detailQ ? <IdeaDetailPanel q={detailQ} onPick={onDetailPick} onBack={onDetailBack} /> : null}
-            {mode === 'watch' && isIdeaFlow(flowWanted) && !detailing && set.rallies.some((r) => r.idea?.flow === flowWanted) ? (
-              <div className="flex flex-wrap gap-1.5" data-idea-pass="">
-                {(['serve', 'receive', 'third', 'finish'] as const).map((sweep) => {
-                    const state = sweepState(set.rallies, sweep)
-                    if (state === 'empty') return null
-                    const label = sweep === 'serve' ? 'Serve' : sweep === 'receive' ? 'Receive' : sweep === 'third' ? 'Third' : 'Finish'
-                    return (
-                      <Button
-                        key={sweep}
-                        kind="control"
-                        variant="secondary"
-                        data-idea-open={sweep}
-                        disabled={state !== 'open'}
-                        onClick={() => {
-                          setFixLast(false)
-                          setDetail({ flow: 'spine', sweep })
-                        }}
-                      >
-                        {state === 'done' ? `${label} done` : label}
-                      </Button>
-                    )
-                  })}
-              </div>
-            ) : null}
-            {!zoneOn && showEnd && active && !readOnly ? (
-              <EndPanel draft={active} names={names} onChange={change} wonBy={wonBy} onWonBy={onWonBy} />
-            ) : null}
-            {!zoneOn && active && active.closed && selected?.kind === 'shot' && !readOnly && !showEnd && !ideaLive ? (
-              <ShotPanel
-                draft={active}
-                shot={selected.shot}
-                names={names}
-                onChange={change}
-                onNudge={mode === 'edit' ? onNudge : undefined}
-                sequential={seqLive}
-                onSide={seqLive ? onSeqSide : undefined}
-              />
-            ) : null}
-            {!zoneOn && active && active.closed && selected && selected.kind !== 'shot' && !readOnly ? (
-              <div className="rounded-md border border-border bg-bg-surface p-3">
-                <TimeRow draft={active} mark={selected} onNudge={onNudge} />
-              </div>
-            ) : null}
-            {!zoneOn && mode === 'edit' && edit && !readOnly && ready && selected?.kind !== 'shot' ? (
-              <TrimRow
-                draft={edit.draft}
-                selected={selected}
-                onMark={onMark}
-                action={
-                  <Button
-                    kind="control"
-                    variant="secondary"
-                    data-action="delete-rally"
-                    onClick={onDeleteEdit}
-                  >
-                    Delete rally
-                  </Button>
-                }
-              />
-            ) : null}
-            {!zoneOn && !detailing && !fixing && mode === 'watch' && !gap && !atEnd && lastSaved && !bestOver && !bestHoldOn ? (
-              <div
-                data-last-saved
-                className="rounded-md border border-border bg-bg-surface pl-3 pr-1.5 py-1.5 flex items-center gap-2"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm text-primary truncate">
-                    <span className="font-semibold">
-                      Rally {lastSavedIndex + 1} · {names[lastSaved.winner]} won
-                    </span>
-                    {lastSaved.point ? ' · point, no video' : ` · ${savedTail(lastSaved)}`}
-                  </p>
-                  {noteBand ? (
-                    <p className="text-xs font-semibold text-primary" data-mark-note>
-                      <span className="mr-1 inline-block h-2 w-2 rounded-full bg-warning" aria-hidden />
-                      Check in Rallies: {bandLine(noteBand, set.rallies, set.firstServer)}
-                    </p>
-                  ) : null}
-                </div>
-                {lastSaved.point || !have.has(lastSaved.videoId) ? null : (
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    className="min-w-11 px-3 lg:min-w-0 lg:px-2.5 shrink-0"
-                    onClick={() => openRally(lastSaved, lastSavedIndex)}
-                  >
-                    Edit
-                  </Button>
-                )}
-              </div>
-            ) : null}
-            {!zoneOn && !detailing && !fixing && (mode === 'watch' || mode === 'tapping' || mode === 'setPoint') && !atEnd && !bestOver && !bestHoldOn ? (
-              <p
-                data-tag-where
-                className="h-5 px-1 text-xs leading-5 text-muted tabular-nums truncate"
-              >
-                {whereLine}
-              </p>
-            ) : null}
             {!zoneOn && finishKept && !bestOver && !bestHoldOn ? (
               <div data-finish-card>
                 <Button kind="main" fullWidth variant="secondary" onClick={onFinishSet}>
@@ -3523,9 +2064,8 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
           {zoneOn && !tapSplit ? (
             <button
               type="button"
-              data-tag-zone={zoneKind}
-              data-tap-pad={zoneKind === 'pad' ? '' : undefined}
-              data-tag-fa={zoneKind === 'fa' ? '' : undefined}
+              data-tag-zone="pad"
+              data-tap-pad=""
               className={cn(
                 'flex min-h-0 flex-1 flex-col items-center justify-center rounded-lg text-center cursor-pointer touch-manipulation select-none active:bg-bg-app disabled:cursor-default disabled:opacity-40 disabled:active:bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-primary',
                 deleteMode && 'opacity-60',
@@ -3533,8 +2073,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               )}
               aria-label={zoneTitle}
               onClickCapture={guardClicks(slotGuard)}
-              onClick={zoneKind === 'fa' ? onPickFa : onPad}
-              disabled={zoneKind === 'fa' && liveShot === 1}
+              onClick={onPad}
             >
               <span className="text-lg font-bold text-primary">{zoneTitle}</span>
               <span className="mt-1 max-w-[17.5rem] text-sm text-muted">{zoneLine}</span>
@@ -3547,10 +2086,10 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
           else ever appears here while a rally is tapped or tagged.
         */}
         <div
-          data-tag-slot={bestOn && !bestAdd && !bestOver ? 'bestfa' : slotKind}
+          data-tag-slot={bestOn && !bestOver ? 'bestfa' : slotKind}
           className={cn(
             'relative shrink-0 border-t border-border bg-bg-app px-2 pt-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))]',
-            ((bestOn && !bestAdd && !bestOver) || bestHoldOn) && 'hidden'
+            ((bestOn && !bestOver) || bestHoldOn) && 'hidden'
           )}
           onClickCapture={guardClicks(slotGuard)}
         >
@@ -3621,18 +2160,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               )}
             </div>
           ) : null}
-          {switchWarn && !review && !isBestFlow(flowWanted) ? (
-            <p
-              role="status"
-              data-switch-warning
-              className="mb-2 rounded-md border border-warning bg-warning/15 px-2 py-1.5 text-xs font-semibold text-primary leading-snug"
-            >
-              {expected === 'me'
-                ? 'You were due to serve.'
-                : `${names[expected]} was due to serve.`}{' '}
-              Rallies since rally {switchWarnRally} will be marked to check.
-            </p>
-          ) : null}
           <div className="flex items-stretch gap-2">
           {deleteLastOn ? (
             <button
@@ -3640,39 +2167,9 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               data-action="delete-last"
               data-foot="delete-last"
               className="btn-kind-tap-pad shrink-0 rounded-lg border border-border bg-transparent px-3 text-sm font-medium text-primary whitespace-nowrap"
-              onClick={seqLive ? onSeqDeleteLast : onUndoTap}
+              onClick={onUndoTap}
             >
               Delete last
-            </button>
-          ) : null}
-          {(slotKind === 'add' ||
-            slotKind === 'edit' ||
-            ((slotKind === 'pad' || slotKind === 'save') && edit) ||
-            (seqLive &&
-              ((walk?.kind === 'shot' && walk.shot === 1) || (walk?.kind === 'end' && n === 1)))) &&
-          !readOnly ? (
-            <button
-              type="button"
-              data-tag-switch
-              aria-label={`${servesText(names, padServer)}. Switch server`}
-              onClick={mode === 'tapping' ? onPad : addOn ? onAddTap : onSwitch}
-              disabled={!switchOn && mode !== 'tapping'}
-              className={cn(
-                'btn-kind-tap-pad max-w-40 shrink-0 rounded-lg border pl-2 pr-3 text-sm font-semibold text-primary',
-                'inline-flex items-center touch-manipulation select-none active:brightness-90',
-                'disabled:opacity-40',
-                (mode === 'tapping' || addOn || slotGrey) && 'opacity-40'
-              )}
-              style={{
-                backgroundColor: `color-mix(in srgb, ${padServer === 'me' ? 'var(--color-tag-player-a)' : 'var(--color-tag-player-b)'} 15%, transparent)`,
-                borderColor: `color-mix(in srgb, ${padServer === 'me' ? 'var(--color-tag-player-a)' : 'var(--color-tag-player-b)'} 50%, transparent)`,
-              }}
-            >
-              <span
-                className="h-3.5 w-1 shrink-0 rounded-[2px]"
-                style={{ backgroundColor: padServer === 'me' ? 'var(--color-tag-player-a)' : 'var(--color-tag-player-b)' }}
-              />
-              <span className="ml-1.5 min-w-0 truncate">{names[padServer]} serving</span>
             </button>
           ) : null}
           {footAction ? (
@@ -3688,17 +2185,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                   Discard
                 </button>
               ) : null}
-              {rightKind === 'edit-last' && lastSaved ? (
-                <button
-                  type="button"
-                  data-action="edit-last"
-                  className={rightBoxClass}
-                  onClickCapture={guardClicks(rightGuard)}
-                  onClick={() => openRally(lastSaved, lastSavedIndex)}
-                >
-                  Edit last rally
-                </button>
-              ) : rightKind === 'finish' ? (
+              {rightKind === 'finish' ? (
                 <button
                   type="button"
                   data-finish-card
@@ -3708,52 +2195,8 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                 >
                   Finish set
                 </button>
-              ) : rightKind === 'back-to-live' ? (
-                <button
-                  type="button"
-                  data-action="back-to-live"
-                  className={rightBoxClass}
-                  onClickCapture={guardClicks(rightGuard)}
-                  onClick={leaveGap}
-                >
-                  Back to live
-                </button>
-              ) : rightKind === 'delete-last' ? (
-                <button
-                  type="button"
-                  data-action="delete-last"
-                  className={rightBoxClass}
-                  onClickCapture={guardClicks(rightGuard)}
-                  onClick={onUndoTap}
-                >
-                  Delete last
-                </button>
-              ) : rightKind === 'no-attack' && askNoAttack ? (
-                <button
-                  type="button"
-                  data-action="no-attack"
-                  aria-pressed={Boolean(active?.noAttack)}
-                  className={rightBoxClass}
-                  disabled={!askNoAttack}
-                  onClickCapture={guardClicks(rightGuard)}
-                  onClick={onNoAttack}
-                >
-                  No attack
-                </button>
               ) : null}
             </>
-          ) : null}
-          {isIdeaFlow(flowWanted) && !detailing && !fixing && !readOnly ? (
-            <button
-              type="button"
-              data-idea-server=""
-              onClick={onIdeaServer}
-              className="btn-kind-tap-pad max-w-40 shrink-0 rounded-lg border border-border bg-transparent px-3 text-sm font-semibold text-primary"
-            >
-              <span className="min-w-0 truncate">
-                {set.rallies.length === 0 && !live ? `${servesText(names, set.firstServer)} first` : `${names[padServer]} serving`}
-              </span>
-            </button>
           ) : null}
           {bestOver ? (
             <>
@@ -3771,17 +2214,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               </Button>
             </>
           ) : null}
-          {bestAdd ? (
-            <button
-              type="button"
-              data-tap-add
-              onClick={onBestAddTap}
-              className="btn-kind-tap-pad flex-1 min-w-0 rounded-lg px-2 text-lg font-bold leading-tight touch-manipulation select-none active:brightness-90 inline-flex items-center justify-center bg-brand-primary text-on-accent"
-            >
-              Tap the missed contact
-            </button>
-          ) : null}
-          {slotKind === 'pad' && !footStrip && !bestOver && !bestAdd ? (
+          {slotKind === 'pad' && !footStrip && !bestOver ? (
             <button
               type="button"
               data-tap-pad
@@ -3809,82 +2242,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                       ? `Tap serve · ${names[padServer]}`
                       : 'Play'}
             </button>
-          ) : null}
-
-          {slotKind === 'add' ? (
-            <button
-              type="button"
-              data-tap-add
-              onClick={onAddTap}
-              className={cn(
-                'btn-kind-tap-pad flex-1 min-w-0 rounded-lg px-2 text-lg font-bold leading-tight touch-manipulation select-none active:brightness-90',
-                'inline-flex items-center justify-center gap-2 bg-brand-primary text-on-accent',
-                slotGrey && BUSY
-              )}
-            >
-              Tap the missed contact
-            </button>
-          ) : null}
-          {slotKind === 'save' && stage === 'pickFa' && !footStrip && !seqLive && !ideaLive && !bestOn ? (
-            <Button
-              kind="tapPad"
-              data-tag-fa
-              className={cn('min-w-0 flex-1 rounded-lg text-lg active:scale-100', slotGrey && BUSY)}
-              disabled={liveShot === 1}
-              onClick={onPickFa}
-            >
-              First attack
-            </Button>
-          ) : null}
-          {slotKind === 'save' && (stage !== 'pickFa' || seqLive) && !ideaLive && !bestOn ? (
-            <>
-              <span className="min-w-0 flex-1" />
-              <button
-                type="button"
-                data-foot="discard"
-                className="btn-kind-tap-pad w-[4.625rem] shrink-0 rounded-lg border border-border bg-transparent px-3 text-sm font-medium text-primary"
-                onClick={onRetap}
-              >
-                Discard
-              </button>
-              <Button
-                kind="tapPad"
-                data-tag-save
-                data-seq-next={seqLive && active && !canSave(active) ? '' : undefined}
-                className={cn('w-28 shrink-0 rounded-lg text-lg active:scale-100', slotGrey && BUSY)}
-                disabled={seqLive ? !active || canSave(active) ? !ready : walk?.kind === 'shot' || walk?.kind === 'end' ? !nextAllowed(active, walk) : true : !ready}
-                onClick={seqLive && active && !canSave(active) ? onNext : onSave}
-              >
-                {seqLive && active && !canSave(active) ? 'Next' : 'Save'}
-              </Button>
-            </>
-          ) : null}
-          {slotKind === 'edit' && edit ? (
-            readOnly ? (
-              <Button kind="tapPad" variant="secondary" className={cn(slotButton, 'flex-1 min-w-0')} onClick={leaveEdit}>
-                Back to set
-              </Button>
-            ) : stage === 'pickFa' ? (
-              <Button
-                kind="tapPad"
-                data-tag-fa
-                className={cn('min-w-0 flex-1 rounded-lg text-lg active:scale-100', slotGrey && BUSY)}
-                disabled={liveShot === 1}
-                onClick={onPickFa}
-              >
-                First attack
-              </Button>
-            ) : (
-              <Button
-                kind="tapPad"
-                data-tag-save
-                className={cn('flex-1 min-w-0 rounded-lg text-lg active:scale-100', slotGrey && BUSY)}
-                disabled={!ready || !edit.dirty}
-                onClick={onSaveEdit}
-              >
-                Save changes
-              </Button>
-            )
           ) : null}
           </div>
 

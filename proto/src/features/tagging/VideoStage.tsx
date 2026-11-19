@@ -2,7 +2,6 @@ import { useEffect, useRef, type ReactNode } from 'react'
 import { Icon } from '@/ui-mine'
 import type { VideoAsset } from '@/data/demoStore'
 import { cn } from '@/helpers/utils'
-import { buttonKindControlSquare } from '@/ui-mine/buttonKinds'
 import { SPEED_STEPS, servesText, type Side } from './rally'
 import { sceneAt, type VideoScript } from './script'
 import { totalDuration, type Segment } from './timeline'
@@ -16,25 +15,21 @@ const MARK_SHOWN_S = 0.9
  * Drawn table, players and ball that follow the script. Stands in for real
  * footage. Seen from above: the bat goes to the ball, the ball is red on an
  * attack, a mark shows where it lands, and the net shakes when it is hit.
- * A caption by the hitter names the wing and stroke until the next contact or 0.8s.
  */
 function StandIn({
   script,
   offset,
   getTime,
   names,
-  showCaptions,
 }: {
   script: VideoScript
   offset: number
   getTime: () => number
   names: Record<Side, string>
-  showCaptions: boolean
 }) {
   const ball = useRef<HTMLDivElement>(null)
   const net = useRef<HTMLDivElement>(null)
   const label = useRef<HTMLParagraphElement>(null)
-  const caption = useRef<HTMLParagraphElement>(null)
   const bats = useRef<Record<Side, HTMLDivElement | null>>({ me: null, them: null })
   const bodies = useRef<Record<Side, HTMLDivElement | null>>({ me: null, them: null })
   const marks = useRef<(HTMLDivElement | null)[]>([])
@@ -94,25 +89,11 @@ function StandIn({
         net.current.dataset.hit = hit ? 'yes' : 'no'
       }
       if (label.current) label.current.textContent = scene.label ?? ''
-      const cap = caption.current
-      if (cap) {
-        if (showCaptions && scene.caption) {
-          const at = scene.bats[scene.caption.side]
-          cap.textContent = scene.caption.text
-          cap.style.opacity = '1'
-          cap.style.top = `${at.y * 100}%`
-          cap.style.left = scene.caption.side === 'me' ? '16%' : 'auto'
-          cap.style.right = scene.caption.side === 'them' ? '16%' : 'auto'
-        } else {
-          cap.textContent = ''
-          cap.style.opacity = '0'
-        }
-      }
       frame = requestAnimationFrame(draw)
     }
     frame = requestAnimationFrame(draw)
     return () => cancelAnimationFrame(frame)
-  }, [script, offset, getTime, showCaptions])
+  }, [script, offset, getTime])
 
   return (
     <div className="absolute inset-0 bg-[#123524] overflow-hidden" aria-label="Demo video">
@@ -184,11 +165,6 @@ function StandIn({
           opacity: 0,
           boxShadow: '0 0 0 2px #fde047, 0 0 12px 4px rgba(253, 224, 71, 0.75)',
         }}
-      />
-      <p
-        ref={caption}
-        data-caption
-        className="absolute z-20 -translate-y-1/2 rounded bg-black/75 px-1.5 py-0.5 text-[11px] font-semibold text-white empty:hidden"
       />
       <p
         ref={label}
@@ -301,10 +277,6 @@ export function VideoStage({
   onSeek,
   noForward = false,
   onRate,
-  highlightOn = false,
-  highlight = false,
-  onHighlight,
-  readOnlyHighlight = false,
   settings = null,
   leading = null,
   className,
@@ -320,11 +292,6 @@ export function VideoStage({
   /** Tapping: a jump forward would lose the rally being tapped. */
   noForward?: boolean
   onRate: (rate: number) => void
-  /** Highlight rally (show reel), top right on the picture. */
-  highlightOn?: boolean
-  highlight?: boolean
-  onHighlight?: () => void
-  readOnlyHighlight?: boolean
   /** Last control in the playback row, after Mute. */
   settings?: ReactNode
   /** Top left of the picture, such as Back. The score sits to its right. */
@@ -355,7 +322,6 @@ export function VideoStage({
             offset={seg.offset}
             getTime={player.getTime}
             names={names}
-            showCaptions={false}
           />
         ) : null}
 
@@ -383,26 +349,6 @@ export function VideoStage({
             </div>
           ))}
         </div>
-
-        {highlightOn && onHighlight ? (
-          <button
-            type="button"
-            aria-label="Highlight rally"
-            aria-pressed={highlight}
-            aria-disabled={readOnlyHighlight}
-            onClick={readOnlyHighlight ? undefined : onHighlight}
-            className={cn(
-              'absolute right-2 top-10 inline-flex items-center justify-center rounded-md touch-manipulation select-none',
-              buttonKindControlSquare,
-              highlight
-                ? 'bg-warning/90 text-neutral-950 hover:bg-warning'
-                : 'bg-black/60 text-white hover:bg-black/80',
-              readOnlyHighlight && 'opacity-40 hover:bg-black/60'
-            )}
-          >
-            <Icon name="star" size="sm" />
-          </button>
-        ) : null}
 
         {hint ? (
           <p

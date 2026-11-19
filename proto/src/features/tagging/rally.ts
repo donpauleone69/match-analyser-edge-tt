@@ -16,8 +16,6 @@ export const WINGS = ['BH', 'FH'] as const
 export type Wing = (typeof WINGS)[number]
 
 export const ATTACK_STROKES = ['Flick', 'Loop', 'Drive', 'Smash'] as const
-/** Cell order on the Offensive side. Block is first so it stays in one place. */
-export const OFFENSIVE_STROKES = ['Block', 'Flick', 'Loop', 'Drive', 'Smash'] as const
 /** Cell order on the Defensive side. The fifth cell is left empty. */
 export const DEFENSIVE_STROKES_ROW = ['Block', 'Lob', 'Push', 'Chop'] as const
 /** Offensive and Defensive lists joined. Replies and end shots draw from this. */
@@ -53,8 +51,6 @@ export const CONTACT_IDLE_MS = 2000
 export const RALLY_PAD_S = 1
 /** A rally starts this long before the serve contact, which has no toss or routine in it. */
 export const RALLY_LEAD_S = 2
-/** A serve added in front of a late first tap sits this long before it. */
-export const ADD_SERVE_GAP_S = 0.9
 export const NUDGE_STEP_S = 0.1
 export const MARK_LOOP_HALF_S = 0.5
 /**
@@ -208,26 +204,6 @@ export function undoClosedContact(d: Draft): Draft {
   }
 }
 
-/**
- * The first tap was late: put the serve in front of it. Every shot moves up
- * one, so the hitters and the winner come right without a re-tap.
- */
-export function addServe(d: Draft, floor: number): Draft {
-  if (d.contacts.length === 0) return d
-  const first = d.contacts[0]
-  const at = Math.round(Math.max(floor, Math.max(0, first - ADD_SERVE_GAP_S)) * 100) / 100
-  const next: Draft = {
-    ...d,
-    contacts: [Math.min(at, first), ...d.contacts],
-    shots: [{}, ...d.shots],
-    fa: d.fa !== null ? d.fa + 1 : null,
-    noAttack: false,
-    start: null,
-  }
-  // No attack chosen on three shots or more still holds. A shorter rally is asked again.
-  return applyAutoSkip(d.noAttack && d.contacts.length >= 3 ? { ...next, noAttack: true } : next)
-}
-
 /** Add contact loops from this long before the first tap. A serve earlier than that is out of reach. */
 export const ADD_CONTACT_LEAD_S = 4
 /** Re-tap starts this long before the serve, so the thumb has time to get back to the pad. */
@@ -263,36 +239,6 @@ export function addedContactTime(
     t = c - prev < 2 * CONTACT_GAP_S ? (c + prev) / 2 : c - CONTACT_GAP_S
   }
   return round2(t)
-}
-
-/**
- * Add contact: a missed contact goes in at `t`, in time order. In front of
- * shot 1 it is the serve. The shots after it move up one and keep their tags,
- * and the first attack moves with its shot. The hitters after it swap, so the
- * winner may change. After the old end shot it is the new end shot and the
- * result is asked again.
- */
-export function insertContact(d: Draft, t: number): { draft: Draft; shot: number } {
-  const n = d.contacts.length
-  const i = d.contacts.filter((c) => c < t).length
-  const next: Draft = {
-    ...d,
-    contacts: [...d.contacts.slice(0, i), t, ...d.contacts.slice(i)],
-    shots: [...d.shots.slice(0, i), {}, ...d.shots.slice(i)],
-    fa: d.fa !== null && d.fa - 1 >= i ? d.fa + 1 : d.fa,
-    // No attack chosen on three shots or more still holds. A shorter rally is asked again.
-    noAttack: d.noAttack && n >= 3,
-    start: i === 0 ? null : d.start,
-    ending: i === n ? null : d.ending,
-    end: i === n ? null : d.end,
-  }
-  return { draft: applyAutoSkip(next), shot: i + 1 }
-}
-
-/** What Add contact loops: 4 seconds before the first tap (not behind the fence) to the rally end. */
-export function addContactWindow(d: Draft, fence: number | null): { a: number; b: number } {
-  const first = d.contacts[0] ?? 0
-  return { a: Math.max(0, fence ?? 0, first - ADD_CONTACT_LEAD_S), b: rallyEnd(d) }
 }
 
 /** Where Re-tap puts the video: 2.5 seconds before the serve, never behind the fence. */
@@ -581,20 +527,6 @@ export function showsStroke(d: Draft, shot: number): boolean {
   return role === 'firstAttack' || role === 'reply'
 }
 
-/**
- * Flip the switch. Clears the stroke, unless it is Block, which stays.
- * On a two shot rally the first attack answer is cleared too, and the new
- * stroke decides it again. Block's flip is not stored: the draft is unchanged.
- */
-export function flipSwitch(d: Draft, shot: number): Draft {
-  if (!showsStroke(d, shot) || switchOf(d, shot).fixed) return d
-  if (d.shots[shot - 1]?.stroke === 'Block') return d
-  const shots = d.shots.map((s, i) => (i === shot - 1 ? { ...s, stroke: undefined } : s))
-  const cleared: Draft = { ...d, shots }
-  if (twoShotEnd(d, shot)) return { ...cleared, fa: null, noAttack: false }
-  return cleared
-}
-
 export type ShotRole = 'serve' | 'before' | 'firstAttack' | 'reply' | 'later'
 
 /** Role by position against the first attack. */
@@ -761,25 +693,6 @@ export function statusText(d: Draft): string {
   }
 }
 
-/** Short summary of one shot, for collapsed rows and the rally list. */
-export function shotSummary(s: ShotTags): string {
-  return [
-    s.wing,
-    s.stroke,
-    s.spin,
-    s.depth,
-    s.contact,
-    s.intent,
-    s.initiative,
-    s.high ? 'High' : '',
-    s.heavy ? 'Heavy' : '',
-    s.review ? 'Review' : '',
-    s.missReason,
-  ]
-    .filter(Boolean)
-    .join(' · ')
-}
-
 export type MarkKind = 'serve' | 'gap'
 
 /**
@@ -893,23 +806,6 @@ export function rallyFromDraft(d: Draft, id: string): RallyData | null {
     winner,
     highlight: d.highlight,
     ...(d.serveChecked ? { serveChecked: true as const } : {}),
-  }
-}
-
-export function draftFromRally(r: RallyData): Draft {
-  return {
-    videoId: r.videoId,
-    server: r.server,
-    contacts: r.contacts,
-    closed: true,
-    start: r.start,
-    end: r.end,
-    ending: r.ending,
-    fa: r.fa,
-    noAttack: r.fa === null && r.contacts.length > 1,
-    shots: r.shots,
-    highlight: r.highlight,
-    ...(r.serveChecked ? { serveChecked: true as const } : {}),
   }
 }
 

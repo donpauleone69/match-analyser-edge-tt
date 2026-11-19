@@ -161,12 +161,11 @@ eq('down to one does not save', toOne.save, false)
 eq('down to one asks End', toOne.draft.best?.step, 'end')
 eq('down to one cleared End', toOne.draft.ending, null)
 
-const before = bestQuestionKey(openRally('me', 3), false, 'pad')
+const before = bestQuestionKey(openRally('me', 3), false)
 const served = setDepth(openRally('me', 3), 'Short')
 const afterServe = bestAdvance(served, false).draft
-eq('guard key changes on serve', before !== bestQuestionKey(afterServe, false, 'pad'), true)
-eq('guard key same across layouts until the question changes', bestQuestionKey(afterServe, false, 'buttons') !== bestQuestionKey(afterServe, false, 'pad'), true)
-eq('same question same key', bestQuestionKey(afterServe, false, 'pad'), bestQuestionKey(afterServe, false, 'pad'))
+eq('guard key changes on serve', before !== bestQuestionKey(afterServe, false), true)
+eq('same question same key', bestQuestionKey(afterServe, false), bestQuestionKey(afterServe, false))
 
 function walkOne(n: number, end: BestEnd, point: Side, switchFirst: boolean): { questions: string[]; draft: Draft; saved: boolean } {
   let d = openRally('me', n)
