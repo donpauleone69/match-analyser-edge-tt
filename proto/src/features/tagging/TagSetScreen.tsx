@@ -404,6 +404,7 @@ function WingTap({
   title,
   line,
   dim,
+  held,
   guard,
   onTap,
 }: {
@@ -411,6 +412,8 @@ function WingTap({
   title: string
   line: string
   dim: boolean
+  /** Rally list or Settings. The corner answers are portaled beside this button, so they stay live. */
+  held: boolean
   guard: (e: MouseEvent) => void
   onTap: () => void
 }) {
@@ -421,7 +424,8 @@ function WingTap({
       data-tap-wing={side}
       className={cn(
         'pad-region flex min-h-11 flex-1 flex-col items-center justify-center rounded-md bg-brand-primary px-1 text-center text-[22px] font-bold leading-tight text-on-accent',
-        dim && 'opacity-60'
+        dim && 'opacity-60',
+        held && 'pointer-events-none'
       )}
       aria-label={title}
       onClickCapture={guard}
@@ -3036,10 +3040,10 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       {/* Wings stay up in landscape and go blank when there is nothing to tap. */}
       {landscape ? (
         <div
-          className={cn('pad-wing', coverTaps && 'pointer-events-none')}
+          className="pad-wing relative"
           data-pad-wing="left"
           ref={setLeftWing}
-          onClickCapture={tapSplit ? undefined : guardClicks(panelGuard)}
+          onClickCapture={tapSplit ? undefined : guardClicks(panelGuard, '[data-late-tap]')}
         >
           {tapSplit ? (
             <WingTap
@@ -3047,8 +3051,18 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               title={zoneTitle}
               line={zoneLine}
               dim={deleteMode}
+              held={coverTaps}
               guard={guardClicks(slotGuard)}
               onTap={onPad}
+            />
+          ) : null}
+          {late && slotKind === 'save' && active ? (
+            <button
+              type="button"
+              data-late-tap
+              aria-label={`Tap shot ${active.contacts.length + 1}`}
+              className="absolute inset-0 z-10 touch-manipulation select-none"
+              onClick={onLateTap}
             />
           ) : null}
         </div>
@@ -4023,10 +4037,10 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       </div>
       {landscape ? (
         <div
-          className={cn('pad-wing', coverTaps && 'pointer-events-none')}
+          className="pad-wing relative"
           data-pad-wing="right"
           ref={setRightWing}
-          onClickCapture={tapSplit ? undefined : guardClicks(panelGuard)}
+          onClickCapture={tapSplit ? undefined : guardClicks(panelGuard, '[data-late-tap]')}
         >
           {tapSplit ? (
             <WingTap
@@ -4034,8 +4048,18 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               title={zoneTitle}
               line={zoneLine}
               dim={deleteMode}
+              held={coverTaps}
               guard={guardClicks(slotGuard)}
               onTap={onPad}
+            />
+          ) : null}
+          {late && slotKind === 'save' && active ? (
+            <button
+              type="button"
+              data-late-tap
+              aria-label={`Tap shot ${active.contacts.length + 1}`}
+              className="absolute inset-0 z-10 touch-manipulation select-none"
+              onClick={onLateTap}
             />
           ) : null}
         </div>
