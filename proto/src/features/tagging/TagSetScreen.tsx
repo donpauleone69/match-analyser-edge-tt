@@ -9,7 +9,7 @@ import {
   type ReactNode,
   type RefObject,
 } from 'react'
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Button, Icon, buttonKindTapPadSquare, buttonKindTextLink } from '@/ui-mine'
 import { WfEmpty } from '@/layout/Wireframe'
 import {
@@ -127,11 +127,8 @@ import { ZERO, addPoint, isSetWon, type Points } from './score'
 import { AnswerKeyPanel } from './AnswerKeyPanel'
 import { NO_ATTACK_KEY, applyPanelKey } from './shotKeys'
 import {
-  copyTagLog,
   countOptional,
   editNote,
-  flowFromParam,
-  isBestFlow,
   pushTagLog,
   type FlowName,
   type TagLogLine,
@@ -402,10 +399,8 @@ function WingTap({
 
 function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: TagLock }) {
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
-  const cellsOutlined = searchParams.get('cells') === 'outlined'
-  /** The address. A rally already open keeps the mode it started with. */
-  const flowWanted: FlowName = flowFromParam(searchParams.get('flow'))
+  /** The address no longer picks a flow. Every rally is Best + FA. */
+  const flowWanted: FlowName = 'bestfa'
   const { mutateMatch } = useDemo()
   const player = usePlayer(match.videos)
   const playerRef = useRef(player)
@@ -534,7 +529,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   }, [live?.closed])
   /** Best or Best + FA, contacts closed, this rally's steps open. */
   const bestOn =
-    isBestFlow(flowLock) && !edit && !review && !set.finished && !draftGone && Boolean(live?.closed)
+    !edit && !review && !set.finished && !draftGone && Boolean(live?.closed)
   const liveCount = live?.contacts.length ?? 0
   /** End is on screen with no result, and whenever a press has opened it. */
   const showEnd = bestOn
@@ -744,8 +739,8 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   // video is parked on the frame where tagging stopped.
   useEffect(() => {
     let draft = set.draft
-    const modeNow: FlowName = flowFromParam(searchParams.get('flow'))
-    const bestOpen = Boolean(isBestFlow(modeNow) && draft && !draft.closed && draft.contacts.length > 0)
+    const modeNow: FlowName = 'bestfa'
+    const bestOpen = Boolean(draft && !draft.closed && draft.contacts.length > 0)
     if (draft && !draft.closed && !bestOpen) {
       draft = draft.contacts.length > 0 ? { ...draft, closed: true } : null
       const fixed = draft
@@ -762,7 +757,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       clock.current = freshClock(modeNow)
     }
     park(draft, set.finished, floorG)
-    if (draft && isBestFlow(modeNow) && draft.contacts.length > 0) {
+    if (draft && draft.contacts.length > 0) {
       if (draft.closed) playBest(draft, bestAt(draft, set.rallies.length === 0))
       else {
         const p = playerRef.current
@@ -917,30 +912,23 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     const { live: d, set: s, match: m } = latest.current
     if (!d || d.closed || d.contacts.length === 0) return
     const wanted = latest.current.flowWanted
-    const best = isBestFlow(wanted)
-    const base = best ? { ...d, closed: true, best: carryBest(d, {}) } : d
+    const base = { ...d, closed: true, best: carryBest(d, {}) }
     const open: BestAt =
-      best && d.contacts.length > 1
-        ? (routeAfter(base, s.rallies.length === 0) ?? { step: 'serve' })
-        : { step: 'end' }
-    const closed: Draft = best ? withStep(base, open) : { ...d, closed: true }
+      d.contacts.length > 1 ? (routeAfter(base, s.rallies.length === 0) ?? { step: 'serve' }) : { step: 'end' }
+    const closed: Draft = withStep(base, open)
     mutateMatch(m.id, (cur) => setDraft(cur, s.setId, closed))
     const p = playerRef.current
-    if (best) {
-      p.setLoop(null)
-      p.pause()
-    }
+    p.setLoop(null)
+    p.pause()
     p.setBoundary(null)
     setLastTap(null)
     flowLockRef.current = wanted
     setFlowLock(wanted)
-    if (best) {
-      setSelected(null)
-      setEndOpen(false)
-      setBestLook(false)
-      setBestCheck(false)
-      playBest(closed, open)
-    }
+    setSelected(null)
+    setEndOpen(false)
+    setBestLook(false)
+    setBestCheck(false)
+    playBest(closed, open)
     if (!clock.current) clock.current = freshClock(wanted)
     clock.current.mode = wanted
     clock.current.tapsEnded = Date.now()
@@ -952,7 +940,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   useEffect(() => {
     if (mode !== 'tapping' || lastTap === null) return
     const id = setTimeout(() => {
-      if (bestCheckRef.current && isBestFlow(latest.current.flowWanted)) return
+      if (bestCheckRef.current) return
       closeContacts()
     }, CONTACT_IDLE_MS)
     return () => clearTimeout(id)
@@ -962,7 +950,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   /** The pad: plays when paused with nothing tapped, otherwise records a contact. */
   const onPad = () => {
     if (bestHold.current) return
-    if (bestCheckRef.current && isBestFlow(latest.current.flowWanted)) return
+    if (bestCheckRef.current) return
     const p = playerRef.current
     if (mode === 'setPoint') {
       onKeepTagging()
@@ -971,7 +959,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     if (mode !== 'watch' && mode !== 'tapping') return
     const tapped = live?.contacts.length ?? 0
     if (!p.isPlaying() && tapped === 0) {
-      if (isBestFlow(latest.current.flowWanted)) p.setRate(CAPTURE_SPEED)
+      p.setRate(CAPTURE_SPEED)
       p.play()
       // The pad now means Tap serve: a double press on Play is not a serve.
       arm(GUARD_AFTER_SWAP_MS)
@@ -983,7 +971,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     const local = g - seg.offset
     const floorLocal = tapped > 0 ? live!.contacts[tapped - 1] : Math.max(0, floorG - seg.offset)
     // Reaction is video time. A slower playback speed does not shrink it.
-    const latency = isBestFlow(latest.current.flowWanted) ? timing.reaction / 1000 : TAP_LATENCY_S
+    const latency = timing.reaction / 1000
     const stored = Math.round(captureContactTime(local, floorLocal, latency) * 100) / 100
     if (tapped > 0 && tapIgnored(live!, stored)) return
     const server = nextServer
@@ -993,7 +981,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       const base = serverChosen.current ? { ...fresh, serveChecked: true } : fresh
       const added = addContact(base, stored)
       const flow = latest.current.flowWanted
-      const stamped = isBestFlow(flow) ? { ...added, best: { ...(added.best ?? { flow }), flow } } : added
+      const stamped = { ...added, best: { ...(added.best ?? { flow }), flow } }
       return setDraft(m, set.setId, stamped)
     })
     if (tapped === 0) {
@@ -1247,7 +1235,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   }
 
   const onSave = () => {
-    if (isBestFlow(flowLockRef.current)) return
+    if (flowWanted === 'bestfa') return
     if (!live || !canSave(live)) return
     const rally = rallyFromDraft(live, `r-${Date.now()}`)
     if (!rally) return
@@ -1496,7 +1484,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
    */
   const onSwitch = () => {
     if (readOnly) return
-    if (isBestFlow(latest.current.flowWanted) && !edit) return
+    if (!edit) return
     // Editing a saved rally: the same Switch, for that rally only.
     serverChosen.current = true
     if (edit) {
@@ -2284,21 +2272,11 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       score={score}
       onFinish={onFinishSet}
       actions={listActions}
-      onCopyTimings={
-        searchParams.has('flow')
-          ? () => {
-              void copyTagLog().then((done) => setHint(done ? 'Timings copied' : 'Could not copy timings'))
-            }
-          : undefined
-      }
     />
     <AnswerKeyPanel videos={match.videos} rallies={set.rallies} names={names} />
     </>
   )
   const padServer = edit ? edit.draft.server : live?.server ?? nextServer
-  const switchWarn =
-    !readOnly && (mode === 'watch' || mode === 'tagging') && !atEnd && padServer !== expected
-  const switchWarnRally = gap ? gap.index + 1 : set.rallies.length + 1
   const switchOn = !readOnly && !atEnd && (mode === 'watch' || mode === 'tagging' || mode === 'edit')
   const rowButton = cn('px-3 shrink-0', slotGrey && BUSY)
   /** The four rally actions: one width each, the label on two lines where it needs them. */
@@ -2323,8 +2301,8 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     !edit &&
     (mode === 'tapping' || (mode === 'watch' && !atEnd) || (mode === 'tagging' && stage === 'pickFa' && !showEnd))
   const zoneKind = mode === 'tagging' ? 'fa' : 'pad'
-  const bestPass = isBestFlow(flowWanted) && !edit
-  const deleteMode = bestCheck && isBestFlow(flowWanted) && !edit
+  const bestPass = !edit
+  const deleteMode = bestCheck && !edit
   const padTitle = deleteMode
     ? 'Delete mode'
     : tapped > 0
@@ -2347,33 +2325,9 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const deleteLastOn = Boolean(
     mode === 'tagging' && !edit && !review && !readOnly && !bestOn && live?.closed && live.contacts.length > 1
   )
-  const rightKind = !footStrip
-    ? 'none'
-    : isBestFlow(flowWanted)
-      ? finishKept
-        ? 'finish'
-        : 'none'
-      : mode === 'tapping'
-        ? 'delete-last'
-      : mode === 'tagging' && stage === 'pickFa'
-        ? 'no-attack'
-        : gap
-          ? 'back-to-live'
-          : finishKept
-            ? 'finish'
-            : lastSaved && !lastSaved.point && have.has(lastSaved.videoId)
-              ? 'edit-last'
-              : 'none'
+  const rightKind = !footStrip ? 'none' : finishKept ? 'finish' : 'none'
   /** A foot control is showing. With none, the strip collapses and the tap zone grows. */
-  const footAction = Boolean(
-    footStrip &&
-      ((mode === 'tagging' && stage === 'pickFa') ||
-        rightKind === 'edit-last' ||
-        rightKind === 'finish' ||
-        rightKind === 'back-to-live' ||
-        rightKind === 'delete-last' ||
-        (rightKind === 'no-attack' && askNoAttack))
-  )
+  const footAction = Boolean(footStrip && ((mode === 'tagging' && stage === 'pickFa') || rightKind === 'finish'))
   const rightBoxClass =
     'btn-kind-tap-pad w-28 shrink-0 rounded-lg border border-border bg-transparent px-3 text-sm font-medium text-primary whitespace-nowrap disabled:opacity-40'
   useLayoutEffect(() => {
@@ -2401,7 +2355,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const bestRowDraft = bestRowSaved ? bestSaved!.draft : active
   /** What the question area shows. When it changes, the button now under the thumb waits out a double tap. */
   const bestPanelKey = bestQ && live ? bestQuestionKey(live, bestRallyOne, endBack) : ''
-  const tapSplit = Boolean(landscape && zoneOn && zoneKind === 'pad' && isBestFlow(flowWanted))
+  const tapSplit = Boolean(landscape && zoneOn && zoneKind === 'pad')
   const padSplit = Boolean(
     tapSplit || (landscape && bestOn && !bestOver && liveCount > 0)
   )
@@ -2420,7 +2374,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     return () => mq.removeEventListener('change', onChange)
   }, [])
   const bestAccount = (() => {
-    if (!isBestFlow(flowShown) || !live || live.contacts.length === 0) return null
+    if (!live || live.contacts.length === 0) return null
     const winner = pointDone(live, bestRallyOne) ? winnerOf(live) : null
     return {
       hitters: bestHitters(live).join(','),
@@ -2430,7 +2384,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     }
   })()
   /** Rally list and Settings sit over part of the screen. Taps on the zone and wings wait. */
-  const coverTaps = listOpen || (settingsOpen && isBestFlow(flowShown))
+  const coverTaps = listOpen || settingsOpen
 
   return (
     <PadWingContext.Provider value={padSplit ? padWings : NO_WINGS}>
@@ -2443,7 +2397,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       onClick={() => {
         if (clock.current) clock.current.presses++
       }}
-      data-cells={cellsOutlined ? 'outlined' : undefined}
       data-tag-stage={stage ?? ''}
       data-tag-adding={addOn ? '' : undefined}
       data-review={review?.kind ?? ''}
@@ -2510,14 +2463,12 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
             </Link>
           }
           settings={
-            isBestFlow(flowShown) ? (
-              <BestTimingControl
+            <BestTimingControl
                 timing={timing}
                 onChange={setBestTiming}
                 open={settingsOpen}
                 onOpen={setSettingsOpen}
               />
-            ) : null
           }
         />
       </div>
@@ -2550,7 +2501,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
             className="tag-idle-bar pointer-events-none absolute left-0 right-0 top-0 z-10 h-1.5 bg-brand-primary/50"
           />
         ) : null}
-        {isBestFlow(flowShown) && !edit ? (
+        {!edit ? (
           <BestRallyRow
             draft={bestRowDraft}
             at={bestQ}
@@ -2591,7 +2542,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               !readOnly && !bestRowSaved && live && live.contacts.length > 0 ? onDiscardProgress : undefined
             }
           />
-        ) : isBestFlow(flowShown) && !edit ? null : active || mode === 'watch' ? (
+        ) : active || mode === 'watch' ? (
           <ShotRail
             draft={active}
             selected={selected}
@@ -3059,18 +3010,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
               )}
             </div>
           ) : null}
-          {switchWarn && !review && !isBestFlow(flowWanted) ? (
-            <p
-              role="status"
-              data-switch-warning
-              className="mb-2 rounded-md border border-warning bg-warning/15 px-2 py-1.5 text-xs font-semibold text-primary leading-snug"
-            >
-              {expected === 'me'
-                ? 'You were due to serve.'
-                : `${names[expected]} was due to serve.`}{' '}
-              Rallies since rally {switchWarnRally} will be marked to check.
-            </p>
-          ) : null}
           <div className="flex items-stretch gap-2">
           {deleteLastOn ? (
             <button
@@ -3124,17 +3063,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                   Discard
                 </button>
               ) : null}
-              {rightKind === 'edit-last' && lastSaved ? (
-                <button
-                  type="button"
-                  data-action="edit-last"
-                  className={rightBoxClass}
-                  onClickCapture={guardClicks(rightGuard)}
-                  onClick={() => openRally(lastSaved, lastSavedIndex)}
-                >
-                  Edit last rally
-                </button>
-              ) : rightKind === 'finish' ? (
+              {rightKind === 'finish' ? (
                 <button
                   type="button"
                   data-finish-card
@@ -3143,38 +3072,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                   onClick={onFinishSet}
                 >
                   Finish set
-                </button>
-              ) : rightKind === 'back-to-live' ? (
-                <button
-                  type="button"
-                  data-action="back-to-live"
-                  className={rightBoxClass}
-                  onClickCapture={guardClicks(rightGuard)}
-                  onClick={leaveGap}
-                >
-                  Back to live
-                </button>
-              ) : rightKind === 'delete-last' ? (
-                <button
-                  type="button"
-                  data-action="delete-last"
-                  className={rightBoxClass}
-                  onClickCapture={guardClicks(rightGuard)}
-                  onClick={onUndoTap}
-                >
-                  Delete last
-                </button>
-              ) : rightKind === 'no-attack' && askNoAttack ? (
-                <button
-                  type="button"
-                  data-action="no-attack"
-                  aria-pressed={Boolean(active?.noAttack)}
-                  className={rightBoxClass}
-                  disabled={!askNoAttack}
-                  onClickCapture={guardClicks(rightGuard)}
-                  onClick={onNoAttack}
-                >
-                  No attack
                 </button>
               ) : null}
             </>

@@ -412,12 +412,6 @@ button[disabled] {
   --tag-shot-line-a: transparent;
   --tag-shot-line-b: transparent;
 }
-.tag-set[data-cells="outlined"] {
-  --tag-cell-rest: var(--color-pill-idle);
-  --tag-cell-rest-line: var(--color-pill-idle-border);
-  --tag-shot-line-a: color-mix(in srgb, var(--color-tag-player-a) 50%, transparent);
-  --tag-shot-line-b: color-mix(in srgb, var(--color-tag-player-b) 50%, transparent);
-}
 @media (pointer: coarse) {
   .tag-set {
     --btn-kind-control: 2.5rem; /* 40px */

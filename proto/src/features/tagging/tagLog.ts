@@ -8,18 +8,6 @@ import { isError, type Draft, type RallyData, type Side } from './rally'
 
 export type FlowName = 'bestfa' | 'sequential' | 'spine'
 
-/** Shot by shot. */
-export const isWalkFlow = (f: FlowName | null): boolean => f === 'sequential'
-
-/** Rally Spine. A live pass, then a later pass. */
-export const isIdeaFlow = (f: FlowName | null): f is 'spine' => f === 'spine'
-
-/** Best + FA. One rally at a time. */
-export const isBestFlow = (f: FlowName | null): f is 'bestfa' => f === 'bestfa'
-
-/** The `flow` value in the address. Anything else, including a removed flow, is Best + FA. */
-export const flowFromParam = (v: string | null): FlowName => (v === 'sequential' || v === 'spine' ? v : 'bestfa')
-
 export type TagLogLine = {
   mode: FlowName
   shots: number
