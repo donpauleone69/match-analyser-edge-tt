@@ -380,7 +380,7 @@ button[disabled] {
   animation: tag-idle-drain 2s linear forwards;
 }
 
-/* A rally has just closed: the panel fades in while late taps are ignored. */
+/* A rally has just closed: the panel fades in. */
 @keyframes tag-arm {
   from {
     opacity: 0.3;
@@ -530,7 +530,7 @@ button[disabled] {
 .pad-wing {
   display: none;
 }
-.tag-set [data-tag-slot]:not(:has(button, a, input, [data-switch-warning], [data-late-tap])) {
+.tag-set [data-tag-slot]:not(:has(button, a, input, [data-switch-warning])) {
   display: none;
 }
 .tag-set[data-pad-split] {

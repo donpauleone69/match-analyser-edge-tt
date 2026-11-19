@@ -28,6 +28,7 @@ Mirrors the [Key documents canvas](https://cursor.com/canvas/store-7c210afe-9d07
 
 | Build | Link | Notes |
 |-------|------|-------|
+| v0.16.5 | This build | Late tap removed. Settings drops Minimum and the layout toggle. Corner pad is the only layout. Video clock removed. Settings sits in the playback row after Mute and opens upward. Shot number on the picture removed. |
 | v0.16.4 | [PR #144](https://github.com/donpauleone69/match-analyser-edge-tt/pull/144) | Latest merged on proto (d303eda). Version in video Settings. Top Nav removed with Back on video; Set Zone one row with set name and Rallies; portrait Video, Set, Rally, Shot Input; landscape three columns with full-height wings; Discard for the rally in progress. |
 | v0.16.3 | [PR #143](https://github.com/donpauleone69/match-analyser-edge-tt/pull/143) | Latest merged on proto (7e2d6f1). Version in video Settings. "In net" line removed, landscape video fits height, fixed 82px rally row at bottom in both orientations, shot timer on top of rally row, slimmer 16px phase tags and shot row. |
 | v0.16.1 | [PR #140](https://github.com/donpauleone69/match-analyser-edge-tt/pull/140) | Latest merged on proto (7f3b893). Version in video Settings. Rally row: server pill, Not a shot, Star, Edit (was Check). Removed narrative line, toss offer, fix row, Delete last. |

@@ -5,7 +5,7 @@ import { cn } from '@/helpers/utils'
 import { buttonKindControlSquare } from '@/ui-mine/buttonKinds'
 import { SPEED_STEPS, servesText, type Side } from './rally'
 import { sceneAt, type VideoScript } from './script'
-import { formatClock, totalDuration, type Segment } from './timeline'
+import { totalDuration, type Segment } from './timeline'
 import type { Player } from './usePlayer'
 
 const MARKS = [0, 1, 2, 3]
@@ -291,7 +291,7 @@ export function SetTimeline({
   )
 }
 
-/** The picture, with the score, the clock, Settings and transport over it. */
+/** The picture, with the score, Settings and transport over it. */
 export function VideoStage({
   player,
   videos,
@@ -305,8 +305,7 @@ export function VideoStage({
   highlight = false,
   onHighlight,
   readOnlyHighlight = false,
-  badge = null,
-  extra = null,
+  settings = null,
   leading = null,
   className,
 }: {
@@ -321,15 +320,13 @@ export function VideoStage({
   /** Tapping: a jump forward would lose the rally being tapped. */
   noForward?: boolean
   onRate: (rate: number) => void
-  /** Highlight rally (show reel), top right under the clock on the picture. */
+  /** Highlight rally (show reel), top right on the picture. */
   highlightOn?: boolean
   highlight?: boolean
   onHighlight?: () => void
   readOnlyHighlight?: boolean
-  /** Shot number on the picture at that shot's contact. Neighbours get none. */
-  badge?: { shot: number; side: Side } | null
-  /** Drawn over the picture. Does not change the picture's size. */
-  extra?: ReactNode
+  /** Last control in the playback row, after Mute. */
+  settings?: ReactNode
   /** Top left of the picture, such as Back. The score sits to its right. */
   leading?: ReactNode
   className?: string
@@ -387,24 +384,6 @@ export function VideoStage({
           ))}
         </div>
 
-        <p className="absolute right-2 top-2 rounded-md bg-black/70 px-1.5 py-0.5 text-[11px] font-semibold text-white tabular-nums">
-          {videos.length > 1 ? `Video ${player.segIndex + 1} of ${videos.length} · ` : ''}
-          {formatClock(player.time - (seg?.offset ?? 0))}
-        </p>
-
-        {badge ? (
-          <p
-            data-shot-badge={badge.shot}
-            className={cn(
-              'absolute left-2 z-20 rounded-md px-3 py-1 text-2xl font-bold tabular-nums text-white',
-              leading ? 'top-14' : 'top-12',
-              badge.side === 'me' ? 'bg-side-me' : 'bg-side-them'
-            )}
-          >
-            {badge.shot}
-          </p>
-        ) : null}
-
         {highlightOn && onHighlight ? (
           <button
             type="button"
@@ -425,7 +404,6 @@ export function VideoStage({
           </button>
         ) : null}
 
-        {extra}
         {hint ? (
           <p
             role="status"
@@ -468,6 +446,7 @@ export function VideoStage({
               <Icon name={player.muted ? 'volume-off' : 'volume'} size="sm" />
             </Transport>
           ) : null}
+          {settings}
         </div>
       </div>
     </div>
