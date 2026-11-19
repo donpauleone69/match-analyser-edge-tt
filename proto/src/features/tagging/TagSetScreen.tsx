@@ -125,13 +125,6 @@ import { RallyList, type RallyListActions } from './RallyList'
 import { ZERO, addPoint, isSetWon, type Points } from './score'
 import { AnswerKeyPanel } from './AnswerKeyPanel'
 import { NO_ATTACK_KEY, applyPanelKey } from './shotKeys'
-import {
-  countOptional,
-  editNote,
-  pushTagLog,
-  type FlowName,
-  type TagLogLine,
-} from './tagLog'
 import { EndPanel, ShotPanel, TimeRow, TrimRow } from './ShotPanel'
 import { BestPanel, BestRallyRow } from './BestPanel'
 import { PadWingContext } from './CornerPad'
@@ -174,6 +167,8 @@ import { TAG_LOCK_LINE, useTagLock, type TagLock } from './tagLock'
 import { firstContactG, lastContactG, segmentAt, segmentsOf, toGlobal, type Segment } from './timeline'
 import { usePlayer, type Window } from './usePlayer'
 import { SetTimeline, VideoStage, type TimelineBlock } from './VideoStage'
+
+type FlowName = 'bestfa'
 
 /** Route entry: checks the set can be shown, then mounts the tagger per set. */
 export function TagSetScreen() {
@@ -265,52 +260,6 @@ type ReviewRun =
   | { kind: 'leave'; breakId: string }
 type SetHeaderProps = { match: MatchRecord; set: SetData; children?: ReactNode }
 
-/** Times for one rally, kept off the rally and written when it is saved. */
-type RallyClock = {
-  mode: FlowName
-  firstTap: number
-  tapsEnded: number
-  presses: number
-  nexts: number
-  loops: number
-  reopened: number
-  changed: number
-  discards: number
-}
-
-function freshClock(mode: FlowName): RallyClock {
-  return {
-    mode,
-    firstTap: Date.now(),
-    tapsEnded: 0,
-    presses: 0,
-    nexts: 0,
-    loops: 0,
-    reopened: 0,
-    changed: 0,
-    discards: 0,
-  }
-}
-
-function lineFrom(c: RallyClock, d: Draft | null, edit?: string): TagLogLine {
-  const now = Date.now()
-  return {
-    mode: c.mode,
-    shots: d?.contacts.length ?? 0,
-    server: d?.server ?? 'me',
-    fa: d?.fa ?? null,
-    answerMs: Math.max(0, now - (c.tapsEnded || c.firstTap)),
-    totalMs: Math.max(0, now - c.firstTap),
-    presses: c.presses,
-    nexts: c.nexts,
-    loops: c.loops,
-    reopened: c.reopened,
-    changed: c.changed,
-    discards: c.discards,
-    optional: d ? countOptional(d) : 0,
-    ...(edit ? { edit } : {}),
-  }
-}
 
 /** The stage-driven choice of what is selected after a change. */
 function selectionAfter(prev: Stage, next: Stage, d: Draft, current: Mark | null): Mark | null {
@@ -454,10 +403,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   flowLockRef.current = flowLock
   /** Who won the open rally, given on End. With the result it sets the server. */
   const [wonByPick, setWonByPick] = useState<Side | null>(null)
-  /** Side log for the rally being tagged. Not stored on the rally. */
-  const clock = useRef<RallyClock | null>(null)
-  /** A Discard that has not been undone and has not been written yet. */
-  const pendingDiscard = useRef<{ clock: RallyClock; draft: Draft } | null>(null)
   const [review, setReviewState] = useState<ReviewRun | null>(null)
   const reviewRef = useRef<ReviewRun | null>(null)
   const setReview = (next: ReviewRun | null) => {
@@ -730,12 +675,10 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     if (draft && draft.closed && draft.contacts.length > 0) {
       flowLockRef.current = modeNow
       setFlowLock(modeNow)
-      clock.current = { ...freshClock(modeNow), tapsEnded: Date.now() }
     }
     if (bestOpen && draft) {
       flowLockRef.current = modeNow
       setFlowLock(modeNow)
-      clock.current = freshClock(modeNow)
     }
     park(draft, set.finished, floorG)
     if (draft && draft.contacts.length > 0) {
@@ -859,17 +802,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       if (!wonBy) return
       next = withWinner(next, wonBy)
     }
-    if (clock.current) {
-      if (active.ending && next.ending && active.ending !== next.ending) clock.current.changed++
-      if (active.fa !== null && active.fa !== next.fa) clock.current.changed++
-      const count = Math.max(active.shots.length, next.shots.length)
-      for (let i = 0; i < count; i++) {
-        const was = active.shots[i]
-        const now = next.shots[i]
-        if (was?.stroke && now?.stroke && was.stroke !== now.stroke) clock.current.changed++
-        if (was?.wing && now?.wing && was.wing !== now.wing) clock.current.changed++
-      }
-    }
     const prev = stageOf(active)
     const st = stageOf(next)
     const sel = selectionAfter(prev, st, next, selected)
@@ -910,9 +842,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     setBestLook(false)
     setBestCheck(false)
     playBest(closed, open)
-    if (!clock.current) clock.current = freshClock(wanted)
-    clock.current.mode = wanted
-    clock.current.tapsEnded = Date.now()
     // A tap that comes late never lands on Save, Discard or a chip. The whole second.
     arm(GUARD_AFTER_CLOSE_MS, GUARD_AFTER_CLOSE_MS, GUARD_AFTER_CLOSE_MS)
   }
@@ -967,11 +896,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     })
     if (tapped === 0) {
       setBestSaved(null)
-      if (pendingDiscard.current) {
-        pushTagLog(lineFrom(pendingDiscard.current.clock, pendingDiscard.current.draft))
-        pendingDiscard.current = null
-      }
-      clock.current = freshClock(latest.current.flowWanted)
       p.setRate(CAPTURE_SPEED)
       // A rally never spans two videos: the end of this one closes it.
       p.setBoundary(seg.offset + seg.duration, () => closeContacts())
@@ -1044,7 +968,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       return
     }
     const same = selected?.kind === 'shot' && selected.shot === shot
-    if (!same && stage === 'ready' && clock.current) clock.current.reopened++
     const sel = same ? null : mark
     setEndOpen(false)
     setSelected(sel)
@@ -1125,24 +1048,13 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     arm(GUARD_AFTER_CLOSE_MS)
     // The same rally is tapped again, so it keeps the server it had.
     if (set.rallies.length > 0) setServerPick(live.server === expected ? null : live.server)
-    if (clock.current) {
-      clock.current.presses++
-      clock.current.discards++
-      pendingDiscard.current = { clock: clock.current, draft: live }
-      clock.current = null
-    }
     setFlowLock(null)
     setToast({
       text: 'Taps cleared',
       undo: () => {
         mutateMatch(match.id, (m) => restoreSet(m, before))
         setToast(null)
-        const held = pendingDiscard.current
-        pendingDiscard.current = null
-        if (held) {
-          clock.current = held.clock
-          setFlowLock(held.clock.mode)
-        }
+        setFlowLock('bestfa')
         park(before.draft, false, floorG)
       },
     })
@@ -1170,13 +1082,10 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   }
 
   /** Save writes the rally, moves the score and lets the video run on. */
-  const commitRally = (rally: RallyData, logged: Draft) => {
+  const commitRally = (rally: RallyData) => {
     const p = playerRef.current
     const before = set
     mutateMatch(match.id, (m) => saveRally(m, set.setId, rally))
-    if (clock.current) pushTagLog(lineFrom(clock.current, logged))
-    clock.current = null
-    pendingDiscard.current = null
     setFlowLock(null)
     setServerPick(null)
     serverChosen.current = false
@@ -1219,7 +1128,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     if (!live || !canSave(live)) return
     const rally = rallyFromDraft(live, `r-${Date.now()}`)
     if (!rally) return
-    commitRally(rally, live)
+    commitRally(rally)
   }
 
   const rallyOneNow = () => set.rallies.length === 0
@@ -1281,9 +1190,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       const base = rally1 && d.server !== set.firstServer ? flipFirstServer(m, set.setId) : m
       return saveRally(base, set.setId, rally)
     })
-    if (clock.current) pushTagLog(lineFrom(clock.current, d))
-    clock.current = null
-    pendingDiscard.current = null
     setBestSaved({ rallyId: rally.id, draft: { ...d, closed: true }, before, floor: floorG })
     setFlowLock(null)
     setServerPick(null)
@@ -1344,7 +1250,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     setKeptAt(null)
     flowLockRef.current = 'bestfa'
     setFlowLock('bestfa')
-    clock.current = { ...freshClock('bestfa'), tapsEnded: Date.now() }
     const p = playerRef.current
     p.setBoundary(null)
     p.setFloor(bestSaved.floor)
@@ -1880,16 +1785,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       ...(rally.serveChecked || prev?.serveChecked ? { serveChecked: true } : {}),
     }
     mutateMatch(match.id, (m) => replaceRally(m, set.setId, kept))
-    if (prev) {
-      pushTagLog({
-        ...lineFrom(freshClock(flowWanted), edit.draft, editNote(prev, kept)),
-        shots: kept.contacts.length,
-        server: kept.server,
-        fa: kept.fa,
-        answerMs: 0,
-        totalMs: 0,
-      })
-    }
     leaveEdit()
   }
 
@@ -2299,13 +2194,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     rightKindSeen.current = rightKind
   }, [rightKind])
 
-  // A loop round: the playhead jumps back while this rally is still the one being tagged.
-  const playedAt = useRef(player.time)
-  useEffect(() => {
-    if (clock.current && player.playing && player.time + 0.4 < playedAt.current) clock.current.loops++
-    playedAt.current = player.time
-  }, [player.time, player.playing])
-
   const flowShown: FlowName = mode === 'tagging' && flowLock ? flowLock : flowWanted
   const bestRallyOne = set.rallies.length === 0
   const bestQ: BestAt | null = bestOn && live ? bestAt(live, bestRallyOne) : null
@@ -2356,9 +2244,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       data-tag-mode={mode}
       data-flow={flowShown}
       data-best-look={bestLook ? '' : undefined}
-      onClick={() => {
-        if (clock.current) clock.current.presses++
-      }}
       data-tag-stage={stage ?? ''}
       data-tag-adding={addOn ? '' : undefined}
       data-review={review?.kind ?? ''}
