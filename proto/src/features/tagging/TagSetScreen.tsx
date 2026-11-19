@@ -168,7 +168,7 @@ import {
   type Sweep,
 } from './ideaFlow'
 import { EndPanel, ShotPanel, TimeRow, TrimRow } from './ShotPanel'
-import { BestPanel, BestRallyRow, type BestFix } from './BestPanel'
+import { BestPanel, BestRallyRow } from './BestPanel'
 import { PadWingContext } from './CornerPad'
 import { BestTimingControl } from './BestTimingControl'
 import {
@@ -186,7 +186,6 @@ import {
   bestSetEnd,
   bestSetPoint,
   bestSwitchServer,
-  bestTossInstead,
   canOpenCell,
   carryBest,
   cellTarget,
@@ -460,8 +459,7 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   /** A spine sweep. Null during the live pass. */
   const [detail, setDetail] = useState<{ flow: 'spine'; sweep: Sweep } | null>(null)
   const detailRef = useRef(detail)
-  /** Best + FA: the whole-rally loop, contact check, add, More, and the set-end hold. */
-  const [bestNote, setBestNote] = useState<string | null>(null)
+  /** Best + FA: loop timings, contact check, add, and the set-end hold. */
   const [timing, setTiming] = useState(loadBestTiming)
   const [answerLayout, setAnswerLayoutState] = useState(loadAnswerLayout)
   const landscape = useLandscape()
@@ -485,7 +483,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   }
   const [bestLook, setBestLook] = useState(false)
   const [bestCheck, setBestCheck] = useState(false)
-  const [bestMore, setBestMore] = useState(false)
   /** Corner pad only: an End question opened again from its one-line reminder. */
   const [endBack, setEndBack] = useState<'end' | 'point' | null>(null)
   /**
@@ -1158,11 +1155,9 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     if (best) {
       setSelected(null)
       setEndOpen(false)
-      setBestNote(null)
       setBestLook(false)
       setBestAdd(false)
       setBestCheck(false)
-      setBestMore(false)
       playBest(closed, open)
     } else if (isIdeaFlow(wanted)) {
       setSelected(null)
@@ -1689,7 +1684,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
       setBestLook(false)
       playBest(d, now)
     }
-    if (!misNow) setBestMore(false)
   }
 
   /** The last answer: the rally is saved, the score moves and the video plays on. */
@@ -1719,11 +1713,9 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     setLastSavedId(rally.id)
     setServerPick(null)
     serverChosen.current = false
-    setBestNote(null)
     setBestLook(false)
     setBestCheck(false)
     setBestAdd(false)
-    setBestMore(false)
     setSelected(null)
     setEndOpen(false)
     setTight(false)
@@ -1789,7 +1781,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
   const onBestEnd = (end: BestEnd) => {
     if (!live) return
     setEndBack(null)
-    setBestNote(null)
     routeBest(bestSetEnd(live, end, rallyOneNow()))
   }
 
@@ -1807,7 +1798,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
 
   const onBestServe = (depth: string, wing: Wing) => {
     if (!live) return
-    setBestNote(null)
     routeBest(setDepth(live, depth, wing))
   }
 
@@ -1819,7 +1809,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     if (!live.closed || !canOpenCell(live, shot, rallyOneNow())) return
     const target = cellTarget(live, shot)
     if (!target) return
-    setBestMore(false)
     showBest(live, target)
   }
 
@@ -1830,7 +1819,9 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
 
   const onBestStar = () => {
     if (live?.closed) writeDraft({ ...live, highlight: !live.highlight })
-    else if (bestSaved) updateSaved({ ...bestSaved.draft, highlight: !bestSaved.draft.highlight })
+    else if ((!live || live.contacts.length === 0) && bestSaved) {
+      updateSaved({ ...bestSaved.draft, highlight: !bestSaved.draft.highlight })
+    }
   }
 
   const onBestNotYet = () => {
@@ -1854,7 +1845,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     if (serveAt !== undefined && t < serveAt) return
     const { draft: next } = insertContact(live, t)
     setBestAdd(false)
-    setBestNote(null)
     routeBest(keepBestMarks({ ...next, best: carryBest(next, { kept: undefined }) }))
   }
 
@@ -1863,7 +1853,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     const before = set
     const rallyOne = before.rallies.length === 0
     setEndBack(null)
-    setBestNote(null)
     routeBest(shot === live.contacts.length ? bestDeleteLast(live) : removeBestContact(live, shot, rallyOne))
     withUndo('Shot removed', before, () => {
       const back = before.draft
@@ -1871,52 +1860,15 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     })
   }
 
-  const onBestFix = (fix: BestFix) => {
-    if (!live) return
-    if (fix === 'more') {
-      setBestMore((open) => !open)
-      return
-    }
-    if (fix === 'check') {
-      setBestCheck(true)
-      setBestLook(false)
-      playCheck(live)
-      return
-    }
-    if (fix === 'add') {
-      setBestAdd(true)
-      setBestMore(false)
-      playBest(live, 'add', CAPTURE_SPEED)
-      return
-    }
-    if (fix === 'deleteLast') {
-      setBestNote(null)
-      routeBest(bestDeleteLast(live))
-      return
-    }
-    if (fix === 'deleteFirst') {
-      setBestNote(live.shots[0]?.depth ? 'Serve length left with that contact.' : null)
-      routeBest(bestDeleteFirst(live, rallyOneNow()))
-      return
-    }
-    if (fix === 'switch') {
-      routeBest(bestSwitchServer(live, rallyOneNow()))
-      return
-    }
-    routeBest({ ...live, best: carryBest(live, { kept: true }) })
-  }
-
-  /** Check: a minus on every cell. The last cell is Delete last, the first Delete first. */
+  /** Edit: a minus on every cell. The last cell is Delete last, the first Delete first. */
   const onBestMinus = (shot: number) => {
     if (!live || live.contacts.length < 2 || !bestCheck) return
     const before = set
     const n = live.contacts.length
     let next: Draft
     if (live.closed && shot === n) next = bestDeleteLast(live)
-    else if (live.closed && shot === 1) {
-      next = bestDeleteFirst(live, rallyOneNow())
-      if (live.shots[0]?.depth) setBestNote('Serve length left with that contact.')
-    } else next = removeBestContact(live, shot, rallyOneNow())
+    else if (live.closed && shot === 1) next = bestDeleteFirst(live, rallyOneNow())
+    else next = removeBestContact(live, shot, rallyOneNow())
     writeDraft(next)
     if (next.closed) playCheck(next)
     else playOpenCheck(next)
@@ -3140,12 +3092,24 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                   : -1
               }
               label={`Rally ${bestRowSaved ? set.rallies.length : set.rallies.length + 1}`}
+              names={names}
+              server={bestRowDraft?.server ?? nextServer}
               checking={bestCheck}
-              showCheck={Boolean(live && live.contacts.length > 0)}
               onCell={onBestCell}
               onMinus={onBestMinus}
               onCheck={onBestCheck}
               onStar={onBestStar}
+              onServer={() => {
+                if (!live) return
+                const next = bestSwitchServer(live, bestRallyOne)
+                if (bestRallyOne) mutateMatch(match.id, (m) => flipFirstServer(m, set.setId))
+                routeBest(next, { save: false })
+              }}
+              onNotShot={() => {
+                if (!live || !bestQ) return
+                const shot = bestQ.step === 'serve' ? 1 : (bestQ.page ?? live.contacts.length)
+                onBestDropShot(shot)
+              }}
               onPart={onBestPart}
               onRally={() => {
                 if (!live) return
@@ -3371,38 +3335,14 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
                 at={bestQ}
                 rallyOne={bestRallyOne}
                 rallyNo={set.rallies.length + 1}
-                more={bestMore}
-                note={
-                  bestNote === 'New last shot. End again.'
-                    ? bestQ.step === 'end'
-                      ? bestNote
-                      : null
-                    : bestQ.step === 'serve'
-                      ? bestNote
-                      : null
-                }
                 onEnd={onBestEnd}
                 onPoint={onBestPoint}
                 onServe={onBestServe}
-                onServer={() => {
-                  if (!live) return
-                  const next = bestSwitchServer(live, bestRallyOne)
-                  if (bestRallyOne) mutateMatch(match.id, (m) => flipFirstServer(m, set.setId))
-                  routeBest(next, { save: false })
-                }}
                 onStroke={onBestStroke}
                 layout={answerLayout}
                 sides={padSplit}
                 back={endBack}
                 onBack={setEndBack}
-                onFix={onBestFix}
-                onTossInstead={() => routeBest(bestTossInstead(live, bestRallyOne), { save: false })}
-                onNotShot={() => {
-                  if (!live || !bestQ) return
-                  const shot = bestQ.step === 'serve' ? 1 : (bestQ.page ?? live.contacts.length)
-                  onBestDropShot(shot)
-                }}
-                onDeleteLast={() => onBestDropShot(live.contacts.length)}
               />
             ) : null}
             {!zoneOn && review ? (

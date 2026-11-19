@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import { cn } from '@/helpers/utils'
 import { Answer, AnswerRow, StrokeGrid, restStyle } from './AnswerCells'
 import { CornerPad } from './CornerPad'
@@ -25,7 +25,7 @@ import {
 import { hitterOf, type Draft, type Side, type Wing } from './rally'
 import { railCell, shotPaint } from './ShotRail'
 
-/** Check is a mode. Amber, so it is not the same fill as the open question. */
+/** Edit opens contact check. Amber, so it is not the same fill as the open question. */
 function checkingOn(): CSSProperties {
   return { backgroundColor: 'var(--color-warning)', borderColor: 'var(--color-warning)', color: '#0b1220' }
 }
@@ -85,7 +85,8 @@ function filled(): CSSProperties {
   return { backgroundColor: 'var(--color-brand-primary)', borderColor: 'var(--color-brand-primary)', color: 'var(--color-on-accent)' }
 }
 
-const headButton = 'h-8 shrink-0 rounded-md border px-2 text-xs font-semibold inline-flex items-center justify-center'
+const headButton =
+  'h-8 shrink-0 whitespace-nowrap rounded-md border px-2 text-xs font-semibold inline-flex items-center justify-center'
 
 /** BH left, FH right. Attack is the strong colour, Control the light one. */
 const PAD_STROKE: Record<string, { bg: string; fg: string }> = {
@@ -117,11 +118,12 @@ const PAD_ENDS: { end: BestEnd; label: string; bg: string; style: CSSProperties 
 export function BestRallyRow({
   draft,
   label,
+  names,
+  server,
   at,
   rallyOne,
   saved,
   checking,
-  showCheck,
   flash,
   onCell,
   onMinus,
@@ -129,16 +131,20 @@ export function BestRallyRow({
   onStar,
   onPart,
   onRally,
+  onServer,
+  onNotShot,
 }: {
   draft: Draft | null
   label: string
+  names: Record<Side, string>
+  /** Who is serving, including before the first contact. */
+  server: Side
   /** The question open now. Null while tapping and on the saved row. */
   at: BestAt | null
   rallyOne: boolean
   saved: boolean
   checking: boolean
-  showCheck: boolean
-  /** The cell whose contact is on screen during Check, or -1. */
+  /** The cell whose contact is on screen during Edit, or -1. */
   flash: number
   onCell: (shot: number) => void
   onMinus: (shot: number) => void
@@ -146,19 +152,21 @@ export function BestRallyRow({
   onStar: () => void
   onPart: (part: BestPart) => void
   onRally: () => void
+  onServer: () => void
+  onNotShot: () => void
 }) {
   const n = draft?.contacts.length ?? 0
   const closed = Boolean(draft?.closed && n > 0)
   const parts = closed && draft ? partsOf(draft) : []
   const opener = closed && draft ? bestOpener(n, draft.shots, draft.best?.first) : null
   const fa = typeof opener === 'number' ? opener : null
-  const showStar = closed || saved
   const tapping = !closed && !saved
   const groupOf = (shot: number) => parts.findIndex((p) => shot >= p.from && shot <= p.to)
   const columns = closed
     ? parts.map((p) => `repeat(${p.to - p.from + 1}, minmax(24px, var(--btn-kind-control)))`).join(' 0px ')
     : `repeat(${n + 1}, minmax(24px, var(--btn-kind-control)))`
   const canDelete = checking && n > 1
+  const canToggleServer = at?.step === 'serve' && !saved
 
   return (
     <div className="flex w-full min-w-0 flex-col gap-1" data-best-rail data-best-saved={saved ? '' : undefined}>
@@ -175,35 +183,48 @@ export function BestRallyRow({
             Saved
           </span>
         ) : null}
-        <span className="flex-1" />
-        {showStar ? (
-          <button
-            type="button"
-            data-best-star="rally"
-            aria-label="Highlight"
-            aria-pressed={Boolean(draft?.highlight)}
-            className={cn(headButton, 'w-8 px-0 text-sm')}
-            style={draft?.highlight ? checkingOn() : { ...restStyle(), color: 'var(--color-text)' }}
-            onClick={onStar}
-          >
-            ★
-          </button>
-        ) : null}
-        {showCheck && !saved ? (
-          <button
-            type="button"
-            data-best-check
-            aria-pressed={checking}
-            aria-label="Check contacts"
-            className={headButton}
-            style={checking ? checkingOn() : { ...restStyle(), color: 'var(--color-text)' }}
-            onClick={onCheck}
-          >
-            Check
-          </button>
-        ) : null}
+        <span className="min-w-0 flex-1" />
+        <button
+          type="button"
+          data-best-server={server}
+          aria-label={canToggleServer ? `${names[server]} serving. Switch server` : `${names[server]} serving`}
+          aria-disabled={!canToggleServer}
+          className={cn(headButton, 'max-w-[5.5rem] rounded-full px-2', !canToggleServer && 'pointer-events-none')}
+          style={{
+            backgroundColor: server === 'me' ? 'var(--color-side-me)' : 'var(--color-side-them)',
+            borderColor: server === 'me' ? 'var(--color-side-me)' : 'var(--color-side-them)',
+            color: '#fff',
+          }}
+          onClick={canToggleServer ? onServer : undefined}
+        >
+          <span className="truncate">{names[server]}</span>
+        </button>
+        <button type="button" data-best-not-shot className={headButton} onClick={onNotShot}>
+          Not a shot
+        </button>
+        <button
+          type="button"
+          data-best-star="rally"
+          aria-label="Highlight"
+          aria-pressed={Boolean(draft?.highlight)}
+          className={cn(headButton, 'w-8 px-0 text-sm')}
+          style={draft?.highlight ? checkingOn() : { ...restStyle(), color: 'var(--color-text)' }}
+          onClick={onStar}
+        >
+          ★
+        </button>
+        <button
+          type="button"
+          data-best-check
+          aria-pressed={checking}
+          aria-label="Edit"
+          className={headButton}
+          style={checking ? checkingOn() : { ...restStyle(), color: 'var(--color-text)' }}
+          onClick={onCheck}
+        >
+          Edit
+        </button>
       </div>
-
       <div
         className="grid min-w-0 justify-start gap-x-1 gap-y-1 overflow-hidden"
         style={{ gridTemplateColumns: columns }}
@@ -314,8 +335,6 @@ export function BestRallyRow({
   )
 }
 
-export type BestFix = 'deleteLast' | 'deleteFirst' | 'check' | 'more' | 'add' | 'switch' | 'keep'
-
 /** The question open now. No step row: the Rally Row is the guide. */
 export function BestPanel({
   draft,
@@ -323,20 +342,13 @@ export function BestPanel({
   at,
   rallyOne,
   rallyNo,
-  more,
-  note,
   layout,
   back,
   onBack,
   onEnd,
   onPoint,
   onServe,
-  onServer,
   onStroke,
-  onFix,
-  onTossInstead,
-  onNotShot,
-  onDeleteLast,
   sides = false,
 }: {
   draft: Draft
@@ -344,10 +356,6 @@ export function BestPanel({
   at: BestAt
   rallyOne: boolean
   rallyNo: number
-  /** The second fix row is open. */
-  more: boolean
-  /** A short note under the open question. */
-  note: string | null
   layout: AnswerLayout
   /** Corner pad: which result question to show again. Null follows the one still open. */
   back: PadBack
@@ -355,30 +363,13 @@ export function BestPanel({
   onEnd: (end: BestEnd) => void
   onPoint: (side: Side) => void
   onServe: (depth: string, wing: Wing) => void
-  onServer: () => void
   onStroke: (shot: number, wing: Wing, stroke: 'Attack' | 'Control') => void
-  onFix: (fix: BestFix) => void
-  onTossInstead: () => void
-  onNotShot: () => void
-  onDeleteLast: () => void
   /** Landscape pad: quadrant halves sit in the side wings. */
   sides?: boolean
 }) {
   const n = draft.contacts.length
   const shot = stepShot(n, at.step, at.page)
   const hitter = hitterOf(draft.server, shot)
-  const toolBtn = 'shrink-0 rounded-md border border-border px-1.5 py-0.5 text-[11px] font-semibold text-muted'
-  const notShot = (
-    <button type="button" className={toolBtn} data-best-not-shot onClick={onNotShot}>
-      Not a shot
-    </button>
-  )
-  const deleteLast =
-    n >= 2 ? (
-      <button type="button" className={toolBtn} data-best-delete-last onClick={onDeleteLast}>
-        Delete last
-      </button>
-    ) : null
   const grid = (k: number, title: string) => {
     const saved = draft.shots[k - 1]
     const cells = STROKE_GRID.map((row) => row.map((c) => ({ ...c, label: `${c.wing} ${c.stroke}` })))
@@ -387,10 +378,10 @@ export function BestPanel({
         <CornerPad
           shot={k}
           label={title}
+          showName={false}
           split={sides}
           columns="1fr 1fr"
           rows="1fr 1fr"
-          aside={notShot}
           regions={cells.flat().map((c) => {
             const tone = PAD_STROKE[`${c.wing}:${c.stroke}`]
             return {
@@ -411,44 +402,13 @@ export function BestPanel({
       <StrokeGrid
         shot={k}
         label={title}
+        showName={false}
         rows={cells}
-        aside={notShot}
         isOn={(c) => saved?.wing === c.wing && saved?.stroke === c.stroke}
         onPick={(c) => onStroke(k, c.wing, c.stroke)}
       />
     )
   }
-  const serverSwitch = (
-    <button
-      type="button"
-      role="switch"
-      data-best-server={draft.server}
-      aria-label={`${names[draft.server]} serving`}
-      aria-checked={draft.server === 'them'}
-      className="inline-flex h-7 shrink-0 items-center rounded-full border border-border bg-bg-card p-0.5"
-      onClick={onServer}
-    >
-      {(['me', 'them'] as const).map((side) => (
-        <span
-          key={side}
-          className="rounded-full px-2 text-xs font-semibold leading-6"
-          style={
-            draft.server === side
-              ? { backgroundColor: side === 'me' ? 'var(--color-side-me)' : 'var(--color-side-them)', color: '#fff' }
-              : { color: 'var(--color-text-muted)' }
-          }
-        >
-          {names[side]}
-        </span>
-      ))}
-    </button>
-  )
-  const serveAside = (
-    <span className="flex shrink-0 items-center gap-1.5">
-      {serverSwitch}
-      {notShot}
-    </span>
-  )
 
   return (
     <div
@@ -466,16 +426,12 @@ export function BestPanel({
           draft={draft}
           names={names}
           rallyOne={rallyOne}
-          more={more}
-          note={note}
           layout={layout}
           sides={sides}
           back={back}
           onBack={onBack}
           onEnd={onEnd}
           onPoint={onPoint}
-          onFix={onFix}
-          aside={n === 1 ? serverSwitch : deleteLast}
         />
       ) : null}
 
@@ -484,7 +440,7 @@ export function BestPanel({
           {layout === 'pad' ? (
             <CornerPad
               label={`Serve · ${names[draft.server]}`}
-              aside={serveAside}
+              showName={false}
               split={sides}
               columns="1fr 1fr"
               rows="1fr 1fr"
@@ -501,7 +457,7 @@ export function BestPanel({
               }))}
             />
           ) : (
-            <AnswerRow label={`Serve · ${names[draft.server]}`} aside={serveAside}>
+            <AnswerRow label={`Serve · ${names[draft.server]}`} showName={false}>
               {PAD_SERVE.map((cell) => (
                 <Answer
                   key={cell.label}
@@ -513,17 +469,6 @@ export function BestPanel({
               ))}
             </AnswerRow>
           )}
-          {draft.best?.cut !== undefined ? (
-            <div className="flex items-center gap-2" data-best-toss-offer>
-              <p className="text-sm font-semibold text-warning">Shot 1 the toss?</p>
-              <Answer label="Delete first instead" on={false} size="sm" onClick={onTossInstead} data={{ 'data-best-toss-instead': '' }} />
-            </div>
-          ) : null}
-          {note ? (
-            <p className="text-xs font-semibold text-primary" data-best-serve-note>
-              {note}
-            </p>
-          ) : null}
         </div>
       ) : null}
 
@@ -536,30 +481,22 @@ function EndPage({
   draft,
   names,
   rallyOne,
-  more,
-  note,
   layout,
   sides,
   back,
   onBack,
   onEnd,
   onPoint,
-  onFix,
-  aside,
 }: {
   draft: Draft
   names: Record<Side, string>
   rallyOne: boolean
-  more: boolean
-  note: string | null
   layout: AnswerLayout
   sides: boolean
   back: PadBack
   onBack: (back: PadBack) => void
   onEnd: (end: BestEnd) => void
   onPoint: (side: Side) => void
-  onFix: (fix: BestFix) => void
-  aside: ReactNode
 }) {
   const n = draft.contacts.length
   const last = hitterOf(draft.server, n)
@@ -569,40 +506,10 @@ function EndPage({
   const point = draft.best?.point
   const phase = padFocus(draft, rallyOne, back)
   const endLabel = `End · ${names[last]}`
-  const noteLine = note ? (
-    <p className="shrink-0 text-xs font-semibold text-primary" data-best-end-note>
-      {note}
-    </p>
-  ) : null
-  const fixes: [BestFix, string][] = n < 2 ? [] : [['deleteFirst', 'Delete first'], ['check', 'Check'], ['more', 'More']]
-  const moreFixes: [BestFix, string][] = [['add', 'Add missed'], ['switch', 'Switch server'], ['keep', 'Keep as is']]
   const mismatchBlock = mismatch ? (
-    <div className="flex flex-col gap-1.5" data-best-mismatch>
-      <p className="text-sm font-semibold leading-4 text-warning" data-best-line>
-        {mismatchLine(draft, names)}
-      </p>
-      {fixes.length ? (
-        <div className="flex flex-nowrap gap-1.5 overflow-hidden" data-best-fixes>
-          {fixes.map(([fix, label]) => (
-            <Answer
-              key={fix}
-              label={label}
-              on={false}
-              className={fix === 'more' ? 'min-w-0 px-2' : undefined}
-              onClick={() => onFix(fix)}
-              data={{ 'data-best-fix': fix, 'aria-expanded': fix === 'more' ? String(more) : undefined }}
-            />
-          ))}
-        </div>
-      ) : null}
-      {more ? (
-        <div className="flex flex-nowrap gap-1.5 overflow-hidden" data-best-more>
-          {moreFixes.map(([fix, label]) => (
-            <Answer key={fix} label={label} on={false} onClick={() => onFix(fix)} data={{ 'data-best-fix': fix }} />
-          ))}
-        </div>
-      ) : null}
-    </div>
+    <p className="text-sm font-semibold leading-4 text-warning" data-best-line>
+      {mismatchLine(draft, names)}
+    </p>
   ) : null
   if (phase === 'point') {
     const backEnd = draft.ending ? (
@@ -615,6 +522,7 @@ function EndPage({
         <div className={cn('flex flex-col gap-2', !sides && 'min-h-0 flex-1')}>
           <CornerPad
             label="Point to"
+            showName={false}
             split={sides}
             aside={backEnd}
             columns="1fr 1fr"
@@ -634,14 +542,13 @@ function EndPage({
               },
             }))}
           />
-          {noteLine}
           {mismatchBlock}
         </div>
       )
     }
     return (
       <div className="flex flex-col gap-2">
-        <AnswerRow label="Point to" aside={backEnd}>
+        <AnswerRow label="Point to" showName={false} aside={backEnd}>
           {(['me', 'them'] as const).map((side) => (
             <Answer
               key={side}
@@ -653,7 +560,6 @@ function EndPage({
             />
           ))}
         </AnswerRow>
-        {noteLine}
         {mismatchBlock}
       </div>
     )
@@ -663,8 +569,8 @@ function EndPage({
       <div className={cn('flex flex-col gap-2', !sides && 'min-h-0 flex-1')}>
         <CornerPad
           label={endLabel}
+          showName={false}
           split={sides}
-          aside={aside}
           columns="1fr 1fr"
           rows="1fr 1fr"
           regions={PAD_ENDS.map((cell) => ({
@@ -679,14 +585,13 @@ function EndPage({
             style: cell.style,
           }))}
         />
-        {noteLine}
         {mismatchBlock}
       </div>
     )
   }
   return (
     <div className="flex flex-col gap-2">
-      <AnswerRow label={endLabel} aside={aside}>
+      <AnswerRow label={endLabel} showName={false}>
         {BEST_ENDS.map((label) => (
           <Answer
             key={label}
@@ -698,7 +603,6 @@ function EndPage({
           />
         ))}
       </AnswerRow>
-      {noteLine}
       {mismatchBlock}
     </div>
   )

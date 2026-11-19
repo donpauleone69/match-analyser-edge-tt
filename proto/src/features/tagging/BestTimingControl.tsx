@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { APP_VERSION } from '@/version'
 import { cn } from '@/helpers/utils'
 import type { AnswerLayout, BestTiming } from './bestFlow'
 
@@ -81,6 +82,9 @@ export function BestTimingControl({
             </label>
           ))}
           </div>
+          <p data-build-version="" className="pt-0.5 text-[10px] font-medium leading-none text-white/70">
+            {APP_VERSION}
+          </p>
         </div>
       ) : null}
     </div>

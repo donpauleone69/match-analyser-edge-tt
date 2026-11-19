@@ -1,2 +1,2 @@
-/** Shown at the top right. Bump on every significant proto build. */
-export const APP_VERSION = 'v0.16.0'
+/** Shown in the video settings. Bump on every significant proto build. */
+export const APP_VERSION = 'v0.16.1'

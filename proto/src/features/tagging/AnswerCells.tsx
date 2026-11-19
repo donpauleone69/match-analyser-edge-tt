@@ -79,17 +79,33 @@ export function Cells({ children, className }: { children: ReactNode; className?
   return <div className={cn('flex flex-nowrap gap-1.5', className)}>{children}</div>
 }
 
-/** A labelled line of answers. */
-export function AnswerRow({ label, children, aside }: { label: ReactNode; children: ReactNode; aside?: ReactNode }) {
+/** A labelled line of answers. `showName` off leaves the answers, and an aside if one was passed. */
+export function AnswerRow({
+  label,
+  children,
+  aside,
+  showName = true,
+}: {
+  label: ReactNode
+  children: ReactNode
+  aside?: ReactNode
+  showName?: boolean
+}) {
   const name = typeof label === 'string' ? label : undefined
   return (
     <div role="group" aria-label={name} data-row={name} className="flex flex-col gap-1">
-      <div className="flex min-w-0 items-center gap-2">
-        <div className="min-w-0 flex-1">
-          <Name>{label}</Name>
+      {showName || aside ? (
+        <div className="flex min-w-0 items-center gap-2">
+          {showName ? (
+            <div className="min-w-0 flex-1">
+              <Name>{label}</Name>
+            </div>
+          ) : (
+            <span className="flex-1" />
+          )}
+          {aside}
         </div>
-        {aside}
-      </div>
+      ) : null}
       <Cells>{children}</Cells>
     </div>
   )
@@ -105,6 +121,7 @@ export function StrokeGrid({
   onPick,
   shot,
   aside,
+  showName = true,
 }: {
   label: ReactNode
   rows: readonly (readonly StrokeCell[])[]
@@ -112,15 +129,22 @@ export function StrokeGrid({
   onPick: (cell: StrokeCell) => void
   shot: number
   aside?: ReactNode
+  showName?: boolean
 }) {
   return (
     <div role="group" aria-label={`Shot ${shot} stroke`} data-row="Stroke" data-stroke-shot={shot} className="flex flex-col gap-1">
-      <div className="flex min-w-0 items-center gap-2">
-        <div className="min-w-0 flex-1">
-          <Name>{label}</Name>
+      {showName || aside ? (
+        <div className="flex min-w-0 items-center gap-2">
+          {showName ? (
+            <div className="min-w-0 flex-1">
+              <Name>{label}</Name>
+            </div>
+          ) : (
+            <span className="flex-1" />
+          )}
+          {aside}
         </div>
-        {aside}
-      </div>
+      ) : null}
       {rows.map((row, i) => (
         <div key={i} className="grid grid-cols-2 gap-1.5">
           {row.map((cell) => (
