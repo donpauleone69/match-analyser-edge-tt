@@ -284,14 +284,28 @@ function WingTap({
   )
 }
 
-/** This set's saved rallies, numbered in order. Newest stays at the right. */
-function SetPills({ rallies, onPick }: { rallies: RallyData[]; onPick: (r: RallyData) => void }) {
+/** This set's saved rallies, numbered in order. Newest stays at the right. The pick sits in the middle. */
+function SetPills({
+  rallies,
+  picked,
+  onPick,
+}: {
+  rallies: RallyData[]
+  picked: string | null
+  onPick: (r: RallyData) => void
+}) {
   const scroller = useRef<HTMLDivElement>(null)
   const pills = rallies.flatMap((r, i) => (r.point ? [] : [{ r, n: i + 1 }]))
   useLayoutEffect(() => {
     const el = scroller.current
-    if (el) el.scrollLeft = el.scrollWidth
-  }, [pills.length])
+    if (!el) return
+    const pill = picked ? el.querySelector(`[data-pill-id="${picked}"]`) : null
+    if (pill instanceof HTMLElement) {
+      el.scrollLeft = Math.max(0, pill.offsetLeft - (el.clientWidth - pill.offsetWidth) / 2)
+      return
+    }
+    el.scrollLeft = el.scrollWidth
+  }, [picked, pills.length])
   return (
     <div ref={scroller} className="tag-pills" data-set-pills>
       {pills.map(({ r, n }) => (
@@ -299,7 +313,9 @@ function SetPills({ rallies, onPick }: { rallies: RallyData[]; onPick: (r: Rally
           key={r.id}
           type="button"
           data-set-pill={n}
-          className={cn('tag-pill', r.winner === 'me' ? 'bg-side-me' : 'bg-side-them')}
+          data-pill-id={r.id}
+          data-pill-on={picked === r.id ? '' : undefined}
+          className={cn('tag-pill', r.winner === 'me' ? 'bg-side-me' : 'bg-side-them', picked === r.id && 'tag-pill-on')}
           onClick={() => onPick(r)}
         >
           {n}
@@ -1091,11 +1107,15 @@ function TagSet({
   const pickable = set.rallies.filter((r) => !r.point && have.has(r.videoId))
 
   const openEditRally = (r: RallyData) => {
-    if (live && live.contacts.length > 0) {
+    if (r.point || !have.has(r.videoId)) return
+    if (editPick === null && live && live.contacts.length > 0) {
       setHint(`Save or discard rally ${set.rallies.length + 1} first`)
       return
     }
-    if (r.point || !have.has(r.videoId)) return
+    if (live) {
+      mutateMatch(match.id, (m) => setDraft(m, set.setId, null))
+      setEditOf(null)
+    }
     setToast(null)
     loopPick(r)
   }
@@ -1605,6 +1625,13 @@ function TagSet({
 
   const seekSeg = player.segs[player.segIndex]
   const seekSpan = seekSeg ? { a: seekSeg.offset, b: seekSeg.offset + seekSeg.duration } : { a: 0, b: 1 }
+  const pickBand = editRally
+    ? (() => {
+        const a = toGlobal(segs, editRally.videoId, editRally.contacts[0] ?? editRally.start)
+        const b = toGlobal(segs, editRally.videoId, editRally.contacts[editRally.contacts.length - 1] ?? editRally.end)
+        return a !== null && b !== null ? { a, b } : null
+      })()
+    : null
   const seekMarkers = useMemo(() => {
     const all = segmentsOf(match.videos)
     return set.rallies.flatMap((r) => {
@@ -1656,7 +1683,7 @@ function TagSet({
       : mode === 'start'
         ? 'Find the first serve.'
         : mode === 'edit'
-          ? `Rally ${editIndex + 1} of ${set.rallies.length}`
+          ? `Rally ${editIndex + 1} of ${set.rallies.length} · ${formatScore(countPoints(set.rallies.slice(0, editIndex + 1).map((r) => r.winner)))}`
       : reviewLine
         ? reviewLine
         : mode === 'finished'
@@ -1833,7 +1860,7 @@ function TagSet({
               span={seekSpan}
               time={player.time}
               markers={seekMarkers}
-              band={openRange ? { a: openRange.a, b: openRange.b } : null}
+              band={pickBand ?? (openRange ? { a: openRange.a, b: openRange.b } : null)}
               onSeek={seekTo}
             />
           }
@@ -1841,16 +1868,7 @@ function TagSet({
       </div>
       <div className="tag-setzone">
         <h1 className="min-w-0 shrink truncate text-sm font-bold text-primary">Set {set.setId}</h1>
-        {editPick !== null ? (
-          <div className="flex min-w-0 flex-1 items-center justify-center" data-edit-pick>
-            <span className="min-w-0 truncate text-center text-sm font-semibold tabular-nums text-primary" data-edit-pick-label>
-              Rally {editIndex + 1}
-              {editRally ? ` · ${formatScore(countPoints(set.rallies.slice(0, editIndex + 1).map((r) => r.winner)))}` : ''}
-            </span>
-          </div>
-        ) : (
-          <SetPills rallies={set.rallies} onPick={openEditRally} />
-        )}
+        <SetPills rallies={set.rallies} picked={editPick} onPick={openEditRally} />
         <Button
           size="sm"
           variant={editPick !== null ? 'primary' : 'secondary'}
