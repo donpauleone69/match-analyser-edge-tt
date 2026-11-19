@@ -83,7 +83,6 @@ import {
   addedContactTime,
   canSave,
   captureContactTime,
-  draftFromRally,
   emptyDraft,
   endShot,
   insertContact,
@@ -1735,22 +1734,17 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
     p.play()
   }
 
-  const openRally = (r: RallyData, index: number) => {
+  const openRally = (r: RallyData, _index: number) => {
     if (!have.has(r.videoId) || r.point || (live && !live.closed)) return
     if (gap) {
       setGap(null)
       setServerPick(null)
     }
-    if (r.idea) {
-      const p = playerRef.current
-      p.setLoop(null)
-      p.setRate(watchRate.current)
-      p.seek(offsetOf(r.videoId) + (r.contacts[r.contacts.length - 1] ?? r.start))
-      p.pause()
-      return
-    }
-    const baseline = draftFromRally(r)
-    showEdit({ id: r.id, index, draft: baseline, baseline, dirty: false })
+    const p = playerRef.current
+    p.setLoop(null)
+    p.setRate(watchRate.current)
+    p.seek(offsetOf(r.videoId) + (r.contacts[r.contacts.length - 1] ?? r.start))
+    p.pause()
   }
 
   const leaveEdit = () => {
@@ -2296,10 +2290,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
           onSeek={seekTo}
           noForward={mode === 'tapping'}
           onRate={onRate}
-          highlightOn={Boolean(active && active.closed && !bestOn && (!readOnly || active.highlight))}
-          highlight={Boolean(active?.highlight)}
-          onHighlight={() => active && writeDraft({ ...active, highlight: !active.highlight })}
-          readOnlyHighlight={readOnly || stage === 'result' || stage === 'endShot'}
           leading={
             <Link
               to={`/matches/${match.id}/tag`}

@@ -365,6 +365,7 @@ export function ralliesFromScript(
     shots: s.shots,
     winner: s.winner,
     highlight: false,
+    idea: { flow: 'bestfa', ...(s.ending ? { result: s.ending } : {}) },
   }))
 }
 

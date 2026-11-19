@@ -2,7 +2,6 @@ import { useEffect, useRef, type ReactNode } from 'react'
 import { Icon } from '@/ui-mine'
 import type { VideoAsset } from '@/data/demoStore'
 import { cn } from '@/helpers/utils'
-import { buttonKindControlSquare } from '@/ui-mine/buttonKinds'
 import { SPEED_STEPS, servesText, type Side } from './rally'
 import { sceneAt, type VideoScript } from './script'
 import { totalDuration, type Segment } from './timeline'
@@ -278,10 +277,6 @@ export function VideoStage({
   onSeek,
   noForward = false,
   onRate,
-  highlightOn = false,
-  highlight = false,
-  onHighlight,
-  readOnlyHighlight = false,
   settings = null,
   leading = null,
   className,
@@ -297,11 +292,6 @@ export function VideoStage({
   /** Tapping: a jump forward would lose the rally being tapped. */
   noForward?: boolean
   onRate: (rate: number) => void
-  /** Highlight rally (show reel), top right on the picture. */
-  highlightOn?: boolean
-  highlight?: boolean
-  onHighlight?: () => void
-  readOnlyHighlight?: boolean
   /** Last control in the playback row, after Mute. */
   settings?: ReactNode
   /** Top left of the picture, such as Back. The score sits to its right. */
@@ -359,26 +349,6 @@ export function VideoStage({
             </div>
           ))}
         </div>
-
-        {highlightOn && onHighlight ? (
-          <button
-            type="button"
-            aria-label="Highlight rally"
-            aria-pressed={highlight}
-            aria-disabled={readOnlyHighlight}
-            onClick={readOnlyHighlight ? undefined : onHighlight}
-            className={cn(
-              'absolute right-2 top-10 inline-flex items-center justify-center rounded-md touch-manipulation select-none',
-              buttonKindControlSquare,
-              highlight
-                ? 'bg-warning/90 text-neutral-950 hover:bg-warning'
-                : 'bg-black/60 text-white hover:bg-black/80',
-              readOnlyHighlight && 'opacity-40 hover:bg-black/60'
-            )}
-          >
-            <Icon name="star" size="sm" />
-          </button>
-        ) : null}
 
         {hint ? (
           <p
