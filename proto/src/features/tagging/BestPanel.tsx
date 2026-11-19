@@ -20,6 +20,7 @@ import {
   type BestEnd,
   type BestPart,
 } from './bestFlow'
+import type { ActionGuard } from './pressGuard'
 import { hitterOf, type Draft, type Side, type Wing } from './rally'
 
 const railCell =
@@ -382,6 +383,7 @@ export function BestPanel({
   onServe,
   onStroke,
   sides = false,
+  guard,
 }: {
   draft: Draft
   names: Record<Side, string>
@@ -396,10 +398,16 @@ export function BestPanel({
   onStroke: (shot: number, wing: Wing, stroke: 'Attack' | 'Control') => void
   /** Landscape pad: quadrant halves sit in the side wings. */
   sides?: boolean
+  /** Ignores a press just after the question changes. */
+  guard?: ActionGuard
 }) {
   const n = draft.contacts.length
   const shot = stepShot(n, at.step, at.page)
   const hitter = hitterOf(draft.server, shot)
+  const press = (fn: () => void) => () => {
+    if (guard && !guard.allow()) return
+    fn()
+  }
   const grid = (k: number, title: string) => {
     const saved = draft.shots[k - 1]
     const cells = STROKE_GRID.map((row) => row.map((c) => ({ ...c, label: `${c.wing} ${c.stroke}` })))
@@ -411,6 +419,7 @@ export function BestPanel({
         split={sides}
         columns="1fr 1fr"
         rows="1fr 1fr"
+        dim={guard?.waiting}
         regions={cells.flat().map((c) => {
           const tone = PAD_STROKE[`${c.wing}:${c.stroke}`]
           return {
@@ -420,7 +429,7 @@ export function BestPanel({
             on: saved?.wing === c.wing && saved?.stroke === c.stroke,
             bg: tone.bg,
             fg: tone.fg,
-            onClick: () => onStroke(k, c.wing, c.stroke),
+            onClick: press(() => onStroke(k, c.wing, c.stroke)),
             data: { 'data-wing': c.wing, 'data-stroke': c.stroke },
           }
         })}
@@ -447,6 +456,7 @@ export function BestPanel({
           back={back}
           onEnd={onEnd}
           onPoint={onPoint}
+          guard={guard}
         />
       ) : null}
 
@@ -458,6 +468,7 @@ export function BestPanel({
             split={sides}
             columns="1fr 1fr"
             rows="1fr 1fr"
+            dim={guard?.waiting}
             regions={PAD_SERVE.map((cell) => ({
               key: cell.label,
               label: cell.label,
@@ -465,7 +476,7 @@ export function BestPanel({
               on: draft.shots[0]?.depth === cell.depth && draft.shots[0]?.wing === cell.wing,
               bg: cell.bg,
               fg: cell.fg,
-              onClick: () => onServe(cell.depth, cell.wing),
+              onClick: press(() => onServe(cell.depth, cell.wing)),
               data: { 'data-best-serve': cell.label },
               style: { gridColumn: cell.wing === 'BH' ? '1' : '2', gridRow: cell.depth === 'Long' ? '1' : '2' },
             }))}
@@ -486,6 +497,7 @@ function EndPage({
   back,
   onEnd,
   onPoint,
+  guard,
 }: {
   draft: Draft
   names: Record<Side, string>
@@ -494,7 +506,12 @@ function EndPage({
   back: PadBack
   onEnd: (end: BestEnd) => void
   onPoint: (side: Side) => void
+  guard?: ActionGuard
 }) {
+  const press = (fn: () => void) => () => {
+    if (guard && !guard.allow()) return
+    fn()
+  }
   const n = draft.contacts.length
   const last = hitterOf(draft.server, n)
   const endOn = bestEndOf(draft)
@@ -517,6 +534,7 @@ function EndPage({
           split={sides}
           columns="1fr 1fr"
           rows="1fr"
+          dim={guard?.waiting}
           regions={(['me', 'them'] as const).map((side) => ({
             key: side,
             label: names[side],
@@ -524,7 +542,7 @@ function EndPage({
             on: point === side,
             bg: side === 'me' ? 'var(--color-side-me)' : 'var(--color-side-them)',
             fg: '#fff',
-            onClick: () => onPoint(side),
+            onClick: press(() => onPoint(side)),
             data: {
               'data-point-to': names[side],
               'data-point-hint': lit === side ? '' : undefined,
@@ -544,6 +562,7 @@ function EndPage({
         split={sides}
         columns="1fr 1fr"
         rows="1fr 1fr"
+        dim={guard?.waiting}
         regions={PAD_ENDS.map((cell) => ({
           key: cell.end,
           label: cell.label,
@@ -551,7 +570,7 @@ function EndPage({
           on: endOn === cell.end,
           bg: cell.bg,
           fg: '#fff',
-          onClick: () => onEnd(cell.end),
+          onClick: press(() => onEnd(cell.end)),
           data: { 'data-best-end': cell.end },
           style: cell.style,
         }))}

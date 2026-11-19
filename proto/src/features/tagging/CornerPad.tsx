@@ -23,12 +23,13 @@ export const PadWingContext = createContext<{ left: HTMLElement | null; right: H
   right: null,
 })
 
-function regionButton(region: PadRegion, fill: boolean) {
+function regionButton(region: PadRegion, fill: boolean, dim: boolean) {
   return (
     <button
       key={region.key}
       type="button"
       data-cell={region.label}
+      data-guard={dim ? '' : undefined}
       aria-pressed={region.on}
       onClick={region.onClick}
       className={cn(
@@ -40,6 +41,7 @@ function regionButton(region: PadRegion, fill: boolean) {
         color: region.fg,
         boxShadow: region.on ? `inset 0 0 0 4px ${region.fg === '#fff' ? '#fff' : '#0b1220'}` : undefined,
         ...region.style,
+        ...(dim ? { opacity: 0.6 } : {}),
       }}
       {...region.data}
     >
@@ -64,6 +66,7 @@ export function CornerPad({
   shot,
   split = false,
   showName = true,
+  dim = false,
 }: {
   label: ReactNode
   regions: PadRegion[]
@@ -77,6 +80,8 @@ export function CornerPad({
   split?: boolean
   /** Off hides the question name. An aside still sits on that line. */
   showName?: boolean
+  /** The action just changed. Presses are ignored by the caller. The regions dim. */
+  dim?: boolean
 }) {
   const name = typeof label === 'string' ? label : undefined
   const wings = useContext(PadWingContext)
@@ -102,13 +107,13 @@ export function CornerPad({
         {heading}
         {ready && wings.left
           ? createPortal(
-              <div className="pad-hits flex min-h-0 w-full flex-1 flex-col gap-1.5">{left.map((region) => regionButton(region, true))}</div>,
+              <div className="pad-hits flex min-h-0 w-full flex-1 flex-col gap-1.5">{left.map((region) => regionButton(region, true, dim))}</div>,
               wings.left
             )
           : null}
         {ready && wings.right
           ? createPortal(
-              <div className="pad-hits flex min-h-0 w-full flex-1 flex-col gap-1.5">{right.map((region) => regionButton(region, true))}</div>,
+              <div className="pad-hits flex min-h-0 w-full flex-1 flex-col gap-1.5">{right.map((region) => regionButton(region, true, dim))}</div>,
               wings.right
             )
           : null}
@@ -128,7 +133,7 @@ export function CornerPad({
         className={cn('grid min-h-0 gap-1', fill ? 'min-h-28 flex-1' : 'h-12')}
         style={{ gridTemplateColumns: columns, gridTemplateRows: rows }}
       >
-        {regions.map((region) => regionButton(region, false))}
+        {regions.map((region) => regionButton(region, false, dim))}
       </div>
     </div>
   )

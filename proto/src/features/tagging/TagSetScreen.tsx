@@ -116,6 +116,7 @@ import {
   bestLoop,
   bestMismatch,
   bestPlace,
+  bestQuestionKey,
   bestRally,
   bestSetEnd,
   bestSetPoint,
@@ -138,6 +139,7 @@ import {
   type BestPart,
   type BestTiming,
 } from './bestFlow'
+import { useActionGuard, type ActionGuard } from './pressGuard'
 import { TAG_LOCK_LINE, useTagLock, type TagLock } from './tagLock'
 import { segmentAt, segmentsOf, toGlobal, type Segment } from './timeline'
 import { usePlayer, type Window } from './usePlayer'
@@ -356,6 +358,7 @@ function TagSet({
   /** The open draft is a change to this saved rally, not a new one. */
   const [editOf, setEditOf] = useState<string | null>(null)
   const bestHold = useRef(false)
+  const tapGuardRef = useRef<ActionGuard | null>(null)
   const bestCheckRef = useRef(false)
   /** Set before the walk starts, so the first clip uses the right pause. */
   const flowLockRef = useRef<FlowName | null>(null)
@@ -709,6 +712,8 @@ function TagSet({
     if (mode !== 'watch' && mode !== 'tapping') return
     const tapped = live?.contacts.length ?? 0
     if (!p.isPlaying() && tapped === 0) {
+      // Play becomes Tap serve under the finger. Arm before the next press.
+      tapGuardRef.current?.arm()
       p.setRate(CAPTURE_SPEED)
       p.play()
       return
@@ -1142,6 +1147,8 @@ function TagSet({
   /** Start card: a half picks the server and plays in from just before the paused frame. */
   const pickServer = (side: Side) => {
     if (mode !== 'start' || readOnly || allowed.length === 0) return
+    if (!tapGuardRef.current?.allow()) return
+    tapGuardRef.current.arm()
     setStart((s) => ({ ...s, server: side }))
     setServerPick(side)
     serverChosen.current = true
@@ -1683,6 +1690,26 @@ function TagSet({
   })()
   /** Settings sits over part of the screen. Taps on the zone and wings wait. */
   const coverTaps = settingsOpen
+  // One guard per place a finger rests. The action is what that place does now.
+  const tapAction = startCard
+    ? 'start'
+    : bestOn
+      ? 'questions'
+      : mode === 'tapping' || (mode === 'watch' && (tapped > 0 || player.playing))
+        ? 'tapping'
+        : 'idle'
+  const tapGuard = useActionGuard(tapAction)
+  tapGuardRef.current = tapGuard
+  const questionGuard = useActionGuard(
+    bestOn && live ? bestQuestionKey(live, bestRallyOne, endBack) : 'idle'
+  )
+  const overGuard = useActionGuard(overCard ? 'shown' : 'shut')
+  const afterGuard = useActionGuard(mode === 'finished' ? 'done' : 'open')
+  const editGuard = useActionGuard(editPick !== null ? 'open' : 'shut')
+  const guarded = (guard: ActionGuard, fn: () => void) => () => {
+    if (!guard.allow()) return
+    fn()
+  }
 
   return (
     <PadWingContext.Provider value={padSplit ? padWings : NO_WINGS}>
@@ -1723,18 +1750,18 @@ function TagSet({
               side="left"
               title={zoneTitle}
               line={zoneLine}
-              dim={deleteMode}
+              dim={deleteMode || tapGuard.waiting}
               held={coverTaps}
-              onTap={onPad}
+              onTap={guarded(tapGuard, onPad)}
             />
           ) : mode === 'start' ? (
             <WingTap
               side="left"
               title={servesText(names, 'me')}
               line="Starts the set"
-              dim={allowed.length === 0}
+              dim={allowed.length === 0 || tapGuard.waiting}
               held={coverTaps || allowed.length === 0}
-              onTap={() => pickServer('me')}
+              onTap={guarded(tapGuard, () => pickServer('me'))}
             />
           ) : null}
         </div>
@@ -2030,6 +2057,7 @@ function TagSet({
                   label={`Rally ${editIndex + 1}`}
                   showName={false}
                   split={padSplit}
+                  dim={editGuard.waiting}
                   columns="1fr 1fr"
                   rows="1fr 1fr"
                   regions={[
@@ -2040,7 +2068,7 @@ function TagSet({
                       on: false,
                       bg: '#334155',
                       fg: '#fff',
-                      onClick: () => stepPick(-1),
+                      onClick: guarded(editGuard, () => stepPick(-1)),
                       data: { 'data-edit-step': 'back' },
                       style: { gridColumn: '1', gridRow: '1', opacity: pickAt > 0 ? 1 : 0.4 },
                     },
@@ -2051,7 +2079,7 @@ function TagSet({
                       on: false,
                       bg: '#334155',
                       fg: '#fff',
-                      onClick: () => stepPick(1),
+                      onClick: guarded(editGuard, () => stepPick(1)),
                       data: { 'data-edit-step': 'forward' },
                       style: { gridColumn: '2', gridRow: '1', opacity: pickAt < pickable.length - 1 ? 1 : 0.4 },
                     },
@@ -2062,7 +2090,7 @@ function TagSet({
                       on: false,
                       bg: 'var(--color-brand-primary)',
                       fg: '#fff',
-                      onClick: onPickEdit,
+                      onClick: guarded(editGuard, onPickEdit),
                       data: { 'data-edit-select': '' },
                       style: { gridColumn: '1 / span 2', gridRow: '2', opacity: readOnly ? 0.4 : 1 },
                     },
@@ -2083,6 +2111,7 @@ function TagSet({
                 onStroke={onBestStroke}
                 sides={padSplit}
                 back={endBack}
+                guard={questionGuard}
               />
             ) : null}
             {!zoneOn && review ? (
@@ -2191,11 +2220,12 @@ function TagSet({
               data-tap-pad=""
               className={cn(
                 'flex min-h-0 flex-1 flex-col items-center justify-center rounded-lg text-center cursor-pointer touch-manipulation select-none active:bg-bg-app disabled:cursor-default disabled:opacity-40 disabled:active:bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-primary',
-                deleteMode && 'opacity-60',
+                (deleteMode || tapGuard.waiting) && 'opacity-60',
                 coverTaps && 'pointer-events-none',
               )}
+              data-guard={tapGuard.waiting ? '' : undefined}
               aria-label={zoneTitle}
-              onClick={onPad}
+              onClick={guarded(tapGuard, onPad)}
             >
               <span className="text-lg font-bold text-primary">{zoneTitle}</span>
               <span className="mt-1 max-w-[17.5rem] text-sm text-muted">{zoneLine}</span>
@@ -2313,9 +2343,10 @@ function TagSet({
               <Button
                 kind="tapPad"
                 data-save-set
-                className="min-w-0 flex-1 rounded-lg text-lg"
+                data-guard={overGuard.waiting ? '' : undefined}
+                className={cn('min-w-0 flex-1 rounded-lg text-lg', overGuard.waiting && 'opacity-60')}
                 disabled={readOnly || !canFinish}
-                onClick={onFinishSet}
+                onClick={guarded(overGuard, onFinishSet)}
               >
                 Save set
               </Button>
@@ -2323,9 +2354,10 @@ function TagSet({
                 kind="tapPad"
                 variant="secondary"
                 data-over-edit
-                className="min-w-0 flex-1 rounded-lg text-lg"
+                data-guard={overGuard.waiting ? '' : undefined}
+                className={cn('min-w-0 flex-1 rounded-lg text-lg', overGuard.waiting && 'opacity-60')}
                 disabled={readOnly}
-                onClick={onOverEdit}
+                onClick={guarded(overGuard, onOverEdit)}
               >
                 Edit
               </Button>
@@ -2339,12 +2371,14 @@ function TagSet({
                   kind="tapPad"
                   variant="secondary"
                   data-start-server={side}
+                  data-guard={tapGuard.waiting ? '' : undefined}
                   className={cn(
                     'min-w-0 flex-1 rounded-lg border-l-8 text-lg',
-                    side === 'me' ? 'border-l-side-me' : 'border-l-side-them'
+                    side === 'me' ? 'border-l-side-me' : 'border-l-side-them',
+                    tapGuard.waiting && 'opacity-60'
                   )}
                   disabled={allowed.length === 0}
-                  onClick={() => pickServer(side)}
+                  onClick={guarded(tapGuard, () => pickServer(side))}
                 >
                   {servesText(names, side)}
                 </Button>
@@ -2355,13 +2389,15 @@ function TagSet({
             <button
               type="button"
               data-tap-pad
-              onClick={onPad}
+              data-guard={tapGuard.waiting ? '' : undefined}
+              onClick={guarded(tapGuard, onPad)}
               disabled={atEnd || mode === 'blocked'}
               className={cn(
                 'btn-kind-tap-pad relative flex-1 min-w-0 rounded-lg text-lg font-bold overflow-hidden touch-manipulation select-none active:brightness-90 border-l-8 inline-flex items-center justify-center gap-2',
                 'disabled:bg-disabled-bg disabled:text-disabled-text disabled:active:brightness-100',
                 'bg-brand-primary text-on-accent',
-                padServer === 'me' ? 'border-l-side-me' : 'border-l-side-them'
+                padServer === 'me' ? 'border-l-side-me' : 'border-l-side-them',
+                tapGuard.waiting && 'opacity-60'
               )}
             >
               {atEnd
@@ -2385,6 +2421,7 @@ function TagSet({
               videoOver={player.atEnd}
               onGo={(to) => navigate(to)}
               onFinishMatch={() => mutateMatch(match.id, finishMatch)}
+              guard={afterGuard}
             />
           ) : null}
         </div>
@@ -2402,18 +2439,18 @@ function TagSet({
               side="right"
               title={zoneTitle}
               line={zoneLine}
-              dim={deleteMode}
+              dim={deleteMode || tapGuard.waiting}
               held={coverTaps}
-              onTap={onPad}
+              onTap={guarded(tapGuard, onPad)}
             />
           ) : mode === 'start' ? (
             <WingTap
               side="right"
               title={servesText(names, 'them')}
               line="Starts the set"
-              dim={allowed.length === 0}
+              dim={allowed.length === 0 || tapGuard.waiting}
               held={coverTaps || allowed.length === 0}
-              onTap={() => pickServer('them')}
+              onTap={guarded(tapGuard, () => pickServer('them'))}
             />
           ) : null}
         </div>
@@ -2522,6 +2559,7 @@ function FinishedActions({
   videoOver,
   onGo,
   onFinishMatch,
+  guard,
 }: {
   match: MatchRecord
   set: SetData
@@ -2530,7 +2568,14 @@ function FinishedActions({
   videoOver: boolean
   onGo: (to: string) => void
   onFinishMatch: () => void
+  /** Presses just after Save set are ignored. */
+  guard?: ActionGuard
 }) {
+  const press = (fn: () => void) => () => {
+    if (guard && !guard.allow()) return
+    fn()
+  }
+  const dim = guard?.waiting ? 'opacity-60' : ''
   const tagged = derivePhase(match) === 'complete'
   /** A set already under way comes before a fresh one. */
   const next = setInProgress(match) ?? nextSetToTag(match, set.setId)
@@ -2545,10 +2590,10 @@ function FinishedActions({
   if (tagged || locked) {
     return (
       <div className="flex items-stretch gap-2">
-        <Button kind="main" className="flex-1 text-base" onClick={() => onGo(`${base}/insights/summary`)}>
+        <Button kind="main" className={cn('flex-1 text-base', dim)} data-guard={guard?.waiting ? '' : undefined} onClick={press(() => onGo(`${base}/insights/summary`))}>
           Open match Insights
         </Button>
-        <Button kind="main" variant="secondary" onClick={() => onGo(`${base}/tag`)}>
+        <Button kind="main" variant="secondary" className={dim} data-guard={guard?.waiting ? '' : undefined} onClick={press(() => onGo(`${base}/tag`))}>
           Back to sets
         </Button>
       </div>
@@ -2560,8 +2605,9 @@ function FinishedActions({
         <Button
           kind="main"
           variant={finishLeads ? 'secondary' : 'primary'}
-          className={cn('text-base', !finishLeads && 'flex-1')}
-          onClick={() => onGo(`${base}/tag/${next.setId}`)}
+          className={cn('text-base', !finishLeads && 'flex-1', dim)}
+          data-guard={guard?.waiting ? '' : undefined}
+          onClick={press(() => onGo(`${base}/tag/${next.setId}`))}
         >
           {setHasTagProgress(next) ? 'Continue' : 'Start'} set {next.setId}
         </Button>
@@ -2570,8 +2616,9 @@ function FinishedActions({
         <Button
           kind="main"
           variant={finishLeads || !offerNext ? 'primary' : 'secondary'}
-          className={cn('text-base', (finishLeads || !offerNext) && 'flex-1')}
-          onClick={onFinishMatch}
+          className={cn('text-base', (finishLeads || !offerNext) && 'flex-1', dim)}
+          data-guard={guard?.waiting ? '' : undefined}
+          onClick={press(onFinishMatch)}
         >
           Finish match
         </Button>
@@ -2579,8 +2626,9 @@ function FinishedActions({
       <Button
         kind="main"
         variant={offerNext || canFinishMatch ? 'ghost' : 'primary'}
-        className={cn(!offerNext && !canFinishMatch && 'flex-1 text-base')}
-        onClick={() => onGo(`${base}/tag`)}
+        className={cn(dim, !offerNext && !canFinishMatch && 'flex-1 text-base')}
+        data-guard={guard?.waiting ? '' : undefined}
+        onClick={press(() => onGo(`${base}/tag`))}
       >
         {offerNext || canFinishMatch ? 'Sets' : 'Back to sets'}
       </Button>
