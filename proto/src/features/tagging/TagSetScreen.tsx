@@ -2107,8 +2107,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
           e.preventDefault()
           k.seekTo(p.getTime() - BACK_S)
         }
-      } else if (key === 'p' && (now.mode === 'watch' || now.mode === 'tagging')) {
-        if (!e.repeat && Date.now() >= slotGuard.current) k.onSwitch()
       } else if (key === 'ArrowLeft') {
         k.seekTo(p.getTime() - 10)
       } else if (key === 'ArrowRight') {
@@ -3135,39 +3133,6 @@ function TagSet({ match, set, lock }: { match: MatchRecord; set: SetData; lock: 
             >
               Tap the missed contact
             </button>
-          ) : null}
-          {slotKind === 'save' && stage === 'pickFa' && !footStrip && !bestOn ? (
-            <Button
-              kind="tapPad"
-              data-tag-fa
-              className={cn('min-w-0 flex-1 rounded-lg text-lg active:scale-100', slotGrey && BUSY)}
-              disabled={liveShot === 1}
-              onClick={onPickFa}
-            >
-              First attack
-            </Button>
-          ) : null}
-          {slotKind === 'save' && stage !== 'pickFa' && !bestOn ? (
-            <>
-              <span className="min-w-0 flex-1" />
-              <button
-                type="button"
-                data-foot="discard"
-                className="btn-kind-tap-pad w-[4.625rem] shrink-0 rounded-lg border border-border bg-transparent px-3 text-sm font-medium text-primary"
-                onClick={onRetap}
-              >
-                Discard
-              </button>
-              <Button
-                kind="tapPad"
-                data-tag-save
-                className={cn('w-28 shrink-0 rounded-lg text-lg active:scale-100', slotGrey && BUSY)}
-                disabled={!ready}
-                onClick={onSave}
-              >
-                Save
-              </Button>
-            </>
           ) : null}
           {slotKind === 'edit' && edit ? (
             readOnly ? (
