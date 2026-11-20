@@ -671,10 +671,17 @@ button[disabled] {
     text-overflow: unset;
   }
 }
+/* No result opens this card. Keep it under the sticky top row. */
+#result {
+  scroll-margin-top: var(--btn-kind-control);
+}
 /* Phone landscape: the top row scrolls away. The class is only on that row. */
 @media (orientation: landscape) and (max-height: 500px) {
   .top-row-chrome {
     position: static;
+  }
+  #result {
+    scroll-margin-top: 0;
   }
   .tag-page {
     display: grid;

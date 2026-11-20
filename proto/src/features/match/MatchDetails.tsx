@@ -268,7 +268,7 @@ function ResultCard({ match }: { match: MatchRecord }) {
   const cardRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     if (hash !== '#result') return
-    cardRef.current?.scrollIntoView({ block: 'center' })
+    cardRef.current?.scrollIntoView({ block: 'start' })
     cardRef.current?.querySelector('select')?.focus({ preventScroll: true })
   }, [hash])
 

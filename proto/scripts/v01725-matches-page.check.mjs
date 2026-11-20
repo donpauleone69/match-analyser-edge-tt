@@ -123,6 +123,33 @@ async function run(page, label) {
   ok(`${label} delete stays`, details.includes('Delete match'))
   ok(`${label} top row name`, (await page.locator('.top-row-name').innerText()).trim() === 'vs Pat')
 
+  await page.locator('select[aria-label="Result"]').selectOption('')
+  const change = page.getByRole('alertdialog', { name: 'Change result' })
+  if ((await change.count()) > 0) await change.getByRole('button', { name: /^Change to/ }).click()
+  await page.waitForFunction(() => document.querySelector('select[aria-label="Result"]')?.value === '')
+  await page.getByRole('link', { name: 'Back', exact: true }).click()
+  const noResult = page.locator('[data-match-row="m-complete"]')
+  await noResult.waitFor()
+  ok(`${label} no result row`, (await noResult.innerText()).includes('No result'))
+  await noResult.locator('a').click()
+  await page.waitForURL(/\/matches\/m-complete\/details#result/)
+  await page.locator('#result select[aria-label="Result"]').waitFor()
+  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+  const picker = await page.evaluate(() => {
+    const el = document.querySelector('#result select[aria-label="Result"]')
+    if (!el) return null
+    const r = el.getBoundingClientRect()
+    const chrome = document.querySelector('[data-sticky-chrome]')
+    const sticky = chrome && getComputedStyle(chrome).position === 'sticky'
+    const topLimit = sticky ? chrome.getBoundingClientRect().bottom : 0
+    return { top: r.top, bottom: r.bottom, topLimit, vh: window.innerHeight }
+  })
+  ok(
+    `${label} result picker on screen`,
+    picker !== null && picker.top >= picker.topLimit - 1 && picker.bottom <= picker.vh + 1,
+    picker ? `top ${picker.top.toFixed(0)} bottom ${picker.bottom.toFixed(0)} limit ${picker.topLimit.toFixed(0)} vh ${picker.vh}` : 'missing'
+  )
+
   await boot(page, 'empty')
   await page.getByText('No matches yet').waitFor()
   const empty = await page.locator('body').innerText()

@@ -15,7 +15,7 @@
 - Line 2 is the date (11 Nov, with the year when it is not this year), the entered result (Won 3 - 1, your sets first), then the event when the name is the opponent. The event is last so it truncates.
 - The right of the row is one status. No video and Not tagged open Tag. Continue set N opens that set, and the row still opens Tag. No result opens Details at the result, when the tagged sets make a real result and none is entered. Part tagged opens Tag. Tagged opens Insights.
 - Filter is Opponent, Event and Status. Dates leave Matches. Filter hides when there are no matches. An empty filter has Clear filter. The empty list says No matches yet.
-- Details no longer has Open match Insights. Delete match stays. Use tagged result uses the same ready test as the No result row.
+- Details no longer has Open match Insights. Delete match stays. Use tagged result uses the same ready test as the No result row. Opening No result scrolls the Result card to the top of the page, under the sticky row, so the picker is on screen.
 - Order stays newest match date first, with no date at the top. There is no sort control.
 
 **Decision Rationale:** Paul approved the Matches page plan, including date order, one status slot, and the opponent as the name. Insights moves to v0.17.26.
