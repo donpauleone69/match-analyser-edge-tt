@@ -15,6 +15,7 @@ import {
   bestRally,
   bestSetEnd,
   bestSetPoint,
+  bestSetServer,
   bestSwitchServer,
   bestTaps,
   padFocus,
@@ -179,7 +180,13 @@ function walkOne(n: number, end: BestEnd, point: Side, switchFirst: boolean): { 
     const q = at.step === 'end' ? padFocus(d, true, null) : at.step === 'shots' ? `shot ${at.page}` : at.step
     questions.push(q)
     const next =
-      q === 'point' ? bestSetPoint(d, point, true) : q === 'end' ? bestSetEnd(d, end, true) : answer(d, q, end)
+      q === 'server'
+        ? bestSetServer(d, 'them')
+        : q === 'point'
+          ? bestSetPoint(d, point, true)
+          : q === 'end'
+            ? bestSetEnd(d, end, true)
+            : answer(d, q, end)
     const moved = bestAdvance(next, true)
     d = moved.draft
     if (moved.save) return { questions, draft: d, saved: true }
@@ -187,15 +194,15 @@ function walkOne(n: number, end: BestEnd, point: Side, switchFirst: boolean): { 
   return { questions, draft: d, saved: false }
 }
 const r1 = walkOne(3, 'Winner', 'them', false)
-eq('rally one asks Point to last', r1.questions, [...questionOrder(3), 'point'])
-eq('rally one point stands', r1.draft.best?.point, 'them')
-eq('rally one server follows the point', winnerOf(r1.draft), 'them')
-eq('rally one server worked out', r1.draft.server, 'them')
+eq('rally one asks who served first', r1.questions, ['server', ...questionOrder(3)])
+eq('rally one does not ask Point to', r1.questions.includes('point'), false)
+eq('rally one winner follows the server', winnerOf(r1.draft), 'them')
+eq('rally one server is the answer', r1.draft.server, 'them')
 const r1s = walkOne(3, 'Winner', 'them', true)
 eq('rally one after the switch has no Point to', r1s.questions, questionOrder(3))
 eq('rally one after the switch derives', r1s.draft.best?.point, 'them')
 const r1a = walkOne(1, 'Winner', 'them', false)
-eq('rally one ace asks Point to', r1a.questions, ['end', 'point'])
+eq('rally one ace asks who served, then End', r1a.questions, ['server', 'end'])
 eq('rally one ace sets the server', r1a.draft.server, 'them')
 
 const reopened = walk(4, 'Winner').draft

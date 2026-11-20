@@ -286,6 +286,7 @@ export function VideoStage({
   names,
   bug,
   hint,
+  toast = null,
   onSeek,
   noForward = false,
   onRate,
@@ -300,6 +301,8 @@ export function VideoStage({
   bug: { sets: Record<Side, number>; points: Record<Side, number>; server: Side | null; setId: number }
   /** A few words over the picture, such as why a step back stopped short. */
   hint: string | null
+  /** A toast on the picture. While it is up, it takes the hint's place. */
+  toast?: { text: string; undo?: () => void; extra?: { label: string; run: () => void } } | null
   /** Seeks go through the screen so it can say why one stopped short. */
   onSeek: (g: number) => void
   /** Tapping: a jump forward would lose the rally being tapped. */
@@ -370,7 +373,25 @@ export function VideoStage({
           ))}
         </div>
 
-        {hint ? (
+        {toast ? (
+          <div
+            role="status"
+            data-tag-toast
+            className="absolute bottom-9 left-2 z-20 flex max-w-[70%] items-center gap-2 rounded-md bg-neutral-100 px-2 py-1 text-xs font-semibold text-neutral-950"
+          >
+            <span className="min-w-0 flex-1">{toast.text}</span>
+            {toast.extra ? (
+              <button type="button" className="shrink-0 font-bold underline" onClick={toast.extra.run}>
+                {toast.extra.label}
+              </button>
+            ) : null}
+            {toast.undo ? (
+              <button type="button" className="shrink-0 font-bold underline" onClick={toast.undo}>
+                Undo
+              </button>
+            ) : null}
+          </div>
+        ) : hint ? (
           <p
             role="status"
             data-video-hint

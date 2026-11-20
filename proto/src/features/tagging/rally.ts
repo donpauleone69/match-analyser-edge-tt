@@ -74,7 +74,7 @@ export type BestPart = 'opening' | 'attack' | 'rally' | 'end'
  * Questions in the order they are asked. Serve, then each later shot (`shots`),
  * then End. `receive`, `third` and `fourth` still load from an older draft.
  */
-export type BestStep = 'end' | 'serve' | 'receive' | 'third' | 'fourth' | 'shots'
+export type BestStep = 'server' | 'end' | 'serve' | 'receive' | 'third' | 'fourth' | 'shots'
 
 /** Who attacked first. Covers the shots never asked. */
 export type BestFirst = 'me' | 'them' | 'none'

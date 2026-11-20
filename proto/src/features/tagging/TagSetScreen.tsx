@@ -1,6 +1,4 @@
 import {
-  useCallback,
-  useContext,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -8,26 +6,21 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { createPortal } from 'react-dom'
 import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
-import { Button, Icon, buttonKindTapPadSquare, buttonKindTextLink } from '@/ui-mine'
+import { Button, Icon, buttonKindTapPadSquare } from '@/ui-mine'
 import { WfEmpty } from '@/layout/Wireframe'
 import {
-  derivePhase,
   emptySet,
   formatScore,
   matchSetsWon,
   parseEntered,
-  resultSetCount,
   setRalliesWithoutVideo,
-  setScoresDiffer,
   taggedScore,
   useDemo,
   type MatchRecord,
   type SetData,
 } from '@/data/demoStore'
 import { AddVideoChoice } from '@/features/match/AddVideoChoice'
-import { isRealResult } from '@/features/match/matchChecks'
 import { cn } from '@/helpers/utils'
 import {
   GAP_REVIEW_RATE,
@@ -38,7 +31,6 @@ import {
   walkServes,
   breakIndexes,
   serveBands,
-  checkSet,
   expectedServer,
   leaveIds,
   longerFirst,
@@ -46,8 +38,6 @@ import {
   type ReviewState,
 } from './continuity'
 import {
-  applyTaggedResult,
-  applyTaggedScore,
   confirmServe,
   deleteRally,
   dropAfter,
@@ -61,7 +51,6 @@ import {
   latestVideoId,
   leaveMark,
   maxSetNumber,
-  reopenSet,
   replaceRally,
   restoreSet,
   saveRally,
@@ -76,7 +65,6 @@ import {
   CONTACT_IDLE_MS,
   MARK_LOOP_HALF_S,
   NORMAL_SPEED,
-  RALLY_LEAD_S,
   SHOT_LOOP_HOLD_S,
   addContact,
   canSave,
@@ -93,7 +81,6 @@ import {
   retapStart,
   shotWindow,
   stageOf,
-  statusText,
   winnerOf,
   undoContact,
   type Draft,
@@ -104,10 +91,11 @@ import {
   type Wing,
 } from './rally'
 import { ZERO, addPoint, countPoints, isSetWon, setEndIndex, type Points } from './score'
-import { BestPanel, EditRallyPad } from './BestPanel'
+import { bestPadRegions, editRallyRegions } from './BestPanel'
+import { InputArea } from './InputArea'
+import { tagRegions } from './inputModes'
 import { RallyZone, type RallyState } from './RallyZone'
 import { SetZone } from './SetZone'
-import { CornerPad, PadWingContext } from './CornerPad'
 import { BestTimingControl } from './BestTimingControl'
 import {
   BEST_SHOT_RATE,
@@ -118,10 +106,10 @@ import {
   bestHitters,
   bestLoop,
   bestMismatch,
-  bestPlace,
   bestRally,
   bestSetEnd,
   bestSetPoint,
+  bestSetServer,
   carryBest,
   draftFromRally,
   editStopWindow,
@@ -198,9 +186,6 @@ const BACK_S = 5
 /** Watching speed per match, kept while the app is open. */
 const watchRates = new Map<string, number>()
 
-const servesText = (names: Record<Side, string>, side: Side) =>
-  side === 'me' ? 'You serve' : `${names.them} serves`
-
 /** A rally being added between two saved ones: the stretch of video it may use. */
 type Gap = { index: number; a: number; b: number }
 /** Review serves, then the two gaps, or Check gaps on its own. */
@@ -231,8 +216,6 @@ function selectionAfter(prev: Stage, next: Stage, d: Draft, current: Mark | null
   return current
 }
 
-const NO_WINGS = { left: null, right: null }
-
 /** Any landscape window, and a square one. Portrait stays stacked. */
 const LANDSCAPE_QUERY = '(orientation: landscape), (min-aspect-ratio: 1/1)'
 
@@ -248,91 +231,7 @@ function useLandscape() {
   return land
 }
 
-/** The landscape tap wing. Same words as the portrait zone, on the green fill. */
-function WingTap({
-  side,
-  title,
-  line,
-  dim,
-  held,
-  onTap,
-}: {
-  side: 'left' | 'right'
-  title: string
-  line: string
-  dim: boolean
-  /** Rally list or Settings. The corner answers are portaled beside this button, so they stay live. */
-  held: boolean
-  onTap: () => void
-}) {
-  return (
-    <button
-      type="button"
-      data-tap-pad=""
-      data-tap-wing={side}
-      className={cn(
-        'pad-region flex min-h-11 flex-1 flex-col items-center justify-center rounded-md bg-brand-primary px-1 text-center text-[22px] font-bold leading-tight text-on-accent',
-        dim && 'opacity-60',
-        held && 'pointer-events-none'
-      )}
-      aria-label={title}
-      onClick={onTap}
-    >
-      <span>{title}</span>
-      <span className="mt-0.5 max-w-full text-sm font-medium leading-snug opacity-80">{line}</span>
-    </button>
-  )
-}
-
 type EditPick = { kind: 'rally'; id: string } | { kind: 'gap'; index: number }
-
-/** Rallies or Gaps. Landscape sits this on top of the left wing. */
-function KindSwitch({
-  kind,
-  onRally,
-  onGap,
-}: {
-  kind: 'rally' | 'gap'
-  onRally: () => void
-  onGap: () => void
-}) {
-  const wings = useContext(PadWingContext)
-  const node = (
-    <div
-      data-edit-switch
-      role="group"
-      aria-label="What to step"
-      className="flex shrink-0 overflow-hidden rounded-md border border-border"
-    >
-      <button
-        type="button"
-        data-edit-kind="rally"
-        aria-pressed={kind === 'rally'}
-        className={cn(
-          'btn-kind-control min-w-0 flex-1 text-sm font-semibold',
-          kind === 'rally' ? 'bg-brand-primary text-white' : 'bg-bg-card text-primary'
-        )}
-        onClick={onRally}
-      >
-        Rallies
-      </button>
-      <button
-        type="button"
-        data-edit-kind="gap"
-        aria-pressed={kind === 'gap'}
-        className={cn(
-          'btn-kind-control min-w-0 flex-1 text-sm font-semibold',
-          kind === 'gap' ? 'bg-brand-primary text-white' : 'bg-bg-card text-primary'
-        )}
-        onClick={onGap}
-      >
-        Gaps
-      </button>
-    </div>
-  )
-  if (wings.left) return createPortal(node, wings.left)
-  return <div className="mb-2">{node}</div>
-}
 
 function TagSet({
   match,
@@ -358,7 +257,6 @@ function TagSet({
   /** After a nudge the loop tightens around the mark that moved. */
   const [tight, setTight] = useState(false)
   const [toast, setToast] = useState<Toast | null>(null)
-  const [keptEntered, setKeptEntered] = useState(false)
   const [lastTap, setLastTap] = useState<number | null>(null)
   const [hint, setHint] = useState<string | null>(null)
   /** Play or a seek reached the end of a complete mark before the set was won. */
@@ -377,13 +275,6 @@ function TagSet({
   const [timing, setTiming] = useState(loadBestTiming)
   const landscape = useLandscape()
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const [padWings, setPadWings] = useState<{ left: HTMLElement | null; right: HTMLElement | null }>({ left: null, right: null })
-  const setLeftWing = useCallback((node: HTMLDivElement | null) => {
-    setPadWings((w) => (w.left === node ? w : { ...w, left: node }))
-  }, [])
-  const setRightWing = useCallback((node: HTMLDivElement | null) => {
-    setPadWings((w) => (w.right === node ? w : { ...w, right: node }))
-  }, [])
   const [bestSpan, setBestSpan] = useState<{ a: number; b: number } | null>(null)
   const loopWhat = useRef<{ what: BestLoopWhat; rate: number } | null>(null)
   const setBestTiming = (next: BestTiming) => {
@@ -415,6 +306,8 @@ function TagSet({
   const [editPick, setEditPick] = useState<EditPick | null>(null)
   /** The open draft is a change to this saved rally, not a new one. */
   const [editOf, setEditOf] = useState<string | null>(null)
+  const rallyOneRef = useRef(false)
+  rallyOneRef.current = gap && editPick?.kind === 'gap' ? gap.index === 0 : set.rallies.length === 0
   const bestHold = useRef(false)
   const tapGuardRef = useRef<ActionGuard | null>(null)
   const editGuardRef = useRef<ActionGuard | null>(null)
@@ -447,12 +340,9 @@ function TagSet({
   const inserting = Boolean(gap && editPick?.kind === 'gap')
   /** Best + FA, contacts closed, this rally's steps open. An edit opens them on a finished set too. */
   const bestOn = !shotEdit && !review && (!set.finished || editOf !== null || inserting) && !draftGone && Boolean(live?.closed)
-  const liveCount = live?.contacts.length ?? 0
   /** End is on screen with no result, and whenever a press has opened it. */
   const score = taggedScore(set) ?? ZERO
   const entered = parseEntered(set.entered)
-  /** The set, walked in video order and marked where it does not add up. Nothing is changed by it. */
-  const cont = checkSet(set.rallies, set.firstServer, segs, entered, set.finished)
   /** Who should serve next goes by what was tagged before the place the rally goes in. */
   const expected = expectedServer(set.rallies, set.firstServer, gap ? gap.index : set.rallies.length)
   const nextServer = serverPick ?? expected
@@ -470,7 +360,6 @@ function TagSet({
   const endIndex = setEndIndex(set.rallies.map((r) => r.winner))
   const overrun = endIndex >= 0 && endIndex < set.rallies.length - 1
   const setWon = set.rallies.length > 0 && (endIndex === set.rallies.length - 1 || (reachedEntered && isSetWon(entered)))
-  const startCard = !readOnly && !set.finished && set.rallies.length === 0 && !live && start.server === null
   const mode = set.finished && !editing
     ? 'finished'
     : draftGone
@@ -481,16 +370,12 @@ function TagSet({
         : 'tapping'
       : editPick !== null
         ? 'edit'
-        : startCard
-          ? 'start'
-          : setWon && !gap
-            ? 'setPoint'
-            : 'watch'
+        : setWon && !gap
+          ? 'setPoint'
+          : 'watch'
   /** The saved rally being changed or picked in Edit Set. */
   const editIndex = set.rallies.findIndex((r) => r.id === (editOf ?? pickedId))
   const editRally = editIndex >= 0 ? set.rallies[editIndex] : null
-  /** What sits in the bottom slot. */
-  const slotKind = mode === 'tagging' ? 'save' : mode === 'finished' ? 'finished' : 'pad'
 
   const latest = useRef({ live, set, match, floorG, segs, mode, selected, tight, nextServer, stage, flowWanted })
   useEffect(() => {
@@ -707,8 +592,7 @@ function TagSet({
     if (!d || d.closed || d.contacts.length === 0) return
     const wanted = latest.current.flowWanted
     const base = { ...d, closed: true, best: carryBest(d, {}) }
-    const open: BestAt =
-      d.contacts.length > 1 ? (routeAfter(base, s.rallies.length === 0) ?? { step: 'serve' }) : { step: 'end' }
+    const open: BestAt = routeAfter(base, rallyOneRef.current) ?? { step: 'end' }
     const closed: Draft = withStep(base, open)
     mutateMatch(m.id, (cur) => setDraft(cur, s.setId, closed))
     const p = playerRef.current
@@ -1054,10 +938,6 @@ function TagSet({
         park(before.draft, false, floorG)
       },
     })
-  }
-
-  const onRetap = () => {
-    clearLiveRally()
   }
 
   /** Throws away the rally being tagged. Saved rallies stay. */
@@ -1536,18 +1416,13 @@ function TagSet({
     mutateMatch(match.id, (m) => replaceRally(m, set.setId, bestRally(d, editRally.id, winner, Boolean(d.best?.kept))))
   }
 
-  /** Start card: a half picks the server and plays in from just before the paused frame. */
-  const pickServer = (side: Side) => {
-    if (mode !== 'start' || readOnly) return
+  /** Rally 1, after the taps: who served. The guard is the change off the tap pad. */
+  const onBestServer = (side: Side) => {
+    if (!live || readOnly) return
     if (!tapGuardRef.current?.allow()) return
-    tapGuardRef.current.arm()
-    setStart((s) => ({ ...s, server: side }))
     setServerPick(side)
     serverChosen.current = true
-    const p = playerRef.current
-    p.setRate(CAPTURE_SPEED)
-    p.seek(Math.max(floorG, p.time - RALLY_LEAD_S))
-    p.play()
+    routeBest(bestSetServer(live, side))
   }
 
   const onNotAShot = () => {
@@ -1790,7 +1665,6 @@ function TagSet({
     endReview()
   }
 
-  const level = score.me === score.them
   /** A set can be saved once it has a rally and nothing is open, at any score. */
   const canFinishNow = !set.finished && !live && !draftGone && set.rallies.length > 0
 
@@ -1798,14 +1672,7 @@ function TagSet({
     if (!canFinishNow || readOnly) return
     playerRef.current.pause()
     mutateMatch(match.id, (m) => finishSet(m, set.setId))
-    setKeptEntered(false)
     navigate(`/matches/${match.id}/tag?from=${set.setId}`, { replace: true, state: { saved: set.setId } })
-  }
-
-  const onReopenSet = () => {
-    if (readOnly) return
-    mutateMatch(match.id, (m) => reopenSet(m, set.setId))
-    parkLive({ ...set, finished: false })
   }
 
   // Keys (desktop). Space is the pad. Backspace deletes a tap while tapping
@@ -1913,8 +1780,8 @@ function TagSet({
 
   const shownScore = score
   const reviewRally = review?.kind === 'ask' && review.rule.cursor !== null ? review.rule.rallies[review.rule.cursor] : null
-  /** Rally 1 has no server until the Start step picks one. The bug then has no dot. */
-  const serverKnown = set.rallies.length > 0 || start.server !== null || serverPick !== null
+  /** Rally 1 has no server until that question is answered. The bug then has no dot. */
+  const serverKnown = set.rallies.length > 0 || Boolean(live?.serveChecked)
   const shownServer = !serverKnown ? null : reviewRally ? reviewRally.server : (live?.server ?? nextServer)
   const setsWon = matchSetsWon(match)
   const atEnd = player.atEnd && (mode === 'watch' || mode === 'setPoint')
@@ -1923,55 +1790,16 @@ function TagSet({
   const overCard = mode === 'setPoint' && !bestHoldOn && !review
   /** When the video runs out before the set is won, Finish is offered in the panel. */
   const finishCard = canFinishNow && atEnd && mode !== 'setPoint'
-  const setLine = `Set ${set.setId} · ${formatScore(score)}`
   const loopNow =
     active && stage && mode === 'tagging' ? windowFor(active, selected, stage, tight) : null
   const gapIndex = review?.kind === 'gaps' ? review.gaps[review.at] : null
-  const reviewLine =
-    review?.kind === 'ask' && review.rule.cursor !== null
-      ? `Rally ${review.rule.cursor + 1} serve`
-      : review?.kind === 'gaps' && gapIndex !== null
-        ? `Gap before rally ${gapIndex + 1}`
-        : review?.kind === 'leave'
-          ? 'Neither gap has the rally'
-          : null
 
   const shotAt = !shotEdit
     ? -1
     : shotEdit.rallyId
       ? set.rallies.findIndex((r) => r.id === shotEdit.rallyId)
       : set.rallies.length
-  const status = shotEdit
-    ? ''
-    : bestOn
-    ? editOf
-      ? `Rally ${editIndex + 1}, editing`
-      : (bestPlace({ draft: live, rallies: set.rallies, finished: set.finished }) ?? 'Details')
-    : overCard
-      ? `Set over at ${formatScore(score)}`
-      : mode === 'start' || mode === 'edit'
-        ? ''
-      : reviewLine
-        ? reviewLine
-        : mode === 'finished'
-          ? `Set ${set.setId} finished · ${formatScore(score)}`
-          : mode === 'setPoint'
-            ? `Set ${set.setId} reached ${formatScore(score)}`
-            : mode === 'blocked'
-              ? setLine
-              : active
-                ? statusText(active)
-                : gap
-                  ? `Add rally before rally ${gap.index + 1}`
-                  : player.playing && !atEnd
-                    ? 'Tap each contact'
-                    : setLine
-
-  const padServer = live?.server ?? nextServer
   const rowButton = 'px-3 shrink-0'
-  /** Watch, tapping and answering use the plain words line. */
-  const livePlain = !review && (mode === 'watch' || mode === 'tapping' || mode === 'tagging' || mode === 'start' || mode === 'edit')
-  const lineHidden = Boolean(livePlain && selected?.kind === 'shot')
   // The tap zone while a rally is open or waiting. Answering keeps the corner pad.
   const zoneOn =
     !bestOn &&
@@ -1988,18 +1816,6 @@ function TagSet({
         ? 'Tap serve'
         : 'Play'
   const zoneTitle = padTitle
-  const zoneLine = deleteMode
-    ? 'Tap a minus to remove a contact'
-    : inserting
-      ? `Inserting rally ${(gap?.index ?? 0) + 1}`
-      : `Rally ${set.rallies.length + 1}, live`
-  const footStrip = zoneOn || (mode === 'tagging' && stage === 'pickFa' && !review && !bestOn)
-  /** An extra tap found after the taps closed. One tap left is Discard's job. */
-  const deleteLastOn = Boolean(
-    mode === 'tagging' && !review && !readOnly && !bestOn && !shotEdit && live?.closed && live.contacts.length > 1
-  )
-  /** A foot control is showing. With none, the strip collapses and the tap zone grows. */
-  const footAction = Boolean(footStrip && !shotEdit && mode === 'tagging' && stage === 'pickFa')
 
   const flowShown: FlowName = mode === 'tagging' && flowLock ? flowLock : flowWanted
   const bestRallyOne = inserting ? gap?.index === 0 : set.rallies.length === 0
@@ -2017,9 +1833,7 @@ function TagSet({
   const insertingBare = Boolean(gap && (!live || live.contacts.length === 0))
   const rallyState: RallyState = shotEdit
     ? 'editing'
-    : mode === 'start'
-      ? 'before'
-      : insertingBare
+    : insertingBare
         ? 'insert'
         : viewedGap && mode === 'edit'
           ? 'gap'
@@ -2054,12 +1868,12 @@ function TagSet({
             : bestRowSaved && savedIndex >= 0
               ? savedIndex
               : set.rallies.length
-  const rallyServer: Side | null =
-    rallyState === 'before' && !serverKnown
-      ? null
-      : rallyState === 'gap'
-        ? gapServer
-        : (rowDraft?.server ?? nextServer)
+  const awaitServer = bestRallyOne && !pickDraft && !live?.serveChecked
+  const rallyServer: Side | null = awaitServer
+    ? null
+    : rallyState === 'gap'
+      ? gapServer
+      : (rowDraft?.server ?? nextServer)
   const rallyWord =
     rallyState === 'gap' && viewedGap
       ? viewedGap.overlap
@@ -2069,10 +1883,6 @@ function TagSet({
         ? 'Insert'
         : null
   const rallyActions = rallyState === 'answering' || rallyState === 'saved' || rallyState === 'editing'
-  const tapSplit = Boolean(landscape && zoneOn)
-  const padSplit = Boolean(
-    tapSplit || (landscape && ((bestOn && liveCount > 0) || mode === 'edit' || shotEdit))
-  )
   const bestAccount = (() => {
     if (!live || live.contacts.length === 0) return null
     const winner = pointDone(live, bestRallyOne) ? winnerOf(live) : null
@@ -2086,10 +1896,10 @@ function TagSet({
   /** Settings sits over part of the screen. Taps on the zone and wings wait. */
   const coverTaps = settingsOpen
   // One guard per place a finger rests. The action is what that place does now.
-  const tapAction = startCard
-    ? 'start'
-    : bestOn
-      ? 'questions'
+  const tapAction = bestOn
+    ? 'questions'
+    : mode === 'edit'
+      ? 'edit'
       : mode === 'tapping' || inserting || (mode === 'watch' && (tapped > 0 || player.playing))
         ? 'tapping'
         : 'idle'
@@ -2102,9 +1912,124 @@ function TagSet({
     if (!guard.allow()) return
     fn()
   }
+  const showRemove = overrun && !live && !set.finished && mode !== 'edit'
+  const removeGuard = useActionGuard(showRemove ? `remove:${endIndex}` : 'off')
+  const endKind = finishCard ? 'video' : boundNote && mode !== 'setPoint' && mode !== 'edit' && !set.finished ? 'mark' : null
+  const endNoted = useRef<string | null>(null)
+  useEffect(() => {
+    if (endKind === endNoted.current) return
+    endNoted.current = endKind
+    if (endKind === 'video') setHint('End of video')
+    else if (endKind === 'mark') setHint('End of the marked set')
+  }, [endKind])
+  const removeNoted = useRef<number | null>(null)
+  useEffect(() => {
+    if (!showRemove) {
+      removeNoted.current = null
+      return
+    }
+    if (removeNoted.current === endIndex) return
+    removeNoted.current = endIndex
+    setToast({ text: `Set won at rally ${endIndex + 1}` })
+  }, [showRemove, endIndex])
+
+  const bestRegions =
+    bestOn && live?.best && bestQ && live.contacts.length > 0
+      ? bestPadRegions({
+          draft: live,
+          names,
+          at: bestQ,
+          rallyOne: bestRallyOne,
+          back: endBack,
+          dim: tapGuard.waiting || coverTaps,
+          notShotDim: shotGuard.waiting,
+          onServer: onBestServer,
+          onEnd: onBestEnd,
+          onPoint: onBestPoint,
+          onNotShot: onNotAShot,
+          onServe: onBestServe,
+          onStroke: onBestStroke,
+        })
+      : []
+  const editRegions =
+    shotEdit && live && live.contacts.length > 0
+      ? editRallyRegions({
+          draft: live,
+          names,
+          stop: shotEdit.stop,
+          rallyOne: shotAt <= 0,
+          breakRally:
+            shotAt >= 0 && serveBands(set.rallies, set.firstServer).some((band) => band.breaks[0] === shotAt),
+          dim: shotGuard.waiting || readOnly,
+          onBack: () => stepShot(-1),
+          onForward: () => stepShot(1),
+          onDelete: onShotDelete,
+          onKim: onShotKim,
+          onOut: onShotOut,
+          onServe: (depth, wing) => keepShot(setDepth(live, depth, wing)),
+          onStroke: (shot, wing, stroke) => keepShot(setWingStroke(live, shot, wing, stroke)),
+          onEnd: onShotEnd,
+          onPointTo: onShotPoint,
+        })
+      : []
+  /** The end pad is on screen. The Rally Zone is Before serve, the next rally, not the last one. */
+  const atEndPad = Boolean(
+    canFinishNow &&
+      !shotEdit &&
+      !bestOn &&
+      mode !== 'edit' &&
+      mode !== 'setPoint' &&
+      !showRemove &&
+      (atEnd || boundNote) &&
+      !set.finished,
+  )
+  const area = tagRegions({
+    mode,
+    bestOn,
+    bestQ,
+    best: bestRegions,
+    shotEdit: Boolean(shotEdit),
+    editRally: editRegions,
+    editStop: shotEdit ? (shotEdit.stop === 'end' ? 'end' : String(shotEdit.stop)) : '',
+    zoneOn,
+    padTitle: zoneTitle,
+    tapDim: tapGuard.waiting || coverTaps,
+    hold: bestHoldOn,
+    overDim: overGuard.waiting || readOnly,
+    removeDim: removeGuard.waiting || readOnly,
+    showRemove,
+    removeAfter: endIndex + 1,
+    endPad: Boolean(
+      finishCard || (canFinishNow && boundNote && mode !== 'setPoint' && mode !== 'edit' && !set.finished),
+    ),
+    editing: mode === 'edit' && editPick !== null && !gap,
+    editKind: editPick?.kind ?? null,
+    editName: editPick?.kind === 'gap' ? String(viewedGap?.n ?? '') : String(editIndex + 1),
+    rallyOn: editPick?.kind !== 'gap',
+    saveOn: !set.finished && canFinishNow,
+    saveDim: tapGuard.waiting || editGuard.waiting || readOnly,
+    backDim: stepAt <= 0,
+    forwardDim: stepAt >= stepList.length - 1,
+    insertDim: readOnly || editGuard.waiting || Boolean(viewedGap && !gapFitsRally(viewedGap)),
+    onPad: guarded(tapGuard, onPad),
+    onFinish: () => {
+      if (mode === 'setPoint' && !overGuard.allow()) return
+      onFinishSet()
+    },
+    onOverEdit: guarded(overGuard, onOverEdit),
+    onRemove: guarded(removeGuard, onDropAfter),
+    onRallies: () => flipKind('rally'),
+    onGaps: () => flipKind('gap'),
+    onBack: () => stepPick(-1),
+    onForward: () => stepPick(1),
+    onEditRally: guarded(editGuard, onPickEdit),
+    onDeleteRally: guarded(editGuard, onDeletePicked),
+    onInsert: guarded(editGuard, () => {
+      if (viewedGap) onAddRally(viewedGap.index)
+    }),
+  })
 
   return (
-    <PadWingContext.Provider value={padSplit ? padWings : NO_WINGS}>
     <div
       className="tag-set bg-bg-app"
       data-pad-split={landscape ? '' : undefined}
@@ -2129,32 +2054,9 @@ function TagSet({
       data-fa={active?.fa ?? ''}
       data-no-attack={active?.noAttack ? 'yes' : 'no'}
     >
-      {/* Wings stay up in landscape and go blank when there is nothing to tap. */}
       {landscape ? (
-        <div
-          className="pad-wing relative"
-          data-pad-wing="left"
-          ref={setLeftWing}
-        >
-          {tapSplit ? (
-            <WingTap
-              side="left"
-              title={zoneTitle}
-              line={zoneLine}
-              dim={deleteMode || tapGuard.waiting}
-              held={coverTaps}
-              onTap={guarded(tapGuard, onPad)}
-            />
-          ) : mode === 'start' ? (
-            <WingTap
-              side="left"
-              title={servesText(names, 'me')}
-              line="Starts the set"
-              dim={tapGuard.waiting}
-              held={coverTaps}
-              onTap={guarded(tapGuard, () => pickServer('me'))}
-            />
-          ) : null}
+        <div className="pad-wing" data-pad-wing="left">
+          <InputArea regions={area.regions} column={1} attrs={area.attrs} />
         </div>
       ) : null}
       <div className="tag-flow">
@@ -2165,6 +2067,7 @@ function TagSet({
           names={names}
           bug={{ sets: setsWon, points: shownScore, server: shownServer, setId: set.setId }}
           hint={hint}
+          toast={toast}
           onSeek={seekTo}
           noForward={mode === 'tapping'}
           onRate={onRate}
@@ -2235,11 +2138,11 @@ function TagSet({
           />
         ) : null}
         <RallyZone
-          state={rallyState}
-          draft={rowDraft}
-          at={pickDraft || shotEdit ? null : bestQ}
-          rallyOne={pickDraft || editOf ? false : bestRowSaved ? savedIndex <= 0 : bestRallyOne}
-          saved={shotEdit ? Boolean(shotEdit.rallyId) : pickDraft ? true : bestRowSaved}
+          state={atEndPad ? 'before' : rallyState}
+          draft={atEndPad ? null : rowDraft}
+          at={atEndPad || pickDraft || shotEdit ? null : bestQ}
+          rallyOne={atEndPad ? false : pickDraft || editOf ? false : bestRowSaved ? savedIndex <= 0 : bestRallyOne}
+          saved={atEndPad ? false : shotEdit ? Boolean(shotEdit.rallyId) : pickDraft ? true : bestRowSaved}
           focus={shotEdit ? shotEdit.stop : null}
           flash={
             shotEdit && active && typeof shotEdit.stop === 'number'
@@ -2248,15 +2151,15 @@ function TagSet({
                 : -1
               : -1
           }
-          rallyNo={rallyNo}
+          rallyNo={atEndPad ? set.rallies.length + 1 : rallyNo}
           names={names}
-          server={rallyServer}
-          score={scoreBefore(rallyScoreAt)}
-          word={rallyWord}
+          server={atEndPad ? nextServer : rallyServer}
+          score={atEndPad ? scoreBefore(set.rallies.length) : scoreBefore(rallyScoreAt)}
+          word={atEndPad ? null : rallyWord}
           tight={landscape}
           pressed={rallyState === 'editing'}
           onEdit={
-            rallyActions
+            !atEndPad && (rallyState === 'saved' || rallyState === 'editing')
               ? () => {
                   if (shotEdit) closeShotEdit()
                   else if (pickDraft && pickedId) beginShotEdit(pickedId, 'set')
@@ -2266,7 +2169,7 @@ function TagSet({
               : undefined
           }
           onStar={
-            rallyActions
+            !atEndPad && rallyActions
               ? () => {
                   if (shotEdit && live) {
                     const next = { ...live, highlight: !live.highlight }
@@ -2280,15 +2183,17 @@ function TagSet({
               : undefined
           }
           onDiscard={
-            editOf && live
-              ? cancelEdit
-              : !readOnly && !bestRowSaved && live && live.contacts.length > 0
-                ? onDiscardProgress
-                : undefined
+            atEndPad
+              ? undefined
+              : editOf && live
+                ? cancelEdit
+                : !readOnly && !bestRowSaved && live && live.contacts.length > 0
+                  ? onDiscardProgress
+                  : undefined
           }
           onCancel={insertingBare ? cancelInsert : undefined}
           onServer={
-            insertingBare
+            insertingBare && gap && gap.index !== 0
               ? () => {
                   setServerPick(otherSide(nextServer))
                   serverChosen.current = true
@@ -2298,258 +2203,13 @@ function TagSet({
         />
       </div>
 
-      {/* Shot input. Landscape portals the answers into the wings. */}
-      <div className="tag-entry">
-        {/* The white band. One line under the shot row, then the column down to the foot. */}
-        <div
-          ref={body}
-          data-tag-body
-          className={cn(
-            'relative flex min-h-0 flex-1 flex-col overflow-y-auto border-t border-border bg-bg-surface px-2 [overflow-anchor:none]',
-            (bestOn || shotEdit) && 'overflow-hidden',
-            zoneOn && 'pb-3'
-          )}
-        >
-          {/* Status, with the rally's second-rank actions beside it, away from the thumb. */}
-          <div
-            data-words-line={livePlain ? '' : undefined}
-            className={cn(
-              'flex gap-1.5',
-              livePlain ? 'mt-2.5 min-h-[var(--btn-kind-control)] items-center' : 'mb-1.5 items-stretch',
-              zoneOn && 'hidden',
-              (bestOn || bestHoldOn) && 'hidden',
-              lineHidden && 'hidden',
-              !status && mode !== 'blocked' && 'hidden'
-            )}
-          >
-            <p
-              role="status"
-              data-tag-status
-              className={cn(
-                'min-w-0 flex-1 text-sm leading-tight',
-                livePlain
-                  ? 'flex items-center font-normal text-primary'
-                  : cn(
-                      'flex min-h-[var(--btn-kind-control)] items-center rounded-md border-l-4 px-2 py-1 font-semibold',
-                      mode === 'finished'
-                        ? 'border-success bg-success/15 text-primary'
-                        : active && active.closed
-                          ? 'border-warning bg-warning/15 text-primary'
-                          : 'border-border-strong bg-bg-card text-primary'
-                    )
-              )}
-            >
-              {status}
-            </p>
+      {landscape ? null : <InputArea regions={area.regions} attrs={area.attrs} />}
+      {mode === 'blocked' || review || goneCount > 0 || (lock && mode !== 'finished') ? (
+      <div className="space-y-2 px-2 pb-2">
             {mode === 'blocked' ? (
               <Button kind="control" variant="secondary" className={rowButton} onClick={onDiscardGone}>
                 Discard rally
               </Button>
-            ) : null}
-          </div>
-
-          {toast && !bestHoldOn ? (
-            <div
-              role="status"
-              data-tag-toast
-              className={cn(
-                'mb-1.5 flex items-center justify-between gap-3 rounded-md bg-neutral-100 text-neutral-950 pl-3 pr-1 text-sm shadow-lg',
-                (zoneOn || bestOn) && 'absolute left-2 right-2 top-2 z-30'
-              )}
-            >
-              <span className="flex-1">{toast.text}</span>
-              {toast.extra ? (
-                <button
-                  type="button"
-                  className="btn-kind-control min-w-16 px-3 rounded-md font-bold underline hover:bg-neutral-300"
-                  onClick={toast.extra.run}
-                >
-                  {toast.extra.label}
-                </button>
-              ) : null}
-              {toast.undo ? (
-                <button
-                  type="button"
-                  className="btn-kind-control min-w-16 px-3 rounded-md font-bold underline hover:bg-neutral-300"
-                  onClick={toast.undo}
-                >
-                  Undo
-                </button>
-              ) : null}
-            </div>
-          ) : null}
-
-          <div
-            className={cn(
-              'space-y-2',
-              (bestOn || mode === 'edit' || shotEdit) && 'flex min-h-0 flex-1 flex-col'
-            )}
-            data-tag-panel
-            data-details-box
-          >
-            {boundNote && set.mark ? (
-              <div role="status" data-mark-end className="space-y-2 rounded-md border border-warning bg-warning/15 px-3 py-2 text-sm text-primary">
-                <p>
-                  Set {set.setId} end reached at {formatScore(score)}. Edit a rally, or re-mark the end on the Tag page.
-                </p>
-                <Button
-                  kind="control"
-                  variant="secondary"
-                  onClick={() => navigate(`/matches/${match.id}/tag?set=${set.setId}`)}
-                >
-                  Re-mark
-                </Button>
-              </div>
-            ) : null}
-            {overrun && !live && !set.finished && mode !== 'edit' ? (
-              <div role="alert" data-overrun className="space-y-2 rounded-md border border-warning bg-warning/15 px-3 py-2 text-sm text-primary">
-                <p>
-                  The set was won at rally {endIndex + 1}. {set.rallies.length - endIndex - 1 === 1
-                    ? `Rally ${endIndex + 2} comes after it.`
-                    : `Rallies ${endIndex + 2} to ${set.rallies.length} come after it.`}
-                </p>
-                <Button kind="control" variant="secondary" onClick={onDropAfter}>
-                  Remove rallies after {endIndex + 1}
-                </Button>
-              </div>
-            ) : null}
-            {mode === 'edit' && editPick && !gap ? (
-              <div className="flex min-h-0 flex-1 flex-col pt-2" data-edit-pad>
-                <KindSwitch
-                  kind={editPick.kind}
-                  onRally={() => flipKind('rally')}
-                  onGap={() => flipKind('gap')}
-                />
-                <CornerPad
-                  label={viewedGap ? `Before rally ${viewedGap.n}` : `Rally ${editIndex + 1}`}
-                  showName={false}
-                  split={padSplit}
-                  columns="1fr 1fr"
-                  rows="1fr 1fr"
-                  regions={[
-                    {
-                      key: 'back',
-                      label: 'Back',
-                      side: 'left',
-                      on: false,
-                      bg: '#334155',
-                      fg: '#fff',
-                      onClick: () => stepPick(-1),
-                      data: { 'data-edit-step': 'back' },
-                      style: { gridColumn: '1', gridRow: '1', opacity: stepAt > 0 ? 1 : 0.4 },
-                    },
-                    {
-                      key: 'forward',
-                      label: 'Forward',
-                      side: 'right',
-                      on: false,
-                      bg: '#334155',
-                      fg: '#fff',
-                      onClick: () => stepPick(1),
-                      data: { 'data-edit-step': 'forward' },
-                      style: { gridColumn: '2', gridRow: '1', flex: '1 1 50%', opacity: stepAt < stepList.length - 1 ? 1 : 0.4 },
-                    },
-                    ...(editPick.kind === 'rally'
-                      ? [
-                          {
-                            key: 'edit',
-                            label: `Edit rally ${editIndex + 1}`,
-                            side: 'right' as const,
-                            on: false,
-                            bg: 'var(--color-brand-primary)',
-                            fg: '#fff',
-                            onClick: guarded(editGuard, onPickEdit),
-                            data: { 'data-edit-select': '' },
-                            style: {
-                              gridColumn: '1',
-                              gridRow: '2',
-                              flex: '1 1 25%',
-                              opacity: readOnly || editGuard.waiting ? 0.4 : 1,
-                            },
-                          },
-                          {
-                            key: 'delete',
-                            label: `Delete rally ${editIndex + 1}`,
-                            side: 'right' as const,
-                            on: false,
-                            bg: '#7f1d1d',
-                            fg: '#fff',
-                            onClick: guarded(editGuard, onDeletePicked),
-                            data: { 'data-edit-delete': '' },
-                            style: {
-                              gridColumn: '2',
-                              gridRow: '2',
-                              flex: '1 1 25%',
-                              opacity: readOnly || editGuard.waiting ? 0.4 : 1,
-                            },
-                          },
-                        ]
-                      : [
-                          {
-                            key: 'insert',
-                            label: `Insert rally ${viewedGap?.n ?? ''}`,
-                            side: 'right' as const,
-                            on: false,
-                            bg: 'var(--color-brand-primary)',
-                            fg: '#fff',
-                            onClick: guarded(editGuard, () => {
-                              if (viewedGap) onAddRally(viewedGap.index)
-                            }),
-                            data: {
-                              'data-edit-insert': '',
-                              ...(viewedGap && !gapFitsRally(viewedGap) ? { 'data-insert-blocked': '' } : {}),
-                            },
-                            style: {
-                              gridColumn: '1 / span 2',
-                              gridRow: '2',
-                              flex: '1 1 50%',
-                              opacity: readOnly || editGuard.waiting || (viewedGap && !gapFitsRally(viewedGap)) ? 0.4 : 1,
-                            },
-                          },
-                        ]),
-                  ]}
-                />
-              </div>
-            ) : null}
-            {shotEdit && live && live.contacts.length > 0 ? (
-              <EditRallyPad
-                draft={live}
-                names={names}
-                stop={shotEdit.stop}
-                rallyOne={shotAt <= 0}
-                breakRally={
-                  shotAt >= 0 &&
-                  serveBands(set.rallies, set.firstServer).some((band) => band.breaks[0] === shotAt)
-                }
-                sides={padSplit}
-                readOnly={readOnly}
-                onBack={() => stepShot(-1)}
-                onForward={() => stepShot(1)}
-                onDelete={onShotDelete}
-                onKim={onShotKim}
-                onOut={onShotOut}
-                onServe={(depth, wing) => keepShot(setDepth(live, depth, wing))}
-                onStroke={(shot, wing, stroke) => keepShot(setWingStroke(live, shot, wing, stroke))}
-                onEnd={onShotEnd}
-                onPointTo={onShotPoint}
-              />
-            ) : null}
-            {bestOn && live?.best && bestQ && live.contacts.length > 0 ? (
-              <BestPanel
-                draft={live}
-                names={names}
-                at={bestQ}
-                rallyOne={bestRallyOne}
-                rallyNo={editOf ? editIndex + 1 : inserting && gap ? gap.index + 1 : set.rallies.length + 1}
-                onEnd={onBestEnd}
-                onPoint={onBestPoint}
-                onNotShot={onNotAShot}
-                notShotDim={shotGuard.waiting}
-                onServe={onBestServe}
-                onStroke={onBestStroke}
-                sides={padSplit}
-                back={endBack}
-              />
             ) : null}
             {!zoneOn && review ? (
               <div data-review-panel className="rounded-md border border-border bg-bg-surface px-3 py-2 space-y-2">
@@ -2602,85 +2262,6 @@ function TagSet({
                 {TAG_LOCK_LINE[lock]}
               </p>
             ) : null}
-            {!zoneOn && mode === 'finished' ? (
-              <FinishedPanel
-                match={match}
-                set={set}
-                score={score}
-                keptEntered={keptEntered}
-                onKeepEntered={() => setKeptEntered(true)}
-                onReopen={onReopenSet}
-                lock={lock}
-              />
-            ) : null}
-            {!zoneOn && finishCard ? (
-              <div data-finish-card>
-                {cont.score && !level ? (
-                  <p
-                    role="alert"
-                    data-mark="score"
-                    className="mb-2 rounded-md border border-warning bg-warning/15 px-3 py-2 text-sm text-primary"
-                  >
-                    Tagged {formatScore(cont.score.tagged)} · Details says {formatScore(cont.score.entered)}. Check
-                    Rallies before you finish.
-                  </p>
-                ) : null}
-                {level ? (
-                  <p className="mb-2 rounded-md border border-border bg-bg-card px-3 py-2 text-sm text-primary" role="status">
-                    Level at {formatScore(score)}, so the set is not over.{' '}
-                    <Link
-                      to={`/matches/${match.id}/details`}
-                      className={cn('font-semibold text-brand underline underline-offset-2', buttonKindTextLink)}
-                    >
-                      Add the next video
-                    </Link>
-                    , or correct a rally.
-                  </p>
-                ) : null}
-                <Button
-                  kind="main"
-                  fullWidth
-                  variant={setWon ? 'primary' : 'secondary'}
-                  className="text-base"
-                  disabled={readOnly || !canFinishNow}
-                  onClick={onFinishSet}
-                >
-                  {setWon ? 'Finish set' : `Finish set at ${formatScore(score)}`}
-                </Button>
-              </div>
-            ) : null}
-          </div>
-          {zoneOn && !tapSplit ? (
-            <button
-              type="button"
-              data-tag-zone="pad"
-              data-tap-pad=""
-              className={cn(
-                'flex min-h-0 flex-1 flex-col items-center justify-center rounded-lg text-center cursor-pointer touch-manipulation select-none active:bg-bg-app disabled:cursor-default disabled:opacity-40 disabled:active:bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-primary',
-                (deleteMode || tapGuard.waiting) && 'opacity-60',
-                coverTaps && 'pointer-events-none',
-              )}
-              data-guard={tapGuard.waiting ? '' : undefined}
-              aria-label={zoneTitle}
-              onClick={guarded(tapGuard, onPad)}
-            >
-              <span className="text-lg font-bold text-primary">{zoneTitle}</span>
-              <span className="mt-1 max-w-[17.5rem] text-sm text-muted">{zoneLine}</span>
-            </button>
-          ) : null}
-        </div>
-
-        {/*
-          The slot. It holds one control at one size: the pad, then Save. Nothing
-          else ever appears here while a rally is tapped or tagged.
-        */}
-        <div
-          data-tag-slot={bestOn ? 'bestfa' : overCard ? 'over' : mode === 'start' ? 'start' : slotKind}
-          className={cn(
-            'relative shrink-0 border-t border-border bg-bg-app px-2 pt-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))]',
-            (bestOn || bestHoldOn || mode === 'edit' || shotEdit || (mode === 'start' && landscape)) && 'hidden'
-          )}
-        >
           {review ? (
             <div
               className="absolute inset-0 z-20 flex items-stretch gap-2 bg-bg-app px-2 pt-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))]"
@@ -2748,222 +2329,12 @@ function TagSet({
               )}
             </div>
           ) : null}
-          <div className="flex items-stretch gap-2">
-          {deleteLastOn ? (
-            <button
-              type="button"
-              data-action="delete-last"
-              data-foot="delete-last"
-              className="btn-kind-tap-pad shrink-0 rounded-lg border border-border bg-transparent px-3 text-sm font-medium text-primary whitespace-nowrap"
-              onClick={onUndoTap}
-            >
-              Delete last
-            </button>
-          ) : null}
-          {footAction ? (
-            <>
-              <div className="min-w-0 flex-1" />
-              {mode === 'tagging' && stage === 'pickFa' ? (
-                <button
-                  type="button"
-                  data-foot="discard"
-                  className="btn-kind-tap-pad w-[4.625rem] shrink-0 rounded-lg border border-border bg-transparent px-3 text-sm font-medium text-primary"
-                  onClick={onRetap}
-                >
-                  Discard
-                </button>
-              ) : null}
-            </>
-          ) : null}
-          {overCard ? (
-            <>
-              <Button
-                kind="tapPad"
-                data-save-set
-                data-guard={overGuard.waiting ? '' : undefined}
-                className={cn('min-w-0 flex-1 rounded-lg text-lg', overGuard.waiting && 'opacity-60')}
-                disabled={readOnly || !canFinishNow}
-                onClick={guarded(overGuard, onFinishSet)}
-              >
-                Save set
-              </Button>
-              <Button
-                kind="tapPad"
-                variant="secondary"
-                data-over-edit
-                data-guard={overGuard.waiting ? '' : undefined}
-                className={cn('min-w-0 flex-1 rounded-lg text-lg', overGuard.waiting && 'opacity-60')}
-                disabled={readOnly}
-                onClick={guarded(overGuard, onOverEdit)}
-              >
-                Edit
-              </Button>
-            </>
-          ) : null}
-          {mode === 'start' && !landscape ? (
-            <>
-              {(['me', 'them'] as const).map((side) => (
-                <Button
-                  key={side}
-                  kind="tapPad"
-                  variant="secondary"
-                  data-start-server={side}
-                  data-guard={tapGuard.waiting ? '' : undefined}
-                  className={cn(
-                    'min-w-0 flex-1 rounded-lg border-l-8 text-lg',
-                    side === 'me' ? 'border-l-side-me' : 'border-l-side-them',
-                    tapGuard.waiting && 'opacity-60'
-                  )}
-                  onClick={guarded(tapGuard, () => pickServer(side))}
-                >
-                  {servesText(names, side)}
-                </Button>
-              ))}
-            </>
-          ) : null}
-          {slotKind === 'pad' && !footStrip && !overCard && mode !== 'start' && (mode !== 'edit' || inserting) ? (
-            <button
-              type="button"
-              data-tap-pad
-              data-guard={tapGuard.waiting ? '' : undefined}
-              onClick={guarded(tapGuard, onPad)}
-              disabled={atEnd || mode === 'blocked'}
-              className={cn(
-                'btn-kind-tap-pad relative flex-1 min-w-0 rounded-lg text-lg font-bold overflow-hidden touch-manipulation select-none active:brightness-90 border-l-8 inline-flex items-center justify-center gap-2',
-                'disabled:bg-disabled-bg disabled:text-disabled-text disabled:active:brightness-100',
-                'bg-brand-primary text-on-accent',
-                padServer === 'me' ? 'border-l-side-me' : 'border-l-side-them',
-                tapGuard.waiting && 'opacity-60'
-              )}
-            >
-              {atEnd
-                ? 'End of video'
-                : deleteMode
-                    ? 'Delete mode'
-                    : tapped > 0
-                      ? `Tap shot ${tapped + 1}`
-                    : player.playing || mode === 'blocked'
-                      ? `Tap serve · ${names[padServer]}`
-                      : 'Play'}
-            </button>
-          ) : null}
-          </div>
-        </div>
-
       </div>
+      ) : null}
       </div>
       {landscape ? (
-        <div
-          className="pad-wing relative"
-          data-pad-wing="right"
-          ref={setRightWing}
-        >
-          {tapSplit ? (
-            <WingTap
-              side="right"
-              title={zoneTitle}
-              line={zoneLine}
-              dim={deleteMode || tapGuard.waiting}
-              held={coverTaps}
-              onTap={guarded(tapGuard, onPad)}
-            />
-          ) : mode === 'start' ? (
-            <WingTap
-              side="right"
-              title={servesText(names, 'them')}
-              line="Starts the set"
-              dim={tapGuard.waiting}
-              held={coverTaps}
-              onTap={guarded(tapGuard, () => pickServer('them'))}
-            />
-          ) : null}
-        </div>
-      ) : null}
-    </div>
-    </PadWingContext.Provider>
-  )
-}
-
-const flagClass = 'rounded-md border border-warning bg-warning/15 px-3 py-2 text-sm text-primary space-y-2'
-
-/** After Finish set: the score, any disagreement with Details, and the match result. */
-function FinishedPanel({
-  match,
-  set,
-  score,
-  keptEntered,
-  onKeepEntered,
-  onReopen,
-  lock,
-}: {
-  match: MatchRecord
-  set: SetData
-  score: Points
-  keptEntered: boolean
-  onKeepEntered: () => void
-  onReopen: () => void
-  lock: TagLock
-}) {
-  const { mutateMatch } = useDemo()
-  const entered = parseEntered(set.entered)
-  const differs = setScoresDiffer(set)
-  const tagged = derivePhase(match) === 'complete'
-  const noResult = resultSetCount(match) === null
-  const won = matchSetsWon(match)
-  /** Only a result a match can end on is offered: not 1 - 0, not 1 - 1. */
-  const realResult = isRealResult(won)
-
-  return (
-    <div className="space-y-2">
-      <div className="rounded-md border border-border bg-bg-surface p-3 flex items-center justify-between gap-2">
-        <p className="text-sm text-primary">
-          {set.rallies.length} {set.rallies.length === 1 ? 'rally' : 'rallies'} · sets {formatScore(won)}
-        </p>
-        {lock ? null : (
-          <Button size="sm" variant="ghost" onClick={onReopen}>
-            Reopen set
-          </Button>
-        )}
-      </div>
-      {lock ? (
-        <p className="rounded-md border border-border bg-bg-card px-3 py-2 text-sm text-primary" role="status">
-          {TAG_LOCK_LINE[lock]} Rallies still play.
-        </p>
-      ) : null}
-
-      {differs && entered ? (
-        <div className={flagClass} role="alert">
-          <p>
-            Entered {formatScore(entered)} · Tagged {formatScore(score)}
-          </p>
-          {keptEntered ? (
-            <p className="text-xs text-muted">Kept. The set stays flagged in Details and on the checklist.</p>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              <Button size="sm" onClick={() => mutateMatch(match.id, (m) => applyTaggedScore(m, set.setId))}>
-                Use tagged score
-              </Button>
-              <Button size="sm" variant="ghost" onClick={onKeepEntered}>
-                Keep entered
-              </Button>
-            </div>
-          )}
-        </div>
-      ) : null}
-
-      {tagged ? (
-        <div className="rounded-md border border-success bg-success/15 px-3 py-2 text-sm text-primary space-y-2">
-          <p className="font-semibold">Match tagged · sets {formatScore(won)}</p>
-          {noResult ? (
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs text-muted">No result entered.</span>
-              {realResult ? (
-                <Button size="sm" variant="secondary" onClick={() => mutateMatch(match.id, applyTaggedResult)}>
-                  Use tagged result
-                </Button>
-              ) : null}
-            </div>
-          ) : null}
+        <div className="pad-wing" data-pad-wing="right">
+          <InputArea regions={area.regions} column={2} />
         </div>
       ) : null}
     </div>
