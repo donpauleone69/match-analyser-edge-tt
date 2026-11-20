@@ -862,15 +862,14 @@ button[disabled] {
   padding: 0;
   cursor: pointer;
 }
-/* The chip stays 16px. The hit box is 32px and does not grow the zone. */
+/* The chip stays 16px. The hit box starts under the head row and ends at the zone. */
 .tag-rally [data-review-chip]::before {
   content: '';
   position: absolute;
   left: 0;
   right: 0;
-  top: 50%;
-  height: 2rem;
-  transform: translateY(-50%);
+  top: -4px;
+  bottom: -8px;
 }
 button.tag-pill {
   appearance: none;
