@@ -764,7 +764,13 @@ export function EditRallyPad({
   }
 
   return (
-    <div data-edit-rally data-edit-stop={stop === 'end' ? 'end' : String(stop)} data-edit-shot={shot}>
+    <div
+      className={cn('relative z-20 flex flex-col', !sides && 'min-h-0 flex-1 gap-2.5 pt-2')}
+      data-edit-rally
+      data-edit-stop={stop === 'end' ? 'end' : String(stop)}
+      data-edit-shot={shot}
+      data-pad-sides={sides ? '' : undefined}
+    >
       <CornerPad
         label="Edit rally"
         showName={false}

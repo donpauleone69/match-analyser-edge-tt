@@ -1017,9 +1017,19 @@ function TagSet({
     playEditStop(d, 1)
   }
 
+  /** Last shot deleted on a saved rally: End was cleared and is not saved yet. */
+  const endStillOpen = () => {
+    if (!shotEdit?.rallyId || !live || live.contacts.length === 0 || live.ending) return false
+    setShotEdit({ ...shotEdit, stop: 'end' })
+    playEditStop(live, 'end')
+    setHint('Answer End first')
+    return true
+  }
+
   const closeShotEdit = () => {
     const cur = shotEdit
     if (!cur) return
+    if (cur.back !== 'question' && endStillOpen()) return
     setShotEdit(null)
     if (cur.back === 'question' && live) {
       routeBest(live, { save: false })
@@ -1116,7 +1126,14 @@ function TagSet({
     if (!shotGuard.allow()) return
     const before = set
     const id = shotEdit.rallyId
-    mutateMatch(match.id, (m) => leaveMark(m, set.setId, id, 'serve'))
+    mutateMatch(match.id, (m) => {
+      const current = m.sets.find((s) => s.setId === set.setId)
+      if (!current) return m
+      return leaveIds(current.rallies, current.firstServer, id).reduce(
+        (next, rallyId) => leaveMark(next, set.setId, rallyId, 'serve'),
+        m
+      )
+    })
     withUndo('Left as served', before)
     shotGuard.arm()
   }
@@ -1147,7 +1164,9 @@ function TagSet({
   const onShotPoint = (side: Side) => {
     if (!shotEdit || !live || readOnly) return
     const before = set
-    const next = { ...live, best: carryBest(live, { point: side }) }
+    const tagged = winnerOf(live)
+    const against = tagged !== null && side !== tagged
+    const next = { ...live, best: carryBest(live, against ? { point: side, kept: true } : { point: side }) }
     keepShot(next)
     if (!shotEdit.rallyId) return
     const winners = set.rallies.map((r) => (r.id === shotEdit.rallyId ? side : r.winner))
@@ -1541,6 +1560,7 @@ function TagSet({
       return
     }
     if (shotEdit) {
+      if (endStillOpen()) return
       setShotEdit(null)
       mutateMatch(match.id, (m) => setDraft(m, set.setId, null))
       setEditOf(null)
@@ -1656,6 +1676,7 @@ function TagSet({
   }
 
   const doneEdit = () => {
+    if (endStillOpen()) return
     setShotEdit(null)
     if (live) mutateMatch(match.id, (m) => setDraft(m, set.setId, null))
     setGap(null)
@@ -2154,10 +2175,10 @@ function TagSet({
   const footStrip = zoneOn || (mode === 'tagging' && stage === 'pickFa' && !review && !bestOn)
   /** An extra tap found after the taps closed. One tap left is Discard's job. */
   const deleteLastOn = Boolean(
-    mode === 'tagging' && !review && !readOnly && !bestOn && live?.closed && live.contacts.length > 1
+    mode === 'tagging' && !review && !readOnly && !bestOn && !shotEdit && live?.closed && live.contacts.length > 1
   )
   /** A foot control is showing. With none, the strip collapses and the tap zone grows. */
-  const footAction = Boolean(footStrip && mode === 'tagging' && stage === 'pickFa')
+  const footAction = Boolean(footStrip && !shotEdit && mode === 'tagging' && stage === 'pickFa')
 
   const flowShown: FlowName = mode === 'tagging' && flowLock ? flowLock : flowWanted
   const bestRallyOne = inserting ? gap?.index === 0 : set.rallies.length === 0
@@ -2170,7 +2191,7 @@ function TagSet({
   const bestRowDraft = bestRowSaved ? bestSaved!.draft : active
   const tapSplit = Boolean(landscape && zoneOn)
   const padSplit = Boolean(
-    tapSplit || (landscape && ((bestOn && liveCount > 0) || mode === 'edit'))
+    tapSplit || (landscape && ((bestOn && liveCount > 0) || mode === 'edit' || shotEdit))
   )
   const bestAccount = (() => {
     if (!live || live.contacts.length === 0) return null
@@ -2416,7 +2437,7 @@ function TagSet({
           data-tag-body
           className={cn(
             'relative flex min-h-0 flex-1 flex-col overflow-y-auto border-t border-border bg-bg-surface px-2 [overflow-anchor:none]',
-            bestOn && 'overflow-hidden',
+            (bestOn || shotEdit) && 'overflow-hidden',
             zoneOn && 'pb-3'
           )}
         >
@@ -2491,7 +2512,7 @@ function TagSet({
           <div
             className={cn(
               'space-y-2',
-              (bestOn || mode === 'edit') && 'flex min-h-0 flex-1 flex-col'
+              (bestOn || mode === 'edit' || shotEdit) && 'flex min-h-0 flex-1 flex-col'
             )}
             data-tag-panel
             data-details-box
@@ -2629,7 +2650,10 @@ function TagSet({
                 names={names}
                 stop={shotEdit.stop}
                 rallyOne={shotAt <= 0}
-                breakRally={shotAt >= 0 && breakIndexes(set.rallies, set.firstServer).includes(shotAt)}
+                breakRally={
+                  shotAt >= 0 &&
+                  serveBands(set.rallies, set.firstServer).some((band) => band.breaks[0] === shotAt)
+                }
                 sides={padSplit}
                 readOnly={readOnly}
                 onBack={() => stepShot(-1)}
@@ -2787,7 +2811,7 @@ function TagSet({
           data-tag-slot={bestOn ? 'bestfa' : overCard ? 'over' : mode === 'start' ? 'start' : slotKind}
           className={cn(
             'relative shrink-0 border-t border-border bg-bg-app px-2 pt-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))]',
-            (bestOn || bestHoldOn || mode === 'edit' || (mode === 'start' && landscape)) && 'hidden'
+            (bestOn || bestHoldOn || mode === 'edit' || shotEdit || (mode === 'start' && landscape)) && 'hidden'
           )}
         >
           {review ? (
