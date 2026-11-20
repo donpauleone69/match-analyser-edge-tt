@@ -2,13 +2,12 @@ import { useState } from 'react'
 import { Navigate, Outlet, useMatch, useParams } from 'react-router-dom'
 import { buttonKindField } from '@/ui-mine'
 import { cn } from '@/helpers/utils'
-import { HubTabs } from '@/layout/HubTabs'
 import { PageHeader } from '@/layout/PageHeader'
 import { StickyChrome } from '@/layout/StickyChrome'
 import { WfEmpty } from '@/layout/Wireframe'
 import { defaultMatchTab, derivePhase, useDemo, type MatchRecord } from '@/data/demoStore'
 import { InsightsSectionRoute } from '@/features/insights/InsightsScreen'
-import { matchDiffers, matchLabel, needsOpponent } from '@/features/match/matchChecks'
+import { matchDiffers, needsOpponent } from '@/features/match/matchChecks'
 
 /**
  * A light nudge to name the opponent once a match has video or tagging.
@@ -44,9 +43,7 @@ function OpponentPrompt({ match }: { match: MatchRecord }) {
 export function MatchPage() {
   const { matchId = '' } = useParams()
   const { getMatch } = useDemo()
-  const onTagSet = useMatch('/matches/:matchId/tag/:setId')
-  const onTagList = Boolean(useMatch('/matches/:matchId/tag'))
-  const onSetView = Boolean(onTagSet)
+  const onSetView = Boolean(useMatch('/matches/:matchId/tag/:setId'))
   const onInsights = Boolean(useMatch('/matches/:matchId/insights/:section'))
   const match = getMatch(matchId)
   const base = `/matches/${matchId}`
@@ -58,7 +55,7 @@ export function MatchPage() {
           <PageHeader title="Match" backTo="/home" />
         </StickyChrome>
         <div className="px-4 sm:px-6 lg:px-8 py-6">
-          <WfEmpty title="Match not found" body="Return to Home." />
+          <WfEmpty title="Match not found" body="The match was not found." />
         </div>
       </div>
     )
@@ -69,10 +66,10 @@ export function MatchPage() {
 
   return (
     <div>
-      <StickyChrome className={onTagList ? 'tag-hub-chrome' : undefined}>
-        <PageHeader title={matchLabel(match)} backTo="/home" />
-        <HubTabs
-          ariaLabel="Match sections"
+      <StickyChrome>
+        <PageHeader
+          backTo="/home"
+          tabsLabel="Match sections"
           tabs={[
             { to: `${base}/insights`, label: 'Insights' },
             {
@@ -82,12 +79,20 @@ export function MatchPage() {
             },
             { to: `${base}/tag`, label: 'Tag' },
           ]}
+          end={<span className="top-row-name px-3 text-sm text-muted">{shortMatchName(match)}</span>}
         />
       </StickyChrome>
       {onInsights ? <OpponentPrompt match={match} /> : null}
       <Outlet />
     </div>
   )
+}
+
+/** vs Lee when someone is named, else the event, else New match. */
+function shortMatchName(match: MatchRecord): string {
+  const opponent = match.opponent.trim()
+  if (opponent) return `vs ${opponent}`
+  return match.event.trim() || 'New match'
 }
 
 export function MatchIndexRedirect() {

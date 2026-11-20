@@ -1,6 +1,5 @@
 import { Button, Card, CardDescription, CardTitle, Icon } from '@/ui-mine'
-import { PageHeader } from '@/layout/PageHeader'
-import { StickyChrome } from '@/layout/StickyChrome'
+import { APP_VERSION } from '@/version'
 import { ThemeSwitcher } from '@/theme/ThemeSwitcher'
 import { WfBadge, WfField, WfRow } from '@/layout/Wireframe'
 import { useDemo, type DemoMode } from '@/data/demoStore'
@@ -12,9 +11,6 @@ export function AccountPage() {
 
   return (
     <div>
-      <StickyChrome>
-        <PageHeader title="Account" />
-      </StickyChrome>
       <div className="px-4 sm:px-6 lg:px-8 py-6 space-y-4">
         {empty ? (
           <Card className="space-y-3">
@@ -171,6 +167,9 @@ export function AccountPage() {
           </div>
         </Card>
       </div>
+      <p className="px-4 pb-6 text-center text-xs text-muted" data-account-version>
+        {APP_VERSION}
+      </p>
     </div>
   )
 }

@@ -1,4 +1,4 @@
-/** Shared EdgeTT mark — top-right chrome on Gate + hubs. */
+/** EdgeTT mark. The Gate is the only page that shows it. */
 export function BrandMark({ className = '' }: { className?: string }) {
   return (
     <span

@@ -1,6 +1,5 @@
 import { Outlet, Link, useLocation, useMatch } from 'react-router-dom'
 import { Icon, type IconName } from '@/ui-mine'
-import { BrandMark } from '@/layout/BrandMark'
 import { cn } from '@/helpers/utils'
 
 const navItems: { to: string; icon: IconName; label: string }[] = [
@@ -62,7 +61,6 @@ export function AppShell() {
               <ShellNavLink key={item.to} {...item} layout="top" />
             ))}
           </nav>
-          <BrandMark />
         </header>
       )}
 

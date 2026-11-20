@@ -591,11 +591,29 @@ button[disabled] {
 .tag-preview {
   --tag-playback: 2.25rem;
 }
-/* Phone landscape on the Tag page: header scrolls away, player stays on the left. */
+/* Tabs keep their width. The match name shrinks first, then the tabs scroll. */
+.top-row-tabs {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.top-row-name {
+  flex: 0 1000 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (orientation: landscape) {
+  .top-row-name {
+    flex: 0 0 auto;
+    overflow: visible;
+    text-overflow: unset;
+  }
+}
+/* Phone landscape: the top row scrolls away. The class is only on that row. */
 @media (orientation: landscape) and (max-height: 500px) {
-  .tag-hub-chrome {
+  .top-row-chrome {
     position: static;
-    box-shadow: none;
   }
   .tag-page {
     display: grid;
