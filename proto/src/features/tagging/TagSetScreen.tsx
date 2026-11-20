@@ -2196,7 +2196,7 @@ function TagSet({
           onRate={onRate}
           leading={
             <Link
-              to={`/matches/${match.id}/tag`}
+              to={`/matches/${match.id}/tag?from=${set.setId}`}
               aria-label="Back"
               className="btn-kind-control btn-kind-square inline-flex items-center justify-center rounded-md bg-black/60 text-white hover:bg-black/80"
             >
@@ -2426,7 +2426,7 @@ function TagSet({
                 <Button
                   kind="control"
                   variant="secondary"
-                  onClick={() => navigate(`/matches/${match.id}/mark/${set.mark?.from.videoId}?set=${set.setId}`)}
+                  onClick={() => navigate(`/matches/${match.id}/tag?set=${set.setId}`)}
                 >
                   Re-mark
                 </Button>
@@ -2859,6 +2859,7 @@ function TagSet({
           {slotKind === 'finished' ? (
             <FinishedActions
               match={match}
+              setId={set.setId}
               locked={readOnly}
               videoOver={player.atEnd}
               onGo={(to) => navigate(to)}
@@ -2990,6 +2991,7 @@ function FinishedPanel({
 
 function FinishedActions({
   match,
+  setId,
   locked,
   videoOver,
   onGo,
@@ -2997,6 +2999,7 @@ function FinishedActions({
   guard,
 }: {
   match: MatchRecord
+  setId: number
   locked: boolean
   /** No picture left to tag: with a side ahead in sets, the match is what is left to finish. */
   videoOver: boolean
@@ -3028,7 +3031,7 @@ function FinishedActions({
         <Button kind="main" className={cn('flex-1 text-base', dim)} data-guard={guard?.waiting ? '' : undefined} onClick={press(() => onGo(`${base}/insights/summary`))}>
           Open match Insights
         </Button>
-        <Button kind="main" variant="secondary" className={dim} data-guard={guard?.waiting ? '' : undefined} onClick={press(() => onGo(`${base}/tag`))}>
+        <Button kind="main" variant="secondary" className={dim} data-guard={guard?.waiting ? '' : undefined} onClick={press(() => onGo(`${base}/tag?from=${setId}`))}>
           Back to sets
         </Button>
       </div>
@@ -3074,7 +3077,7 @@ function FinishedActions({
         variant={offerNext || offerContinue || canFinishMatch ? 'ghost' : 'primary'}
         className={cn(dim, !offerNext && !offerContinue && !canFinishMatch && 'flex-1 text-base')}
         data-guard={guard?.waiting ? '' : undefined}
-        onClick={press(() => onGo(`${base}/tag`))}
+        onClick={press(() => onGo(`${base}/tag?from=${setId}`))}
       >
         {offerNext || offerContinue || canFinishMatch ? 'Sets' : 'Mark sets'}
       </Button>
@@ -3086,7 +3089,7 @@ function SetHeader({ match, set, children }: SetHeaderProps) {
   return (
     <header className="h-10 flex items-center gap-1.5 border-b border-border bg-bg-app pl-2 pr-10">
       <Link
-        to={`/matches/${match.id}/tag`}
+        to={`/matches/${match.id}/tag?from=${set.setId}`}
         aria-label="Back"
         className="btn-kind-control btn-kind-square inline-flex items-center justify-center rounded-md text-brand hover:bg-pill-idle"
       >

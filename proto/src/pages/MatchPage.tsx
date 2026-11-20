@@ -45,8 +45,7 @@ export function MatchPage() {
   const { matchId = '' } = useParams()
   const { getMatch } = useDemo()
   const onTagSet = useMatch('/matches/:matchId/tag/:setId')
-  const onMark = useMatch('/matches/:matchId/mark/:videoId')
-  const onSetView = Boolean(onTagSet || onMark)
+  const onSetView = Boolean(onTagSet)
   const onInsights = Boolean(useMatch('/matches/:matchId/insights/:section'))
   const match = getMatch(matchId)
   const base = `/matches/${matchId}`
