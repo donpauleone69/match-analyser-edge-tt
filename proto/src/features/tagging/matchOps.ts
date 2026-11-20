@@ -308,13 +308,32 @@ export function saveMark(m: MatchRecord, setId: number, mark: SetMark): MatchRec
   return inSet(m, setId, (s) => ({ ...s, mark }))
 }
 
+/** Rallies go. The mark stays, so the set is ready again. */
+export function deleteTags(m: MatchRecord, setId: number): MatchRecord {
+  return { ...inSet(m, setId, (s) => ({ ...s, rallies: [], draft: null, finished: false })), tagDone: false }
+}
+
+/** The mark goes. Only while the set has no rallies. */
+export function unmarkSet(m: MatchRecord, setId: number): MatchRecord {
+  const s = m.sets.find((x) => x.setId === setId)
+  if (!s || s.rallies.length > 0) return m
+  return inSet(m, setId, (x) => ({ ...x, mark: null }))
+}
+
+/** Part filmed becomes ready. Only while nothing is tagged. */
+export function completeMark(m: MatchRecord, setId: number): MatchRecord {
+  return inSet(m, setId, (s) =>
+    s.mark && s.rallies.length === 0 ? { ...s, mark: { ...s.mark, complete: true } } : s
+  )
+}
+
 /** Change set number: the tagging moves. Each number keeps its entered score. */
 export function moveSet(m: MatchRecord, from: number, to: number): MatchRecord {
   const src = m.sets.find((s) => s.setId === from)
   if (!src || from === to) return m
   const moved = inSet(m, to, (s) =>
     withDeleted(
-      { ...s, firstServer: src.firstServer, finished: src.finished, rallies: src.rallies, draft: null },
+      { ...s, firstServer: src.firstServer, finished: src.finished, rallies: src.rallies, draft: null, mark: src.mark },
       deletedOf(src)
     )
   )

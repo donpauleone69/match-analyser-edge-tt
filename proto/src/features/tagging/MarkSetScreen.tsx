@@ -7,6 +7,7 @@ import {
   allowedMarkNumbers,
   markBounds,
   markOverlaps,
+  rallyOutside,
   spansOnVideo,
   type VideoSpan,
 } from '@/features/tagging/setMark'
@@ -121,7 +122,20 @@ export function MarkSetScreen() {
 
   const onSave = (complete: boolean) => {
     if (!from || !to || number === null) return
-    const mark: SetMark = { from, to, complete }
+    const existing = match.sets.find((s) => s.setId === number)
+    const kept = existing && existing.rallies.length > 0 ? (existing.mark?.complete ?? true) : complete
+    const mark: SetMark = { from, to, complete: kept }
+    if (existing && existing.rallies.length > 0) {
+      const outside = rallyOutside(match.videos, existing.rallies, mark)
+      if (outside) {
+        setNote(
+          outside.side === 'before'
+            ? `Rally ${outside.n} is before the new start.`
+            : `Rally ${outside.n} is after the new end.`
+        )
+        return
+      }
+    }
     mutateMatch(match.id, (m) => saveMark(m, number, mark))
     const endG = toGlobal(segs, to.videoId, to.t) ?? playerRef.current.getTime()
     playerRef.current.pause()
@@ -215,8 +229,17 @@ export function MarkSetScreen() {
                     </Button>
                   ))}
                 </div>
-                <Button fullWidth kind="main" data-mark-label onClick={() => setPhase('whole')}>
-                  Use set {number}
+                <Button
+                  fullWidth
+                  kind="main"
+                  data-mark-label
+                  onClick={() => {
+                    const existing = match.sets.find((s) => s.setId === number)
+                    if (existing && existing.rallies.length > 0) onSave(existing.mark?.complete ?? true)
+                    else setPhase('whole')
+                  }}
+                >
+                  {match.sets.some((s) => s.setId === number && s.rallies.length > 0) ? 'Save' : `Use set ${number}`}
                 </Button>
               </>
             ) : null}

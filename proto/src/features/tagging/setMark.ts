@@ -217,3 +217,44 @@ export function rallyOutside(
 export function firstGapVideo(m: MatchRecord): VideoAsset | null {
   return m.videos.find((v) => gapsOf(v.durationS, spansOnVideo(m.videos, m.sets, v.id)).length > 0) ?? null
 }
+
+function marksInOrder(videos: VideoAsset[], sets: SetData[]): boolean {
+  const placed = sets.flatMap((s) => {
+    if (!s.mark) return []
+    const b = markBounds(videos, s.mark)
+    return b ? [{ id: s.setId, g: b.start }] : []
+  })
+  placed.sort((a, b) => a.g - b.g || a.id - b.id)
+  for (let i = 1; i < placed.length; i++) if (placed[i].id < placed[i - 1].id) return false
+  return true
+}
+
+function spanBroken(videos: VideoAsset[], sets: SetData[]): boolean {
+  return sets.some((s) => {
+    if (!s.mark || s.mark.from.videoId === s.mark.to.videoId) return false
+    const a = videos.findIndex((v) => v.id === s.mark?.from.videoId)
+    const b = videos.findIndex((v) => v.id === s.mark?.to.videoId)
+    return a < 0 || b !== a + 1
+  })
+}
+
+/** A video a marked set runs onto from the one before, or off to the next. */
+export function videoLocked(m: MatchRecord, videoId: string): boolean {
+  return m.sets.some(
+    (s) =>
+      s.mark !== null &&
+      s.mark.from.videoId !== s.mark.to.videoId &&
+      (s.mark.from.videoId === videoId || s.mark.to.videoId === videoId)
+  )
+}
+
+/** Moving this video would put set numbers out of order, or pull a span apart. */
+export function videoMoveBreaks(m: MatchRecord, videoId: string, by: -1 | 1): boolean {
+  const from = m.videos.findIndex((v) => v.id === videoId)
+  const to = from + by
+  if (from < 0 || to < 0 || to >= m.videos.length) return true
+  if (videoLocked(m, videoId) || videoLocked(m, m.videos[to].id)) return true
+  const videos = [...m.videos]
+  ;[videos[from], videos[to]] = [videos[to], videos[from]]
+  return !marksInOrder(videos, m.sets) || spanBroken(videos, m.sets)
+}
