@@ -749,23 +749,3 @@ export function draftFromRally(r: RallyData): Draft {
   }
 }
 
-/** Rally list. "Review Rally, End", in row order. */
-export function reviewLine(r: { contacts: number[]; shots: ShotTags[]; idea?: { review?: BestPart[]; first?: BestFirst } }): string {
-  const review = r.idea?.review
-  if (!review?.length) return ''
-  const shown = bestParts(r.contacts.length, r.shots, r.idea?.first)
-    .map((span) => span.part)
-    .filter((part) => review.includes(part))
-  if (!shown.length) return ''
-  return `Review ${shown.map((part) => PART_LABEL[part]).join(', ')}`
-}
-
-/** Rally list. "FA 8", or the Who attacked first? answer when the shot is not known. */
-export function faLine(
-  r: { fa: number | null; idea?: { flow?: string; first?: BestFirst } },
-  names: Record<Side, string>,
-): string {
-  if (r.fa !== null) return `FA ${r.fa}`
-  if (r.idea?.flow !== 'bestfa' || !r.idea.first) return ''
-  return `FA ${r.idea.first === 'none' ? 'Nobody' : names[r.idea.first]}`
-}

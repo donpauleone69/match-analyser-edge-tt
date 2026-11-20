@@ -19,6 +19,7 @@ export function SetZone({
   insert,
   serveBreaks,
   onGap,
+  onRally,
   editing,
   dim,
   onEdit,
@@ -32,6 +33,8 @@ export function SetZone({
   insert: { index: number; n: number; server: Side } | null
   serveBreaks: number[]
   onGap: (index: number) => void
+  /** While review is on, a rally pill jumps there and the star stays on. */
+  onRally?: (id: string) => void
   editing: boolean
   /** No saved rally yet. A press still runs, so the hint can say so. */
   dim: boolean
@@ -48,6 +51,7 @@ export function SetZone({
         insert={insert}
         serveBreaks={serveBreaks}
         onGap={onGap}
+        onRally={onRally}
       />
       <button
         type="button"
@@ -73,6 +77,7 @@ function SetPills({
   insert,
   serveBreaks,
   onGap,
+  onRally,
 }: {
   rallies: SetData['rallies']
   picked: string | null
@@ -82,6 +87,7 @@ function SetPills({
   insert: { index: number; n: number; server: Side } | null
   serveBreaks: number[]
   onGap: (index: number) => void
+  onRally?: (id: string) => void
 }) {
   const scroller = useRef<HTMLDivElement>(null)
   const end = setEndIndex(rallies.map((r) => r.winner))
@@ -142,23 +148,47 @@ function SetPills({
                 <span className="tag-gap-slot" data-on={on ? '' : undefined} data-likely={slot.likely ? '' : undefined} />
               </button>
             ) : null}
-            <span
-              data-set-pill={n}
-              data-pill-id={r.id}
-              data-pill-warn={warn ? '' : undefined}
-              data-pill-serve={serve ? '' : undefined}
-              data-pill-on={picked === r.id ? '' : undefined}
-              className={cn(
-                'tag-pill',
-                r.winner === 'me' ? 'bg-side-me' : 'bg-side-them',
-                gaps && 'tag-pill-dim',
-                picked === r.id && 'tag-pill-on',
-                warn && 'tag-pill-warn',
-                serve && 'tag-pill-serve',
-              )}
-            >
-              {n}
-            </span>
+            {onRally ? (
+              <button
+                type="button"
+                data-set-pill={n}
+                data-pill-id={r.id}
+                data-pill-warn={warn ? '' : undefined}
+                data-pill-serve={serve ? '' : undefined}
+                data-pill-on={picked === r.id ? '' : undefined}
+                aria-current={picked === r.id ? 'true' : undefined}
+                aria-label={`Rally ${n}`}
+                className={cn(
+                  'tag-pill',
+                  r.winner === 'me' ? 'bg-side-me' : 'bg-side-them',
+                  gaps && 'tag-pill-dim',
+                  picked === r.id && 'tag-pill-on',
+                  warn && 'tag-pill-warn',
+                  serve && 'tag-pill-serve',
+                )}
+                onClick={() => onRally(r.id)}
+              >
+                {n}
+              </button>
+            ) : (
+              <span
+                data-set-pill={n}
+                data-pill-id={r.id}
+                data-pill-warn={warn ? '' : undefined}
+                data-pill-serve={serve ? '' : undefined}
+                data-pill-on={picked === r.id ? '' : undefined}
+                className={cn(
+                  'tag-pill',
+                  r.winner === 'me' ? 'bg-side-me' : 'bg-side-them',
+                  gaps && 'tag-pill-dim',
+                  picked === r.id && 'tag-pill-on',
+                  warn && 'tag-pill-warn',
+                  serve && 'tag-pill-serve',
+                )}
+              >
+                {n}
+              </span>
+            )}
           </Fragment>
         )
       })}

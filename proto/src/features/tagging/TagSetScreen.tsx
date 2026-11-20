@@ -1124,14 +1124,14 @@ function TagSet({
     setBestSaved({ ...bestSaved, draft: d })
   }
 
-  /** Edit Set: the picked rally loops at full speed. */
-  const loopPick = (r: RallyData) => {
+  /** Edit Set: the picked rally loops at full speed. A review pill opens its first part. */
+  const loopPick = (r: RallyData, partPick: 'marked' | 'first' = 'marked') => {
     setEditPick({ kind: 'rally', id: r.id })
     setGap(null)
     setBestSaved(null)
     const d = draftFromRally(r)
     if (reviewRef.current) {
-      const part = reviewFocusOf(d)
+      const part = partPick === 'first' ? (partsOf(d)[0]?.part ?? null) : reviewFocusOf(d)
       if (part) {
         setReviewFocus(part)
         playPart(d, part)
@@ -1987,6 +1987,16 @@ function TagSet({
         }
         serveBreaks={serveBands(set.rallies, set.firstServer).map((b) => b.breaks[0])}
         onGap={onGapSlot}
+        onRally={
+          reviewDraftNow
+            ? (id) => {
+                const row = set.rallies.find((r) => r.id === id)
+                if (!row) return
+                reviewRef.current = true
+                loopPick(row, 'first')
+              }
+            : undefined
+        }
         editing={editPick !== null}
         dim={pickable.length === 0}
         onEdit={onEditSet}
