@@ -2,7 +2,6 @@
 
 import {
   emptySet,
-  matchSetsWon,
   resultSetCount,
   setScoresDiffer,
   taggedScore,
@@ -127,20 +126,12 @@ export const reopenSet = (m: MatchRecord, setId: number): MatchRecord => ({
   tagDone: false,
 })
 
-export const finishMatch = (m: MatchRecord): MatchRecord => ({ ...m, tagDone: true })
-export const reopenMatch = (m: MatchRecord): MatchRecord => ({ ...m, tagDone: false })
-
 export const applyTaggedScore = (m: MatchRecord, setId: number) =>
   inSet(m, setId, (s) => ({ ...s, entered: scoreText(s) }))
 
 export const applyTaggedScores = (m: MatchRecord): MatchRecord => ({
   ...m,
   sets: m.sets.map((s) => (setScoresDiffer(s) ? { ...s, entered: scoreText(s) } : s)),
-})
-
-export const applyTaggedResult = (m: MatchRecord): MatchRecord => ({
-  ...m,
-  result: matchSetsWon(m),
 })
 
 /**
@@ -401,13 +392,6 @@ export function unmarkSet(m: MatchRecord, setId: number): MatchRecord {
   const s = m.sets.find((x) => x.setId === setId)
   if (!s || s.rallies.length > 0) return m
   return inSet(m, setId, (x) => ({ ...x, mark: null }))
-}
-
-/** Part filmed becomes ready. Only while nothing is tagged. */
-export function completeMark(m: MatchRecord, setId: number): MatchRecord {
-  return inSet(m, setId, (s) =>
-    s.mark && s.rallies.length === 0 ? { ...s, mark: { ...s.mark, complete: true } } : s
-  )
 }
 
 /** Change set number: the tagging moves. Each number keeps its entered score. */

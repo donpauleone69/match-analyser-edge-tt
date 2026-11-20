@@ -16,6 +16,17 @@
 
 **Decision Rationale:** Paul tested v0.17.22 on a phone and asked for both.
 
+### 2026-11-20: Tag page cards (proto v0.17.23)
+
+**Change Type:** Tag page layout. Proto only.
+
+**What Changed:**
+- Tag shows one card per video. A set row expands in place to change its number or delete it. Scores and the result stay on Details.
+- Details shows "Use tagged result" whenever no result is entered, the tagged sets make a real result, and every set up to that result is settled. Finish match and Reopen match leave Tag. An archived match can still be opened, and Continue and Tag stay off.
+- Touching a video's bar, a set row, a span, or Add set puts that video in the player. One video element swaps its source, and play() starts inside the tap.
+
+**Decision Rationale:** Paul approved the tag page cards plan. Tag places sets. Details holds the result.
+
 ### 2026-11-14: MA-157 — De-frame Clips / Pass 1 / Settings (v3.186.0)
 
 **Change Type:** UX hotfix — last thin nested-border pass; then stop

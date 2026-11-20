@@ -42,7 +42,7 @@ const ROUTES = [
     after: async (page) => {
       await page.locator('select[aria-label="Result"]').selectOption('')
       await page.getByRole('link', { name: 'Tag' }).click()
-      await page.waitForSelector('text=Finish match', { timeout: 15000 })
+      await page.waitForSelector('text=Only complete sets are tagged.', { timeout: 15000 })
     },
   },
 ]

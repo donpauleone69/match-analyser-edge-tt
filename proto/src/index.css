@@ -741,11 +741,6 @@ button[disabled] {
 .card-span[data-state='saved'] {
   background: var(--color-success);
 }
-.card-span[data-state='part'] {
-  background: transparent;
-  color: var(--color-text-muted);
-  border: 1px dashed var(--color-border);
-}
 .card-tick {
   position: absolute;
   top: 0;

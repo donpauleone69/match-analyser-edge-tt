@@ -17,6 +17,7 @@ import {
   resultDiffers,
   resultSetCount,
   setScoresDiffer,
+  setSettled,
   setState,
   taggedScore,
   useDemo,
@@ -25,6 +26,7 @@ import {
   type SetData,
 } from '@/data/demoStore'
 import { applyTaggedScore, applyTaggedScores } from '@/features/tagging/matchOps'
+import { setIncomplete } from '@/features/tagging/setMark'
 import { useArchiveStep } from '@/features/match/archiveJobs'
 import {
   enteredScoresMissResult,
@@ -267,7 +269,12 @@ function ResultCard({ match }: { match: MatchRecord }) {
   const differing = match.sets.filter(setScoresDiffer).length
   const them = match.opponent.trim() || 'Opponent'
   const fromTagging = matchSetsWon(match)
-  const tagged = derivePhase(match) === 'complete'
+  const deciding = fromTagging.me + fromTagging.them
+  const taggedReady =
+    isRealResult(fromTagging) &&
+    Array.from({ length: deciding }, (_, i) => match.sets.find((s) => s.setId === i + 1)).every(
+      (s) => Boolean(s && setSettled(s) && !setIncomplete(s))
+    )
   const saved =
     match.result.me !== null && match.result.them !== null
       ? { me: match.result.me, them: match.result.them }
@@ -308,7 +315,7 @@ function ResultCard({ match }: { match: MatchRecord }) {
     if (clear) commitPending()
   })
 
-  const useTaggedResult = isRealResult(fromTagging) ? (
+  const useTaggedResult = taggedReady ? (
     <Button kind="control" variant="secondary" onClick={() => pick(fromTagging)}>
       Use tagged result
     </Button>
@@ -347,7 +354,7 @@ function ResultCard({ match }: { match: MatchRecord }) {
       <p className={flagClass}>
         {formatScore(saved ?? fromTagging)} gives {count} sets. Set {lastTagged} is tagged.
       </p>
-    ) : count === null && tagged ? (
+    ) : count === null && taggedReady ? (
       <div className={noteRowClass}>
         <span>Tagged sets give {formatScore(fromTagging)}.</span>
         {useTaggedResult}

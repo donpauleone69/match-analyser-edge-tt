@@ -85,7 +85,7 @@ export function AddVideoChoice({
           disabled={disabled}
           onClick={() => addVideo(matchId)}
         >
-          Use demo video
+          Use demo
         </Button>
         <input
           ref={input}
