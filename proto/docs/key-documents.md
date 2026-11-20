@@ -8,7 +8,7 @@ Mirrors the [Key documents canvas](https://cursor.com/canvas/store-7c210afe-9d07
 
 | Document | In repo | Notes |
 |----------|---------|-------|
-| Product brief (draft, awaiting Paul's approval) | [fresh/product-brief.md](./fresh/product-brief.md) · [product-brief-review.md](./product-brief-review.md) | One page: goal, workflow, shared concepts, current focus. For any project working on this codebase. |
+| Product brief (revised) | Context: [docs/product-brief.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/product-brief.md) · [product-brief-review.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/product-brief-review.md) | Revised 20 Nov 2026. Repo [fresh/product-brief.md](./fresh/product-brief.md) is out of date until Paul decides whether to sync. |
 
 ## For decisions
 
@@ -25,9 +25,10 @@ Mirrors the [Key documents canvas](https://cursor.com/canvas/store-7c210afe-9d07
 | Set Tagger sprint plan | Context: [docs/set-tagger-sprint-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/set-tagger-sprint-plan.md) | Shipped in v0.17.4. |
 | Set marking sprint plan | Context: [docs/set-marking-sprint-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/set-marking-sprint-plan.md) | Shipped in v0.17.4. |
 | Set marking flow test | Context: [docs/set-marking-flow-test.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/set-marking-flow-test.md) | Route and mark flow checks at 390x844 and 734x310 after v0.17.0 to v0.17.4. |
-| Edit Set gaps plan | Context: [docs/edit-set-gaps-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/edit-set-gaps-plan.md) | Built as v0.17.5 to v0.17.8. |
-| Mark sets page plan | Context: [docs/mark-sets-page-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/mark-sets-page-plan.md) | Paul OK'd it. v0.17.9 trims the Tag page. The player, wings and spanning follow. |
+| Edit Set gaps plan | Context: [docs/edit-set-gaps-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/edit-set-gaps-plan.md) | Shipped in v0.17.5 to v0.17.8 ([PR #151](https://github.com/donpauleone69/match-analyser-edge-tt/pull/151)). Edit Set rallies and gaps. |
+| Mark sets page plan | Context: [docs/mark-sets-page-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/mark-sets-page-plan.md) | Paul OK'd it. v0.17.9 ([PR #152](https://github.com/donpauleone69/match-analyser-edge-tt/pull/152)) trims the Tag page. The player, wings and spanning follow. |
 | Set Tagger start end plan | Context: [docs/set-tagger-start-end-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/set-tagger-start-end-plan.md) | Planned, awaiting Paul's OK. |
+| Set completion scores plan | Context: [docs/set-completion-scores-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/set-completion-scores-plan.md) | Waiting on Paul's 14 choices. |
 | Product ideas | [product-ideas.md](./product-ideas.md) | Running list of product ideas. |
 
 ## Latest builds
@@ -55,7 +56,7 @@ Mirrors the [Key documents canvas](https://cursor.com/canvas/store-7c210afe-9d07
 | v0.16.4 | [PR #144](https://github.com/donpauleone69/match-analyser-edge-tt/pull/144) | Latest merged on proto (d303eda). Version in video Settings. Top Nav removed with Back on video; Set Zone one row with set name and Rallies; portrait Video, Set, Rally, Shot Input; landscape three columns with full-height wings; Discard for the rally in progress. |
 | v0.16.3 | [PR #143](https://github.com/donpauleone69/match-analyser-edge-tt/pull/143) | Latest merged on proto (7e2d6f1). Version in video Settings. "In net" line removed, landscape video fits height, fixed 82px rally row at bottom in both orientations, shot timer on top of rally row, slimmer 16px phase tags and shot row. |
 | v0.16.1 | [PR #140](https://github.com/donpauleone69/match-analyser-edge-tt/pull/140) | Latest merged on proto (7f3b893). Version in video Settings. Rally row: server pill, Not a shot, Star, Edit (was Check). Removed narrative line, toss offer, fix row, Delete last. |
-| Live app | [edge-tt.apps.grok.bot](https://edge-tt.apps.grok.bot) | Private. v0.16.6 is live (37e7e62). |
+| Live app | [edge-tt.apps.grok.bot](https://edge-tt.apps.grok.bot) | Private. v0.17.9 publishing (231243e). |
 | v0.16.0 | [PR #139](https://github.com/donpauleone69/match-analyser-edge-tt/pull/139) | Latest merged on proto (dd8ff43). Serve landing quadrants. Phone landscape tapping with video in the middle. Best + FA only in the dropdown. |
 | v0.15.1 | [PR #138](https://github.com/donpauleone69/match-analyser-edge-tt/pull/138) | Home screen mode removed. New timing defaults. |
 | Proto branch | [PR #129](https://github.com/donpauleone69/match-analyser-edge-tt/pull/129) | Main prototype PR the builds merge into. |
