@@ -6,6 +6,16 @@
 
 ## Change Log
 
+### 2026-11-20: Set Tagger score at once (proto v0.17.24)
+
+**Change Type:** Set Tagger. Proto only.
+
+**What Changed:**
+- When the rally-ending answer saves the rally, the Rally Zone head shows the next rally number, its server and the new score at once. Before, it kept the saved rally's server and the score before that point until the next serve tap. The saved rally's cells, star and Edit Rally stay until then.
+- The 2 second countdown bar after the last contact runs along the bottom edge of the Rally Zone instead of the top. The zone stays 64px.
+
+**Decision Rationale:** Paul tested v0.17.22 on a phone and asked for both.
+
 ### 2026-11-14: MA-157 — De-frame Clips / Pass 1 / Settings (v3.186.0)
 
 **Change Type:** UX hotfix — last thin nested-border pass; then stop
