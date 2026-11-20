@@ -251,13 +251,6 @@ export function derivePhase(match: MatchRecord): MatchPhase {
   return isMatchTagged(match) ? 'complete' : 'partial'
 }
 
-export function phaseLabel(phase: MatchPhase): string {
-  if (phase === 'new') return 'New'
-  if (phase === 'ready') return 'Ready to tag'
-  if (phase === 'partial') return 'Part tagged'
-  return 'Tagged'
-}
-
 export function defaultMatchTab(
   phase: MatchPhase
 ): 'insights' | 'details' | 'tag' {
@@ -289,18 +282,6 @@ export function matchTitle(match: MatchRecord): string {
 
 export function formatScore(score: Score): string {
   return `${score.me} - ${score.them}`
-}
-
-export function matchMeta(match: MatchRecord): string {
-  const { me, them } = match.result
-  // The entered result, or for a tagged match with none, what the sets give.
-  const sets =
-    me !== null && them !== null
-      ? formatScore({ me, them })
-      : isMatchTagged(match)
-        ? formatScore(matchSetsWon(match))
-        : ''
-  return [match.date, sets].filter(Boolean).join(' · ') || 'No date'
 }
 
 export function formatSize(sizeMb: number): string {

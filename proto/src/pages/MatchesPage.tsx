@@ -3,93 +3,116 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Button, Icon } from '@/ui-mine'
 import { PageHeader } from '@/layout/PageHeader'
 import { StickyChrome } from '@/layout/StickyChrome'
-import { WfBadge, WfEmpty, WfWarnBadge } from '@/layout/Wireframe'
-import { matchDiffers, matchLabel } from '@/features/match/matchChecks'
-import { setInProgress } from '@/features/tagging/matchOps'
-import {
-  defaultMatchTab,
-  derivePhase,
-  isArchived,
-  matchMeta,
-  phaseLabel,
-  useDemo,
-  type MatchRecord,
-} from '@/data/demoStore'
-import {
-  activeFilterLabels,
-  DEFAULT_INSIGHTS_FILTERS,
-  filterChoices,
-  filterMatches,
-  type InsightsFilters,
-} from '@/features/insights/insightsFilterContext'
+import { WfEmpty } from '@/layout/Wireframe'
+import { matchName, matchRowLine, matchRowStatus } from '@/features/match/matchChecks'
+import { derivePhase, useDemo, type MatchRecord } from '@/data/demoStore'
+import { filterChoices } from '@/features/insights/insightsFilterContext'
 
 const FILTER_KEY = 'proto-matches-filters'
 
-function readFilters(): InsightsFilters {
+type MatchStatus = 'Any' | 'Not tagged' | 'Part tagged' | 'Tagged'
+
+type MatchListFilters = {
+  opponent: string
+  event: string
+  status: MatchStatus
+}
+
+const DEFAULT_FILTERS: MatchListFilters = {
+  opponent: 'Any',
+  event: 'Any',
+  status: 'Any',
+}
+
+const STATUSES: MatchStatus[] = ['Any', 'Not tagged', 'Part tagged', 'Tagged']
+
+function readFilters(): MatchListFilters {
   try {
     const raw = sessionStorage.getItem(FILTER_KEY)
-    if (!raw) return DEFAULT_INSIGHTS_FILTERS
-    const parsed = JSON.parse(raw) as Partial<InsightsFilters>
-    return { ...DEFAULT_INSIGHTS_FILTERS, ...parsed, matches: 'All' }
+    if (!raw) return DEFAULT_FILTERS
+    const parsed = JSON.parse(raw) as Partial<MatchListFilters> & { tournament?: string }
+    const status = STATUSES.includes(parsed.status as MatchStatus)
+      ? (parsed.status as MatchStatus)
+      : 'Any'
+    return {
+      opponent: parsed.opponent || 'Any',
+      event: parsed.event || parsed.tournament || 'Any',
+      status,
+    }
   } catch {
-    return DEFAULT_INSIGHTS_FILTERS
+    return DEFAULT_FILTERS
   }
 }
 
-function countActive(f: InsightsFilters): number {
+function countActive(f: MatchListFilters): number {
   let n = 0
   if (f.opponent !== 'Any') n++
-  if (f.tournament !== 'Any') n++
-  if (f.dates !== 'Any') n++
+  if (f.event !== 'Any') n++
+  if (f.status !== 'Any') n++
   return n
 }
 
-/** The set a part tagged match can resume, when one is open. */
-function continueSet(match: MatchRecord) {
-  if (derivePhase(match) !== 'partial' || match.videos.length === 0 || isArchived(match)) return null
-  return setInProgress(match)
+function matchesStatus(match: MatchRecord, status: MatchStatus): boolean {
+  if (status === 'Any') return true
+  const phase = derivePhase(match)
+  if (status === 'Not tagged') return phase === 'new' || phase === 'ready'
+  if (status === 'Part tagged') return phase === 'partial'
+  return phase === 'complete'
 }
 
-/**
- * Opponent, Tournament and Dates. The Matches picker stays on Insights.
- * Choices come from every match, so an untagged one can still be found.
- */
+function filterMatchList(matches: MatchRecord[], f: MatchListFilters): MatchRecord[] {
+  return matches.filter((m) => {
+    if (f.opponent !== 'Any' && m.opponent.trim() !== f.opponent) return false
+    if (f.event !== 'Any' && m.event.trim() !== f.event) return false
+    return matchesStatus(m, f.status)
+  })
+}
+
+function activeLabels(f: MatchListFilters): string[] {
+  const out: string[] = []
+  if (f.opponent !== 'Any') out.push(`Opponent: ${f.opponent}`)
+  if (f.event !== 'Any') out.push(`Event: ${f.event}`)
+  if (f.status !== 'Any') out.push(`Status: ${f.status}`)
+  return out
+}
+
 function MatchFilterPickers({
   draft,
   setDraft,
   matches,
 }: {
-  draft: InsightsFilters
-  setDraft: (next: InsightsFilters) => void
+  draft: MatchListFilters
+  setDraft: (next: MatchListFilters) => void
   matches: MatchRecord[]
 }) {
   const { opponents, events } = filterChoices(matches)
   const withSaved = (options: string[], saved: string) =>
     options.includes(saved) ? options : [...options, saved]
-  const all: [keyof InsightsFilters, string, string[]][] = [
-    ['opponent', 'Opponent', withSaved(['Any', ...opponents], draft.opponent)],
-    ['tournament', 'Tournament', withSaved(['Any', ...events], draft.tournament)],
-    ['dates', 'Dates', ['Any', 'This week', 'Last 30 days']],
+  const pickers: { key: keyof MatchListFilters; label: string; options: string[] }[] = [
+    { key: 'opponent', label: 'Opponent', options: withSaved(['Any', ...opponents], draft.opponent) },
+    { key: 'event', label: 'Event', options: withSaved(['Any', ...events], draft.event) },
+    { key: 'status', label: 'Status', options: STATUSES },
   ]
-  const pickers = all.filter(([, , options]) => options.length > 1)
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-      {pickers.map(([key, label, options]) => (
-        <label key={key} className="block space-y-1">
-          <span className="text-xs font-semibold text-muted">{label}</span>
-          <select
-            className="btn-kind-field w-full rounded-md border border-border bg-bg-card px-2 text-sm text-primary"
-            value={draft[key]}
-            onChange={(e) => setDraft({ ...draft, [key]: e.target.value })}
-          >
-            {options.map((o) => (
-              <option key={o} value={o}>
-                {o}
-              </option>
-            ))}
-          </select>
-        </label>
-      ))}
+    <div className="grid grid-cols-1 gap-3">
+      {pickers
+        .filter((picker) => picker.options.length > 1)
+        .map((picker) => (
+          <label key={picker.key} className="block space-y-1">
+            <span className="text-xs font-semibold text-muted">{picker.label}</span>
+            <select
+              className="btn-kind-field w-full rounded-md border border-border bg-bg-card px-2 text-sm text-primary"
+              value={draft[picker.key]}
+              onChange={(e) => setDraft({ ...draft, [picker.key]: e.target.value })}
+            >
+              {picker.options.map((o) => (
+                <option key={o} value={o}>
+                  {o}
+                </option>
+              ))}
+            </select>
+          </label>
+        ))}
     </div>
   )
 }
@@ -97,21 +120,21 @@ function MatchFilterPickers({
 export function MatchesPage() {
   const navigate = useNavigate()
   const { matches, createMatch } = useDemo()
-  const [filters, setFiltersState] = useState<InsightsFilters>(readFilters)
+  const [filters, setFiltersState] = useState<MatchListFilters>(readFilters)
   const [open, setOpen] = useState(false)
-  const [draft, setDraft] = useState<InsightsFilters>(filters)
-  const setFilters = (next: InsightsFilters) => {
-    const stored = { ...next, matches: 'All' as const }
-    setFiltersState(stored)
+  const [draft, setDraft] = useState<MatchListFilters>(filters)
+  const setFilters = (next: MatchListFilters) => {
+    setFiltersState(next)
     try {
-      sessionStorage.setItem(FILTER_KEY, JSON.stringify(stored))
+      sessionStorage.setItem(FILTER_KEY, JSON.stringify(next))
     } catch {
       /* ignore */
     }
   }
-  const shown = filterMatches(matches, filters)
-  const active = activeFilterLabels(filters)
+  const shown = filterMatchList(matches, filters)
+  const active = activeLabels(filters)
   const n = countActive(filters)
+  const hasMatches = matches.length > 0
 
   useEffect(() => {
     if (open) setDraft(filters)
@@ -139,15 +162,15 @@ export function MatchesPage() {
     setOpen(false)
   }
   const clear = () => {
-    setDraft(DEFAULT_INSIGHTS_FILTERS)
-    setFilters(DEFAULT_INSIGHTS_FILTERS)
+    setDraft(DEFAULT_FILTERS)
+    setFilters(DEFAULT_FILTERS)
     setOpen(false)
   }
   const clearOne = (label: string) => {
     const next = { ...filters }
     if (label.startsWith('Opponent:')) next.opponent = 'Any'
-    if (label.startsWith('Tournament:')) next.tournament = 'Any'
-    if (label.startsWith('Dates:')) next.dates = 'Any'
+    if (label.startsWith('Event:')) next.event = 'Any'
+    if (label.startsWith('Status:')) next.status = 'Any'
     setFilters(next)
   }
   const onNew = () => {
@@ -155,7 +178,7 @@ export function MatchesPage() {
     navigate(`/matches/${created.id}/details`)
   }
 
-  const filterButton = (
+  const filterButton = hasMatches ? (
     <button
       type="button"
       data-filter-surface
@@ -172,7 +195,7 @@ export function MatchesPage() {
         </span>
       ) : null}
     </button>
-  )
+  ) : null
 
   return (
     <div>
@@ -211,7 +234,7 @@ export function MatchesPage() {
         </div>
       ) : null}
       <div className="px-4 sm:px-6 lg:px-8">
-        {open ? (
+        {open && hasMatches ? (
           <div
             className="mt-3 hidden rounded-lg border border-border bg-bg-surface p-4 space-y-3 md:block"
             data-filter-surface
@@ -229,7 +252,7 @@ export function MatchesPage() {
             </div>
           </div>
         ) : null}
-        {open ? (
+        {open && hasMatches ? (
           <div className="fixed inset-0 z-50 md:hidden" data-filter-surface role="dialog" aria-label="Filters">
             <button
               type="button"
@@ -260,46 +283,52 @@ export function MatchesPage() {
 
       {matches.length === 0 ? (
         <div className="space-y-3 px-4 py-6 sm:px-6 lg:px-8">
-          <WfEmpty title="No matches" body="Create a match or switch Prototype to Filled." />
+          <WfEmpty title="No matches yet" />
           <Button fullWidth kind="main" onClick={onNew}>
             <Icon name="plus" size="xs" />
             New match
           </Button>
         </div>
       ) : shown.length === 0 ? (
-        <div className="px-4 py-6 sm:px-6 lg:px-8">
+        <div className="space-y-3 px-4 py-6 sm:px-6 lg:px-8">
           <WfEmpty title="Nothing fits this filter" />
+          <Button fullWidth kind="main" onClick={clear}>
+            Clear filter
+          </Button>
         </div>
       ) : (
         <ul>
           {shown.map((m) => {
-            const phase = derivePhase(m)
-            const resume = continueSet(m)
+            const status = matchRowStatus(m)
+            const line = matchRowLine(m)
+            const to =
+              status.tab === 'details'
+                ? `/matches/${m.id}/details#result`
+                : `/matches/${m.id}/${status.tab}`
             return (
-              <li key={m.id} className="flex items-center border-b border-border" data-match-row={m.id}>
+              <li key={m.id} className="flex items-center border-b border-border" data-match-row={m.id} data-row-status={status.kind}>
                 <Link
-                  to={`/matches/${m.id}/${defaultMatchTab(phase)}`}
-                  className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3 hover:bg-bg-elevated sm:px-6 lg:px-8"
+                  to={to}
+                  className="flex min-h-[62px] min-w-0 flex-1 items-center px-4 py-3 hover:bg-bg-elevated sm:px-6 lg:px-8"
                 >
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium text-primary">{matchLabel(m)}</span>
-                    <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-muted">
-                      {matchMeta(m)}
-                      {matchDiffers(m) ? <WfWarnBadge>Differs</WfWarnBadge> : null}
-                    </span>
+                    <span className="block truncate text-sm font-semibold text-primary">{matchName(m)}</span>
+                    <span className="mt-0.5 block h-4 truncate text-xs text-muted">{line}</span>
                   </span>
-                  {resume ? null : <WfBadge>{phaseLabel(phase)}</WfBadge>}
+                  {status.kind === 'continue' ? null : (
+                    <span className="ml-3 shrink-0 text-right text-xs text-muted">{status.text}</span>
+                  )}
                 </Link>
-                {resume ? (
+                {status.kind === 'continue' && status.setId !== null ? (
                   <div className="shrink-0 pr-4 sm:pr-6 lg:pr-8">
-                    <button
-                      type="button"
-                      data-continue-set={resume.setId}
-                      onClick={() => navigate(`/matches/${m.id}/tag/${resume.setId}`)}
-                      className="btn-kind-control rounded-md bg-brand-primary px-3 text-xs font-semibold text-on-accent"
+                    <Button
+                      kind="control"
+                      variant="secondary"
+                      data-continue-set={status.setId}
+                      onClick={() => navigate(`/matches/${m.id}/tag/${status.setId}`)}
                     >
-                      Continue set {resume.setId}
-                    </button>
+                      {status.text}
+                    </Button>
                   </div>
                 ) : null}
               </li>
