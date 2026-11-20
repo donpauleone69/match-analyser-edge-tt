@@ -44,7 +44,9 @@ function OpponentPrompt({ match }: { match: MatchRecord }) {
 export function MatchPage() {
   const { matchId = '' } = useParams()
   const { getMatch } = useDemo()
-  const onSetView = Boolean(useMatch('/matches/:matchId/tag/:setId') || useMatch('/matches/:matchId/mark/:videoId'))
+  const onTagSet = useMatch('/matches/:matchId/tag/:setId')
+  const onMark = useMatch('/matches/:matchId/mark/:videoId')
+  const onSetView = Boolean(onTagSet || onMark)
   const onDetails = Boolean(useMatch('/matches/:matchId/details'))
   const match = getMatch(matchId)
   const base = `/matches/${matchId}`

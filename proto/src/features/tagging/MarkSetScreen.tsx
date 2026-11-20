@@ -175,6 +175,71 @@ export function MarkSetScreen() {
       ? allowedMarkNumbers(match, toGlobal(segs, from.videoId, from.t) ?? 0, remark?.setId)
       : []
 
+  const steps = (
+    <div className="flex min-h-0 flex-1 flex-col justify-end gap-2 px-3 py-3" data-tag-body>
+      {phase === 'start' ? (
+        <>
+          <p className="text-sm text-primary">Find the first serve of the set.</p>
+          <Button fullWidth kind="main" data-mark-start onClick={onStart}>
+            Start here
+          </Button>
+        </>
+      ) : null}
+      {phase === 'end' ? (
+        <>
+          <p className="text-sm text-primary">Find the last point.</p>
+          <Button fullWidth kind="main" data-mark-end onClick={onEnd}>
+            End here
+          </Button>
+        </>
+      ) : null}
+      {phase === 'label' && number !== null ? (
+        <>
+          <p className="text-sm text-primary">Which set is this?</p>
+          <div className="flex gap-1.5 overflow-x-auto" role="group" aria-label="Set number">
+            {allowed.map((n) => (
+              <Button
+                key={n}
+                kind="control"
+                variant={n === number ? 'primary' : 'secondary'}
+                aria-pressed={n === number}
+                data-mark-number={n}
+                onClick={() => setNumber(n)}
+              >
+                Set {n}
+              </Button>
+            ))}
+          </div>
+          <Button
+            fullWidth
+            kind="main"
+            data-mark-label
+            onClick={() => {
+              const existing = match.sets.find((s) => s.setId === number)
+              if (existing && existing.rallies.length > 0) onSave(existing.mark?.complete ?? true)
+              else setPhase('whole')
+            }}
+          >
+            {match.sets.some((s) => s.setId === number && s.rallies.length > 0) ? 'Save' : `Use set ${number}`}
+          </Button>
+        </>
+      ) : null}
+      {phase === 'whole' ? (
+        <>
+          <p className="text-sm text-primary">Is the whole set on video?</p>
+          <div className="flex gap-2">
+            <Button fullWidth kind="main" data-mark-complete onClick={() => onSave(true)}>
+              Complete
+            </Button>
+            <Button fullWidth kind="main" variant="secondary" data-mark-part onClick={() => onSave(false)}>
+              Part filmed
+            </Button>
+          </div>
+        </>
+      ) : null}
+    </div>
+  )
+
   const nextVideo = match.videos[index + 1]
   const barEnd =
     phase === 'end' && nextVideo
@@ -185,7 +250,9 @@ export function MarkSetScreen() {
     <div className="tag-set bg-bg-app" data-mark-screen data-mark-step={phase} data-pad-split={landscape ? '' : undefined}>
       {landscape ? (
         <>
-          <div className="pad-wing" data-pad-wing="left" />
+          <div className="pad-wing overflow-y-auto" data-pad-wing="left">
+            {steps}
+          </div>
           <div className="pad-wing" data-pad-wing="right" />
         </>
       ) : null}
@@ -229,70 +296,7 @@ export function MarkSetScreen() {
           <h1 className="shrink-0 text-sm font-bold text-primary">Video {index + 1}</h1>
           <MarkStrip duration={video.durationS} spans={spans} />
         </div>
-        <div className="tag-entry">
-          <div className="flex min-h-0 flex-1 flex-col justify-end gap-2 px-3 py-3" data-tag-body>
-            {phase === 'start' ? (
-              <>
-                <p className="text-sm text-primary">Find the first serve of the set.</p>
-                <Button fullWidth kind="main" data-mark-start onClick={onStart}>
-                  Start here
-                </Button>
-              </>
-            ) : null}
-            {phase === 'end' ? (
-              <>
-                <p className="text-sm text-primary">Find the last point.</p>
-                <Button fullWidth kind="main" data-mark-end onClick={onEnd}>
-                  End here
-                </Button>
-              </>
-            ) : null}
-            {phase === 'label' && number !== null ? (
-              <>
-                <p className="text-sm text-primary">Which set is this?</p>
-                <div className="flex flex-wrap gap-1.5" role="group" aria-label="Set number">
-                  {allowed.map((n) => (
-                    <Button
-                      key={n}
-                      kind="control"
-                      variant={n === number ? 'primary' : 'secondary'}
-                      aria-pressed={n === number}
-                      data-mark-number={n}
-                      onClick={() => setNumber(n)}
-                    >
-                      Set {n}
-                    </Button>
-                  ))}
-                </div>
-                <Button
-                  fullWidth
-                  kind="main"
-                  data-mark-label
-                  onClick={() => {
-                    const existing = match.sets.find((s) => s.setId === number)
-                    if (existing && existing.rallies.length > 0) onSave(existing.mark?.complete ?? true)
-                    else setPhase('whole')
-                  }}
-                >
-                  {match.sets.some((s) => s.setId === number && s.rallies.length > 0) ? 'Save' : `Use set ${number}`}
-                </Button>
-              </>
-            ) : null}
-            {phase === 'whole' ? (
-              <>
-                <p className="text-sm text-primary">Is the whole set on video?</p>
-                <div className="flex gap-2">
-                  <Button fullWidth kind="main" data-mark-complete onClick={() => onSave(true)}>
-                    Complete
-                  </Button>
-                  <Button fullWidth kind="main" variant="secondary" data-mark-part onClick={() => onSave(false)}>
-                    Part filmed
-                  </Button>
-                </div>
-              </>
-            ) : null}
-          </div>
-        </div>
+        {landscape ? null : <div className="tag-entry">{steps}</div>}
       </div>
     </div>
   )

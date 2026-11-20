@@ -28,7 +28,7 @@ Mirrors the [Key documents canvas](https://cursor.com/canvas/store-7c210afe-9d07
 
 | Build | Link | Notes |
 |-------|------|-------|
-| v0.17.4 | Set marking sprint | A set may end on the next video. Those two videos stay put. The mark screen uses the landscape shell. A spanning line reads videos N and M. |
+| v0.17.4 | Set marking sprint | A set may end on the next video. Those two videos stay put. On a phone in landscape the mark steps sit in the left wing. A spanning line reads videos N and M. |
 | v0.17.3 | Set marking sprint | Set line menu: Re-mark, Change number, Delete tags, Unmark, Mark complete. Each change can be undone. Re-mark keeps every rally inside. A video move that breaks the order is refused. Removing a video unmarks its sets. |
 | v0.17.2 | Set marking sprint | Only a ready, tagging, or saved set opens. Play and seeking stop at the mark. The start card asks who serves. The end of the mark offers Re-mark. Save set offers the next ready set. |
 | v0.17.1 | Set marking sprint | Mark screen on the set's video: start, end, set number, complete or part filmed. Marks do not overlap and set numbers stay in order. |

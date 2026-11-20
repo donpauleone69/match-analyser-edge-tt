@@ -625,9 +625,12 @@ export function DemoProvider({ children }: { children: ReactNode }) {
       setExtra((prev) => {
         const isSeed = SEED_IDS.has(id)
         if (isSeed && mode === 'empty') return prev
-        const current =
-          prev.find((m) => m.id === id) ?? (isSeed ? SEED.find((m) => m.id === id) : undefined)
-        if (!current) return prev
+        const stored = prev.find((m) => m.id === id)
+        const base = stored ?? (isSeed ? SEED.find((m) => m.id === id) : undefined)
+        if (!base) return prev
+        // The first write of a seed starts from its migrated mark, so a saved
+        // set stays complete when something else on the match changes.
+        const current = stored ? base : normalizeMatch(base)
         const next = normalizeMatch(fn(current))
         return prev.some((m) => m.id === id)
           ? prev.map((m) => (m.id === id ? next : m))
