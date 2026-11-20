@@ -3,7 +3,6 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Button, buttonKindTextLink } from '@/ui-mine'
 import {
   derivePhase,
-  emptySet,
   formatScore,
   matchSetsWon,
   missingVideoIds,
@@ -21,33 +20,28 @@ import {
   type VideoAsset,
 } from '@/data/demoStore'
 import { AddVideoChoice } from '@/features/match/AddVideoChoice'
-import { ARCHIVE_STEPS, startArchive, useArchiveStep } from '@/features/match/archiveJobs'
+import { useArchiveStep } from '@/features/match/archiveJobs'
 import { isRealResult, videoRallyCount } from '@/features/match/matchChecks'
 import {
   applyTaggedResult,
-  completeMark,
   deleteTags,
   finishMatch,
-  moveSet,
   reopenMatch,
   restoreSet,
-  unmarkSet,
 } from '@/features/tagging/matchOps'
 import {
-  allowedMarkNumbers,
   firstGapVideo,
   gapsOf,
   lineAction,
-  markBounds,
   markCrosses,
   markState,
   notOnVideo,
   setsRemain,
   setsStartingOn,
   spansOnVideo,
-  tagLead,
   videoLocked,
   videoMoveBreaks,
+  videoStatus,
   type VideoSpan,
 } from '@/features/tagging/setMark'
 import { TAG_LOCK_LINE, useTagLock } from '@/features/tagging/tagLock'
@@ -61,19 +55,13 @@ const linkClass = cn('text-sm font-semibold text-brand underline', buttonKindTex
 
 const UNDO_MS = 6000
 
-function setLine(match: MatchRecord, s: SetData): string {
+function setRowLabel(match: MatchRecord, s: SetData): string {
+  const state = markState(s)
   const score = taggedScore(s)
-  const state = lineAction(s)
   const head =
-    state === 'Open' && score
-      ? `Set ${s.setId} · Saved · ${formatScore(score)}`
-      : state === 'Continue' && score
-        ? `Set ${s.setId} · Tagging · ${formatScore(score)}`
-        : state === 'Tag'
-          ? `Set ${s.setId} · Ready`
-          : state === 'Mark'
-            ? `Set ${s.setId} · Part filmed`
-            : `Set ${s.setId}`
+    (state === 'saved' || state === 'tagging') && score
+      ? `Set ${s.setId} · ${formatScore(score)}`
+      : `Set ${s.setId}`
   const mark = s.mark
   if (!markCrosses(s) || !mark) return head
   const a = match.videos.findIndex((v) => v.id === mark.from.videoId) + 1
@@ -82,8 +70,8 @@ function setLine(match: MatchRecord, s: SetData): string {
 }
 
 /**
- * Tag page. One block per video, the sets marked on it, then sets that are
- * not on video. Marking itself comes in the next slice.
+ * Tag page. One card per video, with a status line and one action per set.
+ * Adding a set still opens the mark screen.
  */
 export function MatchTagChecklist() {
   const { matchId = '' } = useParams()
@@ -91,11 +79,9 @@ export function MatchTagChecklist() {
   const { getMatch, moveVideo, mutateMatch } = useDemo()
   const match = getMatch(matchId)
   const lock = useTagLock(matchId, match)
-  const archiveStep = useArchiveStep(matchId)
-  const running = archiveStep !== null
+  const running = useArchiveStep(matchId) !== null
   const [menuId, setMenuId] = useState<string | null>(null)
   const [asking, setAsking] = useState<string | null>(null)
-  const [confirmArchive, setConfirmArchive] = useState(false)
   const [removed, setRemoved] = useState<{ video: VideoAsset; index: number; marks: { setId: number; mark: SetMark }[] } | null>(null)
   const [undoSet, setUndoSet] = useState<{ before: SetData; text: string; also?: SetData } | null>(null)
   const [note, setNote] = useState<string | null>(null)
@@ -109,7 +95,6 @@ export function MatchTagChecklist() {
   if (!match) return null
 
   const phase = derivePhase(match)
-  const lead = lock ? null : tagLead(match)
   const videoGone = missingVideoIds(match).length > 0
   const openSet = (setId: number) => navigate(`/matches/${match.id}/tag/${setId}`)
   const dropVideo = (video: VideoAsset, index: number) => {
@@ -144,7 +129,7 @@ export function MatchTagChecklist() {
       return
     }
     if (videoLocked(match, video.id)) {
-      setNote('This video is part of a set. Unmark that set first.')
+      setNote('This video is part of a set.')
       return
     }
     if (video.archived || videoRallyCount(match, video.id) > 0) setAsking(video.id)
@@ -155,24 +140,6 @@ export function MatchTagChecklist() {
 
   return (
     <div className="space-y-4 px-4 py-4">
-      {lead ? (
-        <Button
-          fullWidth
-          kind="main"
-          data-tag-lead={lead.kind}
-          onClick={() => {
-            if (lead.kind === 'mark') {
-              const video = firstGapVideo(match)
-              if (video) navigate(`/matches/${match.id}/mark/${video.id}`)
-              return
-            }
-            openSet(lead.setId)
-          }}
-        >
-          {lead.label}
-        </Button>
-      ) : null}
-
       {lock ? (
         <p className="rounded-md border border-border bg-bg-card px-3 py-2 text-sm text-primary" role="status">
           {TAG_LOCK_LINE[lock]}
@@ -254,8 +221,6 @@ export function MatchTagChecklist() {
             running={running}
             menuOpen={menuId === video.id}
             asking={asking === video.id}
-            canArchive={phase === 'complete' && match.videos.some((v) => !v.archived)}
-            onArchive={() => setConfirmArchive(true)}
             onToggleMenu={() => setMenuId((id) => (id === video.id ? null : video.id))}
             onMove={(by) => {
               if (videoMoveBreaks(match, video.id, by)) {
@@ -274,21 +239,6 @@ export function MatchTagChecklist() {
         ))
       )}
 
-      {running ? (
-        <div className="space-y-1" role="status">
-          <p className="text-xs text-primary">
-            {ARCHIVE_STEPS[archiveStep ?? 0]}
-            <span className="text-muted"> · step {(archiveStep ?? 0) + 1} of {ARCHIVE_STEPS.length}</span>
-          </p>
-          <div className="h-1.5 overflow-hidden rounded-full bg-bg-elevated">
-            <div
-              className="h-full bg-brand-primary transition-all duration-500"
-              style={{ width: `${(((archiveStep ?? 0) + 1) / ARCHIVE_STEPS.length) * 100}%` }}
-            />
-          </div>
-        </div>
-      ) : null}
-
       <NotOnVideo match={match} />
 
       {match.videos.length > 0 ? (
@@ -296,31 +246,6 @@ export function MatchTagChecklist() {
           <h2 className="text-sm font-semibold text-primary">Add video</h2>
           <AddVideoChoice matchId={match.id} label={false} disabled={running} />
         </section>
-      ) : null}
-
-      {confirmArchive && !running ? (
-          <div className="space-y-1.5 rounded-md border border-warning bg-warning/15 px-3 py-2 text-sm text-primary" role="alertdialog" aria-label="Archive">
-            <p>
-              Archive keeps only the rallies, joined with no gaps, at lower quality. Tags and reels then use the
-              archived copy. The original is removed once the archive is made and checked.
-            </p>
-            <p className="font-semibold">This cannot be undone.</p>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                kind="control"
-                onClick={() => {
-                  setConfirmArchive(false)
-                  setMenuId(null)
-                  startArchive(match.id)
-                }}
-              >
-                Archive
-              </Button>
-              <Button kind="control" variant="ghost" onClick={() => setConfirmArchive(false)}>
-                Cancel
-              </Button>
-            </div>
-          </div>
       ) : null}
 
       {resultDiffers(match) ? <ResultFlag match={match} /> : null}
@@ -351,8 +276,6 @@ function VideoBlock({
   running,
   menuOpen,
   asking,
-  canArchive,
-  onArchive,
   onToggleMenu,
   onMove,
   onAskRemove,
@@ -368,8 +291,6 @@ function VideoBlock({
   running: boolean
   menuOpen: boolean
   asking: boolean
-  canArchive: boolean
-  onArchive: () => void
   onToggleMenu: () => void
   onMove: (by: -1 | 1) => void
   onAskRemove: () => void
@@ -379,18 +300,19 @@ function VideoBlock({
   onUndo: (before: SetData, text: string, also?: SetData) => void
 }) {
   const navigate = useNavigate()
+  const [archiveNote, setArchiveNote] = useState(false)
   const many = match.videos.length > 1
   const spans = spansOnVideo(match.videos, match.sets, video.id)
   const gap = gapsOf(video.durationS, spans).length > 0
   const lines = setsStartingOn(match.sets, video.id)
   const showMark = gap && setsRemain(match) && !locked
+  const status = videoStatus(match, video.id)
 
   return (
     <section className="space-y-2 rounded-lg border border-border bg-bg-card px-3 py-2" data-video-block={video.id}>
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-sm font-semibold text-primary">
           Video {index + 1} · {formatClock(video.durationS)}
-          {video.archived ? <span className="font-normal text-muted"> · Archived</span> : null}
         </h2>
         <button
           type="button"
@@ -402,6 +324,10 @@ function VideoBlock({
           Menu
         </button>
       </div>
+
+      <p className="text-sm text-primary" data-video-status={video.id}>
+        {status}
+      </p>
 
       {menuOpen ? (
         <div className="flex flex-wrap gap-2" data-video-menu={video.id}>
@@ -423,11 +349,6 @@ function VideoBlock({
           <Button kind="control" variant="secondary" disabled={running} onClick={onAskRemove}>
             Remove
           </Button>
-          {canArchive ? (
-            <Button kind="control" variant="secondary" disabled={running} onClick={onArchive}>
-              Archive
-            </Button>
-          ) : null}
         </div>
       ) : null}
 
@@ -473,8 +394,26 @@ function VideoBlock({
           data-mark-set={video.id}
           onClick={() => navigate(`/matches/${match.id}/mark/${video.id}`)}
         >
-          Mark a set
+          Add set
         </Button>
+      ) : null}
+
+      {status === 'Done' ? (
+        <div className="space-y-1">
+          <Button
+            kind="control"
+            variant="secondary"
+            data-archive-video={video.id}
+            onClick={() => setArchiveNote(true)}
+          >
+            Archive video
+          </Button>
+          {archiveNote ? (
+            <p className="text-sm text-muted" role="status">
+              Archive comes in a later build.
+            </p>
+          ) : null}
+        </div>
       ) : null}
     </section>
   )
@@ -512,90 +451,58 @@ function SetLine({
   onOpen: () => void
   onUndo: (before: SetData, text: string, also?: SetData) => void
 }) {
-  const navigate = useNavigate()
   const { mutateMatch } = useDemo()
   const [menu, setMenu] = useState(false)
-  const [picking, setPicking] = useState(false)
   const action = lineAction(s)
   const state = markState(s)
-  const bounds = s.mark ? markBounds(match.videos, s.mark) : null
-  const numbers = bounds ? allowedMarkNumbers(match, bounds.start, s.setId).filter((n) => n !== s.setId) : []
-  const remark = () => {
-    if (!s.mark) return
-    navigate(`/matches/${match.id}/mark/${s.mark.from.videoId}?set=${s.setId}`)
-  }
-  const run = (text: string, fn: (m: MatchRecord) => MatchRecord) => {
-    onUndo(s, text)
-    mutateMatch(match.id, fn)
-    setMenu(false)
-  }
+  const canDelete = !locked && (state === 'tagging' || state === 'saved')
   return (
-    <li className="space-y-1" data-set-line={s.setId}>
+    <li className="space-y-1" data-set-line={s.setId} data-set-state={state}>
       <div className="flex items-center justify-between gap-2">
-        <p className="min-w-0 text-sm text-primary">{setLine(match, s)}</p>
-        <span className="flex shrink-0 gap-1">
-          {action ? (
+        <p className="min-w-0 text-sm text-primary">{setRowLabel(match, s)}</p>
+        <span className="flex shrink-0 items-center gap-1">
+          {state === 'part' ? (
+            <span className="px-1 text-sm text-muted" data-part-filmed={s.setId}>
+              Part filmed
+            </span>
+          ) : action ? (
             <Button
               kind="control"
               variant="secondary"
               disabled={locked && action !== 'Open'}
-              onClick={() => (action === 'Mark' ? remark() : onOpen())}
+              data-set-action={action}
+              onClick={onOpen}
             >
               {action}
             </Button>
           ) : null}
-          {locked ? null : (
-            <Button kind="control" variant="ghost" aria-expanded={menu} data-set-menu-button={s.setId} onClick={() => setMenu((open) => !open)}>
+          {canDelete ? (
+            <Button
+              kind="control"
+              variant="ghost"
+              aria-expanded={menu}
+              data-set-menu-button={s.setId}
+              onClick={() => setMenu((open) => !open)}
+            >
               Menu
             </Button>
-          )}
+          ) : null}
         </span>
       </div>
-      {menu && !locked ? (
+      {menu && canDelete ? (
         <div className="flex flex-wrap gap-1" data-set-menu={s.setId}>
-          <Button kind="control" variant="secondary" onClick={remark}>
-            Re-mark
+          <Button
+            kind="control"
+            variant="secondary"
+            data-delete-tags={s.setId}
+            onClick={() => {
+              onUndo(s, `Set ${s.setId} tags deleted`)
+              mutateMatch(match.id, (m) => deleteTags(m, s.setId))
+              setMenu(false)
+            }}
+          >
+            Delete tags
           </Button>
-          {state === 'part' ? (
-            <Button kind="control" variant="secondary" onClick={() => run(`Set ${s.setId} marked complete`, (m) => completeMark(m, s.setId))}>
-              Mark complete
-            </Button>
-          ) : null}
-          {state === 'ready' || state === 'tagging' || state === 'saved' ? (
-            <Button kind="control" variant="secondary" disabled={numbers.length === 0} onClick={() => setPicking((open) => !open)}>
-              Change number
-            </Button>
-          ) : null}
-          {state === 'tagging' || state === 'saved' ? (
-            <Button kind="control" variant="secondary" data-delete-tags={s.setId} onClick={() => run(`Set ${s.setId} tags deleted`, (m) => deleteTags(m, s.setId))}>
-              Delete tags
-            </Button>
-          ) : null}
-          {state === 'part' || state === 'ready' ? (
-            <Button kind="control" variant="secondary" data-unmark={s.setId} onClick={() => run(`Set ${s.setId} unmarked`, (m) => unmarkSet(m, s.setId))}>
-              Unmark
-            </Button>
-          ) : null}
-        </div>
-      ) : null}
-      {menu && picking ? (
-        <div className="flex flex-wrap gap-1" data-change-number={s.setId}>
-          {numbers.map((n) => (
-            <Button
-              key={n}
-              kind="control"
-              variant="secondary"
-              data-make-set={n}
-              onClick={() => {
-                const dest = match.sets.find((x) => x.setId === n) ?? emptySet(n)
-                onUndo(s, `Set ${s.setId} is now set ${n}`, dest)
-                mutateMatch(match.id, (m) => moveSet(m, s.setId, n))
-                setMenu(false)
-              }}
-            >
-              Make it set {n}
-            </Button>
-          ))}
         </div>
       ) : null}
     </li>
@@ -623,9 +530,10 @@ function NotOnVideo({ match }: { match: MatchRecord }) {
                 <Button
                   kind="control"
                   variant="secondary"
+                  data-add-off={s.setId}
                   onClick={() => navigate(`/matches/${match.id}/mark/${video.id}?set=${s.setId}`)}
                 >
-                  Mark
+                  Add set
                 </Button>
               ) : null}
             </li>
@@ -671,6 +579,7 @@ function MatchEnd({
   onReopen: () => void
   onUseResult: () => void
 }) {
+  const [archiveNote, setArchiveNote] = useState(false)
   const noResult = resultSetCount(match) === null
   const resultHref = `/matches/${match.id}/details#result`
   const won = matchSetsWon(match)
@@ -680,29 +589,48 @@ function MatchEnd({
 
   if (tagged) {
     return (
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-bg-card px-3 py-2">
-        <p className="text-sm text-primary">
-          <span className="font-semibold">Match tagged</span>
-          <span className="text-muted"> · sets {setsLabel}</span>
-          {noResult ? <span className="text-muted">, no result entered</span> : null}
-        </p>
-        {noResult ? (
-          <div className="flex flex-wrap items-center gap-1">
-            {isRealResult(won) ? (
-              <Button kind="control" variant="secondary" onClick={onUseResult}>
-                Use tagged result
-              </Button>
-            ) : (
-              <Link to={resultHref} className={linkClass}>
-                Enter the result
-              </Link>
-            )}
-            {match.tagDone && !locked ? (
-              <Button kind="control" variant="ghost" onClick={onReopen}>
-                Reopen match
-              </Button>
-            ) : null}
-          </div>
+      <div className="space-y-1.5 rounded-md border border-border bg-bg-card px-3 py-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sm text-primary">
+            <span className="font-semibold">Match tagged</span>
+            <span className="text-muted"> · sets {setsLabel}</span>
+            {noResult ? <span className="text-muted">, no result entered</span> : null}
+          </p>
+          {noResult || !locked ? (
+            <div className="flex flex-wrap items-center gap-1">
+              {noResult ? (
+                isRealResult(won) ? (
+                  <Button kind="control" variant="secondary" onClick={onUseResult}>
+                    Use tagged result
+                  </Button>
+                ) : (
+                  <Link to={resultHref} className={linkClass}>
+                    Enter the result
+                  </Link>
+                )
+              ) : null}
+              {noResult && match.tagDone && !locked ? (
+                <Button kind="control" variant="ghost" onClick={onReopen}>
+                  Reopen match
+                </Button>
+              ) : null}
+              {!locked ? (
+                <Button
+                  kind="control"
+                  variant="secondary"
+                  data-archive-match
+                  onClick={() => setArchiveNote(true)}
+                >
+                  Archive match
+                </Button>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+        {archiveNote ? (
+          <p className="text-sm text-muted" role="status">
+            Archive comes in a later build.
+          </p>
         ) : null}
       </div>
     )

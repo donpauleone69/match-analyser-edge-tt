@@ -12,7 +12,7 @@ import { matchDiffers, matchLabel, needsOpponent } from '@/features/match/matchC
 
 /**
  * A light nudge to name the opponent once a match has video or tagging.
- * Typed in place on Insights and Tag; it never stands in the way of tagging.
+ * It stays on Insights, where the name is on every chart. Tag does not ask.
  */
 function OpponentPrompt({ match }: { match: MatchRecord }) {
   const { updateMatch } = useDemo()
@@ -47,7 +47,7 @@ export function MatchPage() {
   const onTagSet = useMatch('/matches/:matchId/tag/:setId')
   const onMark = useMatch('/matches/:matchId/mark/:videoId')
   const onSetView = Boolean(onTagSet || onMark)
-  const onDetails = Boolean(useMatch('/matches/:matchId/details'))
+  const onInsights = Boolean(useMatch('/matches/:matchId/insights/:section'))
   const match = getMatch(matchId)
   const base = `/matches/${matchId}`
 
@@ -84,7 +84,7 @@ export function MatchPage() {
           ]}
         />
       </StickyChrome>
-      {!onDetails ? <OpponentPrompt match={match} /> : null}
+      {onInsights ? <OpponentPrompt match={match} /> : null}
       <Outlet />
     </div>
   )

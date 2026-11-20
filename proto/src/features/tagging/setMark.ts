@@ -115,6 +115,23 @@ export function setsStartingOn(sets: SetData[], videoId: string): SetData[] {
   return sets.filter((s) => s.mark?.from.videoId === videoId)
 }
 
+export type VideoStatusLine = 'Archived' | 'Tagging' | 'Ready to tag' | 'No sets yet' | 'Done'
+
+/**
+ * One line under a video's name. The first that fits, in this order.
+ * Free time on a video does not stop it being Done.
+ */
+export function videoStatus(m: MatchRecord, videoId: string): VideoStatusLine {
+  const video = m.videos.find((v) => v.id === videoId)
+  if (video?.archived) return 'Archived'
+  const onIt = new Set(spansOnVideo(m.videos, m.sets, videoId).map((span) => span.setId))
+  const sets = m.sets.filter((s) => onIt.has(s.setId))
+  if (sets.length === 0) return 'No sets yet'
+  if (sets.some((s) => markState(s) === 'tagging')) return 'Tagging'
+  if (sets.some((s) => markState(s) === 'ready')) return 'Ready to tag'
+  return 'Done'
+}
+
 export function markCrosses(s: SetData): boolean {
   return Boolean(s.mark && s.mark.from.videoId !== s.mark.to.videoId)
 }
@@ -152,12 +169,12 @@ export function tagLead(m: MatchRecord): TagLead | null {
   return null
 }
 
-export function lineAction(s: SetData): 'Mark' | 'Tag' | 'Continue' | 'Open' | null {
+/** The one button on a set row. Part filmed is status text, not a button. */
+export function lineAction(s: SetData): 'Tag' | 'Continue' | 'Open' | null {
   const state = markState(s)
   if (state === 'saved') return 'Open'
   if (state === 'tagging') return 'Continue'
   if (state === 'ready') return 'Tag'
-  if (state === 'part') return 'Mark'
   return null
 }
 

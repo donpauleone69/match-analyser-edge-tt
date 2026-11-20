@@ -26,7 +26,7 @@ Mirrors the [Key documents canvas](https://cursor.com/canvas/store-7c210afe-9d07
 | Set marking sprint plan | Context: [docs/set-marking-sprint-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/set-marking-sprint-plan.md) | Shipped in v0.17.4. |
 | Set marking flow test | Context: [docs/set-marking-flow-test.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/set-marking-flow-test.md) | Route and mark flow checks at 390x844 and 734x310 after v0.17.0 to v0.17.4. |
 | Edit Set gaps plan | Context: [docs/edit-set-gaps-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/edit-set-gaps-plan.md) | Building, v0.17.5 to v0.17.8. |
-| Mark sets page plan | Context: [docs/mark-sets-page-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/mark-sets-page-plan.md) | Unified Tag page with set marking in cards. Planned, awaiting Paul's OK. |
+| Mark sets page plan | Context: [docs/mark-sets-page-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/mark-sets-page-plan.md) | Paul OK'd it. v0.17.9 trims the Tag page. The player, wings and spanning follow. |
 | Set Tagger start end plan | Context: [docs/set-tagger-start-end-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/set-tagger-start-end-plan.md) | Planned, awaiting Paul's OK. |
 | Product ideas | [product-ideas.md](./product-ideas.md) | Running list of product ideas. |
 
@@ -34,6 +34,7 @@ Mirrors the [Key documents canvas](https://cursor.com/canvas/store-7c210afe-9d07
 
 | Build | Link | Notes |
 |-------|------|-------|
+| v0.17.9 | This build | The lead button and the opponent prompt leave the Tag tab. Each video has a status line. Each set has Tag, Continue or Open. Part filmed is text. The set menu keeps Delete tags. Archive on this page is a placeholder. |
 | v0.17.4 | [PR #150](https://github.com/donpauleone69/match-analyser-edge-tt/pull/150) | A set may end on the next video. Those two videos stay put. On a phone in landscape the mark steps sit in the left wing. A spanning line reads videos N and M. |
 | v0.17.3 | [PR #150](https://github.com/donpauleone69/match-analyser-edge-tt/pull/150) | Set line menu: Re-mark, Change number, Delete tags, Unmark, Mark complete. Each change can be undone. Re-mark keeps every rally inside. A video move that breaks the order is refused. Removing a video unmarks its sets. |
 | v0.17.2 | [PR #150](https://github.com/donpauleone69/match-analyser-edge-tt/pull/150) | Only a ready, tagging, or saved set opens. Play and seeking stop at the mark. The start card asks who serves. The end of the mark offers Re-mark. Save set offers the next ready set. |
