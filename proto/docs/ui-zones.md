@@ -45,7 +45,7 @@ One rally, 64px, three rows:
 
 | Row | Height | Holds |
 |---|---|---|
-| 1 | 32 | Head cell ("8 Kim", in the server's colour, the star's box), "at 6 - 4" (the score before the point), a word for Gap or Insert, then the actions |
+| 1 | 32 | Head cell ("8 Kim", in the server's colour, the star's box; dashed when it is the next open rally, in that server's colour), "at 6 - 4" (the score before the point), a word for Gap or Insert, then the actions |
 | 2 | 16 | The shot cells in the hitter's colour, or the part chips in review mode |
 | 3 | 3 | One line per part (Opening, Attack, Rally, End) under its shots. No text. Amber when marked for review. |
 
@@ -58,7 +58,7 @@ While contacts go in, the 2 second countdown bar runs along the bottom edge of t
 | Insert | Insert pressed, no contact yet | Ghost cell. Word "Insert". Head cell switches the server. | Cancel |
 | Tapping | Contacts going in | Cells and the ghost | Discard |
 | Answering | Taps closed, questions open | Cells with marks | Discard |
-| Saved | Just saved, picked, Set over, a saved set | Cells. Just saved and the set not won, the head already reads the next rally, its server and the new score. | Star, Edit Rally |
+| Saved | Just saved, picked, Set over, a saved set | Cells. Just saved and the set not won, the head already reads the next rally, its server and the new score, and the head cell draws dashed. | Star, Edit Rally |
 | Editing | Edit Rally | Cells, ring on the stop. End is its own slot at the end of the shot row. | Star, Edit Rally pressed |
 | Review | Star pressed | Part chips, ring on the focus, amber when marked | Star pressed, Edit Rally |
 
