@@ -49,6 +49,8 @@ One rally, 64px, three rows:
 | 2 | 16 | The shot cells in the hitter's colour, or the part chips in review mode |
 | 3 | 3 | One line per part (Opening, Attack, Rally, End) under its shots. No text. Amber when marked for review. |
 
+While contacts go in, the 2 second countdown bar runs along the bottom edge of the zone. It takes no space.
+
 | State | When | Row 2 | Actions |
 |---|---|---|---|
 | Before serve | Server known, no contact | Ghost cell | |
@@ -56,7 +58,7 @@ One rally, 64px, three rows:
 | Insert | Insert pressed, no contact yet | Ghost cell. Word "Insert". Head cell switches the server. | Cancel |
 | Tapping | Contacts going in | Cells and the ghost | Discard |
 | Answering | Taps closed, questions open | Cells with marks | Discard |
-| Saved | Just saved, picked, Set over, a saved set | Cells | Star, Edit Rally |
+| Saved | Just saved, picked, Set over, a saved set | Cells. Just saved and the set not won, the head already reads the next rally, its server and the new score. | Star, Edit Rally |
 | Editing | Edit Rally | Cells, ring on the stop. End is its own slot at the end of the shot row. | Star, Edit Rally pressed |
 | Review | Star pressed | Part chips, ring on the focus, amber when marked | Star pressed, Edit Rally |
 

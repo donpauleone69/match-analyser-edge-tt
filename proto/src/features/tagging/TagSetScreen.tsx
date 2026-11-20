@@ -1832,6 +1832,15 @@ function TagSet({
   )
   const starShown = starBase && !atEndPad
   const reviewDraftNow = review && starShown ? reviewDraft() : null
+  /** Just saved, set not won: the head already reads the next rally, its server and the new score. */
+  const nextHead =
+    rallyState === 'saved' &&
+    bestRowSaved &&
+    !pickDraft &&
+    !reviewDraftNow &&
+    mode !== 'setPoint' &&
+    !set.finished &&
+    !overrun
   const reviewParts = reviewDraftNow ? partsOf(reviewDraftNow) : []
   const reviewMarked = Boolean(reviewFocus && reviewDraftNow?.best?.review?.includes(reviewFocus))
   useEffect(() => {
@@ -2008,7 +2017,7 @@ function TagSet({
             key={lastTap}
             aria-hidden
             data-shot-timer=""
-            className="tag-idle-bar pointer-events-none absolute left-0 right-0 top-0 z-10 h-1.5 bg-brand-primary/50"
+            className="tag-idle-bar pointer-events-none absolute bottom-0 left-0 right-0 z-10 h-1.5 bg-brand-primary/50"
           />
         ) : null}
         <RallyZone
@@ -2025,10 +2034,11 @@ function TagSet({
                 : -1
               : -1
           }
-          rallyNo={atEndPad ? set.rallies.length + 1 : rallyNo}
+          rallyNo={atEndPad || nextHead ? set.rallies.length + 1 : rallyNo}
+          headDashed={nextHead}
           names={names}
-          server={atEndPad ? nextServer : rallyServer}
-          score={atEndPad ? scoreBefore(set.rallies.length) : scoreBefore(rallyScoreAt)}
+          server={atEndPad || nextHead ? nextServer : rallyServer}
+          score={atEndPad || nextHead ? scoreBefore(set.rallies.length) : scoreBefore(rallyScoreAt)}
           word={atEndPad ? null : rallyWord}
           tight={landscape}
           pressed={rallyState === 'editing'}
