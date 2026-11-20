@@ -468,7 +468,8 @@ button[disabled] {
   font-variant-numeric: tabular-nums;
   color: var(--color-tag-on-solid);
 }
-.tag-pill-on {
+.tag-pill-on,
+.edit-stop-on {
   outline: 2px solid var(--color-brand-primary);
   outline-offset: 1px;
 }
