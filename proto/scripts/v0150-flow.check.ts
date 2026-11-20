@@ -49,6 +49,7 @@ function blankMatch(): MatchRecord {
     firstServer: 'me',
     rallies: [],
     draft: null,
+    mark: null,
   }
   return {
     id: 'm-trace',

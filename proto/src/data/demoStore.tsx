@@ -21,6 +21,7 @@ import {
   leader,
   type Points,
 } from '@/features/tagging/score'
+import { migrateSetMark } from '@/features/tagging/setMark'
 
 export type { RallyData } from '@/features/tagging/rally'
 
@@ -31,11 +32,24 @@ export type Score = Points
 /** Typed on Details. Strings so a half-typed score survives. */
 export type EnteredScore = { me: string; them: string }
 
+/** One end of a set on a video. `t` is seconds in that video. */
+export type MarkPoint = { videoId: string; t: number }
+
+/**
+ * Where the set sits on video. `complete` means the whole set is there,
+ * from the first serve. Null means the set is not on video.
+ */
+export type SetMark = {
+  from: MarkPoint
+  to: MarkPoint
+  complete: boolean
+}
+
 export type SetData = {
   setId: number
   /** Entered on Details. */
   entered: EnteredScore
-  /** "Not filmed": the user chose to skip this set on the Tag checklist. */
+  /** Legacy skip. No longer written: no mark means the set is not on video. */
   skipped: boolean
   /** The user pressed Finish set. */
   finished: boolean
@@ -44,6 +58,8 @@ export type SetData = {
   rallies: RallyData[]
   /** The rally being tagged, kept without asking. */
   draft: Draft | null
+  /** The set's hard bounds on video. Null when it is not on video. */
+  mark: SetMark | null
 }
 
 /**
@@ -130,6 +146,7 @@ export function emptySet(setId: number): SetData {
     firstServer: firstServerForSet('me', setId),
     rallies: [],
     draft: null,
+    mark: null,
   }
 }
 
@@ -142,7 +159,7 @@ export function emptySet(setId: number): SetData {
 function normalizeMatch(match: MatchRecord): MatchRecord {
   const fromResult = resultSetCount(match)
   const used = Math.max(
-    lastSetId(match.sets, (s) => setHasTagProgress(s) || s.skipped),
+    lastSetId(match.sets, (s) => setHasTagProgress(s) || s.skipped || s.mark !== null),
     lastSetId(match.sets, (s) => s.entered.me !== '' || s.entered.them !== '')
   )
   const loose = match.sets.some((s) => s.setId <= used && !s.skipped && !s.finished)
@@ -151,14 +168,16 @@ function normalizeMatch(match: MatchRecord): MatchRecord {
     fromResult !== null
       ? Math.max(fromResult, lastTaggedSetId(match))
       : Math.max(1, tagDone ? used : used + 1)
-  const sets =
+  const listed =
     count === match.sets.length
       ? match.sets
       : Array.from(
           { length: count },
           (_, i) => match.sets.find((s) => s.setId === i + 1) ?? emptySet(i + 1)
         )
-  return sets === match.sets && tagDone === match.tagDone ? match : { ...match, sets, tagDone }
+  const sets = listed.map((s) => migrateSetMark(match.videos, s))
+  const sameSets = sets.length === match.sets.length && sets.every((s, i) => s === match.sets[i])
+  return sameSets && tagDone === match.tagDone ? match : { ...match, sets, tagDone }
 }
 
 /** With no result the last listed set is a spare: it can be started, not skipped. */
@@ -166,6 +185,7 @@ export function isSpareSet(match: MatchRecord, s: SetData): boolean {
   return (
     resultSetCount(match) === null &&
     s.setId === match.sets.length &&
+    s.mark === null &&
     setState(s) === 'none' &&
     s.entered.me === '' &&
     s.entered.them === ''
@@ -357,7 +377,11 @@ export function isUntouched(match: MatchRecord): boolean {
     match.videos.length === 0 &&
     match.sets.every(
       (s) =>
-        !s.skipped && !setHasTagProgress(s) && s.entered.me === '' && s.entered.them === ''
+        !s.mark &&
+        !s.skipped &&
+        !setHasTagProgress(s) &&
+        s.entered.me === '' &&
+        s.entered.them === ''
     )
   )
 }
@@ -535,7 +559,7 @@ function mergeMatches(extra: MatchRecord[], deleted: string[]): MatchRecord[] {
     (s) => overrides.get(s.id) ?? s
   )
   const onlyExtra = extra.filter((m) => !SEED_IDS.has(m.id))
-  return [...merged, ...onlyExtra]
+  return [...merged, ...onlyExtra].map(normalizeMatch)
 }
 
 /**
