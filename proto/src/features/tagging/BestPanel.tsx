@@ -44,11 +44,10 @@ export function shotPaint(side: Side, open: boolean, fa: boolean, dim: boolean):
 
 const PART_SHORT: Record<BestPart, string> = { opening: 'Open', rally: 'Rally', attack: 'Att', end: 'End' }
 
-/** Longest label that fits its button, then smaller type, then shorter words. Never spills. */
-export function PartLabel({ part, marked }: { part: BestPart; marked: boolean }) {
+/** Longest label that fits its chip, then smaller type, then shorter words. Never spills. */
+export function PartLabel({ part }: { part: BestPart }) {
   const ref = useRef<HTMLSpanElement>(null)
   const tries: { text: string; size: number }[] = [
-    ...(marked ? [{ text: `⚑ ${PART_LABEL[part]}`, size: 10 }] : []),
     { text: PART_LABEL[part], size: 10 },
     { text: PART_LABEL[part], size: 9 },
     { text: PART_LABEL[part], size: 8 },
@@ -57,7 +56,7 @@ export function PartLabel({ part, marked }: { part: BestPart; marked: boolean })
     { text: PART_SHORT[part].slice(0, 1), size: 9 },
   ]
   const [pick, setPick] = useState(0)
-  const key = `${part}:${marked}`
+  const key = part
   useLayoutEffect(() => {
     const el = ref.current
     const box = el?.parentElement

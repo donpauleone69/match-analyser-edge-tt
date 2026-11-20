@@ -482,6 +482,22 @@ export function toggleReview(d: Draft, part: BestPart): Draft {
   return { ...d, best: carryBest(d, { review }) }
 }
 
+/** The part review opens on: the first marked part, or Opening when none is marked. */
+export function reviewFocusOf(d: Draft): BestPart | null {
+  const parts = partsOf(d)
+  if (parts.length === 0) return null
+  const marked = d.best?.review ?? []
+  return parts.find((span) => marked.includes(span.part))?.part ?? parts[0].part
+}
+
+/** Back and Forward wrap through the parts, as Edit Rally wraps through its stops. */
+export function stepPart(parts: BestPart[], focus: BestPart, by: -1 | 1): BestPart {
+  if (parts.length === 0) return focus
+  const at = parts.indexOf(focus)
+  const i = at < 0 ? 0 : at
+  return parts[(i + by + parts.length) % parts.length]
+}
+
 /** Who hits each shot, from the server and the shot number. Later shots move when a contact is removed. */
 export function bestHitters(d: Pick<Draft, 'server' | 'contacts'>): Side[] {
   return d.contacts.map((_, i) => hitterOf(d.server, i + 1))
@@ -609,6 +625,28 @@ export function editStopWindow(
   }
   if (stop === 'end') return bestLoop(d, { step: 'end' }, timing)
   return bestLoop(d, { step: 'shots', page: stop }, timing)
+}
+
+/**
+ * The video window for one part, at 1x. It starts at the lead before the
+ * part's first contact. A part that starts on shot 1 starts a second before
+ * the serve, as Edit Rally's shot 1 does. The last shot of the rally, including
+ * End, runs to the rally end.
+ */
+export function partWindow(
+  d: Draft,
+  span: BestPartSpan,
+  timing: BestTiming = DEFAULT_BEST_TIMING,
+  serveBefore = 1,
+): BestWindow {
+  const n = d.contacts.length
+  const start = rallyStart(d)
+  const end = rallyEnd(d)
+  const contactAt = (k: number) => d.contacts[k - 1] ?? start
+  const after = (k: number) => (k < n ? (d.contacts[k] ?? end) : end)
+  const a = span.from <= 1 ? contactAt(1) - serveBefore : shotLoop(contactAt(span.from), after(span.from), timing, 1).a
+  const b = span.to >= n ? end : shotLoop(contactAt(span.to), after(span.to), timing, 1).b
+  return { a, b: Math.max(b, a) }
 }
 
 /**

@@ -22,7 +22,8 @@ Words used in the proto, the brief and reviews. Screen areas are in [ui-zones.md
 | Set Tagger | The screen that tags one set, a rally at a time. |
 | Edit Set | Steps through a set's rallies to edit or delete, and through its gaps (Gaps mode) to insert a missed rally. |
 | Edit Rally | A 4x2 pad that fixes one saved rally, opening on shot 1. |
-| Corner pad | The Shot Input layout: answers in the corners, BH on the left, FH on the right. |
+| Input Area | The controls under the Rally Zone in portrait, and the two wings in landscape. 2 columns of full colour regions. See [ui-zones.md](./ui-zones.md). |
+| Review mode | The star pressed: the Rally Zone shows the rally's parts, and Back, Forward and Review [part] mark parts to look at again. |
 | Not a shot | Removes a contact that was not a shot, such as a toss. |
 | Save set | Ends a won set and returns to the Tag page. |
 
