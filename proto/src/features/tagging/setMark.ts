@@ -328,7 +328,7 @@ export function wingLimits(m: MatchRecord, setId: number, edge: WingEdge): WingL
     let hi: WingBound = { at: bounds.end - MIN_SET_S, hint: 'Stops at 1 minute' }
     hi = lower(hi, { at: fromSeg.offset + fromSeg.duration, hint: 'Stops at the video end' })
     if (rallies) hi = lower(hi, { at: rallies.first, hint: `Stops at rally ${rallies.firstN}` })
-    if (hi.at < lo.at) hi = lo
+    if (hi.at < lo.at) return { lo: bounds.start, hi: bounds.start, below: lo.hint, above: hi.hint }
     return { lo: lo.at, hi: hi.at, below: lo.hint, above: hi.hint }
   }
 
@@ -337,7 +337,7 @@ export function wingLimits(m: MatchRecord, setId: number, edge: WingEdge): WingL
   if (rallies) lo = raise(lo, { at: rallies.last, hint: `Stops at rally ${rallies.lastN}` })
   let hi: WingBound = { at: toSeg.offset + toSeg.duration, hint: 'Stops at the video end' }
   if (after) hi = lower(hi, { at: after.start, hint: `Stops at set ${after.id}` })
-  if (hi.at < lo.at) hi = lo
+  if (hi.at < lo.at) return { lo: bounds.end, hi: bounds.end, below: lo.hint, above: hi.hint }
   return { lo: lo.at, hi: hi.at, below: lo.hint, above: hi.hint }
 }
 
@@ -362,12 +362,15 @@ export function newMarkAt(m: MatchRecord, videoId: string, at: number | null, pr
   const spans = spansOnVideo(m.videos, m.sets, videoId)
   const gaps = gapsOf(video.durationS, spans)
   if (gaps.length === 0) return { ok: false, reason: 'No room on this video.' }
-  const holding =
-    at !== null ? gaps.find((g) => at >= g.a + 0.05 && at <= g.b - 0.05) : undefined
-  const gap = holding ?? gaps[0]
-  const start = holding && at !== null ? at : gap.a
-  const end = Math.min(gap.b, start + ADD_SET_S, video.durationS)
-  if (end - start < 1) return { ok: false, reason: 'No room on this video.' }
+  const room = (g: { a: number; b: number }, atIn: number | null) => {
+    const start = atIn !== null && atIn >= g.a + 0.05 && atIn <= g.b - 0.05 ? atIn : g.a
+    const end = Math.min(g.b, start + ADD_SET_S, video.durationS)
+    return end - start >= MIN_SET_S - 0.05 ? { start, end } : null
+  }
+  const holding = at !== null ? gaps.find((g) => room(g, at)) : undefined
+  const placed = (holding && room(holding, at)) || gaps.map((g) => room(g, null)).find((g) => g) || null
+  if (!placed) return { ok: false, reason: 'No room on this video.' }
+  const { start, end } = placed
 
   const segs = segmentsOf(m.videos)
   const startG = toGlobal(segs, videoId, start)

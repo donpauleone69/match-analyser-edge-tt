@@ -38,6 +38,13 @@ async function uncover(page) {
   })
 }
 
+async function inView(page, videoId) {
+  return page.locator(`[data-video-block="${videoId}"]`).evaluate((el) => {
+    const r = el.getBoundingClientRect()
+    return r.bottom > 8 && r.top < window.innerHeight - 8 && r.height > 0
+  })
+}
+
 async function text(page) {
   return page.locator('#shell-scroll').innerText()
 }
@@ -81,7 +88,22 @@ for (const view of VIEWS) {
   await page.goto(`${BASE}/matches/m-partial/tag`, { waitUntil: 'domcontentloaded' })
   await page.locator('[data-video-status="v-club-1"]').waitFor()
   const stuck = await page.locator('[data-preview-player]').evaluate((el) => getComputedStyle(el).position)
-  ok(`${tag} player sticks`, stuck === 'sticky', stuck)
+  if (view.width > view.height) {
+    ok(`${tag} player rests`, stuck === 'static', stuck)
+    const cont = page.locator('[data-set-line="2"] [data-set-action="Continue"]')
+    await cont.scrollIntoViewIfNeeded()
+    const hit = await cont.evaluate((el) => {
+      const r = el.getBoundingClientRect()
+      const top = document.elementFromPoint(r.left + r.width / 2, r.top + Math.min(r.height / 2, 12))
+      if (!top) return 'none'
+      if (el.contains(top)) return 'self'
+      if (top.closest('[data-preview-player]')) return 'player'
+      return top.getAttribute('aria-label') || (top.textContent || '').trim().slice(0, 40) || top.tagName
+    })
+    ok(`${tag} continue is reachable`, hit === 'self', hit)
+  } else {
+    ok(`${tag} player sticks`, stuck === 'sticky', stuck)
+  }
   await uncover(page)
   let body = await text(page)
   ok(`${tag} no opponent prompt`, !body.includes('Who did you play?'))
@@ -126,19 +148,19 @@ for (const view of VIEWS) {
   const version = (await page.locator('[data-build-version]').innerText()).trim()
   ok(`${tag} version`, version === 'v0.17.11', version)
   await page.getByRole('link', { name: 'Back' }).click()
-  await page.waitForURL(/\/matches\/m-partial\/tag(\?.*)?$/)
+  await page.waitForURL(/\/matches\/m-partial\/tag\?from=2$/)
   await page.locator('[data-set-line="2"]').waitFor()
   ok(`${tag} back from continue`, (await row(page, 2)).action === 'Continue')
-  await page.locator('[data-picked="2"]').waitFor()
-  ok(`${tag} back shows the set`, (await page.locator('[data-picked="2"]').count()) === 1)
+  ok(`${tag} back scrolls`, await inView(page, 'v-club-1'))
+  ok(`${tag} back does not pick`, (await page.locator('[data-picked]').count()) === 0)
 
-  await page.locator('[data-edit-done="2"]').click()
   await page.locator('[data-set-line="1"] [data-set-action="Open"]').click()
   await page.waitForURL(/\/matches\/m-partial\/tag\/1$/)
   await page.locator('.tag-set').waitFor()
   await page.getByRole('link', { name: 'Back' }).click()
-  await page.waitForURL(/\/matches\/m-partial\/tag(\?.*)?$/)
+  await page.waitForURL(/\/matches\/m-partial\/tag\?from=1$/)
   ok(`${tag} back from open`, (await row(page, 1)).action === 'Open')
+  ok(`${tag} open back does not pick`, (await page.locator('[data-picked]').count()) === 0)
 
   await page.locator('[data-card-time="v-club-2"]').evaluate((el) => {
     const box = el.getBoundingClientRect()
@@ -194,10 +216,10 @@ for (const view of VIEWS) {
   await page.locator('[data-set-line="1"] [data-set-action="Open"]').click()
   await page.waitForURL(/\/matches\/m-complete\/tag\/1$/)
   await page.getByRole('link', { name: 'Back' }).click()
-  await page.waitForURL(/\/matches\/m-complete\/tag(\?.*)?$/)
+  await page.waitForURL(/\/matches\/m-complete\/tag\?from=1$/)
   ok(`${tag} league back`, (await row(page, 1)).action === 'Open')
-  await page.locator('[data-picked="1"]').waitFor()
-  ok(`${tag} league card opens on return`, (await page.locator('[data-wing="end"]').count()) === 1)
+  ok(`${tag} league card stays locked`, (await page.locator('[data-wing]').count()) === 0 && (await page.locator('[data-picked]').count()) === 0)
+  ok(`${tag} league card in view`, await inView(page, 'v-final'))
 
   await page.goto(`${BASE}/matches/m-ready/tag`, { waitUntil: 'domcontentloaded' })
   await page.locator('[data-video-status="v-county"]').waitFor()
@@ -226,6 +248,12 @@ for (const view of VIEWS) {
   await page.locator('[data-picked="1"]').waitFor()
   ok(`${tag} mark redirect`, page.url().includes('set=1') && !page.url().includes('/mark/'))
   ok(`${tag} redirected wings`, (await page.locator('[data-wing="start"]').count()) === 1)
+
+  await page.goto(`${BASE}/matches/m-partial/mark/v-club-2`, { waitUntil: 'domcontentloaded' })
+  await page.waitForURL(/\/matches\/m-partial\/tag\?video=v-club-2$/)
+  await page.locator('[data-video-block="v-club-2"]').waitFor()
+  ok(`${tag} mark video in view`, await inView(page, 'v-club-2'))
+  ok(`${tag} mark video does not pick`, (await page.locator('[data-picked]').count()) === 0)
 
   await page.goto(`${BASE}/matches/m-new/tag`, { waitUntil: 'domcontentloaded' })
   await page.locator('[data-no-video]').waitFor()

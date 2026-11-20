@@ -29,6 +29,7 @@ import type { Side } from '@/features/tagging/rally'
 import {
   clampWing,
   gapsOf,
+  MIN_SET_S,
   markBounds,
   markState,
   newMarkAt,
@@ -111,21 +112,34 @@ export function MatchTagChecklist() {
   useEffect(() => {
     if (!match || applied.current) return
     applied.current = true
-    const raw = search.get('set')
-    if (!raw) return
-    const setId = Number(raw)
-    const s = match.sets.find((x) => x.setId === setId && x.mark)
-    if (!s?.mark) return
-    const asked = search.get('video')
-    const onAsked = Boolean(asked && (s.mark.from.videoId === asked || s.mark.to.videoId === asked))
-    const videoId = onAsked && asked ? asked : s.mark.from.videoId
-    setPicked({ setId, videoId })
-    if (videoStatus(match, videoId) === 'Done') {
-      setOpened((ids) => (ids.includes(videoId) ? ids : [...ids, videoId]))
+    const show = (videoId: string) => {
+      requestAnimationFrame(() => {
+        document.querySelector(`[data-video-block="${videoId}"]`)?.scrollIntoView({ block: 'center' })
+      })
     }
-    requestAnimationFrame(() => {
-      document.querySelector(`[data-video-block="${videoId}"]`)?.scrollIntoView({ block: 'center' })
-    })
+    const raw = search.get('set')
+    if (raw) {
+      const setId = Number(raw)
+      const s = match.sets.find((x) => x.setId === setId && x.mark)
+      if (!s?.mark) return
+      const asked = search.get('video')
+      const onAsked = Boolean(asked && (s.mark.from.videoId === asked || s.mark.to.videoId === asked))
+      const videoId = onAsked && asked ? asked : s.mark.from.videoId
+      setPicked({ setId, videoId })
+      if (videoStatus(match, videoId) === 'Done') {
+        setOpened((ids) => (ids.includes(videoId) ? ids : [...ids, videoId]))
+      }
+      show(videoId)
+      return
+    }
+    const from = search.get('from')
+    if (from) {
+      const s = match.sets.find((x) => x.setId === Number(from) && x.mark)
+      if (s?.mark) show(s.mark.from.videoId)
+      return
+    }
+    const video = search.get('video')
+    if (video && match.videos.some((v) => v.id === video)) show(video)
   }, [match, search])
 
   useEffect(
@@ -476,7 +490,7 @@ function openGapVideo(match: MatchRecord, opened: readonly string[], archiveLock
   if (archiveLocked) return null
   return (
     match.videos.find((v) => {
-      if (gapsOf(v.durationS, spansOnVideo(match.videos, match.sets, v.id)).length === 0) return false
+      if (!gapsOf(v.durationS, spansOnVideo(match.videos, match.sets, v.id)).some((g) => g.b - g.a >= MIN_SET_S)) return false
       if (videoStatus(match, v.id) === 'Done' && !opened.includes(v.id)) return false
       return true
     }) ?? null

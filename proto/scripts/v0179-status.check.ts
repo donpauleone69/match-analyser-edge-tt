@@ -136,6 +136,33 @@ ok(
   plainEnd !== null && clampWing(plainEnd, 20).hint === 'Stops at 1 minute' && clampWing(plainEnd, 20).at === 60
 )
 
+const crowded = match(
+  [{ ...video('v1'), durationS: 600 }],
+  [
+    setOf(1, mark('v1', 0, 60, true), 'saved'),
+    setOf(2, mark('v1', 60, 100, true), 'ready'),
+    setOf(7, mark('v1', 100, 600, true), 'ready'),
+  ]
+)
+const pinned = wingLimits(crowded, 2, 'end')
+ok('crossed limits pin the wing', pinned !== null && pinned.lo === 100 && pinned.hi === 100)
+ok(
+  'nudge stays on the short set',
+  pinned !== null && clampWing(pinned, 99).at === 100 && clampWing(pinned, 120).at === 100 && clampWing(pinned, 120).hint === 'Stops at set 7'
+)
+const tight = match(
+  [{ ...video('v1'), durationS: 600 }],
+  [setOf(1, mark('v1', 0, 60, true), 'saved'), setOf(7, mark('v1', 100, 600, true), 'ready')]
+)
+const refused = newMarkAt(tight, 'v1', 80)
+ok('short gap is refused', !refused.ok && refused.reason === 'No room on this video.')
+const mixed = match(
+  [{ ...video('v1'), durationS: 600 }],
+  [setOf(1, mark('v1', 0, 60, true), 'saved'), setOf(2, mark('v1', 100, 200, true), 'saved')]
+)
+const later = newMarkAt(mixed, 'v1', 70)
+ok('short stretch is skipped', later.ok && later.mark.from.t === 200 && later.mark.to.t - later.mark.from.t >= 60)
+
 if (fails.length) {
   console.error(`v0.17.9 status: ${fails.length} failed`)
   process.exit(1)

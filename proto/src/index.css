@@ -578,6 +578,12 @@ button[disabled] {
 .tag-preview {
   --tag-playback: 2.25rem;
 }
+/* Until the two-column layout, a sticky player covers the cards on a short phone. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .tag-preview {
+    position: static;
+  }
+}
 @media (pointer: coarse) {
   .tag-preview {
     --tag-playback: 2.75rem;
@@ -658,6 +664,9 @@ button[disabled] {
   width: 12px;
   height: 28px;
   margin-left: -6px;
+  border-radius: 3px;
+  background: #fff;
+  box-shadow: 0 0 0 1px var(--color-brand-primary);
   touch-action: none;
 }
 .card-wing::before {
@@ -676,11 +685,13 @@ button[disabled] {
   width: 2px;
   height: 16px;
   border-radius: 1px;
-  background: #fff;
-  box-shadow: 0 0 0 1px var(--color-brand-primary);
+  background: var(--color-brand-primary);
+}
+.card-wing[data-flash] {
+  background: var(--color-warning);
 }
 .card-wing[data-flash] .card-wing-grip {
-  background: var(--color-warning);
+  background: #fff;
 }
 .card-wing-readout {
   position: absolute;

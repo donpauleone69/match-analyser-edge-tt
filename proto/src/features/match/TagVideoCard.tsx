@@ -16,6 +16,7 @@ import {
   lineAction,
   markBounds,
   markCrosses,
+  MIN_SET_S,
   markState,
   setsStartingOn,
   spansOnVideo,
@@ -122,7 +123,7 @@ export function TagVideoCard({
   const [drag, setDrag] = useState<Drag | null>(null)
   const many = match.videos.length > 1
   const spans = spansOnVideo(match.videos, match.sets, video.id)
-  const gap = gapsOf(video.durationS, spans).length > 0
+  const gap = gapsOf(video.durationS, spans).some((g) => g.b - g.a >= MIN_SET_S)
   const lines = setsStartingOn(match.sets, video.id)
   const status = videoStatus(match, video.id)
   const segs = segmentsOf(match.videos)
@@ -517,6 +518,7 @@ function CardTimeline({
                   const wing = e.currentTarget
                   const box = wing.parentElement
                   if (!box) return
+                  wing.setPointerCapture(e.pointerId)
                   const x0 = e.clientX
                   let started = false
                   let last = local
@@ -530,7 +532,6 @@ function CardTimeline({
                     if (!started) {
                       if (Math.abs(ev.clientX - x0) < 6) return
                       started = true
-                      wing.setPointerCapture(ev.pointerId)
                     }
                     const asked = localOf(box, ev.clientX)
                     const clamped = clampEdge(pickedId, edge, asked)
