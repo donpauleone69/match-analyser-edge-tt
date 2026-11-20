@@ -2,13 +2,15 @@
 
 Updated 20 Nov 2026. The working set for decisions. Kept current as each one changes.
 
-Mirrors the [Key documents canvas](https://cursor.com/canvas/store-7c210afe-9d07-40db-82c4-34e629d311ff/7c7577ce-ca6a-47ed-a64a-c83282ecdde0) with repo paths for markdown in this folder.
+Mirrors the [Key documents canvas](https://cursor.com/canvas/store-7c210afe-9d07-40db-82c4-34e629d311ff/7c7577ce-ca6a-47ed-a64a-c83282ecdde0). Older plans and ideation live in Context and in git history.
 
 ## Start here
 
 | Document | In repo | Notes |
 |----------|---------|-------|
-| Product brief (revised) | Context: [docs/product-brief.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/product-brief.md) · [product-brief-review.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/product-brief-review.md) | Revised 20 Nov 2026. Repo [fresh/product-brief.md](./fresh/product-brief.md) is out of date until Paul decides whether to sync. |
+| Product brief | [product-brief.md](./product-brief.md) · Context: [product-brief-review.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/product-brief-review.md) | Revised 20 Nov 2026. Goal, users, key flows and shared concepts. |
+| UI zones | [ui-zones.md](./ui-zones.md) | Zone names and portrait and landscape layout for the tagging screen, and where each lives in code. |
+| Glossary | [glossary.md](./glossary.md) | Terms used in the proto, the brief and reviews. |
 
 ## For decisions
 
@@ -18,12 +20,11 @@ Mirrors the [Key documents canvas](https://cursor.com/canvas/store-7c210afe-9d07
 | Question order, in order or End first | [Canvas](https://cursor.com/canvas/store-7c210afe-9d07-40db-82c4-34e629d311ff/6c268a07-7ab3-41f8-8479-011ab23ecb57) | Logic review of asking every shot in order with End last. Built as v0.15.0. |
 | Eyes on video, compared | [Canvas](https://cursor.com/canvas/store-7c210afe-9d07-40db-82c4-34e629d311ff/2f7ed7b0-64c6-47b2-b0e8-165de08c227a) | Seven models' blind concepts and your notes in 7 families. You picked the corner pad as the baseline. |
 | Problem 5, my ideas | [Canvas](https://cursor.com/canvas/store-7c210afe-9d07-40db-82c4-34e629d311ff/b21abb84-dc87-492d-b8f5-639f06a994b4) | Your ideas for keeping eyes on the video while answering shot questions on the phone. |
-| Best + FA main flow plan | [Canvas](https://cursor.com/canvas/store-7c210afe-9d07-40db-82c4-34e629d311ff/9027bc66-7334-4f4f-8288-502d23cb74e6) · [tagging-ideation/best-fa-main-plan.md](./tagging-ideation/best-fa-main-plan.md) | The v0.13.1 order: End first, shot 4, Who attacked first, Nobody, scenarios and test cases. |
-| Tagging models compared | [Canvas](https://cursor.com/canvas/store-7c210afe-9d07-40db-82c4-34e629d311ff/4b40d60d-bb36-40e8-b609-fccff5e1d70a) · [tagging-ideation/model-comparison-best-fa.md](./tagging-ideation/model-comparison-best-fa.md) | Data value, taps, time per rally and ratings. Best + FA now 8 out of 10 at 9.5 taps, tied with Spine r4. |
-| Best + FA insights | [Canvas](https://cursor.com/canvas/store-7c210afe-9d07-40db-82c4-34e629d311ff/59552445-e705-4aa7-987c-8f67c98602a0) · [tagging-ideation/best-fa-insights.md](./tagging-ideation/best-fa-insights.md) | What the data can show: match, cards, training and season views on sample data, plus model changes, what could come out, and research. |
+| Best + FA main flow plan | [Canvas](https://cursor.com/canvas/store-7c210afe-9d07-40db-82c4-34e629d311ff/9027bc66-7334-4f4f-8288-502d23cb74e6) | The v0.13.1 order: End first, shot 4, Who attacked first, Nobody, scenarios and test cases. |
+| Tagging models compared | [Canvas](https://cursor.com/canvas/store-7c210afe-9d07-40db-82c4-34e629d311ff/4b40d60d-bb36-40e8-b609-fccff5e1d70a) | Data value, taps, time per rally and ratings. Best + FA now 8 out of 10 at 9.5 taps, tied with Spine r4. |
+| Best + FA insights | [Canvas](https://cursor.com/canvas/store-7c210afe-9d07-40db-82c4-34e629d311ff/59552445-e705-4aa7-987c-8f67c98602a0) | What the data can show: match, cards, training and season views on sample data, plus model changes, what could come out, and research. |
 | Parity plan | Context: [docs/orientation-parity-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/orientation-parity-plan.md) | One layout per orientation on the tagging screen. Wings, tap zone, nav. |
 | Parity review v0.16.1 | Context: [docs/landscape-portrait-parity-v0161.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/landscape-portrait-parity-v0161.md) | Landscape and portrait gaps before parity work. Code and browser checks at phone sizes. |
-| UI zones | Context: [docs/ui-zones.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/ui-zones.md) | Zone names and portrait and landscape layout for the tagging screen. |
 | Set Tagger sprint plan | Context: [docs/set-tagger-sprint-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/set-tagger-sprint-plan.md) | Shipped in v0.17.4. |
 | Set marking sprint plan | Context: [docs/set-marking-sprint-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/set-marking-sprint-plan.md) | Shipped in v0.17.4. |
 | Set marking flow test | Context: [docs/set-marking-flow-test.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/set-marking-flow-test.md) | Route and mark flow checks at 390x844 and 734x310 after v0.17.0 to v0.17.4. |
@@ -72,11 +73,11 @@ Mirrors the [Key documents canvas](https://cursor.com/canvas/store-7c210afe-9d07
 
 ## Theme and style
 
-| Document | Canvas | Markdown in repo | Notes |
-|----------|--------|------------------|-------|
-| Style guide v3 | [Canvas](https://cursor.com/canvas/store-7c210afe-9d07-40db-82c4-34e629d311ff/7c5f04e3-951d-43aa-8f4c-0bc9c3ee0bf9) | [tagging-ideation/fresh-design.md](./tagging-ideation/fresh-design.md) | iPhone 15 sizing. Layouts A and B. B uses v2 components. A and B in v1 styles. |
-| Fresh pass themes | [Canvas](https://cursor.com/canvas/store-7c210afe-9d07-40db-82c4-34e629d311ff/aff1e37f-c39f-4123-a302-566a55e5294e) | [tagging-ideation/blind-design.md](./tagging-ideation/blind-design.md) | Clay, Ink, and Mist. |
-| Style guide v1 | [Canvas](https://cursor.com/canvas/store-7c210afe-9d07-40db-82c4-34e629d311ff/2b779b80-7719-478c-ad55-cb68b3f2e1ed) | [tagging-ideation/fresh-design-v1.md](./tagging-ideation/fresh-design-v1.md) | Earliest Courtside night canvas. |
+| Document | Canvas | Notes |
+|----------|--------|-------|
+| Style guide v3 | [Canvas](https://cursor.com/canvas/store-7c210afe-9d07-40db-82c4-34e629d311ff/7c5f04e3-951d-43aa-8f4c-0bc9c3ee0bf9) | iPhone 15 sizing. Layouts A and B. B uses v2 components. A and B in v1 styles. |
+| Fresh pass themes | [Canvas](https://cursor.com/canvas/store-7c210afe-9d07-40db-82c4-34e629d311ff/aff1e37f-c39f-4123-a302-566a55e5294e) | Clay, Ink, and Mist. |
+| Style guide v1 | [Canvas](https://cursor.com/canvas/store-7c210afe-9d07-40db-82c4-34e629d311ff/2b779b80-7719-478c-ad55-cb68b3f2e1ed) | Earliest Courtside night canvas. |
 
 ## Reference
 
