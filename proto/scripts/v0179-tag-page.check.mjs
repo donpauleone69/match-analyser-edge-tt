@@ -99,8 +99,12 @@ for (const view of VIEWS) {
 
   await page.locator('[data-set-menu-button="1"]').click()
   const menu1 = (await page.locator('[data-set-menu="1"] button').allInnerTexts()).map((t) => t.trim())
-  ok(`${tag} menu is delete tags`, menu1.length === 1 && menu1[0] === 'Delete tags', menu1.join('|'))
-  ok(`${tag} no other set edits`, !body.includes('Re-mark') && !body.includes('Change number') && !body.includes('Unmark') && !body.includes('Mark complete'))
+  ok(
+    `${tag} saved menu`,
+    menu1.includes('Re-mark') && menu1.includes('Change number') && menu1.includes('Delete tags') && !menu1.includes('Unmark') && !menu1.includes('Mark complete'),
+    menu1.join('|')
+  )
+  await page.locator('[data-set-menu-button="1"]').click()
 
   await page.locator('[aria-label="Menu for video 1"]').click()
   const videoMenu = (await page.locator('[data-video-menu="v-club-1"] button').allInnerTexts()).map((t) => t.trim())
@@ -135,7 +139,14 @@ for (const view of VIEWS) {
   await page.locator('[data-delete-tags="2"]').click()
   ok(`${tag} ready after delete tags`, (await status(page, 'v-club-1')) === 'Ready to tag')
   const ready = await row(page, 2)
-  ok(`${tag} set 2 ready`, ready.label === 'Set 2' && ready.action === 'Tag' && ready.menu === 0, JSON.stringify(ready))
+  ok(`${tag} set 2 ready`, ready.label === 'Set 2' && ready.action === 'Tag' && ready.menu === 1, JSON.stringify(ready))
+  await page.locator('[data-set-menu-button="2"]').click()
+  const readyMenu = (await page.locator('[data-set-menu="2"] button').allInnerTexts()).map((t) => t.trim())
+  ok(
+    `${tag} ready menu`,
+    readyMenu.includes('Re-mark') && readyMenu.includes('Change number') && readyMenu.includes('Unmark') && !readyMenu.includes('Delete tags'),
+    readyMenu.join('|')
+  )
   await page.getByRole('button', { name: 'Undo' }).click()
   ok(`${tag} undo tagging`, (await status(page, 'v-club-1')) === 'Tagging' && (await row(page, 2)).action === 'Continue')
 
@@ -150,7 +161,14 @@ for (const view of VIEWS) {
   await page.getByRole('link', { name: 'Back' }).click()
   await page.waitForURL(/\/matches\/m-partial\/tag$/)
   const part = await row(page, 3)
-  ok(`${tag} part filmed`, part.label === 'Set 3' && part.part === 'Part filmed' && part.action === '' && part.menu === 0, JSON.stringify(part))
+  ok(`${tag} part filmed`, part.label === 'Set 3' && part.part === 'Part filmed' && part.action === '' && part.menu === 1, JSON.stringify(part))
+  await page.locator('[data-set-line="3"] [data-set-menu-button="3"]').click()
+  const partMenu = (await page.locator('[data-set-menu="3"] button').allInnerTexts()).map((t) => t.trim())
+  ok(
+    `${tag} part filmed menu`,
+    partMenu.includes('Re-mark') && partMenu.includes('Mark complete') && partMenu.includes('Unmark') && !partMenu.includes('Change number') && !partMenu.includes('Delete tags'),
+    partMenu.join('|')
+  )
   ok(`${tag} video 2 done`, (await status(page, 'v-club-2')) === 'Done')
   ok(`${tag} set 3 left the off list`, (await page.locator('[data-off-set="3"]').count()) === 0)
   await page.locator('[data-archive-video="v-club-2"]').click()

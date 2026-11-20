@@ -34,7 +34,7 @@ Mirrors the [Key documents canvas](https://cursor.com/canvas/store-7c210afe-9d07
 
 | Build | Link | Notes |
 |-------|------|-------|
-| v0.17.9 | [PR #152](https://github.com/donpauleone69/match-analyser-edge-tt/pull/152) | The lead button and the opponent prompt leave the Tag tab. Each video has a status line. Each set has Tag, Continue or Open. Part filmed is text. The set menu keeps Delete tags. Archive on this page is a placeholder. |
+| v0.17.9 | [PR #152](https://github.com/donpauleone69/match-analyser-edge-tt/pull/152) | The lead button and the opponent prompt leave the Tag tab. Each video has a status line. Each set has Tag, Continue or Open. Part filmed is text. The row Menu keeps Re-mark, Change number, Unmark and Mark complete until the card edits replace them. Archive on this page is a placeholder, and a locked match hides Archive video. |
 | v0.17.4 | [PR #150](https://github.com/donpauleone69/match-analyser-edge-tt/pull/150) | A set may end on the next video. Those two videos stay put. On a phone in landscape the mark steps sit in the left wing. A spanning line reads videos N and M. |
 | v0.17.3 | [PR #150](https://github.com/donpauleone69/match-analyser-edge-tt/pull/150) | Set line menu: Re-mark, Change number, Delete tags, Unmark, Mark complete. Each change can be undone. Re-mark keeps every rally inside. A video move that breaks the order is refused. Removing a video unmarks its sets. |
 | v0.17.2 | [PR #150](https://github.com/donpauleone69/match-analyser-edge-tt/pull/150) | Only a ready, tagging, or saved set opens. Play and seeking stop at the mark. The start card asks who serves. The end of the mark offers Re-mark. Save set offers the next ready set. |

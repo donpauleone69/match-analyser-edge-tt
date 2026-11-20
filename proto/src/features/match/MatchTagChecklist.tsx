@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Button, buttonKindTextLink } from '@/ui-mine'
 import {
   derivePhase,
+  emptySet,
   formatScore,
   matchSetsWon,
   missingVideoIds,
@@ -24,15 +25,20 @@ import { useArchiveStep } from '@/features/match/archiveJobs'
 import { isRealResult, videoRallyCount } from '@/features/match/matchChecks'
 import {
   applyTaggedResult,
+  completeMark,
   deleteTags,
   finishMatch,
+  moveSet,
   reopenMatch,
   restoreSet,
+  unmarkSet,
 } from '@/features/tagging/matchOps'
 import {
+  allowedMarkNumbers,
   firstGapVideo,
   gapsOf,
   lineAction,
+  markBounds,
   markCrosses,
   markState,
   notOnVideo,
@@ -129,7 +135,7 @@ export function MatchTagChecklist() {
       return
     }
     if (videoLocked(match, video.id)) {
-      setNote('This video is part of a set.')
+      setNote('This video is part of a set. Unmark that set first.')
       return
     }
     if (video.archived || videoRallyCount(match, video.id) > 0) setAsking(video.id)
@@ -398,7 +404,7 @@ function VideoBlock({
         </Button>
       ) : null}
 
-      {status === 'Done' ? (
+      {status === 'Done' && !locked ? (
         <div className="space-y-1">
           <Button
             kind="control"
@@ -451,11 +457,23 @@ function SetLine({
   onOpen: () => void
   onUndo: (before: SetData, text: string, also?: SetData) => void
 }) {
+  const navigate = useNavigate()
   const { mutateMatch } = useDemo()
   const [menu, setMenu] = useState(false)
+  const [picking, setPicking] = useState(false)
   const action = lineAction(s)
   const state = markState(s)
-  const canDelete = !locked && (state === 'tagging' || state === 'saved')
+  const bounds = s.mark ? markBounds(match.videos, s.mark) : null
+  const numbers = bounds ? allowedMarkNumbers(match, bounds.start, s.setId).filter((n) => n !== s.setId) : []
+  const remark = () => {
+    if (!s.mark) return
+    navigate(`/matches/${match.id}/mark/${s.mark.from.videoId}?set=${s.setId}`)
+  }
+  const run = (text: string, fn: (m: MatchRecord) => MatchRecord) => {
+    onUndo(s, text)
+    mutateMatch(match.id, fn)
+    setMenu(false)
+  }
   return (
     <li className="space-y-1" data-set-line={s.setId} data-set-state={state}>
       <div className="flex items-center justify-between gap-2">
@@ -476,7 +494,7 @@ function SetLine({
               {action}
             </Button>
           ) : null}
-          {canDelete ? (
+          {locked ? null : (
             <Button
               kind="control"
               variant="ghost"
@@ -486,23 +504,54 @@ function SetLine({
             >
               Menu
             </Button>
-          ) : null}
+          )}
         </span>
       </div>
-      {menu && canDelete ? (
+      {menu && !locked ? (
         <div className="flex flex-wrap gap-1" data-set-menu={s.setId}>
-          <Button
-            kind="control"
-            variant="secondary"
-            data-delete-tags={s.setId}
-            onClick={() => {
-              onUndo(s, `Set ${s.setId} tags deleted`)
-              mutateMatch(match.id, (m) => deleteTags(m, s.setId))
-              setMenu(false)
-            }}
-          >
-            Delete tags
+          <Button kind="control" variant="secondary" onClick={remark}>
+            Re-mark
           </Button>
+          {state === 'part' ? (
+            <Button kind="control" variant="secondary" onClick={() => run(`Set ${s.setId} marked complete`, (m) => completeMark(m, s.setId))}>
+              Mark complete
+            </Button>
+          ) : null}
+          {state === 'ready' || state === 'tagging' || state === 'saved' ? (
+            <Button kind="control" variant="secondary" disabled={numbers.length === 0} onClick={() => setPicking((open) => !open)}>
+              Change number
+            </Button>
+          ) : null}
+          {state === 'tagging' || state === 'saved' ? (
+            <Button kind="control" variant="secondary" data-delete-tags={s.setId} onClick={() => run(`Set ${s.setId} tags deleted`, (m) => deleteTags(m, s.setId))}>
+              Delete tags
+            </Button>
+          ) : null}
+          {state === 'part' || state === 'ready' ? (
+            <Button kind="control" variant="secondary" data-unmark={s.setId} onClick={() => run(`Set ${s.setId} unmarked`, (m) => unmarkSet(m, s.setId))}>
+              Unmark
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
+      {menu && picking ? (
+        <div className="flex flex-wrap gap-1" data-change-number={s.setId}>
+          {numbers.map((n) => (
+            <Button
+              key={n}
+              kind="control"
+              variant="secondary"
+              data-make-set={n}
+              onClick={() => {
+                const dest = match.sets.find((x) => x.setId === n) ?? emptySet(n)
+                onUndo(s, `Set ${s.setId} is now set ${n}`, dest)
+                mutateMatch(match.id, (m) => moveSet(m, s.setId, n))
+                setMenu(false)
+              }}
+            >
+              Make it set {n}
+            </Button>
+          ))}
         </div>
       ) : null}
     </li>
