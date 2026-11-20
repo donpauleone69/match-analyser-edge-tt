@@ -1834,7 +1834,13 @@ function TagSet({
   const reviewDraftNow = review && starShown ? reviewDraft() : null
   /** Just saved, set not won: the head already reads the next rally, its server and the new score. */
   const nextHead =
-    rallyState === 'saved' && bestRowSaved && !pickDraft && !reviewDraftNow && mode !== 'setPoint' && !set.finished
+    rallyState === 'saved' &&
+    bestRowSaved &&
+    !pickDraft &&
+    !reviewDraftNow &&
+    mode !== 'setPoint' &&
+    !set.finished &&
+    !overrun
   const reviewParts = reviewDraftNow ? partsOf(reviewDraftNow) : []
   const reviewMarked = Boolean(reviewFocus && reviewDraftNow?.best?.review?.includes(reviewFocus))
   useEffect(() => {
@@ -2029,6 +2035,7 @@ function TagSet({
               : -1
           }
           rallyNo={atEndPad || nextHead ? set.rallies.length + 1 : rallyNo}
+          headDashed={nextHead}
           names={names}
           server={atEndPad || nextHead ? nextServer : rallyServer}
           score={atEndPad || nextHead ? scoreBefore(set.rallies.length) : scoreBefore(rallyScoreAt)}

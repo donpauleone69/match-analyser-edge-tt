@@ -23,6 +23,7 @@ export function RallyZone({
   focus,
   flash,
   rallyNo,
+  headDashed = false,
   names,
   server,
   score,
@@ -46,6 +47,8 @@ export function RallyZone({
   focus: number | 'end' | null
   flash: number
   rallyNo: number
+  /** The head names a rally with nothing tapped yet, while the row still shows the last saved one. */
+  headDashed?: boolean
   names: Record<Side, string>
   /** Null before the first serve is picked. The head is then grey and numbered. */
   server: Side | null
@@ -80,7 +83,7 @@ export function RallyZone({
     ? parts.map((p) => `repeat(${p.to - p.from + 1}, minmax(24px, var(--btn-kind-control)))`).join(' 0px ') +
       (showEnd ? ' minmax(24px, var(--btn-kind-control))' : '')
     : `repeat(${Math.max(n + 1, 1)}, minmax(24px, var(--btn-kind-control)))`
-  const dashed = state === 'gap' || state === 'insert' || state === 'before'
+  const dashed = headDashed || state === 'gap' || state === 'insert' || state === 'before'
   const headClass = cn(
     'inline-flex h-8 min-w-0 items-center gap-1 rounded-md border px-2 text-sm font-semibold',
     tight ? 'max-w-[36%]' : 'max-w-[40%]',
