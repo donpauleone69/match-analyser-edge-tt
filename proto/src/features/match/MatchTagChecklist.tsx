@@ -22,6 +22,7 @@ import { ARCHIVE_STEPS, startArchive, useArchiveStep } from '@/features/match/ar
 import { isRealResult, videoRallyCount } from '@/features/match/matchChecks'
 import { applyTaggedResult, finishMatch, reopenMatch } from '@/features/tagging/matchOps'
 import {
+  firstGapVideo,
   gapsOf,
   lineAction,
   markCrosses,
@@ -111,7 +112,8 @@ export function MatchTagChecklist() {
           data-tag-lead={lead.kind}
           onClick={() => {
             if (lead.kind === 'mark') {
-              document.querySelector('[data-mark-set]')?.scrollIntoView({ block: 'nearest' })
+              const video = firstGapVideo(match)
+              if (video) navigate(`/matches/${match.id}/mark/${video.id}`)
               return
             }
             openSet(lead.setId)
@@ -292,6 +294,7 @@ function VideoBlock({
   onCancelRemove: () => void
   onOpen: (setId: number) => void
 }) {
+  const navigate = useNavigate()
   const many = match.videos.length > 1
   const spans = spansOnVideo(match.videos, match.sets, video.id)
   const gap = gapsOf(video.durationS, spans).length > 0
@@ -371,8 +374,19 @@ function VideoBlock({
             return (
               <li key={s.setId} className="flex items-center justify-between gap-2" data-set-line={s.setId}>
                 <p className="min-w-0 text-sm text-primary">{setLine(match, s)}</p>
-                {action && action !== 'Mark' ? (
-                  <Button kind="control" variant="secondary" disabled={locked} onClick={() => onOpen(s.setId)}>
+                {action ? (
+                  <Button
+                    kind="control"
+                    variant="secondary"
+                    disabled={locked}
+                    onClick={() => {
+                      if (action === 'Mark' && s.mark) {
+                        navigate(`/matches/${match.id}/mark/${s.mark.from.videoId}?set=${s.setId}`)
+                        return
+                      }
+                      onOpen(s.setId)
+                    }}
+                  >
                     {action}
                   </Button>
                 ) : null}
@@ -383,7 +397,12 @@ function VideoBlock({
       ) : null}
 
       {showMark ? (
-        <Button kind="control" variant="secondary" data-mark-set={video.id} onClick={() => undefined}>
+        <Button
+          kind="control"
+          variant="secondary"
+          data-mark-set={video.id}
+          onClick={() => navigate(`/matches/${match.id}/mark/${video.id}`)}
+        >
           Mark a set
         </Button>
       ) : null}
@@ -411,8 +430,10 @@ function VideoStrip({ duration, spans }: { duration: number; spans: VideoSpan[] 
 }
 
 function NotOnVideo({ match }: { match: MatchRecord }) {
+  const navigate = useNavigate()
   const rows = match.sets.filter((s) => notOnVideo(match, s))
   if (rows.length === 0) return null
+  const video = firstGapVideo(match)
   return (
     <section className="space-y-1" data-not-on-video>
       <h2 className="text-sm font-semibold text-primary">Not on video</h2>
@@ -420,9 +441,20 @@ function NotOnVideo({ match }: { match: MatchRecord }) {
         {rows.map((s) => {
           const entered = parseEntered(s.entered)
           return (
-            <li key={s.setId} className="text-sm text-primary" data-off-set={s.setId}>
-              Set {s.setId} · not on video
-              {entered ? ` · ${formatScore(entered)} from Details` : ''}
+            <li key={s.setId} className="flex items-center justify-between gap-2 text-sm text-primary" data-off-set={s.setId}>
+              <span>
+                Set {s.setId} · not on video
+                {entered ? ` · ${formatScore(entered)} from Details` : ''}
+              </span>
+              {video ? (
+                <Button
+                  kind="control"
+                  variant="secondary"
+                  onClick={() => navigate(`/matches/${match.id}/mark/${video.id}?set=${s.setId}`)}
+                >
+                  Mark
+                </Button>
+              ) : null}
             </li>
           )
         })}

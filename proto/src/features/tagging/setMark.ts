@@ -1,4 +1,4 @@
-import type { MatchRecord, SetData, VideoAsset } from '@/data/demoStore'
+import type { MatchRecord, SetData, SetMark, VideoAsset } from '@/data/demoStore'
 import {
   firstContactG,
   lastContactG,
@@ -146,4 +146,74 @@ export function lineAction(s: SetData): 'Mark' | 'Tag' | 'Continue' | 'Open' | n
   if (state === 'ready') return 'Tag'
   if (state === 'part') return 'Mark'
   return null
+}
+
+/** The mark on the match clock. Null when a video it names is gone. */
+export function markBounds(videos: VideoAsset[], mark: SetMark): { start: number; end: number } | null {
+  const segs = segmentsOf(videos)
+  const a = toGlobal(segs, mark.from.videoId, mark.from.t)
+  const b = toGlobal(segs, mark.to.videoId, mark.to.t)
+  if (a === null || b === null) return null
+  return { start: Math.min(a, b), end: Math.max(a, b) }
+}
+
+/** True when the range shares time with another set's mark. Touching at an edge is fine. */
+export function markOverlaps(
+  videos: VideoAsset[],
+  sets: SetData[],
+  start: number,
+  end: number,
+  except?: number
+): boolean {
+  const lo = Math.min(start, end)
+  const hi = Math.max(start, end)
+  return sets.some((s) => {
+    if (!s.mark || s.setId === except) return false
+    const b = markBounds(videos, s.mark)
+    if (!b) return false
+    return lo < b.end - 0.05 && hi > b.start + 0.05
+  })
+}
+
+const MAX_MARKED_SETS = 7
+
+/** Set numbers free at `at` on the match clock: in the match, not marked, and in order. */
+export function allowedMarkNumbers(m: MatchRecord, at: number, except?: number): number[] {
+  const cap = listedCount(m) ?? MAX_MARKED_SETS
+  const marked = m.sets.filter((s) => s.mark && s.setId !== except)
+  const out: number[] = []
+  for (let n = 1; n <= cap; n++) {
+    if (marked.some((s) => s.setId === n)) continue
+    const inOrder = marked.every((t) => {
+      const b = t.mark ? markBounds(m.videos, t.mark) : null
+      if (!b) return true
+      return b.start <= at ? n > t.setId : n < t.setId
+    })
+    if (inOrder) out.push(n)
+  }
+  return out
+}
+
+/** The first rally that would fall outside a new mark, if any. */
+export function rallyOutside(
+  videos: VideoAsset[],
+  rallies: SetData['rallies'],
+  mark: SetMark
+): { n: number; side: 'before' | 'after' } | null {
+  const b = markBounds(videos, mark)
+  if (!b) return null
+  const segs = segmentsOf(videos)
+  for (let i = 0; i < rallies.length; i++) {
+    const a = firstContactG(segs, rallies[i])
+    const z = lastContactG(segs, rallies[i])
+    if (a === null || z === null) continue
+    if (a < b.start - 0.05) return { n: i + 1, side: 'before' }
+    if (z > b.end + 0.05) return { n: i + 1, side: 'after' }
+  }
+  return null
+}
+
+/** The first video that still has unmarked time. */
+export function firstGapVideo(m: MatchRecord): VideoAsset | null {
+  return m.videos.find((v) => gapsOf(v.durationS, spansOnVideo(m.videos, m.sets, v.id)).length > 0) ?? null
 }

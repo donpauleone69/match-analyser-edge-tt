@@ -8,6 +8,7 @@ import {
   taggedScore,
   type MatchRecord,
   type SetData,
+  type SetMark,
 } from '@/data/demoStore'
 import { otherSide, pointRally, swapPlayers, type Draft, type MarkKind, type RallyData } from './rally'
 import { addPoint, firstServerAt, serverAt, setEndIndex, ZERO, type Points } from './score'
@@ -301,6 +302,11 @@ export const clearSet = (m: MatchRecord, setId: number): MatchRecord => ({
   ...inSet(m, setId, (s) => withDeleted({ ...emptySet(setId), entered: s.entered }, [])),
   tagDone: false,
 })
+
+/** The set's place on video. The label is the set number. */
+export function saveMark(m: MatchRecord, setId: number, mark: SetMark): MatchRecord {
+  return inSet(m, setId, (s) => ({ ...s, mark }))
+}
 
 /** Change set number: the tagging moves. Each number keeps its entered score. */
 export function moveSet(m: MatchRecord, from: number, to: number): MatchRecord {

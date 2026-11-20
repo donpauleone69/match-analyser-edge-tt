@@ -9,6 +9,7 @@ import {
   MatchIndexRedirect,
   MatchInsightsSection,
 } from '@/pages/MatchPage'
+import { MarkSetScreen } from '@/features/tagging/MarkSetScreen'
 import { TagSetScreen } from '@/features/tagging/TagSetScreen'
 import { MatchDetails } from '@/features/match/MatchDetails'
 import { MatchTagChecklist } from '@/features/match/MatchTagChecklist'
@@ -35,6 +36,7 @@ export default function App() {
             <Route path="details" element={<MatchDetails />} />
             <Route path="tag" element={<MatchTagChecklist />} />
             <Route path="tag/:setId" element={<TagSetScreen />} />
+            <Route path="mark/:videoId" element={<MarkSetScreen />} />
           </Route>
           <Route path="/insights" element={<InsightsPage />}>
             <Route index element={<Navigate to="summary" replace />} />
