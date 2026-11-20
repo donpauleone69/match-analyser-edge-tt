@@ -1903,7 +1903,7 @@ function TagSet({
         <SetPills
           rallies={set.rallies}
           picked={editPick}
-          open={set.finished ? null : { n: set.rallies.length + 1, server: live?.server ?? nextServer }}
+          open={set.finished ? null : { n: set.rallies.length + 1, server: nextServer }}
           onPick={openEditRally}
         />
         <Button

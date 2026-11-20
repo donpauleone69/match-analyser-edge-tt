@@ -321,50 +321,45 @@ function SetCheckRow({
               Start
             </Button>
           ) : null}
-          {asking ? (
-            <>
-              <Button kind="control" variant="ghost" onClick={onCancelAsk}>
-                Cancel
+          {moveTo.length > 0 ? (
+            <select
+              aria-label={`Change set ${s.setId} number`}
+              aria-hidden={asking || undefined}
+              disabled={asking}
+              tabIndex={asking ? -1 : undefined}
+              className={cn(
+                'btn-kind-control rounded-md border border-border bg-bg-card px-2 text-sm text-primary',
+                asking && 'invisible'
+              )}
+              value=""
+              onChange={(e) => {
+                const to = Number(e.target.value)
+                if (!to) return
+                onMove(to)
+              }}
+            >
+              <option value="">Set number</option>
+              {moveTo.map((n) => (
+                <option key={n} value={n}>
+                  Make it set {n}
+                </option>
+              ))}
+            </select>
+          ) : null}
+          {editable ? (
+            <span className="relative inline-flex">
+              <Button kind="control" variant="ghost" className="invisible pointer-events-none" tabIndex={-1} aria-hidden>
+                Delete
               </Button>
-              <Button
-                kind="control"
-                variant="primary"
-                data-delete-confirm
-                data-guard={deleteGuard.waiting ? '' : undefined}
-                className={deleteGuard.waiting ? 'opacity-60' : undefined}
-                onClick={() => {
-                  if (!deleteGuard.allow()) return
-                  onDelete()
-                }}
-              >
-                Delete set {s.setId}
-              </Button>
-            </>
-          ) : (
-            <>
-              {moveTo.length > 0 ? (
-                <select
-                  aria-label={`Change set ${s.setId} number`}
-                  className="btn-kind-control rounded-md border border-border bg-bg-card px-2 text-sm text-primary"
-                  value=""
-                  onChange={(e) => {
-                    const to = Number(e.target.value)
-                    if (!to) return
-                    onMove(to)
-                  }}
-                >
-                  <option value="">Set number</option>
-                  {moveTo.map((n) => (
-                    <option key={n} value={n}>
-                      Make it set {n}
-                    </option>
-                  ))}
-                </select>
-              ) : null}
-              {editable ? (
+              {asking ? (
+                <Button kind="control" variant="ghost" className="absolute inset-0 min-w-0" onClick={onCancelAsk}>
+                  Cancel
+                </Button>
+              ) : (
                 <Button
                   kind="control"
                   variant="ghost"
+                  className="absolute inset-0 min-w-0"
                   onClick={() => {
                     deleteGuard.arm()
                     onAsk()
@@ -372,15 +367,37 @@ function SetCheckRow({
                 >
                   Delete
                 </Button>
-              ) : null}
-              {state === 'finished' || state === 'progress' ? (
-                <Button kind="control" variant="secondary" className={rowAction} onClick={onOpen}>
-                  Open
-                </Button>
-              ) : null}
-            </>
-          )}
+              )}
+            </span>
+          ) : null}
+          {state === 'finished' || state === 'progress' ? (
+            <Button
+              kind="control"
+              variant="secondary"
+              className={cn(rowAction, asking && 'invisible pointer-events-none')}
+              tabIndex={asking ? -1 : undefined}
+              aria-hidden={asking || undefined}
+              onClick={onOpen}
+            >
+              Open
+            </Button>
+          ) : null}
         </div>
+        {asking ? (
+          <Button
+            kind="control"
+            variant="primary"
+            data-delete-confirm
+            data-guard={deleteGuard.waiting ? '' : undefined}
+            className={cn('basis-full', deleteGuard.waiting && 'opacity-60')}
+            onClick={() => {
+              if (!deleteGuard.allow()) return
+              onDelete()
+            }}
+          >
+            Delete set {s.setId}
+          </Button>
+        ) : null}
       </Card>
     </li>
   )

@@ -231,12 +231,17 @@ export function PictureSeek({
         node.setPointerCapture(e.pointerId)
         onSeek(fromX(e.clientX, box))
         const move = (ev: PointerEvent) => onSeek(fromX(ev.clientX, box))
-        const up = () => {
+        const end = () => {
           node.removeEventListener('pointermove', move)
-          node.removeEventListener('pointerup', up)
+          node.removeEventListener('pointerup', end)
+          node.removeEventListener('pointercancel', end)
+          node.removeEventListener('lostpointercapture', end)
+          if (node.hasPointerCapture(e.pointerId)) node.releasePointerCapture(e.pointerId)
         }
         node.addEventListener('pointermove', move)
-        node.addEventListener('pointerup', up)
+        node.addEventListener('pointerup', end)
+        node.addEventListener('pointercancel', end)
+        node.addEventListener('lostpointercapture', end)
       }}
     >
       <span className="tag-seek-track">

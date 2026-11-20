@@ -407,6 +407,8 @@ button[disabled] {
   /* This screen only. Mouse: control 32, tap 40. The values are rem, as the built ones are. */
   --btn-kind-control: 2rem; /* 32px */
   --btn-kind-tap-pad: 2.5rem; /* 40px */
+  /* Picture transport. The landscape shot input stops above this row. */
+  --tag-playback: 2.25rem; /* 36px */
   --tag-cell-rest: var(--color-tag-rest);
   --tag-cell-rest-line: transparent;
   --tag-shot-line-a: transparent;
@@ -416,6 +418,7 @@ button[disabled] {
   .tag-set {
     --btn-kind-control: 2.5rem; /* 40px */
     --btn-kind-tap-pad: 3rem; /* 48px */
+    --tag-playback: 2.75rem; /* 44px */
   }
 }
 .tag-flow {
@@ -566,12 +569,7 @@ button[disabled] {
   /* The picture clips. The settings menu is portaled out so it can draw past this box. */
   overflow: hidden;
   /* The picture's own controls keep the built height. This screen's control height starts under the strip. */
-  --btn-kind-control: 2.25rem; /* 36px */
-}
-@media (pointer: coarse) {
-  .tag-picture {
-    --btn-kind-control: 2.75rem; /* 44px */
-  }
+  --btn-kind-control: var(--tag-playback, 2.25rem);
 }
 .tag-entry {
   position: relative;
@@ -662,13 +660,13 @@ button[disabled] {
   max-height: none;
   aspect-ratio: auto;
 }
-/* Questions stay mounted for the wing portals. They cover the picture only. */
+/* Questions stay mounted for the wing portals. They cover the picture only, and stop above the playback row. */
 .tag-set[data-pad-split] .tag-entry {
   position: absolute;
   left: 0;
   right: 0;
   top: 0;
-  height: calc(100% - var(--tag-set) - var(--tag-rally) - 20px);
+  height: calc(100% - var(--tag-set) - var(--tag-rally) - 20px - var(--tag-playback) - 4px);
   z-index: 4;
   display: flex;
   flex-direction: column;

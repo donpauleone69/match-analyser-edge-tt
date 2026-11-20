@@ -1,6 +1,6 @@
 # Key documents
 
-Updated 19 Nov 2026. The working set for decisions. Kept current as each one changes.
+Updated 20 Nov 2026. The working set for decisions. Kept current as each one changes.
 
 Mirrors the [Key documents canvas](https://cursor.com/canvas/store-7c210afe-9d07-40db-82c4-34e629d311ff/7c7577ce-ca6a-47ed-a64a-c83282ecdde0) with repo paths for markdown in this folder.
 
@@ -28,6 +28,10 @@ Mirrors the [Key documents canvas](https://cursor.com/canvas/store-7c210afe-9d07
 
 | Build | Link | Notes |
 |-------|------|-------|
+| v0.16.12 | [PR #149](https://github.com/donpauleone69/match-analyser-edge-tt/pull/149) | Set Row edges. A grey start score leads the pills. The open rally is a dashed pill in the next server's colour. Rallies after an early win keep a warning edge. |
+| v0.16.11 | [PR #149](https://github.com/donpauleone69/match-analyser-edge-tt/pull/149) | Edit Set stays on the rally pills. The picked pill takes a ring, the row scrolls it to the centre, and the status line reads the rally and the score. |
+| v0.16.10 | [PR #149](https://github.com/donpauleone69/match-analyser-edge-tt/pull/149) | Thin seek bar on the bottom of the picture, with a tick for each rally in this set. The playback row sits just above it. |
+| v0.16.9 | [PR #149](https://github.com/donpauleone69/match-analyser-edge-tt/pull/149) | A 250 ms guard ignores a second press when You serve, Play, a stroke answer, or Delete set changes. Cancel sits on Delete's spot. |
 | v0.16.7 | [PR #147](https://github.com/donpauleone69/match-analyser-edge-tt/pull/147) | Click guards removed (1000, 600, 450 and 300 ms), including Discard waiting them out. A tap right after a question appears counts. The 2 second idle close stays. |
 | v0.16.8 | [PR #148](https://github.com/donpauleone69/match-analyser-edge-tt/pull/148) | MVP simple set flow. Start card (video, server, set number, score, default 0 - 0) replaces the server toggle. A saved rally is the save point. Set over: Save set or Edit. Edit Set (was Rallies) shows the picked rally in the Set Row; the corner pad steps Back and Forward and opens Edit rally N. Score and finished state follow every edit. Rally list retired. Delete set and Change set number on the Tag page. |
 | v0.16.6 | [PR #146](https://github.com/donpauleone69/match-analyser-edge-tt/pull/146) | Latest merged on proto (37e7e62). Version in video Settings. Dead-code prune. Removes Sequential and Spine flows, buttons layout, ?flow and ?cells switches, old live UI, foot line (Finish set kept), timing log, highlight star and old edit panel. Saved rallies open in Best+FA. proto/src 17,063 to 12,827 lines. |

@@ -9,6 +9,7 @@ const BASE = process.env.BASE || 'http://127.0.0.1:5174'
 const VIEWS = [
   { width: 390, height: 844, label: '390x844' },
   { width: 734, height: 310, label: '734x310' },
+  { width: 844, height: 390, label: '844x390' },
 ]
 
 const fails = []
