@@ -135,7 +135,7 @@ const rep = (x: ReturnType<typeof review>, f: Side = Y) =>
 {
   const mkR = (n: number, server: Side, t: number, extra: Partial<RallyData> = {}): RallyData => ({
     id: `r${n}`, videoId: 'v', server, winner: n % 2 ? Y : S, contacts: [t, t + 1], start: Math.max(0, t - 2), end: t + 1,
-    ending: 'Winner', fa: null, shots: [{}, {}], highlight: false, ...extra,
+    ending: 'Winner', fa: null, shots: [{}, {}], ...extra,
   } as RallyData)
   const servers: Side[] = [Y, Y, S, S, Y, Y, S, S]
   const rallies = servers.map((s, i) => mkR(i + 1, s, 5 + i * 6, i === 2 ? { serveChecked: true } : {}))

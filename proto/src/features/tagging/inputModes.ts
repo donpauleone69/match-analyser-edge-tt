@@ -22,7 +22,6 @@ export function tagRegions(p: {
   zoneOn: boolean
   padTitle: string
   tapDim: boolean
-  hold: boolean
   overDim: boolean
   removeDim: boolean
   showRemove: boolean
@@ -223,7 +222,7 @@ export function tagRegions(p: {
     }
   }
   if (p.mode === 'setPoint') {
-    const dim = p.hold || p.overDim
+    const dim = p.overDim
     attrs['data-set-over'] = ''
     return {
       regions: [

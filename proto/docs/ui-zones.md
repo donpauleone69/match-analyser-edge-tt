@@ -57,10 +57,10 @@ One rally, 64px, three rows:
 | Tapping | Contacts going in | Cells and the ghost | Discard |
 | Answering | Taps closed, questions open | Cells with marks | Discard |
 | Saved | Just saved, picked, Set over, a saved set | Cells | Star, Edit Rally |
-| Editing | Edit Rally | Cells, ring on the stop. End stop rings the last line. | Star, Edit Rally pressed |
+| Editing | Edit Rally | Cells, ring on the stop. End is its own slot at the end of the shot row. | Star, Edit Rally pressed |
 | Review | Star pressed | Part chips, ring on the focus, amber when marked | Star pressed, Edit Rally |
 
-**Review mode.** The star toggles it. The video loops the focused part at 1x. Edit Rally and review are exclusive. Marks are `idea.review`.
+**Review mode.** The star toggles it. The video loops the focused part at 1x. A part chip jumps to that part, and a Set Zone pill jumps to that rally's first part. The star stays on. Back and Forward stay inside the rally. Edit Rally and review are exclusive. Marks are `idea.review`. Save set on Set over is live as soon as the winning rally is saved. The picture still plays on for 6 seconds.
 
 ## 6. Input Area
 

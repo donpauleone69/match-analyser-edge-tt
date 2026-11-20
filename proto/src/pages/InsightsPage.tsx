@@ -136,7 +136,7 @@ function InsightsFilter({ renderRow }: { renderRow: (end: ReactNode) => ReactNod
       aria-label="Filter"
       aria-expanded={open}
       onClick={() => setOpen((v) => !v)}
-      className="relative inline-flex h-full w-[var(--btn-kind-control)] shrink-0 items-center justify-center text-primary hover:bg-pill-idle"
+      className="btn-kind-control btn-kind-square relative inline-flex shrink-0 items-center justify-center text-primary hover:bg-pill-idle"
     >
       <Icon name="filter" size="sm" />
       {n > 0 ? (

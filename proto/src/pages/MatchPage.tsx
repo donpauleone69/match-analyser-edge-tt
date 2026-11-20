@@ -54,8 +54,10 @@ export function MatchPage() {
         <StickyChrome>
           <PageHeader title="Match" backTo="/matches" />
         </StickyChrome>
-        <div className="px-4 sm:px-6 lg:px-8 py-6">
-          <WfEmpty title="Match not found" />
+        <div className="match-body">
+          <div className="px-4 sm:px-6 lg:px-8 py-6">
+            <WfEmpty title="Match not found" />
+          </div>
         </div>
       </div>
     )
@@ -82,8 +84,10 @@ export function MatchPage() {
           end={<span className="top-row-name px-3 text-sm text-muted">{shortMatchName(match)}</span>}
         />
       </StickyChrome>
-      {onInsights ? <OpponentPrompt match={match} /> : null}
-      <Outlet />
+      <div className="match-body">
+        {onInsights ? <OpponentPrompt match={match} /> : null}
+        <Outlet />
+      </div>
     </div>
   )
 }

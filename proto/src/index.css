@@ -647,6 +647,11 @@ button[disabled] {
     padding-left: 0;
   }
 }
+/* Inside a match the row is already inset. The page under it is too. The Set Tagger is not in .match-page, so its wings keep one inset each. */
+.match-body {
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
 /* Tabs keep their width. The match name shrinks first, then the tabs scroll. */
 .top-row-tabs {
   flex: 1 1 auto;
@@ -842,6 +847,8 @@ button[disabled] {
 /* Shots and part chips are one slim height. Part lines are 3px, with no hit area. */
 .tag-rally [data-best-chip],
 .tag-rally [data-review-chip],
+.tag-rally [data-edit-end],
+.tag-rally [data-best-cells] > button,
 .tag-rally [data-best-cells] > span:not([data-best-part]):not([data-best-phases]) {
   position: relative;
   z-index: 3;
@@ -849,6 +856,25 @@ button[disabled] {
   min-height: 0;
   font-size: 0.75rem;
   line-height: 1;
+}
+.tag-rally [data-review-chip] {
+  appearance: none;
+  padding: 0;
+  cursor: pointer;
+}
+/* The chip stays 16px. The hit box starts under the head row and ends at the zone. */
+.tag-rally [data-review-chip]::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -4px;
+  bottom: -8px;
+}
+button.tag-pill {
+  appearance: none;
+  border: 0;
+  cursor: pointer;
 }
 .tag-rally [data-best-phases] {
   height: 3px;

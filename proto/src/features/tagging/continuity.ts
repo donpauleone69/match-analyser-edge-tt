@@ -99,7 +99,7 @@ export type ScoreMark = {
 }
 
 /** The tagged score against the set score entered in Details. Null while they can still agree. */
-export function scoreMark(tagged: Points, entered: Points | null, over: boolean): ScoreMark | null {
+function scoreMark(tagged: Points, entered: Points | null, over: boolean): ScoreMark | null {
   if (!entered) return null
   if (tagged.me === entered.me && tagged.them === entered.them) return null
   if (tagged.me > entered.me || tagged.them > entered.them) return { kind: 'past', tagged, entered }

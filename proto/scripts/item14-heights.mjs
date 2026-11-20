@@ -42,8 +42,7 @@ const ROUTES = [
     after: async (page) => {
       await page.locator('select[aria-label="Result"]').selectOption('')
       await page.getByRole('link', { name: 'Tag' }).click()
-      await page.getByRole('button', { name: 'Open' }).first().click()
-      await page.waitForSelector('text=Finish match')
+      await page.waitForSelector('text=Finish match', { timeout: 15000 })
     },
   },
 ]
@@ -139,6 +138,10 @@ for (const vp of VIEWPORTS) {
 
         for (const el of nodes) {
           if (el.getAttribute('aria-label') === 'Close filters') continue
+        // Rally Zone marks. They are 16px on purpose, not a shell control.
+        if (el.hasAttribute('data-review-chip')) continue
+        // Edit Set, Review and Edit Rally sit in a fixed zone row. The zone owns that height.
+        if (!kindOf(el) && el.closest('.tag-rally, .tag-setzone')) continue
           const kind = kindOf(el)
           const lab = labelOf(el)
           const h = Math.round(el.getBoundingClientRect().height)
