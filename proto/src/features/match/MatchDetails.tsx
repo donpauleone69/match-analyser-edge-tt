@@ -9,7 +9,6 @@ import {
 } from '@/ui-mine'
 import { WfWarnBadge } from '@/layout/Wireframe'
 import {
-  derivePhase,
   formatScore,
   isUntouched,
   lastTaggedSetId,
@@ -17,7 +16,6 @@ import {
   resultDiffers,
   resultSetCount,
   setScoresDiffer,
-  setSettled,
   setState,
   taggedScore,
   useDemo,
@@ -26,7 +24,6 @@ import {
   type SetData,
 } from '@/data/demoStore'
 import { applyTaggedScore, applyTaggedScores } from '@/features/tagging/matchOps'
-import { setIncomplete } from '@/features/tagging/setMark'
 import { useArchiveStep } from '@/features/match/archiveJobs'
 import {
   enteredScoresMissResult,
@@ -34,6 +31,7 @@ import {
   isRealResult,
   REAL_RESULTS,
   setsLostByResult,
+  taggedResultReady,
 } from '@/features/match/matchChecks'
 import { cn } from '@/helpers/utils'
 
@@ -51,12 +49,9 @@ const noteRowClass =
 /** Details: who and when, then result and set scores as one area. Videos live on Tag. */
 export function MatchDetails() {
   const { matchId = '' } = useParams()
-  const navigate = useNavigate()
   const { getMatch } = useDemo()
   const match = getMatch(matchId)
   if (!match) return null
-
-  const phase = derivePhase(match)
 
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-6 space-y-4">
@@ -66,20 +61,7 @@ export function MatchDetails() {
         </div>
         <ResultCard match={match} />
       </div>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        {phase === 'complete' || phase === 'partial' ? (
-          <Button
-            kind="control"
-            variant="secondary"
-            onClick={() => navigate(`/matches/${match.id}/insights/summary`)}
-          >
-            Open match Insights
-          </Button>
-        ) : (
-          <span />
-        )}
-        <DeleteMatch match={match} />
-      </div>
+      <DeleteMatch match={match} />
     </div>
   )
 }
@@ -269,12 +251,7 @@ function ResultCard({ match }: { match: MatchRecord }) {
   const differing = match.sets.filter(setScoresDiffer).length
   const them = match.opponent.trim() || 'Opponent'
   const fromTagging = matchSetsWon(match)
-  const deciding = fromTagging.me + fromTagging.them
-  const taggedReady =
-    isRealResult(fromTagging) &&
-    Array.from({ length: deciding }, (_, i) => match.sets.find((s) => s.setId === i + 1)).every(
-      (s) => Boolean(s && setSettled(s) && !setIncomplete(s))
-    )
+  const taggedReady = taggedResultReady(match)
   const saved =
     match.result.me !== null && match.result.them !== null
       ? { me: match.result.me, them: match.result.them }

@@ -7,7 +7,7 @@ import { StickyChrome } from '@/layout/StickyChrome'
 import { WfEmpty } from '@/layout/Wireframe'
 import { defaultMatchTab, derivePhase, useDemo, type MatchRecord } from '@/data/demoStore'
 import { InsightsSectionRoute } from '@/features/insights/InsightsScreen'
-import { matchDiffers, needsOpponent } from '@/features/match/matchChecks'
+import { matchDiffers, matchName, needsOpponent } from '@/features/match/matchChecks'
 
 /**
  * A light nudge to name the opponent once a match has video or tagging.
@@ -81,7 +81,7 @@ export function MatchPage() {
             },
             { to: `${base}/tag`, label: 'Tag' },
           ]}
-          end={<span className="top-row-name px-3 text-sm text-muted">{shortMatchName(match)}</span>}
+          end={<span className="top-row-name px-3 text-sm text-muted">{matchName(match)}</span>}
         />
       </StickyChrome>
       <div className="match-body">
@@ -90,13 +90,6 @@ export function MatchPage() {
       </div>
     </div>
   )
-}
-
-/** vs Lee when someone is named, else the event, else New match. */
-function shortMatchName(match: MatchRecord): string {
-  const opponent = match.opponent.trim()
-  if (opponent) return `vs ${opponent}`
-  return match.event.trim() || 'New match'
 }
 
 export function MatchIndexRedirect() {
