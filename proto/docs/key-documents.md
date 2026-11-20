@@ -22,6 +22,9 @@ Mirrors the [Key documents canvas](https://cursor.com/canvas/store-7c210afe-9d07
 | Tagging models compared | [Canvas](https://cursor.com/canvas/store-7c210afe-9d07-40db-82c4-34e629d311ff/4b40d60d-bb36-40e8-b609-fccff5e1d70a) · [tagging-ideation/model-comparison-best-fa.md](./tagging-ideation/model-comparison-best-fa.md) | Data value, taps, time per rally and ratings. Best + FA now 8 out of 10 at 9.5 taps, tied with Spine r4. |
 | Best + FA insights | [Canvas](https://cursor.com/canvas/store-7c210afe-9d07-40db-82c4-34e629d311ff/59552445-e705-4aa7-987c-8f67c98602a0) · [tagging-ideation/best-fa-insights.md](./tagging-ideation/best-fa-insights.md) | What the data can show: match, cards, training and season views on sample data, plus model changes, what could come out, and research. |
 | UI zones | Context: [docs/ui-zones.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/ui-zones.md) | Zone names and portrait and landscape layout for the tagging screen. |
+| Set Tagger sprint plan | Context: [docs/set-tagger-sprint-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/set-tagger-sprint-plan.md) | Shipped in v0.17.4. |
+| Set marking sprint plan | Context: [docs/set-marking-sprint-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/set-marking-sprint-plan.md) | Shipped in v0.17.4. |
+| Set marking flow test | Context: [docs/set-marking-flow-test.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/set-marking-flow-test.md) | Route and mark flow checks at 390x844 and 734x310 after v0.17.0 to v0.17.4. |
 | Product ideas | [product-ideas.md](./product-ideas.md) | Running list of product ideas. |
 
 ## Latest builds
