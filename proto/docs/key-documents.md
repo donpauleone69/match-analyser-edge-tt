@@ -2,7 +2,7 @@
 
 Updated 20 Nov 2026. The working set for decisions. Kept current as each one changes.
 
-Mirrors the [Key documents canvas](https://cursor.com/canvas/store-7c210afe-9d07-40db-82c4-34e629d311ff/7c7577ce-ca6a-47ed-a64a-c83282ecdde0). Older plans and ideation live in Context and in git history.
+Mirrors the [Key documents canvas](https://cursor.com/canvas/store-7c210afe-9d07-40db-82c4-34e629d311ff/7c7577ce-ca6a-47ed-a64a-c83282ecdde0). Older plans and ideation live in Context and in git history. Proto docs are six files after [PR #158](https://github.com/donpauleone69/match-analyser-edge-tt/pull/158) merged at `c9f2ccb`.
 
 ## Start here
 
@@ -30,11 +30,11 @@ Mirrors the [Key documents canvas](https://cursor.com/canvas/store-7c210afe-9d07
 | Set marking flow test | Context: [docs/set-marking-flow-test.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/set-marking-flow-test.md) | Route and mark flow checks at 390x844 and 734x310 after v0.17.0 to v0.17.4. |
 | Edit Set gaps plan | Context: [docs/edit-set-gaps-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/edit-set-gaps-plan.md) | Shipped in v0.17.5 to v0.17.8 ([PR #151](https://github.com/donpauleone69/match-analyser-edge-tt/pull/151)). Edit Set rallies and gaps. |
 | Mark sets page plan | Context: [docs/mark-sets-page-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/mark-sets-page-plan.md) | Shipped in v0.17.9 to v0.17.12 (PRs [#152](https://github.com/donpauleone69/match-analyser-edge-tt/pull/152), [#153](https://github.com/donpauleone69/match-analyser-edge-tt/pull/153), [#154](https://github.com/donpauleone69/match-analyser-edge-tt/pull/154)). Unified Tag page with set marking in cards. |
-| Set Tagger start end plan | Context: [docs/set-tagger-start-end-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/set-tagger-start-end-plan.md) | Planned, awaiting Paul's OK. |
+| Input and Rally Zone plan | Context: [docs/input-and-rally-zone-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/input-and-rally-zone-plan.md) | Paul agrees. Set tagger start and end merged here 20 Nov. Three questions open in 4.2. Builds v0.17.15 to v0.17.17. |
+| Home and navigation plan | Context: [docs/home-and-navigation-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/home-and-navigation-plan.md) | Paul approved 20 Nov, all eight recommendations. Builds v0.17.18 to v0.17.20 after input and rally zone. |
 | Set completion scores plan | Context: [docs/set-completion-scores-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/set-completion-scores-plan.md) | Waiting on Paul's 14 choices. |
 | Set tagger review fixes | Context: [docs/set-tagger-review-fixes-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/set-tagger-review-fixes-plan.md) | Shipped in v0.17.13 ([PR #156](https://github.com/donpauleone69/match-analyser-edge-tt/pull/156)). Short gaps are stops, a serve break flags the pill, and the shot quadrants have no tap guard. |
-| Rally row | Context: [docs/rally-row-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/rally-row-plan.md) | Built as v0.17.14. The row is a display headed with the rally and the server. Edit Rally is a 4x2 pad that opens on shot 1. Kim served flips that rally only. |
-| Rally Row plan | Context: [docs/rally-row-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/rally-row-plan.md) | Rally row and Edit Rally pad. Waiting on Paul's 6 choices. |
+| Rally Row plan | Context: [docs/rally-row-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/rally-row-plan.md) | Shipped in v0.17.14 ([PR #157](https://github.com/donpauleone69/match-analyser-edge-tt/pull/157)). Paul's six decisions in section 8. |
 | Product ideas | [product-ideas.md](./product-ideas.md) | Running list of product ideas. |
 
 ## Latest builds
@@ -66,7 +66,7 @@ Mirrors the [Key documents canvas](https://cursor.com/canvas/store-7c210afe-9d07
 | v0.16.4 | [PR #144](https://github.com/donpauleone69/match-analyser-edge-tt/pull/144) | Latest merged on proto (d303eda). Version in video Settings. Top Nav removed with Back on video; Set Zone one row with set name and Rallies; portrait Video, Set, Rally, Shot Input; landscape three columns with full-height wings; Discard for the rally in progress. |
 | v0.16.3 | [PR #143](https://github.com/donpauleone69/match-analyser-edge-tt/pull/143) | Latest merged on proto (7e2d6f1). Version in video Settings. "In net" line removed, landscape video fits height, fixed 82px rally row at bottom in both orientations, shot timer on top of rally row, slimmer 16px phase tags and shot row. |
 | v0.16.1 | [PR #140](https://github.com/donpauleone69/match-analyser-edge-tt/pull/140) | Latest merged on proto (7f3b893). Version in video Settings. Rally row: server pill, Not a shot, Star, Edit (was Check). Removed narrative line, toss offer, fix row, Delete last. |
-| Live app | [edge-tt.apps.grok.bot](https://edge-tt.apps.grok.bot) | Private. v0.17.13 publishing (a437cea). |
+| Live app | [edge-tt.apps.grok.bot](https://edge-tt.apps.grok.bot) | Private. v0.17.14 live (c9f2ccb). |
 | v0.16.0 | [PR #139](https://github.com/donpauleone69/match-analyser-edge-tt/pull/139) | Latest merged on proto (dd8ff43). Serve landing quadrants. Phone landscape tapping with video in the middle. Best + FA only in the dropdown. |
 | v0.15.1 | [PR #138](https://github.com/donpauleone69/match-analyser-edge-tt/pull/138) | Home screen mode removed. New timing defaults. |
 | Proto branch | [PR #129](https://github.com/donpauleone69/match-analyser-edge-tt/pull/129) | Main prototype PR the builds merge into. |
