@@ -475,7 +475,7 @@ function GapContext({
   onCancel?: () => void
 }) {
   const chipClass = cn(
-    'btn-kind-control shrink-0 rounded-md px-2 text-xs font-semibold',
+    'shrink-0 rounded-md px-2 py-1 text-xs font-semibold',
     server === 'me' ? 'bg-side-me' : 'bg-side-them'
   )
   return (
@@ -484,11 +484,17 @@ function GapContext({
       <span className="shrink-0">{seconds} s</span>
       <span className="shrink-0">at {score}</span>
       {onSwitch ? (
-        <button type="button" data-gap-server className={chipClass} aria-label={`${label}. Switch server`} onClick={onSwitch}>
+        <button
+          type="button"
+          data-gap-server
+          className={cn(chipClass, 'btn-kind-control inline-flex items-center')}
+          aria-label={`${label}. Switch server`}
+          onClick={onSwitch}
+        >
           {label}
         </button>
       ) : (
-        <span className={chipClass}>{label}</span>
+        <span data-gap-server className={chipClass}>{label}</span>
       )}
       {onCancel ? (
         <button type="button" data-insert-cancel className="btn-kind-control shrink-0 rounded-md px-2 text-sm font-semibold" onClick={onCancel}>
