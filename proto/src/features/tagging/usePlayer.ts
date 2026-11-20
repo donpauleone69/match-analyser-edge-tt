@@ -182,6 +182,9 @@ export function usePlayer(videos: PlayerVideo[]) {
       play: () => {
         if (t.current >= totalDuration(segsRef.current) - 0.05) return
         playing.current = true
+        // Inside the tap. iOS will not start a file with sound from a later frame.
+        const node = el.current
+        if (node) void node.play().catch(() => undefined)
       },
       pause: () => {
         playing.current = false

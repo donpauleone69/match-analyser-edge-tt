@@ -325,7 +325,6 @@ export function VideoStage({
       <div className="tag-picture" data-video-kind={video?.kind}>
         {video?.kind === 'file' && video.src ? (
           <video
-            key={video.id}
             ref={player.bindVideo}
             data-vid={video.id}
             src={video.src}

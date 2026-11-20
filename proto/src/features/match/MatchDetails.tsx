@@ -267,7 +267,6 @@ function ResultCard({ match }: { match: MatchRecord }) {
   const differing = match.sets.filter(setScoresDiffer).length
   const them = match.opponent.trim() || 'Opponent'
   const fromTagging = matchSetsWon(match)
-  const tagged = derivePhase(match) === 'complete'
   const saved =
     match.result.me !== null && match.result.them !== null
       ? { me: match.result.me, them: match.result.them }
@@ -347,7 +346,7 @@ function ResultCard({ match }: { match: MatchRecord }) {
       <p className={flagClass}>
         {formatScore(saved ?? fromTagging)} gives {count} sets. Set {lastTagged} is tagged.
       </p>
-    ) : count === null && tagged ? (
+    ) : count === null && isRealResult(fromTagging) ? (
       <div className={noteRowClass}>
         <span>Tagged sets give {formatScore(fromTagging)}.</span>
         {useTaggedResult}

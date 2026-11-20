@@ -75,10 +75,10 @@ ok(
   'ready to tag',
   videoStatus(match([v1], [setOf(1, mark('v1', 0, 100, true), 'saved'), setOf(2, mark('v1', 200, 400, true), 'ready')]), 'v1') === 'Ready to tag'
 )
-ok('part filmed is done', videoStatus(match([v1], [setOf(1, mark('v1', 0, 80, false), 'part')]), 'v1') === 'Done')
+ok('part filmed is ready', videoStatus(match([v1], [setOf(1, mark('v1', 0, 80, false), 'part')]), 'v1') === 'Ready to tag')
 ok(
-  'saved and part filmed is done',
-  videoStatus(match([v1], [setOf(1, mark('v1', 0, 100, true), 'saved'), setOf(2, mark('v1', 100, 180, false), 'part')]), 'v1') === 'Done'
+  'saved and part filmed is ready',
+  videoStatus(match([v1], [setOf(1, mark('v1', 0, 100, true), 'saved'), setOf(2, mark('v1', 100, 180, false), 'part')]), 'v1') === 'Ready to tag'
 )
 ok('free time still done', videoStatus(match([v1], [setOf(1, mark('v1', 0, 90, true), 'saved')]), 'v1') === 'Done')
 
@@ -114,7 +114,7 @@ ok(
   'a later end leaves an overrun set saved',
   saveMark(match([v1], [overrun]), 2, mark('v1', 0, 12, true)).sets[0].finished === true,
 )
-ok('part filmed has no button', lineAction(setOf(3, mark('v1', 0, 10, false), 'part')) === null)
+ok('part filmed can be tagged', lineAction(setOf(3, mark('v1', 0, 10, false), 'part')) === 'Tag')
 ok('unmarked has no button', lineAction(setOf(4, null, 'off')) === null)
 
 const open = match([video('v1', false)], [])

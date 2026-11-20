@@ -16,14 +16,13 @@ export const MARK_PAD_S = 5
 export type MarkState = 'off' | 'part' | 'ready' | 'tagging' | 'saved'
 
 /**
- * Saved wins, then any rallies still open. Part filmed is a mark that is not
- * complete and has nothing tagged, so it cannot be tagged.
+ * Saved wins, then any rallies still open. A mark that is not complete is
+ * ready, so an old part-filmed set can be tagged. Nothing on Tag sets complete.
  */
 export function markState(s: SetData): MarkState {
   if (!s.mark) return 'off'
   if (s.finished) return 'saved'
   if (s.rallies.length > 0) return 'tagging'
-  if (!s.mark.complete) return 'part'
   return 'ready'
 }
 
@@ -134,24 +133,6 @@ export function markCrosses(s: SetData): boolean {
 }
 
 /**
- * Listed by the result or by a Details score, and not marked.
- * A spare set with nothing entered stays off this list.
- */
-function listedCount(m: MatchRecord): number | null {
-  const { me, them } = m.result
-  if (me === null || them === null) return null
-  const total = me + them
-  return total > 0 ? total : null
-}
-
-export function notOnVideo(m: MatchRecord, s: SetData): boolean {
-  if (s.mark) return false
-  if (s.entered.me !== '' || s.entered.them !== '') return true
-  const n = listedCount(m)
-  return n !== null && s.setId <= n
-}
-
-/**
  * Finished, with rallies, and the tagged score is not a win. Derived.
  * A Details score is what makes it count. Continue reopens it.
  */
@@ -161,7 +142,7 @@ export function setIncomplete(s: SetData): boolean {
   return atEnd === null || !isSetWon(atEnd)
 }
 
-/** The one button on a set row. Part filmed is status text, not a button. */
+/** The one button on a set row. */
 export function lineAction(s: SetData): 'Tag' | 'Continue' | 'Open' | null {
   if (setIncomplete(s)) return 'Continue'
   const state = markState(s)
@@ -196,6 +177,14 @@ export function markOverlaps(
     if (!b) return false
     return lo < b.end - 0.05 && hi > b.start + 0.05
   })
+}
+
+/** How many sets the entered result lists. Null when no result is entered. */
+function listedCount(m: MatchRecord): number | null {
+  const { me, them } = m.result
+  if (me === null || them === null) return null
+  const total = me + them
+  return total > 0 ? total : null
 }
 
 const MAX_MARKED_SETS = 7
