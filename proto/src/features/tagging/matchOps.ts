@@ -12,6 +12,7 @@ import {
 } from '@/data/demoStore'
 import { otherSide, pointRally, swapPlayers, type Draft, type MarkKind, type RallyData } from './rally'
 import { addPoint, firstServerAt, serverAt, setEndIndex, ZERO, type Points } from './score'
+import { markBounds } from './setMark'
 import { firstContactG, insertIndex, lastContactG, segmentsOf, toGlobal, type Segment } from './timeline'
 
 /** A set number that is not listed yet (a skipped set 1, say) is added when it is first written. */
@@ -169,6 +170,7 @@ export const MIN_GAP_S = 1
 /**
  * The stretch of video a rally added at `index` may use: from the last contact
  * of the rally before it to the first contact of the rally it goes in front of.
+ * The first gap starts at the later of the mark start and the set before's end.
  * Null when either neighbour's video is gone, or there is no room between them.
  */
 export type EditRallyStop = { kind: 'rally'; id: string; n: number; index: number }
@@ -197,10 +199,13 @@ export function gapWindow(m: MatchRecord, setId: number, index: number): { a: nu
   const s = m.sets.find((x) => x.setId === setId)
   if (!s) return null
   const segs = segmentsOf(m.videos)
-  const prev = s.rallies[index - 1]
   const next = s.rallies[index]
   if (!next) return null
-  const a = prev ? lastContactG(segs, prev) : earlierSetsEnd(m, setId)
+  const prev = [...s.rallies.slice(0, index)].reverse().find((r) => !r.point)
+  const mark = s.mark ? markBounds(m.videos, s.mark) : null
+  const a = prev
+    ? lastContactG(segs, prev)
+    : Math.max(mark?.start ?? 0, earlierSetsEnd(m, setId))
   const b = firstContactG(segs, next)
   return a === null || b === null || b - a < MIN_GAP_S ? null : { a, b }
 }
