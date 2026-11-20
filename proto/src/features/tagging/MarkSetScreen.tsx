@@ -18,11 +18,15 @@ import type { Side } from '@/features/tagging/rally'
 
 type Phase = 'start' | 'end' | 'label' | 'whole'
 
-/** Re-mark keeps the set's own number. A new mark may use any free number. */
-function markChoices(match: MatchRecord, at: number, remarkId: number | null): number[] {
-  const allowed = allowedMarkNumbers(match, at, remarkId ?? undefined)
-  if (remarkId === null) return allowed
-  return allowed.includes(remarkId) ? [remarkId] : []
+/**
+ * Re-mark keeps the set's own number. A new mark may use any free number,
+ * with the one asked for on the Tag page already picked.
+ */
+function markChoices(match: MatchRecord, at: number, own: number | null, prefer: number | null): number[] {
+  const allowed = allowedMarkNumbers(match, at, own ?? undefined)
+  if (own !== null) return allowed.includes(own) ? [own] : []
+  if (prefer !== null && allowed.includes(prefer)) return [prefer, ...allowed.filter((n) => n !== prefer)]
+  return allowed
 }
 
 const LANDSCAPE_QUERY = '(orientation: landscape), (min-aspect-ratio: 1/1)'
@@ -62,6 +66,7 @@ export function MarkSetScreen() {
   const opened = useRef<string | null>(null)
 
   const remark = match?.sets.find((s) => s.setId === remarkId && s.mark) ?? null
+  const asked = Number.isInteger(remarkId) && remarkId > 0 ? remarkId : null
 
   useEffect(() => {
     if (!match || !video) return
@@ -138,7 +143,7 @@ export function MarkSetScreen() {
       setNote('That time is already in a set.')
       return
     }
-    const choices = markChoices(match, startG, remark?.setId ?? null)
+    const choices = markChoices(match, startG, remark?.setId ?? null, asked)
     if (choices.length === 0) {
       setNote(remark ? 'This set cannot sit here.' : 'No set number is free here.')
       return
@@ -178,7 +183,7 @@ export function MarkSetScreen() {
 
   const allowed =
     from && phase !== 'start'
-      ? markChoices(match, toGlobal(segs, from.videoId, from.t) ?? 0, remark?.setId ?? null)
+      ? markChoices(match, toGlobal(segs, from.videoId, from.t) ?? 0, remark?.setId ?? null, asked)
       : []
 
   const steps = (

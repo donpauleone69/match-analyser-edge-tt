@@ -535,7 +535,12 @@ function SetLine({
         <p className="min-w-0 text-sm text-primary">{setLine(match, s)}</p>
         <span className="flex shrink-0 gap-1">
           {action ? (
-            <Button kind="control" variant="secondary" disabled={locked} onClick={() => (action === 'Mark' ? remark() : onOpen())}>
+            <Button
+              kind="control"
+              variant="secondary"
+              disabled={locked && action !== 'Open'}
+              onClick={() => (action === 'Mark' ? remark() : onOpen())}
+            >
               {action}
             </Button>
           ) : null}
