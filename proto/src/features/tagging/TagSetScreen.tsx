@@ -366,7 +366,7 @@ function SetPills({
                 data-gap-index={slot.index}
                 data-on={on ? '' : undefined}
                 data-likely={slot.likely ? '' : undefined}
-                className="tag-gap-hit"
+                className="tag-gap-hit btn-kind-control"
                 aria-current={on ? 'true' : undefined}
                 aria-label={`Before rally ${slot.n}`}
                 onClick={() => onGap(slot.index)}
@@ -422,14 +422,14 @@ function KindSwitch({
       data-edit-switch
       role="group"
       aria-label="What to step"
-      className="flex h-9 shrink-0 overflow-hidden rounded-md border border-border"
+      className="flex shrink-0 overflow-hidden rounded-md border border-border"
     >
       <button
         type="button"
         data-edit-kind="rally"
         aria-pressed={kind === 'rally'}
         className={cn(
-          'min-w-0 flex-1 text-sm font-semibold',
+          'btn-kind-control min-w-0 flex-1 text-sm font-semibold',
           kind === 'rally' ? 'bg-brand-primary text-white' : 'bg-bg-card text-primary'
         )}
         onClick={onRally}
@@ -441,7 +441,7 @@ function KindSwitch({
         data-edit-kind="gap"
         aria-pressed={kind === 'gap'}
         className={cn(
-          'min-w-0 flex-1 text-sm font-semibold',
+          'btn-kind-control min-w-0 flex-1 text-sm font-semibold',
           kind === 'gap' ? 'bg-brand-primary text-white' : 'bg-bg-card text-primary'
         )}
         onClick={onGap}
@@ -460,18 +460,22 @@ function GapContext({
   seconds,
   score,
   server,
-  serverName,
+  label,
   onSwitch,
+  onCancel,
 }: {
   n: number
   seconds: number
   score: string
   server: Side
-  serverName: string
+  /** "You serve" or "Sam serves". */
+  label: string
   onSwitch?: () => void
+  /** Before the first tap of an insert. Returns to the gap. */
+  onCancel?: () => void
 }) {
   const chipClass = cn(
-    'shrink-0 rounded-md px-2 py-1 text-xs font-semibold',
+    'btn-kind-control shrink-0 rounded-md px-2 text-xs font-semibold',
     server === 'me' ? 'bg-side-me' : 'bg-side-them'
   )
   return (
@@ -480,12 +484,17 @@ function GapContext({
       <span className="shrink-0">{seconds} s</span>
       <span className="shrink-0">at {score}</span>
       {onSwitch ? (
-        <button type="button" data-gap-server className={chipClass} aria-label={`${serverName} serves. Switch server`} onClick={onSwitch}>
-          {serverName} serves
+        <button type="button" data-gap-server className={chipClass} aria-label={`${label}. Switch server`} onClick={onSwitch}>
+          {label}
         </button>
       ) : (
-        <span className={chipClass}>{serverName} serves</span>
+        <span className={chipClass}>{label}</span>
       )}
+      {onCancel ? (
+        <button type="button" data-insert-cancel className="btn-kind-control shrink-0 rounded-md px-2 text-sm font-semibold" onClick={onCancel}>
+          Cancel
+        </button>
+      ) : null}
     </div>
   )
 }
@@ -567,6 +576,7 @@ function TagSet({
   const [editOf, setEditOf] = useState<string | null>(null)
   const bestHold = useRef(false)
   const tapGuardRef = useRef<ActionGuard | null>(null)
+  const editGuardRef = useRef<ActionGuard | null>(null)
   const bestCheckRef = useRef(false)
   /** Set before the walk starts, so the first clip uses the right pause. */
   const flowLockRef = useRef<FlowName | null>(null)
@@ -592,8 +602,10 @@ function TagSet({
   const active = live
   const stage = active ? stageOf(active) : null
   const editing = editPick !== null || editOf !== null
+  /** A rally is being added into a gap. The questions must open on a finished set too. */
+  const inserting = Boolean(gap && editPick?.kind === 'gap')
   /** Best + FA, contacts closed, this rally's steps open. An edit opens them on a finished set too. */
-  const bestOn = !review && (!set.finished || editOf !== null) && !draftGone && Boolean(live?.closed)
+  const bestOn = !review && (!set.finished || editOf !== null || inserting) && !draftGone && Boolean(live?.closed)
   const liveCount = live?.contacts.length ?? 0
   /** End is on screen with no result, and whenever a press has opened it. */
   const score = taggedScore(set) ?? ZERO
@@ -1122,7 +1134,7 @@ function TagSet({
     commitRally(rally)
   }
 
-  const rallyOneNow = () => set.rallies.length === 0
+  const rallyOneNow = () => (gap && editPick?.kind === 'gap' ? gap.index === 0 : set.rallies.length === 0)
 
   /** Opens a question on the open rally and loops its shot. */
   const showBest = (d: Draft, at: BestAt) => {
@@ -1207,9 +1219,7 @@ function TagSet({
           : `Rally ${n} added`,
         before,
         () => {
-          setEditPick({ kind: 'gap', index: insertAt })
-          setGap(window)
-          park(before.draft, false, window.a)
+          loopGap({ kind: 'gap', index: insertAt, n: insertAt + 1, a: window.a, b: window.b, likely: false })
         }
       )
       if (saved) loopPick(saved)
@@ -1377,13 +1387,22 @@ function TagSet({
     if (!from) return
     const stop = stops.gaps.find((g) => g.n === from.n) ?? stops.gaps.find((g) => g.n > from.n) ?? null
     if (stop) loopGap(stop)
+    else setHint('No gaps')
   }
 
   /** Rallies Edit Set can pick: saved, with video. */
   const pickable = set.rallies.filter((r) => !r.point && have.has(r.videoId))
 
+  /** An insert that already has taps is not thrown away by stepping. */
+  const insertHasTaps = () => {
+    if (!(gap && live && live.contacts.length > 0)) return false
+    setHint(`Save or discard rally ${gap.index + 1} first`)
+    return true
+  }
+
   const openEditRally = (r: RallyData) => {
     if (r.point || !have.has(r.videoId)) return
+    if (insertHasTaps()) return
     if (editPick === null && live && live.contacts.length > 0) {
       setHint(`Save or discard rally ${set.rallies.length + 1} first`)
       return
@@ -1432,6 +1451,7 @@ function TagSet({
   /** Back and Forward step only the kind the switch shows. */
   const stepPick = (by: -1 | 1) => {
     if (!editPick) return
+    if (insertHasTaps()) return
     if (live) {
       mutateMatch(match.id, (m) => setDraft(m, set.setId, null))
       setEditOf(null)
@@ -1447,8 +1467,17 @@ function TagSet({
   }
 
   const onGapSlot = (index: number) => {
+    if (insertHasTaps()) return
     const stop = stops.gaps.find((g) => g.index === index)
     if (stop) loopGap(stop)
+  }
+
+  /** Before the first tap, Cancel leaves the insert and stands on the gap. */
+  const cancelInsert = () => {
+    if (!gap) return
+    const stop = stops.gaps.find((g) => g.index === gap.index)
+    if (stop) loopGap(stop)
+    else setGap(null)
   }
 
   /** A tap on the seek bar picks the rally or the gap under the finger. */
@@ -1493,6 +1522,7 @@ function TagSet({
     )
     if (row) loopPick(row)
     else doneEdit()
+    editGuardRef.current?.arm()
   }
 
   /** Drop the change being made and go back to the rally as saved. */
@@ -2017,7 +2047,6 @@ function TagSet({
   const livePlain = !review && (mode === 'watch' || mode === 'tapping' || mode === 'tagging' || mode === 'start' || mode === 'edit')
   const lineHidden = Boolean(livePlain && selected?.kind === 'shot')
   // The tap zone while a rally is open or waiting. Answering keeps the corner pad.
-  const inserting = Boolean(gap && editPick?.kind === 'gap')
   const zoneOn =
     !bestOn &&
     !overCard &&
@@ -2047,7 +2076,7 @@ function TagSet({
   const footAction = Boolean(footStrip && mode === 'tagging' && stage === 'pickFa')
 
   const flowShown: FlowName = mode === 'tagging' && flowLock ? flowLock : flowWanted
-  const bestRallyOne = set.rallies.length === 0
+  const bestRallyOne = inserting ? gap?.index === 0 : set.rallies.length === 0
   const bestQ: BestAt | null = bestOn && live ? bestAt(live, bestRallyOne) : null
   useEffect(() => {
     if (bestQ?.step !== 'end') setEndBack(null)
@@ -2076,7 +2105,7 @@ function TagSet({
     ? 'start'
     : bestOn
       ? 'questions'
-      : mode === 'tapping' || (mode === 'watch' && (tapped > 0 || player.playing))
+      : mode === 'tapping' || inserting || (mode === 'watch' && (tapped > 0 || player.playing))
         ? 'tapping'
         : 'idle'
   const tapGuard = useActionGuard(tapAction)
@@ -2087,6 +2116,7 @@ function TagSet({
   const overGuard = useActionGuard(overCard ? 'shown' : 'shut')
   const afterGuard = useActionGuard(mode === 'finished' ? 'done' : 'open')
   const editGuard = useActionGuard(editPick === null ? 'shut' : editPick.kind)
+  editGuardRef.current = editGuard
   const guarded = (guard: ActionGuard, fn: () => void) => () => {
     if (!guard.allow()) return
     fn()
@@ -2194,7 +2224,7 @@ function TagSet({
         />
       </div>
       <div className="tag-setzone">
-        <h1 className="min-w-0 shrink truncate text-sm font-bold text-primary">Set {set.setId}</h1>
+        <h1 className="shrink-0 whitespace-nowrap text-sm font-bold text-primary">Set {set.setId}</h1>
         <SetPills
           rallies={set.rallies}
           picked={pickedId}
@@ -2240,8 +2270,8 @@ function TagSet({
             n={viewedGap.n}
             seconds={Math.round(viewedGap.b - viewedGap.a)}
             score={formatScore(countPoints(set.rallies.slice(0, viewedGap.index).map((r) => r.winner)))}
-            server={expectedServer(set.rallies, set.firstServer, viewedGap.index)}
-            serverName={names[expectedServer(set.rallies, set.firstServer, viewedGap.index)]}
+            server={gap ? nextServer : expectedServer(set.rallies, set.firstServer, viewedGap.index)}
+            label={servesText(names, gap ? nextServer : expectedServer(set.rallies, set.firstServer, viewedGap.index))}
             onSwitch={
               gap
                 ? () => {
@@ -2250,6 +2280,7 @@ function TagSet({
                   }
                 : undefined
             }
+            onCancel={gap && (!live || live.contacts.length === 0) ? cancelInsert : undefined}
           />
         ) : (
         <BestRallyRow
@@ -2511,7 +2542,7 @@ function TagSet({
                 names={names}
                 at={bestQ}
                 rallyOne={bestRallyOne}
-                rallyNo={editOf ? editIndex + 1 : set.rallies.length + 1}
+                rallyNo={editOf ? editIndex + 1 : inserting && gap ? gap.index + 1 : set.rallies.length + 1}
                 onEnd={onBestEnd}
                 onPoint={onBestPoint}
                 onServe={onBestServe}

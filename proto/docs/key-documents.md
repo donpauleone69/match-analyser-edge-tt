@@ -32,7 +32,7 @@ Mirrors the [Key documents canvas](https://cursor.com/canvas/store-7c210afe-9d07
 
 | Build | Link | Notes |
 |-------|------|-------|
-| v0.17.8 | [PR #151](https://github.com/donpauleone69/match-analyser-edge-tt/pull/151) | A gap of 9 seconds or more, or one named by a serve order break, takes a warning tint on its slot and on the seek bar. |
+| v0.17.8 | [PR #151](https://github.com/donpauleone69/match-analyser-edge-tt/pull/151) | A gap of 9 seconds or more, or one named by a serve order break, takes a warning tint on its slot and on the seek bar. A finished set's insert shows the questions. Cancel leaves before the first tap. Undo returns to the gap. No gaps says so. |
 | v0.17.7 | [PR #151](https://github.com/donpauleone69/match-analyser-edge-tt/pull/151) | Insert from a gap, including a finished set. The first gap starts at the mark. Saving returns to Edit Set on the new rally. Discard returns to the same gap. |
 | v0.17.6 | [PR #151](https://github.com/donpauleone69/match-analyser-edge-tt/pull/151) | Edit Set steps rallies and gaps separately. Gap slots show in Gaps mode only. A seek-bar tap picks what is under the finger. Delete has Undo. |
 | v0.17.5 | [PR #151](https://github.com/donpauleone69/match-analyser-edge-tt/pull/151) | The seek bar is taller, with rally spans. The picked rally is in brand colour. Edit Set opens on rally 1. |

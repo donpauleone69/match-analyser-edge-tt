@@ -443,6 +443,7 @@ button[disabled] {
 .tag-pills {
   display: flex;
   flex: 1 1 auto;
+  align-self: stretch;
   align-items: center;
   gap: 0.25rem;
   min-width: 0;
@@ -507,7 +508,6 @@ button[disabled] {
   align-items: center;
   justify-content: center;
   width: 16px;
-  height: 40px;
 }
 .tag-gap-hit[data-on] {
   width: 28px;
