@@ -137,7 +137,7 @@ import {
 } from './bestFlow'
 import { useActionGuard, type ActionGuard } from './pressGuard'
 import { TAG_LOCK_LINE, useTagLock, type TagLock } from './tagLock'
-import { segmentAt, segmentsOf, toGlobal, type Segment } from './timeline'
+import { firstContactG, lastContactG, segmentAt, segmentsOf, toGlobal, type Segment } from './timeline'
 import { usePlayer, type Window } from './usePlayer'
 import { PictureSeek, VideoStage } from './VideoStage'
 
@@ -1159,13 +1159,13 @@ function TagSet({
       setHint(`Save or discard rally ${set.rallies.length + 1} first`)
       return
     }
-    const last = pickable[pickable.length - 1]
-    if (!last) {
+    const first = pickable[0]
+    if (!first) {
       setHint('No rallies to edit yet')
       return
     }
     setToast(null)
-    loopPick(last)
+    loopPick(first)
   }
 
   const pickAt = pickable.findIndex((r) => r.id === editPick)
@@ -1627,21 +1627,16 @@ function TagSet({
     : seekSeg
       ? { a: seekSeg.offset, b: seekSeg.offset + seekSeg.duration }
       : { a: 0, b: 1 }
-  const pickBand = editRally
-    ? (() => {
-        const a = toGlobal(segs, editRally.videoId, editRally.contacts[0] ?? editRally.start)
-        const b = toGlobal(segs, editRally.videoId, editRally.contacts[editRally.contacts.length - 1] ?? editRally.end)
-        return a !== null && b !== null ? { a, b } : null
-      })()
-    : null
-  const seekMarkers = useMemo(() => {
+  const seekSpans = useMemo(() => {
     const all = segmentsOf(match.videos)
     return set.rallies.flatMap((r) => {
       if (r.point) return []
-      const g = toGlobal(all, r.videoId, r.contacts[0] ?? r.start)
-      return g === null ? [] : [g]
+      const a = firstContactG(all, r)
+      const b = lastContactG(all, r)
+      if (a === null || b === null) return []
+      return [{ a, b, on: editPick === r.id }]
     })
-  }, [match.videos, set.rallies])
+  }, [match.videos, set.rallies, editPick])
 
   const openRange = active
     ? {
@@ -1861,8 +1856,8 @@ function TagSet({
             <PictureSeek
               span={seekSpan}
               time={player.time}
-              markers={seekMarkers}
-              band={pickBand ?? (openRange ? { a: openRange.a, b: openRange.b } : null)}
+              spans={seekSpans}
+              band={openRange ? { a: openRange.a, b: openRange.b } : null}
               onSeek={seekTo}
             />
           }

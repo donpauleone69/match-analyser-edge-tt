@@ -486,7 +486,7 @@ button[disabled] {
   right: 0;
   bottom: 0;
   z-index: 16;
-  height: 20px;
+  height: 28px;
   touch-action: none;
   cursor: pointer;
 }
@@ -495,15 +495,21 @@ button[disabled] {
   left: 0;
   right: 0;
   bottom: 0;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.45);
+  height: 6px;
+  background: rgba(0, 0, 0, 0.55);
 }
-.tag-seek-mark {
+.tag-seek-span {
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 1px;
-  background: #fff;
+  min-width: 2px;
+  background: rgba(255, 255, 255, 0.88);
+}
+.tag-seek-span[data-on] {
+  background: var(--color-brand-primary);
+}
+.tag-seek-span[data-likely] {
+  background: color-mix(in srgb, var(--color-warning) 70%, white);
 }
 .tag-seek-band {
   position: absolute;
@@ -538,11 +544,14 @@ button[disabled] {
 }
 .tag-seek-head {
   position: absolute;
-  top: -3px;
-  bottom: -1px;
-  width: 2px;
-  margin-left: -1px;
-  background: var(--color-brand-primary);
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  margin-left: -6px;
+  margin-top: -6px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 0 0 2px var(--color-brand-primary);
 }
 .tag-media {
   display: flex;
@@ -691,7 +700,7 @@ button[disabled] {
   left: 0;
   right: 0;
   top: 0;
-  height: calc(100% - var(--tag-set) - var(--tag-rally) - 20px - var(--tag-playback) - 4px);
+  height: calc(100% - var(--tag-set) - var(--tag-rally) - 28px - var(--tag-playback) - 4px);
   z-index: 15;
   display: flex;
   flex-direction: column;
