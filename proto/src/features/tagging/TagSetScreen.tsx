@@ -365,12 +365,13 @@ function SetPills({
                 data-gap-slot=""
                 data-gap-index={slot.index}
                 data-on={on ? '' : undefined}
+                data-likely={slot.likely ? '' : undefined}
                 className="tag-gap-hit"
                 aria-current={on ? 'true' : undefined}
                 aria-label={`Before rally ${slot.n}`}
                 onClick={() => onGap(slot.index)}
               >
-                <span className="tag-gap-slot" data-on={on ? '' : undefined} />
+                <span className="tag-gap-slot" data-on={on ? '' : undefined} data-likely={slot.likely ? '' : undefined} />
               </button>
             ) : null}
             <button
@@ -1938,14 +1939,16 @@ function TagSet({
       : { a: 0, b: 1 }
   const seekSpans = useMemo(() => {
     const all = segmentsOf(match.videos)
-    return set.rallies.flatMap((r) => {
+    const rallies = set.rallies.flatMap((r) => {
       if (r.point) return []
       const a = firstContactG(all, r)
       const b = lastContactG(all, r)
       if (a === null || b === null) return []
       return [{ a, b, on: pickedId === r.id }]
     })
-  }, [match.videos, set.rallies, pickedId])
+    const likely = stops.gaps.filter((g) => g.likely).map((g) => ({ a: g.a, b: g.b, likely: true as const }))
+    return [...likely, ...rallies]
+  }, [match.videos, set.rallies, pickedId, stops.gaps])
 
   const openRange = active
     ? {

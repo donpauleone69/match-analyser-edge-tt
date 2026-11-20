@@ -12,6 +12,7 @@ import {
 } from '@/data/demoStore'
 import { otherSide, pointRally, swapPlayers, type Draft, type MarkKind, type RallyData } from './rally'
 import { addPoint, firstServerAt, serverAt, setEndIndex, ZERO, type Points } from './score'
+import { LONG_GAP_S, serveMarks } from './continuity'
 import { markBounds } from './setMark'
 import { firstContactG, insertIndex, lastContactG, segmentsOf, toGlobal, type Segment } from './timeline'
 
@@ -174,7 +175,7 @@ export const MIN_GAP_S = 1
  * Null when either neighbour's video is gone, or there is no room between them.
  */
 export type EditRallyStop = { kind: 'rally'; id: string; n: number; index: number }
-export type EditGapStop = { kind: 'gap'; index: number; n: number; a: number; b: number }
+export type EditGapStop = { kind: 'gap'; index: number; n: number; a: number; b: number; likely: boolean }
 
 /** Rallies and gaps Edit Set can stand on. Score-only points are not stops. */
 export function editStops(m: MatchRecord, setId: number): { rallies: EditRallyStop[]; gaps: EditGapStop[] } {
@@ -186,11 +187,19 @@ export function editStops(m: MatchRecord, setId: number): { rallies: EditRallySt
     if (r.point || !have.has(r.videoId)) return
     rallies.push({ kind: 'rally', id: r.id, n: index + 1, index })
   })
+  const breaks = new Set(serveMarks(s.rallies, s.firstServer).map((mark) => mark.index))
   const gaps: EditGapStop[] = []
   for (const stop of rallies) {
     const w = gapWindow(m, setId, stop.index)
     if (!w) continue
-    gaps.push({ kind: 'gap', index: stop.index, n: stop.n, a: w.a, b: w.b })
+    gaps.push({
+      kind: 'gap',
+      index: stop.index,
+      n: stop.n,
+      a: w.a,
+      b: w.b,
+      likely: w.b - w.a >= LONG_GAP_S || breaks.has(stop.index),
+    })
   }
   return { rallies, gaps }
 }
