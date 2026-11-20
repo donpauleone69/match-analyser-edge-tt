@@ -36,6 +36,8 @@ Mirrors the [Key documents canvas](https://cursor.com/canvas/store-7c210afe-9d07
 | Set completion scores plan | Context: [docs/set-completion-scores-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/set-completion-scores-plan.md) | Waiting on Paul's 14 choices. |
 | Set tagger review fixes | Context: [docs/set-tagger-review-fixes-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/set-tagger-review-fixes-plan.md) | Shipped in v0.17.13 ([PR #156](https://github.com/donpauleone69/match-analyser-edge-tt/pull/156)). Short gaps are stops, a serve break flags the pill, and the shot quadrants have no tap guard. |
 | Tag page cards plan | Context: [docs/tag-page-cards-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/tag-page-cards-plan.md) | Shipped in v0.17.23 ([PR #171](https://github.com/donpauleone69/match-analyser-edge-tt/pull/171)). One card per video. Details holds the result. |
+| Match Insights plan | Context: [docs/match-insights-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/match-insights-plan.md) | Plan for v0.17.25. Four Insights cards from saved rallies: Serve, Receive, Attack and End. |
+| Matches page plan | Context: [docs/matches-page-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/matches-page-plan.md) | Plan for v0.17.26. Home rows from Details fields and tagging status. |
 | Rally Row plan | Context: [docs/rally-row-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/rally-row-plan.md) | Shipped in v0.17.14 ([PR #157](https://github.com/donpauleone69/match-analyser-edge-tt/pull/157)). Paul's six decisions in section 8. |
 | Product ideas | [product-ideas.md](./product-ideas.md) | Running list of product ideas. |
 
@@ -43,7 +45,7 @@ Mirrors the [Key documents canvas](https://cursor.com/canvas/store-7c210afe-9d07
 
 | Build | Link | Notes |
 |-------|------|-------|
-| v0.17.24 | [PR #172](https://github.com/donpauleone69/match-analyser-edge-tt/pull/172) | As soon as End is pressed, the Rally Zone head reads the next rally, its server and the new score. The 2 second countdown bar runs along the bottom edge of the Rally Zone. |
+| v0.17.24 | [PR #172](https://github.com/donpauleone69/match-analyser-edge-tt/pull/172) | As soon as End is pressed, the Rally Zone head reads the next rally, its server and the new score, and the head cell draws dashed in that server's colour. The 2 second countdown bar runs along the bottom edge of the Rally Zone. |
 | v0.17.23 | [PR #171](https://github.com/donpauleone69/match-analyser-edge-tt/pull/171) | One card per video. A set row expands in place. Details shows Use tagged result when the tagged sets make a real result and none is entered. Touching a card's bar, row, span or Add set plays that video. |
 | v0.17.22 | [PR #170](https://github.com/donpauleone69/match-analyser-edge-tt/pull/170) | Edit Rally keeps an End slot on the shot row. Save set is live as soon as the set is won. A review chip jumps to that part, and a Set Zone pill jumps to another rally's first part. The top row controls carry a button kind. Inside a match the page under the row keeps the side insets. |
 | v0.17.21 | [PR #167](https://github.com/donpauleone69/match-analyser-edge-tt/pull/167) | The nav is hidden inside a match. Portrait keeps the bottom bar. Landscape uses a left rail, and the desktop bar is gone. Safe area padding sits on the rail, the bar, and the top row, never on the shell. |
@@ -81,7 +83,7 @@ Mirrors the [Key documents canvas](https://cursor.com/canvas/store-7c210afe-9d07
 | Live app | [edge-tt.apps.grok.bot](https://edge-tt.apps.grok.bot) | Private. v0.17.21 live (e633fad). |
 | v0.16.0 | [PR #139](https://github.com/donpauleone69/match-analyser-edge-tt/pull/139) | Latest merged on proto (dd8ff43). Serve landing quadrants. Phone landscape tapping with video in the middle. Best + FA only in the dropdown. |
 | v0.15.1 | [PR #138](https://github.com/donpauleone69/match-analyser-edge-tt/pull/138) | Home screen mode removed. New timing defaults. |
-| Proto branch | [PR #129](https://github.com/donpauleone69/match-analyser-edge-tt/pull/129) | `cursor/mvp-proto-shell-d372` at `e633fad` (v0.17.21). Main prototype PR the builds merge into. |
+| Proto branch | [PR #129](https://github.com/donpauleone69/match-analyser-edge-tt/pull/129) | `cursor/mvp-proto-shell-d372` at `ad80a1c` (v0.17.24). Main prototype PR the builds merge into. |
 
 ## Theme and style
 
