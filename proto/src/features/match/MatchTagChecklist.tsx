@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Button, buttonKindTextLink } from '@/ui-mine'
 import {
   derivePhase,
+  emptySet,
   formatScore,
   matchSetsWon,
   missingVideoIds,
@@ -95,7 +96,7 @@ export function MatchTagChecklist() {
   const [asking, setAsking] = useState<string | null>(null)
   const [confirmArchive, setConfirmArchive] = useState(false)
   const [removed, setRemoved] = useState<{ video: VideoAsset; index: number; marks: { setId: number; mark: SetMark }[] } | null>(null)
-  const [undoSet, setUndoSet] = useState<{ before: SetData; text: string } | null>(null)
+  const [undoSet, setUndoSet] = useState<{ before: SetData; text: string; also?: SetData } | null>(null)
   const [note, setNote] = useState<string | null>(null)
 
   useEffect(() => {
@@ -182,7 +183,10 @@ export function MatchTagChecklist() {
             kind="control"
             variant="secondary"
             onClick={() => {
-              mutateMatch(match.id, (m) => restoreSet(m, undoSet.before))
+              mutateMatch(match.id, (m) => {
+                const next = restoreSet(m, undoSet.before)
+                return undoSet.also ? restoreSet(next, undoSet.also) : next
+              })
               setUndoSet(null)
             }}
           >
@@ -250,7 +254,7 @@ export function MatchTagChecklist() {
             onRemove={() => dropVideo(video, index)}
             onCancelRemove={() => setAsking(null)}
             onOpen={(setId) => openSet(setId)}
-            onUndo={(before, text) => setUndoSet({ before, text })}
+            onUndo={(before, text, also) => setUndoSet({ before, text, also })}
           />
         ))
       )}
@@ -357,7 +361,7 @@ function VideoBlock({
   onRemove: () => void
   onCancelRemove: () => void
   onOpen: (setId: number) => void
-  onUndo: (before: SetData, text: string) => void
+  onUndo: (before: SetData, text: string, also?: SetData) => void
 }) {
   const navigate = useNavigate()
   const many = match.videos.length > 1
@@ -491,7 +495,7 @@ function SetLine({
   set: SetData
   locked: boolean
   onOpen: () => void
-  onUndo: (before: SetData, text: string) => void
+  onUndo: (before: SetData, text: string, also?: SetData) => void
 }) {
   const navigate = useNavigate()
   const { mutateMatch } = useDemo()
@@ -555,7 +559,18 @@ function SetLine({
       {menu && picking ? (
         <div className="flex flex-wrap gap-1" data-change-number={s.setId}>
           {numbers.map((n) => (
-            <Button key={n} kind="control" variant="secondary" onClick={() => run(`Set ${s.setId} is now set ${n}`, (m) => moveSet(m, s.setId, n))}>
+            <Button
+              key={n}
+              kind="control"
+              variant="secondary"
+              data-make-set={n}
+              onClick={() => {
+                const dest = match.sets.find((x) => x.setId === n) ?? emptySet(n)
+                onUndo(s, `Set ${s.setId} is now set ${n}`, dest)
+                mutateMatch(match.id, (m) => moveSet(m, s.setId, n))
+                setMenu(false)
+              }}
+            >
               Make it set {n}
             </Button>
           ))}

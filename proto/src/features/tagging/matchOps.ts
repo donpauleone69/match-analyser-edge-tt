@@ -308,9 +308,21 @@ export function saveMark(m: MatchRecord, setId: number, mark: SetMark): MatchRec
   return inSet(m, setId, (s) => ({ ...s, mark }))
 }
 
-/** Rallies go. The mark stays, so the set is ready again. */
+/**
+ * Rallies go. A set that was being tagged comes back Ready: its mark was in
+ * use, so it counts as complete. A mark that was never tagged is left as it is.
+ */
 export function deleteTags(m: MatchRecord, setId: number): MatchRecord {
-  return { ...inSet(m, setId, (s) => ({ ...s, rallies: [], draft: null, finished: false })), tagDone: false }
+  return {
+    ...inSet(m, setId, (s) => ({
+      ...s,
+      rallies: [],
+      draft: null,
+      finished: false,
+      mark: s.mark && s.rallies.length > 0 ? { ...s.mark, complete: true } : s.mark,
+    })),
+    tagDone: false,
+  }
 }
 
 /** The mark goes. Only while the set has no rallies. */

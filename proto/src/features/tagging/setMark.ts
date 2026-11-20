@@ -38,8 +38,10 @@ export function pointAt(segs: Segment[], g: number): { videoId: string; t: numbe
 }
 
 /**
- * A set that already has rallies gets a mark from the first contact to the
- * last, 5 s each side. Complete only when the set was saved.
+ * A set that already has rallies gets a mark from just before the first
+ * contact. A saved set ends just after the last. One still being tagged runs
+ * to the end of its video, and the tagger asks to re-mark there.
+ * Complete only when the set was saved.
  */
 export function migrateSetMark(videos: VideoAsset[], s: SetData): SetData {
   if (s.mark || s.rallies.length === 0 || videos.length === 0) return s
@@ -47,8 +49,14 @@ export function migrateSetMark(videos: VideoAsset[], s: SetData): SetData {
   const startG = firstContactG(segs, s.rallies[0])
   const endG = lastContactG(segs, s.rallies[s.rallies.length - 1])
   if (startG === null || endG === null) return s
+  const endSeg = segmentAt(segs, endG)
   const from = pointAt(segs, startG - MARK_PAD_S)
-  const to = pointAt(segs, endG + MARK_PAD_S)
+  // Stay on the last contact's video. The next video's 0 is the same clock
+  // time, and would look like the set runs across.
+  const to =
+    !s.finished && endSeg
+      ? { videoId: endSeg.id, t: endSeg.duration }
+      : pointAt(segs, endG + MARK_PAD_S)
   if (!from || !to) return s
   return { ...s, mark: { from, to, complete: s.finished } }
 }
