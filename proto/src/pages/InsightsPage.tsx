@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Outlet, useLocation } from 'react-router-dom'
+import { Navigate, Outlet } from 'react-router-dom'
+import type { ReactNode } from 'react'
 import { PageHeader } from '@/layout/PageHeader'
 import { StickyChrome } from '@/layout/StickyChrome'
-import { SectionPills, type SectionId } from '@/features/insights/InsightsScreen'
-import { InsightsSectionRoute } from '@/features/insights/InsightsScreen'
+import { InsightsSectionRoute, type SectionId } from '@/features/insights/InsightsScreen'
 import {
   InsightsFilterProvider,
   useInsightsFilters,
@@ -14,8 +14,7 @@ import {
 } from '@/features/insights/insightsFilterContext'
 import { hasTaggedRallies, useDemo } from '@/data/demoStore'
 import { WfEmpty } from '@/layout/Wireframe'
-import { Button, buttonKindControlSquare } from '@/ui-mine'
-import { cn } from '@/helpers/utils'
+import { Button, Icon } from '@/ui-mine'
 
 const GLOBAL_SECTIONS: { id: SectionId; label: string }[] = [
   { id: 'summary', label: 'Summary' },
@@ -77,11 +76,10 @@ function FilterPickers({
 }
 
 /**
- * Filter button sits directly after the section pills at every width and the
- * active chips follow it. Desktop: the pickers open in the page flow, so they
- * push the reels down and never cover them. Phone: bottom sheet.
+ * Filter sits in the top row. Chips and the pickers sit under it and scroll
+ * away. Desktop: the pickers open in the page flow. Phone: a bottom sheet.
  */
-function PillRowWithFilter({ section }: { section: SectionId }) {
+function InsightsFilter({ renderRow }: { renderRow: (end: ReactNode) => ReactNode }) {
   const { filters, setFilters } = useInsightsFilters()
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState<InsightsFilters>(filters)
@@ -130,37 +128,45 @@ function PillRowWithFilter({ section }: { section: SectionId }) {
     setFilters(next)
   }
 
+  const button = (
+    <button
+      type="button"
+      data-filter-surface
+      data-filter-count={n}
+      aria-label="Filter"
+      aria-expanded={open}
+      onClick={() => setOpen((v) => !v)}
+      className="relative inline-flex h-full w-[var(--btn-kind-control)] shrink-0 items-center justify-center text-primary hover:bg-pill-idle"
+    >
+      <Icon name="filter" size="sm" />
+      {n > 0 ? (
+        <span className="absolute right-1 top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-warning px-0.5 text-[9px] font-bold leading-none text-[#0b1220]">
+          {n}
+        </span>
+      ) : null}
+    </button>
+  )
+
   return (
-    <div className="px-4 sm:px-6 lg:px-8 pt-3 pb-2 space-y-2">
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="flex items-center gap-2 min-w-0 max-w-full">
-          <div className="min-w-0 overflow-x-auto">
-            <SectionPills sections={GLOBAL_SECTIONS} section={section} basePath="/insights" />
-          </div>
-          <Button
-            kind="control"
-            variant="secondary"
-            className={cn(buttonKindControlSquare, 'shrink-0 px-2')}
-            data-filter-surface
-            onClick={() => setOpen((v) => !v)}
-            aria-expanded={open}
-          >
-            Filter{n > 0 ? ` (${n})` : ''}
-          </Button>
+    <>
+      {renderRow(button)}
+      {active.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-2 px-3 pt-2">
+          {active.map((a) => (
+            <button
+              key={a}
+              type="button"
+              onClick={() => clearOne(a)}
+              className="btn-kind-control inline-flex items-center gap-1 rounded border border-border bg-pill-idle px-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted hover:bg-bg-elevated"
+              aria-label={`Remove ${a}`}
+            >
+              {a}
+              <span aria-hidden>×</span>
+            </button>
+          ))}
         </div>
-        {active.map((a) => (
-          <button
-            key={a}
-            type="button"
-            onClick={() => clearOne(a)}
-            className="btn-kind-control inline-flex items-center gap-1 rounded border border-border bg-pill-idle px-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted hover:bg-bg-elevated"
-            aria-label={`Remove ${a}`}
-          >
-            {a}
-            <span aria-hidden>×</span>
-          </button>
-        ))}
-      </div>
+      ) : null}
+      <div className="px-4 sm:px-6 lg:px-8">
 
       {/* Desktop: in the page flow, so nothing below is covered */}
       {open ? (
@@ -196,7 +202,7 @@ function PillRowWithFilter({ section }: { section: SectionId }) {
             aria-label="Close filters"
             onClick={() => setOpen(false)}
           />
-          <div className="absolute inset-x-0 bottom-0 rounded-t-xl border border-border bg-bg-surface p-4 pb-8 space-y-3 shadow-lg">
+          <div className="absolute inset-x-0 bottom-0 max-h-[100dvh] overflow-auto rounded-t-xl border border-border bg-bg-surface p-4 pb-8 space-y-3 shadow-lg">
             <div className="flex items-center justify-between gap-2">
               <p className="text-sm font-semibold text-primary">Filter</p>
               <Button kind="control" variant="ghost" className="shrink-0 px-2" onClick={() => setOpen(false)}>
@@ -215,42 +221,47 @@ function PillRowWithFilter({ section }: { section: SectionId }) {
           </div>
         </div>
       ) : null}
-    </div>
+      </div>
+    </>
   )
 }
 
-function sectionFromPath(pathname: string): SectionId {
-  const part = pathname.split('/').pop() || 'summary'
-  if (['summary', 'serve', 'receive', 'improve'].includes(part)) return part as SectionId
-  return 'summary'
-}
-
 /**
- * Global Insights order: title, pills + Filter button + chips, content.
- * Empty until some match has tagged rallies.
+ * Global Insights: tabs and Filter in the top row, chips under it, then the content.
+ * Empty until some match has tagged rallies, and then the row is a title only.
  */
 export function InsightsPage() {
   const { matches } = useDemo()
-  const { pathname } = useLocation()
-  const section = sectionFromPath(pathname)
   const empty = !matches.some(hasTaggedRallies)
 
   return (
     <InsightsFilterProvider>
       <div>
-        <StickyChrome>
-          <PageHeader title="Insights" />
-        </StickyChrome>
         {empty ? (
-          <div className="px-4 sm:px-6 lg:px-8 py-6">
-            <WfEmpty
-              title="No insights yet"
-              body="Tag a rally in any match to see insights."
-            />
-          </div>
+          <>
+            <StickyChrome>
+              <PageHeader title="Insights" />
+            </StickyChrome>
+            <div className="px-4 sm:px-6 lg:px-8 py-6">
+              <WfEmpty
+                title="No insights yet"
+                body="Tag a rally in any match to see insights."
+              />
+            </div>
+          </>
         ) : (
           <>
-            <PillRowWithFilter section={section} />
+            <InsightsFilter
+              renderRow={(end) => (
+                <StickyChrome>
+                  <PageHeader
+                    tabsLabel="Insights"
+                    tabs={GLOBAL_SECTIONS.map((item) => ({ to: `/insights/${item.id}`, label: item.label }))}
+                    end={end}
+                  />
+                </StickyChrome>
+              )}
+            />
             <Outlet />
           </>
         )}
@@ -261,4 +272,8 @@ export function InsightsPage() {
 
 export function InsightsSectionPage() {
   return <InsightsSectionRoute scope="global" chrome="body" />
+}
+
+export function InsightsIndex() {
+  return <Navigate to="/insights/summary" replace />
 }

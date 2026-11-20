@@ -60,7 +60,7 @@ One rally, 64px, three rows:
 | Editing | Edit Rally | Cells, ring on the stop. End stop rings the last line. | Star, Edit Rally pressed |
 | Review | Star pressed | Part chips, ring on the focus, amber when marked | Star pressed, Edit Rally |
 
-**Review mode.** The star toggles it. The video loops the focused part at 1x. Edit Rally and review are exclusive. Picking another pill in Edit Set keeps review on. Marks are `idea.review`.
+**Review mode.** The star toggles it. The video loops the focused part at 1x. Edit Rally and review are exclusive. Marks are `idea.review`.
 
 ## 6. Input Area
 

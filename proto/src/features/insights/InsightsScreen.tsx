@@ -174,7 +174,7 @@ export function SectionPills({
             type="button"
             role="tab"
             aria-selected={active}
-            onClick={() => navigate(`${basePath}/${s.id}`)}
+            onClick={() => navigate(`${basePath}/${s.id}`, { replace: true })}
             className={cn(
               'btn-kind-control shrink-0 px-3 text-xs font-semibold rounded-md transition-colors',
               active

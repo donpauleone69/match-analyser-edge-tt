@@ -1151,7 +1151,6 @@ function TagSet({
     playBest(d, 'rally')
   }
 
-  /** A gap stop loops edge to edge at the watch speed, fenced inside itself. */
   const clearReview = () => {
     reviewRef.current = false
     reviewPlay.current = null
@@ -1159,6 +1158,7 @@ function TagSet({
     setReviewFocus(null)
   }
 
+  /** A gap stop loops edge to edge at the watch speed, fenced inside itself. */
   const loopGap = (stop: EditGapStop) => {
     clearReview()
     if (live) {

@@ -1,52 +1,76 @@
-import { Link } from 'react-router-dom'
-import { Icon, buttonKindClass, buttonKindControlSquare } from '@/ui-mine'
+import type { ReactNode } from 'react'
+import { NavLink, Link } from 'react-router-dom'
+import { Icon } from '@/ui-mine'
 import { cn } from '@/helpers/utils'
-import { BrandMark } from '@/layout/BrandMark'
+import { WfWarnBadge } from '@/layout/Wireframe'
+
+export interface TopTab {
+  to: string
+  label: string
+  end?: boolean
+  /** Small amber mark after the label, for something on that tab needing a look. */
+  mark?: string
+}
 
 /**
- * Shared header. Always reserves a left back slot (same row height) so hub tabs
- * never shift. Pass backTo only when Back should show (up one level).
+ * The one top row. Back only when there is somewhere to go up to, then tabs
+ * or a title, then at most one end slot. One control tall, no brand.
+ * A tab switch replaces the history entry.
  */
 export function PageHeader({
   title,
-  subtitle,
   backTo,
+  tabs,
+  tabsLabel = 'Sections',
+  end,
 }: {
-  title: string
-  subtitle?: string
+  title?: string
   backTo?: string
+  tabs?: TopTab[]
+  tabsLabel?: string
+  end?: ReactNode
 }) {
   return (
-    <header className="px-4 sm:px-6 lg:px-8 pt-4 pb-2">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex items-start gap-2">
-          <div
-            className={cn(
-              buttonKindControlSquare,
-              'shrink-0 flex items-center justify-center mt-0.5'
-            )}
-          >
-            {backTo ? (
-              <Link
-                to={backTo}
-                className={cn(
-                  buttonKindClass.control,
-                  'inline-flex h-full w-full items-center justify-center rounded-md text-brand hover:bg-pill-idle'
-                )}
-                aria-label="Back"
-              >
-                <Icon name="chevron-left" size="sm" />
-              </Link>
-            ) : null}
-          </div>
-          <div className="min-w-0">
-            <h1 className="text-xl font-bold text-primary leading-8">{title}</h1>
-            {subtitle ? <p className="text-sm text-muted mt-0.5">{subtitle}</p> : null}
-          </div>
-        </div>
-        {/* Brand on phone; md+ brand lives in the top nav bar */}
-        <BrandMark className="pt-1 md:hidden" />
-      </div>
+    <header
+      data-top-row
+      className="flex h-[var(--btn-kind-control)] min-w-0 items-stretch border-b border-border bg-bg-app"
+    >
+      {backTo ? (
+        <Link
+          to={backTo}
+          aria-label="Back"
+          className="inline-flex w-[var(--btn-kind-control)] shrink-0 items-center justify-center text-brand hover:bg-pill-idle"
+        >
+          <Icon name="chevron-left" size="sm" />
+        </Link>
+      ) : null}
+      {tabs ? (
+        <nav className="top-row-tabs flex min-w-0 items-stretch overflow-x-auto" aria-label={tabsLabel}>
+          {tabs.map((tab) => (
+            <NavLink
+              key={tab.to}
+              to={tab.to}
+              end={tab.end}
+              replace
+              data-top-tab={tab.label}
+              className={({ isActive }) =>
+                cn(
+                  'inline-flex h-full shrink-0 items-center gap-1.5 px-3 text-sm font-semibold',
+                  isActive
+                    ? 'text-brand-primary shadow-[inset_0_-2px_0_0_var(--color-brand-primary)]'
+                    : 'text-muted hover:text-primary'
+                )
+              }
+            >
+              {tab.label}
+              {tab.mark ? <WfWarnBadge>{tab.mark}</WfWarnBadge> : null}
+            </NavLink>
+          ))}
+        </nav>
+      ) : (
+        <h1 className="flex min-w-0 flex-1 items-center truncate px-3 text-base font-bold text-primary">{title}</h1>
+      )}
+      {end}
     </header>
   )
 }
