@@ -25,7 +25,9 @@ Mirrors the [Key documents canvas](https://cursor.com/canvas/store-7c210afe-9d07
 | Set Tagger sprint plan | Context: [docs/set-tagger-sprint-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/set-tagger-sprint-plan.md) | Shipped in v0.17.4. |
 | Set marking sprint plan | Context: [docs/set-marking-sprint-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/set-marking-sprint-plan.md) | Shipped in v0.17.4. |
 | Set marking flow test | Context: [docs/set-marking-flow-test.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/set-marking-flow-test.md) | Route and mark flow checks at 390x844 and 734x310 after v0.17.0 to v0.17.4. |
-| Edit Set gaps plan | Context: [docs/edit-set-gaps-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/edit-set-gaps-plan.md) | In planning, awaiting Paul's decisions. |
+| Edit Set gaps plan | Context: [docs/edit-set-gaps-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/edit-set-gaps-plan.md) | Building, v0.17.5 to v0.17.8. |
+| Mark sets page plan | Context: [docs/mark-sets-page-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/mark-sets-page-plan.md) | Unified Tag page with set marking in cards. Planned, awaiting Paul's OK. |
+| Set Tagger start end plan | Context: [docs/set-tagger-start-end-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/set-tagger-start-end-plan.md) | Planned, awaiting Paul's OK. |
 | Product ideas | [product-ideas.md](./product-ideas.md) | Running list of product ideas. |
 
 ## Latest builds
