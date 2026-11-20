@@ -35,13 +35,26 @@ export function InputArea({
 }) {
   const rows = [...new Set(regions.map((r) => r.row))].sort((a, b) => a - b)
   if (column) {
+    // Both wings share these row heights, so a missing control keeps its row
+    // and a button cannot grow into the row beside it.
+    const template = rows
+      .map((row) => (regions.some((r) => r.row === row && r.short) ? '2.75rem' : 'minmax(0, 1fr)'))
+      .join(' ')
     return (
-      <div data-input-area="" className="flex h-full min-h-0 flex-col gap-1.5" {...attrProps(attrs)}>
+      <div
+        data-input-area=""
+        className="grid h-full min-h-0 gap-1.5"
+        style={{ gridTemplateRows: template }}
+        {...attrProps(attrs)}
+      >
         {rows.map((row) => {
           const region = regions.find((r) => r.row === row && (r.span || r.column === column))
           const short = regions.some((r) => r.row === row && r.short)
-          if (!region) return <div key={row} className={short ? 'h-11 shrink-0' : 'min-h-0 flex-1'} />
-          return <RegionButton key={`${region.key}-${column}`} region={region} short={short} />
+          return (
+            <div key={row} className="flex h-full min-h-0">
+              {region ? <RegionButton region={region} short={short} /> : null}
+            </div>
+          )
         })}
       </div>
     )
@@ -94,7 +107,7 @@ function RegionButton({ region, short }: { region: AreaRegion; short: boolean })
       }}
       className={cn(
         'pad-region flex w-full touch-manipulation select-none items-center justify-center rounded-md px-2 text-center text-[22px] font-bold leading-tight active:brightness-90',
-        short ? 'input-short h-full' : 'h-full min-h-0 flex-1',
+        short ? 'input-short h-full' : 'h-full min-h-0 w-full',
         region.dim && 'opacity-60',
       )}
       style={{

@@ -1972,6 +1972,17 @@ function TagSet({
           onPointTo: onShotPoint,
         })
       : []
+  /** The end pad is on screen. The Rally Zone is Before serve, the next rally, not the last one. */
+  const atEndPad = Boolean(
+    canFinishNow &&
+      !shotEdit &&
+      !bestOn &&
+      mode !== 'edit' &&
+      mode !== 'setPoint' &&
+      !showRemove &&
+      (atEnd || boundNote) &&
+      !set.finished,
+  )
   const area = tagRegions({
     mode,
     bestOn,
@@ -1988,7 +1999,9 @@ function TagSet({
     removeDim: removeGuard.waiting || readOnly,
     showRemove,
     removeAfter: endIndex + 1,
-    endPad: Boolean(finishCard || (boundNote && mode !== 'setPoint' && mode !== 'edit' && !set.finished)),
+    endPad: Boolean(
+      finishCard || (canFinishNow && boundNote && mode !== 'setPoint' && mode !== 'edit' && !set.finished),
+    ),
     editing: mode === 'edit' && editPick !== null && !gap,
     editKind: editPick?.kind ?? null,
     editName: editPick?.kind === 'gap' ? String(viewedGap?.n ?? '') : String(editIndex + 1),
@@ -2125,11 +2138,11 @@ function TagSet({
           />
         ) : null}
         <RallyZone
-          state={rallyState}
-          draft={rowDraft}
-          at={pickDraft || shotEdit ? null : bestQ}
-          rallyOne={pickDraft || editOf ? false : bestRowSaved ? savedIndex <= 0 : bestRallyOne}
-          saved={shotEdit ? Boolean(shotEdit.rallyId) : pickDraft ? true : bestRowSaved}
+          state={atEndPad ? 'before' : rallyState}
+          draft={atEndPad ? null : rowDraft}
+          at={atEndPad || pickDraft || shotEdit ? null : bestQ}
+          rallyOne={atEndPad ? false : pickDraft || editOf ? false : bestRowSaved ? savedIndex <= 0 : bestRallyOne}
+          saved={atEndPad ? false : shotEdit ? Boolean(shotEdit.rallyId) : pickDraft ? true : bestRowSaved}
           focus={shotEdit ? shotEdit.stop : null}
           flash={
             shotEdit && active && typeof shotEdit.stop === 'number'
@@ -2138,15 +2151,15 @@ function TagSet({
                 : -1
               : -1
           }
-          rallyNo={rallyNo}
+          rallyNo={atEndPad ? set.rallies.length + 1 : rallyNo}
           names={names}
-          server={rallyServer}
-          score={scoreBefore(rallyScoreAt)}
-          word={rallyWord}
+          server={atEndPad ? nextServer : rallyServer}
+          score={atEndPad ? scoreBefore(set.rallies.length) : scoreBefore(rallyScoreAt)}
+          word={atEndPad ? null : rallyWord}
           tight={landscape}
           pressed={rallyState === 'editing'}
           onEdit={
-            rallyActions
+            !atEndPad && (rallyState === 'saved' || rallyState === 'editing')
               ? () => {
                   if (shotEdit) closeShotEdit()
                   else if (pickDraft && pickedId) beginShotEdit(pickedId, 'set')
@@ -2156,7 +2169,7 @@ function TagSet({
               : undefined
           }
           onStar={
-            rallyActions
+            !atEndPad && rallyActions
               ? () => {
                   if (shotEdit && live) {
                     const next = { ...live, highlight: !live.highlight }
@@ -2170,11 +2183,13 @@ function TagSet({
               : undefined
           }
           onDiscard={
-            editOf && live
-              ? cancelEdit
-              : !readOnly && !bestRowSaved && live && live.contacts.length > 0
-                ? onDiscardProgress
-                : undefined
+            atEndPad
+              ? undefined
+              : editOf && live
+                ? cancelEdit
+                : !readOnly && !bestRowSaved && live && live.contacts.length > 0
+                  ? onDiscardProgress
+                  : undefined
           }
           onCancel={insertingBare ? cancelInsert : undefined}
           onServer={
