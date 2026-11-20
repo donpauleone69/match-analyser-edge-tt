@@ -445,7 +445,7 @@ function DeleteMatch({ match }: { match: MatchRecord }) {
 
   const remove = () => {
     deleteMatch(match.id)
-    navigate('/home')
+    navigate('/matches')
   }
 
   if (!confirming || archiving) {

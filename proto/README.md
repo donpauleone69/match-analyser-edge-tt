@@ -20,8 +20,8 @@ npm run dev
 | Surface | Path |
 |---------|------|
 | Gate (login / register / device) | `/` |
-| Home (cards) | `/home` |
-| Find (stub) | `/find` |
+| Matches | `/matches` |
+| Old Home and Find | `/home` and `/find` redirect to `/matches` |
 | Match Insights | `/matches/:id/insights` |
 | Match Details | `/matches/:id/details` |
 | Match Tag | `/matches/:id/tag` |
@@ -30,7 +30,7 @@ npm run dev
 | Insights Scope | `/insights/scope` |
 | Account | `/account` |
 
-Bottom nav (shell): **Home · Insights · Account**. Match is entered from Home / Find.
+Bottom nav (shell): **Matches · Insights · Account**. A match is entered from Matches.
 
 ## Theme tokens
 

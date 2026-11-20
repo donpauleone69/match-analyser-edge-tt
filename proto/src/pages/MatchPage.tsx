@@ -52,10 +52,10 @@ export function MatchPage() {
     return (
       <div>
         <StickyChrome>
-          <PageHeader title="Match" backTo="/home" />
+          <PageHeader title="Match" backTo="/matches" />
         </StickyChrome>
         <div className="px-4 sm:px-6 lg:px-8 py-6">
-          <WfEmpty title="Match not found" body="The match was not found." />
+          <WfEmpty title="Match not found" />
         </div>
       </div>
     )
@@ -68,7 +68,7 @@ export function MatchPage() {
     <div>
       <StickyChrome>
         <PageHeader
-          backTo="/home"
+          backTo="/matches"
           tabsLabel="Match sections"
           tabs={[
             { to: `${base}/insights`, label: 'Insights' },
@@ -99,7 +99,7 @@ export function MatchIndexRedirect() {
   const { matchId = '' } = useParams()
   const { getMatch } = useDemo()
   const match = getMatch(matchId)
-  if (!match) return <Navigate to="/home" replace />
+  if (!match) return <Navigate to="/matches" replace />
   const tab = defaultMatchTab(derivePhase(match))
   return <Navigate to={`/matches/${matchId}/${tab}`} replace />
 }

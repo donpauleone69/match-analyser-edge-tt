@@ -2,8 +2,7 @@ import { Navigate, Route, Routes, useParams, useSearchParams } from 'react-route
 import { AppShell } from '@/layout/AppShell'
 import { ScrollToTop } from '@/layout/ScrollToTop'
 import { GatePage } from '@/pages/GatePage'
-import { HomePage } from '@/pages/HomePage'
-import { FindPage } from '@/pages/FindPage'
+import { MatchesPage } from '@/pages/MatchesPage'
 import {
   MatchPage,
   MatchIndexRedirect,
@@ -38,8 +37,9 @@ export default function App() {
       <Routes>
         <Route path="/" element={<GatePage />} />
         <Route element={<AppShell />}>
-          <Route path="/home" element={<HomePage />} />
-          <Route path="/find" element={<FindPage />} />
+          <Route path="/home" element={<Navigate to="/matches" replace />} />
+          <Route path="/find" element={<Navigate to="/matches" replace />} />
+          <Route path="/matches" element={<MatchesPage />} />
           <Route path="/matches/:matchId" element={<MatchPage />}>
             <Route index element={<MatchIndexRedirect />} />
             <Route path="insights" element={<Navigate to="summary" replace />} />

@@ -414,10 +414,10 @@ export function InsightsScreen({
   if (scope === 'match' && !match) {
     return (
       <div className="px-4 sm:px-6 lg:px-8 py-6">
-        <WfEmpty title="Match not found" body="Return to Home." />
+        <WfEmpty title="Match not found" />
         <div className="mt-3">
-          <Link to="/home" className="text-sm font-semibold text-brand">
-            Home
+          <Link to="/matches" className="text-sm font-semibold text-brand">
+            Matches
           </Link>
         </div>
       </div>

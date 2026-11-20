@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Navigate, Outlet } from 'react-router-dom'
+import { Outlet } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import { PageHeader } from '@/layout/PageHeader'
 import { StickyChrome } from '@/layout/StickyChrome'
@@ -272,8 +272,4 @@ export function InsightsPage() {
 
 export function InsightsSectionPage() {
   return <InsightsSectionRoute scope="global" chrome="body" />
-}
-
-export function InsightsIndex() {
-  return <Navigate to="/insights/summary" replace />
 }
