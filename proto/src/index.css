@@ -654,7 +654,7 @@ button[disabled] {
 }
 .tag-set[data-pad-split] {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-columns: minmax(9rem, 1fr) minmax(0, auto) minmax(9rem, 1fr);
   grid-template-rows: minmax(0, 1fr);
   grid-template-areas: 'left flow right';
   container-type: size;
@@ -669,6 +669,7 @@ button[disabled] {
   height: 100%;
   min-height: 0;
   min-width: 0;
+  overflow: hidden;
 }
 .tag-set[data-pad-split] .pad-wing {
   display: flex;

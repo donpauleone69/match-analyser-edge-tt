@@ -919,7 +919,7 @@ function TagSet({
     if (bestHold.current) return
     if (bestCheckRef.current) return
     const p = playerRef.current
-    if (mode !== 'watch' && mode !== 'tapping') return
+    if (mode !== 'watch' && mode !== 'tapping' && !(gap && editPick?.kind === 'gap')) return
     const tapped = live?.contacts.length ?? 0
     if (!p.isPlaying() && tapped === 0) {
       // Play becomes Tap serve under the finger. Arm before the next press.
