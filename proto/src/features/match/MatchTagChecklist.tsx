@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Button, buttonKindTextLink } from '@/ui-mine'
 import {
@@ -71,6 +72,21 @@ export function MatchTagChecklist() {
   useLayoutEffect(() => {
     if (savedId !== null) arrive.arm()
   }, [savedId, arrive.arm])
+  // Save set sits where Home sits on this page. While the arrival wait is on,
+  // a second tap must land nowhere, including the bottom nav.
+  useEffect(() => {
+    if (!arrive.waiting) return
+    const swallow = (e: Event) => {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+    document.addEventListener('pointerdown', swallow, true)
+    document.addEventListener('click', swallow, true)
+    return () => {
+      document.removeEventListener('pointerdown', swallow, true)
+      document.removeEventListener('click', swallow, true)
+    }
+  }, [arrive.waiting])
   const { getMatch, moveVideo, mutateMatch } = useDemo()
   const match = getMatch(matchId)
   const player = usePlayer(match?.videos ?? [])
@@ -164,6 +180,8 @@ export function MatchTagChecklist() {
 
   const phase = derivePhase(match)
   const savedSet = savedId !== null ? (match.sets.find((s) => s.setId === savedId) ?? null) : null
+  /** Continue reopens the set. Phone Back must not still say it was just saved. */
+  const savedShown = Boolean(savedSet?.finished)
   const savedTagged = savedSet ? taggedScore(savedSet) : null
   const savedEntered = savedSet ? parseEntered(savedSet.entered) : null
   const savedIncomplete = savedSet ? setIncomplete(savedSet) : false
@@ -326,6 +344,9 @@ export function MatchTagChecklist() {
 
   return (
     <div className={match.videos.length > 0 ? 'tag-page' : undefined}>
+      {arrive.waiting
+        ? createPortal(<div data-arrive-block className="fixed inset-0 z-[60]" aria-hidden />, document.body)
+        : null}
       {match.videos.length > 0 && seg ? (
         <div className="tag-preview sticky z-10 bg-bg-app" style={{ top: stick }} data-preview-player>
           <VideoStage
@@ -367,7 +388,7 @@ export function MatchTagChecklist() {
         </p>
       ) : null}
 
-      {savedSet ? (
+      {savedShown && savedSet ? (
         <div
           data-saved-strip
           data-saved-kind={savedIncomplete ? 'incomplete' : savedDiffers ? 'differs' : 'saved'}

@@ -1,5 +1,5 @@
 import type { MatchRecord, SetData, SetMark, VideoAsset } from '@/data/demoStore'
-import { countPoints, isSetWon } from '@/features/tagging/score'
+import { isSetWon, scoreAtSetEnd } from '@/features/tagging/score'
 import {
   firstContactG,
   lastContactG,
@@ -157,7 +157,8 @@ export function notOnVideo(m: MatchRecord, s: SetData): boolean {
  */
 export function setIncomplete(s: SetData): boolean {
   if (!s.finished || s.rallies.length === 0) return false
-  return !isSetWon(countPoints(s.rallies.map((r) => r.winner)))
+  const atEnd = scoreAtSetEnd(s.rallies.map((r) => r.winner))
+  return atEnd === null || !isSetWon(atEnd)
 }
 
 /** The one button on a set row. Part filmed is status text, not a button. */

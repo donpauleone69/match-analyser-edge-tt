@@ -102,6 +102,18 @@ ok('a later end reopens a short set', saveMark(brief, 2, mark('v1', 0, 12, true)
 ok('a later end leaves a won set saved', saveMark(match([v1], [setOf(1, mark('v1', 0, 10, true), 'saved')]), 1, mark('v1', 0, 12, true)).sets[0].finished === true)
 ok('moving the start leaves it saved', saveMark(brief, 2, mark('v1', 2, 10, true)).sets[0].finished === true)
 ok('the complete flag leaves it saved', saveMark(brief, 2, mark('v1', 0, 10, false)).sets[0].finished === true)
+const overrun = {
+  ...setOf(2, mark('v1', 0, 10, true), 'saved'),
+  rallies: [
+    ...Array.from({ length: 11 }, () => ({ winner: 'me' }) as SetData['rallies'][number]),
+    ...Array.from({ length: 11 }, () => ({ winner: 'them' }) as SetData['rallies'][number]),
+  ],
+}
+ok('an overrun set stays won', lineAction(overrun) === 'Open')
+ok(
+  'a later end leaves an overrun set saved',
+  saveMark(match([v1], [overrun]), 2, mark('v1', 0, 12, true)).sets[0].finished === true,
+)
 ok('part filmed has no button', lineAction(setOf(3, mark('v1', 0, 10, false), 'part')) === null)
 ok('unmarked has no button', lineAction(setOf(4, null, 'off')) === null)
 

@@ -11,7 +11,7 @@ import {
   type SetMark,
 } from '@/data/demoStore'
 import { otherSide, pointRally, swapPlayers, type Draft, type MarkKind, type RallyData } from './rally'
-import { addPoint, countPoints, firstServerAt, isSetWon, serverAt, setEndIndex, ZERO, type Points } from './score'
+import { addPoint, firstServerAt, isSetWon, scoreAtSetEnd, serverAt, setEndIndex, ZERO, type Points } from './score'
 import { LONG_GAP_S, serveBands } from './continuity'
 import { markBounds } from './setMark'
 import { firstContactG, insertIndex, lastContactG, segmentsOf, toGlobal, type Segment } from './timeline'
@@ -370,7 +370,8 @@ export function saveMark(m: MatchRecord, setId: number, mark: SetMark): MatchRec
     const was = s.mark ? toGlobal(segs, s.mark.to.videoId, s.mark.to.t) : null
     const now = toGlobal(segs, mark.to.videoId, mark.to.t)
     const later = was !== null && now !== null && now > was + 0.05
-    const won = s.rallies.length > 0 && isSetWon(countPoints(s.rallies.map((r) => r.winner)))
+    const atEnd = scoreAtSetEnd(s.rallies.map((r) => r.winner))
+    const won = atEnd !== null && isSetWon(atEnd)
     const reopen = s.finished && later && !won
     return { ...s, mark, skipped: false, ...(reopen ? { finished: false } : {}) }
   })
