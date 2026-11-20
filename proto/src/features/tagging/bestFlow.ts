@@ -585,6 +585,44 @@ export function shotLoop(contact: number, next: number, timing: BestTiming, rate
 /** What a loop plays: a question, or the whole rally. */
 export type BestLoopWhat = BestAt | 'rally'
 
+/** Edit Rally stops: shot 1 through the last shot, then End. */
+export type EditStop = number | 'end'
+
+export function editStopList(n: number): EditStop[] {
+  const stops: EditStop[] = []
+  for (let shot = 1; shot <= n; shot++) stops.push(shot)
+  stops.push('end')
+  return stops
+}
+
+/** Back and Forward wrap. Forward on End is shot 1. Back on shot 1 is End. */
+export function stepEditStop(n: number, stop: EditStop, by: -1 | 1): EditStop {
+  const stops = editStopList(Math.max(1, n))
+  const at = stops.findIndex((item) => item === stop)
+  const i = at < 0 ? 0 : at
+  return stops[(i + by + stops.length) % stops.length]
+}
+
+/**
+ * The video window for an Edit Rally stop. Shot 1 starts a second before the
+ * serve. Later shots use the shot loop. End loops the last shot.
+ */
+export function editStopWindow(
+  d: Draft,
+  stop: EditStop,
+  timing: BestTiming = DEFAULT_BEST_TIMING,
+  serveBefore = 1,
+  serveAfter = 0.5,
+): BestWindow {
+  if (stop === 1) {
+    const contact = d.contacts[0] ?? rallyStart(d)
+    const next = d.contacts[1] ?? rallyEnd(d)
+    return { a: contact - serveBefore, b: Math.max(contact + serveAfter, Math.min(next, contact + serveAfter)) }
+  }
+  if (stop === 'end') return bestLoop(d, { step: 'end' }, timing)
+  return bestLoop(d, { step: 'shots', page: stop }, timing)
+}
+
 /**
  * Loop the shot being asked, at `rate` (0.75 unless a caller says otherwise).
  * It starts `lead` of playback before that contact and ends `end` of playback

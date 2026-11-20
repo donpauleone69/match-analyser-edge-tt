@@ -9,7 +9,6 @@ import {
   bestHint,
   bestMismatch,
   bestOpener,
-  canOpenCell,
   cellMark,
   mismatchLine,
   partsOf,
@@ -20,8 +19,7 @@ import {
   type BestEnd,
   type BestPart,
 } from './bestFlow'
-import type { ActionGuard } from './pressGuard'
-import { hitterOf, type Draft, type Side, type Wing } from './rally'
+import { hitterOf, otherSide, winnerOf, type Draft, type Side, type Wing } from './rally'
 
 const railCell =
   'btn-kind-control relative w-full px-1 rounded-md border text-sm font-bold tabular-nums inline-flex items-center justify-center'
@@ -131,31 +129,27 @@ const PAD_ENDS: { end: BestEnd; label: string; bg: string; style: CSSProperties 
 ]
 
 /**
- * The rally, one cell per shot in the hitter's colour. Each cell is the way
- * back to its question. Under the cells, one button per part marks it for review.
+ * The rally, one cell per shot in the hitter's colour. Cells and part labels
+ * are display only. The head is the rally number and the server.
  */
 export function BestRallyRow({
   draft,
-  label,
+  rallyNo,
   names,
   server,
   at,
   rallyOne,
   saved,
-  checking,
+  editing,
+  focus,
   flash,
-  onCell,
-  onMinus,
-  onCheck,
+  onEdit,
   onStar,
-  onPart,
-  onRally,
-  onServer,
-  onNotShot,
   onDiscard,
 }: {
   draft: Draft | null
-  label: string
+  /** The rally's number, including the one about to be tagged. */
+  rallyNo: number
   names: Record<Side, string>
   /** Who is serving, including before the first contact. */
   server: Side
@@ -163,18 +157,14 @@ export function BestRallyRow({
   at: BestAt | null
   rallyOne: boolean
   saved: boolean
-  checking: boolean
-  /** The cell whose contact is on screen during Edit, or -1. */
+  /** Edit Rally is open. The button reads Done. */
+  editing: boolean
+  /** The Edit Rally stop. A number is that shot. End rings the End label. */
+  focus: number | 'end' | null
+  /** The cell whose contact is on screen, or -1. */
   flash: number
-  onCell: (shot: number) => void
-  onMinus: (shot: number) => void
-  onCheck: () => void
+  onEdit: () => void
   onStar: () => void
-  onPart: (part: BestPart) => void
-  onRally: () => void
-  /** The server is set on the Start card. Without this the chip is a label. */
-  onServer?: () => void
-  onNotShot: () => void
   /** Throws away the rally being tagged. Hidden when there is nothing in progress. */
   onDiscard?: () => void
 }) {
@@ -188,19 +178,21 @@ export function BestRallyRow({
   const columns = closed
     ? parts.map((p) => `repeat(${p.to - p.from + 1}, minmax(24px, var(--btn-kind-control)))`).join(' 0px ')
     : `repeat(${n + 1}, minmax(24px, var(--btn-kind-control)))`
-  const canDelete = checking && n > 1
-  const canToggleServer = Boolean(onServer) && at?.step === 'serve' && !saved
+  const tapsOpen = Boolean(draft && !draft.closed && !saved)
 
   return (
     <div className="flex w-full min-w-0 flex-col gap-1" data-best-rail data-best-saved={saved ? '' : undefined}>
       <div className="flex h-8 min-w-0 items-center gap-1.5">
-        {closed && !saved ? (
-          <button type="button" data-best-rally className="h-8 shrink-0 rounded-md px-1 text-sm font-semibold text-primary" onClick={onRally}>
-            {label}
-          </button>
-        ) : (
-          <span className="shrink-0 px-1 text-sm font-semibold text-primary">{label}</span>
-        )}
+        <span
+          data-rally-head
+          data-best-server={server}
+          className="inline-flex h-8 min-w-0 max-w-[46%] items-center rounded-full px-2 text-sm font-semibold text-white"
+          style={{ backgroundColor: server === 'me' ? 'var(--color-side-me)' : 'var(--color-side-them)' }}
+        >
+          <span className="truncate">
+            {rallyNo} {names[server]}
+          </span>
+        </span>
         {saved ? (
           <span className="shrink-0 rounded-[4px] bg-success/15 px-1.5 text-[10px] font-bold uppercase leading-[18px] text-success" data-best-saved-tag>
             Saved
@@ -214,29 +206,6 @@ export function BestRallyRow({
         <span className="min-w-0 flex-1" />
         <button
           type="button"
-          data-best-server={server}
-          aria-label={canToggleServer ? `${names[server]} serving. Switch server` : `${names[server]} serving`}
-          aria-disabled={!canToggleServer}
-          className={cn(
-            headButton,
-            'rounded-full px-2',
-            onDiscard ? 'max-w-[4.25rem]' : 'max-w-[5.5rem]',
-            !canToggleServer && 'pointer-events-none'
-          )}
-          style={{
-            backgroundColor: server === 'me' ? 'var(--color-side-me)' : 'var(--color-side-them)',
-            borderColor: server === 'me' ? 'var(--color-side-me)' : 'var(--color-side-them)',
-            color: '#fff',
-          }}
-          onClick={canToggleServer ? onServer : undefined}
-        >
-          <span className="truncate">{names[server]}</span>
-        </button>
-        <button type="button" data-best-not-shot className={headButton} onClick={onNotShot}>
-          Not a shot
-        </button>
-        <button
-          type="button"
           data-best-star="rally"
           aria-label="Highlight"
           aria-pressed={Boolean(draft?.highlight)}
@@ -246,17 +215,19 @@ export function BestRallyRow({
         >
           ★
         </button>
-        <button
-          type="button"
-          data-best-check
-          aria-pressed={checking}
-          aria-label="Edit"
-          className={headButton}
-          style={checking ? checkingOn() : { ...restStyle(), color: 'var(--color-text)' }}
-          onClick={onCheck}
-        >
-          Edit
-        </button>
+        {tapsOpen ? null : (
+          <button
+            type="button"
+            data-best-check
+            aria-pressed={editing}
+            aria-label={editing ? 'Done' : 'Edit'}
+            className={headButton}
+            style={editing ? checkingOn() : { ...restStyle(), color: 'var(--color-text)' }}
+            onClick={onEdit}
+          >
+            {editing ? 'Done' : 'Edit'}
+          </button>
+        )}
       </div>
       <div
         className="grid min-w-0 justify-start gap-x-1 gap-y-1"
@@ -272,36 +243,28 @@ export function BestRallyRow({
               const open = mark === 'now'
               const isFa = fa === shot && !open
               const tags = draft.shots[i]
-              const enabled = canDelete || (closed && canOpenCell(draft, shot, rallyOne))
+              const focused = focus === shot
               return (
-                <button
+                <span
                   key={shot}
-                  type="button"
                   data-best-chip={shot}
                   data-best-mark={mark ?? ''}
-                  data-best-minus={canDelete ? shot : undefined}
                   data-best-wing={tags?.wing ?? ''}
                   data-best-stroke={tags?.stroke ?? ''}
                   data-best-flash={flash === i ? '' : undefined}
-                  aria-label={canDelete ? `Delete shot ${shot}` : `Shot ${shot}`}
-                  aria-current={open ? 'step' : undefined}
-                  aria-disabled={!enabled}
-                  onClick={() => {
-                    if (!enabled) return
-                    if (canDelete) onMinus(shot)
-                    else onCell(shot)
-                  }}
+                  data-edit-focus={focused ? '' : undefined}
+                  aria-current={open || focused ? 'step' : undefined}
                   className={cn(
                     railCell,
                     'min-w-0 px-0',
-                    !enabled && 'cursor-default',
                     isFa && 'border-2',
                     mark === 'todo' && 'border-dashed',
                     mark === 'off' && 'opacity-45',
-                    flash === i && 'ring-2 ring-warning'
+                    flash === i && 'ring-2 ring-warning',
+                    focused && 'edit-stop-on'
                   )}
                   style={{
-                    ...shotPaint(side, open, isFa, false),
+                    ...shotPaint(side, open || focused, isFa, false),
                     gridRow: 1,
                     gridColumn: closed ? shot + g : shot,
                     ...(mark === 'todo' && !isFa
@@ -310,20 +273,12 @@ export function BestRallyRow({
                   }}
                 >
                   {shot}
-                  {mark === 'done' && !canDelete ? (
+                  {mark === 'done' ? (
                     <span aria-hidden className="absolute right-0.5 top-0 text-[9px] font-bold leading-3" data-best-done>
                       ✓
                     </span>
                   ) : null}
-                  {canDelete ? (
-                    <span
-                      aria-hidden
-                      className="absolute right-0 top-0 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-danger text-[11px] font-bold leading-none text-white"
-                    >
-                      −
-                    </span>
-                  ) : null}
-                </button>
+                </span>
               )
             })
           : null}
@@ -342,26 +297,25 @@ export function BestRallyRow({
           ? parts.map((p, g) => {
               const marked = Boolean(draft.best?.review?.includes(p.part))
               return (
-                <button
+                <span
                   key={p.part}
-                  type="button"
                   data-best-part={p.part}
-                  data-best-review={p.part}
+                  data-best-flag={marked ? '' : undefined}
                   data-label={marked ? `⚑ ${PART_LABEL[p.part]}` : PART_LABEL[p.part]}
                   data-from={p.from}
                   data-to={p.to}
-                  aria-pressed={marked}
-                  aria-label={`${marked ? 'Unmark' : 'Mark'} ${PART_LABEL[p.part]} for review`}
-                  className="flex h-4 min-w-0 items-center justify-center whitespace-nowrap rounded-md border px-0 font-semibold"
+                  className={cn(
+                    'flex h-4 min-w-0 items-center justify-center whitespace-nowrap rounded-md border px-0 font-semibold',
+                    focus === 'end' && p.part === 'end' && 'edit-stop-on'
+                  )}
                   style={{
                     gridRow: 2,
                     gridColumn: `${p.from + g} / span ${p.to - p.from + 1}`,
                     ...(marked ? filled() : { ...restStyle(), color: 'var(--color-text)' }),
                   }}
-                  onClick={() => onPart(p.part)}
                 >
                   <PartLabel part={p.part} marked={marked} />
-                </button>
+                </span>
               )
             })
           : null}
@@ -380,10 +334,11 @@ export function BestPanel({
   back,
   onEnd,
   onPoint,
+  onNotShot,
   onServe,
   onStroke,
   sides = false,
-  guard,
+  notShotDim = false,
 }: {
   draft: Draft
   names: Record<Side, string>
@@ -394,20 +349,18 @@ export function BestPanel({
   back: PadBack
   onEnd: (end: BestEnd) => void
   onPoint: (side: Side) => void
+  /** Deletes the last contact. Dim on a one contact rally. */
+  onNotShot: () => void
   onServe: (depth: string, wing: Wing) => void
   onStroke: (shot: number, wing: Wing, stroke: 'Attack' | 'Control') => void
   /** Landscape pad: quadrant halves sit in the side wings. */
   sides?: boolean
-  /** Ignores a press just after the question changes. */
-  guard?: ActionGuard
+  /** Not a shot just fired, so a second tap is ignored. */
+  notShotDim?: boolean
 }) {
   const n = draft.contacts.length
   const shot = stepShot(n, at.step, at.page)
   const hitter = hitterOf(draft.server, shot)
-  const press = (fn: () => void) => () => {
-    if (guard && !guard.allow()) return
-    fn()
-  }
   const grid = (k: number, title: string) => {
     const saved = draft.shots[k - 1]
     const cells = STROKE_GRID.map((row) => row.map((c) => ({ ...c, label: `${c.wing} ${c.stroke}` })))
@@ -419,7 +372,6 @@ export function BestPanel({
         split={sides}
         columns="1fr 1fr"
         rows="1fr 1fr"
-        dim={guard?.waiting}
         regions={cells.flat().map((c) => {
           const tone = PAD_STROKE[`${c.wing}:${c.stroke}`]
           return {
@@ -429,7 +381,7 @@ export function BestPanel({
             on: saved?.wing === c.wing && saved?.stroke === c.stroke,
             bg: tone.bg,
             fg: tone.fg,
-            onClick: press(() => onStroke(k, c.wing, c.stroke)),
+            onClick: () => onStroke(k, c.wing, c.stroke),
             data: { 'data-wing': c.wing, 'data-stroke': c.stroke },
           }
         })}
@@ -456,7 +408,8 @@ export function BestPanel({
           back={back}
           onEnd={onEnd}
           onPoint={onPoint}
-          guard={guard}
+          onNotShot={onNotShot}
+          notShotDim={notShotDim}
         />
       ) : null}
 
@@ -468,7 +421,6 @@ export function BestPanel({
             split={sides}
             columns="1fr 1fr"
             rows="1fr 1fr"
-            dim={guard?.waiting}
             regions={PAD_SERVE.map((cell) => ({
               key: cell.label,
               label: cell.label,
@@ -476,7 +428,7 @@ export function BestPanel({
               on: draft.shots[0]?.depth === cell.depth && draft.shots[0]?.wing === cell.wing,
               bg: cell.bg,
               fg: cell.fg,
-              onClick: press(() => onServe(cell.depth, cell.wing)),
+              onClick: () => onServe(cell.depth, cell.wing),
               data: { 'data-best-serve': cell.label },
               style: { gridColumn: cell.wing === 'BH' ? '1' : '2', gridRow: cell.depth === 'Long' ? '1' : '2' },
             }))}
@@ -497,7 +449,8 @@ function EndPage({
   back,
   onEnd,
   onPoint,
-  guard,
+  onNotShot,
+  notShotDim,
 }: {
   draft: Draft
   names: Record<Side, string>
@@ -506,12 +459,9 @@ function EndPage({
   back: PadBack
   onEnd: (end: BestEnd) => void
   onPoint: (side: Side) => void
-  guard?: ActionGuard
+  onNotShot: () => void
+  notShotDim: boolean
 }) {
-  const press = (fn: () => void) => () => {
-    if (guard && !guard.allow()) return
-    fn()
-  }
   const n = draft.contacts.length
   const last = hitterOf(draft.server, n)
   const endOn = bestEndOf(draft)
@@ -534,7 +484,6 @@ function EndPage({
           split={sides}
           columns="1fr 1fr"
           rows="1fr"
-          dim={guard?.waiting}
           regions={(['me', 'them'] as const).map((side) => ({
             key: side,
             label: names[side],
@@ -542,7 +491,7 @@ function EndPage({
             on: point === side,
             bg: side === 'me' ? 'var(--color-side-me)' : 'var(--color-side-them)',
             fg: '#fff',
-            onClick: press(() => onPoint(side)),
+            onClick: () => onPoint(side),
             data: {
               'data-point-to': names[side],
               'data-point-hint': lit === side ? '' : undefined,
@@ -562,20 +511,274 @@ function EndPage({
         split={sides}
         columns="1fr 1fr"
         rows="1fr 1fr"
-        dim={guard?.waiting}
-        regions={PAD_ENDS.map((cell) => ({
-          key: cell.end,
-          label: cell.label,
-          side: cell.end === 'Winner' ? ('left' as const) : ('right' as const),
-          on: endOn === cell.end,
-          bg: cell.bg,
-          fg: '#fff',
-          onClick: press(() => onEnd(cell.end)),
-          data: { 'data-best-end': cell.end },
-          style: cell.style,
-        }))}
+        regions={[
+          ...PAD_ENDS.map((cell) => ({
+            key: cell.end,
+            label: cell.label,
+            side: cell.end === 'Winner' ? ('left' as const) : ('right' as const),
+            on: endOn === cell.end,
+            bg: cell.bg,
+            fg: '#fff',
+            onClick: () => onEnd(cell.end),
+            data: { 'data-best-end': cell.end },
+            style: { gridColumn: cell.end === 'Winner' ? '1' : '2', gridRow: cell.end === 'Net' ? '2' : '1' },
+          })),
+          {
+            key: 'not-a-shot',
+            label: 'Not a shot',
+            side: 'left' as const,
+            on: false,
+            bg: '#475569',
+            fg: '#fff',
+            onClick: () => {
+              if (n < 2 || notShotDim) return
+              onNotShot()
+            },
+            data: { 'data-best-not-shot': '', ...(n < 2 ? { 'data-not-shot-blocked': '' } : {}) },
+            style: { gridColumn: '1', gridRow: '2', opacity: n < 2 || notShotDim ? 0.4 : 1 },
+          },
+        ]}
       />
       {mismatchBlock}
+    </div>
+  )
+}
+
+type EditRegion = {
+  key: string
+  label: string
+  side: 'left' | 'right'
+  on: boolean
+  bg: string
+  fg: string
+  onClick: () => void
+  data?: Record<string, string | undefined>
+  style?: CSSProperties
+}
+
+function blankSlot(key: string, side: 'left' | 'right', col: string, row: string, data: Record<string, string>): EditRegion {
+  return {
+    key,
+    label: '',
+    side,
+    on: false,
+    bg: 'transparent',
+    fg: 'transparent',
+    onClick: () => {},
+    data,
+    style: {
+      gridColumn: col,
+      gridRow: row,
+      opacity: 0.35,
+      pointerEvents: 'none',
+      boxShadow: 'inset 0 0 0 1px var(--color-border)',
+    },
+  }
+}
+
+/**
+ * Edit Rally. Two rows of controls, then the same quadrants as tagging.
+ * The spare slot is blank except Kim served on shot 1. Out of turn replaces
+ * Delete on shot 1 while this rally is a serve break.
+ */
+export function EditRallyPad({
+  draft,
+  names,
+  stop,
+  rallyOne,
+  breakRally,
+  sides,
+  readOnly,
+  onBack,
+  onForward,
+  onDelete,
+  onKim,
+  onOut,
+  onServe,
+  onStroke,
+  onEnd,
+  onPointTo,
+}: {
+  draft: Draft
+  names: Record<Side, string>
+  stop: number | 'end'
+  rallyOne: boolean
+  breakRally: boolean
+  sides: boolean
+  readOnly: boolean
+  onBack: () => void
+  onForward: () => void
+  onDelete: () => void
+  onKim: () => void
+  onOut: () => void
+  onServe: (depth: string, wing: Wing) => void
+  onStroke: (shot: number, wing: Wing, stroke: 'Attack' | 'Control') => void
+  onEnd: (end: BestEnd) => void
+  onPointTo: (side: Side) => void
+}) {
+  const n = draft.contacts.length
+  const shot = typeof stop === 'number' ? stop : n
+  const dim = readOnly ? 0.4 : 1
+  const go = (fn: () => void) => () => {
+    if (readOnly) return
+    fn()
+  }
+  const nav = (label: string, side: 'left' | 'right', col: string, run: () => void): EditRegion => ({
+    key: label,
+    label,
+    side,
+    on: false,
+    bg: '#334155',
+    fg: '#fff',
+    onClick: run,
+    data: { 'data-shot-step': label === 'Back' ? 'back' : 'forward' },
+    style: { gridColumn: col, gridRow: '1' },
+  })
+  const shot1 = stop === 1
+  const leftAction: EditRegion = shot1 && breakRally
+    ? {
+        key: 'out',
+        label: 'Out of turn',
+        side: 'left',
+        on: false,
+        bg: '#475569',
+        fg: '#fff',
+        onClick: go(onOut),
+        data: { 'data-shot-out': '' },
+        style: { gridColumn: '1', gridRow: '2', opacity: dim },
+      }
+    : shot1 && n < 2
+      ? blankSlot('delete-blank', 'left', '1', '2', { 'data-shot-spare': '' })
+      : stop === 'end'
+        ? blankSlot('delete-blank', 'left', '1', '2', { 'data-shot-spare': '' })
+        : {
+            key: 'delete',
+            label: 'Delete',
+            side: 'left',
+            on: false,
+            bg: '#b91c1c',
+            fg: '#fff',
+            onClick: go(onDelete),
+            data: { 'data-shot-delete': '' },
+            style: { gridColumn: '1', gridRow: '2', opacity: dim },
+          }
+  const rightAction: EditRegion = shot1
+    ? {
+        key: 'kim',
+        label: `${names[otherSide(draft.server)]} served`,
+        side: 'right',
+        on: false,
+        bg: otherSide(draft.server) === 'me' ? 'var(--color-side-me)' : 'var(--color-side-them)',
+        fg: '#fff',
+        onClick: go(onKim),
+        data: { 'data-shot-kim': '' },
+        style: { gridColumn: '2', gridRow: '2', opacity: dim },
+      }
+    : blankSlot('spare', 'right', '2', '2', { 'data-shot-spare': '' })
+
+  let quads: EditRegion[]
+  const phase = stop === 'end' ? padFocus(draft, rallyOne, null) : 'end'
+  if (stop === 'end' && phase === 'point') {
+    quads = (['me', 'them'] as const).map((side) => ({
+      key: side,
+      label: names[side],
+      side: side === 'me' ? ('left' as const) : ('right' as const),
+      on: draft.best?.point === side,
+      bg: side === 'me' ? 'var(--color-side-me)' : 'var(--color-side-them)',
+      fg: '#fff',
+      onClick: go(() => onPointTo(side)),
+      data: { 'data-point-to': names[side] },
+      style: { gridColumn: side === 'me' ? '1' : '2', gridRow: '3 / span 2', opacity: dim },
+    }))
+  } else if (stop === 'end') {
+    const tagged = winnerOf(draft)
+    const pointSide = tagged ? otherSide(tagged) : otherSide(hitterOf(draft.server, Math.max(1, n)))
+    const endOn = bestEndOf(draft)
+    quads = [
+      ...PAD_ENDS.map((cell) => ({
+        key: cell.end,
+        label: cell.label,
+        side: cell.end === 'Winner' ? ('left' as const) : ('right' as const),
+        on: endOn === cell.end,
+        bg: cell.bg,
+        fg: '#fff',
+        onClick: go(() => onEnd(cell.end)),
+        data: { 'data-best-end': cell.end },
+        style: { gridColumn: cell.end === 'Winner' ? '1' : '2', gridRow: cell.end === 'Net' ? '4' : '3', opacity: dim },
+      })),
+      {
+        key: 'point-kim',
+        label: `Point to ${names[pointSide]}`,
+        side: 'left' as const,
+        on: draft.best?.point === pointSide && tagged !== null && draft.best?.point !== tagged,
+        bg: '#475569',
+        fg: '#fff',
+        onClick: go(() => onPointTo(pointSide)),
+        data: { 'data-shot-point': names[pointSide] },
+        style: { gridColumn: '1', gridRow: '4', opacity: dim },
+      },
+    ]
+  } else if (stop === 1 && n > 1) {
+    quads = PAD_SERVE.map((cell) => ({
+      key: cell.label,
+      label: cell.label,
+      side: cell.wing === 'BH' ? ('left' as const) : ('right' as const),
+      on: draft.shots[0]?.depth === cell.depth && draft.shots[0]?.wing === cell.wing,
+      bg: cell.bg,
+      fg: cell.fg,
+      onClick: go(() => onServe(cell.depth, cell.wing)),
+      data: { 'data-best-serve': cell.label },
+      style: {
+        gridColumn: cell.wing === 'BH' ? '1' : '2',
+        gridRow: cell.depth === 'Long' ? '3' : '4',
+        opacity: dim,
+      },
+    }))
+  } else if (typeof stop === 'number' && stop > 1) {
+    const saved = draft.shots[stop - 1]
+    quads = STROKE_GRID.flat().map((cell) => {
+      const tone = PAD_STROKE[`${cell.wing}:${cell.stroke}`]
+      return {
+        key: `${cell.wing}-${cell.stroke}`,
+        label: `${cell.wing} ${cell.stroke}`,
+        side: cell.wing === 'BH' ? ('left' as const) : ('right' as const),
+        on: saved?.wing === cell.wing && saved?.stroke === cell.stroke,
+        bg: tone.bg,
+        fg: tone.fg,
+        onClick: go(() => onStroke(stop, cell.wing, cell.stroke)),
+        data: { 'data-wing': cell.wing, 'data-stroke': cell.stroke },
+        style: {
+          gridColumn: cell.wing === 'BH' ? '1' : '2',
+          gridRow: cell.stroke === 'Attack' ? '3' : '4',
+          opacity: dim,
+        },
+      }
+    })
+  } else {
+    quads = [
+      blankSlot('q1', 'left', '1', '3', { 'data-shot-blank': '' }),
+      blankSlot('q2', 'right', '2', '3', { 'data-shot-blank': '' }),
+      blankSlot('q3', 'left', '1', '4', { 'data-shot-blank': '' }),
+      blankSlot('q4', 'right', '2', '4', { 'data-shot-blank': '' }),
+    ]
+  }
+
+  return (
+    <div
+      className={cn('relative z-20 flex flex-col', !sides && 'min-h-0 flex-1 gap-2.5 pt-2')}
+      data-edit-rally
+      data-edit-stop={stop === 'end' ? 'end' : String(stop)}
+      data-edit-shot={shot}
+      data-pad-sides={sides ? '' : undefined}
+    >
+      <CornerPad
+        label="Edit rally"
+        showName={false}
+        split={sides}
+        columns="1fr 1fr"
+        rows="1fr 1fr 1fr 1fr"
+        regions={[nav('Back', 'left', '1', onBack), nav('Forward', 'right', '2', onForward), leftAction, rightAction, ...quads]}
+      />
     </div>
   )
 }

@@ -107,15 +107,15 @@ import {
   type Wing,
 } from './rally'
 import { ZERO, addPoint, countPoints, isSetWon, setEndIndex, type Points } from './score'
-import { BestPanel, BestRallyRow } from './BestPanel'
+import { BestPanel, BestRallyRow, EditRallyPad } from './BestPanel'
 import { CornerPad, PadWingContext } from './CornerPad'
 import { BestTimingControl } from './BestTimingControl'
 import {
   BEST_SHOT_RATE,
   bestAdvance,
   bestAt,
-  bestDeleteFirst,
   bestDeleteLast,
+  bestSwitchServer,
   bestHitters,
   bestLoop,
   bestMismatch,
@@ -123,10 +123,9 @@ import {
   bestRally,
   bestSetEnd,
   bestSetPoint,
-  canOpenCell,
   carryBest,
-  cellTarget,
   draftFromRally,
+  editStopWindow,
   loadBestTiming,
   pointDone,
   removeBestContact,
@@ -134,12 +133,11 @@ import {
   saveBestTiming,
   setDepth,
   setWingStroke,
-  toggleReview,
+  stepEditStop,
   withStep,
   type BestAt,
   type BestEnd,
   type BestLoopWhat,
-  type BestPart,
   type BestTiming,
 } from './bestFlow'
 import { useActionGuard, type ActionGuard } from './pressGuard'
@@ -569,6 +567,13 @@ function TagSet({
   }
   const [bestLook, setBestLook] = useState(false)
   const [bestCheck, setBestCheck] = useState(false)
+  /** Edit Rally: the stop on screen, and where Done returns. */
+  const [shotEdit, setShotEdit] = useState<{
+    rallyId: string | null
+    stop: number | 'end'
+    back: 'question' | 'saved' | 'set'
+  } | null>(null)
+  const shotGuard = useActionGuard(shotEdit ? `shot:${shotEdit.rallyId ?? 'live'}` : 'off')
   /** Corner pad only: an End question opened again from its one-line reminder. */
   const [endBack, setEndBack] = useState<'end' | 'point' | null>(null)
   /**
@@ -577,7 +582,6 @@ function TagSet({
    */
   const [bestSaved, setBestSaved] = useState<{ rallyId: string; draft: Draft } | null>(null)
   /** Where capture resumed after Check, in the rally video. */
-  const [bestResume, setBestResume] = useState<number | null>(null)
   const [bestHoldOn, setBestHoldOn] = useState(false)
   const [start, setStart] = useState<StartPick>(
     () => initialStart ?? { videoId: latestVideoId(match) ?? '', score: ZERO, server: null }
@@ -617,7 +621,7 @@ function TagSet({
   /** A rally is being added into a gap. The questions must open on a finished set too. */
   const inserting = Boolean(gap && editPick?.kind === 'gap')
   /** Best + FA, contacts closed, this rally's steps open. An edit opens them on a finished set too. */
-  const bestOn = !review && (!set.finished || editOf !== null || inserting) && !draftGone && Boolean(live?.closed)
+  const bestOn = !shotEdit && !review && (!set.finished || editOf !== null || inserting) && !draftGone && Boolean(live?.closed)
   const liveCount = live?.contacts.length ?? 0
   /** End is on screen with no result, and whenever a press has opened it. */
   const score = taggedScore(set) ?? ZERO
@@ -709,6 +713,23 @@ function TagSet({
     p.seek(a)
     p.play()
   }
+  /** Edit Rally loops the focused stop. Shot 1 starts a second before the serve. */
+  const playEditStop = (d: Draft, stop: number | 'end') => {
+    bestCheckRef.current = false
+    loopWhat.current = null
+    const w = editStopWindow(d, stop, timing, SERVE_REVIEW_BEFORE_S, SERVE_REVIEW_AFTER_S)
+    const off = offsetOf(d.videoId)
+    const max = durationOf(d.videoId)
+    const p = playerRef.current
+    p.setBoundary(null)
+    p.setRate(BEST_SHOT_RATE)
+    const a = off + Math.max(0, w.a)
+    const b = off + Math.min(max, Math.max(w.b, w.a + 0.3))
+    setBestSpan({ a, b })
+    p.setLoop({ a, b })
+    p.seek(a)
+    p.play()
+  }
   const timingSeen = useRef(false)
   useEffect(() => {
     if (!timingSeen.current) {
@@ -722,55 +743,6 @@ function TagSet({
     // Reapplies the loop that is already playing when Paul changes a timing.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timing])
-  const playCheck = (d: Draft) => {
-    bestCheckRef.current = true
-    const off = offsetOf(d.videoId)
-    const end = off + rallyEnd(d)
-    const p = playerRef.current
-    p.setRate(0.5)
-    p.setLoop(null)
-    p.setBoundary(end, () => {
-      p.setBoundary(null)
-      if (!bestCheckRef.current) return
-      p.pause()
-    })
-    p.seek(off + rallyStart(d))
-    p.play()
-  }
-  /** Contacts still being tapped: play what is there at half speed, and do not close the rally. */
-  const playOpenCheck = (d: Draft) => {
-    bestCheckRef.current = true
-    const off = offsetOf(d.videoId)
-    const first = d.contacts[0] ?? 0
-    const last = d.contacts[d.contacts.length - 1] ?? first
-    const a = off + Math.max(0, first)
-    const b = off + Math.max(last, first) + 0.4
-    const p = playerRef.current
-    p.setRate(0.5)
-    p.setBoundary(null)
-    p.setLoop({ a, b: Math.max(b, a + 0.3) })
-    p.seek(a)
-    p.play()
-  }
-  /** Leave delete mode while the rally is still open and carry on tapping. */
-  const resumeCapture = (d: Draft) => {
-    bestCheckRef.current = false
-    const p = playerRef.current
-    const off = offsetOf(d.videoId)
-    const last = d.contacts[d.contacts.length - 1] ?? 0
-    // A reaction earlier than the last contact, unless Check is already past that.
-    // A tap on the contact itself stores behind it and gets pushed just after.
-    const resumeAt = Math.max(0, last - timing.reaction / 1000)
-    const local = p.getTime() - off
-    const at = local > resumeAt ? local : resumeAt
-    p.setLoop(null)
-    p.setRate(CAPTURE_SPEED)
-    p.setBoundary(off + durationOf(d.videoId), () => closeContacts())
-    p.seek(off + at)
-    p.play()
-    setBestResume(Math.round(at * 1000) / 1000)
-    setLastTap(Date.now())
-  }
 
   /** The part of the video a rally being tagged should loop, in match time. */
   const windowFor = (d: Draft, sel: Mark | null, st: Stage, isTight: boolean): Window => {
@@ -1009,6 +981,204 @@ function TagSet({
       },
     })
 
+  /** Write the working rally, and the saved rally when Edit Rally is on one. */
+  const applyShotDraft = (d: Draft, rallyId: string | null) => {
+    if (!rallyId) {
+      writeDraft(d)
+      return
+    }
+    const old = set.rallies.find((r) => r.id === rallyId)
+    const winner = d.best?.point ?? winnerOf(d) ?? old?.winner
+    if (!old || !winner) {
+      writeDraft(d)
+      return
+    }
+    const built = bestRally(d, rallyId, winner, Boolean(d.best?.kept))
+    const next = old.left ? { ...built, left: old.left } : built
+    mutateMatch(match.id, (m) => settleFinished(setDraft(replaceRally(m, set.setId, next), set.setId, d), set.setId))
+  }
+
+  const beginShotEdit = (rallyId: string | null, back: 'question' | 'saved' | 'set') => {
+    if (readOnly) return
+    let d: Draft | null = null
+    if (rallyId) {
+      const r = set.rallies.find((x) => x.id === rallyId)
+      if (!r || r.point || !have.has(r.videoId)) return
+      d = draftFromRally(r)
+      writeDraft(d)
+      setEditOf(rallyId)
+      setBestSaved(null)
+    } else if (live?.closed) {
+      d = live
+    } else return
+    setShotEdit({ rallyId, stop: 1, back })
+    setBestCheck(false)
+    setBestLook(false)
+    playEditStop(d, 1)
+  }
+
+  /** Last shot deleted on a saved rally: End was cleared and is not saved yet. */
+  const endStillOpen = () => {
+    if (!shotEdit?.rallyId || !live || live.contacts.length === 0 || live.ending) return false
+    setShotEdit({ ...shotEdit, stop: 'end' })
+    playEditStop(live, 'end')
+    setHint('Answer End first')
+    return true
+  }
+
+  const closeShotEdit = () => {
+    const cur = shotEdit
+    if (!cur) return
+    if (cur.back !== 'question' && endStillOpen()) return
+    setShotEdit(null)
+    if (cur.back === 'question' && live) {
+      routeBest(live, { save: false })
+      return
+    }
+    const rallyId = cur.rallyId
+    mutateMatch(match.id, (m) => setDraft(m, set.setId, null))
+    setEditOf(null)
+    if (cur.back === 'set') {
+      const r = set.rallies.find((x) => x.id === rallyId)
+      if (r) loopPick(r)
+      return
+    }
+    parkLive(set)
+  }
+
+  const stepShot = (by: -1 | 1) => {
+    if (!shotEdit || !live) return
+    const stop = stepEditStop(live.contacts.length, shotEdit.stop, by)
+    setShotEdit({ ...shotEdit, stop })
+    playEditStop(live, stop)
+  }
+
+  const shotRallyIndex = () => {
+    if (!shotEdit) return -1
+    if (!shotEdit.rallyId) return set.rallies.length
+    return set.rallies.findIndex((r) => r.id === shotEdit.rallyId)
+  }
+
+  const onShotDelete = () => {
+    if (!shotEdit || !live || readOnly || typeof shotEdit.stop !== 'number') return
+    if (!shotGuard.allow()) return
+    if (live.contacts.length < 2) return
+    const before = set
+    const shot = shotEdit.stop
+    const removedLast = shot === live.contacts.length
+    const next = removedLast ? bestDeleteLast(live) : removeBestContact(live, shot, false)
+    const stop = removedLast ? ('end' as const) : Math.min(shot, next.contacts.length)
+    if (shotEdit.rallyId && !removedLast) applyShotDraft(next, shotEdit.rallyId)
+    else writeDraft(next)
+    setShotEdit({ ...shotEdit, stop })
+    playEditStop(next, stop)
+    withUndo('Shot removed', before, () => {
+      const back = before.draft
+      if (back) playEditStop(back, shot)
+    })
+    shotGuard.arm()
+  }
+
+  const onShotKim = () => {
+    if (!shotEdit || !live || readOnly) return
+    if (!shotGuard.allow()) return
+    const before = set
+    const next = bestSwitchServer(live, false)
+    const index = shotRallyIndex()
+    applyShotDraft(next, shotEdit.rallyId)
+    const name = names[next.server]
+    const n = index < 0 ? 1 : index + 1
+    const winners = shotEdit.rallyId
+      ? set.rallies.map((r) => (r.id === shotEdit.rallyId ? otherSide(r.winner) : r.winner))
+      : null
+    const line = winners ? formatScore(countPoints(winners)) : formatScore(score)
+    const text = `${name} served rally ${n} · ${line}`
+    setToast({
+      text,
+      undo: () => {
+        mutateMatch(match.id, (m) => restoreSet(m, before))
+        setToast(null)
+        const saved = shotEdit.rallyId ? before.rallies.find((r) => r.id === shotEdit.rallyId) : undefined
+        const back = before.draft ?? (saved ? draftFromRally(saved) : null)
+        if (back) playEditStop(back, shotEdit.stop)
+      },
+      extra:
+        index > 0
+          ? {
+              label: 'Gaps',
+              run: () => {
+                const found = editStops(latest.current.match, latest.current.set.setId).gaps.find((g) => g.index === index)
+                setShotEdit(null)
+                setToast(null)
+                mutateMatch(match.id, (m) => setDraft(m, set.setId, null))
+                setEditOf(null)
+                if (found) loopGap(found)
+              },
+            }
+          : undefined,
+    })
+    playEditStop(next, shotEdit.stop)
+    shotGuard.arm()
+  }
+
+  const onShotOut = () => {
+    if (!shotEdit?.rallyId || readOnly) return
+    if (!shotGuard.allow()) return
+    const before = set
+    const id = shotEdit.rallyId
+    mutateMatch(match.id, (m) => {
+      const current = m.sets.find((s) => s.setId === set.setId)
+      if (!current) return m
+      return leaveIds(current.rallies, current.firstServer, id).reduce(
+        (next, rallyId) => leaveMark(next, set.setId, rallyId, 'serve'),
+        m
+      )
+    })
+    withUndo('Left as served', before)
+    shotGuard.arm()
+  }
+
+  const keepShot = (d: Draft) => {
+    if (!shotEdit) return
+    if (shotEdit.rallyId) applyShotDraft(d, shotEdit.rallyId)
+    else writeDraft(d)
+    playEditStop(d, shotEdit.stop)
+  }
+
+  const onShotEnd = (end: BestEnd) => {
+    if (!shotEdit || !live || readOnly) return
+    const before = set
+    const next = bestSetEnd(live, end, shotRallyIndex() <= 0)
+    keepShot(next)
+    if (!shotEdit.rallyId) return
+    const winners = set.rallies.map((r) => (r.id === shotEdit.rallyId ? (next.best?.point ?? r.winner) : r.winner))
+    setToast({
+      text: formatScore(countPoints(winners)),
+      undo: () => {
+        mutateMatch(match.id, (m) => restoreSet(m, before))
+        setToast(null)
+      },
+    })
+  }
+
+  const onShotPoint = (side: Side) => {
+    if (!shotEdit || !live || readOnly) return
+    const before = set
+    const tagged = winnerOf(live)
+    const against = tagged !== null && side !== tagged
+    const next = { ...live, best: carryBest(live, against ? { point: side, kept: true } : { point: side }) }
+    keepShot(next)
+    if (!shotEdit.rallyId) return
+    const winners = set.rallies.map((r) => (r.id === shotEdit.rallyId ? side : r.winner))
+    setToast({
+      text: formatScore(countPoints(winners)),
+      undo: () => {
+        mutateMatch(match.id, (m) => restoreSet(m, before))
+        setToast(null)
+      },
+    })
+  }
+
   /** Drop an open rally whose video is gone. */
   const onDiscardGone = () => {
     const before = set
@@ -1147,15 +1317,6 @@ function TagSet({
   }
 
   const rallyOneNow = () => (gap && editPick?.kind === 'gap' ? gap.index === 0 : set.rallies.length === 0)
-
-  /** Opens a question on the open rally and loops its shot. */
-  const showBest = (d: Draft, at: BestAt) => {
-    const next = withStep(d, at)
-    writeDraft(next)
-    setBestLook(false)
-    setBestCheck(false)
-    playBest(next, at)
-  }
 
   /**
    * After an answer or a fix: the first question not done opens, or the rally
@@ -1322,35 +1483,6 @@ function TagSet({
     setBestSaved({ ...bestSaved, draft: d })
   }
 
-  /**
-   * A cell of a saved rally: that question opens on a copy of the rally. The
-   * saved rally stays as it is until the answer saves the change.
-   */
-  const openEditCell = (rallyId: string, shot: number) => {
-    if (readOnly) return
-    const r = set.rallies.find((x) => x.id === rallyId)
-    if (!r || !have.has(r.videoId)) return
-    const base = draftFromRally(r)
-    const target = cellTarget(base, shot)
-    if (!target) return
-    const draft = withStep(base, target)
-    writeDraft(draft)
-    setEditOf(rallyId)
-    setBestSaved(null)
-    bestHold.current = false
-    setBestHoldOn(false)
-    if (target.step === 'end') setEndBack('end')
-    const p = playerRef.current
-    p.setBoundary(null)
-    playBest(draft, target)
-  }
-
-  /** A cell on the saved row reopens that question. The next answer saves the rally again. */
-  const reopenSaved = (shot: number) => {
-    if (!bestSaved) return
-    openEditCell(bestSaved.rallyId, shot)
-  }
-
   /** Edit Set: the picked rally loops at full speed. */
   const loopPick = (r: RallyData) => {
     setEditPick({ kind: 'rally', id: r.id })
@@ -1420,14 +1552,19 @@ function TagSet({
 
   const onEditSet = () => {
     if (editPick !== null) {
-      if (live && live.contacts.length > 0) {
+      if (live && !live.closed && live.contacts.length > 0) {
         setHint(`Save or discard rally ${gap ? gap.index + 1 : set.rallies.length + 1} first`)
         return
       }
       doneEdit()
       return
     }
-    if (live && live.contacts.length > 0) {
+    if (shotEdit) {
+      if (endStillOpen()) return
+      setShotEdit(null)
+      mutateMatch(match.id, (m) => setDraft(m, set.setId, null))
+      setEditOf(null)
+    } else if (live && !live.closed && live.contacts.length > 0) {
       setHint(`Save or discard rally ${set.rallies.length + 1} first`)
       return
     }
@@ -1445,10 +1582,10 @@ function TagSet({
     editPick?.kind === 'gap'
       ? stops.gaps.findIndex((g) => g.index === editPick.index)
       : stops.rallies.findIndex((r) => r.id === pickedId)
-  /** The pad's Edit: the picked rally's End opens, the question that moves the score. */
+  /** The pad's Edit rally N opens Edit Rally on shot 1. */
   const onPickEdit = () => {
     const r = pickable.find((row) => row.id === pickedId)
-    if (r) openEditCell(r.id, r.contacts.length)
+    if (r) beginShotEdit(r.id, 'set')
   }
 
   /** Back and Forward step only the kind the switch shows. */
@@ -1539,6 +1676,8 @@ function TagSet({
   }
 
   const doneEdit = () => {
+    if (endStillOpen()) return
+    setShotEdit(null)
     if (live) mutateMatch(match.id, (m) => setDraft(m, set.setId, null))
     setGap(null)
     setEditPick(null)
@@ -1586,6 +1725,20 @@ function TagSet({
     p.play()
   }
 
+  const onNotAShot = () => {
+    if (!live || live.contacts.length < 2 || readOnly) return
+    if (!shotGuard.allow()) return
+    const before = set
+    const rallyOne = before.rallies.length === 0
+    setEndBack(null)
+    routeBest(bestDeleteLast(live))
+    withUndo('Shot removed', before, () => {
+      const back = before.draft
+      if (back?.closed) playBest(back, bestAt(back, rallyOne))
+    })
+    shotGuard.arm()
+  }
+
   const onBestEnd = (end: BestEnd) => {
     if (!live) return
     setEndBack(null)
@@ -1609,76 +1762,11 @@ function TagSet({
     routeBest(setDepth(live, depth, wing))
   }
 
-  const onBestCell = (shot: number) => {
-    if (!live || live.contacts.length === 0) {
-      reopenSaved(shot)
-      return
-    }
-    if (!live.closed || !canOpenCell(live, shot, rallyOneNow())) return
-    const target = cellTarget(live, shot)
-    if (!target) return
-    // The last cell opens End, including while Point to is up.
-    if (target.step === 'end') setEndBack('end')
-    showBest(live, target)
-  }
-
-  const onBestPart = (part: BestPart) => {
-    if (live?.closed) writeDraft(toggleReview(live, part))
-    else if (bestSaved) updateSaved(toggleReview(bestSaved.draft, part))
-  }
-
   const onBestStar = () => {
     if (live?.closed) writeDraft({ ...live, highlight: !live.highlight })
     else if ((!live || live.contacts.length === 0) && bestSaved) {
       updateSaved({ ...bestSaved.draft, highlight: !bestSaved.draft.highlight })
     }
-  }
-
-  const onBestDropShot = (shot: number) => {
-    if (!live || live.contacts.length < 2) return
-    const before = set
-    const rallyOne = before.rallies.length === 0
-    setEndBack(null)
-    routeBest(shot === live.contacts.length ? bestDeleteLast(live) : removeBestContact(live, shot, rallyOne))
-    withUndo('Shot removed', before, () => {
-      const back = before.draft
-      if (back?.closed) playBest(back, bestAt(back, rallyOne))
-    })
-  }
-
-  /** Edit: a minus on every cell. The last cell is Delete last, the first Delete first. */
-  const onBestMinus = (shot: number) => {
-    if (!live || live.contacts.length < 2 || !bestCheck) return
-    const before = set
-    const n = live.contacts.length
-    let next: Draft
-    if (live.closed && shot === n) next = bestDeleteLast(live)
-    else if (live.closed && shot === 1) next = bestDeleteFirst(live, rallyOneNow())
-    else next = removeBestContact(live, shot, rallyOneNow())
-    writeDraft(next)
-    if (next.closed) playCheck(next)
-    else playOpenCheck(next)
-    withUndo('Shot removed', before, () => {
-      const back = before.draft
-      if (!back || !bestCheckRef.current) return
-      if (back.closed) playCheck(back)
-      else playOpenCheck(back)
-    })
-  }
-
-  /** Check off: back to tapping, or to the question that should be open. */
-  const onBestCheck = () => {
-    if (!live || live.contacts.length === 0) return
-    if (bestCheck) {
-      setBestCheck(false)
-      if (!live.closed) resumeCapture(live)
-      else routeBest(live, { save: false })
-      return
-    }
-    setBestCheck(true)
-    setBestLook(false)
-    if (!live.closed) playOpenCheck(live)
-    else playCheck(live)
   }
 
   const leaveGap = () => {
@@ -2021,7 +2109,14 @@ function TagSet({
           ? 'Neither gap has the rally'
           : null
 
-  const status = bestOn
+  const shotAt = !shotEdit
+    ? -1
+    : shotEdit.rallyId
+      ? set.rallies.findIndex((r) => r.id === shotEdit.rallyId)
+      : set.rallies.length
+  const status = shotEdit
+    ? formatScore(countPoints(set.rallies.slice(0, Math.max(0, shotAt) + (shotEdit.rallyId ? 1 : 0)).map((r) => r.winner)))
+    : bestOn
     ? editOf
       ? `Rally ${editIndex + 1}, editing`
       : (bestPlace({ draft: live, rallies: set.rallies, finished: set.finished }) ?? 'Details')
@@ -2080,10 +2175,10 @@ function TagSet({
   const footStrip = zoneOn || (mode === 'tagging' && stage === 'pickFa' && !review && !bestOn)
   /** An extra tap found after the taps closed. One tap left is Discard's job. */
   const deleteLastOn = Boolean(
-    mode === 'tagging' && !review && !readOnly && !bestOn && live?.closed && live.contacts.length > 1
+    mode === 'tagging' && !review && !readOnly && !bestOn && !shotEdit && live?.closed && live.contacts.length > 1
   )
   /** A foot control is showing. With none, the strip collapses and the tap zone grows. */
-  const footAction = Boolean(footStrip && mode === 'tagging' && stage === 'pickFa')
+  const footAction = Boolean(footStrip && !shotEdit && mode === 'tagging' && stage === 'pickFa')
 
   const flowShown: FlowName = mode === 'tagging' && flowLock ? flowLock : flowWanted
   const bestRallyOne = inserting ? gap?.index === 0 : set.rallies.length === 0
@@ -2096,7 +2191,7 @@ function TagSet({
   const bestRowDraft = bestRowSaved ? bestSaved!.draft : active
   const tapSplit = Boolean(landscape && zoneOn)
   const padSplit = Boolean(
-    tapSplit || (landscape && ((bestOn && liveCount > 0) || mode === 'edit'))
+    tapSplit || (landscape && ((bestOn && liveCount > 0) || mode === 'edit' || shotEdit))
   )
   const bestAccount = (() => {
     if (!live || live.contacts.length === 0) return null
@@ -2150,7 +2245,6 @@ function TagSet({
       data-best-score={bestAccount?.score ?? ''}
       data-best-next={bestAccount?.next ?? ''}
       data-delete-mode={deleteMode ? '' : undefined}
-      data-best-resume={bestResume === null ? undefined : String(bestResume)}
       data-loop-a={loopNow ? loopNow.a.toFixed(3) : ''}
       data-loop-b={loopNow ? loopNow.b.toFixed(3) : ''}
       data-fa={active?.fa ?? ''}
@@ -2292,34 +2386,37 @@ function TagSet({
           />
         ) : (
         <BestRallyRow
-            draft={pickDraft ?? bestRowDraft}
-            at={pickDraft ? null : bestQ}
+            draft={shotEdit && live ? live : (pickDraft ?? bestRowDraft)}
+            at={pickDraft || shotEdit ? null : bestQ}
             rallyOne={pickDraft || editOf ? false : bestRowSaved ? set.rallies.length <= 1 : bestRallyOne}
-            saved={pickDraft ? true : bestRowSaved}
+            saved={shotEdit ? Boolean(shotEdit.rallyId) : pickDraft ? true : bestRowSaved}
+            editing={shotEdit !== null}
+            focus={shotEdit ? shotEdit.stop : null}
             flash={
-              bestCheck && active
-                ? active.contacts.findIndex((c) => Math.abs(c - (player.time - offsetOf(active.videoId))) < 0.12)
+              shotEdit && active && typeof shotEdit.stop === 'number'
+                ? Math.abs((active.contacts[shotEdit.stop - 1] ?? -1) - (player.time - offsetOf(active.videoId))) < 0.2
+                  ? shotEdit.stop - 1
+                  : -1
                 : -1
             }
-            label={`Rally ${pickDraft || editOf ? editIndex + 1 : bestRowSaved ? set.rallies.length : set.rallies.length + 1}`}
+            rallyNo={pickDraft || editOf ? editIndex + 1 : bestRowSaved ? set.rallies.length : set.rallies.length + 1}
             names={names}
-            server={(pickDraft ?? bestRowDraft)?.server ?? nextServer}
-            checking={bestCheck}
-            onCell={pickDraft && pickedId ? (shot) => openEditCell(pickedId, shot) : onBestCell}
-            onMinus={onBestMinus}
-            onCheck={onBestCheck}
-            onStar={pickDraft ? () => updatePicked((d) => ({ ...d, highlight: !d.highlight })) : onBestStar}
-            onNotShot={() => {
-              if (!live || !bestQ) return
-              const shot = bestQ.step === 'serve' ? 1 : (bestQ.page ?? live.contacts.length)
-              onBestDropShot(shot)
+            server={(shotEdit && live ? live : (pickDraft ?? bestRowDraft))?.server ?? nextServer}
+            onEdit={() => {
+              if (shotEdit) closeShotEdit()
+              else if (pickDraft && pickedId) beginShotEdit(pickedId, 'set')
+              else if (live?.closed) beginShotEdit(editOf, 'question')
+              else if (bestSaved) beginShotEdit(bestSaved.rallyId, 'saved')
             }}
-            onPart={pickDraft ? (part) => updatePicked((d) => toggleReview(d, part)) : onBestPart}
-            onRally={() => {
-              if (!live) return
-              setBestLook(true)
-              setBestCheck(false)
-              playBest(live, 'rally')
+            onStar={() => {
+              if (shotEdit && live) {
+                const next = { ...live, highlight: !live.highlight }
+                if (shotEdit.rallyId) applyShotDraft(next, shotEdit.rallyId)
+                else writeDraft(next)
+                return
+              }
+              if (pickDraft) updatePicked((d) => ({ ...d, highlight: !d.highlight }))
+              else onBestStar()
             }}
             onDiscard={
               editOf && live
@@ -2340,7 +2437,7 @@ function TagSet({
           data-tag-body
           className={cn(
             'relative flex min-h-0 flex-1 flex-col overflow-y-auto border-t border-border bg-bg-surface px-2 [overflow-anchor:none]',
-            bestOn && 'overflow-hidden',
+            (bestOn || shotEdit) && 'overflow-hidden',
             zoneOn && 'pb-3'
           )}
         >
@@ -2415,7 +2512,7 @@ function TagSet({
           <div
             className={cn(
               'space-y-2',
-              (bestOn || mode === 'edit') && 'flex min-h-0 flex-1 flex-col'
+              (bestOn || mode === 'edit' || shotEdit) && 'flex min-h-0 flex-1 flex-col'
             )}
             data-tag-panel
             data-details-box
@@ -2547,6 +2644,29 @@ function TagSet({
                 />
               </div>
             ) : null}
+            {shotEdit && live && live.contacts.length > 0 ? (
+              <EditRallyPad
+                draft={live}
+                names={names}
+                stop={shotEdit.stop}
+                rallyOne={shotAt <= 0}
+                breakRally={
+                  shotAt >= 0 &&
+                  serveBands(set.rallies, set.firstServer).some((band) => band.breaks[0] === shotAt)
+                }
+                sides={padSplit}
+                readOnly={readOnly}
+                onBack={() => stepShot(-1)}
+                onForward={() => stepShot(1)}
+                onDelete={onShotDelete}
+                onKim={onShotKim}
+                onOut={onShotOut}
+                onServe={(depth, wing) => keepShot(setDepth(live, depth, wing))}
+                onStroke={(shot, wing, stroke) => keepShot(setWingStroke(live, shot, wing, stroke))}
+                onEnd={onShotEnd}
+                onPointTo={onShotPoint}
+              />
+            ) : null}
             {bestOn && live?.best && bestQ && live.contacts.length > 0 ? (
               <BestPanel
                 draft={live}
@@ -2556,6 +2676,8 @@ function TagSet({
                 rallyNo={editOf ? editIndex + 1 : inserting && gap ? gap.index + 1 : set.rallies.length + 1}
                 onEnd={onBestEnd}
                 onPoint={onBestPoint}
+                onNotShot={onNotAShot}
+                notShotDim={shotGuard.waiting}
                 onServe={onBestServe}
                 onStroke={onBestStroke}
                 sides={padSplit}
@@ -2689,7 +2811,7 @@ function TagSet({
           data-tag-slot={bestOn ? 'bestfa' : overCard ? 'over' : mode === 'start' ? 'start' : slotKind}
           className={cn(
             'relative shrink-0 border-t border-border bg-bg-app px-2 pt-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))]',
-            (bestOn || bestHoldOn || mode === 'edit' || (mode === 'start' && landscape)) && 'hidden'
+            (bestOn || bestHoldOn || mode === 'edit' || shotEdit || (mode === 'start' && landscape)) && 'hidden'
           )}
         >
           {review ? (
