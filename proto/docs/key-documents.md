@@ -66,10 +66,10 @@ Mirrors the [Key documents canvas](https://cursor.com/canvas/store-7c210afe-9d07
 | v0.16.4 | [PR #144](https://github.com/donpauleone69/match-analyser-edge-tt/pull/144) | Latest merged on proto (d303eda). Version in video Settings. Top Nav removed with Back on video; Set Zone one row with set name and Rallies; portrait Video, Set, Rally, Shot Input; landscape three columns with full-height wings; Discard for the rally in progress. |
 | v0.16.3 | [PR #143](https://github.com/donpauleone69/match-analyser-edge-tt/pull/143) | Latest merged on proto (7e2d6f1). Version in video Settings. "In net" line removed, landscape video fits height, fixed 82px rally row at bottom in both orientations, shot timer on top of rally row, slimmer 16px phase tags and shot row. |
 | v0.16.1 | [PR #140](https://github.com/donpauleone69/match-analyser-edge-tt/pull/140) | Latest merged on proto (7f3b893). Version in video Settings. Rally row: server pill, Not a shot, Star, Edit (was Check). Removed narrative line, toss offer, fix row, Delete last. |
-| Live app | [edge-tt.apps.grok.bot](https://edge-tt.apps.grok.bot) | Private. v0.17.14 live (c9f2ccb). |
+| Live app | [edge-tt.apps.grok.bot](https://edge-tt.apps.grok.bot) | Private. v0.17.14 live (a5557e3). |
 | v0.16.0 | [PR #139](https://github.com/donpauleone69/match-analyser-edge-tt/pull/139) | Latest merged on proto (dd8ff43). Serve landing quadrants. Phone landscape tapping with video in the middle. Best + FA only in the dropdown. |
 | v0.15.1 | [PR #138](https://github.com/donpauleone69/match-analyser-edge-tt/pull/138) | Home screen mode removed. New timing defaults. |
-| Proto branch | [PR #129](https://github.com/donpauleone69/match-analyser-edge-tt/pull/129) | Main prototype PR the builds merge into. |
+| Proto branch | [PR #129](https://github.com/donpauleone69/match-analyser-edge-tt/pull/129) | `cursor/mvp-proto-shell-d372` at `8d081ef`. Main prototype PR the builds merge into. |
 
 ## Theme and style
 
