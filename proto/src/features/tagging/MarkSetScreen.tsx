@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
 import { Button, Icon } from '@/ui-mine'
-import { useDemo, type SetMark } from '@/data/demoStore'
+import { useDemo, type MatchRecord, type SetMark } from '@/data/demoStore'
 import { saveMark } from '@/features/tagging/matchOps'
 import {
   allowedMarkNumbers,
@@ -17,6 +17,13 @@ import { PictureSeek, VideoStage } from '@/features/tagging/VideoStage'
 import type { Side } from '@/features/tagging/rally'
 
 type Phase = 'start' | 'end' | 'label' | 'whole'
+
+/** Re-mark keeps the set's own number. A new mark may use any free number. */
+function markChoices(match: MatchRecord, at: number, remarkId: number | null): number[] {
+  const allowed = allowedMarkNumbers(match, at, remarkId ?? undefined)
+  if (remarkId === null) return allowed
+  return allowed.includes(remarkId) ? [remarkId] : []
+}
 
 const LANDSCAPE_QUERY = '(orientation: landscape), (min-aspect-ratio: 1/1)'
 
@@ -131,14 +138,13 @@ export function MarkSetScreen() {
       setNote('That time is already in a set.')
       return
     }
-    const allowed = allowedMarkNumbers(match, startG, remark?.setId)
-    if (allowed.length === 0) {
-      setNote('No set number is free here.')
+    const choices = markChoices(match, startG, remark?.setId ?? null)
+    if (choices.length === 0) {
+      setNote(remark ? 'This set cannot sit here.' : 'No set number is free here.')
       return
     }
     setTo({ videoId: here.videoId, t: here.t })
-    const prefer = Number.isInteger(remarkId) && remarkId > 0 ? remarkId : null
-    setNumber(prefer !== null && allowed.includes(prefer) ? prefer : allowed[0])
+    setNumber(choices[0])
     setNote(null)
     setPhase('label')
   }
@@ -172,7 +178,7 @@ export function MarkSetScreen() {
 
   const allowed =
     from && phase !== 'start'
-      ? allowedMarkNumbers(match, toGlobal(segs, from.videoId, from.t) ?? 0, remark?.setId)
+      ? markChoices(match, toGlobal(segs, from.videoId, from.t) ?? 0, remark?.setId ?? null)
       : []
 
   const steps = (
@@ -196,13 +202,14 @@ export function MarkSetScreen() {
       {phase === 'label' && number !== null ? (
         <>
           <p className="text-sm text-primary">Which set is this?</p>
-          <div className="flex gap-1.5 overflow-x-auto" role="group" aria-label="Set number">
+          <div className="flex shrink-0 gap-1.5 overflow-x-auto" role="group" aria-label="Set number" data-mark-numbers>
             {allowed.map((n) => (
               <Button
                 key={n}
                 kind="control"
                 variant={n === number ? 'primary' : 'secondary'}
                 aria-pressed={n === number}
+                className="shrink-0"
                 data-mark-number={n}
                 onClick={() => setNumber(n)}
               >

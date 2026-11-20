@@ -303,9 +303,9 @@ export const clearSet = (m: MatchRecord, setId: number): MatchRecord => ({
   tagDone: false,
 })
 
-/** The set's place on video. The label is the set number. */
+/** The set's place on video. The label is the set number. A legacy not-filmed flag goes. */
 export function saveMark(m: MatchRecord, setId: number, mark: SetMark): MatchRecord {
-  return inSet(m, setId, (s) => ({ ...s, mark }))
+  return inSet(m, setId, (s) => ({ ...s, mark, skipped: false }))
 }
 
 /**
@@ -345,7 +345,15 @@ export function moveSet(m: MatchRecord, from: number, to: number): MatchRecord {
   if (!src || from === to) return m
   const moved = inSet(m, to, (s) =>
     withDeleted(
-      { ...s, firstServer: src.firstServer, finished: src.finished, rallies: src.rallies, draft: null, mark: src.mark },
+      {
+        ...s,
+        skipped: false,
+        firstServer: src.firstServer,
+        finished: src.finished,
+        rallies: src.rallies,
+        draft: null,
+        mark: src.mark,
+      },
       deletedOf(src)
     )
   )

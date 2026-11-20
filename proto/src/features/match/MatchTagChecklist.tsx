@@ -11,6 +11,7 @@ import {
   resultDiffers,
   resultSetCount,
   setBlockingFinish,
+  setSettled,
   setState,
   taggedScore,
   useDemo,
@@ -128,6 +129,20 @@ export function MatchTagChecklist() {
   }
 
   const onRemove = (video: VideoAsset, index: number) => {
+    const held = match.sets.filter(
+      (s) =>
+        s.mark &&
+        (s.mark.from.videoId === video.id || s.mark.to.videoId === video.id) &&
+        (markState(s) === 'saved' || markState(s) === 'tagging')
+    )
+    if (held.length > 0) {
+      setNote(
+        held.length === 1
+          ? `Set ${held[0].setId} still has tags. Delete the tags first.`
+          : 'Sets on this video still have tags. Delete the tags first.'
+      )
+      return
+    }
     if (videoLocked(match, video.id)) {
       setNote('This video is part of a set. Unmark that set first.')
       return
@@ -524,12 +539,14 @@ function SetLine({
               {action}
             </Button>
           ) : null}
-          <Button kind="control" variant="ghost" aria-expanded={menu} data-set-menu-button={s.setId} onClick={() => setMenu((open) => !open)}>
-            Menu
-          </Button>
+          {locked ? null : (
+            <Button kind="control" variant="ghost" aria-expanded={menu} data-set-menu-button={s.setId} onClick={() => setMenu((open) => !open)}>
+              Menu
+            </Button>
+          )}
         </span>
       </div>
-      {menu ? (
+      {menu && !locked ? (
         <div className="flex flex-wrap gap-1" data-set-menu={s.setId}>
           <Button kind="control" variant="secondary" onClick={remark}>
             Re-mark
@@ -687,7 +704,20 @@ function MatchEnd({
   }
   if (locked) return null
   if (!noResult) {
-    return <p className="text-xs text-muted">The match is tagged when every set is saved.</p>
+    const count = resultSetCount(match) ?? 0
+    const left = match.sets.find((s) => s.setId <= count && !setSettled(s))
+    const text = !left
+      ? 'The match is tagged when every listed set is saved or entered in Details.'
+      : markState(left) === 'tagging' || setState(left) === 'progress'
+        ? `The match is tagged when set ${left.setId} is saved.`
+        : markState(left) === 'ready'
+          ? `The match is tagged when set ${left.setId} is tagged.`
+          : `The match is tagged when set ${left.setId} has a score in Details.`
+    return (
+      <p className="text-xs text-muted" data-match-banner>
+        {text}
+      </p>
+    )
   }
 
   const anyFinished = match.sets.some((s) => setState(s) === 'finished')
@@ -710,9 +740,13 @@ function MatchEnd({
           </Button>
           <p className="text-sm text-muted">
             {blocking
-              ? setState(blocking) === 'progress'
+              ? markState(blocking) === 'tagging' || setState(blocking) === 'progress'
                 ? `Finish set ${blocking.setId} first.`
-                : `Mark set ${blocking.setId} on a video first.`
+                : markState(blocking) === 'ready'
+                  ? `Tag set ${blocking.setId} first.`
+                  : markState(blocking) === 'part'
+                    ? `Enter set ${blocking.setId} in Details first.`
+                    : `Mark set ${blocking.setId} on a video, or enter it in Details.`
               : `Ends the match at sets ${formatScore(won)}.`}
           </p>
         </div>

@@ -89,15 +89,20 @@ export function spansOnVideo(videos: VideoAsset[], sets: SetData[], videoId: str
   return out.sort((x, y) => x.a - y.a || x.setId - y.setId)
 }
 
-/** Blank stretches on a video, where another set could be marked. */
+/**
+ * Blank stretches long enough for another set. A few seconds is the slack
+ * around a migrated mark, not a place to mark.
+ */
+const GAP_MIN_S = 8
+
 export function gapsOf(duration: number, spans: VideoSpan[]): { a: number; b: number }[] {
   const gaps: { a: number; b: number }[] = []
   let cursor = 0
   for (const s of spans) {
-    if (s.a > cursor + 0.05) gaps.push({ a: cursor, b: s.a })
+    if (s.a > cursor + GAP_MIN_S) gaps.push({ a: cursor, b: s.a })
     cursor = Math.max(cursor, s.b)
   }
-  if (duration > cursor + 0.05) gaps.push({ a: cursor, b: duration })
+  if (duration > cursor + GAP_MIN_S) gaps.push({ a: cursor, b: duration })
   return gaps
 }
 

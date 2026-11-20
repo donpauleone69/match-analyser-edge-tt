@@ -21,7 +21,7 @@ import {
   leader,
   type Points,
 } from '@/features/tagging/score'
-import { migrateSetMark } from '@/features/tagging/setMark'
+import { markState, migrateSetMark } from '@/features/tagging/setMark'
 
 export type { RallyData } from '@/features/tagging/rally'
 
@@ -98,8 +98,8 @@ export type MatchRecord = {
  * new = no video and nothing tagged
  * ready = video added, nothing tagged
  * partial = tagging started, match not finished
- * complete = Tagged: with a result, every set it lists is finished or not
- *   filmed. With no result, the user pressed Finish match.
+ * complete = Tagged: with a result, every set it lists is saved or counted
+ *   from Details. With no result, the user pressed Finish match.
  */
 export type MatchPhase = 'new' | 'ready' | 'partial' | 'complete'
 
@@ -162,7 +162,7 @@ function normalizeMatch(match: MatchRecord): MatchRecord {
     lastSetId(match.sets, (s) => setHasTagProgress(s) || s.skipped || s.mark !== null),
     lastSetId(match.sets, (s) => s.entered.me !== '' || s.entered.them !== '')
   )
-  const loose = match.sets.some((s) => s.setId <= used && !s.skipped && !s.finished)
+  const loose = match.sets.some((s) => s.setId <= used && !setSettled(s))
   const tagDone = match.tagDone && !loose && match.sets.some((s) => setState(s) === 'finished')
   const count =
     fromResult !== null
@@ -193,15 +193,32 @@ export function isSpareSet(match: MatchRecord, s: SetData): boolean {
 }
 
 /**
- * The one sets count, used wherever the app says "sets X - Y". A finished set
- * counts from its tagged score. A Not filmed set counts from its entered
- * score. A set that is part way through, not started, or not filmed with no
- * entered score counts for nobody.
+ * Saved, or not on video / part filmed once Details has a score. A legacy
+ * not-filmed flag still counts. Ready and tagging do not.
+ */
+export function setSettled(s: SetData): boolean {
+  if (s.finished || s.skipped) return true
+  const state = markState(s)
+  if (state === 'off' || state === 'part') return parseEntered(s.entered) !== null
+  return false
+}
+
+/** A saved set uses its tagged score. Not on video and part filmed use Details. */
+function countedScore(s: SetData): Score | null {
+  if (s.finished) return taggedScore(s)
+  if (s.skipped || markState(s) === 'off' || markState(s) === 'part') return parseEntered(s.entered)
+  return null
+}
+
+/**
+ * The one sets count, used wherever the app says "sets X - Y". A saved set
+ * counts from its tagged score. Not on video and Part filmed count from the
+ * Details score. A set still to tag counts for nobody.
  */
 export function matchSetsWon(match: MatchRecord): Score {
   const won = { me: 0, them: 0 }
   for (const s of match.sets) {
-    const score = s.skipped ? parseEntered(s.entered) : s.finished ? taggedScore(s) : null
+    const score = countedScore(s)
     const side = score ? leader(score) : null
     if (side) won[side] += 1
   }
@@ -209,24 +226,24 @@ export function matchSetsWon(match: MatchRecord): Score {
 }
 
 /**
- * Tagged comes from tagging. With a result entered, the result decides: every
- * set it lists is finished or not filmed. With no result, the user pressed
- * Finish match. Never while a set is part way through.
+ * Tagged comes from tagging. With a result entered, every set it lists is
+ * saved or counted from Details. With no result, the user pressed Finish
+ * match. Never while a set is still being tagged.
  */
 export function isMatchTagged(match: MatchRecord): boolean {
   if (match.sets.some((s) => setState(s) === 'progress')) return false
-  if (!match.sets.some((s) => setState(s) === 'finished')) return false
+  if (!match.sets.some((s) => s.finished)) return false
   const count = resultSetCount(match)
   if (count === null) return match.tagDone
-  return match.sets.filter((s) => s.setId <= count).every((s) => s.skipped || s.finished)
+  return match.sets.filter((s) => s.setId <= count).every(setSettled)
 }
 
 /**
- * With no result, Finish match waits on this set: it is part way through, or
- * listed with nothing tagged and not marked not filmed. Null when none is.
+ * With no result, Finish match waits on this set: it is still to tag, or it
+ * is listed with no Details score. Null when every listed set is settled.
  */
 export function setBlockingFinish(match: MatchRecord): SetData | null {
-  return match.sets.find((s) => !s.skipped && !s.finished && !isSpareSet(match, s)) ?? null
+  return match.sets.find((s) => !setSettled(s) && !isSpareSet(match, s)) ?? null
 }
 
 export function derivePhase(match: MatchRecord): MatchPhase {
@@ -305,16 +322,14 @@ export function setScoresDiffer(s: SetData): boolean {
 }
 
 /**
- * matchSetsWon, but only once every listed set gives a winner. Null while any
- * set is still open or is not filmed with no entered score, so the result is
- * not compared against half a match.
+ * matchSetsWon, but only once every listed set gives a winner. Null while a
+ * set is still to tag, or is not on video with no Details score.
  */
 export function taggedResult(match: MatchRecord): Score | null {
   const won = { me: 0, them: 0 }
   for (const s of match.sets) {
     if (isSpareSet(match, s)) continue
-    const score = s.skipped ? parseEntered(s.entered) : s.finished ? taggedScore(s) : null
-    const side = score ? leader(score) : null
+    const side = leader(countedScore(s) ?? { me: 0, them: 0 })
     if (!side) return null
     won[side] += 1
   }

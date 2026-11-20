@@ -711,6 +711,12 @@ button[disabled] {
   border-top-width: 0;
   background: transparent;
 }
+/* Mark steps live in the wing, so they keep their full height and scroll. */
+.tag-set[data-mark-screen][data-pad-split] [data-pad-wing='left'] [data-tag-body] {
+  flex: 1 1 auto;
+  max-height: none;
+  overflow-y: auto;
+}
 .tag-set[data-pad-split] [data-best-panel] {
   padding-top: 0;
   gap: 0;

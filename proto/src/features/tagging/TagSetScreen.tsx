@@ -2554,12 +2554,6 @@ function FinishedPanel({
   )
 }
 
-/**
- * After Finish set: carry on with the next set, or Finish match. The next set
- * leads until the tagged sets could be a finished match, then Finish match
- * leads. With a result entered the result alone decides Tagged, so Finish
- * match is not offered. Nor is it while the sets count is level.
- */
 function FinishedActions({
   match,
   locked,
@@ -2583,13 +2577,14 @@ function FinishedActions({
   }
   const dim = guard?.waiting ? 'opacity-60' : ''
   const tagged = derivePhase(match) === 'complete'
-  /** A set already under way comes before a fresh one. */
-  const next = match.sets.find((s) => markState(s) === 'ready') ?? null
+  const tagging = match.sets.find((s) => markState(s) === 'tagging') ?? null
+  const next = tagging ? null : (match.sets.find((s) => markState(s) === 'ready') ?? null)
   const won = matchSetsWon(match)
   /** A match cannot end level, so at 1 - 1 (or with no set won) there is nothing to finish. */
   const canFinishMatch =
     resultSetCount(match) === null && setBlockingFinish(match) === null && won.me !== won.them
   const finishLeads = canFinishMatch && (isRealResult(won) || videoOver)
+  const offerContinue = Boolean(tagging) && !(videoOver && canFinishMatch)
   const offerNext = next && !(videoOver && canFinishMatch)
   const base = `/matches/${match.id}`
 
@@ -2607,6 +2602,17 @@ function FinishedActions({
   }
   return (
     <div className="flex items-stretch gap-2">
+      {offerContinue && tagging ? (
+        <Button
+          kind="main"
+          variant={finishLeads ? 'secondary' : 'primary'}
+          className={cn('text-base', !finishLeads && 'flex-1', dim)}
+          data-guard={guard?.waiting ? '' : undefined}
+          onClick={press(() => onGo(`${base}/tag/${tagging.setId}`))}
+        >
+          Continue set {tagging.setId}
+        </Button>
+      ) : null}
       {offerNext ? (
         <Button
           kind="main"
@@ -2621,8 +2627,8 @@ function FinishedActions({
       {canFinishMatch ? (
         <Button
           kind="main"
-          variant={finishLeads || !offerNext ? 'primary' : 'secondary'}
-          className={cn('text-base', (finishLeads || !offerNext) && 'flex-1', dim)}
+          variant={finishLeads || (!offerNext && !offerContinue) ? 'primary' : 'secondary'}
+          className={cn('text-base', (finishLeads || (!offerNext && !offerContinue)) && 'flex-1', dim)}
           data-guard={guard?.waiting ? '' : undefined}
           onClick={press(onFinishMatch)}
         >
@@ -2631,12 +2637,12 @@ function FinishedActions({
       ) : null}
       <Button
         kind="main"
-        variant={offerNext || canFinishMatch ? 'ghost' : 'primary'}
-        className={cn(dim, !offerNext && !canFinishMatch && 'flex-1 text-base')}
+        variant={offerNext || offerContinue || canFinishMatch ? 'ghost' : 'primary'}
+        className={cn(dim, !offerNext && !offerContinue && !canFinishMatch && 'flex-1 text-base')}
         data-guard={guard?.waiting ? '' : undefined}
         onClick={press(() => onGo(`${base}/tag`))}
       >
-        {offerNext || canFinishMatch ? 'Sets' : 'Mark sets'}
+        {offerNext || offerContinue || canFinishMatch ? 'Sets' : 'Mark sets'}
       </Button>
     </div>
   )
