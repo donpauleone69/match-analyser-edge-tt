@@ -10,9 +10,8 @@ const navItems: { to: string; icon: IconName; label: string }[] = [
 
 function useNavActive(to: string) {
   const { pathname } = useLocation()
-  if (to === '/matches') {
-    return pathname === '/matches' || pathname.startsWith('/matches/')
-  }
+  // The list only. Inside a match the nav is not shown.
+  if (to === '/matches') return pathname === '/matches'
   return pathname === to || pathname.startsWith(`${to}/`)
 }
 
@@ -25,16 +24,17 @@ function ShellNavLink({
   to: string
   icon: IconName
   label: string
-  layout: 'top' | 'bottom'
+  layout: 'bar' | 'rail'
 }) {
   const active = useNavActive(to)
   return (
     <Link
       to={to}
       className={cn(
-        layout === 'bottom'
-          ? 'btn-kind-control flex-1 flex flex-col items-center justify-center gap-0.5 text-[10px] font-semibold'
-          : 'btn-kind-control inline-flex items-center gap-1.5 px-3 text-sm font-semibold rounded-md',
+        'btn-kind-control font-semibold',
+        layout === 'bar'
+          ? 'flex flex-1 flex-col items-center justify-center gap-0.5 text-[10px]'
+          : 'flex w-full flex-col items-center justify-center gap-0.5 px-1 text-[10px] leading-none',
         active ? 'text-brand-primary' : 'text-muted hover:text-primary'
       )}
       aria-current={active ? 'page' : undefined}
@@ -46,37 +46,35 @@ function ShellNavLink({
 }
 
 export function AppShell() {
-  /** Tagging a set takes the whole screen: no top or bottom nav. */
+  /** Any match page, including one that was not found. The list at /matches is not one. */
+  const inMatch = Boolean(useMatch({ path: '/matches/:matchId', end: false }))
+  /** The set screen sizes its zones from the container. A scrolling main would break that. */
   const tagging = Boolean(useMatch('/matches/:matchId/tag/:setId'))
   return (
-    <div className="h-full bg-bg-app flex flex-col">
-      {tagging ? null : (
-        <header className="hidden md:flex shrink-0 items-center justify-between gap-4 border-b border-border bg-bg-shell pl-6 pr-12 lg:pl-8 lg:pr-14 min-h-[var(--btn-kind-main)] z-40">
-          <nav className="flex items-center gap-1" aria-label="Main">
-            {navItems.map((item) => (
-              <ShellNavLink key={item.to} {...item} layout="top" />
-            ))}
-          </nav>
-        </header>
+    <div className={cn('shell', !inMatch && 'shell-with-nav')}>
+      {inMatch ? null : (
+        <nav className="shell-rail" aria-label="Main">
+          {navItems.map((item) => (
+            <ShellNavLink key={`r-${item.to}`} {...item} layout="rail" />
+          ))}
+        </nav>
       )}
 
       <main
         id="shell-scroll"
         className={cn(
-          'flex-1 min-h-0 overscroll-behavior-none',
-          tagging ? 'overflow-hidden' : 'overflow-y-auto pb-14 md:pb-0'
+          'shell-main min-h-0 min-w-0 flex-1 overscroll-behavior-none',
+          tagging ? 'overflow-hidden' : 'overflow-y-auto',
+          !inMatch && 'shell-main-nav'
         )}
       >
         <Outlet />
       </main>
 
-      {tagging ? null : (
-        <nav
-          className="md:hidden fixed bottom-0 left-0 right-0 z-40 min-h-[var(--btn-kind-main)] border-t border-border bg-bg-shell flex items-stretch"
-          aria-label="Main"
-        >
+      {inMatch ? null : (
+        <nav className="shell-bar" aria-label="Main">
           {navItems.map((item) => (
-            <ShellNavLink key={`b-${item.to}`} {...item} layout="bottom" />
+            <ShellNavLink key={`b-${item.to}`} {...item} layout="bar" />
           ))}
         </nav>
       )}

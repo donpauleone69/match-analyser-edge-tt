@@ -15,8 +15,7 @@ const VIEWPORTS = [
 
 const ROUTES = [
   { screen: 'Sign in', path: '/' },
-  { screen: 'Home', path: '/home' },
-  { screen: 'Find', path: '/find' },
+  { screen: 'Matches', path: '/matches' },
   { screen: 'Account', path: '/account' },
   {
     screen: 'Insights',

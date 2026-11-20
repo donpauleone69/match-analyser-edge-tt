@@ -14,16 +14,15 @@ const VIEWPORTS = [
 
 const ROUTES = [
   { screen: 'Sign in', path: '/' },
-  { screen: 'Home', path: '/home' },
-  { screen: 'Find', path: '/find' },
+  { screen: 'Matches', path: '/matches' },
   { screen: 'Account', path: '/account' },
   { screen: 'Insights', path: '/insights/summary' },
   { screen: 'Match header and tabs', path: '/matches/m-partial/tag' },
   { screen: 'Match Details', path: '/matches/m-partial/details' },
   { screen: 'Tag page', path: '/matches/m-partial/tag' },
   { screen: 'Tag page (Start)', path: '/matches/m-ready/tag' },
-  { screen: 'Back', path: '/find' },
-  { screen: 'Bottom bar', path: '/home' },
+  { screen: 'Back', path: '/matches/m-partial/details' },
+  { screen: 'Nav', path: '/matches' },
 ]
 
 const browser = await chromium.launch({

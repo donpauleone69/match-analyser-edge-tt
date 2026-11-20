@@ -30,7 +30,7 @@ npm run dev
 | Insights Scope | `/insights/scope` |
 | Account | `/account` |
 
-Bottom nav (shell): **Matches · Insights · Account**. A match is entered from Matches.
+Nav (shell): **Matches · Insights · Account**. A bottom bar in portrait, a left rail in landscape. Hidden inside a match.
 
 ## Theme tokens
 
