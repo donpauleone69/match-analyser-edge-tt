@@ -312,7 +312,7 @@ export function bestAt(d: Q, rallyOne: boolean): BestAt {
 }
 
 /**
- * What the question area shows. The 450 ms guard arms when this changes, so a
+ * What the question area shows. The 250 ms guard arms when this changes, so a
  * second tap does not land on the next question.
  */
 export function bestQuestionKey(d: Q, rallyOne: boolean, back: PadBack = null): string {

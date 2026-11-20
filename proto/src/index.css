@@ -396,7 +396,7 @@ button[disabled] {
   height in both.
 */
 .tag-set {
-  --tag-set: 2.5rem; /* set row: name, timeline, Rallies */
+  --tag-set: 2.5rem; /* set row: name, rally pills, Edit Set */
   --tag-rally: 5.125rem; /* 82px: pad 10, controls 32, gap 4, shots 16, gap 4, phases 16 */
   position: relative;
   height: 100%;
@@ -407,6 +407,8 @@ button[disabled] {
   /* This screen only. Mouse: control 32, tap 40. The values are rem, as the built ones are. */
   --btn-kind-control: 2rem; /* 32px */
   --btn-kind-tap-pad: 2.5rem; /* 40px */
+  /* Picture transport. The landscape shot input stops above this row. */
+  --tag-playback: 2.25rem; /* 36px */
   --tag-cell-rest: var(--color-tag-rest);
   --tag-cell-rest-line: transparent;
   --tag-shot-line-a: transparent;
@@ -416,6 +418,7 @@ button[disabled] {
   .tag-set {
     --btn-kind-control: 2.5rem; /* 40px */
     --btn-kind-tap-pad: 3rem; /* 48px */
+    --tag-playback: 2.75rem; /* 44px */
   }
 }
 .tag-flow {
@@ -437,10 +440,84 @@ button[disabled] {
   background: var(--color-bg-app);
   min-width: 0;
 }
-.tag-setzone [aria-label='Match timeline'] {
+.tag-pills {
+  display: flex;
   flex: 1 1 auto;
-  height: 1.75rem;
+  align-items: center;
+  gap: 0.25rem;
   min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.tag-pills::-webkit-scrollbar {
+  display: none;
+}
+.tag-pill {
+  height: 24px;
+  min-width: 24px;
+  flex: 0 0 auto;
+  border-radius: 0.375rem;
+  padding: 0 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-tag-on-solid);
+}
+.tag-pill-on {
+  outline: 2px solid var(--color-brand-primary);
+  outline-offset: 1px;
+}
+.tag-pill-start {
+  background: var(--color-bg-elevated);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+}
+.tag-pill-open {
+  background: transparent;
+  border: 1px dashed currentColor;
+}
+.tag-pill-warn {
+  box-shadow: inset 0 0 0 2px var(--color-warning);
+}
+.tag-seek {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 16;
+  height: 20px;
+  touch-action: none;
+  cursor: pointer;
+}
+.tag-seek-track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.45);
+}
+.tag-seek-mark {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: #fff;
+}
+.tag-seek-band {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: color-mix(in srgb, var(--color-warning) 75%, transparent);
+}
+.tag-seek-head {
+  position: absolute;
+  top: -3px;
+  bottom: -1px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--color-brand-primary);
 }
 .tag-media {
   display: flex;
@@ -492,12 +569,7 @@ button[disabled] {
   /* The picture clips. The settings menu is portaled out so it can draw past this box. */
   overflow: hidden;
   /* The picture's own controls keep the built height. This screen's control height starts under the strip. */
-  --btn-kind-control: 2.25rem; /* 36px */
-}
-@media (pointer: coarse) {
-  .tag-picture {
-    --btn-kind-control: 2.75rem; /* 44px */
-  }
+  --btn-kind-control: var(--tag-playback, 2.25rem);
 }
 .tag-entry {
   position: relative;
@@ -588,13 +660,13 @@ button[disabled] {
   max-height: none;
   aspect-ratio: auto;
 }
-/* Questions stay mounted for the wing portals. They cover the picture only. */
+/* Questions stay mounted for the wing portals. They cover the picture only, and stop above the playback row. */
 .tag-set[data-pad-split] .tag-entry {
   position: absolute;
   left: 0;
   right: 0;
   top: 0;
-  height: calc(100% - var(--tag-set) - var(--tag-rally));
+  height: calc(100% - var(--tag-set) - var(--tag-rally) - 20px - var(--tag-playback) - 4px);
   z-index: 4;
   display: flex;
   flex-direction: column;

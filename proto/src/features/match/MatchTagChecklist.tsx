@@ -32,7 +32,7 @@ import {
   setInProgress,
 } from '@/features/tagging/matchOps'
 import { cn } from '@/helpers/utils'
-import { TAG_LOCK_LINE, useTagLock } from '@/features/tagging/tagLock'
+import { TAG_LOCK_LINE, useTagLock, type TagLock } from '@/features/tagging/tagLock'
 import { lastSavedGlobal } from '@/features/tagging/matchOps'
 import { rallyEnd, type Draft } from '@/features/tagging/rally'
 import { firstContactG, lastContactG, segmentsOf, segmentAt, formatClock, toGlobal } from '@/features/tagging/timeline'
@@ -40,6 +40,7 @@ import { AddVideoChoice } from '@/features/match/AddVideoChoice'
 import { VideosCard } from '@/features/match/VideosCard'
 import { isRealResult } from '@/features/match/matchChecks'
 import { bestPlace } from '@/features/tagging/bestFlow'
+import { useActionGuard } from '@/features/tagging/pressGuard'
 
 const flagClass =
   'rounded-md border border-warning bg-warning/15 px-3 py-2 text-sm text-primary flex flex-wrap items-center justify-between gap-2'
@@ -187,129 +188,33 @@ export function MatchTagChecklist() {
       ) : null}
 
       <ul className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-        {match.sets.map((s) => {
-          const state = setState(s)
-          const differs = setScoresDiffer(s)
-          const gone = setRalliesWithoutVideo(match, s)
-          const editable = !lock && s.rallies.length > 0
-          const firstAt = editable ? firstContactG(segmentsOf(match.videos), s.rallies[0]) : null
-          const moveTo = editable && firstAt !== null ? allowedSetNumbers(match, firstAt, s.setId).filter((n) => n !== s.setId) : []
-          return (
-            <li key={s.setId}>
-              <Card className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-                <div className="min-w-0">
-                  <p className="flex flex-wrap items-center gap-2 text-sm font-semibold text-primary">
-                    Set {s.setId}
-                    {state === 'finished' ? <WfBadge>Finished</WfBadge> : null}
-                    {differs ? <span className={differsBadge}>Differs</span> : null}
-                  </p>
-                  <p className="text-sm text-muted mt-0.5">
-                    {setLine(s)}
-                    {gone > 0 ? ' · video removed' : ''}
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-1">
-                  {state === 'skipped' && !lock ? (
-                    <Button
-                      kind="control"
-                      variant="ghost"
-                      onClick={() => patchSet(match.id, s.setId, { skipped: false })}
-                    >
-                      Undo
-                    </Button>
-                  ) : null}
-                  {state === 'none' && !isSpareSet(match, s) && !lock ? (
-                    <Button
-                      kind="control"
-                      variant="ghost"
-                      onClick={() => patchSet(match.id, s.setId, { skipped: true })}
-                    >
-                      Mark not filmed
-                    </Button>
-                  ) : null}
-                  {differs ? (
-                    <Button
-                      kind="control"
-                      variant="ghost"
-                      onClick={() => mutateMatch(match.id, (m) => applyTaggedScore(m, s.setId))}
-                    >
-                      Use tagged score
-                    </Button>
-                  ) : null}
-                  {state === 'none' && hasVideo && !lock ? (
-                    <Button
-                      kind={
-                        resume || nextStart?.setId !== s.setId ? 'control' : 'main'
-                      }
-                      variant={nextStart?.setId === s.setId ? 'primary' : 'secondary'}
-                      className={rowAction}
-                      onClick={() => openSet(s.setId)}
-                    >
-                      Start
-                    </Button>
-                  ) : null}
-                  {askDelete === s.setId ? (
-                    <>
-                      <Button
-                        kind="control"
-                        variant="primary"
-                        data-delete-confirm
-                        onClick={() => {
-                          setDeleted(s)
-                          setAskDelete(null)
-                          mutateMatch(match.id, (m) => clearSet(m, s.setId))
-                        }}
-                      >
-                        Delete set {s.setId}
-                      </Button>
-                      <Button kind="control" variant="ghost" onClick={() => setAskDelete(null)}>
-                        Cancel
-                      </Button>
-                    </>
-                  ) : (
-                    <>
-                      {moveTo.length > 0 ? (
-                        <select
-                          aria-label={`Change set ${s.setId} number`}
-                          className="btn-kind-control rounded-md border border-border bg-bg-card px-2 text-sm text-primary"
-                          value=""
-                          onChange={(e) => {
-                            const to = Number(e.target.value)
-                            if (!to) return
-                            setDeleted(null)
-                            mutateMatch(match.id, (m) => moveSet(m, s.setId, to))
-                          }}
-                        >
-                          <option value="">Set number</option>
-                          {moveTo.map((n) => (
-                            <option key={n} value={n}>
-                              Make it set {n}
-                            </option>
-                          ))}
-                        </select>
-                      ) : null}
-                      {editable ? (
-                        <Button kind="control" variant="ghost" onClick={() => setAskDelete(s.setId)}>
-                          Delete
-                        </Button>
-                      ) : null}
-                      {state === 'finished' || state === 'progress' ? (
-                        <Button
-                          kind="control"
-                          variant="secondary"
-                          className={rowAction}
-                          onClick={() => openSet(s.setId)}
-                        >
-                          Open
-                        </Button>
-                      ) : null}
-                    </>
-                  )}
-                </div>
-              </Card>
-            </li>
-          )
-        })}
+        {match.sets.map((s) => (
+          <SetCheckRow
+            key={s.setId}
+            match={match}
+            set={s}
+            lock={lock}
+            hasVideo={hasVideo}
+            asking={askDelete === s.setId}
+            resumeId={resume?.setId ?? null}
+            nextStartId={nextStart?.setId ?? null}
+            onAsk={() => setAskDelete(s.setId)}
+            onCancelAsk={() => setAskDelete(null)}
+            onDelete={() => {
+              setDeleted(s)
+              setAskDelete(null)
+              mutateMatch(match.id, (m) => clearSet(m, s.setId))
+            }}
+            onOpen={() => openSet(s.setId)}
+            onUndoSkip={() => patchSet(match.id, s.setId, { skipped: false })}
+            onSkip={() => patchSet(match.id, s.setId, { skipped: true })}
+            onUseScore={() => mutateMatch(match.id, (m) => applyTaggedScore(m, s.setId))}
+            onMove={(to) => {
+              setDeleted(null)
+              mutateMatch(match.id, (m) => moveSet(m, s.setId, to))
+            }}
+          />
+        ))}
       </ul>
 
       <MatchEnd
@@ -333,6 +238,168 @@ export function MatchTagChecklist() {
       </>
       ) : null}
     </div>
+  )
+}
+
+function SetCheckRow({
+  match,
+  set: s,
+  lock,
+  hasVideo,
+  asking,
+  resumeId,
+  nextStartId,
+  onAsk,
+  onCancelAsk,
+  onDelete,
+  onOpen,
+  onUndoSkip,
+  onSkip,
+  onUseScore,
+  onMove,
+}: {
+  match: MatchRecord
+  set: SetData
+  lock: TagLock
+  hasVideo: boolean
+  asking: boolean
+  resumeId: number | null
+  nextStartId: number | null
+  onAsk: () => void
+  onCancelAsk: () => void
+  onDelete: () => void
+  onOpen: () => void
+  onUndoSkip: () => void
+  onSkip: () => void
+  onUseScore: () => void
+  onMove: (to: number) => void
+}) {
+  const deleteGuard = useActionGuard(asking ? 'confirm' : 'idle')
+  const state = setState(s)
+  const differs = setScoresDiffer(s)
+  const gone = setRalliesWithoutVideo(match, s)
+  const editable = !lock && s.rallies.length > 0
+  const firstAt = editable ? firstContactG(segmentsOf(match.videos), s.rallies[0]) : null
+  const moveTo = editable && firstAt !== null ? allowedSetNumbers(match, firstAt, s.setId).filter((n) => n !== s.setId) : []
+  return (
+    <li>
+      <Card className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+        <div className="min-w-0">
+          <p className="flex flex-wrap items-center gap-2 text-sm font-semibold text-primary">
+            Set {s.setId}
+            {state === 'finished' ? <WfBadge>Finished</WfBadge> : null}
+            {differs ? <span className={differsBadge}>Differs</span> : null}
+          </p>
+          <p className="text-sm text-muted mt-0.5">
+            {setLine(s)}
+            {gone > 0 ? ' · video removed' : ''}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-1">
+          {state === 'skipped' && !lock ? (
+            <Button kind="control" variant="ghost" onClick={onUndoSkip}>
+              Undo
+            </Button>
+          ) : null}
+          {state === 'none' && !isSpareSet(match, s) && !lock ? (
+            <Button kind="control" variant="ghost" onClick={onSkip}>
+              Mark not filmed
+            </Button>
+          ) : null}
+          {differs ? (
+            <Button kind="control" variant="ghost" onClick={onUseScore}>
+              Use tagged score
+            </Button>
+          ) : null}
+          {state === 'none' && hasVideo && !lock ? (
+            <Button
+              kind={resumeId !== null || nextStartId !== s.setId ? 'control' : 'main'}
+              variant={nextStartId === s.setId ? 'primary' : 'secondary'}
+              className={rowAction}
+              onClick={onOpen}
+            >
+              Start
+            </Button>
+          ) : null}
+          {moveTo.length > 0 ? (
+            <select
+              aria-label={`Change set ${s.setId} number`}
+              aria-hidden={asking || undefined}
+              disabled={asking}
+              tabIndex={asking ? -1 : undefined}
+              className={cn(
+                'btn-kind-control rounded-md border border-border bg-bg-card px-2 text-sm text-primary',
+                asking && 'invisible'
+              )}
+              value=""
+              onChange={(e) => {
+                const to = Number(e.target.value)
+                if (!to) return
+                onMove(to)
+              }}
+            >
+              <option value="">Set number</option>
+              {moveTo.map((n) => (
+                <option key={n} value={n}>
+                  Make it set {n}
+                </option>
+              ))}
+            </select>
+          ) : null}
+          {editable ? (
+            <span className="relative inline-flex">
+              <Button kind="control" variant="ghost" className="invisible pointer-events-none" tabIndex={-1} aria-hidden>
+                Delete
+              </Button>
+              {asking ? (
+                <Button kind="control" variant="ghost" className="absolute inset-0 min-w-0" onClick={onCancelAsk}>
+                  Cancel
+                </Button>
+              ) : (
+                <Button
+                  kind="control"
+                  variant="ghost"
+                  className="absolute inset-0 min-w-0"
+                  onClick={() => {
+                    deleteGuard.arm()
+                    onAsk()
+                  }}
+                >
+                  Delete
+                </Button>
+              )}
+            </span>
+          ) : null}
+          {state === 'finished' || state === 'progress' ? (
+            <Button
+              kind="control"
+              variant="secondary"
+              className={cn(rowAction, asking && 'invisible pointer-events-none')}
+              tabIndex={asking ? -1 : undefined}
+              aria-hidden={asking || undefined}
+              onClick={onOpen}
+            >
+              Open
+            </Button>
+          ) : null}
+        </div>
+        {asking ? (
+          <Button
+            kind="control"
+            variant="primary"
+            data-delete-confirm
+            data-guard={deleteGuard.waiting ? '' : undefined}
+            className={cn('basis-full', deleteGuard.waiting && 'opacity-60')}
+            onClick={() => {
+              if (!deleteGuard.allow()) return
+              onDelete()
+            }}
+          >
+            Delete set {s.setId}
+          </Button>
+        ) : null}
+      </Card>
+    </li>
   )
 }
 
