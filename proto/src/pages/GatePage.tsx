@@ -6,7 +6,7 @@ import { WfBadge, WfField } from '@/layout/Wireframe'
 /** Pre-Home gate stubs. */
 export function GatePage() {
   const navigate = useNavigate()
-  const enter = () => navigate('/home')
+  const enter = () => navigate('/matches')
 
   return (
     <div id="gate-scroll" className="h-full overflow-y-auto bg-bg-app px-4 sm:px-6 lg:px-8 py-8">
@@ -14,7 +14,7 @@ export function GatePage() {
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 space-y-1 max-w-prose">
             <h1 className="text-2xl font-bold text-primary">Match Analyser</h1>
-            <p className="text-sm text-muted">Unlock a session to reach Home.</p>
+            <p className="text-sm text-muted">Unlock a session to reach Matches.</p>
           </div>
           <BrandMark className="pt-1" />
         </div>

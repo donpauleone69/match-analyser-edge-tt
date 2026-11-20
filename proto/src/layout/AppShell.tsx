@@ -3,19 +3,15 @@ import { Icon, type IconName } from '@/ui-mine'
 import { cn } from '@/helpers/utils'
 
 const navItems: { to: string; icon: IconName; label: string }[] = [
-  { to: '/home', icon: 'home', label: 'Home' },
+  { to: '/matches', icon: 'list', label: 'Matches' },
   { to: '/insights', icon: 'chart', label: 'Insights' },
   { to: '/account', icon: 'user', label: 'Account' },
 ]
 
 function useNavActive(to: string) {
   const { pathname } = useLocation()
-  if (to === '/home') {
-    return (
-      pathname === '/home' ||
-      pathname.startsWith('/home/') ||
-      pathname.startsWith('/matches/')
-    )
+  if (to === '/matches') {
+    return pathname === '/matches' || pathname.startsWith('/matches/')
   }
   return pathname === to || pathname.startsWith(`${to}/`)
 }
