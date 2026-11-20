@@ -248,6 +248,150 @@ export function firstGapVideo(m: MatchRecord): VideoAsset | null {
   return m.videos.find((v) => gapsOf(v.durationS, spansOnVideo(m.videos, m.sets, v.id)).length > 0) ?? null
 }
 
+/** A new set is at least this long, and a wing cannot come closer than this to the other. */
+export const MIN_SET_S = 60
+
+/** Add set runs this long, or to the next set, or the video end, whichever is first. */
+const ADD_SET_S = 600
+
+export type WingEdge = 'start' | 'end'
+
+export type WingLimit = {
+  lo: number
+  hi: number
+  below: string | null
+  above: string | null
+}
+
+type WingBound = { at: number; hint: string }
+
+/** A later bound wins when it is as tight, so a rally hint beats a video hint at the same time. */
+function raise(current: WingBound, next: WingBound): WingBound {
+  return next.at >= current.at - 0.001 ? next : current
+}
+
+function lower(current: WingBound, next: WingBound): WingBound {
+  return next.at <= current.at + 0.001 ? next : current
+}
+
+function rallyEdges(m: MatchRecord, s: SetData): { first: number; last: number; firstN: number; lastN: number } | null {
+  if (s.rallies.length === 0) return null
+  const segs = segmentsOf(m.videos)
+  let first = Infinity
+  let last = -Infinity
+  let firstN = 1
+  let lastN = 1
+  s.rallies.forEach((r, i) => {
+    const a = firstContactG(segs, r)
+    const z = lastContactG(segs, r)
+    if (a !== null && a < first) {
+      first = a
+      firstN = i + 1
+    }
+    if (z !== null && z > last) {
+      last = z
+      lastN = i + 1
+    }
+  })
+  if (!Number.isFinite(first) || !Number.isFinite(last)) return null
+  return { first, last, firstN, lastN }
+}
+
+/**
+ * How far the start or end wing may move, in global seconds.
+ * Stops at the video edge, the neighbour, a tagged set's first or last rally, and 60s from the other wing.
+ */
+export function wingLimits(m: MatchRecord, setId: number, edge: WingEdge): WingLimit | null {
+  const s = m.sets.find((x) => x.setId === setId)
+  if (!s?.mark) return null
+  const bounds = markBounds(m.videos, s.mark)
+  if (!bounds) return null
+  const segs = segmentsOf(m.videos)
+  const fromSeg = segs.find((seg) => seg.id === s.mark?.from.videoId)
+  const toSeg = segs.find((seg) => seg.id === s.mark?.to.videoId)
+  if (!fromSeg || !toSeg) return null
+
+  const placed = m.sets
+    .flatMap((other) => {
+      if (!other.mark || other.setId === setId) return []
+      const b = markBounds(m.videos, other.mark)
+      return b ? [{ id: other.setId, start: b.start, end: b.end }] : []
+    })
+    .sort((a, b) => a.start - b.start)
+  const before = [...placed].reverse().find((p) => p.end <= bounds.start + 0.05)
+  const after = placed.find((p) => p.start >= bounds.end - 0.05)
+  const rallies = rallyEdges(m, s)
+
+  if (edge === 'start') {
+    let lo: WingBound = { at: fromSeg.offset, hint: 'Stops at the video start' }
+    if (before) lo = raise(lo, { at: before.end, hint: `Stops at set ${before.id}` })
+    let hi: WingBound = { at: bounds.end - MIN_SET_S, hint: 'Stops at 1 minute' }
+    hi = lower(hi, { at: fromSeg.offset + fromSeg.duration, hint: 'Stops at the video end' })
+    if (rallies) hi = lower(hi, { at: rallies.first, hint: `Stops at rally ${rallies.firstN}` })
+    if (hi.at < lo.at) hi = lo
+    return { lo: lo.at, hi: hi.at, below: lo.hint, above: hi.hint }
+  }
+
+  let lo: WingBound = { at: bounds.start + MIN_SET_S, hint: 'Stops at 1 minute' }
+  lo = raise(lo, { at: toSeg.offset, hint: 'Stops at the video start' })
+  if (rallies) lo = raise(lo, { at: rallies.last, hint: `Stops at rally ${rallies.lastN}` })
+  let hi: WingBound = { at: toSeg.offset + toSeg.duration, hint: 'Stops at the video end' }
+  if (after) hi = lower(hi, { at: after.start, hint: `Stops at set ${after.id}` })
+  if (hi.at < lo.at) hi = lo
+  return { lo: lo.at, hi: hi.at, below: lo.hint, above: hi.hint }
+}
+
+/** Pulls a dragged time back inside the limit and says why, when it had to. */
+export function clampWing(limit: WingLimit, asked: number): { at: number; hint: string | null } {
+  if (asked < limit.lo - 0.05) return { at: limit.lo, hint: limit.below }
+  if (asked > limit.hi + 0.05) return { at: limit.hi, hint: limit.above }
+  return { at: Math.min(limit.hi, Math.max(limit.lo, asked)), hint: null }
+}
+
+export type NewMark =
+  | { ok: true; setId: number; mark: SetMark }
+  | { ok: false; reason: string }
+
+/**
+ * A new mark on this video. `at` is seconds in the video when the player is sitting in free time.
+ * `prefer` is the set number a Not on video row asked for.
+ */
+export function newMarkAt(m: MatchRecord, videoId: string, at: number | null, prefer?: number): NewMark {
+  const video = m.videos.find((v) => v.id === videoId)
+  if (!video) return { ok: false, reason: 'No set number is free here.' }
+  const spans = spansOnVideo(m.videos, m.sets, videoId)
+  const gaps = gapsOf(video.durationS, spans)
+  if (gaps.length === 0) return { ok: false, reason: 'No room on this video.' }
+  const holding =
+    at !== null ? gaps.find((g) => at >= g.a + 0.05 && at <= g.b - 0.05) : undefined
+  const gap = holding ?? gaps[0]
+  const start = holding && at !== null ? at : gap.a
+  const end = Math.min(gap.b, start + ADD_SET_S, video.durationS)
+  if (end - start < 1) return { ok: false, reason: 'No room on this video.' }
+
+  const segs = segmentsOf(m.videos)
+  const startG = toGlobal(segs, videoId, start)
+  if (startG === null) return { ok: false, reason: 'No set number is free here.' }
+  const allowed = allowedMarkNumbers(m, startG)
+  const setId = prefer !== undefined ? (allowed.includes(prefer) ? prefer : null) : (allowed[0] ?? null)
+  if (setId === null) return { ok: false, reason: 'No set number is free here.' }
+
+  const first = m.videos[0]
+  const last = m.videos[m.videos.length - 1]
+  const atStart = Boolean(first && videoId === first.id && start <= 0.05)
+  const atEnd = Boolean(last && videoId === last.id && end >= video.durationS - 0.05)
+  const round = (t: number) => Math.round(t * 100) / 100
+  return {
+    ok: true,
+    setId,
+    mark: {
+      from: { videoId, t: round(start) },
+      to: { videoId, t: round(end) },
+      complete: !(atStart || atEnd),
+    },
+  }
+}
+
 function marksInOrder(videos: VideoAsset[], sets: SetData[]): boolean {
   const placed = sets.flatMap((s) => {
     if (!s.mark) return []

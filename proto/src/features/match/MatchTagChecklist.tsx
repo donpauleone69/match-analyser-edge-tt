@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Button, buttonKindTextLink } from '@/ui-mine'
 import {
   derivePhase,
@@ -22,36 +22,28 @@ import {
 } from '@/data/demoStore'
 import { AddVideoChoice } from '@/features/match/AddVideoChoice'
 import { useArchiveStep } from '@/features/match/archiveJobs'
+import { TagVideoCard } from '@/features/match/TagVideoCard'
 import { isRealResult, videoRallyCount } from '@/features/match/matchChecks'
+import { applyTaggedResult, finishMatch, reopenMatch, restoreSet, saveMark } from '@/features/tagging/matchOps'
+import type { Side } from '@/features/tagging/rally'
 import {
-  applyTaggedResult,
-  completeMark,
-  deleteTags,
-  finishMatch,
-  moveSet,
-  reopenMatch,
-  restoreSet,
-  unmarkSet,
-} from '@/features/tagging/matchOps'
-import {
-  allowedMarkNumbers,
-  firstGapVideo,
+  clampWing,
   gapsOf,
-  lineAction,
   markBounds,
-  markCrosses,
   markState,
+  newMarkAt,
   notOnVideo,
-  setsRemain,
-  setsStartingOn,
   spansOnVideo,
   videoLocked,
   videoMoveBreaks,
   videoStatus,
-  type VideoSpan,
+  wingLimits,
+  type WingEdge,
 } from '@/features/tagging/setMark'
 import { TAG_LOCK_LINE, useTagLock } from '@/features/tagging/tagLock'
-import { formatClock } from '@/features/tagging/timeline'
+import { PictureSeek, VideoStage } from '@/features/tagging/VideoStage'
+import { segmentsOf } from '@/features/tagging/timeline'
+import { usePlayer } from '@/features/tagging/usePlayer'
 import { cn } from '@/helpers/utils'
 
 const flagClass =
@@ -61,29 +53,18 @@ const linkClass = cn('text-sm font-semibold text-brand underline', buttonKindTex
 
 const UNDO_MS = 6000
 
-function setRowLabel(match: MatchRecord, s: SetData): string {
-  const state = markState(s)
-  const score = taggedScore(s)
-  const head =
-    (state === 'saved' || state === 'tagging') && score
-      ? `Set ${s.setId} · ${formatScore(score)}`
-      : `Set ${s.setId}`
-  const mark = s.mark
-  if (!markCrosses(s) || !mark) return head
-  const a = match.videos.findIndex((v) => v.id === mark.from.videoId) + 1
-  const b = match.videos.findIndex((v) => v.id === mark.to.videoId) + 1
-  return a > 0 && b > 0 ? `${head} · videos ${a} and ${b}` : head
-}
 
 /**
- * Tag page. One card per video, with a status line and one action per set.
- * Adding a set still opens the mark screen.
+ * Tag page. One shared player, then a card per video.
+ * Sets are marked and edited in the card.
  */
 export function MatchTagChecklist() {
   const { matchId = '' } = useParams()
+  const [search] = useSearchParams()
   const navigate = useNavigate()
   const { getMatch, moveVideo, mutateMatch } = useDemo()
   const match = getMatch(matchId)
+  const player = usePlayer(match?.videos ?? [])
   const lock = useTagLock(matchId, match)
   const running = useArchiveStep(matchId) !== null
   const [menuId, setMenuId] = useState<string | null>(null)
@@ -91,12 +72,71 @@ export function MatchTagChecklist() {
   const [removed, setRemoved] = useState<{ video: VideoAsset; index: number; marks: { setId: number; mark: SetMark }[] } | null>(null)
   const [undoSet, setUndoSet] = useState<{ before: SetData; text: string; also?: SetData } | null>(null)
   const [note, setNote] = useState<string | null>(null)
+  const [picked, setPicked] = useState<{ setId: number; videoId: string } | null>(null)
+  const [lastWing, setLastWing] = useState<WingEdge>('end')
+  const [opened, setOpened] = useState<string[]>([])
+  const [wingHint, setWingHint] = useState<string | null>(null)
+  const [stick, setStick] = useState(0)
+  const applied = useRef(false)
+  const hintTimer = useRef<number | null>(null)
+  const seekAt = useRef(0)
+  const matchRef = useRef(match)
+  matchRef.current = match
+  const nudgeRef = useRef<{
+    before: SetData
+    setId: number
+    edge: WingEdge
+    videoId: string
+    t: number
+    timer: number | null
+    delay: number | null
+  } | null>(null)
 
   useEffect(() => {
     if (!removed) return
     const timer = setTimeout(() => setRemoved(null), UNDO_MS)
     return () => clearTimeout(timer)
   }, [removed])
+
+  useEffect(() => {
+    const chrome = document.querySelector('[data-sticky-chrome]')
+    if (!chrome) return
+    const apply = () => setStick(chrome.getBoundingClientRect().height)
+    apply()
+    const ro = new ResizeObserver(apply)
+    ro.observe(chrome)
+    return () => ro.disconnect()
+  }, [])
+
+  useEffect(() => {
+    if (!match || applied.current) return
+    applied.current = true
+    const raw = search.get('set')
+    if (!raw) return
+    const setId = Number(raw)
+    const s = match.sets.find((x) => x.setId === setId && x.mark)
+    if (!s?.mark) return
+    const asked = search.get('video')
+    const onAsked = Boolean(asked && (s.mark.from.videoId === asked || s.mark.to.videoId === asked))
+    const videoId = onAsked && asked ? asked : s.mark.from.videoId
+    setPicked({ setId, videoId })
+    if (videoStatus(match, videoId) === 'Done') {
+      setOpened((ids) => (ids.includes(videoId) ? ids : [...ids, videoId]))
+    }
+    requestAnimationFrame(() => {
+      document.querySelector(`[data-video-block="${videoId}"]`)?.scrollIntoView({ block: 'center' })
+    })
+  }, [match, search])
+
+  useEffect(
+    () => () => {
+      const live = nudgeRef.current
+      if (!live) return
+      if (live.delay) window.clearTimeout(live.delay)
+      if (live.timer) window.clearInterval(live.timer)
+    },
+    []
+  )
 
   if (!match) return null
 
@@ -135,7 +175,7 @@ export function MatchTagChecklist() {
       return
     }
     if (videoLocked(match, video.id)) {
-      setNote('This video is part of a set. Unmark that set first.')
+      setNote('This video is part of a set. Delete that set first.')
       return
     }
     if (video.archived || videoRallyCount(match, video.id) > 0) setAsking(video.id)
@@ -144,8 +184,133 @@ export function MatchTagChecklist() {
     }
   }
 
+  const flash = (text: string) => {
+    setWingHint(text)
+    if (hintTimer.current) window.clearTimeout(hintTimer.current)
+    hintTimer.current = window.setTimeout(() => setWingHint(null), 1600)
+  }
+
+  const addSet = (videoId: string, prefer?: number) => {
+    const seg = player.segs.find((s) => s.id === videoId)
+    const onThis = player.segs[player.segIndex]?.id === videoId
+    const at = onThis && seg ? player.getTime() - seg.offset : null
+    const made = newMarkAt(match, videoId, at, prefer)
+    if (!made.ok) {
+      setNote(made.reason)
+      return
+    }
+    const before = match.sets.find((s) => s.setId === made.setId) ?? emptySet(made.setId)
+    setUndoSet({ before, text: `Set ${made.setId} added` })
+    mutateMatch(match.id, (m) => saveMark(m, made.setId, made.mark))
+    setOpened((ids) => (ids.includes(videoId) ? ids : [...ids, videoId]))
+    setPicked({ setId: made.setId, videoId })
+    setLastWing('end')
+    setNote(null)
+  }
+
+  const endNudge = () => {
+    const live = nudgeRef.current
+    if (!live) return
+    if (live.delay) window.clearTimeout(live.delay)
+    if (live.timer) window.clearInterval(live.timer)
+    nudgeRef.current = null
+  }
+
+  const applyNudge = (dir: -1 | 1) => {
+    const live = nudgeRef.current
+    const current = matchRef.current
+    if (!live || !current) return
+    const s = current.sets.find((x) => x.setId === live.setId)
+    if (!s?.mark) return
+    const seg = segmentsOf(current.videos).find((x) => x.id === live.videoId)
+    if (!seg) return
+    const limit = wingLimits(current, s.setId, live.edge)
+    const clamped = limit ? clampWing(limit, seg.offset + live.t + dir) : { at: seg.offset + live.t + dir, hint: null }
+    const next = Math.min(seg.duration, Math.max(0, Math.round((clamped.at - seg.offset) * 10) / 10))
+    if (Math.abs(next - live.t) < 0.05) {
+      if (clamped.hint) flash(clamped.hint)
+      return
+    }
+    live.t = next
+    const point = { videoId: live.videoId, t: next }
+    const mark = live.edge === 'start' ? { ...s.mark, from: point } : { ...s.mark, to: point }
+    setUndoSet({ before: live.before, text: `Set ${s.setId} ${live.edge} moved` })
+    mutateMatch(current.id, (m) => saveMark(m, s.setId, mark))
+    player.pause()
+    player.seek(seg.offset + next)
+    if (clamped.hint) flash(clamped.hint)
+  }
+
+  const startNudge = (dir: -1 | 1) => {
+    if (!picked) return
+    const s = match.sets.find((x) => x.setId === picked.setId)
+    if (!s?.mark) return
+    const point = lastWing === 'start' ? s.mark.from : s.mark.to
+    endNudge()
+    nudgeRef.current = {
+      before: s,
+      setId: s.setId,
+      edge: lastWing,
+      videoId: point.videoId,
+      t: point.t,
+      timer: null,
+      delay: null,
+    }
+    applyNudge(dir)
+    const delay = window.setTimeout(() => {
+      const timer = window.setInterval(() => applyNudge(dir), 140)
+      if (nudgeRef.current) nudgeRef.current.timer = timer
+    }, 350)
+    if (nudgeRef.current) nudgeRef.current.delay = delay
+  }
+
+  const commitWing = (setId: number, edge: WingEdge, videoId: string, local: number, hint: string | null) => {
+    const s = match.sets.find((x) => x.setId === setId)
+    const seg = segmentsOf(match.videos).find((x) => x.id === videoId)
+    if (!s?.mark || !seg) return
+    const t = Math.min(seg.duration, Math.max(0, Math.round(local * 10) / 10))
+    const prev = edge === 'start' ? s.mark.from : s.mark.to
+    setLastWing(edge)
+    if (hint) flash(hint)
+    if (prev.videoId === videoId && Math.abs(prev.t - t) < 0.05) return
+    const point = { videoId, t }
+    const mark = edge === 'start' ? { ...s.mark, from: point } : { ...s.mark, to: point }
+    setUndoSet({ before: s, text: `Set ${setId} ${edge} moved` })
+    mutateMatch(match.id, (m) => saveMark(m, setId, mark))
+    player.pause()
+    player.seek(seg.offset + t)
+  }
+
+  const seg = player.segs[player.segIndex]
+  const activeId = seg?.id ?? null
+  const names = { me: 'You' as const, them: match.opponent.trim() || 'Opponent' }
+  const gapVideo = openGapVideo(match, opened, Boolean(lock))
+
   return (
-    <div className="space-y-4 px-4 py-4">
+    <div>
+      {match.videos.length > 0 && seg ? (
+        <div className="tag-preview sticky z-10 bg-bg-app" style={{ top: stick }} data-preview-player>
+          <VideoStage
+            player={player}
+            videos={match.videos}
+            names={names}
+            bug={scoreBug(match, player.time)}
+            hint={wingHint}
+            onSeek={(g) => player.seek(g)}
+            onRate={player.setRate}
+            seek={
+              <PictureSeek
+                span={{ a: seg.offset, b: seg.offset + seg.duration }}
+                time={player.time}
+                spans={[]}
+                band={null}
+                onSeek={(g) => player.seek(g)}
+              />
+            }
+          />
+        </div>
+      ) : null}
+      <div className="space-y-4 px-4 py-4">
       {lock ? (
         <p className="rounded-md border border-border bg-bg-card px-3 py-2 text-sm text-primary" role="status">
           {TAG_LOCK_LINE[lock]}
@@ -218,13 +383,20 @@ export function MatchTagChecklist() {
         </div>
       ) : (
         match.videos.map((video, index) => (
-          <VideoBlock
+          <TagVideoCard
             key={video.id}
             match={match}
             video={video}
             index={index}
             locked={Boolean(lock)}
             running={running}
+            editable={!lock && (videoStatus(match, video.id) !== 'Done' || opened.includes(video.id))}
+            active={activeId === video.id}
+            playhead={activeId === video.id && seg ? player.time - seg.offset : null}
+            pickedId={picked?.setId ?? null}
+            editHere={picked?.videoId === video.id}
+            lastWing={lastWing}
+            hint={wingHint}
             menuOpen={menuId === video.id}
             asking={asking === video.id}
             onToggleMenu={() => setMenuId((id) => (id === video.id ? null : video.id))}
@@ -241,11 +413,35 @@ export function MatchTagChecklist() {
             onCancelRemove={() => setAsking(null)}
             onOpen={(setId) => openSet(setId)}
             onUndo={(before, text, also) => setUndoSet({ before, text, also })}
+            onPick={(setId) => {
+              setPicked({ setId, videoId: video.id })
+              setLastWing('end')
+            }}
+            onUnpick={() => setPicked(null)}
+            onSeek={(g) => player.seek(g)}
+            onScrub={(g) => {
+              player.pause()
+              player.seek(g)
+            }}
+            onPreview={(local) => {
+              const now = performance.now()
+              if (now - seekAt.current < 120) return
+              seekAt.current = now
+              player.pause()
+              player.seek((seg && activeId === video.id ? seg.offset : segmentsOf(match.videos).find((s) => s.id === video.id)?.offset ?? 0) + local)
+            }}
+            onCommit={(setId, edge, local, stop) => commitWing(setId, edge, video.id, local, stop)}
+            onHint={flash}
+            onNudgeStart={startNudge}
+            onNudgeEnd={endNudge}
+            onEditSets={() => setOpened((ids) => (ids.includes(video.id) ? ids : [...ids, video.id]))}
+            onAdd={() => addSet(video.id)}
+            onRelabelled={(setId) => setPicked({ setId, videoId: video.id })}
           />
         ))
       )}
 
-      <NotOnVideo match={match} />
+      <NotOnVideo match={match} video={gapVideo} onAdd={(setId) => gapVideo && addSet(gapVideo.id, setId)} />
 
       {match.videos.length > 0 ? (
         <section className="space-y-2" data-add-video>
@@ -270,299 +466,45 @@ export function MatchTagChecklist() {
           Open match Insights
         </Button>
       ) : null}
+      </div>
     </div>
   )
 }
 
-function VideoBlock({
-  match,
-  video,
-  index,
-  locked,
-  running,
-  menuOpen,
-  asking,
-  onToggleMenu,
-  onMove,
-  onAskRemove,
-  onRemove,
-  onCancelRemove,
-  onOpen,
-  onUndo,
-}: {
-  match: MatchRecord
-  video: VideoAsset
-  index: number
-  locked: boolean
-  running: boolean
-  menuOpen: boolean
-  asking: boolean
-  onToggleMenu: () => void
-  onMove: (by: -1 | 1) => void
-  onAskRemove: () => void
-  onRemove: () => void
-  onCancelRemove: () => void
-  onOpen: (setId: number) => void
-  onUndo: (before: SetData, text: string, also?: SetData) => void
-}) {
-  const navigate = useNavigate()
-  const [archiveNote, setArchiveNote] = useState(false)
-  const many = match.videos.length > 1
-  const spans = spansOnVideo(match.videos, match.sets, video.id)
-  const gap = gapsOf(video.durationS, spans).length > 0
-  const lines = setsStartingOn(match.sets, video.id)
-  const showMark = gap && setsRemain(match) && !locked
-  const status = videoStatus(match, video.id)
 
+function openGapVideo(match: MatchRecord, opened: readonly string[], archiveLocked: boolean): VideoAsset | null {
+  if (archiveLocked) return null
   return (
-    <section className="space-y-2 rounded-lg border border-border bg-bg-card px-3 py-2" data-video-block={video.id}>
-      <div className="flex items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold text-primary">
-          Video {index + 1} · {formatClock(video.durationS)}
-        </h2>
-        <button
-          type="button"
-          className="shrink-0 rounded-md border border-border px-2 py-1 text-xs font-semibold text-primary"
-          aria-expanded={menuOpen}
-          aria-label={`Menu for video ${index + 1}`}
-          onClick={onToggleMenu}
-        >
-          Menu
-        </button>
-      </div>
-
-      <p className="text-sm text-primary" data-video-status={video.id}>
-        {status}
-      </p>
-
-      {menuOpen ? (
-        <div className="flex flex-wrap gap-2" data-video-menu={video.id}>
-          {many ? (
-            <>
-              <Button kind="control" variant="secondary" disabled={running || index === 0} onClick={() => onMove(-1)}>
-                Move up
-              </Button>
-              <Button
-                kind="control"
-                variant="secondary"
-                disabled={running || index === match.videos.length - 1}
-                onClick={() => onMove(1)}
-              >
-                Move down
-              </Button>
-            </>
-          ) : null}
-          <Button kind="control" variant="secondary" disabled={running} onClick={onAskRemove}>
-            Remove
-          </Button>
-        </div>
-      ) : null}
-
-      {asking ? (
-        <div className="space-y-1.5 rounded-md border border-warning bg-warning/15 px-2 py-1.5 text-xs text-primary" role="alertdialog" aria-label={`Remove video ${index + 1}`}>
-          <p>
-            {videoRallyCount(match, video.id)} tagged rallies use this video. Tags and scores stay, but they can no
-            longer be played.
-          </p>
-          {video.archived ? <p className="font-semibold">This cannot be undone.</p> : null}
-          <div className="flex flex-wrap gap-2">
-            <Button kind="control" onClick={onRemove}>
-              {video.archived ? 'Remove the only copy' : 'Remove video'}
-            </Button>
-            <Button kind="control" variant="ghost" onClick={onCancelRemove}>
-              Cancel
-            </Button>
-          </div>
-        </div>
-      ) : null}
-
-      <VideoStrip duration={video.durationS} spans={spans} />
-
-      {lines.length > 0 ? (
-        <ul className="space-y-1">
-          {lines.map((s) => (
-            <SetLine
-              key={s.setId}
-              match={match}
-              set={s}
-              locked={locked}
-              onOpen={() => onOpen(s.setId)}
-              onUndo={onUndo}
-            />
-          ))}
-        </ul>
-      ) : null}
-
-      {showMark ? (
-        <Button
-          kind="control"
-          variant="secondary"
-          data-mark-set={video.id}
-          onClick={() => navigate(`/matches/${match.id}/mark/${video.id}`)}
-        >
-          Add set
-        </Button>
-      ) : null}
-
-      {status === 'Done' && !locked ? (
-        <div className="space-y-1">
-          <Button
-            kind="control"
-            variant="secondary"
-            data-archive-video={video.id}
-            onClick={() => setArchiveNote(true)}
-          >
-            Archive video
-          </Button>
-          {archiveNote ? (
-            <p className="text-sm text-muted" role="status">
-              Archive comes in a later build.
-            </p>
-          ) : null}
-        </div>
-      ) : null}
-    </section>
+    match.videos.find((v) => {
+      if (gapsOf(v.durationS, spansOnVideo(match.videos, match.sets, v.id)).length === 0) return false
+      if (videoStatus(match, v.id) === 'Done' && !opened.includes(v.id)) return false
+      return true
+    }) ?? null
   )
 }
 
-function VideoStrip({ duration, spans }: { duration: number; spans: VideoSpan[] }) {
-  const scale = duration > 0 ? duration : 1
-  return (
-    <div className="tag-strip" data-video-strip>
-      {spans.map((span) => (
-        <span
-          key={span.setId}
-          className="tag-strip-block"
-          data-strip-set={span.setId}
-          data-part={span.part ? 'true' : 'false'}
-          style={{ left: `${(span.a / scale) * 100}%`, width: `${((span.b - span.a) / scale) * 100}%` }}
-        >
-          S{span.setId}
-        </span>
-      ))}
-    </div>
-  )
-}
-
-function SetLine({
-  match,
-  set: s,
-  locked,
-  onOpen,
-  onUndo,
-}: {
-  match: MatchRecord
-  set: SetData
-  locked: boolean
-  onOpen: () => void
-  onUndo: (before: SetData, text: string, also?: SetData) => void
-}) {
-  const navigate = useNavigate()
-  const { mutateMatch } = useDemo()
-  const [menu, setMenu] = useState(false)
-  const [picking, setPicking] = useState(false)
-  const action = lineAction(s)
-  const state = markState(s)
-  const bounds = s.mark ? markBounds(match.videos, s.mark) : null
-  const numbers = bounds ? allowedMarkNumbers(match, bounds.start, s.setId).filter((n) => n !== s.setId) : []
-  const remark = () => {
-    if (!s.mark) return
-    navigate(`/matches/${match.id}/mark/${s.mark.from.videoId}?set=${s.setId}`)
+function scoreBug(match: MatchRecord, time: number) {
+  const sets = matchSetsWon(match)
+  let setId = match.sets[0]?.setId ?? 1
+  let points = { me: 0, them: 0 }
+  let server: Side = 'me'
+  for (const s of match.sets) {
+    if (!s.mark) continue
+    const b = markBounds(match.videos, s.mark)
+    if (!b) continue
+    if (time >= b.start - 0.05 && time <= b.end + 0.05) {
+      setId = s.setId
+      points = taggedScore(s) ?? points
+      server = s.firstServer
+      break
+    }
   }
-  const run = (text: string, fn: (m: MatchRecord) => MatchRecord) => {
-    onUndo(s, text)
-    mutateMatch(match.id, fn)
-    setMenu(false)
-  }
-  return (
-    <li className="space-y-1" data-set-line={s.setId} data-set-state={state}>
-      <div className="flex items-center justify-between gap-2">
-        <p className="min-w-0 text-sm text-primary">{setRowLabel(match, s)}</p>
-        <span className="flex shrink-0 items-center gap-1">
-          {state === 'part' ? (
-            <span className="px-1 text-sm text-muted" data-part-filmed={s.setId}>
-              Part filmed
-            </span>
-          ) : action ? (
-            <Button
-              kind="control"
-              variant="secondary"
-              disabled={locked && action !== 'Open'}
-              data-set-action={action}
-              onClick={onOpen}
-            >
-              {action}
-            </Button>
-          ) : null}
-          {locked ? null : (
-            <Button
-              kind="control"
-              variant="ghost"
-              aria-expanded={menu}
-              data-set-menu-button={s.setId}
-              onClick={() => setMenu((open) => !open)}
-            >
-              Menu
-            </Button>
-          )}
-        </span>
-      </div>
-      {menu && !locked ? (
-        <div className="flex flex-wrap gap-1" data-set-menu={s.setId}>
-          <Button kind="control" variant="secondary" onClick={remark}>
-            Re-mark
-          </Button>
-          {state === 'part' ? (
-            <Button kind="control" variant="secondary" onClick={() => run(`Set ${s.setId} marked complete`, (m) => completeMark(m, s.setId))}>
-              Mark complete
-            </Button>
-          ) : null}
-          {state === 'ready' || state === 'tagging' || state === 'saved' ? (
-            <Button kind="control" variant="secondary" disabled={numbers.length === 0} onClick={() => setPicking((open) => !open)}>
-              Change number
-            </Button>
-          ) : null}
-          {state === 'tagging' || state === 'saved' ? (
-            <Button kind="control" variant="secondary" data-delete-tags={s.setId} onClick={() => run(`Set ${s.setId} tags deleted`, (m) => deleteTags(m, s.setId))}>
-              Delete tags
-            </Button>
-          ) : null}
-          {state === 'part' || state === 'ready' ? (
-            <Button kind="control" variant="secondary" data-unmark={s.setId} onClick={() => run(`Set ${s.setId} unmarked`, (m) => unmarkSet(m, s.setId))}>
-              Unmark
-            </Button>
-          ) : null}
-        </div>
-      ) : null}
-      {menu && picking ? (
-        <div className="flex flex-wrap gap-1" data-change-number={s.setId}>
-          {numbers.map((n) => (
-            <Button
-              key={n}
-              kind="control"
-              variant="secondary"
-              data-make-set={n}
-              onClick={() => {
-                const dest = match.sets.find((x) => x.setId === n) ?? emptySet(n)
-                onUndo(s, `Set ${s.setId} is now set ${n}`, dest)
-                mutateMatch(match.id, (m) => moveSet(m, s.setId, n))
-                setMenu(false)
-              }}
-            >
-              Make it set {n}
-            </Button>
-          ))}
-        </div>
-      ) : null}
-    </li>
-  )
+  return { sets, points, server, setId }
 }
 
-function NotOnVideo({ match }: { match: MatchRecord }) {
-  const navigate = useNavigate()
+function NotOnVideo({ match, video, onAdd }: { match: MatchRecord; video: VideoAsset | null; onAdd: (setId: number) => void }) {
   const rows = match.sets.filter((s) => notOnVideo(match, s))
   if (rows.length === 0) return null
-  const video = firstGapVideo(match)
   return (
     <section className="space-y-1" data-not-on-video>
       <h2 className="text-sm font-semibold text-primary">Not on video</h2>
@@ -576,12 +518,7 @@ function NotOnVideo({ match }: { match: MatchRecord }) {
                 {entered ? ` · ${formatScore(entered)} from Details` : ''}
               </span>
               {video ? (
-                <Button
-                  kind="control"
-                  variant="secondary"
-                  data-add-off={s.setId}
-                  onClick={() => navigate(`/matches/${match.id}/mark/${video.id}?set=${s.setId}`)}
-                >
+                <Button kind="control" variant="secondary" data-add-off={s.setId} onClick={() => onAdd(s.setId)}>
                   Add set
                 </Button>
               ) : null}
