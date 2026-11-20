@@ -45,6 +45,7 @@ export function MatchPage() {
   const { matchId = '' } = useParams()
   const { getMatch } = useDemo()
   const onTagSet = useMatch('/matches/:matchId/tag/:setId')
+  const onTagList = Boolean(useMatch('/matches/:matchId/tag'))
   const onSetView = Boolean(onTagSet)
   const onInsights = Boolean(useMatch('/matches/:matchId/insights/:section'))
   const match = getMatch(matchId)
@@ -68,7 +69,7 @@ export function MatchPage() {
 
   return (
     <div>
-      <StickyChrome>
+      <StickyChrome className={onTagList ? 'tag-hub-chrome' : undefined}>
         <PageHeader title={matchLabel(match)} backTo="/home" />
         <HubTabs
           ariaLabel="Match sections"

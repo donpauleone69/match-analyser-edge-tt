@@ -19,6 +19,8 @@ import {
   MIN_SET_S,
   markState,
   setsStartingOn,
+  spanBack,
+  spanOnto,
   spansOnVideo,
   videoStatus,
   wingLimits,
@@ -82,6 +84,7 @@ export function TagVideoCard({
   onEditSets,
   onAdd,
   onRelabelled,
+  onSpanned,
 }: {
   match: MatchRecord
   video: VideoAsset
@@ -117,6 +120,8 @@ export function TagVideoCard({
   onEditSets: () => void
   onAdd: () => void
   onRelabelled: (setId: number) => void
+  /** The end moved onto another video. Pick the set on that card. */
+  onSpanned: (setId: number, videoId: string) => void
 }) {
   const { mutateMatch } = useDemo()
   const [archiveNote, setArchiveNote] = useState(false)
@@ -157,6 +162,14 @@ export function TagVideoCard({
   }
   const startT = editable && picked ? timeOf('start') : null
   const endT = editable && picked ? timeOf('end') : null
+  const endHere = Boolean(editable && picked?.mark && picked.mark.to.videoId === video.id)
+  const onto = endHere && picked ? spanOnto(match, picked.setId) : null
+  const back = endHere && picked && !onto ? spanBack(match, picked.setId) : null
+  const spanChip = onto
+    ? { mark: onto, label: `Runs onto video ${match.videos.findIndex((v) => v.id === onto.to.videoId) + 1}`, kind: 'onto' as const }
+    : back
+      ? { mark: back, label: `End on video ${match.videos.findIndex((v) => v.id === back.to.videoId) + 1}`, kind: 'back' as const }
+      : null
 
   return (
     <section
@@ -269,6 +282,22 @@ export function TagVideoCard({
             </span>
           ) : null}
         </div>
+      ) : null}
+
+      {spanChip && picked ? (
+        <Button
+          kind="control"
+          variant="secondary"
+          data-span-onto={spanChip.kind === 'onto' ? picked.setId : undefined}
+          data-span-back={spanChip.kind === 'back' ? picked.setId : undefined}
+          onClick={() => {
+            onUndo(picked, `Set ${picked.setId} end moved`)
+            mutateMatch(match.id, (m) => saveMark(m, picked.setId, spanChip.mark))
+            onSpanned(picked.setId, spanChip.mark.to.videoId)
+          }}
+        >
+          {spanChip.label}
+        </Button>
       ) : null}
 
       {editHere && editable && picked?.mark ? (

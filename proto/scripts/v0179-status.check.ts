@@ -3,7 +3,7 @@
  * Run: npm run check:v0179
  */
 import type { MatchRecord, SetData, SetMark, VideoAsset } from '../src/data/demoStore'
-import { clampWing, lineAction, newMarkAt, videoStatus, wingLimits } from '../src/features/tagging/setMark'
+import { clampWing, lineAction, newMarkAt, spanBack, spanOnto, videoStatus, wingLimits } from '../src/features/tagging/setMark'
 
 const fails: string[] = []
 const ok = (name: string, cond: boolean, detail = '') => {
@@ -162,6 +162,40 @@ const mixed = match(
 )
 const later = newMarkAt(mixed, 'v1', 70)
 ok('short stretch is skipped', later.ok && later.mark.from.t === 200 && later.mark.to.t - later.mark.from.t >= 60)
+
+const two = match(
+  [
+    { ...video('v1'), durationS: 400 },
+    { ...video('v2'), durationS: 300 },
+  ],
+  [setOf(1, mark('v1', 0, 400, true), 'ready')]
+)
+const spanned = spanOnto(two, 1)
+ok('span onto the next video', spanned !== null && spanned.to.videoId === 'v2' && spanned.to.t === 120)
+const early = match(two.videos, [
+  setOf(1, mark('v1', 0, 400, true), 'ready'),
+  setOf(2, mark('v2', 40, 80, true), 'ready'),
+])
+const shortSpan = spanOnto(early, 1)
+ok('span stops at the next set', shortSpan !== null && shortSpan.to.t === 40)
+const atZero = match(two.videos, [
+  setOf(1, { from: { videoId: 'v1', t: 0 }, to: { videoId: 'v2', t: 0 }, complete: true }, 'ready'),
+])
+const returned = spanBack(atZero, 1)
+ok('span back to the video end', returned !== null && returned.to.videoId === 'v1' && returned.to.t === 400)
+const past = match(two.videos, [
+  {
+    ...setOf(1, { from: { videoId: 'v1', t: 0 }, to: { videoId: 'v2', t: 0 }, complete: true }, 'ready'),
+    rallies: [{ videoId: 'v2', contacts: [5], start: 5, end: 5, winner: 'me' } as SetData['rallies'][number]],
+  },
+])
+ok('span back keeps the rally', spanBack(past, 1) === null)
+const blocked = match(two.videos, [
+  setOf(1, mark('v1', 0, 400, true), 'ready'),
+  setOf(2, mark('v2', 0, 30, true), 'ready'),
+])
+ok('no room to span', spanOnto(blocked, 1) === null)
+ok('middle of a video does not span', spanOnto(match(two.videos, [setOf(1, mark('v1', 0, 200, true), 'ready')]), 1) === null)
 
 if (fails.length) {
   console.error(`v0.17.9 status: ${fails.length} failed`)

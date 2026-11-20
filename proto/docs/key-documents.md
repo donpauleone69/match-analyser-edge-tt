@@ -26,7 +26,7 @@ Mirrors the [Key documents canvas](https://cursor.com/canvas/store-7c210afe-9d07
 | Set marking sprint plan | Context: [docs/set-marking-sprint-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/set-marking-sprint-plan.md) | Shipped in v0.17.4. |
 | Set marking flow test | Context: [docs/set-marking-flow-test.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/set-marking-flow-test.md) | Route and mark flow checks at 390x844 and 734x310 after v0.17.0 to v0.17.4. |
 | Edit Set gaps plan | Context: [docs/edit-set-gaps-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/edit-set-gaps-plan.md) | Shipped in v0.17.5 to v0.17.8 ([PR #151](https://github.com/donpauleone69/match-analyser-edge-tt/pull/151)). Edit Set rallies and gaps. |
-| Mark sets page plan | Context: [docs/mark-sets-page-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/mark-sets-page-plan.md) | Paul OK'd it. v0.17.9 trims the Tag page. v0.17.11 puts the player and the set editor on it. Spanning and landscape follow. |
+| Mark sets page plan | Context: [docs/mark-sets-page-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/mark-sets-page-plan.md) | Paul OK'd it. v0.17.12 adds spanning chips and the landscape Tag page. |
 | Set Tagger start end plan | Context: [docs/set-tagger-start-end-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/set-tagger-start-end-plan.md) | Planned, awaiting Paul's OK. |
 | Set completion scores plan | Context: [docs/set-completion-scores-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/set-completion-scores-plan.md) | Waiting on Paul's 14 choices. |
 | Product ideas | [product-ideas.md](./product-ideas.md) | Running list of product ideas. |
@@ -35,6 +35,7 @@ Mirrors the [Key documents canvas](https://cursor.com/canvas/store-7c210afe-9d07
 
 | Build | Link | Notes |
 |-------|------|-------|
+| v0.17.12 | [PR #154](https://github.com/donpauleone69/match-analyser-edge-tt/pull/154) | A set can run onto the next video from a chip at the video end, and come back from 0:00. In phone landscape the Tag page is two columns and the header scrolls away. The old mark screen is gone. |
 | v0.17.11 | [PR #153](https://github.com/donpauleone69/match-analyser-edge-tt/pull/153) | The Tag page has one sticky player. Card timelines seek, scrub and show the playhead. A picked set has wings, number chips, a Complete or Part filmed switch, nudge and Delete set. Done cards stay locked until Edit sets. Old mark addresses and the tagger's Re-mark open that set on the Tag page. |
 | v0.17.9 | [PR #152](https://github.com/donpauleone69/match-analyser-edge-tt/pull/152) | The lead button and the opponent prompt leave the Tag tab. Each video has a status line. Each set has Tag, Continue or Open. Part filmed is text. The row Menu keeps Re-mark, Change number, Unmark and Mark complete until the card edits replace them. Archive on this page is a placeholder, and a locked match hides Archive video. |
 | v0.17.8 | [PR #151](https://github.com/donpauleone69/match-analyser-edge-tt/pull/151) | A gap of 9 seconds or more, or one named by a serve order break, takes a warning tint on its slot and on the seek bar. A finished set's insert shows the questions. Cancel leaves before the first tap. Undo returns to the gap. No gaps says so. |
