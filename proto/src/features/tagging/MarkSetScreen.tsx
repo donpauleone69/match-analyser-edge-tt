@@ -294,7 +294,7 @@ export function MarkSetScreen() {
               <PictureSeek
                 span={{ a: off, b: barEnd }}
                 time={player.time}
-                markers={[]}
+                spans={[]}
                 band={picked ?? (old ? { a: old.start, b: old.end } : null)}
                 onSeek={(g) => {
                   player.seek(g)

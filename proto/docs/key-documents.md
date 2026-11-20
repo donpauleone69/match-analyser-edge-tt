@@ -25,7 +25,7 @@ Mirrors the [Key documents canvas](https://cursor.com/canvas/store-7c210afe-9d07
 | Set Tagger sprint plan | Context: [docs/set-tagger-sprint-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/set-tagger-sprint-plan.md) | Shipped in v0.17.4. |
 | Set marking sprint plan | Context: [docs/set-marking-sprint-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/set-marking-sprint-plan.md) | Shipped in v0.17.4. |
 | Set marking flow test | Context: [docs/set-marking-flow-test.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/set-marking-flow-test.md) | Route and mark flow checks at 390x844 and 734x310 after v0.17.0 to v0.17.4. |
-| Edit Set gaps plan | Context: [docs/edit-set-gaps-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/edit-set-gaps-plan.md) | Building, v0.17.5 to v0.17.8. |
+| Edit Set gaps plan | Context: [docs/edit-set-gaps-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/edit-set-gaps-plan.md) | Built as v0.17.5 to v0.17.8. |
 | Mark sets page plan | Context: [docs/mark-sets-page-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/mark-sets-page-plan.md) | Unified Tag page with set marking in cards. Planned, awaiting Paul's OK. |
 | Set Tagger start end plan | Context: [docs/set-tagger-start-end-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/set-tagger-start-end-plan.md) | Planned, awaiting Paul's OK. |
 | Product ideas | [product-ideas.md](./product-ideas.md) | Running list of product ideas. |
@@ -34,6 +34,10 @@ Mirrors the [Key documents canvas](https://cursor.com/canvas/store-7c210afe-9d07
 
 | Build | Link | Notes |
 |-------|------|-------|
+| v0.17.8 | [PR #151](https://github.com/donpauleone69/match-analyser-edge-tt/pull/151) | A gap of 9 seconds or more, or one named by a serve order break, takes a warning tint on its slot and on the seek bar. A finished set's insert shows the questions. Cancel leaves before the first tap. Undo returns to the gap. No gaps says so. |
+| v0.17.7 | [PR #151](https://github.com/donpauleone69/match-analyser-edge-tt/pull/151) | Insert from a gap, including a finished set. The first gap starts at the mark. Saving returns to Edit Set on the new rally. Discard returns to the same gap. |
+| v0.17.6 | [PR #151](https://github.com/donpauleone69/match-analyser-edge-tt/pull/151) | Edit Set steps rallies and gaps separately. Gap slots show in Gaps mode only. A seek-bar tap picks what is under the finger. Delete has Undo. |
+| v0.17.5 | [PR #151](https://github.com/donpauleone69/match-analyser-edge-tt/pull/151) | The seek bar is taller, with rally spans. The picked rally is in brand colour. Edit Set opens on rally 1. |
 | v0.17.4 | [PR #150](https://github.com/donpauleone69/match-analyser-edge-tt/pull/150) | A set may end on the next video. Those two videos stay put. On a phone in landscape the mark steps sit in the left wing. A spanning line reads videos N and M. |
 | v0.17.3 | [PR #150](https://github.com/donpauleone69/match-analyser-edge-tt/pull/150) | Set line menu: Re-mark, Change number, Delete tags, Unmark, Mark complete. Each change can be undone. Re-mark keeps every rally inside. A video move that breaks the order is refused. Removing a video unmarks its sets. |
 | v0.17.2 | [PR #150](https://github.com/donpauleone69/match-analyser-edge-tt/pull/150) | Only a ready, tagging, or saved set opens. Play and seeking stop at the mark. The start card asks who serves. The end of the mark offers Re-mark. Save set offers the next ready set. |

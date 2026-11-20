@@ -12,6 +12,8 @@ import {
 } from '@/data/demoStore'
 import { otherSide, pointRally, swapPlayers, type Draft, type MarkKind, type RallyData } from './rally'
 import { addPoint, firstServerAt, serverAt, setEndIndex, ZERO, type Points } from './score'
+import { LONG_GAP_S, serveMarks } from './continuity'
+import { markBounds } from './setMark'
 import { firstContactG, insertIndex, lastContactG, segmentsOf, toGlobal, type Segment } from './timeline'
 
 /** A set number that is not listed yet (a skipped set 1, say) is added when it is first written. */
@@ -169,16 +171,50 @@ export const MIN_GAP_S = 1
 /**
  * The stretch of video a rally added at `index` may use: from the last contact
  * of the rally before it to the first contact of the rally it goes in front of.
+ * The first gap starts at the later of the mark start and the set before's end.
  * Null when either neighbour's video is gone, or there is no room between them.
  */
+export type EditRallyStop = { kind: 'rally'; id: string; n: number; index: number }
+export type EditGapStop = { kind: 'gap'; index: number; n: number; a: number; b: number; likely: boolean }
+
+/** Rallies and gaps Edit Set can stand on. Score-only points are not stops. */
+export function editStops(m: MatchRecord, setId: number): { rallies: EditRallyStop[]; gaps: EditGapStop[] } {
+  const s = m.sets.find((x) => x.setId === setId)
+  if (!s) return { rallies: [], gaps: [] }
+  const have = new Set(m.videos.map((v) => v.id))
+  const rallies: EditRallyStop[] = []
+  s.rallies.forEach((r, index) => {
+    if (r.point || !have.has(r.videoId)) return
+    rallies.push({ kind: 'rally', id: r.id, n: index + 1, index })
+  })
+  const breaks = new Set(serveMarks(s.rallies, s.firstServer).map((mark) => mark.index))
+  const gaps: EditGapStop[] = []
+  for (const stop of rallies) {
+    const w = gapWindow(m, setId, stop.index)
+    if (!w) continue
+    gaps.push({
+      kind: 'gap',
+      index: stop.index,
+      n: stop.n,
+      a: w.a,
+      b: w.b,
+      likely: w.b - w.a >= LONG_GAP_S || breaks.has(stop.index),
+    })
+  }
+  return { rallies, gaps }
+}
+
 export function gapWindow(m: MatchRecord, setId: number, index: number): { a: number; b: number } | null {
   const s = m.sets.find((x) => x.setId === setId)
   if (!s) return null
   const segs = segmentsOf(m.videos)
-  const prev = s.rallies[index - 1]
   const next = s.rallies[index]
   if (!next) return null
-  const a = prev ? lastContactG(segs, prev) : earlierSetsEnd(m, setId)
+  const prev = [...s.rallies.slice(0, index)].reverse().find((r) => !r.point)
+  const mark = s.mark ? markBounds(m.videos, s.mark) : null
+  const a = prev
+    ? lastContactG(segs, prev)
+    : Math.max(mark?.start ?? 0, earlierSetsEnd(m, setId))
   const b = firstContactG(segs, next)
   return a === null || b === null || b - a < MIN_GAP_S ? null : { a, b }
 }

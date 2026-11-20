@@ -199,22 +199,28 @@ function Transport({
   )
 }
 
-/** Thin seek bar along the bottom of the picture. One video, rally ticks, playhead. */
+/** One rally on the seek bar, first contact to last. `on` is the rally being reviewed. */
+export type SeekSpan = { a: number; b: number; on?: boolean; likely?: boolean }
+
+/** Seek bar along the bottom of the picture. Rally spans, one knob, no played fill. */
 export function PictureSeek({
   span,
   time,
-  markers,
+  spans,
   band,
   onSeek,
+  onPick,
 }: {
-  /** Global times the bar covers. A set's video, start to end. */
+  /** Global times the bar covers. A set's mark, start to end. */
   span: { a: number; b: number }
   time: number
-  /** This set's rally starts, in global time. */
-  markers: number[]
-  /** The open rally, drawn as a warning band. */
+  /** This set's rallies, first contact to last. */
+  spans: SeekSpan[]
+  /** A gap or the open rally, drawn as a warning band. */
   band: { a: number; b: number } | null
   onSeek: (g: number) => void
+  /** Edit Set: a tap picks the rally or gap under the finger. */
+  onPick?: (g: number) => void
 }) {
   const width = Math.max(0.001, span.b - span.a)
   const pct = (g: number) => `${Math.min(100, Math.max(0, ((g - span.a) / width) * 100))}%`
@@ -228,8 +234,13 @@ export function PictureSeek({
         if (e.button !== 0) return
         const node = e.currentTarget
         const box = node.getBoundingClientRect()
+        const g = fromX(e.clientX, box)
+        if (onPick) {
+          onPick(g)
+          return
+        }
         node.setPointerCapture(e.pointerId)
-        onSeek(fromX(e.clientX, box))
+        onSeek(g)
         const move = (ev: PointerEvent) => onSeek(fromX(ev.clientX, box))
         const end = () => {
           node.removeEventListener('pointermove', move)
@@ -245,6 +256,16 @@ export function PictureSeek({
       }}
     >
       <span className="tag-seek-track">
+        {spans.map((block, i) => (
+          <span
+            key={i}
+            className="tag-seek-span"
+            data-seek-span=""
+            data-on={block.on ? '' : undefined}
+            data-likely={block.likely ? '' : undefined}
+            style={{ left: pct(block.a), width: `max(2px, ${((Math.max(block.a, block.b) - block.a) / width) * 100}%)` }}
+          />
+        ))}
         {band ? (
           <span
             className="tag-seek-band"
@@ -252,9 +273,6 @@ export function PictureSeek({
             style={{ left: pct(band.a), width: `max(3px, ${((Math.max(band.a, band.b) - band.a) / width) * 100}%)` }}
           />
         ) : null}
-        {markers.map((g, i) => (
-          <span key={i} className="tag-seek-mark" data-seek-mark="" style={{ left: pct(g) }} />
-        ))}
         <span className="tag-seek-head" style={{ left: pct(time) }} />
       </span>
     </div>
@@ -351,7 +369,7 @@ export function VideoStage({
           <p
             role="status"
             data-video-hint
-            className="absolute left-2 bottom-7 max-w-[55%] rounded-md bg-black/75 px-2 py-1 text-xs font-semibold text-white"
+            className="absolute left-2 bottom-9 max-w-[55%] rounded-md bg-black/75 px-2 py-1 text-xs font-semibold text-white"
           >
             {hint}
           </p>
@@ -359,7 +377,7 @@ export function VideoStage({
 
         {seek}
 
-        <div className="tag-playback absolute right-2 bottom-5 z-20 flex items-center gap-1">
+        <div className="tag-playback absolute right-2 bottom-7 z-20 flex items-center gap-1">
           <Transport label="Back 10 seconds" onClick={() => onSeek(player.getTime() - 10)}>
             <Icon name="rewind" size="sm" />
           </Transport>
