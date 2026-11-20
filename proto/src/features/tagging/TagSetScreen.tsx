@@ -18,7 +18,6 @@ import {
   parseEntered,
   resultSetCount,
   setBlockingFinish,
-  setHasTagProgress,
   setRalliesWithoutVideo,
   setScoresDiffer,
   taggedScore,
@@ -47,7 +46,6 @@ import {
 import {
   applyTaggedResult,
   applyTaggedScore,
-  allowedSetNumbers,
   confirmServe,
   dropAfter,
   finishMatch,
@@ -58,18 +56,16 @@ import {
   latestVideoId,
   leaveMark,
   maxSetNumber,
-  nextSetToTag,
   reopenSet,
   replaceRally,
   restoreSet,
   saveRally,
   setDraft,
   setFloorG,
-  setInProgress,
   settleFinished,
   startSet,
-  videoStartPoint,
 } from './matchOps'
+import { markBounds, markState } from './setMark'
 import {
   CAPTURE_SPEED,
   CONTACT_IDLE_MS,
@@ -173,7 +169,7 @@ export function TagSetScreen() {
   // No video, no Tag: the Tag page offers Add video.
   if (match && match.videos.length === 0) return <Navigate to={`/matches/${matchId}/tag`} replace />
   if (!match || !set) return stop('Unknown set', 'Back to the Tag checklist.')
-  if (set.skipped) return stop(`Set ${set.setId} not filmed`, 'Undo it on the Tag checklist.')
+  if (markState(set) === 'off' || markState(set) === 'part') return <Navigate to={`/matches/${matchId}/tag`} replace />
   if (lock && !set.finished) return stop(`Set ${set.setId} cannot be tagged`, TAG_LOCK_LINE[lock])
 
   // A finished set whose rallies were all tagged on a video that has been removed.
@@ -384,6 +380,8 @@ function TagSet({
   const [keptEntered, setKeptEntered] = useState(false)
   const [lastTap, setLastTap] = useState<number | null>(null)
   const [hint, setHint] = useState<string | null>(null)
+  /** Play or a seek reached the end of a complete mark before the set was won. */
+  const [boundNote, setBoundNote] = useState(false)
   const [gap, setGap] = useState<Gap | null>(null)
   /** Switch pressed before the first tap: the server of the next rally only. */
   const [serverPick, setServerPick] = useState<Side | null>(null)
@@ -468,10 +466,12 @@ function TagSet({
   const expected = expectedServer(set.rallies, set.firstServer, gap ? gap.index : set.rallies.length)
   const nextServer = serverPick ?? expected
   /** Before the first rally: where the chosen video picks up. */
-  const startAt = videoStartPoint(match, start.videoId)
-  const liveFloor = setFloorG(match, set, startAt)
-  /** The video is fenced behind the last saved rally, or inside the gap a rally is being added in. */
-  const floorG = gap ? gap.a : liveFloor
+  const bounds = set.mark ? markBounds(match.videos, set.mark) : null
+  const markStart = bounds?.start ?? 0
+  const markEnd = bounds?.end ?? null
+  const liveFloor = Math.max(markStart, setFloorG(match, set, markStart))
+  /** Behind the mark start or the last saved rally, and inside a gap when one is open. */
+  const floorG = gap ? Math.max(gap.a, markStart) : liveFloor
   const reachedEntered = entered !== null && entered.me === score.me && entered.them === score.them
   /** The set first reaches a winning score at this rally. Rallies after it do not belong. */
   const endIndex = setEndIndex(set.rallies.map((r) => r.winner))
@@ -505,10 +505,11 @@ function TagSet({
     latest.current = { live, set, match, floorG, segs, mode, selected, tight, nextServer, stage, flowWanted }
   })
 
-  /** Play ran into the saved rally ahead of the gap. */
+  /** Play ran into the ceiling: the next saved rally, or the end of this set's mark. */
   const onCeil = () => {
     if (latest.current.mode === 'tapping') closeContacts()
-    else setHint('Stops at the next saved rally')
+    else if (gap) setHint('Stops at the next saved rally')
+    else setBoundNote(true)
   }
   const ceilRef = useRef(onCeil)
   useEffect(() => {
@@ -517,8 +518,9 @@ function TagSet({
   useEffect(() => {
     const p = playerRef.current
     p.setFloor(floorG)
-    p.setCeil(gap ? gap.b : null, () => ceilRef.current())
-  }, [floorG, gap])
+    const cap = gap ? Math.min(gap.b, markEnd ?? gap.b) : markEnd
+    p.setCeil(cap, () => ceilRef.current())
+  }, [floorG, gap, markEnd])
 
   const offsetOf = (videoId: string, all: Segment[] = segs) => toGlobal(all, videoId, 0) ?? 0
   const durationOf = (videoId: string) => match.videos.find((v) => v.id === videoId)?.durationS ?? 0
@@ -666,15 +668,6 @@ function TagSet({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Start card: a set number that cannot start here moves to one that can.
-  const allowed = useMemo(() => allowedSetNumbers(match, startAt, set.setId), [match, startAt, set.setId])
-  const fits = allowed.includes(set.setId)
-  useEffect(() => {
-    if (!startCard || fits || allowed.length === 0) return
-    navigate(`/matches/${match.id}/tag/${allowed[0]}`, { replace: true, state: { start } })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [startCard, fits])
-
   useEffect(() => {
     if (!toast) return
     const id = setTimeout(() => setToast(null), 6000)
@@ -723,10 +716,14 @@ function TagSet({
   const seekTo = (g: number) => {
     if (latest.current.mode === 'tapping' && g > playerRef.current.getTime()) return
     const stop = playerRef.current.seek(g)
-    if (stop === 'fence') setHint('Stops at the last saved rally')
-    else if (stop === 'next') setHint('Stops at the next saved rally')
+    if (stop === 'fence') setHint(set.rallies.length > 0 ? 'Stops at the last saved rally' : 'Stops at the start of the set')
+    else if (stop === 'next' && gap) setHint('Stops at the next saved rally')
+    else if (stop === 'next') setBoundNote(true)
     else if (stop === 'loop') setHint('Stays in this rally')
-    else setHint(null)
+    else {
+      setHint(null)
+      setBoundNote(false)
+    }
   }
 
   const onRate = (rate: number) => {
@@ -1061,7 +1058,8 @@ function TagSet({
     setBestLook(false)
     setBestCheck(false)
     bestCheckRef.current = false
-    park(null, s.finished, setFloorG(match, s, startAt))
+    const at = s.mark ? (markBounds(match.videos, s.mark)?.start ?? markStart) : markStart
+    park(null, s.finished, Math.max(at, setFloorG(match, s, at)))
     setBestSaved(s.finished ? null : savedRowOf(s))
   }
 
@@ -1233,7 +1231,7 @@ function TagSet({
 
   /** Start card: a half picks the server and plays in from just before the paused frame. */
   const pickServer = (side: Side) => {
-    if (mode !== 'start' || readOnly || allowed.length === 0) return
+    if (mode !== 'start' || readOnly) return
     if (!tapGuardRef.current?.allow()) return
     tapGuardRef.current.arm()
     setStart((s) => ({ ...s, server: side }))
@@ -1244,38 +1242,6 @@ function TagSet({
     p.seek(Math.max(floorG, p.time - RALLY_LEAD_S))
     p.play()
   }
-
-  const chooseVideo = (videoId: string) => {
-    if (videoId === start.videoId) return
-    const next = { ...start, videoId }
-    setStart(next)
-    const at = videoStartPoint(match, videoId)
-    const p = playerRef.current
-    p.pause()
-    p.setFloor(at)
-    p.seek(at)
-    const fitsThere = allowedSetNumbers(match, at, set.setId)
-    if (!fitsThere.includes(set.setId) && fitsThere.length > 0) {
-      navigate(`/matches/${match.id}/tag/${fitsThere[0]}`, { replace: true, state: { start: next } })
-    }
-  }
-
-  const numberBelow = [...allowed].reverse().find((n) => n < set.setId) ?? null
-  const numberAbove = allowed.find((n) => n > set.setId) ?? null
-  const changeNumber = (n: number) => {
-    navigate(`/matches/${match.id}/tag/${n}`, { replace: true, state: { start } })
-  }
-
-  const stepScore = (side: Side, by: 1 | -1) => {
-    setStart((s) => {
-      const value = Math.max(0, s.score[side] + by)
-      const score = { ...s.score, [side]: value }
-      return isSetWon(score) ? s : { ...s, score }
-    })
-  }
-
-  const stepClass =
-    'btn-kind-control btn-kind-square inline-flex shrink-0 items-center justify-center rounded-md border border-border bg-bg-card text-primary disabled:opacity-40'
 
   const onBestEnd = (end: BestEnd) => {
     if (!live) return
@@ -1656,7 +1622,11 @@ function TagSet({
   }, [])
 
   const seekSeg = player.segs[player.segIndex]
-  const seekSpan = seekSeg ? { a: seekSeg.offset, b: seekSeg.offset + seekSeg.duration } : { a: 0, b: 1 }
+  const seekSpan = bounds
+    ? { a: bounds.start, b: Math.max(bounds.end, bounds.start + 0.001) }
+    : seekSeg
+      ? { a: seekSeg.offset, b: seekSeg.offset + seekSeg.duration }
+      : { a: 0, b: 1 }
   const pickBand = editRally
     ? (() => {
         const a = toGlobal(segs, editRally.videoId, editRally.contacts[0] ?? editRally.start)
@@ -1852,8 +1822,8 @@ function TagSet({
               side="left"
               title={servesText(names, 'me')}
               line="Starts the set"
-              dim={allowed.length === 0 || tapGuard.waiting}
-              held={coverTaps || allowed.length === 0}
+              dim={tapGuard.waiting}
+              held={coverTaps}
               onTap={guarded(tapGuard, () => pickServer('me'))}
             />
           ) : null}
@@ -1930,30 +1900,7 @@ function TagSet({
         ) : null}
         {mode === 'start' ? (
           <div className="flex h-8 min-w-0 items-center gap-1.5" data-start-row>
-            <span className="shrink-0 px-1 text-sm font-semibold text-primary">Set {set.setId} · start</span>
-            <span className="min-w-0 flex-1" />
-            <span className="text-xs text-muted">Set number</span>
-            <button
-              type="button"
-              aria-label="Lower set number"
-              className={stepClass}
-              disabled={!numberBelow}
-              onClick={() => numberBelow && changeNumber(numberBelow)}
-            >
-              <Icon name="chevron-left" size="xs" />
-            </button>
-            <span className="w-5 text-center text-sm font-bold tabular-nums text-primary" data-start-set>
-              {set.setId}
-            </span>
-            <button
-              type="button"
-              aria-label="Higher set number"
-              className={stepClass}
-              disabled={!numberAbove}
-              onClick={() => numberAbove && changeNumber(numberAbove)}
-            >
-              <Icon name="chevron-right" size="xs" />
-            </button>
+            <span className="shrink-0 px-1 text-sm font-semibold text-primary">Find the first serve.</span>
           </div>
         ) : (
         <BestRallyRow
@@ -2085,57 +2032,22 @@ function TagSet({
             data-tag-panel
             data-details-box
           >
-            {mode === 'start' ? (
-              <div data-start-card className="space-y-2">
-                {match.videos.length > 1 ? (
-                  <div role="group" aria-label="Video" className="flex flex-wrap items-center gap-1.5">
-                    <span className="w-12 shrink-0 text-xs font-semibold text-muted">Video</span>
-                    {match.videos.map((v, i) => (
-                      <Button
-                        key={v.id}
-                        kind="control"
-                        size="sm"
-                        variant={v.id === start.videoId ? 'primary' : 'secondary'}
-                        aria-pressed={v.id === start.videoId}
-                        onClick={() => chooseVideo(v.id)}
-                      >
-                        Video {i + 1}
-                      </Button>
-                    ))}
-                  </div>
-                ) : null}
-                <div role="group" aria-label="Score at the first serve" className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-                  <span className="w-12 shrink-0 text-xs font-semibold text-muted">Score</span>
-                  {(['me', 'them'] as const).map((side) => (
-                    <span key={side} className="inline-flex items-center gap-1" data-start-score={side}>
-                      <span className="max-w-[5rem] truncate text-xs text-primary">{names[side]}</span>
-                      <button
-                        type="button"
-                        aria-label={`${names[side]} one less`}
-                        className={stepClass}
-                        disabled={start.score[side] === 0}
-                        onClick={() => stepScore(side, -1)}
-                      >
-                        <span aria-hidden className="text-base font-bold leading-none">−</span>
-                      </button>
-                      <span className="w-5 text-center text-sm font-bold tabular-nums text-primary">{start.score[side]}</span>
-                      <button
-                        type="button"
-                        aria-label={`${names[side]} one more`}
-                        className={stepClass}
-                        onClick={() => stepScore(side, 1)}
-                      >
-                        <Icon name="plus" size="xs" />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-                {allowed.length === 0 ? (
-                  <p role="alert" className="rounded-md border border-warning bg-warning/15 px-3 py-2 text-sm text-primary">
-                    No set number fits here. Delete or move a set from the match page.
-                  </p>
-                ) : null}
+            {boundNote && set.mark ? (
+              <div role="status" data-mark-end className="space-y-2 rounded-md border border-warning bg-warning/15 px-3 py-2 text-sm text-primary">
+                <p>
+                  Set {set.setId} end reached at {formatScore(score)}. Edit a rally, or re-mark the end on the Tag page.
+                </p>
+                <Button
+                  kind="control"
+                  variant="secondary"
+                  onClick={() => navigate(`/matches/${match.id}/mark/${set.mark?.from.videoId}?set=${set.setId}`)}
+                >
+                  Re-mark
+                </Button>
               </div>
+            ) : null}
+            {mode === 'start' ? (
+              <p data-start-card className="text-sm text-primary">Find the first serve.</p>
             ) : null}
             {overrun && !live && !set.finished && mode !== 'edit' ? (
               <div role="alert" data-overrun className="space-y-2 rounded-md border border-warning bg-warning/15 px-3 py-2 text-sm text-primary">
@@ -2475,7 +2387,6 @@ function TagSet({
                     side === 'me' ? 'border-l-side-me' : 'border-l-side-them',
                     tapGuard.waiting && 'opacity-60'
                   )}
-                  disabled={allowed.length === 0}
                   onClick={guarded(tapGuard, () => pickServer(side))}
                 >
                   {servesText(names, side)}
@@ -2514,7 +2425,6 @@ function TagSet({
           {slotKind === 'finished' ? (
             <FinishedActions
               match={match}
-              set={set}
               locked={readOnly}
               videoOver={player.atEnd}
               onGo={(to) => navigate(to)}
@@ -2546,8 +2456,8 @@ function TagSet({
               side="right"
               title={servesText(names, 'them')}
               line="Starts the set"
-              dim={allowed.length === 0 || tapGuard.waiting}
-              held={coverTaps || allowed.length === 0}
+              dim={tapGuard.waiting}
+              held={coverTaps}
               onTap={guarded(tapGuard, () => pickServer('them'))}
             />
           ) : null}
@@ -2652,7 +2562,6 @@ function FinishedPanel({
  */
 function FinishedActions({
   match,
-  set,
   locked,
   videoOver,
   onGo,
@@ -2660,7 +2569,6 @@ function FinishedActions({
   guard,
 }: {
   match: MatchRecord
-  set: SetData
   locked: boolean
   /** No picture left to tag: with a side ahead in sets, the match is what is left to finish. */
   videoOver: boolean
@@ -2676,7 +2584,7 @@ function FinishedActions({
   const dim = guard?.waiting ? 'opacity-60' : ''
   const tagged = derivePhase(match) === 'complete'
   /** A set already under way comes before a fresh one. */
-  const next = setInProgress(match) ?? nextSetToTag(match, set.setId)
+  const next = match.sets.find((s) => markState(s) === 'ready') ?? null
   const won = matchSetsWon(match)
   /** A match cannot end level, so at 1 - 1 (or with no set won) there is nothing to finish. */
   const canFinishMatch =
@@ -2707,7 +2615,7 @@ function FinishedActions({
           data-guard={guard?.waiting ? '' : undefined}
           onClick={press(() => onGo(`${base}/tag/${next.setId}`))}
         >
-          {setHasTagProgress(next) ? 'Continue' : 'Start'} set {next.setId}
+          Tag set {next.setId}
         </Button>
       ) : null}
       {canFinishMatch ? (
@@ -2728,7 +2636,7 @@ function FinishedActions({
         data-guard={guard?.waiting ? '' : undefined}
         onClick={press(() => onGo(`${base}/tag`))}
       >
-        {offerNext || canFinishMatch ? 'Sets' : 'Back to sets'}
+        {offerNext || canFinishMatch ? 'Sets' : 'Mark sets'}
       </Button>
     </div>
   )
