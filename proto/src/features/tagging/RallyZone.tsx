@@ -31,6 +31,7 @@ export function RallyZone({
   pressed,
   reviewFocus,
   starDim,
+  onReviewPart,
   onEdit,
   onStar,
   onDiscard,
@@ -58,6 +59,8 @@ export function RallyZone({
   reviewFocus?: BestPart | null
   /** Set over's hold: the star is shown, dim, and ignored. */
   starDim?: boolean
+  /** A part chip jumps there. Review stays on. */
+  onReviewPart?: (part: BestPart) => void
   onEdit?: () => void
   onStar?: () => void
   onDiscard?: () => void
@@ -72,8 +75,10 @@ export function RallyZone({
   const fa = typeof opener === 'number' ? opener : null
   const tapping = state === 'tapping' || (state === 'insert' && n > 0) || (state === 'before' && n > 0)
   const groupOf = (shot: number) => parts.findIndex((p) => shot >= p.from && shot <= p.to)
+  const showEnd = state === 'editing' && closed && parts.length > 0
   const columns = closed
-    ? parts.map((p) => `repeat(${p.to - p.from + 1}, minmax(24px, var(--btn-kind-control)))`).join(' 0px ')
+    ? parts.map((p) => `repeat(${p.to - p.from + 1}, minmax(24px, var(--btn-kind-control)))`).join(' 0px ') +
+      (showEnd ? ' minmax(24px, var(--btn-kind-control))' : '')
     : `repeat(${Math.max(n + 1, 1)}, minmax(24px, var(--btn-kind-control)))`
   const dashed = state === 'gap' || state === 'insert' || state === 'before'
   const headClass = cn(
@@ -176,14 +181,16 @@ export function RallyZone({
               const marked = Boolean(draft.best?.review?.includes(p.part))
               const focused = reviewFocus === p.part
               return (
-                <span
+                <button
                   key={p.part}
+                  type="button"
                   data-review-chip={p.part}
                   data-part-on={marked ? '' : undefined}
                   data-from={p.from}
                   data-to={p.to}
                   data-edit-focus={focused ? '' : undefined}
                   aria-current={focused ? 'step' : undefined}
+                  aria-label={p.part}
                   className={cn(
                     'flex h-4 min-w-0 items-center justify-center whitespace-nowrap rounded-md border px-0 font-semibold',
                     focused && 'edit-stop-on',
@@ -195,9 +202,10 @@ export function RallyZone({
                       ? { backgroundColor: 'var(--color-warning)', borderColor: 'var(--color-warning)', color: '#0b1220' }
                       : { ...restStyle(), color: 'var(--color-text)' }),
                   }}
+                  onClick={() => onReviewPart?.(p.part)}
                 >
                   <PartLabel part={p.part} />
-                </span>
+                </button>
               )
             })
           : null}
@@ -252,6 +260,23 @@ export function RallyZone({
               )
             })
           : null}
+        {showEnd && draft ? (
+          <span
+            data-edit-end=""
+            data-edit-focus={focus === 'end' ? '' : undefined}
+            aria-current={focus === 'end' ? 'step' : undefined}
+            className={cn(railCell, 'min-w-0 px-0', focus === 'end' && 'edit-stop-on')}
+            style={{
+              gridRow: 1,
+              gridColumn: n + parts.length,
+              ...(server
+                ? shotPaint(draft.best?.point ?? hitterOf(draft.server, Math.max(1, n)), focus === 'end', false, false)
+                : { backgroundColor: 'transparent', borderColor: 'var(--color-border)', color: 'var(--color-muted)' }),
+            }}
+          >
+            End
+          </span>
+        ) : null}
         {state !== 'review' && (tapping || n === 0) ? (
           <span
             aria-hidden
@@ -266,8 +291,6 @@ export function RallyZone({
         {closed && draft && server
           ? parts.map((p, g) => {
               const marked = Boolean(draft.best?.review?.includes(p.part))
-              const last = parts[parts.length - 1]
-              const lineFocus = state === 'editing' && focus === 'end' && p.part === last?.part
               return (
                 <span
                   key={p.part}
@@ -275,7 +298,7 @@ export function RallyZone({
                   data-part-on={marked ? '' : undefined}
                   data-from={p.from}
                   data-to={p.to}
-                  className={cn('block min-w-0 rounded-full', lineFocus && 'edit-stop-on')}
+                  className="block min-w-0 rounded-full"
                   style={{
                     gridRow: 2,
                     gridColumn: `${p.from + g} / span ${p.to - p.from + 1}`,

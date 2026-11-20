@@ -194,7 +194,7 @@ export function TagVideoCard({
         </h2>
         <button
           type="button"
-          className="shrink-0 rounded-md border border-border px-2 py-1 text-xs font-semibold text-primary"
+          className="btn-kind-control shrink-0 rounded-md border border-border px-2 text-xs font-semibold text-primary"
           aria-expanded={menuOpen}
           aria-label={`Menu for video ${index + 1}`}
           onClick={onToggleMenu}

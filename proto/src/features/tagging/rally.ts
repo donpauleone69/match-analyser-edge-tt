@@ -130,7 +130,6 @@ export type Draft = {
   fa: number | null
   noAttack: boolean
   shots: ShotTags[]
-  highlight: boolean
   /**
    * The server was chosen or confirmed: Switch, or either press in Review serves.
    * Absent means the app's proposal was kept.
@@ -155,7 +154,6 @@ export function emptyDraft(videoId: string, server: Side): Draft {
     fa: null,
     noAttack: false,
     shots: [],
-    highlight: false,
   }
 }
 
@@ -712,7 +710,6 @@ export type RallyData = {
   fa: number | null
   shots: ShotTags[]
   winner: Side
-  highlight: boolean
   /** A point added without video: no contacts, `start` is its place in the video. */
   point?: true
   /** Continuity marks the user chose to leave as they are. */
@@ -759,7 +756,6 @@ export function pointRally(id: string, videoId: string, at: number, server: Side
     fa: null,
     shots: [],
     winner,
-    highlight: false,
     point: true,
   }
 }
@@ -804,7 +800,6 @@ export function rallyFromDraft(d: Draft, id: string): RallyData | null {
     fa: d.fa,
     shots: savedShots(d),
     winner,
-    highlight: d.highlight,
     ...(d.serveChecked ? { serveChecked: true as const } : {}),
   }
 }

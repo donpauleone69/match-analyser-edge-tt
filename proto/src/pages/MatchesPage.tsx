@@ -163,7 +163,7 @@ export function MatchesPage() {
       aria-label="Filter"
       aria-expanded={open}
       onClick={() => setOpen((v) => !v)}
-      className="relative inline-flex h-full w-[var(--btn-kind-control)] shrink-0 items-center justify-center text-primary hover:bg-pill-idle"
+      className="btn-kind-control btn-kind-square relative inline-flex shrink-0 items-center justify-center text-primary hover:bg-pill-idle"
     >
       <Icon name="filter" size="sm" />
       {n > 0 ? (
@@ -185,7 +185,7 @@ export function MatchesPage() {
               <button
                 type="button"
                 onClick={onNew}
-                className="inline-flex h-full shrink-0 items-center gap-1 px-3 text-sm font-semibold text-brand"
+                className="btn-kind-control inline-flex shrink-0 items-center gap-1 px-3 text-sm font-semibold text-brand"
               >
                 <Icon name="plus" size="xs" />
                 New

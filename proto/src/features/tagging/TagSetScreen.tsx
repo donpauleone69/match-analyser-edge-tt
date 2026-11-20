@@ -227,7 +227,7 @@ function TagSet({
    * applies to the next one. Cleared on Save and on Discard.
    */
   const [flowLock, setFlowLock] = useState<FlowName | null>(null)
-  /** Best + FA: loop timings, contact check, add, and the set-end hold. */
+  /** Best + FA: loop timings, contact check, and add. */
   const [timing, setTiming] = useState(loadBestTiming)
   const landscape = useLandscape()
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -258,7 +258,6 @@ function TagSet({
    */
   const [bestSaved, setBestSaved] = useState<{ rallyId: string; draft: Draft } | null>(null)
   /** Where capture resumed after Check, in the rally video. */
-  const [bestHoldOn, setBestHoldOn] = useState(false)
   const [start, setStart] = useState<StartPick>(
     () => initialStart ?? { videoId: latestVideoId(match) ?? '', score: ZERO, server: null }
   )
@@ -268,7 +267,6 @@ function TagSet({
   const [editOf, setEditOf] = useState<string | null>(null)
   const rallyOneRef = useRef(false)
   rallyOneRef.current = gap && editPick?.kind === 'gap' ? gap.index === 0 : set.rallies.length === 0
-  const bestHold = useRef(false)
   const tapGuardRef = useRef<ActionGuard | null>(null)
   const editGuardRef = useRef<ActionGuard | null>(null)
   /** Set before the walk starts, so the first rally uses the right pause. */
@@ -587,7 +585,6 @@ function TagSet({
 
   /** The pad: plays when paused with nothing tapped, otherwise records a contact. */
   const onPad = () => {
-    if (bestHold.current) return
     const p = playerRef.current
     if (mode !== 'watch' && mode !== 'tapping' && !(gap && editPick?.kind === 'gap')) return
     const tapped = live?.contacts.length ?? 0
@@ -1076,18 +1073,13 @@ function TagSet({
     p.setFloor(Math.max(floorG, endG))
     p.seek(endG)
     if (winsNow) {
-      bestHold.current = true
-      setBestHoldOn(true)
+      // The picture plays on, but Save set does not wait for it.
       p.setBoundary(endG + 6, () => {
         p.setBoundary(null)
         p.pause()
-        bestHold.current = false
-        setBestHoldOn(false)
       })
-      p.play()
-    } else {
-      p.play()
     }
+    p.play()
   }
 
   /** Back to where tagging stands: paused at the end of the last saved rally, its row fixable. */
@@ -1137,8 +1129,6 @@ function TagSet({
     setEditPick({ kind: 'rally', id: r.id })
     setGap(null)
     setBestSaved(null)
-    bestHold.current = false
-    setBestHoldOn(false)
     const d = draftFromRally(r)
     if (reviewRef.current) {
       const part = reviewFocusOf(d)
@@ -1168,8 +1158,6 @@ function TagSet({
     setEditPick({ kind: 'gap', index: stop.index })
     setGap(null)
     setBestSaved(null)
-    bestHold.current = false
-    setBestHoldOn(false)
     loopWhat.current = null
     setBestSpan(null)
     const p = playerRef.current
@@ -1456,7 +1444,7 @@ function TagSet({
 
   /** Press the star. On, the parts take the shot row. Off, the mode underneath comes back. */
   const onReviewStar = () => {
-    if (bestHoldOn || readOnly) return
+    if (readOnly) return
     if (reviewRef.current) {
       reviewRef.current = false
       reviewPlay.current = null
@@ -1498,9 +1486,17 @@ function TagSet({
     if (!d || !reviewFocus) return
     const parts = partsOf(d).map((span) => span.part)
     if (parts.length < 2) return
-    const next = stepPart(parts, reviewFocus, by)
-    setReviewFocus(next)
-    playPart(d, next)
+    jumpReview(stepPart(parts, reviewFocus, by))
+  }
+
+  /** A part chip, or Back and Forward, land on that part. The star stays on. */
+  const jumpReview = (part: BestPart) => {
+    const d = reviewDraft()
+    if (!d) return
+    if (!partsOf(d).some((span) => span.part === part)) return
+    reviewRef.current = true
+    setReviewFocus(part)
+    playPart(d, part)
   }
 
   const onReviewMark = () => {
@@ -1644,8 +1640,8 @@ function TagSet({
   const setsWon = matchSetsWon(match)
   const atEnd = player.atEnd && (mode === 'watch' || mode === 'setPoint')
   const tapped = live && !live.closed ? live.contacts.length : 0
-  /** Set over: Save set or Edit, once the hold after the winning rally is done. */
-  const overCard = mode === 'setPoint' && !bestHoldOn
+  /** Set over: Edit and Save set, as soon as the winning rally is saved. */
+  const overCard = mode === 'setPoint'
   /** When the video runs out before the set is won, Finish is offered in the panel. */
   const finishCard = canFinishNow && atEnd && mode !== 'setPoint'
   const loopNow =
@@ -1659,7 +1655,6 @@ function TagSet({
   const zoneOn =
     !bestOn &&
     !overCard &&
-    !bestHoldOn &&
     (mode === 'tapping' || (mode === 'watch' && !atEnd) || (inserting && mode === 'edit'))
   const padTitle = tapped > 0
       ? `Tap shot ${tapped + 1}`
@@ -1857,7 +1852,6 @@ function TagSet({
     zoneOn,
     padTitle: zoneTitle,
     tapDim: tapGuard.waiting || coverTaps,
-    hold: bestHoldOn,
     overDim: overGuard.waiting || readOnly,
     removeDim: removeGuard.waiting || readOnly,
     showRemove,
@@ -2029,7 +2023,7 @@ function TagSet({
           tight={landscape}
           pressed={rallyState === 'editing'}
           reviewFocus={reviewFocus}
-          starDim={bestHoldOn}
+          onReviewPart={reviewDraftNow ? jumpReview : undefined}
           onEdit={
             !atEndPad && (rallyState === 'saved' || rallyState === 'editing')
               ? () => {

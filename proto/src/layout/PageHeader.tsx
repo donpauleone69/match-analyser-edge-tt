@@ -39,7 +39,7 @@ export function PageHeader({
         <Link
           to={backTo}
           aria-label="Back"
-          className="inline-flex w-[var(--btn-kind-control)] shrink-0 items-center justify-center text-brand hover:bg-pill-idle"
+          className="btn-kind-control btn-kind-square inline-flex shrink-0 items-center justify-center text-brand hover:bg-pill-idle"
         >
           <Icon name="chevron-left" size="sm" />
         </Link>
@@ -55,7 +55,7 @@ export function PageHeader({
               data-top-tab={tab.label}
               className={({ isActive }) =>
                 cn(
-                  'inline-flex h-full shrink-0 items-center gap-1.5 px-3 text-sm font-semibold',
+                  'btn-kind-control inline-flex shrink-0 items-center gap-1.5 px-3 text-sm font-semibold',
                   isActive
                     ? 'text-brand-primary shadow-[inset_0_-2px_0_0_var(--color-brand-primary)]'
                     : 'text-muted hover:text-primary'

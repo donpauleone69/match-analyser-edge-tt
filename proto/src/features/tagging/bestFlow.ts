@@ -198,12 +198,6 @@ export function rallyPage(d: Pick<Draft, 'contacts' | 'shots'>, page: number | u
   return asksWhoFirst(d) && page !== undefined && page === endShots(d.contacts.length)[0]
 }
 
-/** The winner End, the server and the contact count give. None on rally one, where the server is not known. */
-export function bestHint(d: Pick<Draft, 'server' | 'contacts' | 'ending'>, rallyOne: boolean): Side | null {
-  if (rallyOne) return null
-  return winnerOf(d)
-}
-
 type Q = Pick<Draft, 'server' | 'contacts' | 'shots' | 'ending' | 'best' | 'serveChecked'>
 
 /** Rally one of a set: the server is the set's default until the server switch confirms it. */
@@ -715,7 +709,6 @@ export function bestRally(d: Draft, id: string, winner: Side, kept: boolean): Ra
     fa: typeof opener === 'number' ? opener : null,
     shots,
     winner,
-    highlight: d.highlight,
     serveChecked: true,
     idea: {
       flow: 'bestfa',
@@ -742,7 +735,6 @@ export function draftFromRally(r: RallyData): Draft {
     fa: r.fa,
     noAttack: false,
     shots: r.shots.map((s) => ({ ...s })),
-    highlight: r.highlight,
     serveChecked: true,
     best: carryBest(
       {},
