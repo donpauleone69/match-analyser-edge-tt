@@ -12,7 +12,7 @@ import {
 } from '@/data/demoStore'
 import { otherSide, pointRally, swapPlayers, type Draft, type MarkKind, type RallyData } from './rally'
 import { addPoint, firstServerAt, serverAt, setEndIndex, ZERO, type Points } from './score'
-import { LONG_GAP_S, serveMarks } from './continuity'
+import { LONG_GAP_S, serveBands } from './continuity'
 import { markBounds } from './setMark'
 import { firstContactG, insertIndex, lastContactG, segmentsOf, toGlobal, type Segment } from './timeline'
 
@@ -169,13 +169,29 @@ export function earlierSetsEnd(m: MatchRecord, setId: number): number {
 export const MIN_GAP_S = 1
 
 /**
- * The stretch of video a rally added at `index` may use: from the last contact
- * of the rally before it to the first contact of the rally it goes in front of.
- * The first gap starts at the later of the mark start and the set before's end.
- * Null when either neighbour's video is gone, or there is no room between them.
+ * The stretch of video between two rallies: from the last contact of the one
+ * before to the first contact of the one it sits in front of. The first gap
+ * starts at the later of the mark start and the set before's end. Null only
+ * when a neighbour's video is gone. A short stretch is still a stop. When the
+ * times cross, the stop is a point on the next rally's first contact.
  */
+export type GapWindow = { a: number; b: number; overlap: boolean }
 export type EditRallyStop = { kind: 'rally'; id: string; n: number; index: number }
-export type EditGapStop = { kind: 'gap'; index: number; n: number; a: number; b: number; likely: boolean }
+export type EditGapStop = {
+  kind: 'gap'
+  index: number
+  n: number
+  a: number
+  b: number
+  likely: boolean
+  /** The two rallies' contact times cross. There is no stretch to play. */
+  overlap: boolean
+}
+
+/** A rally can be inserted only when the stretch is at least a second and the times do not cross. */
+export function gapFitsRally(w: GapWindow | null): boolean {
+  return w !== null && !w.overlap && w.b - w.a >= MIN_GAP_S
+}
 
 /** Rallies and gaps Edit Set can stand on. Score-only points are not stops. */
 export function editStops(m: MatchRecord, setId: number): { rallies: EditRallyStop[]; gaps: EditGapStop[] } {
@@ -187,7 +203,7 @@ export function editStops(m: MatchRecord, setId: number): { rallies: EditRallySt
     if (r.point || !have.has(r.videoId)) return
     rallies.push({ kind: 'rally', id: r.id, n: index + 1, index })
   })
-  const breaks = new Set(serveMarks(s.rallies, s.firstServer).map((mark) => mark.index))
+  const breaks = new Set(serveBands(s.rallies, s.firstServer).map((b) => b.breaks[0]))
   const gaps: EditGapStop[] = []
   for (const stop of rallies) {
     const w = gapWindow(m, setId, stop.index)
@@ -198,13 +214,14 @@ export function editStops(m: MatchRecord, setId: number): { rallies: EditRallySt
       n: stop.n,
       a: w.a,
       b: w.b,
-      likely: w.b - w.a >= LONG_GAP_S || breaks.has(stop.index),
+      overlap: w.overlap,
+      likely: breaks.has(stop.index) || (!w.overlap && w.b - w.a >= LONG_GAP_S),
     })
   }
   return { rallies, gaps }
 }
 
-export function gapWindow(m: MatchRecord, setId: number, index: number): { a: number; b: number } | null {
+export function gapWindow(m: MatchRecord, setId: number, index: number): GapWindow | null {
   const s = m.sets.find((x) => x.setId === setId)
   if (!s) return null
   const segs = segmentsOf(m.videos)
@@ -216,7 +233,9 @@ export function gapWindow(m: MatchRecord, setId: number, index: number): { a: nu
     ? lastContactG(segs, prev)
     : Math.max(mark?.start ?? 0, earlierSetsEnd(m, setId))
   const b = firstContactG(segs, next)
-  return a === null || b === null || b - a < MIN_GAP_S ? null : { a, b }
+  if (a === null || b === null) return null
+  if (b > a) return { a, b, overlap: false }
+  return { a: b, b, overlap: true }
 }
 
 /** The first set after `setId` that can still be tagged. */

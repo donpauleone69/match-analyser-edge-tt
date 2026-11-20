@@ -29,12 +29,14 @@ Mirrors the [Key documents canvas](https://cursor.com/canvas/store-7c210afe-9d07
 | Mark sets page plan | Context: [docs/mark-sets-page-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/mark-sets-page-plan.md) | Paul OK'd it. v0.17.12 adds spanning chips and the landscape Tag page. |
 | Set Tagger start end plan | Context: [docs/set-tagger-start-end-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/set-tagger-start-end-plan.md) | Planned, awaiting Paul's OK. |
 | Set completion scores plan | Context: [docs/set-completion-scores-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/set-completion-scores-plan.md) | Waiting on Paul's 14 choices. |
+| Set tagger review fixes | Context: [docs/set-tagger-review-fixes-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/set-tagger-review-fixes-plan.md) | Built as v0.17.13. Short gaps are stops, a serve break flags the pill, and the shot quadrants have no tap guard. |
 | Product ideas | [product-ideas.md](./product-ideas.md) | Running list of product ideas. |
 
 ## Latest builds
 
 | Build | Link | Notes |
 |-------|------|-------|
+| v0.17.13 | [PR #156](https://github.com/donpauleone69/match-analyser-edge-tt/pull/156) | A gap under a second is a stop, and Insert stays off. Times that cross say the rallies overlap. The first serve break outlines its pill. The shot quadrants have no tap guard. The seek knob sits fully on the picture. Rally pills are not buttons. The edit line no longer says Rally N of M. |
 | v0.17.12 | [PR #154](https://github.com/donpauleone69/match-analyser-edge-tt/pull/154) | A set can run onto the next video from a chip at the video end, and come back from 0:00. In phone landscape the Tag page is two columns and the header scrolls away. The old mark screen is gone. |
 | v0.17.11 | [PR #153](https://github.com/donpauleone69/match-analyser-edge-tt/pull/153) | The Tag page has one sticky player. Card timelines seek, scrub and show the playhead. A picked set has wings, number chips, a Complete or Part filmed switch, nudge and Delete set. Done cards stay locked until Edit sets. Old mark addresses and the tagger's Re-mark open that set on the Tag page. |
 | v0.17.9 | [PR #152](https://github.com/donpauleone69/match-analyser-edge-tt/pull/152) | The lead button and the opponent prompt leave the Tag tab. Each video has a status line. Each set has Tag, Continue or Open. Part filmed is text. The row Menu keeps Re-mark, Change number, Unmark and Mark complete until the card edits replace them. Archive on this page is a placeholder, and a locked match hides Archive video. |

@@ -39,6 +39,7 @@ import {
   reviewSwapLine,
   walkServes,
   breakIndexes,
+  serveBands,
   checkSet,
   expectedServer,
   leaveIds,
@@ -53,6 +54,7 @@ import {
   deleteRally,
   dropAfter,
   editStops,
+  gapFitsRally,
   finishMatch,
   finishSet,
   flipFirstServer,
@@ -118,7 +120,6 @@ import {
   bestLoop,
   bestMismatch,
   bestPlace,
-  bestQuestionKey,
   bestRally,
   bestSetEnd,
   bestSetPoint,
@@ -300,7 +301,7 @@ function SetPills({
   pickedGap,
   open,
   insert,
-  onPick,
+  serveBreaks,
   onGap,
 }: {
   rallies: RallyData[]
@@ -311,7 +312,8 @@ function SetPills({
   open: { n: number; server: Side } | null
   /** The rally being inserted, drawn as a dashed pill in its slot. */
   insert: { index: number; n: number; server: Side } | null
-  onPick: (r: RallyData) => void
+  /** The first break of each mistake. A later break in the same band stays off. */
+  serveBreaks: number[]
   onGap: (index: number) => void
 }) {
   const scroller = useRef<HTMLDivElement>(null)
@@ -349,6 +351,7 @@ function SetPills({
         const slot = gaps?.find((g) => g.index === i) ?? null
         const on = slot !== null && slot.index === pickedGap
         const inserting = insert !== null && slot !== null && insert.index === slot.index
+        const serve = serveBreaks.includes(i)
         return (
           <Fragment key={r.id}>
             {inserting && insert ? (
@@ -374,23 +377,23 @@ function SetPills({
                 <span className="tag-gap-slot" data-on={on ? '' : undefined} data-likely={slot.likely ? '' : undefined} />
               </button>
             ) : null}
-            <button
-              type="button"
+            <span
               data-set-pill={n}
               data-pill-id={r.id}
               data-pill-warn={warn ? '' : undefined}
+              data-pill-serve={serve ? '' : undefined}
               data-pill-on={picked === r.id ? '' : undefined}
               className={cn(
                 'tag-pill',
                 r.winner === 'me' ? 'bg-side-me' : 'bg-side-them',
                 gaps && 'tag-pill-dim',
                 picked === r.id && 'tag-pill-on',
-                warn && 'tag-pill-warn'
+                warn && 'tag-pill-warn',
+                serve && 'tag-pill-serve'
               )}
-              onClick={() => onPick(r)}
             >
               {n}
-            </button>
+            </span>
           </Fragment>
         )
       })}
@@ -461,6 +464,7 @@ function GapContext({
   score,
   server,
   label,
+  overlap,
   onSwitch,
   onCancel,
 }: {
@@ -470,6 +474,8 @@ function GapContext({
   server: Side
   /** "You serve" or "Sam serves". */
   label: string
+  /** The neighbouring rallies' times cross. */
+  overlap?: boolean
   onSwitch?: () => void
   /** Before the first tap of an insert. Returns to the gap. */
   onCancel?: () => void
@@ -481,7 +487,7 @@ function GapContext({
   return (
     <div className="flex h-full min-w-0 items-center gap-2 overflow-x-auto px-1 text-sm text-primary" data-gap-context>
       <span className="shrink-0 font-semibold">Before rally {n}</span>
-      <span className="shrink-0">{seconds} s</span>
+      <span className="shrink-0">{overlap ? 'Rallies overlap' : `${seconds} s`}</span>
       <span className="shrink-0">at {score}</span>
       {onSwitch ? (
         <button
@@ -1225,7 +1231,7 @@ function TagSet({
           : `Rally ${n} added`,
         before,
         () => {
-          loopGap({ kind: 'gap', index: insertAt, n: insertAt + 1, a: window.a, b: window.b, likely: false })
+          loopGap({ kind: 'gap', index: insertAt, n: insertAt + 1, a: window.a, b: window.b, likely: false, overlap: false })
         }
       )
       if (saved) loopPick(saved)
@@ -1373,6 +1379,12 @@ function TagSet({
     p.setRate(watchRate.current)
     p.setFloor(stop.a)
     p.setCeil(stop.b, () => ceilRef.current())
+    if (stop.overlap) {
+      p.setLoop(null)
+      p.seek(stop.a)
+      p.pause()
+      return
+    }
     p.setLoop({ a: stop.a, b: stop.b })
     p.seek(stop.a)
     p.play()
@@ -1404,21 +1416,6 @@ function TagSet({
     if (!(gap && live && live.contacts.length > 0)) return false
     setHint(`Save or discard rally ${gap.index + 1} first`)
     return true
-  }
-
-  const openEditRally = (r: RallyData) => {
-    if (r.point || !have.has(r.videoId)) return
-    if (insertHasTaps()) return
-    if (editPick === null && live && live.contacts.length > 0) {
-      setHint(`Save or discard rally ${set.rallies.length + 1} first`)
-      return
-    }
-    if (live) {
-      mutateMatch(match.id, (m) => setDraft(m, set.setId, null))
-      setEditOf(null)
-    }
-    setToast(null)
-    loopPick(r)
   }
 
   const onEditSet = () => {
@@ -1697,6 +1694,10 @@ function TagSet({
     if (readOnly || live) return
     const w = gapWindow(match, set.setId, index)
     if (!w) return
+    if (!gapFitsRally(w)) {
+      setHint(w.overlap ? 'Rallies overlap' : 'No room for a rally')
+      return
+    }
     setToast(null)
     const p = playerRef.current
     p.setLoop(null)
@@ -1775,8 +1776,9 @@ function TagSet({
     const p = playerRef.current
     p.setBoundary(null)
     p.setCeil(null)
-    if (!w) {
+    if (!w || w.overlap) {
       p.setLoop(null)
+      if (w) p.seek(w.a)
       p.pause()
       return
     }
@@ -2029,8 +2031,10 @@ function TagSet({
         ? 'Find the first serve.'
         : mode === 'edit'
           ? viewedGap
-            ? `Before rally ${viewedGap.n} · ${Math.round(viewedGap.b - viewedGap.a)} s`
-            : `Rally ${editIndex + 1} of ${set.rallies.length} · ${formatScore(countPoints(set.rallies.slice(0, editIndex + 1).map((r) => r.winner)))}`
+            ? viewedGap.overlap
+              ? `Before rally ${viewedGap.n} · Rallies overlap`
+              : `Before rally ${viewedGap.n} · ${Math.round(viewedGap.b - viewedGap.a)} s`
+            : formatScore(countPoints(set.rallies.slice(0, editIndex + 1).map((r) => r.winner)))
       : reviewLine
         ? reviewLine
         : mode === 'finished'
@@ -2116,9 +2120,6 @@ function TagSet({
         : 'idle'
   const tapGuard = useActionGuard(tapAction)
   tapGuardRef.current = tapGuard
-  const questionGuard = useActionGuard(
-    bestOn && live ? bestQuestionKey(live, bestRallyOne, endBack) : 'idle'
-  )
   const overGuard = useActionGuard(overCard ? 'shown' : 'shut')
   const afterGuard = useActionGuard(mode === 'finished' ? 'done' : 'open')
   const editGuard = useActionGuard(editPick === null ? 'shut' : editPick.kind)
@@ -2242,7 +2243,7 @@ function TagSet({
               ? { index: gap.index, n: gap.index + 1, server: nextServer }
               : null
           }
-          onPick={openEditRally}
+          serveBreaks={serveBands(set.rallies, set.firstServer).map((b) => b.breaks[0])}
           onGap={onGapSlot}
         />
         <Button
@@ -2276,6 +2277,7 @@ function TagSet({
             n={viewedGap.n}
             seconds={Math.round(viewedGap.b - viewedGap.a)}
             score={formatScore(countPoints(set.rallies.slice(0, viewedGap.index).map((r) => r.winner)))}
+            overlap={viewedGap.overlap}
             server={gap ? nextServer : expectedServer(set.rallies, set.firstServer, viewedGap.index)}
             label={servesText(names, gap ? nextServer : expectedServer(set.rallies, set.firstServer, viewedGap.index))}
             onSwitch={
@@ -2529,12 +2531,15 @@ function TagSet({
                             onClick: guarded(editGuard, () => {
                               if (viewedGap) onAddRally(viewedGap.index)
                             }),
-                            data: { 'data-edit-insert': '' },
+                            data: {
+                              'data-edit-insert': '',
+                              ...(viewedGap && !gapFitsRally(viewedGap) ? { 'data-insert-blocked': '' } : {}),
+                            },
                             style: {
                               gridColumn: '1 / span 2',
                               gridRow: '2',
                               flex: '1 1 50%',
-                              opacity: readOnly || editGuard.waiting ? 0.4 : 1,
+                              opacity: readOnly || editGuard.waiting || (viewedGap && !gapFitsRally(viewedGap)) ? 0.4 : 1,
                             },
                           },
                         ]),
@@ -2555,7 +2560,6 @@ function TagSet({
                 onStroke={onBestStroke}
                 sides={padSplit}
                 back={endBack}
-                guard={questionGuard}
               />
             ) : null}
             {!zoneOn && review ? (
@@ -2725,7 +2729,7 @@ function TagSet({
                     kind="tapPad"
                     data-review-add
                     className="flex-1 min-w-0 text-lg"
-                    disabled={gapIndex === null || gapWindow(match, set.setId, gapIndex) === null || Boolean(live)}
+                    disabled={gapIndex === null || !gapFitsRally(gapWindow(match, set.setId, gapIndex)) || Boolean(live)}
                     onClick={onReviewAddRally}
                   >
                     Add rally

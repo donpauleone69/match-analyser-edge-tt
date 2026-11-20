@@ -158,7 +158,7 @@ for (const view of VIEWS) {
   await page.locator('.tag-set').waitFor()
   await page.getByRole('button', { name: 'Settings' }).click()
   const version = (await page.locator('[data-build-version]').innerText()).trim()
-  ok(`${tag} version`, version === 'v0.17.12', version)
+  ok(`${tag} version`, version === 'v0.17.13', version)
   await page.getByRole('link', { name: 'Back' }).click()
   await page.waitForURL(/\/matches\/m-partial\/tag\?from=2$/)
   await page.locator('[data-set-line="2"]').waitFor()
@@ -290,7 +290,7 @@ for (const view of VIEWS) {
 
 await browser.close()
 if (fails.length) {
-  console.error(`v0.17.12 tag page: ${fails.length} failed`)
+  console.error(`v0.17.13 tag page: ${fails.length} failed`)
   process.exit(1)
 }
-console.log('v0.17.12 tag page: all passed')
+console.log('v0.17.13 tag page: all passed')
