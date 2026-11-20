@@ -18,9 +18,23 @@ import type { Side } from '@/features/tagging/rally'
 
 type Phase = 'start' | 'end' | 'label' | 'whole'
 
+const LANDSCAPE_QUERY = '(orientation: landscape), (min-aspect-ratio: 1/1)'
+
+function useLandscape() {
+  const [land, setLand] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia(LANDSCAPE_QUERY)
+    const apply = () => setLand(mq.matches)
+    apply()
+    mq.addEventListener('change', apply)
+    return () => mq.removeEventListener('change', apply)
+  }, [])
+  return land
+}
+
 /**
- * Mark a set on one video. Start, end, a set number, then complete or part filmed.
- * A set that runs onto the next video comes in a later slice.
+ * Mark a set. Start on this video, end on this video or the next one,
+ * pick a set number, then complete or part filmed.
  */
 export function MarkSetScreen() {
   const { matchId = '', videoId = '' } = useParams()
@@ -37,6 +51,8 @@ export function MarkSetScreen() {
   const [to, setTo] = useState<{ videoId: string; t: number } | null>(null)
   const [number, setNumber] = useState<number | null>(null)
   const [note, setNote] = useState<string | null>(null)
+  const landscape = useLandscape()
+  const opened = useRef<string | null>(null)
 
   const remark = match?.sets.find((s) => s.setId === remarkId && s.mark) ?? null
 
@@ -44,15 +60,21 @@ export function MarkSetScreen() {
     if (!match || !video) return
     const segs = segmentsOf(match.videos)
     const off = toGlobal(segs, video.id, 0) ?? 0
+    const idx = match.videos.findIndex((v) => v.id === video.id)
+    const next = match.videos[idx + 1]
+    const reach =
+      phase === 'end' && next ? (toGlobal(segs, next.id, 0) ?? off) + next.durationS : off + video.durationS
     const p = playerRef.current
-    p.pause()
     p.setFloor(off)
-    p.setCeil(off + video.durationS)
+    p.setCeil(reach)
+    if (opened.current === video.id) return
+    opened.current = video.id
+    p.pause()
     const start = remark?.mark ? (markBounds(match.videos, remark.mark)?.start ?? off) : off
-    p.seek(start)
-    // The video opens once, paused at the start of this video or the old mark.
+    p.seek(Math.min(Math.max(start, off), off + video.durationS))
+    // Opens once. The end step may then run onto the next video.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [video?.id])
+  }, [video?.id, phase])
 
   if (!match) return null
   if (!video) return <Navigate to={`/matches/${match.id}/tag`} replace />
@@ -95,15 +117,16 @@ export function MarkSetScreen() {
   const onEnd = () => {
     const here = pointHere()
     if (!from || !here) return
-    if (here.videoId !== from.videoId) {
-      setNote('End on this video.')
-      return
-    }
-    if (here.t <= from.t + 0.05) {
-      setNote('The end is before the start.')
+    const next = match.videos[index + 1]
+    if (here.videoId !== from.videoId && here.videoId !== next?.id) {
+      setNote('A set can run onto the next video only.')
       return
     }
     const startG = toGlobal(segs, from.videoId, from.t) ?? here.g
+    if (here.g <= startG + 0.05) {
+      setNote('The end is before the start.')
+      return
+    }
     if (markOverlaps(match.videos, match.sets, startG, here.g, remark?.setId)) {
       setNote('That time is already in a set.')
       return
@@ -152,8 +175,20 @@ export function MarkSetScreen() {
       ? allowedMarkNumbers(match, toGlobal(segs, from.videoId, from.t) ?? 0, remark?.setId)
       : []
 
+  const nextVideo = match.videos[index + 1]
+  const barEnd =
+    phase === 'end' && nextVideo
+      ? (toGlobal(segs, nextVideo.id, 0) ?? off) + nextVideo.durationS
+      : off + video.durationS
+
   return (
-    <div className="tag-set bg-bg-app" data-mark-screen data-mark-step={phase}>
+    <div className="tag-set bg-bg-app" data-mark-screen data-mark-step={phase} data-pad-split={landscape ? '' : undefined}>
+      {landscape ? (
+        <>
+          <div className="pad-wing" data-pad-wing="left" />
+          <div className="pad-wing" data-pad-wing="right" />
+        </>
+      ) : null}
       <div className="tag-flow">
         <div className="tag-media">
           <VideoStage
@@ -178,7 +213,7 @@ export function MarkSetScreen() {
             }
             seek={
               <PictureSeek
-                span={{ a: off, b: off + video.durationS }}
+                span={{ a: off, b: barEnd }}
                 time={player.time}
                 markers={[]}
                 band={picked ?? (old ? { a: old.start, b: old.end } : null)}
