@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Button, buttonKindTextLink } from '@/ui-mine'
 import {
   derivePhase,
@@ -24,7 +24,7 @@ import { AddVideoChoice } from '@/features/match/AddVideoChoice'
 import { useArchiveStep } from '@/features/match/archiveJobs'
 import { TagVideoCard } from '@/features/match/TagVideoCard'
 import { isRealResult, videoRallyCount } from '@/features/match/matchChecks'
-import { applyTaggedResult, finishMatch, reopenMatch, restoreSet, saveMark } from '@/features/tagging/matchOps'
+import { applyTaggedResult, applyTaggedScore, finishMatch, reopenMatch, reopenSet, restoreSet, saveMark } from '@/features/tagging/matchOps'
 import type { Side } from '@/features/tagging/rally'
 import {
   clampWing,
@@ -32,6 +32,7 @@ import {
   MIN_SET_S,
   markBounds,
   markState,
+  setIncomplete,
   newMarkAt,
   notOnVideo,
   spansOnVideo,
@@ -41,6 +42,7 @@ import {
   wingLimits,
   type WingEdge,
 } from '@/features/tagging/setMark'
+import { useActionGuard } from '@/features/tagging/pressGuard'
 import { TAG_LOCK_LINE, useTagLock } from '@/features/tagging/tagLock'
 import { PictureSeek, VideoStage } from '@/features/tagging/VideoStage'
 import { segmentsOf } from '@/features/tagging/timeline'
@@ -62,7 +64,13 @@ const UNDO_MS = 6000
 export function MatchTagChecklist() {
   const { matchId = '' } = useParams()
   const [search] = useSearchParams()
+  const location = useLocation()
   const navigate = useNavigate()
+  const savedId = (location.state as { saved?: number } | null)?.saved ?? null
+  const arrive = useActionGuard(savedId !== null ? `saved:${savedId}` : 'off')
+  useLayoutEffect(() => {
+    if (savedId !== null) arrive.arm()
+  }, [savedId, arrive.arm])
   const { getMatch, moveVideo, mutateMatch } = useDemo()
   const match = getMatch(matchId)
   const player = usePlayer(match?.videos ?? [])
@@ -155,8 +163,24 @@ export function MatchTagChecklist() {
   if (!match) return null
 
   const phase = derivePhase(match)
+  const savedSet = savedId !== null ? (match.sets.find((s) => s.setId === savedId) ?? null) : null
+  const savedTagged = savedSet ? taggedScore(savedSet) : null
+  const savedEntered = savedSet ? parseEntered(savedSet.entered) : null
+  const savedIncomplete = savedSet ? setIncomplete(savedSet) : false
+  const savedDiffers = Boolean(
+    savedSet &&
+      !savedIncomplete &&
+      savedTagged &&
+      savedEntered &&
+      (savedEntered.me !== savedTagged.me || savedEntered.them !== savedTagged.them),
+  )
   const videoGone = missingVideoIds(match).length > 0
-  const openSet = (setId: number) => navigate(`/matches/${match.id}/tag/${setId}`)
+  const openSet = (setId: number) => {
+    if (!arrive.allow()) return
+    const s = match.sets.find((x) => x.setId === setId)
+    if (s && setIncomplete(s)) mutateMatch(match.id, (m) => reopenSet(m, setId))
+    navigate(`/matches/${match.id}/tag/${setId}`)
+  }
   const dropVideo = (video: VideoAsset, index: number) => {
     const marks = match.sets.flatMap((s) =>
       s.mark && (s.mark.from.videoId === video.id || s.mark.to.videoId === video.id)
@@ -343,6 +367,66 @@ export function MatchTagChecklist() {
         </p>
       ) : null}
 
+      {savedSet ? (
+        <div
+          data-saved-strip
+          data-saved-kind={savedIncomplete ? 'incomplete' : savedDiffers ? 'differs' : 'saved'}
+          className="space-y-1 rounded-md border border-border bg-bg-card px-2 py-1 text-sm text-primary"
+          role="status"
+        >
+          <p>
+            {savedIncomplete
+              ? `Set ${savedSet.setId} saved · incomplete at ${formatScore(savedTagged ?? { me: 0, them: 0 })}`
+              : `Set ${savedSet.setId} saved · ${formatScore(savedTagged ?? { me: 0, them: 0 })}`}
+          </p>
+          {savedDiffers && savedEntered ? <p data-saved-differs>Details says {formatScore(savedEntered)}</p> : null}
+          <div className="flex flex-wrap items-center gap-1.5">
+            {savedIncomplete ? (
+              <>
+                <AddVideoChoice matchId={match.id} hint={false} disabled={arrive.waiting || Boolean(lock)} />
+                <Button
+                  kind="control"
+                  variant="secondary"
+                  disabled={arrive.waiting}
+                  onClick={() => {
+                    if (!arrive.allow()) return
+                    navigate(`/matches/${match.id}/details`)
+                  }}
+                >
+                  Details
+                </Button>
+              </>
+            ) : savedDiffers ? (
+              <Button
+                kind="control"
+                variant="secondary"
+                data-use-tagged={savedSet.setId}
+                disabled={arrive.waiting}
+                onClick={() => {
+                  if (!arrive.allow()) return
+                  mutateMatch(match.id, (m) => applyTaggedScore(m, savedSet.setId))
+                }}
+              >
+                Use tagged
+              </Button>
+            ) : null}
+            <Button
+              kind="control"
+              variant="secondary"
+              data-saved-undo={savedSet.setId}
+              disabled={arrive.waiting}
+              onClick={() => {
+                if (!arrive.allow()) return
+                mutateMatch(match.id, (m) => reopenSet(m, savedSet.setId))
+                navigate(`/matches/${match.id}/tag?from=${savedSet.setId}`, { replace: true, state: null })
+              }}
+            >
+              Undo
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
       {undoSet ? (
         <p className="flex items-center justify-between gap-2 rounded-md border border-border bg-bg-card px-2 py-1 text-sm text-primary" role="status">
           <span>{undoSet.text}</span>
@@ -426,6 +510,7 @@ export function MatchTagChecklist() {
             onRemove={() => dropVideo(video, index)}
             onCancelRemove={() => setAsking(null)}
             onOpen={(setId) => openSet(setId)}
+            allow={() => arrive.allow()}
             onUndo={(before, text, also) => setUndoSet({ before, text, also })}
             onPick={(setId) => {
               setPicked({ setId, videoId: video.id })
@@ -478,6 +563,8 @@ export function MatchTagChecklist() {
         match={match}
         tagged={phase === 'complete'}
         locked={Boolean(lock)}
+        allow={() => arrive.allow()}
+        held={arrive.waiting}
         onFinish={() => mutateMatch(match.id, finishMatch)}
         onReopen={() => mutateMatch(match.id, reopenMatch)}
         onUseResult={() => mutateMatch(match.id, applyTaggedResult)}
@@ -576,6 +663,8 @@ function MatchEnd({
   match,
   tagged,
   locked,
+  allow,
+  held,
   onFinish,
   onReopen,
   onUseResult,
@@ -583,6 +672,8 @@ function MatchEnd({
   match: MatchRecord
   tagged: boolean
   locked: boolean
+  allow?: () => boolean
+  held?: boolean
   onFinish: () => void
   onReopen: () => void
   onUseResult: () => void
@@ -674,19 +765,23 @@ function MatchEnd({
             kind="main"
             variant={!blocking && isRealResult(won) ? 'primary' : 'secondary'}
             className="w-full sm:w-auto"
-            disabled={blocking !== null}
-            onClick={onFinish}
+            disabled={blocking !== null || held}
+            data-guard={held ? '' : undefined}
+            onClick={() => {
+              if (allow && !allow()) return
+              onFinish()
+            }}
           >
             Finish match
           </Button>
           <p className="text-sm text-muted">
             {blocking
-              ? markState(blocking) === 'tagging' || setState(blocking) === 'progress'
-                ? `Finish set ${blocking.setId} first.`
-                : markState(blocking) === 'ready'
-                  ? `Tag set ${blocking.setId} first.`
-                  : markState(blocking) === 'part'
-                    ? `Enter set ${blocking.setId} in Details first.`
+              ? setIncomplete(blocking) || markState(blocking) === 'part'
+                ? `Enter set ${blocking.setId} in Details first.`
+                : markState(blocking) === 'tagging' || setState(blocking) === 'progress'
+                  ? `Finish set ${blocking.setId} first.`
+                  : markState(blocking) === 'ready'
+                    ? `Tag set ${blocking.setId} first.`
                     : `Mark set ${blocking.setId} on a video, or enter it in Details.`
               : `Ends the match at sets ${formatScore(won)}.`}
           </p>

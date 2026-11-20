@@ -1,6 +1,5 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import { cn } from '@/helpers/utils'
-import { restStyle } from './AnswerCells'
 import { CornerPad } from './CornerPad'
 import {
   PART_LABEL,
@@ -8,10 +7,7 @@ import {
   bestEndOf,
   bestHint,
   bestMismatch,
-  bestOpener,
-  cellMark,
   mismatchLine,
-  partsOf,
   padFocus,
   stepShot,
   type BestAt,
@@ -21,11 +17,11 @@ import {
 } from './bestFlow'
 import { hitterOf, otherSide, winnerOf, type Draft, type Side, type Wing } from './rally'
 
-const railCell =
+export const railCell =
   'btn-kind-control relative w-full px-1 rounded-md border text-sm font-bold tabular-nums inline-flex items-center justify-center'
 
 /** Player token, or that token at 15%. Open is the solid token. */
-function shotPaint(side: Side, open: boolean, fa: boolean, dim: boolean): CSSProperties {
+export function shotPaint(side: Side, open: boolean, fa: boolean, dim: boolean): CSSProperties {
   const token = side === 'me' ? 'var(--color-tag-player-a)' : 'var(--color-tag-player-b)'
   const fill = open ? token : `color-mix(in srgb, ${token} 15%, transparent)`
   const line = open
@@ -47,15 +43,10 @@ function shotPaint(side: Side, open: boolean, fa: boolean, dim: boolean): CSSPro
   }
 }
 
-/** Edit opens contact check. Amber, so it is not the same fill as the open question. */
-function checkingOn(): CSSProperties {
-  return { backgroundColor: 'var(--color-warning)', borderColor: 'var(--color-warning)', color: '#0b1220' }
-}
-
 const PART_SHORT: Record<BestPart, string> = { opening: 'Open', rally: 'Rally', attack: 'Att', end: 'End' }
 
 /** Longest label that fits its button, then smaller type, then shorter words. Never spills. */
-function PartLabel({ part, marked }: { part: BestPart; marked: boolean }) {
+export function PartLabel({ part, marked }: { part: BestPart; marked: boolean }) {
   const ref = useRef<HTMLSpanElement>(null)
   const tries: { text: string; size: number }[] = [
     ...(marked ? [{ text: `⚑ ${PART_LABEL[part]}`, size: 10 }] : []),
@@ -98,12 +89,9 @@ function PartLabel({ part, marked }: { part: BestPart; marked: boolean }) {
   )
 }
 
-function filled(): CSSProperties {
+export function filled(): CSSProperties {
   return { backgroundColor: 'var(--color-brand-primary)', borderColor: 'var(--color-brand-primary)', color: 'var(--color-on-accent)' }
 }
-
-const headButton =
-  'h-8 shrink-0 whitespace-nowrap rounded-md border px-2 text-xs font-semibold inline-flex items-center justify-center'
 
 /** BH left, FH right. Attack is the strong colour, Control the light one. */
 const PAD_STROKE: Record<string, { bg: string; fg: string }> = {
@@ -127,202 +115,6 @@ const PAD_ENDS: { end: BestEnd; label: string; bg: string; style: CSSProperties 
   { end: 'Long', label: 'Long', bg: '#b45309', style: { gridColumn: '2', gridRow: '1' } },
   { end: 'Net', label: 'In net', bg: '#b91c1c', style: { gridColumn: '2', gridRow: '2' } },
 ]
-
-/**
- * The rally, one cell per shot in the hitter's colour. Cells and part labels
- * are display only. The head is the rally number and the server.
- */
-export function BestRallyRow({
-  draft,
-  rallyNo,
-  names,
-  server,
-  at,
-  rallyOne,
-  saved,
-  editing,
-  focus,
-  flash,
-  onEdit,
-  onStar,
-  onDiscard,
-}: {
-  draft: Draft | null
-  /** The rally's number, including the one about to be tagged. */
-  rallyNo: number
-  names: Record<Side, string>
-  /** Who is serving, including before the first contact. */
-  server: Side
-  /** The question open now. Null while tapping and on the saved row. */
-  at: BestAt | null
-  rallyOne: boolean
-  saved: boolean
-  /** Edit Rally is open. The button reads Done. */
-  editing: boolean
-  /** The Edit Rally stop. A number is that shot. End rings the End label. */
-  focus: number | 'end' | null
-  /** The cell whose contact is on screen, or -1. */
-  flash: number
-  onEdit: () => void
-  onStar: () => void
-  /** Throws away the rally being tagged. Hidden when there is nothing in progress. */
-  onDiscard?: () => void
-}) {
-  const n = draft?.contacts.length ?? 0
-  const closed = Boolean(draft?.closed && n > 0)
-  const parts = closed && draft ? partsOf(draft) : []
-  const opener = closed && draft ? bestOpener(n, draft.shots, draft.best?.first) : null
-  const fa = typeof opener === 'number' ? opener : null
-  const tapping = !closed && !saved
-  const groupOf = (shot: number) => parts.findIndex((p) => shot >= p.from && shot <= p.to)
-  const columns = closed
-    ? parts.map((p) => `repeat(${p.to - p.from + 1}, minmax(24px, var(--btn-kind-control)))`).join(' 0px ')
-    : `repeat(${n + 1}, minmax(24px, var(--btn-kind-control)))`
-  const tapsOpen = Boolean(draft && !draft.closed && !saved)
-
-  return (
-    <div className="flex w-full min-w-0 flex-col gap-1" data-best-rail data-best-saved={saved ? '' : undefined}>
-      <div className="flex h-8 min-w-0 items-center gap-1.5">
-        <span
-          data-rally-head
-          data-best-server={server}
-          className="inline-flex h-8 min-w-0 max-w-[46%] items-center rounded-full px-2 text-sm font-semibold text-white"
-          style={{ backgroundColor: server === 'me' ? 'var(--color-side-me)' : 'var(--color-side-them)' }}
-        >
-          <span className="truncate">
-            {rallyNo} {names[server]}
-          </span>
-        </span>
-        {saved ? (
-          <span className="shrink-0 rounded-[4px] bg-success/15 px-1.5 text-[10px] font-bold uppercase leading-[18px] text-success" data-best-saved-tag>
-            Saved
-          </span>
-        ) : null}
-        {onDiscard ? (
-          <button type="button" data-rally-discard="" className={cn(headButton, 'px-1.5')} onClick={onDiscard}>
-            Discard
-          </button>
-        ) : null}
-        <span className="min-w-0 flex-1" />
-        <button
-          type="button"
-          data-best-star="rally"
-          aria-label="Highlight"
-          aria-pressed={Boolean(draft?.highlight)}
-          className={cn(headButton, 'w-8 px-0 text-sm')}
-          style={draft?.highlight ? checkingOn() : { ...restStyle(), color: 'var(--color-text)' }}
-          onClick={onStar}
-        >
-          ★
-        </button>
-        {tapsOpen ? null : (
-          <button
-            type="button"
-            data-best-check
-            aria-pressed={editing}
-            aria-label={editing ? 'Done' : 'Edit'}
-            className={headButton}
-            style={editing ? checkingOn() : { ...restStyle(), color: 'var(--color-text)' }}
-            onClick={onEdit}
-          >
-            {editing ? 'Done' : 'Edit'}
-          </button>
-        )}
-      </div>
-      <div
-        className="grid min-w-0 justify-start gap-x-1 gap-y-1"
-        style={{ gridTemplateColumns: columns }}
-        data-best-cells
-      >
-        {draft
-          ? draft.contacts.map((_, i) => {
-              const shot = i + 1
-              const side = hitterOf(draft.server, shot)
-              const g = groupOf(shot)
-              const mark = closed ? cellMark(draft, shot, rallyOne, at) : null
-              const open = mark === 'now'
-              const isFa = fa === shot && !open
-              const tags = draft.shots[i]
-              const focused = focus === shot
-              return (
-                <span
-                  key={shot}
-                  data-best-chip={shot}
-                  data-best-mark={mark ?? ''}
-                  data-best-wing={tags?.wing ?? ''}
-                  data-best-stroke={tags?.stroke ?? ''}
-                  data-best-flash={flash === i ? '' : undefined}
-                  data-edit-focus={focused ? '' : undefined}
-                  aria-current={open || focused ? 'step' : undefined}
-                  className={cn(
-                    railCell,
-                    'min-w-0 px-0',
-                    isFa && 'border-2',
-                    mark === 'todo' && 'border-dashed',
-                    mark === 'off' && 'opacity-45',
-                    flash === i && 'ring-2 ring-warning',
-                    focused && 'edit-stop-on'
-                  )}
-                  style={{
-                    ...shotPaint(side, open || focused, isFa, false),
-                    gridRow: 1,
-                    gridColumn: closed ? shot + g : shot,
-                    ...(mark === 'todo' && !isFa
-                      ? { borderColor: side === 'me' ? 'var(--color-tag-player-a)' : 'var(--color-tag-player-b)' }
-                      : {}),
-                  }}
-                >
-                  {shot}
-                  {mark === 'done' ? (
-                    <span aria-hidden className="absolute right-0.5 top-0 text-[9px] font-bold leading-3" data-best-done>
-                      ✓
-                    </span>
-                  ) : null}
-                </span>
-              )
-            })
-          : null}
-        {tapping ? (
-          <span
-            aria-hidden
-            className={cn(railCell, 'min-w-0 px-0 border-dashed border-border text-muted opacity-60')}
-            style={{ gridRow: 1, gridColumn: n + 1 }}
-          >
-            {n + 1}
-          </span>
-        ) : null}
-        {/* The phase row is always here, so the rally row stays the same height. */}
-        <span aria-hidden data-best-phases="" className="h-4" style={{ gridRow: 2, gridColumn: '1 / -1' }} />
-        {closed && draft
-          ? parts.map((p, g) => {
-              const marked = Boolean(draft.best?.review?.includes(p.part))
-              return (
-                <span
-                  key={p.part}
-                  data-best-part={p.part}
-                  data-best-flag={marked ? '' : undefined}
-                  data-label={marked ? `⚑ ${PART_LABEL[p.part]}` : PART_LABEL[p.part]}
-                  data-from={p.from}
-                  data-to={p.to}
-                  className={cn(
-                    'flex h-4 min-w-0 items-center justify-center whitespace-nowrap rounded-md border px-0 font-semibold',
-                    focus === 'end' && p.part === 'end' && 'edit-stop-on'
-                  )}
-                  style={{
-                    gridRow: 2,
-                    gridColumn: `${p.from + g} / span ${p.to - p.from + 1}`,
-                    ...(marked ? filled() : { ...restStyle(), color: 'var(--color-text)' }),
-                  }}
-                >
-                  <PartLabel part={p.part} marked={marked} />
-                </span>
-              )
-            })
-          : null}
-      </div>
-    </div>
-  )
-}
 
 /** The question open now. No step row: the Rally Row is the guide. */
 export function BestPanel({
@@ -772,7 +564,7 @@ export function EditRallyPad({
       data-pad-sides={sides ? '' : undefined}
     >
       <CornerPad
-        label="Edit rally"
+        label="Edit Rally"
         showName={false}
         split={sides}
         columns="1fr 1fr"

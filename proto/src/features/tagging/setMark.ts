@@ -1,4 +1,5 @@
 import type { MatchRecord, SetData, SetMark, VideoAsset } from '@/data/demoStore'
+import { countPoints, isSetWon } from '@/features/tagging/score'
 import {
   firstContactG,
   lastContactG,
@@ -150,8 +151,18 @@ export function notOnVideo(m: MatchRecord, s: SetData): boolean {
   return n !== null && s.setId <= n
 }
 
+/**
+ * Finished, with rallies, and the tagged score is not a win. Derived.
+ * A Details score is what makes it count. Continue reopens it.
+ */
+export function setIncomplete(s: SetData): boolean {
+  if (!s.finished || s.rallies.length === 0) return false
+  return !isSetWon(countPoints(s.rallies.map((r) => r.winner)))
+}
+
 /** The one button on a set row. Part filmed is status text, not a button. */
 export function lineAction(s: SetData): 'Tag' | 'Continue' | 'Open' | null {
+  if (setIncomplete(s)) return 'Continue'
   const state = markState(s)
   if (state === 'saved') return 'Open'
   if (state === 'tagging') return 'Continue'

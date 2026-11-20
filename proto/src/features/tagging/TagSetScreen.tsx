@@ -1,5 +1,4 @@
 import {
-  Fragment,
   useCallback,
   useContext,
   useEffect,
@@ -20,7 +19,6 @@ import {
   matchSetsWon,
   parseEntered,
   resultSetCount,
-  setBlockingFinish,
   setRalliesWithoutVideo,
   setScoresDiffer,
   taggedScore,
@@ -55,7 +53,6 @@ import {
   dropAfter,
   editStops,
   gapFitsRally,
-  finishMatch,
   finishSet,
   flipFirstServer,
   gapWindow,
@@ -107,7 +104,9 @@ import {
   type Wing,
 } from './rally'
 import { ZERO, addPoint, countPoints, isSetWon, setEndIndex, type Points } from './score'
-import { BestPanel, BestRallyRow, EditRallyPad } from './BestPanel'
+import { BestPanel, EditRallyPad } from './BestPanel'
+import { RallyZone, type RallyState } from './RallyZone'
+import { SetZone } from './SetZone'
 import { CornerPad, PadWingContext } from './CornerPad'
 import { BestTimingControl } from './BestTimingControl'
 import {
@@ -287,126 +286,6 @@ function WingTap({
 
 type EditPick = { kind: 'rally'; id: string } | { kind: 'gap'; index: number }
 
-/**
- * This set's rallies, left to right. A grey score sits in front of the first
- * tagged rally. The open rally is dashed, in the server's colour. Newest at
- * the right. The pick sits in the middle. Gap slots show in Gaps mode only.
- */
-function SetPills({
-  rallies,
-  picked,
-  gaps,
-  pickedGap,
-  open,
-  insert,
-  serveBreaks,
-  onGap,
-}: {
-  rallies: RallyData[]
-  picked: string | null
-  /** Null hides the slots: Rallies mode, and every screen outside Edit Set. */
-  gaps: EditGapStop[] | null
-  pickedGap: number | null
-  open: { n: number; server: Side } | null
-  /** The rally being inserted, drawn as a dashed pill in its slot. */
-  insert: { index: number; n: number; server: Side } | null
-  /** The first break of each mistake. A later break in the same band stays off. */
-  serveBreaks: number[]
-  onGap: (index: number) => void
-}) {
-  const scroller = useRef<HTMLDivElement>(null)
-  const end = setEndIndex(rallies.map((r) => r.winner))
-  const overrun = end >= 0 && end < rallies.length - 1
-  let lead = 0
-  while (lead < rallies.length && rallies[lead].point) lead++
-  const start = lead > 0 ? countPoints(rallies.slice(0, lead).map((r) => r.winner)) : null
-  const pills = rallies.flatMap((r, i) =>
-    r.point ? [] : [{ r, n: i + 1, i, warn: overrun && i > end }]
-  )
-  useLayoutEffect(() => {
-    const el = scroller.current
-    if (!el) return
-    const pill =
-      pickedGap !== null
-        ? el.querySelector(`[data-gap-index="${pickedGap}"]`)
-        : picked
-          ? el.querySelector(`[data-pill-id="${picked}"]`)
-          : null
-    if (pill instanceof HTMLElement) {
-      el.scrollLeft = Math.max(0, pill.offsetLeft - (el.clientWidth - pill.offsetWidth) / 2)
-      return
-    }
-    el.scrollLeft = el.scrollWidth
-  }, [picked, pickedGap, pills.length, open?.n, start?.me, start?.them])
-  return (
-    <div ref={scroller} className="tag-pills" data-set-pills>
-      {start ? (
-        <span className="tag-pill tag-pill-start" data-start-pill>
-          {formatScore(start)}
-        </span>
-      ) : null}
-      {pills.map(({ r, n, i, warn }) => {
-        const slot = gaps?.find((g) => g.index === i) ?? null
-        const on = slot !== null && slot.index === pickedGap
-        const inserting = insert !== null && slot !== null && insert.index === slot.index
-        const serve = serveBreaks.includes(i)
-        return (
-          <Fragment key={r.id}>
-            {inserting && insert ? (
-              <span
-                className={cn('tag-pill tag-pill-open', insert.server === 'me' ? 'text-side-me' : 'text-side-them')}
-                data-open-pill={insert.n}
-                data-gap-index={slot.index}
-              >
-                {insert.n}
-              </span>
-            ) : slot ? (
-              <button
-                type="button"
-                data-gap-slot=""
-                data-gap-index={slot.index}
-                data-on={on ? '' : undefined}
-                data-likely={slot.likely ? '' : undefined}
-                className="tag-gap-hit btn-kind-control"
-                aria-current={on ? 'true' : undefined}
-                aria-label={`Before rally ${slot.n}`}
-                onClick={() => onGap(slot.index)}
-              >
-                <span className="tag-gap-slot" data-on={on ? '' : undefined} data-likely={slot.likely ? '' : undefined} />
-              </button>
-            ) : null}
-            <span
-              data-set-pill={n}
-              data-pill-id={r.id}
-              data-pill-warn={warn ? '' : undefined}
-              data-pill-serve={serve ? '' : undefined}
-              data-pill-on={picked === r.id ? '' : undefined}
-              className={cn(
-                'tag-pill',
-                r.winner === 'me' ? 'bg-side-me' : 'bg-side-them',
-                gaps && 'tag-pill-dim',
-                picked === r.id && 'tag-pill-on',
-                warn && 'tag-pill-warn',
-                serve && 'tag-pill-serve'
-              )}
-            >
-              {n}
-            </span>
-          </Fragment>
-        )
-      })}
-      {open ? (
-        <span
-          className={cn('tag-pill tag-pill-open', open.server === 'me' ? 'text-side-me' : 'text-side-them')}
-          data-open-pill={open.n}
-        >
-          {open.n}
-        </span>
-      ) : null}
-    </div>
-  )
-}
-
 /** Rallies or Gaps. Landscape sits this on top of the left wing. */
 function KindSwitch({
   kind,
@@ -453,60 +332,6 @@ function KindSwitch({
   )
   if (wings.left) return createPortal(node, wings.left)
   return <div className="mb-2">{node}</div>
-}
-
-/** A gap stop names the empty stretch. No buttons. */
-function GapContext({
-  n,
-  seconds,
-  score,
-  server,
-  label,
-  overlap,
-  onSwitch,
-  onCancel,
-}: {
-  n: number
-  seconds: number
-  score: string
-  server: Side
-  /** "You serve" or "Sam serves". */
-  label: string
-  /** The neighbouring rallies' times cross. */
-  overlap?: boolean
-  onSwitch?: () => void
-  /** Before the first tap of an insert. Returns to the gap. */
-  onCancel?: () => void
-}) {
-  const chipClass = cn(
-    'shrink-0 rounded-md px-2 py-1 text-xs font-semibold',
-    server === 'me' ? 'bg-side-me' : 'bg-side-them'
-  )
-  return (
-    <div className="flex h-full min-w-0 items-center gap-2 overflow-x-auto px-1 text-sm text-primary" data-gap-context>
-      <span className="shrink-0 font-semibold">Before rally {n}</span>
-      <span className="shrink-0">{overlap ? 'Rallies overlap' : `${seconds} s`}</span>
-      <span className="shrink-0">at {score}</span>
-      {onSwitch ? (
-        <button
-          type="button"
-          data-gap-server
-          className={cn(chipClass, 'btn-kind-control inline-flex items-center')}
-          aria-label={`${label}. Switch server`}
-          onClick={onSwitch}
-        >
-          {label}
-        </button>
-      ) : (
-        <span data-gap-server className={chipClass}>{label}</span>
-      )}
-      {onCancel ? (
-        <button type="button" data-insert-cancel className="btn-kind-control shrink-0 rounded-md px-2 text-sm font-semibold" onClick={onCancel}>
-          Cancel
-        </button>
-      ) : null}
-    </div>
-  )
 }
 
 function TagSet({
@@ -800,7 +625,7 @@ function TagSet({
   useEffect(() => {
     if (set.draft) mutateMatch(match.id, (m) => setDraft(m, set.setId, null))
     park(null, set.finished, floorG)
-    if (!set.finished) setBestSaved(savedRowOf(set))
+    setBestSaved(savedRowOf(set))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -1966,15 +1791,15 @@ function TagSet({
   }
 
   const level = score.me === score.them
-  /** A set can be finished once it has a rally, nothing is open, and one side leads. */
+  /** A set can be saved once it has a rally and nothing is open, at any score. */
   const canFinishNow = !set.finished && !live && !draftGone && set.rallies.length > 0
-  const canFinish = canFinishNow && !level
 
   const onFinishSet = () => {
-    if (!canFinish) return
+    if (!canFinishNow || readOnly) return
     playerRef.current.pause()
     mutateMatch(match.id, (m) => finishSet(m, set.setId))
     setKeptEntered(false)
+    navigate(`/matches/${match.id}/tag?from=${set.setId}`, { replace: true, state: { saved: set.setId } })
   }
 
   const onReopenSet = () => {
@@ -2088,7 +1913,9 @@ function TagSet({
 
   const shownScore = score
   const reviewRally = review?.kind === 'ask' && review.rule.cursor !== null ? review.rule.rallies[review.rule.cursor] : null
-  const shownServer = reviewRally ? reviewRally.server : (live?.server ?? nextServer)
+  /** Rally 1 has no server until the Start step picks one. The bug then has no dot. */
+  const serverKnown = set.rallies.length > 0 || start.server !== null || serverPick !== null
+  const shownServer = !serverKnown ? null : reviewRally ? reviewRally.server : (live?.server ?? nextServer)
   const setsWon = matchSetsWon(match)
   const atEnd = player.atEnd && (mode === 'watch' || mode === 'setPoint')
   const tapped = live && !live.closed ? live.contacts.length : 0
@@ -2115,21 +1942,15 @@ function TagSet({
       ? set.rallies.findIndex((r) => r.id === shotEdit.rallyId)
       : set.rallies.length
   const status = shotEdit
-    ? formatScore(countPoints(set.rallies.slice(0, Math.max(0, shotAt) + (shotEdit.rallyId ? 1 : 0)).map((r) => r.winner)))
+    ? ''
     : bestOn
     ? editOf
       ? `Rally ${editIndex + 1}, editing`
       : (bestPlace({ draft: live, rallies: set.rallies, finished: set.finished }) ?? 'Details')
     : overCard
       ? `Set over at ${formatScore(score)}`
-      : mode === 'start'
-        ? 'Find the first serve.'
-        : mode === 'edit'
-          ? viewedGap
-            ? viewedGap.overlap
-              ? `Before rally ${viewedGap.n} · Rallies overlap`
-              : `Before rally ${viewedGap.n} · ${Math.round(viewedGap.b - viewedGap.a)} s`
-            : formatScore(countPoints(set.rallies.slice(0, editIndex + 1).map((r) => r.winner)))
+      : mode === 'start' || mode === 'edit'
+        ? ''
       : reviewLine
         ? reviewLine
         : mode === 'finished'
@@ -2189,6 +2010,65 @@ function TagSet({
   /** The saved row shows until the next rally's first contact. */
   const bestRowSaved = Boolean(bestSaved && (!live || live.contacts.length === 0))
   const bestRowDraft = bestRowSaved ? bestSaved!.draft : active
+  const scoreBefore = (index: number) => formatScore(countPoints(set.rallies.slice(0, Math.max(0, index)).map((r) => r.winner)))
+  const savedIndex = bestSaved ? set.rallies.findIndex((r) => r.id === bestSaved.rallyId) : -1
+  const rowDraft = shotEdit && live ? live : (pickDraft ?? bestRowDraft)
+  const gapServer = viewedGap ? expectedServer(set.rallies, set.firstServer, viewedGap.index) : nextServer
+  const insertingBare = Boolean(gap && (!live || live.contacts.length === 0))
+  const rallyState: RallyState = shotEdit
+    ? 'editing'
+    : mode === 'start'
+      ? 'before'
+      : insertingBare
+        ? 'insert'
+        : viewedGap && mode === 'edit'
+          ? 'gap'
+          : live && !live.closed && live.contacts.length > 0
+            ? 'tapping'
+            : bestOn
+              ? 'answering'
+              : pickDraft || bestRowSaved
+                ? 'saved'
+                : 'before'
+  const rallyNo =
+    shotEdit && shotAt >= 0
+      ? shotAt + 1
+      : pickDraft || editOf
+        ? Math.max(1, editIndex + 1)
+        : rallyState === 'gap' && viewedGap
+          ? viewedGap.n
+          : rallyState === 'insert' && gap
+            ? gap.index + 1
+            : bestRowSaved && savedIndex >= 0
+              ? savedIndex + 1
+              : set.rallies.length + 1
+  const rallyScoreAt =
+    rallyState === 'gap'
+      ? (viewedGap?.index ?? 0)
+      : rallyState === 'insert'
+        ? (gap?.index ?? 0)
+        : shotEdit && shotEdit.rallyId && shotAt >= 0
+          ? shotAt
+          : pickDraft && editIndex >= 0
+            ? editIndex
+            : bestRowSaved && savedIndex >= 0
+              ? savedIndex
+              : set.rallies.length
+  const rallyServer: Side | null =
+    rallyState === 'before' && !serverKnown
+      ? null
+      : rallyState === 'gap'
+        ? gapServer
+        : (rowDraft?.server ?? nextServer)
+  const rallyWord =
+    rallyState === 'gap' && viewedGap
+      ? viewedGap.overlap
+        ? 'Gap, overlap'
+        : `Gap ${Math.round(viewedGap.b - viewedGap.a)} s`
+      : gap
+        ? 'Insert'
+        : null
+  const rallyActions = rallyState === 'answering' || rallyState === 'saved' || rallyState === 'editing'
   const tapSplit = Boolean(landscape && zoneOn)
   const padSplit = Boolean(
     tapSplit || (landscape && ((bestOn && liveCount > 0) || mode === 'edit' || shotEdit))
@@ -2216,7 +2096,6 @@ function TagSet({
   const tapGuard = useActionGuard(tapAction)
   tapGuardRef.current = tapGuard
   const overGuard = useActionGuard(overCard ? 'shown' : 'shut')
-  const afterGuard = useActionGuard(mode === 'finished' ? 'done' : 'open')
   const editGuard = useActionGuard(editPick === null ? 'shut' : editPick.kind)
   editGuardRef.current = editGuard
   const guarded = (guard: ActionGuard, fn: () => void) => () => {
@@ -2324,34 +2203,27 @@ function TagSet({
           }
         />
       </div>
-      <div className="tag-setzone">
-        <h1 className="shrink-0 whitespace-nowrap text-sm font-bold text-primary">Set {set.setId}</h1>
-        <SetPills
-          rallies={set.rallies}
-          picked={pickedId}
-          gaps={editPick?.kind === 'gap' ? stops.gaps : null}
-          pickedGap={editPick?.kind === 'gap' ? editPick.index : null}
-          open={editPick !== null || set.finished ? null : { n: set.rallies.length + 1, server: nextServer }}
-          insert={
-            gap && editPick?.kind === 'gap'
-              ? { index: gap.index, n: gap.index + 1, server: nextServer }
-              : null
-          }
-          serveBreaks={serveBands(set.rallies, set.firstServer).map((b) => b.breaks[0])}
-          onGap={onGapSlot}
-        />
-        <Button
-          size="sm"
-          variant={editPick !== null ? 'primary' : 'secondary'}
-          className="shrink-0 px-2"
-          aria-pressed={editPick !== null}
-          data-edit-set
-          onClick={onEditSet}
-        >
-          <Icon name="list" size="xs" />
-          {editPick !== null ? 'Done' : 'Edit Set'}
-        </Button>
-      </div>
+      <SetZone
+        rallies={set.rallies}
+        picked={pickedId}
+        gaps={editPick?.kind === 'gap' ? stops.gaps : null}
+        pickedGap={editPick?.kind === 'gap' ? editPick.index : null}
+        open={
+          editPick !== null || set.finished || mode === 'setPoint'
+            ? null
+            : { n: set.rallies.length + 1, server: serverKnown ? nextServer : null }
+        }
+        insert={
+          gap && editPick?.kind === 'gap'
+            ? { index: gap.index, n: gap.index + 1, server: nextServer }
+            : null
+        }
+        serveBreaks={serveBands(set.rallies, set.firstServer).map((b) => b.breaks[0])}
+        onGap={onGapSlot}
+        editing={editPick !== null}
+        dim={pickable.length === 0}
+        onEdit={onEditSet}
+      />
 
       <div className="tag-rally">
         {tapped > 0 && lastTap !== null ? (
@@ -2362,71 +2234,68 @@ function TagSet({
             className="tag-idle-bar pointer-events-none absolute left-0 right-0 top-0 z-10 h-1.5 bg-brand-primary/50"
           />
         ) : null}
-        {mode === 'start' ? (
-          <div className="flex h-8 min-w-0 items-center gap-1.5" data-start-row>
-            <span className="shrink-0 px-1 text-sm font-semibold text-primary">Find the first serve.</span>
-          </div>
-        ) : viewedGap && mode === 'edit' ? (
-          <GapContext
-            n={viewedGap.n}
-            seconds={Math.round(viewedGap.b - viewedGap.a)}
-            score={formatScore(countPoints(set.rallies.slice(0, viewedGap.index).map((r) => r.winner)))}
-            overlap={viewedGap.overlap}
-            server={gap ? nextServer : expectedServer(set.rallies, set.firstServer, viewedGap.index)}
-            label={servesText(names, gap ? nextServer : expectedServer(set.rallies, set.firstServer, viewedGap.index))}
-            onSwitch={
-              gap
-                ? () => {
-                    setServerPick(otherSide(nextServer))
-                    serverChosen.current = true
-                  }
-                : undefined
-            }
-            onCancel={gap && (!live || live.contacts.length === 0) ? cancelInsert : undefined}
-          />
-        ) : (
-        <BestRallyRow
-            draft={shotEdit && live ? live : (pickDraft ?? bestRowDraft)}
-            at={pickDraft || shotEdit ? null : bestQ}
-            rallyOne={pickDraft || editOf ? false : bestRowSaved ? set.rallies.length <= 1 : bestRallyOne}
-            saved={shotEdit ? Boolean(shotEdit.rallyId) : pickDraft ? true : bestRowSaved}
-            editing={shotEdit !== null}
-            focus={shotEdit ? shotEdit.stop : null}
-            flash={
-              shotEdit && active && typeof shotEdit.stop === 'number'
-                ? Math.abs((active.contacts[shotEdit.stop - 1] ?? -1) - (player.time - offsetOf(active.videoId))) < 0.2
-                  ? shotEdit.stop - 1
-                  : -1
+        <RallyZone
+          state={rallyState}
+          draft={rowDraft}
+          at={pickDraft || shotEdit ? null : bestQ}
+          rallyOne={pickDraft || editOf ? false : bestRowSaved ? savedIndex <= 0 : bestRallyOne}
+          saved={shotEdit ? Boolean(shotEdit.rallyId) : pickDraft ? true : bestRowSaved}
+          focus={shotEdit ? shotEdit.stop : null}
+          flash={
+            shotEdit && active && typeof shotEdit.stop === 'number'
+              ? Math.abs((active.contacts[shotEdit.stop - 1] ?? -1) - (player.time - offsetOf(active.videoId))) < 0.2
+                ? shotEdit.stop - 1
                 : -1
-            }
-            rallyNo={pickDraft || editOf ? editIndex + 1 : bestRowSaved ? set.rallies.length : set.rallies.length + 1}
-            names={names}
-            server={(shotEdit && live ? live : (pickDraft ?? bestRowDraft))?.server ?? nextServer}
-            onEdit={() => {
-              if (shotEdit) closeShotEdit()
-              else if (pickDraft && pickedId) beginShotEdit(pickedId, 'set')
-              else if (live?.closed) beginShotEdit(editOf, 'question')
-              else if (bestSaved) beginShotEdit(bestSaved.rallyId, 'saved')
-            }}
-            onStar={() => {
-              if (shotEdit && live) {
-                const next = { ...live, highlight: !live.highlight }
-                if (shotEdit.rallyId) applyShotDraft(next, shotEdit.rallyId)
-                else writeDraft(next)
-                return
-              }
-              if (pickDraft) updatePicked((d) => ({ ...d, highlight: !d.highlight }))
-              else onBestStar()
-            }}
-            onDiscard={
-              editOf && live
-                ? cancelEdit
-                : !readOnly && !bestRowSaved && live && live.contacts.length > 0
-                  ? onDiscardProgress
-                  : undefined
-            }
-          />
-        )}
+              : -1
+          }
+          rallyNo={rallyNo}
+          names={names}
+          server={rallyServer}
+          score={scoreBefore(rallyScoreAt)}
+          word={rallyWord}
+          tight={landscape}
+          pressed={rallyState === 'editing'}
+          onEdit={
+            rallyActions
+              ? () => {
+                  if (shotEdit) closeShotEdit()
+                  else if (pickDraft && pickedId) beginShotEdit(pickedId, 'set')
+                  else if (live?.closed) beginShotEdit(editOf, 'question')
+                  else if (bestSaved) beginShotEdit(bestSaved.rallyId, 'saved')
+                }
+              : undefined
+          }
+          onStar={
+            rallyActions
+              ? () => {
+                  if (shotEdit && live) {
+                    const next = { ...live, highlight: !live.highlight }
+                    if (shotEdit.rallyId) applyShotDraft(next, shotEdit.rallyId)
+                    else writeDraft(next)
+                    return
+                  }
+                  if (pickDraft) updatePicked((d) => ({ ...d, highlight: !d.highlight }))
+                  else onBestStar()
+                }
+              : undefined
+          }
+          onDiscard={
+            editOf && live
+              ? cancelEdit
+              : !readOnly && !bestRowSaved && live && live.contacts.length > 0
+                ? onDiscardProgress
+                : undefined
+          }
+          onCancel={insertingBare ? cancelInsert : undefined}
+          onServer={
+            insertingBare
+              ? () => {
+                  setServerPick(otherSide(nextServer))
+                  serverChosen.current = true
+                }
+              : undefined
+          }
+        />
       </div>
 
       {/* Shot input. Landscape portals the answers into the wings. */}
@@ -2449,7 +2318,8 @@ function TagSet({
               livePlain ? 'mt-2.5 min-h-[var(--btn-kind-control)] items-center' : 'mb-1.5 items-stretch',
               zoneOn && 'hidden',
               (bestOn || bestHoldOn) && 'hidden',
-              lineHidden && 'hidden'
+              lineHidden && 'hidden',
+              !status && mode !== 'blocked' && 'hidden'
             )}
           >
             <p
@@ -2530,9 +2400,6 @@ function TagSet({
                   Re-mark
                 </Button>
               </div>
-            ) : null}
-            {mode === 'start' ? (
-              <p data-start-card className="text-sm text-primary">Find the first serve.</p>
             ) : null}
             {overrun && !live && !set.finished && mode !== 'edit' ? (
               <div role="alert" data-overrun className="space-y-2 rounded-md border border-warning bg-warning/15 px-3 py-2 text-sm text-primary">
@@ -2759,7 +2626,7 @@ function TagSet({
                   </p>
                 ) : null}
                 {level ? (
-                  <p className="rounded-md border border-border bg-bg-card px-3 py-2 text-sm text-primary" role="status">
+                  <p className="mb-2 rounded-md border border-border bg-bg-card px-3 py-2 text-sm text-primary" role="status">
                     Level at {formatScore(score)}, so the set is not over.{' '}
                     <Link
                       to={`/matches/${match.id}/details`}
@@ -2769,17 +2636,17 @@ function TagSet({
                     </Link>
                     , or correct a rally.
                   </p>
-                ) : (
-                  <Button
-                    kind="main"
-                    fullWidth
-                    variant={setWon ? 'primary' : 'secondary'}
-                    className="text-base"
-                    onClick={onFinishSet}
-                  >
-                    {setWon ? 'Finish set' : `Finish set at ${formatScore(score)}`}
-                  </Button>
-                )}
+                ) : null}
+                <Button
+                  kind="main"
+                  fullWidth
+                  variant={setWon ? 'primary' : 'secondary'}
+                  className="text-base"
+                  disabled={readOnly || !canFinishNow}
+                  onClick={onFinishSet}
+                >
+                  {setWon ? 'Finish set' : `Finish set at ${formatScore(score)}`}
+                </Button>
               </div>
             ) : null}
           </div>
@@ -2915,7 +2782,7 @@ function TagSet({
                 data-save-set
                 data-guard={overGuard.waiting ? '' : undefined}
                 className={cn('min-w-0 flex-1 rounded-lg text-lg', overGuard.waiting && 'opacity-60')}
-                disabled={readOnly || !canFinish}
+                disabled={readOnly || !canFinishNow}
                 onClick={guarded(overGuard, onFinishSet)}
               >
                 Save set
@@ -2981,18 +2848,6 @@ function TagSet({
             </button>
           ) : null}
           </div>
-
-          {slotKind === 'finished' ? (
-            <FinishedActions
-              match={match}
-              setId={set.setId}
-              locked={readOnly}
-              videoOver={player.atEnd}
-              onGo={(to) => navigate(to)}
-              onFinishMatch={() => mutateMatch(match.id, finishMatch)}
-              guard={afterGuard}
-            />
-          ) : null}
         </div>
 
       </div>
@@ -3111,102 +2966,6 @@ function FinishedPanel({
           ) : null}
         </div>
       ) : null}
-    </div>
-  )
-}
-
-function FinishedActions({
-  match,
-  setId,
-  locked,
-  videoOver,
-  onGo,
-  onFinishMatch,
-  guard,
-}: {
-  match: MatchRecord
-  setId: number
-  locked: boolean
-  /** No picture left to tag: with a side ahead in sets, the match is what is left to finish. */
-  videoOver: boolean
-  onGo: (to: string) => void
-  onFinishMatch: () => void
-  /** Presses just after Save set are ignored. */
-  guard?: ActionGuard
-}) {
-  const press = (fn: () => void) => () => {
-    if (guard && !guard.allow()) return
-    fn()
-  }
-  const dim = guard?.waiting ? 'opacity-60' : ''
-  const tagged = derivePhase(match) === 'complete'
-  const tagging = match.sets.find((s) => markState(s) === 'tagging') ?? null
-  const next = tagging ? null : (match.sets.find((s) => markState(s) === 'ready') ?? null)
-  const won = matchSetsWon(match)
-  /** A match cannot end level, so at 1 - 1 (or with no set won) there is nothing to finish. */
-  const canFinishMatch =
-    resultSetCount(match) === null && setBlockingFinish(match) === null && won.me !== won.them
-  const finishLeads = canFinishMatch && (isRealResult(won) || videoOver)
-  const offerContinue = Boolean(tagging) && !(videoOver && canFinishMatch)
-  const offerNext = next && !(videoOver && canFinishMatch)
-  const base = `/matches/${match.id}`
-
-  if (tagged || locked) {
-    return (
-      <div className="flex items-stretch gap-2">
-        <Button kind="main" className={cn('flex-1 text-base', dim)} data-guard={guard?.waiting ? '' : undefined} onClick={press(() => onGo(`${base}/insights/summary`))}>
-          Open match Insights
-        </Button>
-        <Button kind="main" variant="secondary" className={dim} data-guard={guard?.waiting ? '' : undefined} onClick={press(() => onGo(`${base}/tag?from=${setId}`))}>
-          Back to sets
-        </Button>
-      </div>
-    )
-  }
-  return (
-    <div className="flex items-stretch gap-2">
-      {offerContinue && tagging ? (
-        <Button
-          kind="main"
-          variant={finishLeads ? 'secondary' : 'primary'}
-          className={cn('text-base', !finishLeads && 'flex-1', dim)}
-          data-guard={guard?.waiting ? '' : undefined}
-          onClick={press(() => onGo(`${base}/tag/${tagging.setId}`))}
-        >
-          Continue set {tagging.setId}
-        </Button>
-      ) : null}
-      {offerNext ? (
-        <Button
-          kind="main"
-          variant={finishLeads ? 'secondary' : 'primary'}
-          className={cn('text-base', !finishLeads && 'flex-1', dim)}
-          data-guard={guard?.waiting ? '' : undefined}
-          onClick={press(() => onGo(`${base}/tag/${next.setId}`))}
-        >
-          Tag set {next.setId}
-        </Button>
-      ) : null}
-      {canFinishMatch ? (
-        <Button
-          kind="main"
-          variant={finishLeads || (!offerNext && !offerContinue) ? 'primary' : 'secondary'}
-          className={cn('text-base', (finishLeads || (!offerNext && !offerContinue)) && 'flex-1', dim)}
-          data-guard={guard?.waiting ? '' : undefined}
-          onClick={press(onFinishMatch)}
-        >
-          Finish match
-        </Button>
-      ) : null}
-      <Button
-        kind="main"
-        variant={offerNext || offerContinue || canFinishMatch ? 'ghost' : 'primary'}
-        className={cn(dim, !offerNext && !offerContinue && !canFinishMatch && 'flex-1 text-base')}
-        data-guard={guard?.waiting ? '' : undefined}
-        onClick={press(() => onGo(`${base}/tag?from=${setId}`))}
-      >
-        {offerNext || offerContinue || canFinishMatch ? 'Sets' : 'Mark sets'}
-      </Button>
     </div>
   )
 }

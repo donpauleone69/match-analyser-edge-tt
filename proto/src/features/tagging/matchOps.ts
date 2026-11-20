@@ -11,7 +11,7 @@ import {
   type SetMark,
 } from '@/data/demoStore'
 import { otherSide, pointRally, swapPlayers, type Draft, type MarkKind, type RallyData } from './rally'
-import { addPoint, firstServerAt, serverAt, setEndIndex, ZERO, type Points } from './score'
+import { addPoint, countPoints, firstServerAt, isSetWon, serverAt, setEndIndex, ZERO, type Points } from './score'
 import { LONG_GAP_S, serveBands } from './continuity'
 import { markBounds } from './setMark'
 import { firstContactG, insertIndex, lastContactG, segmentsOf, toGlobal, type Segment } from './timeline'
@@ -358,9 +358,24 @@ export const clearSet = (m: MatchRecord, setId: number): MatchRecord => ({
   tagDone: false,
 })
 
-/** The set's place on video. The label is the set number. A legacy not-filmed flag goes. */
+/**
+ * The set's place on video. The label is the set number. A legacy not-filmed flag goes.
+ * Moving the end later on a saved set that was not won opens it again.
+ * Moving the start, or only the complete flag, leaves it saved. A won set stays saved.
+ */
 export function saveMark(m: MatchRecord, setId: number, mark: SetMark): MatchRecord {
-  return inSet(m, setId, (s) => ({ ...s, mark, skipped: false }))
+  const before = m.sets.find((s) => s.setId === setId)
+  const next = inSet(m, setId, (s) => {
+    const segs = segmentsOf(m.videos)
+    const was = s.mark ? toGlobal(segs, s.mark.to.videoId, s.mark.to.t) : null
+    const now = toGlobal(segs, mark.to.videoId, mark.to.t)
+    const later = was !== null && now !== null && now > was + 0.05
+    const won = s.rallies.length > 0 && isSetWon(countPoints(s.rallies.map((r) => r.winner)))
+    const reopen = s.finished && later && !won
+    return { ...s, mark, skipped: false, ...(reopen ? { finished: false } : {}) }
+  })
+  if (before?.finished && next.sets.some((s) => s.setId === setId && !s.finished)) return { ...next, tagDone: false }
+  return next
 }
 
 /**
