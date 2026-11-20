@@ -1,5 +1,6 @@
 import {
   useCallback,
+  useContext,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -7,6 +8,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
+import { createPortal } from 'react-dom'
 import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Button, Icon, buttonKindTapPadSquare, buttonKindTextLink } from '@/ui-mine'
 import { WfEmpty } from '@/layout/Wireframe'
@@ -47,12 +49,15 @@ import {
   applyTaggedResult,
   applyTaggedScore,
   confirmServe,
+  deleteRally,
   dropAfter,
+  editStops,
   finishMatch,
   finishSet,
   flipFirstServer,
   gapWindow,
   insertRallyAt,
+  type EditGapStop,
   latestVideoId,
   leaveMark,
   maxSetNumber,
@@ -280,21 +285,30 @@ function WingTap({
   )
 }
 
+type EditPick = { kind: 'rally'; id: string } | { kind: 'gap'; index: number }
+
 /**
  * This set's rallies, left to right. A grey score sits in front of the first
  * tagged rally. The open rally is dashed, in the server's colour. Newest at
- * the right. The pick sits in the middle.
+ * the right. The pick sits in the middle. Gap slots show in Gaps mode only.
  */
 function SetPills({
   rallies,
   picked,
+  gaps,
+  pickedGap,
   open,
   onPick,
+  onGap,
 }: {
   rallies: RallyData[]
   picked: string | null
+  /** Null hides the slots: Rallies mode, and every screen outside Edit Set. */
+  gaps: EditGapStop[] | null
+  pickedGap: number | null
   open: { n: number; server: Side } | null
   onPick: (r: RallyData) => void
+  onGap: (index: number) => void
 }) {
   const scroller = useRef<HTMLDivElement>(null)
   const end = setEndIndex(rallies.map((r) => r.winner))
@@ -303,18 +317,23 @@ function SetPills({
   while (lead < rallies.length && rallies[lead].point) lead++
   const start = lead > 0 ? countPoints(rallies.slice(0, lead).map((r) => r.winner)) : null
   const pills = rallies.flatMap((r, i) =>
-    r.point ? [] : [{ r, n: i + 1, warn: overrun && i > end }]
+    r.point ? [] : [{ r, n: i + 1, i, warn: overrun && i > end }]
   )
   useLayoutEffect(() => {
     const el = scroller.current
     if (!el) return
-    const pill = picked ? el.querySelector(`[data-pill-id="${picked}"]`) : null
+    const pill =
+      pickedGap !== null
+        ? el.querySelector(`[data-gap-index="${pickedGap}"]`)
+        : picked
+          ? el.querySelector(`[data-pill-id="${picked}"]`)
+          : null
     if (pill instanceof HTMLElement) {
       el.scrollLeft = Math.max(0, pill.offsetLeft - (el.clientWidth - pill.offsetWidth) / 2)
       return
     }
     el.scrollLeft = el.scrollWidth
-  }, [picked, pills.length, open?.n, start?.me, start?.them])
+  }, [picked, pickedGap, pills.length, open?.n, start?.me, start?.them])
   return (
     <div ref={scroller} className="tag-pills" data-set-pills>
       {start ? (
@@ -322,25 +341,45 @@ function SetPills({
           {formatScore(start)}
         </span>
       ) : null}
-      {pills.map(({ r, n, warn }) => (
-        <button
-          key={r.id}
-          type="button"
-          data-set-pill={n}
-          data-pill-id={r.id}
-          data-pill-warn={warn ? '' : undefined}
-          data-pill-on={picked === r.id ? '' : undefined}
-          className={cn(
-            'tag-pill',
-            r.winner === 'me' ? 'bg-side-me' : 'bg-side-them',
-            picked === r.id && 'tag-pill-on',
-            warn && 'tag-pill-warn'
-          )}
-          onClick={() => onPick(r)}
-        >
-          {n}
-        </button>
-      ))}
+      {pills.map(({ r, n, i, warn }) => {
+        const slot = gaps?.find((g) => g.index === i) ?? null
+        const on = slot !== null && slot.index === pickedGap
+        return (
+          <span key={r.id} className="contents">
+            {slot ? (
+              <button
+                type="button"
+                data-gap-slot=""
+                data-gap-index={slot.index}
+                data-on={on ? '' : undefined}
+                className="tag-gap-hit"
+                aria-current={on ? 'true' : undefined}
+                aria-label={`Before rally ${slot.n}`}
+                onClick={() => onGap(slot.index)}
+              >
+                <span className="tag-gap-slot" data-on={on ? '' : undefined} />
+              </button>
+            ) : null}
+            <button
+              type="button"
+              data-set-pill={n}
+              data-pill-id={r.id}
+              data-pill-warn={warn ? '' : undefined}
+              data-pill-on={picked === r.id ? '' : undefined}
+              className={cn(
+                'tag-pill',
+                r.winner === 'me' ? 'bg-side-me' : 'bg-side-them',
+                gaps && 'tag-pill-dim',
+                picked === r.id && 'tag-pill-on',
+                warn && 'tag-pill-warn'
+              )}
+              onClick={() => onPick(r)}
+            >
+              {n}
+            </button>
+          </span>
+        )
+      })}
       {open ? (
         <span
           className={cn('tag-pill tag-pill-open', open.server === 'me' ? 'text-side-me' : 'text-side-them')}
@@ -349,6 +388,80 @@ function SetPills({
           {open.n}
         </span>
       ) : null}
+    </div>
+  )
+}
+
+/** Rallies or Gaps. Landscape sits this on top of the left wing. */
+function KindSwitch({
+  kind,
+  onRally,
+  onGap,
+}: {
+  kind: 'rally' | 'gap'
+  onRally: () => void
+  onGap: () => void
+}) {
+  const wings = useContext(PadWingContext)
+  const node = (
+    <div
+      data-edit-switch
+      role="group"
+      aria-label="What to step"
+      className="flex h-9 shrink-0 overflow-hidden rounded-md border border-border"
+    >
+      <button
+        type="button"
+        data-edit-kind="rally"
+        aria-pressed={kind === 'rally'}
+        className={cn(
+          'min-w-0 flex-1 text-sm font-semibold',
+          kind === 'rally' ? 'bg-brand-primary text-white' : 'bg-bg-card text-primary'
+        )}
+        onClick={onRally}
+      >
+        Rallies
+      </button>
+      <button
+        type="button"
+        data-edit-kind="gap"
+        aria-pressed={kind === 'gap'}
+        className={cn(
+          'min-w-0 flex-1 text-sm font-semibold',
+          kind === 'gap' ? 'bg-brand-primary text-white' : 'bg-bg-card text-primary'
+        )}
+        onClick={onGap}
+      >
+        Gaps
+      </button>
+    </div>
+  )
+  if (wings.left) return createPortal(node, wings.left)
+  return <div className="mb-2">{node}</div>
+}
+
+/** A gap stop names the empty stretch. No buttons. */
+function GapContext({
+  n,
+  seconds,
+  score,
+  server,
+  serverName,
+}: {
+  n: number
+  seconds: number
+  score: string
+  server: Side
+  serverName: string
+}) {
+  return (
+    <div className="flex h-full min-w-0 items-center gap-2 overflow-x-auto px-1 text-sm text-primary" data-gap-context>
+      <span className="shrink-0 font-semibold">Before rally {n}</span>
+      <span className="shrink-0">{seconds} s</span>
+      <span className="shrink-0">at {score}</span>
+      <span className={cn('shrink-0 rounded-md px-2 py-1 text-xs font-semibold', server === 'me' ? 'bg-side-me' : 'bg-side-them')}>
+        {serverName} serves
+      </span>
     </div>
   )
 }
@@ -424,8 +537,8 @@ function TagSet({
   const [start, setStart] = useState<StartPick>(
     () => initialStart ?? { videoId: latestVideoId(match) ?? '', score: ZERO, server: null }
   )
-  /** Edit Set is on, with the rally picked in the Set Row. */
-  const [editPick, setEditPick] = useState<string | null>(null)
+  /** Edit Set is on, standing on one rally or one gap. */
+  const [editPick, setEditPick] = useState<EditPick | null>(null)
   /** The open draft is a change to this saved rally, not a new one. */
   const [editOf, setEditOf] = useState<string | null>(null)
   const bestHold = useRef(false)
@@ -445,6 +558,7 @@ function TagSet({
   const body = useRef<HTMLDivElement>(null)
 
   const have = new Set(match.videos.map((v) => v.id))
+  const stops = useMemo(() => editStops(match, set.setId), [match, set])
   /** Rallies of this set whose video has been removed: tags kept, nothing to play. */
   const goneCount = setRalliesWithoutVideo(match, set)
   /** The open rally sits on a removed video: it cannot be tagged or tapped over. */
@@ -470,8 +584,10 @@ function TagSet({
   const markStart = bounds?.start ?? 0
   const markEnd = bounds?.end ?? null
   const liveFloor = Math.max(markStart, setFloorG(match, set, markStart))
+  const pickedId = editPick?.kind === 'rally' ? editPick.id : null
+  const viewedGap = editPick?.kind === 'gap' ? (stops.gaps.find((g) => g.index === editPick.index) ?? null) : null
   /** Behind the mark start or the last saved rally, and inside a gap when one is open. */
-  const floorG = gap ? Math.max(gap.a, markStart) : liveFloor
+  const floorG = gap ? Math.max(gap.a, markStart) : viewedGap ? viewedGap.a : liveFloor
   const reachedEntered = entered !== null && entered.me === score.me && entered.them === score.them
   /** The set first reaches a winning score at this rally. Rallies after it do not belong. */
   const endIndex = setEndIndex(set.rallies.map((r) => r.winner))
@@ -494,7 +610,7 @@ function TagSet({
             ? 'setPoint'
             : 'watch'
   /** The saved rally being changed or picked in Edit Set. */
-  const editIndex = set.rallies.findIndex((r) => r.id === (editOf ?? editPick))
+  const editIndex = set.rallies.findIndex((r) => r.id === (editOf ?? pickedId))
   const editRally = editIndex >= 0 ? set.rallies[editIndex] : null
   /** What sits in the bottom slot. */
   const slotKind = mode === 'tagging' ? 'save' : mode === 'finished' ? 'finished' : 'pad'
@@ -508,7 +624,7 @@ function TagSet({
   /** Play ran into the ceiling: the next saved rally, or the end of this set's mark. */
   const onCeil = () => {
     if (latest.current.mode === 'tapping') closeContacts()
-    else if (gap) setHint('Stops at the next saved rally')
+    else if (gap || viewedGap) setHint('Stops at the next saved rally')
     else setBoundNote(true)
   }
   const ceilRef = useRef(onCeil)
@@ -518,9 +634,9 @@ function TagSet({
   useEffect(() => {
     const p = playerRef.current
     p.setFloor(floorG)
-    const cap = gap ? Math.min(gap.b, markEnd ?? gap.b) : markEnd
+    const cap = gap ? Math.min(gap.b, markEnd ?? gap.b) : viewedGap ? viewedGap.b : markEnd
     p.setCeil(cap, () => ceilRef.current())
-  }, [floorG, gap, markEnd])
+  }, [floorG, gap, viewedGap, markEnd])
 
   const offsetOf = (videoId: string, all: Segment[] = segs) => toGlobal(all, videoId, 0) ?? 0
   const durationOf = (videoId: string) => match.videos.find((v) => v.id === videoId)?.durationS ?? 0
@@ -1126,11 +1242,52 @@ function TagSet({
 
   /** Edit Set: the picked rally loops at full speed. */
   const loopPick = (r: RallyData) => {
-    setEditPick(r.id)
+    setEditPick({ kind: 'rally', id: r.id })
+    setGap(null)
     setBestSaved(null)
     bestHold.current = false
     setBestHoldOn(false)
     playBest(draftFromRally(r), 'rally')
+  }
+
+  /** A gap stop loops edge to edge at the watch speed, fenced inside itself. */
+  const loopGap = (stop: EditGapStop) => {
+    if (live) {
+      mutateMatch(match.id, (m) => setDraft(m, set.setId, null))
+      setEditOf(null)
+    }
+    setEditPick({ kind: 'gap', index: stop.index })
+    setGap(null)
+    setBestSaved(null)
+    bestHold.current = false
+    setBestHoldOn(false)
+    loopWhat.current = null
+    setBestSpan(null)
+    const p = playerRef.current
+    p.setBoundary(null)
+    p.setRate(watchRate.current)
+    p.setFloor(stop.a)
+    p.setCeil(stop.b, () => ceilRef.current())
+    p.setLoop({ a: stop.a, b: stop.b })
+    p.seek(stop.a)
+    p.play()
+  }
+
+  /** The switch keeps the place: rally 5 pairs with the gap before rally 5. */
+  const flipKind = (kind: 'rally' | 'gap') => {
+    if (!editPick || editPick.kind === kind) return
+    if (kind === 'rally') {
+      const from = stops.gaps.find((g) => editPick.kind === 'gap' && g.index === editPick.index)
+      const rally = (from ? stops.rallies.find((r) => r.n === from.n) : null) ?? stops.rallies[0]
+      const row = rally ? set.rallies.find((r) => r.id === rally.id) : undefined
+      if (row) loopPick(row)
+      return
+    }
+    if (editPick.kind !== 'rally') return
+    const from = stops.rallies.find((r) => r.id === editPick.id)
+    if (!from) return
+    const stop = stops.gaps.find((g) => g.n === from.n) ?? stops.gaps.find((g) => g.n > from.n) ?? null
+    if (stop) loopGap(stop)
   }
 
   /** Rallies Edit Set can pick: saved, with video. */
@@ -1152,6 +1309,10 @@ function TagSet({
 
   const onEditSet = () => {
     if (editPick !== null) {
+      if (live && live.contacts.length > 0) {
+        setHint(`Save or discard rally ${gap ? gap.index + 1 : set.rallies.length + 1} first`)
+        return
+      }
       doneEdit()
       return
     }
@@ -1168,22 +1329,81 @@ function TagSet({
     loopPick(first)
   }
 
-  const pickAt = pickable.findIndex((r) => r.id === editPick)
+  const stepList = editPick?.kind === 'gap' ? stops.gaps : stops.rallies
+  const stepAt =
+    editPick?.kind === 'gap'
+      ? stops.gaps.findIndex((g) => g.index === editPick.index)
+      : stops.rallies.findIndex((r) => r.id === pickedId)
   /** The pad's Edit: the picked rally's End opens, the question that moves the score. */
   const onPickEdit = () => {
-    const r = pickable[pickAt]
+    const r = pickable.find((row) => row.id === pickedId)
     if (r) openEditCell(r.id, r.contacts.length)
   }
 
+  /** Back and Forward step only the kind the switch shows. */
   const stepPick = (by: -1 | 1) => {
-    const i = pickable.findIndex((r) => r.id === editPick)
-    const next = pickable[i + by]
-    if (!next) return
+    if (!editPick) return
     if (live) {
       mutateMatch(match.id, (m) => setDraft(m, set.setId, null))
       setEditOf(null)
     }
-    loopPick(next)
+    if (editPick.kind === 'rally') {
+      const next = stops.rallies[stops.rallies.findIndex((r) => r.id === editPick.id) + by]
+      const row = next ? set.rallies.find((r) => r.id === next.id) : undefined
+      if (row) loopPick(row)
+      return
+    }
+    const next = stops.gaps[stops.gaps.findIndex((g) => g.index === editPick.index) + by]
+    if (next) loopGap(next)
+  }
+
+  const onGapSlot = (index: number) => {
+    const stop = stops.gaps.find((g) => g.index === index)
+    if (stop) loopGap(stop)
+  }
+
+  /** A tap on the seek bar picks the rally or the gap under the finger. */
+  const pickAtTime = (g: number) => {
+    if (!editPick || gap) return
+    const all = segmentsOf(match.videos)
+    const rally = set.rallies.find((r) => {
+      if (r.point || !have.has(r.videoId)) return false
+      const a = firstContactG(all, r)
+      const b = lastContactG(all, r)
+      return a !== null && b !== null && g >= a - 0.05 && g <= Math.max(a, b) + 0.05
+    })
+    if (rally) {
+      loopPick(rally)
+      return
+    }
+    const hit = stops.gaps.find((stop) => g >= stop.a - 0.05 && g <= stop.b + 0.05)
+    if (hit) loopGap(hit)
+  }
+
+  const onDeletePicked = () => {
+    if (readOnly || editPick?.kind !== 'rally') return
+    const rally = stops.rallies.find((r) => r.id === editPick.id)
+    if (!rally) return
+    const before = set
+    const apply = (m: MatchRecord) => settleFinished(deleteRally(m, set.setId, rally.id), set.setId)
+    const after = setAfter(apply)
+    mutateMatch(match.id, apply)
+    const next = editStops(apply(match), set.setId)
+    const stay = next.rallies.find((r) => r.n === rally.n) ?? next.rallies[next.rallies.length - 1]
+    const row = stay ? after.rallies.find((r) => r.id === stay.id) : undefined
+    const reopened = set.finished && !after.finished
+    withUndo(
+      reopened
+        ? `Set ${set.setId} is open again at ${formatScore(taggedScore(after) ?? ZERO)}`
+        : `Rally ${rally.n} deleted`,
+      before,
+      () => {
+        const back = before.rallies.find((r) => r.id === rally.id)
+        if (back) loopPick(back)
+      }
+    )
+    if (row) loopPick(row)
+    else doneEdit()
   }
 
   /** Drop the change being made and go back to the rally as saved. */
@@ -1634,9 +1854,9 @@ function TagSet({
       const a = firstContactG(all, r)
       const b = lastContactG(all, r)
       if (a === null || b === null) return []
-      return [{ a, b, on: editPick === r.id }]
+      return [{ a, b, on: pickedId === r.id }]
     })
-  }, [match.videos, set.rallies, editPick])
+  }, [match.videos, set.rallies, pickedId])
 
   const openRange = active
     ? {
@@ -1680,7 +1900,9 @@ function TagSet({
       : mode === 'start'
         ? 'Find the first serve.'
         : mode === 'edit'
-          ? `Rally ${editIndex + 1} of ${set.rallies.length} · ${formatScore(countPoints(set.rallies.slice(0, editIndex + 1).map((r) => r.winner)))}`
+          ? viewedGap
+            ? `Before rally ${viewedGap.n} · ${Math.round(viewedGap.b - viewedGap.a)} s`
+            : `Rally ${editIndex + 1} of ${set.rallies.length} · ${formatScore(countPoints(set.rallies.slice(0, editIndex + 1).map((r) => r.winner)))}`
       : reviewLine
         ? reviewLine
         : mode === 'finished'
@@ -1763,7 +1985,7 @@ function TagSet({
   )
   const overGuard = useActionGuard(overCard ? 'shown' : 'shut')
   const afterGuard = useActionGuard(mode === 'finished' ? 'done' : 'open')
-  const editGuard = useActionGuard(editPick !== null ? 'open' : 'shut')
+  const editGuard = useActionGuard(editPick === null ? 'shut' : editPick.kind)
   const guarded = (guard: ActionGuard, fn: () => void) => () => {
     if (!guard.allow()) return
     fn()
@@ -1857,8 +2079,15 @@ function TagSet({
               span={seekSpan}
               time={player.time}
               spans={seekSpans}
-              band={openRange ? { a: openRange.a, b: openRange.b } : null}
+              band={
+                viewedGap
+                  ? { a: viewedGap.a, b: viewedGap.b }
+                  : openRange
+                    ? { a: openRange.a, b: openRange.b }
+                    : null
+              }
               onSeek={seekTo}
+              onPick={editPick && !gap ? pickAtTime : undefined}
             />
           }
         />
@@ -1867,9 +2096,12 @@ function TagSet({
         <h1 className="min-w-0 shrink truncate text-sm font-bold text-primary">Set {set.setId}</h1>
         <SetPills
           rallies={set.rallies}
-          picked={editPick}
-          open={set.finished ? null : { n: set.rallies.length + 1, server: nextServer }}
+          picked={pickedId}
+          gaps={editPick?.kind === 'gap' ? stops.gaps : null}
+          pickedGap={editPick?.kind === 'gap' ? editPick.index : null}
+          open={editPick !== null || set.finished ? null : { n: set.rallies.length + 1, server: nextServer }}
           onPick={openEditRally}
+          onGap={onGapSlot}
         />
         <Button
           size="sm"
@@ -1897,6 +2129,14 @@ function TagSet({
           <div className="flex h-8 min-w-0 items-center gap-1.5" data-start-row>
             <span className="shrink-0 px-1 text-sm font-semibold text-primary">Find the first serve.</span>
           </div>
+        ) : viewedGap && mode === 'edit' ? (
+          <GapContext
+            n={viewedGap.n}
+            seconds={Math.round(viewedGap.b - viewedGap.a)}
+            score={formatScore(countPoints(set.rallies.slice(0, viewedGap.index).map((r) => r.winner)))}
+            server={expectedServer(set.rallies, set.firstServer, viewedGap.index)}
+            serverName={names[expectedServer(set.rallies, set.firstServer, viewedGap.index)]}
+          />
         ) : (
         <BestRallyRow
             draft={pickDraft ?? bestRowDraft}
@@ -1912,7 +2152,7 @@ function TagSet({
             names={names}
             server={(pickDraft ?? bestRowDraft)?.server ?? nextServer}
             checking={bestCheck}
-            onCell={pickDraft && editPick ? (shot) => openEditCell(editPick, shot) : onBestCell}
+            onCell={pickDraft && pickedId ? (shot) => openEditCell(pickedId, shot) : onBestCell}
             onMinus={onBestMinus}
             onCheck={onBestCheck}
             onStar={pickDraft ? () => updatePicked((d) => ({ ...d, highlight: !d.highlight })) : onBestStar}
@@ -2056,13 +2296,17 @@ function TagSet({
                 </Button>
               </div>
             ) : null}
-            {mode === 'edit' && editRally ? (
+            {mode === 'edit' && editPick ? (
               <div className="flex min-h-0 flex-1 flex-col pt-2" data-edit-pad>
+                <KindSwitch
+                  kind={editPick.kind}
+                  onRally={() => flipKind('rally')}
+                  onGap={() => flipKind('gap')}
+                />
                 <CornerPad
-                  label={`Rally ${editIndex + 1}`}
+                  label={viewedGap ? `Before rally ${viewedGap.n}` : `Rally ${editIndex + 1}`}
                   showName={false}
                   split={padSplit}
-                  dim={editGuard.waiting}
                   columns="1fr 1fr"
                   rows="1fr 1fr"
                   regions={[
@@ -2073,9 +2317,9 @@ function TagSet({
                       on: false,
                       bg: '#334155',
                       fg: '#fff',
-                      onClick: guarded(editGuard, () => stepPick(-1)),
+                      onClick: () => stepPick(-1),
                       data: { 'data-edit-step': 'back' },
-                      style: { gridColumn: '1', gridRow: '1', opacity: pickAt > 0 ? 1 : 0.4 },
+                      style: { gridColumn: '1', gridRow: '1', opacity: stepAt > 0 ? 1 : 0.4 },
                     },
                     {
                       key: 'forward',
@@ -2084,21 +2328,65 @@ function TagSet({
                       on: false,
                       bg: '#334155',
                       fg: '#fff',
-                      onClick: guarded(editGuard, () => stepPick(1)),
+                      onClick: () => stepPick(1),
                       data: { 'data-edit-step': 'forward' },
-                      style: { gridColumn: '2', gridRow: '1', opacity: pickAt < pickable.length - 1 ? 1 : 0.4 },
+                      style: { gridColumn: '2', gridRow: '1', flex: '1 1 50%', opacity: stepAt < stepList.length - 1 ? 1 : 0.4 },
                     },
-                    {
-                      key: 'edit',
-                      label: `Edit rally ${editIndex + 1}`,
-                      side: 'right',
-                      on: false,
-                      bg: 'var(--color-brand-primary)',
-                      fg: '#fff',
-                      onClick: guarded(editGuard, onPickEdit),
-                      data: { 'data-edit-select': '' },
-                      style: { gridColumn: '1 / span 2', gridRow: '2', opacity: readOnly ? 0.4 : 1 },
-                    },
+                    ...(editPick.kind === 'rally'
+                      ? [
+                          {
+                            key: 'edit',
+                            label: `Edit rally ${editIndex + 1}`,
+                            side: 'right' as const,
+                            on: false,
+                            bg: 'var(--color-brand-primary)',
+                            fg: '#fff',
+                            onClick: guarded(editGuard, onPickEdit),
+                            data: { 'data-edit-select': '' },
+                            style: {
+                              gridColumn: '1',
+                              gridRow: '2',
+                              flex: '1 1 25%',
+                              opacity: readOnly || editGuard.waiting ? 0.4 : 1,
+                            },
+                          },
+                          {
+                            key: 'delete',
+                            label: `Delete rally ${editIndex + 1}`,
+                            side: 'right' as const,
+                            on: false,
+                            bg: '#7f1d1d',
+                            fg: '#fff',
+                            onClick: guarded(editGuard, onDeletePicked),
+                            data: { 'data-edit-delete': '' },
+                            style: {
+                              gridColumn: '2',
+                              gridRow: '2',
+                              flex: '1 1 25%',
+                              opacity: readOnly || editGuard.waiting ? 0.4 : 1,
+                            },
+                          },
+                        ]
+                      : [
+                          {
+                            key: 'insert',
+                            label: `Insert rally ${viewedGap?.n ?? ''}`,
+                            side: 'right' as const,
+                            on: false,
+                            bg: 'var(--color-brand-primary)',
+                            fg: '#fff',
+                            onClick: guarded(editGuard, () => {
+                              if (viewedGap) onAddRally(viewedGap.index)
+                            }),
+                            data: { 'data-edit-insert': '' },
+                            style: {
+                              gridColumn: '1 / span 2',
+                              gridRow: '2',
+                              flex: '1 1 50%',
+                              opacity: readOnly || editGuard.waiting ? 0.4 : 1,
+                            },
+                          },
+                        ]),
                   ]}
                 />
               </div>

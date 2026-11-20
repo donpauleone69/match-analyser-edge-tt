@@ -171,6 +171,28 @@ export const MIN_GAP_S = 1
  * of the rally before it to the first contact of the rally it goes in front of.
  * Null when either neighbour's video is gone, or there is no room between them.
  */
+export type EditRallyStop = { kind: 'rally'; id: string; n: number; index: number }
+export type EditGapStop = { kind: 'gap'; index: number; n: number; a: number; b: number }
+
+/** Rallies and gaps Edit Set can stand on. Score-only points are not stops. */
+export function editStops(m: MatchRecord, setId: number): { rallies: EditRallyStop[]; gaps: EditGapStop[] } {
+  const s = m.sets.find((x) => x.setId === setId)
+  if (!s) return { rallies: [], gaps: [] }
+  const have = new Set(m.videos.map((v) => v.id))
+  const rallies: EditRallyStop[] = []
+  s.rallies.forEach((r, index) => {
+    if (r.point || !have.has(r.videoId)) return
+    rallies.push({ kind: 'rally', id: r.id, n: index + 1, index })
+  })
+  const gaps: EditGapStop[] = []
+  for (const stop of rallies) {
+    const w = gapWindow(m, setId, stop.index)
+    if (!w) continue
+    gaps.push({ kind: 'gap', index: stop.index, n: stop.n, a: w.a, b: w.b })
+  }
+  return { rallies, gaps }
+}
+
 export function gapWindow(m: MatchRecord, setId: number, index: number): { a: number; b: number } | null {
   const s = m.sets.find((x) => x.setId === setId)
   if (!s) return null
