@@ -48,8 +48,57 @@ export function tagRegions(p: {
   onEditRally: () => void
   onDeleteRally: () => void
   onInsert: () => void
+  review: boolean
+  reviewPart: string
+  reviewMarked: boolean
+  reviewBackDim: boolean
+  reviewForwardDim: boolean
+  onReviewBack: () => void
+  onReviewForward: () => void
+  onReviewMark: () => void
 }): { regions: AreaRegion[]; attrs: Record<string, string | undefined> } {
   const attrs: Record<string, string | undefined> = {}
+  const AMBER = 'var(--color-warning)'
+  if (p.review) {
+    attrs['data-review'] = ''
+    return {
+      regions: [
+        region({
+          key: 'back',
+          label: 'Back',
+          column: 1,
+          row: 0,
+          bg: SLATE,
+          fg: '#fff',
+          dim: p.reviewBackDim,
+          onClick: p.onReviewBack,
+          data: { 'data-review-step': 'back' },
+        }),
+        region({
+          key: 'forward',
+          label: 'Forward',
+          column: 2,
+          row: 0,
+          bg: SLATE,
+          fg: '#fff',
+          dim: p.reviewForwardDim,
+          onClick: p.onReviewForward,
+          data: { 'data-review-step': 'forward' },
+        }),
+        region({
+          key: 'mark',
+          label: `Review ${p.reviewPart}`,
+          column: 1,
+          row: 1,
+          bg: p.reviewMarked ? AMBER : SLATE,
+          fg: p.reviewMarked ? '#0b1220' : '#fff',
+          onClick: p.onReviewMark,
+          data: { 'data-review-mark': p.reviewPart },
+        }),
+      ],
+      attrs,
+    }
+  }
   if (p.shotEdit) {
     attrs['data-edit-rally'] = ''
     attrs['data-edit-stop'] = p.editStop

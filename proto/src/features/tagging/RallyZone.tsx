@@ -1,18 +1,18 @@
 import { Icon } from '@/ui-mine'
 import { cn } from '@/helpers/utils'
 import { restStyle } from './AnswerCells'
-import { bestOpener, cellMark, PART_LABEL, partsOf, type BestAt } from './bestFlow'
-import { filled, PartLabel, railCell, shotPaint } from './BestPanel'
+import { bestOpener, cellMark, partsOf, type BestAt, type BestPart } from './bestFlow'
+import { PartLabel, railCell, shotPaint } from './BestPanel'
 import { hitterOf, type Draft, type Side } from './rally'
 import { zoneButton, zonePressed, zoneRest } from './zoneButton'
 
 /**
  * The Rally Zone. One layout for every state: a head, the score before the
  * point, a word when the row is a gap or an insert, then the actions. The
- * shot row and the part row sit under it. A mode only changes what fills
- * those places.
+ * shot row and the part lines sit under it. Review fills the shot row with
+ * part chips. A mode only changes what fills those places.
  */
-export type RallyState = 'before' | 'gap' | 'insert' | 'tapping' | 'answering' | 'saved' | 'editing'
+export type RallyState = 'before' | 'gap' | 'insert' | 'tapping' | 'answering' | 'saved' | 'editing' | 'review'
 
 export function RallyZone({
   state,
@@ -29,6 +29,8 @@ export function RallyZone({
   word,
   tight,
   pressed,
+  reviewFocus,
+  starDim,
   onEdit,
   onStar,
   onDiscard,
@@ -52,6 +54,10 @@ export function RallyZone({
   word: string | null
   tight: boolean
   pressed: boolean
+  /** The part the review pad is on. Ringed while review mode is on. */
+  reviewFocus?: BestPart | null
+  /** Set over's hold: the star is shown, dim, and ignored. */
+  starDim?: boolean
   onEdit?: () => void
   onStar?: () => void
   onDiscard?: () => void
@@ -136,11 +142,15 @@ export function RallyZone({
             <button
               type="button"
               data-best-star="rally"
-              aria-label="Highlight this rally"
-              aria-pressed={Boolean(draft?.highlight)}
-              className={cn(zoneButton, 'w-8 px-0')}
-              style={draft?.highlight ? zonePressed() : zoneRest()}
-              onClick={onStar}
+              data-guard={starDim ? '' : undefined}
+              aria-label="Review"
+              aria-pressed={state === 'review'}
+              className={cn(zoneButton, 'w-8 px-0', starDim && 'opacity-60')}
+              style={state === 'review' ? zonePressed() : zoneRest()}
+              onClick={() => {
+                if (starDim) return
+                onStar()
+              }}
             >
               <Icon name="star" size="xs" />
             </button>
@@ -160,8 +170,38 @@ export function RallyZone({
           ) : null}
         </span>
       </div>
-      <div className="grid min-w-0 justify-start gap-x-1 gap-y-1" style={{ gridTemplateColumns: columns }} data-best-cells>
-        {draft
+      <div className="grid min-w-0 justify-start gap-x-1" style={{ gridTemplateColumns: columns, rowGap: 2 }} data-best-cells>
+        {state === 'review' && closed && draft
+          ? parts.map((p, g) => {
+              const marked = Boolean(draft.best?.review?.includes(p.part))
+              const focused = reviewFocus === p.part
+              return (
+                <span
+                  key={p.part}
+                  data-review-chip={p.part}
+                  data-part-on={marked ? '' : undefined}
+                  data-from={p.from}
+                  data-to={p.to}
+                  data-edit-focus={focused ? '' : undefined}
+                  aria-current={focused ? 'step' : undefined}
+                  className={cn(
+                    'flex h-4 min-w-0 items-center justify-center whitespace-nowrap rounded-md border px-0 font-semibold',
+                    focused && 'edit-stop-on',
+                  )}
+                  style={{
+                    gridRow: 1,
+                    gridColumn: `${p.from + g} / span ${p.to - p.from + 1}`,
+                    ...(marked
+                      ? { backgroundColor: 'var(--color-warning)', borderColor: 'var(--color-warning)', color: '#0b1220' }
+                      : { ...restStyle(), color: 'var(--color-text)' }),
+                  }}
+                >
+                  <PartLabel part={p.part} />
+                </span>
+              )
+            })
+          : null}
+        {state !== 'review' && draft
           ? draft.contacts.map((_, i) => {
               const shot = i + 1
               const side = hitterOf(draft.server, shot)
@@ -212,7 +252,7 @@ export function RallyZone({
               )
             })
           : null}
-        {tapping || n === 0 ? (
+        {state !== 'review' && (tapping || n === 0) ? (
           <span
             aria-hidden
             data-best-ghost
@@ -222,30 +262,26 @@ export function RallyZone({
             {n + 1}
           </span>
         ) : null}
-        <span aria-hidden data-best-phases className="h-4" style={{ gridRow: 2, gridColumn: '1 / -1' }} />
+        <span aria-hidden data-best-phases style={{ gridRow: 2, gridColumn: '1 / -1' }} />
         {closed && draft && server
           ? parts.map((p, g) => {
               const marked = Boolean(draft.best?.review?.includes(p.part))
+              const last = parts[parts.length - 1]
+              const lineFocus = state === 'editing' && focus === 'end' && p.part === last?.part
               return (
                 <span
                   key={p.part}
                   data-best-part={p.part}
-                  data-best-flag={marked ? '' : undefined}
-                  data-label={marked ? `⚑ ${PART_LABEL[p.part]}` : PART_LABEL[p.part]}
+                  data-part-on={marked ? '' : undefined}
                   data-from={p.from}
                   data-to={p.to}
-                  className={cn(
-                    'flex h-4 min-w-0 items-center justify-center whitespace-nowrap rounded-md border px-0 font-semibold',
-                    focus === 'end' && p.part === 'end' && 'edit-stop-on',
-                  )}
+                  className={cn('block min-w-0 rounded-full', lineFocus && 'edit-stop-on')}
                   style={{
                     gridRow: 2,
                     gridColumn: `${p.from + g} / span ${p.to - p.from + 1}`,
-                    ...(marked ? filled() : { ...restStyle(), color: 'var(--color-text)' }),
+                    backgroundColor: marked ? 'var(--color-warning)' : 'var(--color-border)',
                   }}
-                >
-                  <PartLabel part={p.part} marked={marked} />
-                </span>
+                />
               )
             })
           : null}

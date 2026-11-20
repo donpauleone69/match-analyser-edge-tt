@@ -86,17 +86,24 @@ import {
   draftFromRally,
   editStopWindow,
   loadBestTiming,
+  PART_LABEL,
+  partWindow,
+  partsOf,
   pointDone,
   removeBestContact,
+  reviewFocusOf,
   routeAfter,
   saveBestTiming,
   setDepth,
   setWingStroke,
   stepEditStop,
+  stepPart,
+  toggleReview,
   withStep,
   type BestAt,
   type BestEnd,
   type BestLoopWhat,
+  type BestPart,
   type BestTiming,
 } from './bestFlow'
 import { useActionGuard, type ActionGuard } from './pressGuard'
@@ -225,6 +232,11 @@ function TagSet({
   const landscape = useLandscape()
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [bestSpan, setBestSpan] = useState<{ a: number; b: number } | null>(null)
+  /** The star's review mode. Freed by v0.17.17. Edit Rally and this are exclusive. */
+  const [review, setReview] = useState(false)
+  const [reviewFocus, setReviewFocus] = useState<BestPart | null>(null)
+  const reviewRef = useRef(false)
+  const reviewPlay = useRef<{ d: Draft; part: BestPart } | null>(null)
   const loopWhat = useRef<{ what: BestLoopWhat; rate: number } | null>(null)
   const setBestTiming = (next: BestTiming) => {
     setTiming(next)
@@ -316,10 +328,10 @@ function TagSet({
   const editIndex = set.rallies.findIndex((r) => r.id === (editOf ?? pickedId))
   const editRally = editIndex >= 0 ? set.rallies[editIndex] : null
 
-  const latest = useRef({ live, set, match, floorG, segs, mode, selected, tight, nextServer, stage, flowWanted })
+  const latest = useRef({ live, set, match, floorG, segs, mode, selected, tight, nextServer, stage, flowWanted, review })
   useEffect(() => {
     playerRef.current = player
-    latest.current = { live, set, match, floorG, segs, mode, selected, tight, nextServer, stage, flowWanted }
+    latest.current = { live, set, match, floorG, segs, mode, selected, tight, nextServer, stage, flowWanted, review }
   })
 
   /** Play ran into the ceiling: the next saved rally, or the end of this set's mark. */
@@ -345,6 +357,7 @@ function TagSet({
   /** Best step loop, in match time. Shot loops play at 0.75x. A contact check plays at half speed. */
   const playBest = (d: Draft, what: BestLoopWhat, rate?: number) => {
     const speed = rate ?? (what === 'rally' ? 1 : BEST_SHOT_RATE)
+    reviewPlay.current = null
     loopWhat.current = { what, rate: speed }
     const w = bestLoop(d, what, timing, speed)
     const off = offsetOf(d.videoId)
@@ -362,6 +375,7 @@ function TagSet({
   }
   /** Edit Rally loops the focused stop. Shot 1 starts a second before the serve. */
   const playEditStop = (d: Draft, stop: number | 'end') => {
+    reviewPlay.current = null
     loopWhat.current = null
     const w = editStopWindow(d, stop, timing, SERVE_BEFORE_S, SERVE_AFTER_S)
     const off = offsetOf(d.videoId)
@@ -376,10 +390,34 @@ function TagSet({
     p.seek(a)
     p.play()
   }
+  /** Review loops the focused part at 1x. A part is several shots, so it is not the shot rate. */
+  const playPart = (d: Draft, part: BestPart) => {
+    const span = partsOf(d).find((item) => item.part === part)
+    if (!span) return
+    loopWhat.current = null
+    reviewPlay.current = { d, part }
+    const w = partWindow(d, span, timing, SERVE_BEFORE_S)
+    const off = offsetOf(d.videoId)
+    const max = durationOf(d.videoId)
+    const p = playerRef.current
+    p.setBoundary(null)
+    p.setRate(1)
+    const a = off + Math.max(0, w.a)
+    const b = off + Math.min(max, Math.max(w.b, w.a + 0.3))
+    setBestSpan({ a, b })
+    p.setLoop({ a, b })
+    p.seek(a)
+    p.play()
+  }
   const timingSeen = useRef(false)
   useEffect(() => {
     if (!timingSeen.current) {
       timingSeen.current = true
+      return
+    }
+    const part = reviewPlay.current
+    if (part) {
+      playPart(part.d, part.part)
       return
     }
     const cur = loopWhat.current
@@ -1083,7 +1121,7 @@ function TagSet({
     else parkLive(after)
   }
 
-  /** Part buttons and ★ on the saved row change the saved rally. The video keeps playing. */
+  /** Review marks on the saved row change the saved rally. The video keeps playing. */
   const updateSaved = (d: Draft) => {
     if (!bestSaved || readOnly) return
     const winner = d.best?.point
@@ -1101,11 +1139,28 @@ function TagSet({
     setBestSaved(null)
     bestHold.current = false
     setBestHoldOn(false)
-    playBest(draftFromRally(r), 'rally')
+    const d = draftFromRally(r)
+    if (reviewRef.current) {
+      const part = reviewFocusOf(d)
+      if (part) {
+        setReviewFocus(part)
+        playPart(d, part)
+        return
+      }
+    }
+    playBest(d, 'rally')
   }
 
   /** A gap stop loops edge to edge at the watch speed, fenced inside itself. */
+  const clearReview = () => {
+    reviewRef.current = false
+    reviewPlay.current = null
+    setReview(false)
+    setReviewFocus(null)
+  }
+
   const loopGap = (stop: EditGapStop) => {
+    clearReview()
     if (live) {
       mutateMatch(match.id, (m) => setDraft(m, set.setId, null))
       setEditOf(null)
@@ -1288,6 +1343,7 @@ function TagSet({
 
   const doneEdit = () => {
     if (endStillOpen()) return
+    clearReview()
     setShotEdit(null)
     if (live) mutateMatch(match.id, (m) => setDraft(m, set.setId, null))
     setGap(null)
@@ -1313,7 +1369,7 @@ function TagSet({
     parkLive(setAfter((m) => dropAfter(m, set.setId, endIndex)))
   }
 
-  /** The rally picked in Edit Set, shown as saved. Parts and ★ change it at once. */
+  /** The rally picked in Edit Set, shown as saved. Review marks change it at once. */
   const pickDraft = mode === 'edit' && editRally ? draftFromRally(editRally) : null
   const updatePicked = (fn: (d: Draft) => Draft) => {
     if (!editRally || readOnly) return
@@ -1368,11 +1424,89 @@ function TagSet({
     routeBest(setDepth(live, depth, wing))
   }
 
-  const onBestStar = () => {
-    if (live?.closed) writeDraft({ ...live, highlight: !live.highlight })
-    else if ((!live || live.contacts.length === 0) && bestSaved) {
-      updateSaved({ ...bestSaved.draft, highlight: !bestSaved.draft.highlight })
+  /** The rally on screen while the star can open review. */
+  const reviewDraft = (): Draft | null => {
+    if (shotEdit?.rallyId && live) return live
+    if (pickDraft) return pickDraft
+    if (bestRowSaved && bestSaved) return bestSaved.draft
+    return null
+  }
+
+  const commitMark = (d: Draft) => {
+    if (shotEdit?.rallyId) {
+      applyShotDraft(d, shotEdit.rallyId)
+      return
     }
+    if (pickDraft && editRally) {
+      updatePicked(() => d)
+      return
+    }
+    if (bestSaved) updateSaved(d)
+    else if (live?.closed) writeDraft(d)
+  }
+
+  const openReview = (d: Draft) => {
+    const part = reviewFocusOf(d)
+    if (!part) return
+    reviewRef.current = true
+    setReview(true)
+    setReviewFocus(part)
+    playPart(d, part)
+  }
+
+  /** Press the star. On, the parts take the shot row. Off, the mode underneath comes back. */
+  const onReviewStar = () => {
+    if (bestHoldOn || readOnly) return
+    if (reviewRef.current) {
+      reviewRef.current = false
+      reviewPlay.current = null
+      setReview(false)
+      setReviewFocus(null)
+      if (editPick?.kind === 'rally') {
+        const row = set.rallies.find((r) => r.id === editPick.id)
+        if (row) playBest(draftFromRally(row), 'rally')
+        return
+      }
+      const d = reviewDraft()
+      const p = playerRef.current
+      p.setLoop(null)
+      p.setRate(watchRate.current)
+      if (d) p.seek(offsetOf(d.videoId) + rallyEnd(d))
+      p.pause()
+      return
+    }
+    if (shotEdit) {
+      if (endStillOpen()) return
+      const cur = shotEdit
+      if (!cur.rallyId) return
+      const row = set.rallies.find((r) => r.id === cur.rallyId)
+      setShotEdit(null)
+      mutateMatch(match.id, (m) => setDraft(m, set.setId, null))
+      setEditOf(null)
+      if (!row) return
+      if (cur.back === 'set') setEditPick({ kind: 'rally', id: row.id })
+      else setBestSaved({ rallyId: row.id, draft: draftFromRally(row) })
+      openReview(draftFromRally(row))
+      return
+    }
+    const d = reviewDraft()
+    if (d) openReview(d)
+  }
+
+  const stepReview = (by: -1 | 1) => {
+    const d = reviewDraft()
+    if (!d || !reviewFocus) return
+    const parts = partsOf(d).map((span) => span.part)
+    if (parts.length < 2) return
+    const next = stepPart(parts, reviewFocus, by)
+    setReviewFocus(next)
+    playPart(d, next)
+  }
+
+  const onReviewMark = () => {
+    const d = reviewDraft()
+    if (!d || !reviewFocus || readOnly) return
+    commitMark(toggleReview(d, reviewFocus))
   }
 
   /** Add rally: the video goes to the gap in front of rally `index`, fenced on both sides. */
@@ -1436,6 +1570,7 @@ function TagSet({
       if (key === ' ') {
         e.preventDefault()
         if (e.repeat) return
+        if (now.review) return
         if (now.mode === 'watch' || now.mode === 'tapping' || now.mode === 'setPoint') k.onPad()
         // While tagging, a Space that comes too late does nothing.
         else if (now.mode !== 'tagging') toggle()
@@ -1598,7 +1733,8 @@ function TagSet({
       : gap
         ? 'Insert'
         : null
-  const rallyActions = rallyState === 'answering' || rallyState === 'saved' || rallyState === 'editing'
+  /** The star is for a saved rally. It stays hidden while questions are open, and while Edit Rally was opened from a question. */
+  const starBase = rallyState === 'saved' || (rallyState === 'editing' && Boolean(shotEdit?.rallyId))
   const bestAccount = (() => {
     if (!live || live.contacts.length === 0) return null
     const winner = pointDone(live, bestRallyOne) ? winnerOf(live) : null
@@ -1699,6 +1835,17 @@ function TagSet({
       (atEnd || boundNote) &&
       !set.finished,
   )
+  const starShown = starBase && !atEndPad
+  const reviewDraftNow = review && starShown ? reviewDraft() : null
+  const reviewParts = reviewDraftNow ? partsOf(reviewDraftNow) : []
+  const reviewMarked = Boolean(reviewFocus && reviewDraftNow?.best?.review?.includes(reviewFocus))
+  useEffect(() => {
+    if (!review || starShown) return
+    reviewRef.current = false
+    reviewPlay.current = null
+    setReview(false)
+    setReviewFocus(null)
+  }, [review, starShown])
   const area = tagRegions({
     mode,
     bestOn,
@@ -1743,6 +1890,14 @@ function TagSet({
     onInsert: guarded(editGuard, () => {
       if (viewedGap) onAddRally(viewedGap.index)
     }),
+    review: Boolean(reviewDraftNow),
+    reviewPart: reviewFocus ? PART_LABEL[reviewFocus] : '',
+    reviewMarked,
+    reviewBackDim: reviewParts.length < 2,
+    reviewForwardDim: reviewParts.length < 2,
+    onReviewBack: () => stepReview(-1),
+    onReviewForward: () => stepReview(1),
+    onReviewMark,
   })
 
   return (
@@ -1752,6 +1907,7 @@ function TagSet({
       data-tag-mode={mode}
       data-flow={flowShown}
       data-best-look={bestLook ? '' : undefined}
+      data-review={reviewDraftNow ? '' : undefined}
       data-tag-stage={stage ?? ''}
       data-playing={player.playing}
       data-rate={player.rate}
@@ -1852,7 +2008,7 @@ function TagSet({
           />
         ) : null}
         <RallyZone
-          state={atEndPad ? 'before' : rallyState}
+          state={atEndPad ? 'before' : reviewDraftNow ? 'review' : rallyState}
           draft={atEndPad ? null : rowDraft}
           at={atEndPad || pickDraft || shotEdit ? null : bestQ}
           rallyOne={atEndPad ? false : pickDraft || editOf ? false : bestRowSaved ? savedIndex <= 0 : bestRallyOne}
@@ -1872,9 +2028,17 @@ function TagSet({
           word={atEndPad ? null : rallyWord}
           tight={landscape}
           pressed={rallyState === 'editing'}
+          reviewFocus={reviewFocus}
+          starDim={bestHoldOn}
           onEdit={
             !atEndPad && (rallyState === 'saved' || rallyState === 'editing')
               ? () => {
+                  if (reviewRef.current) {
+                    reviewRef.current = false
+                    reviewPlay.current = null
+                    setReview(false)
+                    setReviewFocus(null)
+                  }
                   if (shotEdit) closeShotEdit()
                   else if (pickDraft && pickedId) beginShotEdit(pickedId, 'set')
                   else if (live?.closed) beginShotEdit(editOf, 'question')
@@ -1882,20 +2046,7 @@ function TagSet({
                 }
               : undefined
           }
-          onStar={
-            !atEndPad && rallyActions
-              ? () => {
-                  if (shotEdit && live) {
-                    const next = { ...live, highlight: !live.highlight }
-                    if (shotEdit.rallyId) applyShotDraft(next, shotEdit.rallyId)
-                    else writeDraft(next)
-                    return
-                  }
-                  if (pickDraft) updatePicked((d) => ({ ...d, highlight: !d.highlight }))
-                  else onBestStar()
-                }
-              : undefined
-          }
+          onStar={starShown ? onReviewStar : undefined}
           onDiscard={
             atEndPad
               ? undefined

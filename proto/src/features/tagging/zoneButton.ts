@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react'
 
-/** The highlight star's box. Set Zone and Rally Zone share it. */
+/** The star's box. Set Zone and Rally Zone share it. */
 export const zoneButton =
   'h-8 shrink-0 whitespace-nowrap rounded-md border px-2 text-xs font-semibold inline-flex items-center justify-center'
 

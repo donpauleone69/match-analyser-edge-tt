@@ -9,7 +9,7 @@ Mirrors the [Key documents canvas](https://cursor.com/canvas/store-7c210afe-9d07
 | Document | In repo | Notes |
 |----------|---------|-------|
 | Product brief | [product-brief.md](./product-brief.md) · Context: [product-brief-review.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/product-brief-review.md) | Revised 20 Nov 2026. Goal, users, key flows and shared concepts. |
-| UI zones | [ui-zones.md](./ui-zones.md) | Zone names and portrait and landscape layout for the tagging screen, and where each lives in code. |
+| UI zones | [ui-zones.md](./ui-zones.md) | The Set Tagger's four zones: what each does, its layout, sizes, states and modes, the text rules, and where each lives in code. The reference. Plans propose changes to it. |
 | Glossary | [glossary.md](./glossary.md) | Terms used in the proto, the brief and reviews. |
 
 ## For decisions
@@ -41,6 +41,7 @@ Mirrors the [Key documents canvas](https://cursor.com/canvas/store-7c210afe-9d07
 
 | Build | Link | Notes |
 |-------|------|-------|
+| v0.17.18 | | The Rally Zone is 64px. Part words become thin lines, amber when marked. The star opens review: the parts take the shot row, and Back, Forward and Review [part] play and mark that part. The star is hidden while answering. Old whole-rally stars stay in the data and no longer show. |
 | v0.17.17 | [PR #163](https://github.com/donpauleone69/match-analyser-edge-tt/pull/163) | Dead code only. The video removed page, the lock lines inside the tagger, the Point to mismatch line, the review run, delete mode and the foot Delete last and Discard are gone. What you see while tagging is unchanged. Part marks stay. |
 | v0.17.16 | [PR #162](https://github.com/donpauleone69/match-analyser-edge-tt/pull/162) | The Input Area is two columns in portrait and one column in each wing in landscape. Rally 1 asks who served after the taps, and the cells stay grey until then. Set over is Edit and Save set. The end of the mark or the video is Save set, with the hint on the picture. A saved set opens with an empty Input Area. Rallies sit on the left and Gaps on the right. Insert sits on the left. Toasts sit on the video. |
 | v0.17.15 | [PR #161](https://github.com/donpauleone69/match-analyser-edge-tt/pull/161) | The Rally Zone and the Set Zone share one layout each. The score in the rally is the score before the point. Save set leaves for the Tag page, with Undo, and with Use tagged when Details differs. A set saved without a winner is Incomplete, and Continue reopens it. Moving that set's end later on the Tag page reopens it too. |

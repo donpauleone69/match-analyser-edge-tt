@@ -6,7 +6,7 @@ A handful of short, current docs for the prototype in `proto/`. Older plans, rev
 |-----|------------|
 | [product-brief.md](./product-brief.md) | Goal, users, key flows and shared concepts. Start here. |
 | [key-documents.md](./key-documents.md) | Hub of plans, canvases and builds. Mirrors the Key documents canvas. |
-| [ui-zones.md](./ui-zones.md) | Tagging screen zones, layout, and where each lives in code. |
+| [ui-zones.md](./ui-zones.md) | Set Tagger zones: functions, layout, states and modes. The reference for the screen. |
 | [glossary.md](./glossary.md) | Terms used in the proto, the brief and reviews. |
 | [product-ideas.md](./product-ideas.md) | Parked ideas, not agreed scope. |
 
