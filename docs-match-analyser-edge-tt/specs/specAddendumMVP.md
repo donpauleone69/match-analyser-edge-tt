@@ -22,7 +22,7 @@
 
 **What Changed:**
 - Tag shows one card per video. A set row expands in place to change its number or delete it. Scores and the result stay on Details.
-- Details shows "Use tagged result" whenever no result is entered and the tagged sets make a real result. Finish match and Reopen match leave Tag.
+- Details shows "Use tagged result" whenever no result is entered, the tagged sets make a real result, and every set up to that result is settled. Finish match and Reopen match leave Tag. An archived match can still be opened, and Continue and Tag stay off.
 - Touching a video's bar, a set row, a span, or Add set puts that video in the player. One video element swaps its source, and play() starts inside the tap.
 
 **Decision Rationale:** Paul approved the tag page cards plan. Tag places sets. Details holds the result.

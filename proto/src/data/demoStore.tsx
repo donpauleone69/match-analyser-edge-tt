@@ -196,14 +196,13 @@ export function isSpareSet(match: MatchRecord, s: SetData): boolean {
 }
 
 /**
- * Saved and won, or not on video / part filmed / incomplete once Details has a
- * score. A legacy not-filmed flag still counts. Ready and tagging do not.
+ * Saved and won, or unmarked / incomplete once Details has a score.
+ * A legacy not-filmed flag still counts. Ready and tagging do not.
  */
 export function setSettled(s: SetData): boolean {
   if (setIncomplete(s)) return parseEntered(s.entered) !== null
   if (s.finished || s.skipped) return true
-  const state = markState(s)
-  if (state === 'off' || state === 'part') return parseEntered(s.entered) !== null
+  if (markState(s) === 'off') return parseEntered(s.entered) !== null
   return false
 }
 
@@ -214,7 +213,7 @@ function countedScore(s: SetData): Score | null {
     const atEnd = scoreAtSetEnd(s.rallies.map((r) => r.winner))
     return atEnd ?? taggedScore(s)
   }
-  if (s.skipped || markState(s) === 'off' || markState(s) === 'part') return parseEntered(s.entered)
+  if (s.skipped || markState(s) === 'off') return parseEntered(s.entered)
   return null
 }
 

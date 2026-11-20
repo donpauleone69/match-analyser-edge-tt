@@ -13,7 +13,7 @@ import {
 /** Old rallies grow a mark this far past the first and last contact. New marks have none. */
 export const MARK_PAD_S = 5
 
-export type MarkState = 'off' | 'part' | 'ready' | 'tagging' | 'saved'
+export type MarkState = 'off' | 'ready' | 'tagging' | 'saved'
 
 /**
  * Saved wins, then any rallies still open. A mark that is not complete is
@@ -61,7 +61,7 @@ export function migrateSetMark(videos: VideoAsset[], s: SetData): SetData {
   return { ...s, mark: { from, to, complete: s.finished } }
 }
 
-export type VideoSpan = { setId: number; a: number; b: number; part: boolean }
+export type VideoSpan = { setId: number; a: number; b: number }
 
 /** The part of each mark that sits on this video, in time order. */
 export function spansOnVideo(videos: VideoAsset[], sets: SetData[], videoId: string): VideoSpan[] {
@@ -83,7 +83,6 @@ export function spansOnVideo(videos: VideoAsset[], sets: SetData[], videoId: str
       setId: s.setId,
       a: a - seg.offset,
       b: b - seg.offset,
-      part: markState(s) === 'part',
     })
   }
   return out.sort((x, y) => x.a - y.a || x.setId - y.setId)
@@ -189,13 +188,14 @@ function listedCount(m: MatchRecord): number | null {
 
 const MAX_MARKED_SETS = 7
 
-/** Set numbers free at `at` on the match clock: in the match, not marked, and in order. */
+/** Set numbers free at `at`: no mark, no tags, and still in time order. `except` is the set being renumbered. */
 export function allowedMarkNumbers(m: MatchRecord, at: number, except?: number): number[] {
   const cap = listedCount(m) ?? MAX_MARKED_SETS
   const marked = m.sets.filter((s) => s.mark && s.setId !== except)
   const out: number[] = []
   for (let n = 1; n <= cap; n++) {
-    if (marked.some((s) => s.setId === n)) continue
+    const taken = m.sets.find((s) => s.setId === n && s.setId !== except)
+    if (taken && (taken.mark || taken.rallies.length > 0 || taken.finished || taken.draft)) continue
     const inOrder = marked.every((t) => {
       const b = t.mark ? markBounds(m.videos, t.mark) : null
       if (!b) return true
@@ -322,7 +322,10 @@ export function wingLimits(m: MatchRecord, setId: number, edge: WingEdge): WingL
 export function clampWing(limit: WingLimit, asked: number): { at: number; hint: string | null } {
   if (asked < limit.lo - 0.05) return { at: limit.lo, hint: limit.below }
   if (asked > limit.hi + 0.05) return { at: limit.hi, hint: limit.above }
-  return { at: Math.min(limit.hi, Math.max(limit.lo, asked)), hint: null }
+  const at = Math.min(limit.hi, Math.max(limit.lo, asked))
+  // The bar stops at the video end, so the pointer can land on the stop without passing it.
+  if (limit.above === 'Stops at the video end' && asked >= limit.hi - 1e-3) return { at: limit.hi, hint: limit.above }
+  return { at, hint: null }
 }
 
 export type NewMark =

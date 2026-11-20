@@ -8,7 +8,7 @@ import { useArchiveStep } from '@/features/match/archiveJobs'
 import { TagVideoCard } from '@/features/match/TagVideoCard'
 import { reopenSet, saveMark } from '@/features/tagging/matchOps'
 import type { Side } from '@/features/tagging/rally'
-import { markBounds, newMarkAt, setIncomplete, videoMoveBreaks, type WingEdge } from '@/features/tagging/setMark'
+import { lineAction, markBounds, newMarkAt, setIncomplete, videoMoveBreaks, type WingEdge } from '@/features/tagging/setMark'
 import { useActionGuard } from '@/features/tagging/pressGuard'
 import { TAG_LOCK_LINE, useTagLock } from '@/features/tagging/tagLock'
 import { PictureSeek, VideoStage } from '@/features/tagging/VideoStage'
@@ -117,7 +117,9 @@ export function MatchTagChecklist() {
   const openSet = (setId: number) => {
     if (!arrive.allow()) return
     const s = match.sets.find((x) => x.setId === setId)
-    if (s && setIncomplete(s)) mutateMatch(match.id, (m) => reopenSet(m, setId))
+    if (!s) return
+    if (lock && lineAction(s) !== 'Open') return
+    if (setIncomplete(s)) mutateMatch(match.id, (m) => reopenSet(m, setId))
     navigate(`/matches/${match.id}/tag/${setId}`)
   }
 
@@ -159,7 +161,10 @@ export function MatchTagChecklist() {
       mutateMatch(match.id, (m) => saveMark(m, setId, mark))
     }
     player.pause()
-    player.seek(seg.offset + t)
+    // The end of this video is the same instant as the start of the next one.
+    // Sit just clear of it, so the playhead is not already inside a set that starts there.
+    const shown = t >= seg.duration - 1e-3 ? Math.max(0, seg.duration - 0.06) : t
+    player.seek(seg.offset + shown)
   }
 
   const seg = player.segs[player.segIndex]
@@ -239,7 +244,10 @@ export function MatchTagChecklist() {
             onScrub={(g) => player.seek(g)}
             onPreview={(local) => {
               player.pause()
-              player.seek(segmentsOf(match.videos).find((s) => s.id === video.id)!.offset + local)
+              const here = segmentsOf(match.videos).find((s) => s.id === video.id)
+              if (!here) return
+              const shown = local >= here.duration - 1e-3 ? Math.max(0, here.duration - 0.06) : local
+              player.seek(here.offset + shown)
             }}
             onCommit={(setId, edge, local, hint) => commitWing(setId, edge, video.id, local, hint)}
             onHint={flash}

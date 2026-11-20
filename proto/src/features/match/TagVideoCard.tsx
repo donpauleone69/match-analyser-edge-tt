@@ -310,6 +310,7 @@ function SetRow({
             kind="control"
             variant="secondary"
             className="shrink-0"
+            disabled={locked && action !== 'Open'}
             data-set-action={action}
             onClick={go}
           >
@@ -334,7 +335,7 @@ function SetRow({
               </Button>
             ) : null}
             <Button kind="control" onClick={onDeleteSet}>
-              Delete set
+              {tagged ? 'Delete set' : 'Delete'}
             </Button>
             <Button kind="control" variant="ghost" onClick={() => setAsking(false)}>
               Cancel

@@ -133,6 +133,12 @@ const taken = match(
 )
 const next = newMarkAt(taken, 'v1', null)
 ok('add takes the next number', next.ok && next.setId === 2 && next.mark.from.t === 100)
+const taggedOff = match(
+  [{ ...video('v1'), durationS: 1000 }],
+  [setOf(1, null, 'saved')]
+)
+const skipped = newMarkAt(taggedOff, 'v1', null)
+ok('add skips a tagged set with no mark', skipped.ok && skipped.setId === 2)
 const none = newMarkAt(taken, 'v1', 500, 1)
 ok('taken number is refused', !none.ok && none.reason === 'No set number is free here.')
 
@@ -155,6 +161,7 @@ ok('start stops at the rally', startLimit !== null && clampWing(startLimit, 300)
 ok('start stops at the neighbour', startLimit !== null && clampWing(startLimit, 10).hint === 'Stops at set 1')
 ok('end stops at the rally', endLimit !== null && clampWing(endLimit, 200).hint === 'Stops at rally 1' && Math.round(clampWing(endLimit, 200).at) === 260)
 ok('end stops at the video end', endLimit !== null && clampWing(endLimit, 900).hint === 'Stops at the video end' && clampWing(endLimit, 900).at === 600)
+ok('end on the video end hints', endLimit !== null && clampWing(endLimit, 600).hint === 'Stops at the video end' && clampWing(endLimit, 600).at === 600)
 ok('end keeps 60 seconds', endLimit !== null && clampWing(endLimit, 120).at >= 160)
 const plain = match([{ ...video('v1'), durationS: 600 }], [setOf(1, mark('v1', 0, 200, true), 'ready')])
 const plainEnd = wingLimits(plain, 1, 'end')

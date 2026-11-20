@@ -140,7 +140,7 @@ export function TagSetScreen() {
   // No video, no Tag: the Tag page offers Add video.
   if (match && match.videos.length === 0) return <Navigate to={`/matches/${matchId}/tag`} replace />
   if (!match || !set) return stop('Unknown set', 'Back to the Tag checklist.')
-  if (markState(set) === 'off' || markState(set) === 'part') return <Navigate to={`/matches/${matchId}/tag`} replace />
+  if (markState(set) === 'off') return <Navigate to={`/matches/${matchId}/tag`} replace />
   if (lock && !set.finished) return stop(`Set ${set.setId} cannot be tagged`, TAG_LOCK_LINE[lock])
 
   const videoKey = match.videos.map((v) => v.id).join(',')
