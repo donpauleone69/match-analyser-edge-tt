@@ -297,7 +297,7 @@ export function VideoStage({
   player: Player
   videos: VideoAsset[]
   names: Record<Side, string>
-  bug: { sets: Record<Side, number>; points: Record<Side, number>; server: Side; setId: number }
+  bug: { sets: Record<Side, number>; points: Record<Side, number>; server: Side | null; setId: number }
   /** A few words over the picture, such as why a step back stopped short. */
   hint: string | null
   /** Seeks go through the screen so it can say why one stopped short. */
@@ -348,7 +348,12 @@ export function VideoStage({
             leading ? 'left-14' : 'left-2'
           )}
           role="status"
-          aria-label={`Set ${bug.setId}: ${names.me} ${bug.points.me}, ${names.them} ${bug.points.them}. ${servesText(names, bug.server)}.`}
+          data-bug-server={bug.server ?? ''}
+          aria-label={
+            bug.server
+              ? `Set ${bug.setId}: ${names.me} ${bug.points.me}, ${names.them} ${bug.points.them}. ${servesText(names, bug.server)}.`
+              : `Set ${bug.setId}: ${names.me} ${bug.points.me}, ${names.them} ${bug.points.them}.`
+          }
         >
           {(['me', 'them'] as const).map((side) => (
             <div key={side} className="flex items-center gap-1.5 px-1.5 py-0.5">

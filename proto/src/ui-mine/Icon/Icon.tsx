@@ -4,6 +4,7 @@
 
 import { forwardRef, type SVGProps } from 'react'
 import {
+  ArrowLeftRight,
   BarChart2,
   Calendar,
   ChevronDown,
@@ -40,6 +41,7 @@ import { cn } from '@/helpers/utils'
 
 const icons = {
   home: Home,
+  swap: ArrowLeftRight,
   chart: BarChart2,
   user: User,
   users: Users,

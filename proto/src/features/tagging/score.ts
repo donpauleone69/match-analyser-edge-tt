@@ -48,6 +48,16 @@ export function setEndIndex(winners: Side[]): number {
   return -1
 }
 
+/**
+ * The score at the rally that first wins the set. Null when the rallies never
+ * get there. Rallies after that win do not change it.
+ */
+export function scoreAtSetEnd(winners: Side[]): Points | null {
+  const end = setEndIndex(winners)
+  if (end < 0) return null
+  return countPoints(winners.slice(0, end + 1))
+}
+
 /** Later sets alternate the first server from set 1. */
 export function firstServerForSet(setOneServer: Side, setId: number): Side {
   return setId % 2 === 1 ? setOneServer : otherSide(setOneServer)

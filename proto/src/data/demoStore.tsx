@@ -21,7 +21,7 @@ import {
   leader,
   type Points,
 } from '@/features/tagging/score'
-import { markState, migrateSetMark } from '@/features/tagging/setMark'
+import { markState, migrateSetMark, setIncomplete } from '@/features/tagging/setMark'
 
 export type { RallyData } from '@/features/tagging/rally'
 
@@ -193,18 +193,20 @@ export function isSpareSet(match: MatchRecord, s: SetData): boolean {
 }
 
 /**
- * Saved, or not on video / part filmed once Details has a score. A legacy
- * not-filmed flag still counts. Ready and tagging do not.
+ * Saved and won, or not on video / part filmed / incomplete once Details has a
+ * score. A legacy not-filmed flag still counts. Ready and tagging do not.
  */
 export function setSettled(s: SetData): boolean {
+  if (setIncomplete(s)) return parseEntered(s.entered) !== null
   if (s.finished || s.skipped) return true
   const state = markState(s)
   if (state === 'off' || state === 'part') return parseEntered(s.entered) !== null
   return false
 }
 
-/** A saved set uses its tagged score. Not on video and part filmed use Details. */
+/** A won set uses its tagged score. Incomplete, not on video and part filmed use Details. */
 function countedScore(s: SetData): Score | null {
+  if (setIncomplete(s)) return parseEntered(s.entered)
   if (s.finished) return taggedScore(s)
   if (s.skipped || markState(s) === 'off' || markState(s) === 'part') return parseEntered(s.entered)
   return null

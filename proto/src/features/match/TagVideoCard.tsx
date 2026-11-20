@@ -2,6 +2,7 @@ import { useState } from 'react'
 import {
   emptySet,
   formatScore,
+  parseEntered,
   taggedScore,
   useDemo,
   type MatchRecord,
@@ -14,6 +15,7 @@ import {
   clampWing,
   gapsOf,
   lineAction,
+  setIncomplete,
   markBounds,
   markCrosses,
   MIN_SET_S,
@@ -36,8 +38,10 @@ type Drag = { setId: number; edge: WingEdge; local: number }
 function setRowLabel(match: MatchRecord, s: SetData): string {
   const state = markState(s)
   const score = taggedScore(s)
-  const head =
-    (state === 'saved' || state === 'tagging') && score
+  const entered = parseEntered(s.entered)
+  const head = setIncomplete(s)
+    ? `Set ${s.setId} · Incomplete · ${score ? formatScore(score) : ''}${entered ? ` · ${formatScore(entered)} from Details` : ''}`
+    : (state === 'saved' || state === 'tagging') && score
       ? `Set ${s.setId} · ${formatScore(score)}`
       : `Set ${s.setId}`
   const mark = s.mark
@@ -71,6 +75,7 @@ export function TagVideoCard({
   onRemove,
   onCancelRemove,
   onOpen,
+  allow,
   onUndo,
   onPick,
   onUnpick,
@@ -107,6 +112,8 @@ export function TagVideoCard({
   onRemove: () => void
   onCancelRemove: () => void
   onOpen: (setId: number) => void
+  /** False during the moment after Save set, so a resting finger does nothing. */
+  allow?: () => boolean
   onUndo: (before: SetData, text: string, also?: SetData) => void
   onPick: (setId: number) => void
   onUnpick: () => void
@@ -339,6 +346,7 @@ export function TagVideoCard({
               locked={locked}
               editable={editable}
               onOpen={() => onOpen(s.setId)}
+              allow={allow}
               onPick={() => onPick(s.setId)}
               onUndo={onUndo}
             />
@@ -703,6 +711,7 @@ function SetLine({
   locked,
   editable,
   onOpen,
+  allow,
   onPick,
   onUndo,
 }: {
@@ -711,6 +720,7 @@ function SetLine({
   locked: boolean
   editable: boolean
   onOpen: () => void
+  allow?: () => boolean
   onPick: () => void
   onUndo: (before: SetData, text: string, also?: SetData) => void
 }) {
@@ -729,7 +739,10 @@ function SetLine({
             className={cn(buttonKindTextLink, 'min-w-0 max-w-full truncate text-left text-sm text-primary')}
             data-set-label
             data-pick-set={s.setId}
-            onClick={onPick}
+            onClick={() => {
+              if (allow && !allow()) return
+              onPick()
+            }}
           >
             {label}
           </button>
@@ -749,7 +762,10 @@ function SetLine({
               variant="secondary"
               disabled={locked && action !== 'Open'}
               data-set-action={action}
-              onClick={onOpen}
+              onClick={() => {
+                if (allow && !allow()) return
+                onOpen()
+              }}
             >
               {action}
             </Button>

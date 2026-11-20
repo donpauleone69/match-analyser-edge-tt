@@ -3,6 +3,7 @@
  * Run: npm run check:v0179
  */
 import type { MatchRecord, SetData, SetMark, VideoAsset } from '../src/data/demoStore'
+import { saveMark } from '../src/features/tagging/matchOps'
 import { clampWing, lineAction, newMarkAt, spanBack, spanOnto, videoStatus, wingLimits } from '../src/features/tagging/setMark'
 
 const fails: string[] = []
@@ -30,7 +31,11 @@ function setOf(setId: number, placed: SetMark | null, kind: 'off' | 'part' | 're
     skipped: false,
     finished: kind === 'saved',
     firstServer: 'me',
-    rallies: tagged ? [{ winner: 'me' } as SetData['rallies'][number]] : [],
+    rallies: kind === 'saved'
+      ? Array.from({ length: 11 }, () => ({ winner: 'me' }) as SetData['rallies'][number])
+      : kind === 'tagging'
+        ? [{ winner: 'me' } as SetData['rallies'][number]]
+        : [],
     draft: null,
     mark: placed,
   }
@@ -87,6 +92,28 @@ ok('span counts on the first video', videoStatus(spanning, 'v1') === 'Ready to t
 ok('ready button', lineAction(setOf(2, mark('v1', 0, 10, true), 'ready')) === 'Tag')
 ok('tagging button', lineAction(setOf(2, mark('v1', 0, 10, true), 'tagging')) === 'Continue')
 ok('saved button', lineAction(setOf(1, mark('v1', 0, 10, true), 'saved')) === 'Open')
+ok(
+  'incomplete button',
+  lineAction({ ...setOf(3, mark('v1', 0, 10, true), 'saved'), rallies: [{ winner: 'me' } as SetData['rallies'][number]] }) === 'Continue',
+)
+
+const brief = match([v1], [{ ...setOf(2, mark('v1', 0, 10, true), 'saved'), rallies: [{ winner: 'me' } as SetData['rallies'][number]] }])
+ok('a later end reopens a short set', saveMark(brief, 2, mark('v1', 0, 12, true)).sets[0].finished === false)
+ok('a later end leaves a won set saved', saveMark(match([v1], [setOf(1, mark('v1', 0, 10, true), 'saved')]), 1, mark('v1', 0, 12, true)).sets[0].finished === true)
+ok('moving the start leaves it saved', saveMark(brief, 2, mark('v1', 2, 10, true)).sets[0].finished === true)
+ok('the complete flag leaves it saved', saveMark(brief, 2, mark('v1', 0, 10, false)).sets[0].finished === true)
+const overrun = {
+  ...setOf(2, mark('v1', 0, 10, true), 'saved'),
+  rallies: [
+    ...Array.from({ length: 11 }, () => ({ winner: 'me' }) as SetData['rallies'][number]),
+    ...Array.from({ length: 11 }, () => ({ winner: 'them' }) as SetData['rallies'][number]),
+  ],
+}
+ok('an overrun set stays won', lineAction(overrun) === 'Open')
+ok(
+  'a later end leaves an overrun set saved',
+  saveMark(match([v1], [overrun]), 2, mark('v1', 0, 12, true)).sets[0].finished === true,
+)
 ok('part filmed has no button', lineAction(setOf(3, mark('v1', 0, 10, false), 'part')) === null)
 ok('unmarked has no button', lineAction(setOf(4, null, 'off')) === null)
 
