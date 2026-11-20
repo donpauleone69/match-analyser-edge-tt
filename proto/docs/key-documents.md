@@ -40,7 +40,7 @@ Mirrors the [Key documents canvas](https://cursor.com/canvas/store-7c210afe-9d07
 
 | Build | Link | Notes |
 |-------|------|-------|
-| v0.17.14 | | The rally row shows the number and the server, and the shot cells and part labels are not buttons. Edit Rally is a 4x2 pad that opens on shot 1. The spare slot is blank. Not a shot sits on the End pad. Kim served flips that rally only. |
+| v0.17.14 | [PR #157](https://github.com/donpauleone69/match-analyser-edge-tt/pull/157) | The rally row shows the number and the server, and the shot cells and part labels are not buttons. Edit Rally is a 4x2 pad that opens on shot 1. The spare slot is blank. Not a shot sits on the End pad. Kim served flips that rally only. |
 | v0.17.13 | [PR #156](https://github.com/donpauleone69/match-analyser-edge-tt/pull/156) | A gap under a second is a stop, and Insert stays off. Times that cross say the rallies overlap. The first serve break outlines its pill. The shot quadrants have no tap guard. The seek knob sits fully on the picture. Rally pills are not buttons. The edit line no longer says Rally N of M. |
 | v0.17.12 | [PR #154](https://github.com/donpauleone69/match-analyser-edge-tt/pull/154) | A set can run onto the next video from a chip at the video end, and come back from 0:00. In phone landscape the Tag page is two columns and the header scrolls away. The old mark screen is gone. |
 | v0.17.11 | [PR #153](https://github.com/donpauleone69/match-analyser-edge-tt/pull/153) | The Tag page has one sticky player. Card timelines seek, scrub and show the playhead. A picked set has wings, number chips, a Complete or Part filmed switch, nudge and Delete set. Done cards stay locked until Edit sets. Old mark addresses and the tagger's Re-mark open that set on the Tag page. |
