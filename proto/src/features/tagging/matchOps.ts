@@ -8,6 +8,7 @@ import {
   taggedScore,
   type MatchRecord,
   type SetData,
+  type SetMark,
 } from '@/data/demoStore'
 import { otherSide, pointRally, swapPlayers, type Draft, type MarkKind, type RallyData } from './rally'
 import { addPoint, firstServerAt, serverAt, setEndIndex, ZERO, type Points } from './score'
@@ -302,13 +303,57 @@ export const clearSet = (m: MatchRecord, setId: number): MatchRecord => ({
   tagDone: false,
 })
 
+/** The set's place on video. The label is the set number. A legacy not-filmed flag goes. */
+export function saveMark(m: MatchRecord, setId: number, mark: SetMark): MatchRecord {
+  return inSet(m, setId, (s) => ({ ...s, mark, skipped: false }))
+}
+
+/**
+ * Rallies go. A set that was being tagged comes back Ready: its mark was in
+ * use, so it counts as complete. A mark that was never tagged is left as it is.
+ */
+export function deleteTags(m: MatchRecord, setId: number): MatchRecord {
+  return {
+    ...inSet(m, setId, (s) => ({
+      ...s,
+      rallies: [],
+      draft: null,
+      finished: false,
+      mark: s.mark && s.rallies.length > 0 ? { ...s.mark, complete: true } : s.mark,
+    })),
+    tagDone: false,
+  }
+}
+
+/** The mark goes. Only while the set has no rallies. */
+export function unmarkSet(m: MatchRecord, setId: number): MatchRecord {
+  const s = m.sets.find((x) => x.setId === setId)
+  if (!s || s.rallies.length > 0) return m
+  return inSet(m, setId, (x) => ({ ...x, mark: null }))
+}
+
+/** Part filmed becomes ready. Only while nothing is tagged. */
+export function completeMark(m: MatchRecord, setId: number): MatchRecord {
+  return inSet(m, setId, (s) =>
+    s.mark && s.rallies.length === 0 ? { ...s, mark: { ...s.mark, complete: true } } : s
+  )
+}
+
 /** Change set number: the tagging moves. Each number keeps its entered score. */
 export function moveSet(m: MatchRecord, from: number, to: number): MatchRecord {
   const src = m.sets.find((s) => s.setId === from)
   if (!src || from === to) return m
   const moved = inSet(m, to, (s) =>
     withDeleted(
-      { ...s, firstServer: src.firstServer, finished: src.finished, rallies: src.rallies, draft: null },
+      {
+        ...s,
+        skipped: false,
+        firstServer: src.firstServer,
+        finished: src.finished,
+        rallies: src.rallies,
+        draft: null,
+        mark: src.mark,
+      },
       deletedOf(src)
     )
   )

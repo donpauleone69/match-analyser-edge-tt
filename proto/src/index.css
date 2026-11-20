@@ -511,6 +511,31 @@ button[disabled] {
   bottom: 0;
   background: color-mix(in srgb, var(--color-warning) 75%, transparent);
 }
+.tag-strip {
+  position: relative;
+  height: 1.25rem;
+  overflow: hidden;
+  border-radius: 0.25rem;
+  background: var(--color-bg-elevated);
+}
+.tag-strip-block {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--color-brand-primary);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+}
+.tag-strip-block[data-part='true'] {
+  background: transparent;
+  color: var(--color-text-muted);
+  box-shadow: inset 0 0 0 1px var(--color-border);
+}
 .tag-seek-head {
   position: absolute;
   top: -3px;
@@ -667,7 +692,7 @@ button[disabled] {
   right: 0;
   top: 0;
   height: calc(100% - var(--tag-set) - var(--tag-rally) - 20px - var(--tag-playback) - 4px);
-  z-index: 4;
+  z-index: 15;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
@@ -685,6 +710,12 @@ button[disabled] {
   padding-bottom: 0;
   border-top-width: 0;
   background: transparent;
+}
+/* Mark steps live in the wing, so they keep their full height and scroll. */
+.tag-set[data-mark-screen][data-pad-split] [data-pad-wing='left'] [data-tag-body] {
+  flex: 1 1 auto;
+  max-height: none;
+  overflow-y: auto;
 }
 .tag-set[data-pad-split] [data-best-panel] {
   padding-top: 0;

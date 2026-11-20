@@ -28,6 +28,11 @@ Mirrors the [Key documents canvas](https://cursor.com/canvas/store-7c210afe-9d07
 
 | Build | Link | Notes |
 |-------|------|-------|
+| v0.17.4 | [PR #150](https://github.com/donpauleone69/match-analyser-edge-tt/pull/150) | A set may end on the next video. Those two videos stay put. On a phone in landscape the mark steps sit in the left wing. A spanning line reads videos N and M. |
+| v0.17.3 | [PR #150](https://github.com/donpauleone69/match-analyser-edge-tt/pull/150) | Set line menu: Re-mark, Change number, Delete tags, Unmark, Mark complete. Each change can be undone. Re-mark keeps every rally inside. A video move that breaks the order is refused. Removing a video unmarks its sets. |
+| v0.17.2 | [PR #150](https://github.com/donpauleone69/match-analyser-edge-tt/pull/150) | Only a ready, tagging, or saved set opens. Play and seeking stop at the mark. The start card asks who serves. The end of the mark offers Re-mark. Save set offers the next ready set. |
+| v0.17.1 | [PR #150](https://github.com/donpauleone69/match-analyser-edge-tt/pull/150) | Mark screen on the set's video: start, end, set number, complete or part filmed. Marks do not overlap and set numbers stay in order. |
+| v0.17.0 | [PR #150](https://github.com/donpauleone69/match-analyser-edge-tt/pull/150) | A set has one mark. The Tag page is one block per video, with a strip, a set line, and sets not on video. |
 | v0.16.12 | [PR #149](https://github.com/donpauleone69/match-analyser-edge-tt/pull/149) | Set Row edges. A grey start score leads the pills. The open rally is a dashed pill in the next server's colour. Rallies after an early win keep a warning edge. |
 | v0.16.11 | [PR #149](https://github.com/donpauleone69/match-analyser-edge-tt/pull/149) | Edit Set stays on the rally pills. The picked pill takes a ring, the row scrolls it to the centre, and the status line reads the rally and the score. |
 | v0.16.10 | [PR #149](https://github.com/donpauleone69/match-analyser-edge-tt/pull/149) | Thin seek bar on the bottom of the picture, with a tick for each rally in this set. The playback row sits just above it. |
