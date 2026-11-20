@@ -301,7 +301,7 @@ export function MatchTagChecklist() {
   const gapVideo = openGapVideo(match, opened, Boolean(lock))
 
   return (
-    <div>
+    <div className={match.videos.length > 0 ? 'tag-page' : undefined}>
       {match.videos.length > 0 && seg ? (
         <div className="tag-preview sticky z-10 bg-bg-app" style={{ top: stick }} data-preview-player>
           <VideoStage
@@ -324,7 +324,7 @@ export function MatchTagChecklist() {
           />
         </div>
       ) : null}
-      <div className="space-y-4 px-4 py-4">
+      <div className="tag-cards space-y-4 px-4 py-4">
       {lock ? (
         <p className="rounded-md border border-border bg-bg-card px-3 py-2 text-sm text-primary" role="status">
           {TAG_LOCK_LINE[lock]}
@@ -451,6 +451,14 @@ export function MatchTagChecklist() {
             onEditSets={() => setOpened((ids) => (ids.includes(video.id) ? ids : [...ids, video.id]))}
             onAdd={() => addSet(video.id)}
             onRelabelled={(setId) => setPicked({ setId, videoId: video.id })}
+            onSpanned={(setId, videoId) => {
+              setOpened((ids) => (ids.includes(videoId) ? ids : [...ids, videoId]))
+              setPicked({ setId, videoId })
+              setLastWing('end')
+              requestAnimationFrame(() => {
+                document.querySelector(`[data-video-block="${videoId}"]`)?.scrollIntoView({ block: 'nearest' })
+              })
+            }}
           />
         ))
       )}

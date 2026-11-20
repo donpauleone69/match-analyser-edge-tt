@@ -106,10 +106,6 @@ export function gapsOf(duration: number, spans: VideoSpan[]): { a: number; b: nu
   return gaps
 }
 
-export function setsRemain(m: MatchRecord): boolean {
-  return m.sets.some((s) => markState(s) !== 'saved')
-}
-
 /** A set is drawn on the video its mark starts on. */
 export function setsStartingOn(sets: SetData[], videoId: string): SetData[] {
   return sets.filter((s) => s.mark?.from.videoId === videoId)
@@ -152,21 +148,6 @@ export function notOnVideo(m: MatchRecord, s: SetData): boolean {
   if (s.entered.me !== '' || s.entered.them !== '') return true
   const n = listedCount(m)
   return n !== null && s.setId <= n
-}
-
-export type TagLead =
-  | { kind: 'continue' | 'tag'; setId: number; label: string }
-  | { kind: 'mark'; label: string }
-
-/** One lead: the set under way, else the first ready set, else marking. */
-export function tagLead(m: MatchRecord): TagLead | null {
-  const tagging = m.sets.find((s) => markState(s) === 'tagging')
-  if (tagging) return { kind: 'continue', setId: tagging.setId, label: `Continue set ${tagging.setId}` }
-  const ready = m.sets.find((s) => markState(s) === 'ready')
-  if (ready) return { kind: 'tag', setId: ready.setId, label: `Tag set ${ready.setId}` }
-  const gap = m.videos.some((v) => gapsOf(v.durationS, spansOnVideo(m.videos, m.sets, v.id)).length > 0)
-  if (setsRemain(m) && gap) return { kind: 'mark', label: 'Mark sets' }
-  return null
 }
 
 /** The one button on a set row. Part filmed is status text, not a button. */
@@ -241,11 +222,6 @@ export function rallyOutside(
     if (z > b.end + 0.05) return { n: i + 1, side: 'after' }
   }
   return null
-}
-
-/** The first video that still has unmarked time. */
-export function firstGapVideo(m: MatchRecord): VideoAsset | null {
-  return m.videos.find((v) => gapsOf(v.durationS, spansOnVideo(m.videos, m.sets, v.id)).length > 0) ?? null
 }
 
 /** A new set is at least this long, and a wing cannot come closer than this to the other. */
@@ -423,6 +399,54 @@ export function videoLocked(m: MatchRecord, videoId: string): boolean {
       s.mark.from.videoId !== s.mark.to.videoId &&
       (s.mark.from.videoId === videoId || s.mark.to.videoId === videoId)
   )
+}
+
+/** How far onto the next video a spanning end sits: that video's first set, or this long. */
+const SPAN_ON_S = 120
+
+/**
+ * Where a mark that ends at the end of `videoId` would continue on the next video.
+ * Null on the last video, or when the next video has no free time at the start.
+ */
+export function spanLanding(m: MatchRecord, videoId: string): { videoId: string; t: number; n: number } | null {
+  const idx = m.videos.findIndex((v) => v.id === videoId)
+  if (idx < 0 || idx >= m.videos.length - 1) return null
+  const next = m.videos[idx + 1]
+  const spans = spansOnVideo(m.videos, m.sets, next.id)
+  const first = spans.length > 0 ? spans[0].a : next.durationS
+  const t = Math.min(SPAN_ON_S, next.durationS, first)
+  if (t < 0.05) return null
+  return { videoId: next.id, t: Math.round(t * 100) / 100, n: idx + 2 }
+}
+
+/** The end wing is at the end of its video. The mark continues on the next one. */
+export function spanOnto(m: MatchRecord, setId: number): SetMark | null {
+  const s = m.sets.find((x) => x.setId === setId)
+  if (!s?.mark || s.mark.from.videoId !== s.mark.to.videoId) return null
+  const video = m.videos.find((v) => v.id === s.mark?.to.videoId)
+  if (!video || s.mark.to.t < video.durationS - 0.15) return null
+  const land = spanLanding(m, video.id)
+  if (!land) return null
+  const mark: SetMark = { ...s.mark, to: { videoId: land.videoId, t: land.t } }
+  if (rallyOutside(m.videos, s.rallies, mark)) return null
+  const b = markBounds(m.videos, mark)
+  if (!b || markOverlaps(m.videos, m.sets, b.start, b.end, setId)) return null
+  return mark
+}
+
+/** The end wing is back at 0:00 of the next video. The mark ends on the video before. */
+export function spanBack(m: MatchRecord, setId: number): SetMark | null {
+  const s = m.sets.find((x) => x.setId === setId)
+  if (!s?.mark || s.mark.from.videoId === s.mark.to.videoId || s.mark.to.t > 0.15) return null
+  const fromIdx = m.videos.findIndex((v) => v.id === s.mark?.from.videoId)
+  const toIdx = m.videos.findIndex((v) => v.id === s.mark?.to.videoId)
+  if (fromIdx < 0 || toIdx !== fromIdx + 1) return null
+  const prev = m.videos[fromIdx]
+  const mark: SetMark = { ...s.mark, to: { videoId: prev.id, t: prev.durationS } }
+  if (rallyOutside(m.videos, s.rallies, mark)) return null
+  const b = markBounds(m.videos, mark)
+  if (!b || markOverlaps(m.videos, m.sets, b.start, b.end, setId)) return null
+  return mark
 }
 
 /** Moving this video would put set numbers out of order, or pull a span apart. */

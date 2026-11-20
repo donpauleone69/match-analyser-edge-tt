@@ -578,10 +578,26 @@ button[disabled] {
 .tag-preview {
   --tag-playback: 2.25rem;
 }
-/* Until the two-column layout, a sticky player covers the cards on a short phone. */
+/* Phone landscape on the Tag page: header scrolls away, player stays on the left. */
 @media (orientation: landscape) and (max-height: 500px) {
-  .tag-preview {
+  .tag-hub-chrome {
     position: static;
+    box-shadow: none;
+  }
+  .tag-page {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    align-items: start;
+  }
+  .tag-page .tag-preview {
+    position: sticky;
+    top: 0 !important;
+  }
+  .tag-page .tag-picture {
+    max-height: none;
+  }
+  .tag-page .tag-cards {
+    min-width: 0;
   }
 }
 @media (pointer: coarse) {

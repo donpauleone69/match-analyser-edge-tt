@@ -8,6 +8,7 @@ import { chromium } from 'playwright-core'
 const BASE = process.env.BASE || 'http://127.0.0.1:5174'
 const VIEWS = [
   { width: 390, height: 844, label: '390x844' },
+  { width: 393, height: 660, label: '393x660' },
   { width: 734, height: 310, label: '734x310' },
 ]
 
@@ -88,21 +89,32 @@ for (const view of VIEWS) {
   await page.goto(`${BASE}/matches/m-partial/tag`, { waitUntil: 'domcontentloaded' })
   await page.locator('[data-video-status="v-club-1"]').waitFor()
   const stuck = await page.locator('[data-preview-player]').evaluate((el) => getComputedStyle(el).position)
+  ok(`${tag} player sticks`, stuck === 'sticky', stuck)
+  const chromePos = await page.locator('[data-sticky-chrome]').evaluate((el) => getComputedStyle(el).position)
+  const playerBox = await page.locator('[data-preview-player]').boundingBox()
+  const cardBox = await page.locator('[data-video-block="v-club-1"]').boundingBox()
   if (view.width > view.height) {
-    ok(`${tag} player rests`, stuck === 'static', stuck)
+    ok(`${tag} chrome scrolls away`, chromePos === 'static', chromePos)
+    ok(
+      `${tag} two columns`,
+      Boolean(playerBox && cardBox && playerBox.x + playerBox.width <= cardBox.x + 8 && cardBox.y < playerBox.y + playerBox.height),
+      JSON.stringify({ playerBox, cardBox })
+    )
     const cont = page.locator('[data-set-line="2"] [data-set-action="Continue"]')
-    await cont.scrollIntoViewIfNeeded()
-    const hit = await cont.evaluate((el) => {
-      const r = el.getBoundingClientRect()
-      const top = document.elementFromPoint(r.left + r.width / 2, r.top + Math.min(r.height / 2, 12))
-      if (!top) return 'none'
-      if (el.contains(top)) return 'self'
-      if (top.closest('[data-preview-player]')) return 'player'
-      return top.getAttribute('aria-label') || (top.textContent || '').trim().slice(0, 40) || top.tagName
-    })
-    ok(`${tag} continue is reachable`, hit === 'self', hit)
+    let reach = 'ok'
+    try {
+      await cont.click({ trial: true, timeout: 3000 })
+    } catch (err) {
+      reach = String(err).split('\n')[0]
+    }
+    ok(`${tag} continue is reachable`, reach === 'ok', reach)
   } else {
-    ok(`${tag} player sticks`, stuck === 'sticky', stuck)
+    ok(`${tag} chrome stays`, chromePos === 'sticky', chromePos)
+    ok(
+      `${tag} player above the cards`,
+      Boolean(playerBox && cardBox && playerBox.y + playerBox.height <= cardBox.y + 8),
+      JSON.stringify({ playerBox, cardBox })
+    )
   }
   await uncover(page)
   let body = await text(page)
@@ -146,7 +158,7 @@ for (const view of VIEWS) {
   await page.locator('.tag-set').waitFor()
   await page.getByRole('button', { name: 'Settings' }).click()
   const version = (await page.locator('[data-build-version]').innerText()).trim()
-  ok(`${tag} version`, version === 'v0.17.11', version)
+  ok(`${tag} version`, version === 'v0.17.12', version)
   await page.getByRole('link', { name: 'Back' }).click()
   await page.waitForURL(/\/matches\/m-partial\/tag\?from=2$/)
   await page.locator('[data-set-line="2"]').waitFor()
@@ -259,13 +271,26 @@ for (const view of VIEWS) {
   await page.locator('[data-no-video]').waitFor()
   ok(`${tag} no player without video`, (await page.locator('[data-preview-player]').count()) === 0)
 
+  await page.goto(`${BASE}/matches/m-partial/tag`, { waitUntil: 'domcontentloaded' })
+  await page.locator('[data-pick-set="2"]').waitFor()
+  await uncover(page)
+  await page.locator('[data-pick-set="2"]').click()
+  await page.locator('[data-span-onto="2"]').click()
+  const fromLabel = (await page.locator('[data-video-block="v-club-2"] [data-span="2"]').innerText()).replace(/\s+/g, ' ')
+  ok(`${tag} spanned label`, fromLabel.includes('from video 1'), fromLabel)
+  ok(`${tag} end wing on the next video`, (await page.locator('[data-video-block="v-club-2"] [data-wing="end"]').count()) === 1)
+  ok(`${tag} no start wing on the next video`, (await page.locator('[data-video-block="v-club-2"] [data-wing="start"]').count()) === 0)
+  await page.locator('[aria-label="Menu for video 2"]').click()
+  await page.locator('[data-video-menu="v-club-2"]').getByRole('button', { name: 'Move up' }).click()
+  ok(`${tag} span locks the video`, (await text(page)).includes('That move would break the set order.'))
+
   ok(`${tag} no page error`, errors.length === 0, errors.join(' | '))
   await ctx.close()
 }
 
 await browser.close()
 if (fails.length) {
-  console.error(`v0.17.11 tag page: ${fails.length} failed`)
+  console.error(`v0.17.12 tag page: ${fails.length} failed`)
   process.exit(1)
 }
-console.log('v0.17.11 tag page: all passed')
+console.log('v0.17.12 tag page: all passed')
