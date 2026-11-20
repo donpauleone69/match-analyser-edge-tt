@@ -37,7 +37,7 @@ Mirrors the [Key documents canvas](https://cursor.com/canvas/store-7c210afe-9d07
 | Set tagger review fixes | Context: [docs/set-tagger-review-fixes-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/set-tagger-review-fixes-plan.md) | Shipped in v0.17.13 ([PR #156](https://github.com/donpauleone69/match-analyser-edge-tt/pull/156)). Short gaps are stops, a serve break flags the pill, and the shot quadrants have no tap guard. |
 | Tag page cards plan | Context: [docs/tag-page-cards-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/tag-page-cards-plan.md) | Shipped in v0.17.23 ([PR #171](https://github.com/donpauleone69/match-analyser-edge-tt/pull/171)). One card per video. Details holds the result. |
 | Match Insights plan | Context: [docs/match-insights-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/match-insights-plan.md) | Plan for v0.17.26. Four Insights cards from saved rallies: Serve, Receive, Attack and End. |
-| Matches page plan | Context: [docs/matches-page-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/matches-page-plan.md) | Shipped in v0.17.25. Home rows from Details fields and tagging status. |
+| Matches page plan | Context: [docs/matches-page-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/matches-page-plan.md) | Shipped in v0.17.25 ([PR #174](https://github.com/donpauleone69/match-analyser-edge-tt/pull/174)). Home rows from Details fields and tagging status. |
 | Rally Row plan | Context: [docs/rally-row-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/rally-row-plan.md) | Shipped in v0.17.14 ([PR #157](https://github.com/donpauleone69/match-analyser-edge-tt/pull/157)). Paul's six decisions in section 8. |
 | Product ideas | [product-ideas.md](./product-ideas.md) | Running list of product ideas. |
 
@@ -45,7 +45,7 @@ Mirrors the [Key documents canvas](https://cursor.com/canvas/store-7c210afe-9d07
 
 | Build | Link | Notes |
 |-------|------|-------|
-| v0.17.25 | | Each Matches row is the opponent, then the date, the entered result and the event. One status sits on the right. Filter is Opponent, Event and Status. |
+| v0.17.25 | [PR #174](https://github.com/donpauleone69/match-analyser-edge-tt/pull/174) | Each Matches row is the opponent, then the date, the entered result and the event. One status sits on the right. Filter is Opponent, Event and Status. |
 | v0.17.24 | [PR #172](https://github.com/donpauleone69/match-analyser-edge-tt/pull/172) | As soon as End is pressed, the Rally Zone head reads the next rally, its server and the new score, and the head cell draws dashed in that server's colour. The 2 second countdown bar runs along the bottom edge of the Rally Zone. |
 | v0.17.23 | [PR #171](https://github.com/donpauleone69/match-analyser-edge-tt/pull/171) | One card per video. A set row expands in place. Details shows Use tagged result when the tagged sets make a real result and none is entered. Touching a card's bar, row, span or Add set plays that video. |
 | v0.17.22 | [PR #170](https://github.com/donpauleone69/match-analyser-edge-tt/pull/170) | Edit Rally keeps an End slot on the shot row. Save set is live as soon as the set is won. A review chip jumps to that part, and a Set Zone pill jumps to another rally's first part. The top row controls carry a button kind. Inside a match the page under the row keeps the side insets. |
