@@ -204,25 +204,6 @@ export function bestHint(d: Pick<Draft, 'server' | 'contacts' | 'ending'>, rally
   return winnerOf(d)
 }
 
-export function bestMismatch(d: Pick<Draft, 'server' | 'contacts' | 'ending' | 'best'>, rallyOne: boolean): boolean {
-  const point = d.best?.point
-  if (rallyOne || !point || !d.ending || d.best?.kept) return false
-  const hint = bestHint(d, rallyOne)
-  return hint !== null && hint !== point
-}
-
-const possessive = (side: Side, names: Record<Side, string>) => (side === 'me' ? 'yours' : `${names[side]}'s`)
-
-/** One plain line: "Point to Kim, but shot 10, the winner, is yours." */
-export function mismatchLine(d: Pick<Draft, 'server' | 'contacts' | 'ending' | 'best'>, names: Record<Side, string>): string {
-  const point = d.best?.point
-  const n = d.contacts.length
-  if (!point || !d.ending || n === 0) return ''
-  const end = bestEndOf(d) ?? d.ending
-  const what = end === 'Winner' ? 'the winner' : `the ${end.toLowerCase()} error`
-  return `Point to ${names[point]}, but shot ${n}, ${what}, is ${possessive(hitterOf(d.server, n), names)}.`
-}
-
 type Q = Pick<Draft, 'server' | 'contacts' | 'shots' | 'ending' | 'best' | 'serveChecked'>
 
 /** Rally one of a set: the server is the set's default until the server switch confirms it. */
@@ -247,7 +228,7 @@ export function settlePoint(d: Draft, rallyOne: boolean): Draft {
 
 /** The winner is known: from the server, or from Point to while the server is not known. */
 export function pointDone(d: Q, rallyOne: boolean): boolean {
-  if (!d.ending || bestMismatch(d, rallyOne)) return false
+  if (!d.ending) return false
   if (!serverKnown(d, rallyOne)) return Boolean(d.best?.point)
   return Boolean(winnerOf(d))
 }
@@ -290,7 +271,6 @@ export function routeAfter(d: Q, rallyOne: boolean): BestAt | null {
   const n = d.contacts.length
   if (n === 0) return null
   if (rallyOne && !serverKnown(d, true)) return { step: 'server' }
-  if (bestMismatch(d, rallyOne)) return { step: 'end' }
   if (n >= 2) {
     if (!d.shots[0]?.depth) return { step: 'serve' }
     const stroke = nextStroke(d)
@@ -305,7 +285,6 @@ export function bestAt(d: Q, rallyOne: boolean): BestAt {
   const n = d.contacts.length
   if (rallyOne && n > 0 && !serverKnown(d, true)) return { step: 'server' }
   if (n <= 1) return { step: 'end' }
-  if (bestMismatch(d, rallyOne)) return { step: 'end' }
   const step = d.best?.step
   if (step === 'serve' || step === 'end') return { step }
   if (step === 'shots' || step === 'receive' || step === 'third' || step === 'fourth') {
@@ -636,8 +615,7 @@ export function editStopWindow(
  * Loop the shot being asked, at `rate` (0.75 unless a caller says otherwise).
  * It starts `lead` of playback before that contact and ends `end` of playback
  * before the next contact, or at the start, whichever is later. The
- * last shot runs to the rally end. While the point does not add up, End loops
- * the last two contacts. The page with Who attacked first? loops from the
+ * last shot runs to the rally end. The page with Who attacked first? loops from the
  * first unasked shot to its own shot. Times are seconds in the rally's video.
  */
 export function bestLoop(
@@ -645,7 +623,6 @@ export function bestLoop(
   what: BestLoopWhat,
   timing: BestTiming = DEFAULT_BEST_TIMING,
   rate = BEST_SHOT_RATE,
-  mismatch = false,
 ): BestWindow {
   const start = rallyStart(d)
   const end = rallyEnd(d)
@@ -654,7 +631,6 @@ export function bestLoop(
   const shot = stepShot(n, what.step, what.page)
   const contactAt = (k: number) => d.contacts[k - 1] ?? start
   const after = (k: number) => (k < n ? (d.contacts[k] ?? end) : end)
-  if (what.step === 'end' && mismatch && n >= 2) return shotLoop(contactAt(n - 1), end, timing, rate)
   if (what.step === 'shots' && rallyPage(d, what.page)) {
     const from = unaskedShots(n)[0] ?? shot
     return shotLoop(contactAt(from), after(shot), timing, rate)

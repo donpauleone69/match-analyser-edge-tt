@@ -6,8 +6,6 @@ import {
   STROKE_GRID,
   bestEndOf,
   bestHint,
-  bestMismatch,
-  mismatchLine,
   padFocus,
   stepShot,
   type BestAt,
@@ -259,15 +257,9 @@ function EndPage({
   const last = hitterOf(draft.server, n)
   const endOn = bestEndOf(draft)
   const lit = draft.ending ? bestHint(draft, rallyOne) : null
-  const mismatch = bestMismatch(draft, rallyOne)
   const point = draft.best?.point
   const phase = padFocus(draft, rallyOne, back)
   const endLabel = `End · ${names[last]}`
-  const mismatchBlock = mismatch ? (
-    <p className="text-sm font-semibold leading-4 text-warning" data-best-line>
-      {mismatchLine(draft, names)}
-    </p>
-  ) : null
   if (phase === 'point') {
     return (
       <div className={cn('flex flex-col gap-2', !sides && 'min-h-0 flex-1')}>
@@ -292,7 +284,6 @@ function EndPage({
             },
           }))}
         />
-        {mismatchBlock}
       </div>
     )
   }
@@ -332,7 +323,6 @@ function EndPage({
           },
         ]}
       />
-      {mismatchBlock}
     </div>
   )
 }
