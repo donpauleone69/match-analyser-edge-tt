@@ -890,41 +890,15 @@ button[disabled] {
   max-height: none;
   aspect-ratio: auto;
 }
-/* Questions stay mounted for the wing portals. They cover the picture only, and stop above the playback row. */
-.tag-set[data-pad-split] .tag-entry {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  height: calc(100% - var(--tag-set) - var(--tag-rally) - 28px - var(--tag-playback) - 4px);
-  z-index: 15;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
+/* The wings are the Input Area. Nothing from it draws on the picture. */
+.tag-set[data-pad-split] [data-input-area] {
+  height: 100%;
   min-height: 0;
-  pointer-events: none;
-  background: transparent;
 }
-.tag-set[data-pad-split] .tag-entry > * {
-  pointer-events: auto;
-}
-.tag-set[data-pad-split] [data-tag-body] {
-  flex: 0 1 auto;
-  min-height: 0;
-  max-height: 45%;
-  padding-bottom: 0;
-  border-top-width: 0;
-  background: transparent;
-}
-/* Mark steps live in the wing, so they keep their full height and scroll. */
-.tag-set[data-mark-screen][data-pad-split] [data-pad-wing='left'] [data-tag-body] {
-  flex: 1 1 auto;
-  max-height: none;
-  overflow-y: auto;
-}
-.tag-set[data-pad-split] [data-best-panel] {
-  padding-top: 0;
-  gap: 0;
+.tag-set[data-pad-split] .input-short {
+  flex: 0 0 auto;
+  height: 2.75rem;
+  min-height: 2.75rem;
 }
 
 /* A viewport under 660 high. Cells stay 32 and the foot stays 48. 660 itself is unchanged. */

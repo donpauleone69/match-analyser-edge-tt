@@ -19,6 +19,7 @@ import {
   countPoints,
   firstServerForSet,
   leader,
+  scoreAtSetEnd,
   type Points,
 } from '@/features/tagging/score'
 import { markState, migrateSetMark, setIncomplete } from '@/features/tagging/setMark'
@@ -103,9 +104,11 @@ export type MatchRecord = {
  */
 export type MatchPhase = 'new' | 'ready' | 'partial' | 'complete'
 
-/** Counted from the saved rallies; null until the set has one. */
+/** Counted from the saved rallies; null until the set has one. A set that was won, then tagged past that rally, counts the score at the win. */
 export function taggedScore(s: SetData): Score | null {
-  return s.rallies.length > 0 ? countPoints(s.rallies.map((r) => r.winner)) : null
+  if (s.rallies.length === 0) return null
+  const winners = s.rallies.map((r) => r.winner)
+  return scoreAtSetEnd(winners) ?? countPoints(winners)
 }
 
 export function setHasTagProgress(s: SetData): boolean {
@@ -207,7 +210,10 @@ export function setSettled(s: SetData): boolean {
 /** A won set uses its tagged score. Incomplete, not on video and part filmed use Details. */
 function countedScore(s: SetData): Score | null {
   if (setIncomplete(s)) return parseEntered(s.entered)
-  if (s.finished) return taggedScore(s)
+  if (s.finished) {
+    const atEnd = scoreAtSetEnd(s.rallies.map((r) => r.winner))
+    return atEnd ?? taggedScore(s)
+  }
   if (s.skipped || markState(s) === 'off' || markState(s) === 'part') return parseEntered(s.entered)
   return null
 }

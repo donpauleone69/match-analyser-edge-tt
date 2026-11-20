@@ -69,7 +69,7 @@ export function RallyZone({
   const columns = closed
     ? parts.map((p) => `repeat(${p.to - p.from + 1}, minmax(24px, var(--btn-kind-control)))`).join(' 0px ')
     : `repeat(${Math.max(n + 1, 1)}, minmax(24px, var(--btn-kind-control)))`
-  const dashed = server === null || state === 'gap' || state === 'insert' || (state === 'before' && n === 0)
+  const dashed = state === 'gap' || state === 'insert' || state === 'before'
   const headClass = cn(
     'inline-flex h-8 min-w-0 items-center gap-1 rounded-md border px-2 text-sm font-semibold',
     tight ? 'max-w-[36%]' : 'max-w-[40%]',
@@ -175,6 +175,7 @@ export function RallyZone({
                 <span
                   key={shot}
                   data-best-chip={shot}
+                  data-rally-grey={server ? undefined : ''}
                   data-best-mark={mark ?? ''}
                   data-best-wing={tags?.wing ?? ''}
                   data-best-stroke={tags?.stroke ?? ''}
@@ -185,16 +186,18 @@ export function RallyZone({
                     railCell,
                     'min-w-0 px-0',
                     isFa && 'border-2',
-                    mark === 'todo' && 'border-dashed',
+                    mark === 'todo' && server && 'border-dashed',
                     mark === 'off' && 'opacity-45',
                     flash === i && 'ring-2 ring-warning',
                     focused && 'edit-stop-on',
                   )}
                   style={{
-                    ...shotPaint(side, open || focused, isFa, false),
+                    ...(server
+                      ? shotPaint(side, open || focused, isFa, false)
+                      : { backgroundColor: 'transparent', borderColor: 'var(--color-border)', color: 'var(--color-muted)' }),
                     gridRow: 1,
                     gridColumn: closed ? shot + g : shot,
-                    ...(mark === 'todo' && !isFa
+                    ...(server && mark === 'todo' && !isFa
                       ? { borderColor: side === 'me' ? 'var(--color-tag-player-a)' : 'var(--color-tag-player-b)' }
                       : {}),
                   }}
@@ -220,7 +223,7 @@ export function RallyZone({
           </span>
         ) : null}
         <span aria-hidden data-best-phases className="h-4" style={{ gridRow: 2, gridColumn: '1 / -1' }} />
-        {closed && draft
+        {closed && draft && server
           ? parts.map((p, g) => {
               const marked = Boolean(draft.best?.review?.includes(p.part))
               return (

@@ -1,8 +1,9 @@
 /**
  * Best + FA (`?flow=bestfa`, the default).
  * Contacts, idle close, then one question per screen in contact order:
- * Serve, each later shot, then End. The winner follows from the server, the
- * contact count and End. Point to is asked only when that winner is missing.
+ * On rally 1, who served comes first. Then Serve, each later shot, then End.
+ * The winner follows from the server, the contact count and End. Point to is
+ * asked only when that winner is missing, and never on rally 1.
  * One contact asks End only: Winner is an ace, an error is a serve fault.
  * The last answer saves.
  * Pure: no React, no store. The other flows do not use this file.
@@ -152,7 +153,7 @@ export function endShots(n: number): number[] {
 
 /** The shot a step tags. End tags the last shot. `shots` is the page open. */
 export function stepShot(n: number, step: BestStep, page?: number): number {
-  if (step === 'serve') return 1
+  if (step === 'server' || step === 'serve') return 1
   if (step === 'receive') return 2
   if (step === 'third') return 3
   if (step === 'fourth') return 4
@@ -265,6 +266,7 @@ export type PadBack = 'end' | 'point' | null
  * server switch is used. A point that disagrees stays on Point to.
  */
 export function padFocus(d: Q, rallyOne: boolean, back: PadBack = null): 'end' | 'point' {
+  if (rallyOne) return 'end'
   if (back === 'end' || back === 'point') return back
   if (!d.ending) return 'end'
   if (!pointDone(d, rallyOne)) return 'point'
@@ -287,6 +289,7 @@ export type BestAt = { step: BestStep; page?: number }
 export function routeAfter(d: Q, rallyOne: boolean): BestAt | null {
   const n = d.contacts.length
   if (n === 0) return null
+  if (rallyOne && !serverKnown(d, true)) return { step: 'server' }
   if (bestMismatch(d, rallyOne)) return { step: 'end' }
   if (n >= 2) {
     if (!d.shots[0]?.depth) return { step: 'serve' }
@@ -300,6 +303,7 @@ export function routeAfter(d: Q, rallyOne: boolean): BestAt | null {
 /** Where the open rally stands. A step the rally no longer has falls back to the route. */
 export function bestAt(d: Q, rallyOne: boolean): BestAt {
   const n = d.contacts.length
+  if (rallyOne && n > 0 && !serverKnown(d, true)) return { step: 'server' }
   if (n <= 1) return { step: 'end' }
   if (bestMismatch(d, rallyOne)) return { step: 'end' }
   const step = d.best?.step
@@ -460,7 +464,12 @@ export function bestSwitchServer(d: Draft, rallyOne = false): Draft {
   return settlePoint(next, rallyOne)
 }
 
-/** Point to. On rally one it also sets the server, since nothing else knows it yet. */
+/** Rally 1: the answer to who served. The later questions then know the winner. */
+export function bestSetServer(d: Draft, side: Side): Draft {
+  return { ...d, server: side, serveChecked: true, best: carryBest(d, { kept: undefined }) }
+}
+
+/** Point to. Rally 1 does not ask it: who served already names the server. */
 export function bestSetPoint(d: Draft, side: Side, rallyOne: boolean): Draft {
   const server = rallyOne && d.ending ? serverForWinner(d, side) : d.server
   return { ...d, server, best: carryBest(d, { point: side }) }
@@ -640,7 +649,7 @@ export function bestLoop(
 ): BestWindow {
   const start = rallyStart(d)
   const end = rallyEnd(d)
-  if (what === 'rally') return { a: start, b: end }
+  if (what === 'rally' || what.step === 'server') return { a: start, b: end }
   const n = d.contacts.length
   const shot = stepShot(n, what.step, what.page)
   const contactAt = (k: number) => d.contacts[k - 1] ?? start
