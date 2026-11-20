@@ -39,6 +39,7 @@ import {
   reviewSwapLine,
   walkServes,
   breakIndexes,
+  serveBands,
   checkSet,
   expectedServer,
   leaveIds,
@@ -311,7 +312,7 @@ function SetPills({
   open: { n: number; server: Side } | null
   /** The rally being inserted, drawn as a dashed pill in its slot. */
   insert: { index: number; n: number; server: Side } | null
-  /** Rally indexes whose server is not the one due. The first break only, from the walk. */
+  /** The first break of each mistake. A later break in the same band stays off. */
   serveBreaks: number[]
   onGap: (index: number) => void
 }) {
@@ -2242,7 +2243,7 @@ function TagSet({
               ? { index: gap.index, n: gap.index + 1, server: nextServer }
               : null
           }
-          serveBreaks={breakIndexes(set.rallies, set.firstServer)}
+          serveBreaks={serveBands(set.rallies, set.firstServer).map((b) => b.breaks[0])}
           onGap={onGapSlot}
         />
         <Button

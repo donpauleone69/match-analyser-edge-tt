@@ -12,7 +12,7 @@ import {
 } from '@/data/demoStore'
 import { otherSide, pointRally, swapPlayers, type Draft, type MarkKind, type RallyData } from './rally'
 import { addPoint, firstServerAt, serverAt, setEndIndex, ZERO, type Points } from './score'
-import { LONG_GAP_S, breakIndexes } from './continuity'
+import { LONG_GAP_S, serveBands } from './continuity'
 import { markBounds } from './setMark'
 import { firstContactG, insertIndex, lastContactG, segmentsOf, toGlobal, type Segment } from './timeline'
 
@@ -203,7 +203,7 @@ export function editStops(m: MatchRecord, setId: number): { rallies: EditRallySt
     if (r.point || !have.has(r.videoId)) return
     rallies.push({ kind: 'rally', id: r.id, n: index + 1, index })
   })
-  const breaks = new Set(breakIndexes(s.rallies, s.firstServer))
+  const breaks = new Set(serveBands(s.rallies, s.firstServer).map((b) => b.breaks[0]))
   const gaps: EditGapStop[] = []
   for (const stop of rallies) {
     const w = gapWindow(m, setId, stop.index)
