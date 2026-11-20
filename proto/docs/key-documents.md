@@ -42,7 +42,7 @@ Mirrors the [Key documents canvas](https://cursor.com/canvas/store-7c210afe-9d07
 
 | Build | Link | Notes |
 |-------|------|-------|
-| v0.17.24 | Set Tagger score | As soon as End is pressed, the Rally Zone head reads the next rally, its server and the new score. The 2 second countdown bar runs along the bottom edge of the Rally Zone. |
+| v0.17.24 | [PR #172](https://github.com/donpauleone69/match-analyser-edge-tt/pull/172) | As soon as End is pressed, the Rally Zone head reads the next rally, its server and the new score. The 2 second countdown bar runs along the bottom edge of the Rally Zone. |
 | v0.17.22 | [PR #170](https://github.com/donpauleone69/match-analyser-edge-tt/pull/170) | Edit Rally keeps an End slot on the shot row. Save set is live as soon as the set is won. A review chip jumps to that part, and a Set Zone pill jumps to another rally's first part. The top row controls carry a button kind. Inside a match the page under the row keeps the side insets. |
 | v0.17.21 | [PR #167](https://github.com/donpauleone69/match-analyser-edge-tt/pull/167) | The nav is hidden inside a match. Portrait keeps the bottom bar. Landscape uses a left rail, and the desktop bar is gone. Safe area padding sits on the rail, the bar, and the top row, never on the shell. |
 | v0.17.20 | [PR #166](https://github.com/donpauleone69/match-analyser-edge-tt/pull/166) | Matches is the home, at /matches. /home and /find redirect there. A part tagged row has Continue set N. Filter replaces Find. Back from a match goes to Matches. |
