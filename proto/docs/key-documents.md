@@ -29,12 +29,14 @@ Mirrors the [Key documents canvas](https://cursor.com/canvas/store-7c210afe-9d07
 | Mark sets page plan | Context: [docs/mark-sets-page-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/mark-sets-page-plan.md) | Paul OK'd it. v0.17.9 ([PR #152](https://github.com/donpauleone69/match-analyser-edge-tt/pull/152)) trims the Tag page. The player, wings and spanning follow. |
 | Set Tagger start end plan | Context: [docs/set-tagger-start-end-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/set-tagger-start-end-plan.md) | Planned, awaiting Paul's OK. |
 | Set completion scores plan | Context: [docs/set-completion-scores-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/set-completion-scores-plan.md) | Waiting on Paul's 14 choices. |
+| Set tagger review fixes | Context: [docs/set-tagger-review-fixes-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/set-tagger-review-fixes-plan.md) | Built as v0.17.13. Short gaps are stops, a serve break flags the pill, and the shot quadrants have no tap guard. |
 | Product ideas | [product-ideas.md](./product-ideas.md) | Running list of product ideas. |
 
 ## Latest builds
 
 | Build | Link | Notes |
 |-------|------|-------|
+| v0.17.13 | | A gap under a second is a stop, and Insert stays off. Times that cross say the rallies overlap. The first serve break outlines its pill. The shot quadrants have no tap guard. The seek knob sits fully on the picture. Rally pills are not buttons. The edit line no longer says Rally N of M. |
 | v0.17.9 | [PR #152](https://github.com/donpauleone69/match-analyser-edge-tt/pull/152) | The lead button and the opponent prompt leave the Tag tab. Each video has a status line. Each set has Tag, Continue or Open. Part filmed is text. The row Menu keeps Re-mark, Change number, Unmark and Mark complete until the card edits replace them. Archive on this page is a placeholder, and a locked match hides Archive video. |
 | v0.17.8 | [PR #151](https://github.com/donpauleone69/match-analyser-edge-tt/pull/151) | A gap of 9 seconds or more, or one named by a serve order break, takes a warning tint on its slot and on the seek bar. A finished set's insert shows the questions. Cancel leaves before the first tap. Undo returns to the gap. No gaps says so. |
 | v0.17.7 | [PR #151](https://github.com/donpauleone69/match-analyser-edge-tt/pull/151) | Insert from a gap, including a finished set. The first gap starts at the mark. Saving returns to Edit Set on the new rally. Discard returns to the same gap. |

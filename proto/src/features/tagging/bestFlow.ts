@@ -311,10 +311,7 @@ export function bestAt(d: Q, rallyOne: boolean): BestAt {
   return routeAfter(d, rallyOne) ?? { step: 'serve' }
 }
 
-/**
- * What the question area shows. The 250 ms guard arms when this changes, so a
- * second tap does not land on the next question.
- */
+/** What the question area shows: the step, the page, the end phase, and how many contacts. */
 export function bestQuestionKey(d: Q, rallyOne: boolean, back: PadBack = null): string {
   if (d.contacts.length === 0) return ''
   const at = bestAt(d, rallyOne)
