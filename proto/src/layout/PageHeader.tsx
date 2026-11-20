@@ -33,7 +33,7 @@ export function PageHeader({
   return (
     <header
       data-top-row
-      className="flex h-[var(--btn-kind-control)] min-w-0 items-stretch border-b border-border bg-bg-app"
+      className="top-row flex h-[var(--btn-kind-control)] min-w-0 items-stretch border-b border-border bg-bg-app"
     >
       {backTo ? (
         <Link

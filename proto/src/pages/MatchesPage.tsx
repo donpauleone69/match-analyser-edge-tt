@@ -279,16 +279,19 @@ export function MatchesPage() {
               <li key={m.id} className="flex items-center border-b border-border" data-match-row={m.id}>
                 <Link
                   to={`/matches/${m.id}/${defaultMatchTab(phase)}`}
-                  className="min-w-0 flex-1 px-4 py-3 hover:bg-bg-elevated sm:px-6 lg:px-8"
+                  className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3 hover:bg-bg-elevated sm:px-6 lg:px-8"
                 >
-                  <p className="truncate text-sm font-medium text-primary">{matchLabel(m)}</p>
-                  <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-muted">
-                    {matchMeta(m)}
-                    {matchDiffers(m) ? <WfWarnBadge>Differs</WfWarnBadge> : null}
-                  </p>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-medium text-primary">{matchLabel(m)}</span>
+                    <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-muted">
+                      {matchMeta(m)}
+                      {matchDiffers(m) ? <WfWarnBadge>Differs</WfWarnBadge> : null}
+                    </span>
+                  </span>
+                  {resume ? null : <WfBadge>{phaseLabel(phase)}</WfBadge>}
                 </Link>
-                <div className="shrink-0 pr-4 sm:pr-6 lg:pr-8">
-                  {resume ? (
+                {resume ? (
+                  <div className="shrink-0 pr-4 sm:pr-6 lg:pr-8">
                     <button
                       type="button"
                       data-continue-set={resume.setId}
@@ -297,10 +300,8 @@ export function MatchesPage() {
                     >
                       Continue set {resume.setId}
                     </button>
-                  ) : (
-                    <WfBadge>{phaseLabel(phase)}</WfBadge>
-                  )}
-                </div>
+                  </div>
+                ) : null}
               </li>
             )
           })}
