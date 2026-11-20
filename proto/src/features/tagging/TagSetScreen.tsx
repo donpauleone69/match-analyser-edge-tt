@@ -284,18 +284,31 @@ function WingTap({
   )
 }
 
-/** This set's saved rallies, numbered in order. Newest stays at the right. The pick sits in the middle. */
+/**
+ * This set's rallies, left to right. A grey score sits in front of the first
+ * tagged rally. The open rally is dashed, in the server's colour. Newest at
+ * the right. The pick sits in the middle.
+ */
 function SetPills({
   rallies,
   picked,
+  open,
   onPick,
 }: {
   rallies: RallyData[]
   picked: string | null
+  open: { n: number; server: Side } | null
   onPick: (r: RallyData) => void
 }) {
   const scroller = useRef<HTMLDivElement>(null)
-  const pills = rallies.flatMap((r, i) => (r.point ? [] : [{ r, n: i + 1 }]))
+  const end = setEndIndex(rallies.map((r) => r.winner))
+  const overrun = end >= 0 && end < rallies.length - 1
+  let lead = 0
+  while (lead < rallies.length && rallies[lead].point) lead++
+  const start = lead > 0 ? countPoints(rallies.slice(0, lead).map((r) => r.winner)) : null
+  const pills = rallies.flatMap((r, i) =>
+    r.point ? [] : [{ r, n: i + 1, warn: overrun && i > end }]
+  )
   useLayoutEffect(() => {
     const el = scroller.current
     if (!el) return
@@ -305,22 +318,41 @@ function SetPills({
       return
     }
     el.scrollLeft = el.scrollWidth
-  }, [picked, pills.length])
+  }, [picked, pills.length, open?.n, start?.me, start?.them])
   return (
     <div ref={scroller} className="tag-pills" data-set-pills>
-      {pills.map(({ r, n }) => (
+      {start ? (
+        <span className="tag-pill tag-pill-start" data-start-pill>
+          {formatScore(start)}
+        </span>
+      ) : null}
+      {pills.map(({ r, n, warn }) => (
         <button
           key={r.id}
           type="button"
           data-set-pill={n}
           data-pill-id={r.id}
+          data-pill-warn={warn ? '' : undefined}
           data-pill-on={picked === r.id ? '' : undefined}
-          className={cn('tag-pill', r.winner === 'me' ? 'bg-side-me' : 'bg-side-them', picked === r.id && 'tag-pill-on')}
+          className={cn(
+            'tag-pill',
+            r.winner === 'me' ? 'bg-side-me' : 'bg-side-them',
+            picked === r.id && 'tag-pill-on',
+            warn && 'tag-pill-warn'
+          )}
           onClick={() => onPick(r)}
         >
           {n}
         </button>
       ))}
+      {open ? (
+        <span
+          className={cn('tag-pill tag-pill-open', open.server === 'me' ? 'text-side-me' : 'text-side-them')}
+          data-open-pill={open.n}
+        >
+          {open.n}
+        </span>
+      ) : null}
     </div>
   )
 }
@@ -1868,7 +1900,12 @@ function TagSet({
       </div>
       <div className="tag-setzone">
         <h1 className="min-w-0 shrink truncate text-sm font-bold text-primary">Set {set.setId}</h1>
-        <SetPills rallies={set.rallies} picked={editPick} onPick={openEditRally} />
+        <SetPills
+          rallies={set.rallies}
+          picked={editPick}
+          open={set.finished ? null : { n: set.rallies.length + 1, server: live?.server ?? nextServer }}
+          onPick={openEditRally}
+        />
         <Button
           size="sm"
           variant={editPick !== null ? 'primary' : 'secondary'}
