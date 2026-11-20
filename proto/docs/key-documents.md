@@ -41,7 +41,7 @@ Mirrors the [Key documents canvas](https://cursor.com/canvas/store-7c210afe-9d07
 
 | Build | Link | Notes |
 |-------|------|-------|
-| v0.17.20 | | Matches is the home, at /matches. /home and /find redirect there. A part tagged row has Continue set N. Filter replaces Find. Back from a match goes to Matches. |
+| v0.17.20 | [PR #166](https://github.com/donpauleone69/match-analyser-edge-tt/pull/166) | Matches is the home, at /matches. /home and /find redirect there. A part tagged row has Continue set N. Filter replaces Find. Back from a match goes to Matches. |
 | v0.17.19 | [PR #165](https://github.com/donpauleone69/match-analyser-edge-tt/pull/165) | One top row on every page, 44px on a phone. The brand stays on the Gate only. A match row is back, Insights, Details and Tag, and the short name. Insights tabs sit in the row and Filter is an icon. Account has no row, and the version closes the page. |
 | v0.17.18 | [PR #164](https://github.com/donpauleone69/match-analyser-edge-tt/pull/164) | The Rally Zone is 64px. Part words become thin lines, amber when marked. The star opens review: the parts take the shot row, and Back, Forward and Review [part] play and mark that part. The star is hidden while answering. Old whole-rally stars stay in the data and no longer show. |
 | v0.17.17 | [PR #163](https://github.com/donpauleone69/match-analyser-edge-tt/pull/163) | Dead code only. The video removed page, the lock lines inside the tagger, the Point to mismatch line, the review run, delete mode and the foot Delete last and Discard are gone. What you see while tagging is unchanged. Part marks stay. |
