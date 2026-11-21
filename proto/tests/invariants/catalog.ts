@@ -143,7 +143,7 @@ function hitter(server: Side, shot: number): Side {
 function winnerRule(server: Side, n: number, ending: string | null): Side | null {
   if (!ending || n === 0) return null
   const last = hitter(server, n)
-  const error = ending === 'Net' || ending === 'Long' || ending === 'Wide' || ending === 'Air' || ending === 'Off'
+  const error = ending === 'Net' || ending === 'Long' || ending === 'Wide'
   return error ? (last === 'me' ? 'them' : 'me') : last
 }
 
@@ -234,15 +234,14 @@ function statesOf(m: MatchRecord, s: SetData): State[] {
     noResult &&
     s.setId === m.sets.length &&
     s.mark === null &&
-    !s.skipped &&
     noRallies &&
     noDraft &&
     !s.finished &&
     noEntered
   if (spare) hits.push('spare')
-  if ((s.mark === null || s.skipped) && noRallies && noDraft && !s.finished && !spare) hits.push('not-on-video')
+  if (s.mark === null && noRallies && noDraft && !s.finished && !spare) hits.push('not-on-video')
   if (!s.finished && (!noRallies || !noDraft)) hits.push('under-way')
-  if (s.mark !== null && !s.skipped && !s.finished && noRallies && noDraft) hits.push('ready')
+  if (s.mark !== null && !s.finished && noRallies && noDraft) hits.push('ready')
   if (s.finished && !noRallies) {
     const winners = winnersOf(s)
     const score = taggedOf(winners)
@@ -271,7 +270,7 @@ function settled(s: SetData): boolean {
   const atEndScore = atEnd < 0 ? null : count(winners.slice(0, atEnd + 1))
   const incomplete = s.finished && s.rallies.length > 0 && !early(s) && (atEndScore === null || !won(atEndScore))
   if (incomplete) return enteredOf(s) !== null
-  if (s.finished || s.skipped) return true
+  if (s.finished) return true
   if (!s.mark) return enteredOf(s) !== null
   return false
 }
@@ -293,13 +292,11 @@ function maxSet(sets: SetData[], test: (s: SetData) => boolean): number {
 function expectedSetCount(m: MatchRecord): number {
   const fromResult = resultTotal(m)
   const used = Math.max(
-    maxSet(m.sets, (s) => tagProgress(s) || s.skipped || s.mark !== null),
+    maxSet(m.sets, (s) => tagProgress(s) || s.mark !== null),
     maxSet(m.sets, (s) => s.entered.me !== '' || s.entered.them !== ''),
   )
-  const loose = m.sets.some((s) => s.setId <= used && !settled(s))
-  const tagDone = m.tagDone && !loose && m.sets.some((s) => s.finished && !s.skipped)
   const lastTagged = maxSet(m.sets, tagProgress)
-  return fromResult !== null ? Math.max(fromResult, lastTagged) : Math.max(1, tagDone ? used : used + 1)
+  return fromResult !== null ? Math.max(fromResult, lastTagged) : Math.max(1, used + 1)
 }
 
 function markStateOf(s: SetData): 'off' | 'ready' | 'tagging' | 'saved' {
@@ -383,8 +380,8 @@ function scoreKey(value: unknown, path: string): string | null {
 }
 
 const RALLY_KEYS = ['contacts', 'end', 'ending', 'fa', 'id', 'idea', 'left', 'point', 'serveChecked', 'server', 'shots', 'start', 'videoId', 'winner']
-const SET_KEYS = ['draft', 'entered', 'finished', 'firstServer', 'mark', 'rallies', 'setId', 'skipped']
-const MATCH_KEYS = ['date', 'event', 'id', 'opponent', 'result', 'sets', 'tagDone', 'videos']
+const SET_KEYS = ['draft', 'entered', 'finished', 'firstServer', 'mark', 'rallies', 'setId']
+const MATCH_KEYS = ['date', 'event', 'id', 'opponent', 'result', 'sets', 'videos']
 
 function shotRules(r: RallyData, say: (what: string) => string): string[] {
   const bad: string[] = []
@@ -409,7 +406,7 @@ function shotRules(r: RallyData, say: (what: string) => string): string[] {
     }
   }
   const attack = firstAttack(n, r.shots)
-  const opener = bestOpener(n, r.shots, r.idea?.first)
+  const opener = bestOpener(n, r.shots)
   const fromApp = typeof opener === 'number' ? opener : null
   if (r.fa !== attack || r.fa !== fromApp || r.fa === 1) bad.push(say(`fa ${r.fa} attack ${attack} bestOpener ${String(opener)}`))
   if (r.serveChecked !== true) bad.push(say('serveChecked is not true'))
@@ -419,8 +416,7 @@ function shotRules(r: RallyData, say: (what: string) => string): string[] {
     if (n >= 2 && r.idea.serve !== r.shots[0]?.depth) bad.push(say(`idea.serve ${r.idea.serve} depth ${r.shots[0]?.depth}`))
     const result = n === 1 ? (r.ending === 'Winner' ? 'Ace' : 'Serve fault') : r.ending
     if (n >= 1 && r.idea.result !== result) bad.push(say(`idea.result ${r.idea.result} want ${result}`))
-    if (r.idea.first !== undefined) bad.push(say('idea.first is set'))
-    const order = bestParts(n, r.shots, r.idea.first).map((part) => part.part)
+    const order = bestParts(n, r.shots).map((part) => part.part)
     const review = r.idea.review ?? []
     let last = -1
     for (const part of review) {
@@ -555,7 +551,7 @@ export const INVARIANTS: Invariant[] = [
   },
   {
     id: 'I-9',
-    text: 'idea is a Best + FA save, with no who-attacked-first answer',
+    text: 'idea is a Best + FA save',
     kind: 'data',
     reads: ['idea', 'shots', 'ending'],
     check: checkRally((m, s, r, n, bad) => {
@@ -846,7 +842,7 @@ export const INVARIANTS: Invariant[] = [
         for (const s of m.sets) {
           const entered = enteredOf(s)
           const tagged = taggedOf(winnersOf(s))
-          const differ = Boolean(s.finished && !s.skipped && entered && tagged && (entered.me !== tagged.me || entered.them !== tagged.them))
+          const differ = Boolean(s.finished && entered && tagged && (entered.me !== tagged.me || entered.them !== tagged.them))
           if (setScoresDiffer(s) !== differ) bad.push(atSet(m, s, `differs ${setScoresDiffer(s)} formula ${differ}`))
           if (m.id === 'm-complete' && s.setId === 2) {
             sawComplete = true
@@ -924,16 +920,16 @@ export const INVARIANTS: Invariant[] = [
     id: 'I-43',
     text: 'complete means no set under way, one set finished, and every set the result lists is settled',
     kind: 'data',
-    reads: ['derivePhase', 'finished', 'result', 'tagDone'],
+    reads: ['derivePhase', 'finished', 'result'],
     check: (ctx) => {
       const bad: string[] = []
       for (const m of ctx.matches) {
-        const underWay = m.sets.some((s) => !s.finished && !s.skipped && (s.rallies.length > 0 || s.draft !== null))
+        const underWay = m.sets.some((s) => !s.finished && (s.rallies.length > 0 || s.draft !== null))
         const someFinished = m.sets.some((s) => s.finished)
         const count = resultTotal(m)
-        const upTo = count === null ? m.tagDone : m.sets.filter((s) => s.setId <= count).every(settled)
+        const upTo = count !== null && m.sets.filter((s) => s.setId <= count).every(settled)
         const tagged = !underWay && someFinished && upTo
-        const progress = m.sets.some((s) => !s.skipped && tagProgress(s))
+        const progress = m.sets.some(tagProgress)
         if (isMatchTagged(m) !== tagged) bad.push(place(m.id, 0, 0, '-', `tagged ${isMatchTagged(m)} formula ${tagged}`))
         if ((derivePhase(m) === 'complete') !== (tagged && progress)) {
           bad.push(place(m.id, 0, 0, '-', `phase ${derivePhase(m)}`))

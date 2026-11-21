@@ -30,11 +30,10 @@ export function isBestEnd(value: string): value is BestEnd {
   return (BEST_ENDS as readonly string[]).includes(value)
 }
 
-/** The end button that is on. An older BH or FH winner reads as Winner. */
-export function bestEndOf(d: { ending: Ending | null; best?: { end?: string } }): BestEnd | null {
+/** The end button that is on. */
+export function bestEndOf(d: { ending: Ending | null; best?: { end?: BestEnd } }): BestEnd | null {
   if (!d.ending) return null
   const saved = d.best?.end
-  if (saved === 'BH' || saved === 'FH') return d.ending === 'Winner' ? 'Winner' : null
   if (saved && isBestEnd(saved)) return d.ending === saved ? saved : null
   return isBestEnd(d.ending) ? d.ending : null
 }
@@ -147,9 +146,6 @@ export function endShots(n: number): number[] {
 /** The shot a step tags. End tags the last shot. `shots` is the page open. */
 export function stepShot(n: number, step: BestStep, page?: number): number {
   if (step === 'server' || step === 'serve') return 1
-  if (step === 'receive') return 2
-  if (step === 'third') return 3
-  if (step === 'fourth') return 4
   if (step === 'shots') return page !== undefined && page >= 1 && page <= n ? page : n
   return n
 }
@@ -274,8 +270,8 @@ export function bestAt(d: Q, rallyOne: boolean): BestAt {
   if (n <= 1) return { step: 'end' }
   const step = d.best?.step
   if (step === 'serve' || step === 'end') return { step }
-  if (step === 'shots' || step === 'receive' || step === 'third' || step === 'fourth') {
-    const page = step === 'receive' ? 2 : step === 'third' ? 3 : step === 'fourth' ? 4 : d.best?.endPage
+  if (step === 'shots') {
+    const page = d.best?.endPage
     if (page !== undefined && page >= 2 && page <= n) return { step: 'shots', page }
   }
   return routeAfter(d, rallyOne) ?? { step: 'serve' }
@@ -654,7 +650,6 @@ export function bestRally(d: Draft, id: string, winner: Side, kept: boolean): Ra
       flow: 'bestfa',
       ...(d.shots[0]?.depth ? { serve: d.shots[0].depth } : {}),
       ...(endLabel ? { result: endLabel } : {}),
-      ...(first ? { first } : {}),
       ...(review.length ? { review } : {}),
       ...(kept ? { check: 'Check the point' } : {}),
     },
@@ -682,7 +677,6 @@ export function draftFromRally(r: RallyData): Draft {
         end: end ?? undefined,
         point: r.winner,
         kept: r.idea?.check ? true : undefined,
-        first: r.idea?.first,
         review: r.idea?.review,
       }
     ),

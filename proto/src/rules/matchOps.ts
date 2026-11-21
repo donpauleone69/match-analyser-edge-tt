@@ -9,7 +9,7 @@ import { LONG_GAP_S, serveBands } from './continuity'
 import { endedEarly, markBounds } from './marks'
 import { firstContactG, insertIndex, lastContactG, segmentsOf, toGlobal, type Segment } from './timeline'
 
-/** A set number that is not listed yet (a skipped set 1, say) is added when it is first written. */
+/** A set number that is not listed yet is added when it is first written. */
 function inSet(m: MatchRecord, setId: number, fn: (s: SetData) => SetData): MatchRecord {
   const sets = m.sets.some((s) => s.setId === setId)
     ? m.sets
@@ -115,10 +115,8 @@ function scoreText(s: SetData) {
 export const finishSet = (m: MatchRecord, setId: number) =>
   inSet(m, setId, (s) => withDeleted({ ...s, finished: true, draft: null }, []))
 
-export const reopenSet = (m: MatchRecord, setId: number): MatchRecord => ({
-  ...inSet(m, setId, (s) => ({ ...s, finished: false })),
-  tagDone: false,
-})
+export const reopenSet = (m: MatchRecord, setId: number): MatchRecord =>
+  inSet(m, setId, (s) => ({ ...s, finished: false }))
 
 export const applyTaggedScore = (m: MatchRecord, setId: number) =>
   inSet(m, setId, (s) => ({ ...s, entered: scoreText(s) }))
@@ -225,12 +223,12 @@ export function gapWindow(m: MatchRecord, setId: number, index: number): GapWind
 
 /** The first set after `setId` that can still be tagged. */
 export function nextSetToTag(m: MatchRecord, setId: number): SetData | null {
-  return m.sets.find((s) => s.setId > setId && !s.skipped && !s.finished) ?? null
+  return m.sets.find((s) => s.setId > setId && !s.finished) ?? null
 }
 
 /** The set the user is part way through, for one-press resume. */
 export function deriveSetInProgress(m: MatchRecord): SetData | null {
-  return m.sets.find((s) => !s.skipped && !s.finished && (s.rallies.length > 0 || s.draft)) ?? null
+  return m.sets.find((s) => !s.finished && (s.rallies.length > 0 || s.draft)) ?? null
 }
 
 /** Best of 7 is the most a match can have. */
@@ -279,16 +277,15 @@ export function latestVideoId(m: MatchRecord): string | null {
 }
 
 /**
- * Set numbers a set starting at `at` may take: in the match, not tagged, not
- * marked not filmed, and in order along the videos with the tagged sets.
+ * Set numbers a set starting at `at` may take: in the match, not tagged,
+ * and in order along the videos with the tagged sets.
  */
 export function allowedSetNumbers(m: MatchRecord, at: number, except?: number): number[] {
   const segs = segmentsOf(m.videos)
   const tagged = m.sets.filter((s) => s.setId !== except && s.rallies.length > 0)
   const out: number[] = []
   for (let n = 1; n <= maxSetNumber(m); n++) {
-    const s = m.sets.find((x) => x.setId === n)
-    if (s?.skipped || tagged.some((t) => t.setId === n)) continue
+    if (tagged.some((t) => t.setId === n)) continue
     const inOrder = tagged.every((t) => {
       const pos = firstContactG(segs, t.rallies[0])
       if (pos === null) return true
@@ -333,7 +330,7 @@ export function endsOnLast(s: SetData): boolean {
 export function settleFinished(m: MatchRecord, setId: number): MatchRecord {
   const s = m.sets.find((x) => x.setId === setId)
   if (!s || !s.finished || endsOnLast(s) || endedEarly(s)) return m
-  return { ...inSet(m, setId, (x) => ({ ...x, finished: false })), tagDone: false }
+  return inSet(m, setId, (x) => ({ ...x, finished: false }))
 }
 
 /** Rallies after the one that ended the set leave it. */
@@ -341,19 +338,16 @@ export const dropAfter = (m: MatchRecord, setId: number, index: number) =>
   inSet(m, setId, (s) => ({ ...s, rallies: s.rallies.slice(0, index + 1) }))
 
 /** Delete set: its tagging goes. The entered score stays with the set number. */
-export const clearSet = (m: MatchRecord, setId: number): MatchRecord => ({
-  ...inSet(m, setId, (s) => withDeleted({ ...emptySet(setId), entered: s.entered }, [])),
-  tagDone: false,
-})
+export const clearSet = (m: MatchRecord, setId: number): MatchRecord =>
+  inSet(m, setId, (s) => withDeleted({ ...emptySet(setId), entered: s.entered }, []))
 
 /**
- * The set's place on video. The label is the set number. A legacy not-filmed flag goes.
+ * The set's place on video. The label is the set number.
  * Moving the end later on a saved set that was not won opens it again.
  * Moving the start, or only the complete flag, leaves it saved. A won set stays saved.
  */
 export function saveMark(m: MatchRecord, setId: number, mark: SetMark): MatchRecord {
-  const before = m.sets.find((s) => s.setId === setId)
-  const next = inSet(m, setId, (s) => {
+  return inSet(m, setId, (s) => {
     const segs = segmentsOf(m.videos)
     const was = s.mark ? toGlobal(segs, s.mark.to.videoId, s.mark.to.t) : null
     const now = toGlobal(segs, mark.to.videoId, mark.to.t)
@@ -361,10 +355,8 @@ export function saveMark(m: MatchRecord, setId: number, mark: SetMark): MatchRec
     const atEnd = calculateScoreAtSetEnd(s.rallies.map((r) => r.winner))
     const won = atEnd !== null && isSetWon(atEnd)
     const reopen = s.finished && later && !won
-    return { ...s, mark, skipped: false, ...(reopen ? { finished: false } : {}) }
+    return { ...s, mark, ...(reopen ? { finished: false } : {}) }
   })
-  if (before?.finished && next.sets.some((s) => s.setId === setId && !s.finished)) return { ...next, tagDone: false }
-  return next
 }
 
 /**
@@ -372,16 +364,13 @@ export function saveMark(m: MatchRecord, setId: number, mark: SetMark): MatchRec
  * use, so it counts as complete. A mark that was never tagged is left as it is.
  */
 export function deleteTags(m: MatchRecord, setId: number): MatchRecord {
-  return {
-    ...inSet(m, setId, (s) => ({
-      ...s,
-      rallies: [],
-      draft: null,
-      finished: false,
-      mark: s.mark && s.rallies.length > 0 ? { ...s.mark, complete: true } : s.mark,
-    })),
-    tagDone: false,
-  }
+  return inSet(m, setId, (s) => ({
+    ...s,
+    rallies: [],
+    draft: null,
+    finished: false,
+    mark: s.mark && s.rallies.length > 0 ? { ...s.mark, complete: true } : s.mark,
+  }))
 }
 
 /** The mark goes. Only while the set has no rallies. */
@@ -399,7 +388,6 @@ export function moveSet(m: MatchRecord, from: number, to: number): MatchRecord {
     withDeleted(
       {
         ...s,
-        skipped: false,
         firstServer: src.firstServer,
         finished: src.finished,
         rallies: src.rallies,

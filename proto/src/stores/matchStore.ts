@@ -86,7 +86,7 @@ function demoScriptFor(m: MatchRecord): VideoScript {
   return matchScript(
     Date.now() % 9973,
     me === null || them === null ? null : { me, them },
-    m.sets.map((s) => ({ firstServer: s.firstServer, score: parseEntered(s.entered), filmed: !s.skipped }))
+    m.sets.map((s) => ({ firstServer: s.firstServer, score: parseEntered(s.entered), filmed: true }))
   )
 }
 
@@ -214,7 +214,6 @@ function matchState(seed: MatchRecord[], initialMode: DemoMode): StateCreator<Ma
           result: { me: null, them: null },
           videos: [],
           sets: [emptySet(1)],
-          tagDone: false,
         }
         set((s) => lists(s, s.mode, [...s.extra, created], s.deleted))
         return created

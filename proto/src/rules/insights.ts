@@ -4,7 +4,7 @@
  */
 import { derivePhase } from './match'
 import { bestParts, partWindow } from './bestFa'
-import { hitterOf, isAttackStroke, isError, rallyEnd, rallyStart } from './rally'
+import { hitterOf, isError, rallyEnd, rallyStart } from './rally'
 import { deriveLeader, calculateScoreAtSetEnd } from './score'
 import type { MatchRecord, Points, SetData } from '@/types/match'
 import type { BestPart, Draft, Ending, RallyData, ShotTags, Side } from '@/types/rally'
@@ -167,8 +167,7 @@ export function phaseOf(server: Side, n: number, ending: Ending | null, player: 
 }
 
 function shotAttack(shot: ShotTags | undefined): boolean {
-  if (!shot?.stroke) return false
-  return shot.stroke === 'Attack' || isAttackStroke(shot.stroke)
+  return shot?.stroke === 'Attack'
 }
 
 function asDraft(r: RallyData): Draft {
@@ -203,8 +202,8 @@ function partAt(r: RallyData, part: BestPart): { a: number; b: number } | null {
   return span ? partWindow(d, span) : null
 }
 
-function countedRally(set: SetData, r: RallyData): boolean {
-  return !set.skipped && !r.point && r.contacts.length >= 1 && r.ending !== null
+function countedRally(r: RallyData): boolean {
+  return !r.point && r.contacts.length >= 1 && r.ending !== null
 }
 
 function rateText(won: number, n: number, min: number): string {
@@ -250,7 +249,6 @@ function pickWeak(rows: { won: number; n: number }[], cardWon: number, cardN: nu
 function coverageOf(sets: SetData[]): string | null {
   const bits: { kind: 'set' | 'part'; id: number }[] = []
   for (const set of [...sets].sort((a, b) => a.setId - b.setId)) {
-    if (set.skipped) continue
     const has = set.rallies.some((r) => !r.point && r.contacts.length >= 1)
     if (!has) continue
     bits.push({ kind: set.finished ? 'set' : 'part', id: set.setId })
@@ -283,7 +281,7 @@ function place(match: MatchRecord): Placed[] {
       out.push({ rally, setId: set.setId, sets: { ...setsWon }, points: { ...points }, matchId: match.id, versus })
       points = { me: points.me + (rally.winner === 'me' ? 1 : 0), them: points.them + (rally.winner === 'them' ? 1 : 0) }
     }
-    if (set.finished && !set.skipped) {
+    if (set.finished) {
       const at = calculateScoreAtSetEnd(set.rallies.map((r) => r.winner))
       const side = at ? deriveLeader(at) : null
       if (side) setsWon = { ...setsWon, [side]: setsWon[side] + 1 }
@@ -462,9 +460,7 @@ function endBucket(r: RallyData, player: Side): 'fh' | 'bh' | 'under' | 'receive
 }
 
 function missWord(r: RallyData): string {
-  if (r.ending === 'Net' || r.ending === 'Long' || r.ending === 'Wide' || r.ending === 'Air' || r.ending === 'Off') {
-    return r.ending
-  }
+  if (r.ending === 'Net' || r.ending === 'Long' || r.ending === 'Wide') return r.ending
   return ''
 }
 
@@ -769,7 +765,7 @@ function countedOf(matches: MatchRecord[]): Placed[] {
   for (const match of newestFirst(matches)) {
     for (const row of place(match)) {
       const set = match.sets.find((s) => s.setId === row.setId)
-      if (set && countedRally(set, row.rally)) out.push(row)
+      if (set && countedRally(row.rally)) out.push(row)
     }
   }
   return out

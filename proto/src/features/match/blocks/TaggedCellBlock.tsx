@@ -17,7 +17,6 @@ export function TaggedCellBlock({
 }) {
   const state = deriveSetState(set)
   const tagged = calculateTaggedScore(set)
-  if (state === 'skipped') return <span className="text-muted">Not filmed</span>
   if (state === 'none') return <span className="text-muted">Not tagged</span>
   if (!tagged) return <span className="text-muted">Started</span>
   if (state === 'progress') {

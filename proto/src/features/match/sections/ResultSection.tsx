@@ -110,7 +110,7 @@ export function ResultSection({
         <p>
           {formatScore({ me: waiting.me ?? 0, them: waiting.them ?? 0 })} gives{' '}
           {(waiting.me ?? 0) + (waiting.them ?? 0)} sets. {setList(lost)}{' '}
-          {lost.length === 1 ? 'has' : 'have'} entered scores or a Not filmed mark that will be
+          {lost.length === 1 ? 'has' : 'have'} entered scores that will be
           removed.
         </p>
         <div className="flex flex-wrap gap-2">

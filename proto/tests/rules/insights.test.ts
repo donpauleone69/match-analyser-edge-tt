@@ -203,7 +203,6 @@ const onlyMine: MatchRecord = {
       ],
     },
   ],
-  tagDone: false,
 }
 const solo = matchInsights(onlyMine)
 const soloServe = solo.cards.find((c) => c.id === 'serve')!

@@ -46,7 +46,6 @@ function baseMatch(): MatchRecord {
       {
         setId: 1,
         entered: { me: '', them: '' },
-        skipped: false,
         finished: false,
         firstServer: Y,
         rallies: rs,
@@ -54,7 +53,6 @@ function baseMatch(): MatchRecord {
         mark: null,
       },
     ],
-    tagDone: false,
   }
 }
 

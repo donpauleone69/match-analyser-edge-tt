@@ -123,7 +123,6 @@ const tagged = matchRecord({
   videos: [video('v')],
   sets: [wonSet(1), wonSet(2)],
   result: { me: 2, them: 0 },
-  tagDone: true,
 })
 it('tagged', () => {
   const s = matchRowStatus(tagged)

@@ -35,7 +35,7 @@ export function TagSetComposer({ matchId, setId }: { matchId: string; setId: str
   const archiveStep = useArchiveStep(matchId)
   const lock = useTagLock(match, archiveStep)
   const n = Number(setId)
-  // A set number not listed yet (a skipped set 1, say) can still be started. It is added on its first write.
+  // A set number not listed yet can still be started. It is added on its first write.
   const set =
     match?.sets.find((s) => s.setId === n) ??
     (match && Number.isInteger(n) && n >= 1 && n <= maxSetNumber(match) ? emptySet(n) : undefined)

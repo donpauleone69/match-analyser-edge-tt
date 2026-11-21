@@ -170,8 +170,6 @@ function playOf(d: () => number, rally: Omit<ScriptRally, 'play'>): ShotPlay[] {
     } else if (rally.ending === 'Wide') {
       // Off the side that the score and the video buttons leave clear.
       bounce = { x: NET_X + out * (0.14 + u * 0.14), y: far === 'them' ? 0.17 : 0.83 }
-    } else if (rally.ending === 'Lucky') {
-      bounce = { x: NET_X + out * 0.07, y: lerp(from.y, 0.5, 0.7) }
     } else {
       // A winner lands away from the other player's bat.
       const batY = n > 1 ? at[n - 2].y : 0.5 + (v - 0.5) * 0.02
@@ -353,7 +351,7 @@ export function tagsFromPlay(s: ScriptRally): { shots: ShotTags[]; fa: number | 
       if (n < 2) return {}
       return { wing: s.play[1]?.wing, depth: serveDepth(shot.bounce) }
     }
-    return { wing: shot.wing, stroke: shot.attack || isAttackStroke(shot.stroke) ? 'Attack' : 'Control' }
+    return { wing: shot.wing, stroke: shot.attack ? 'Attack' : 'Control' }
   })
   let fa: number | null = null
   for (let i = 1; i < shots.length; i++) {
@@ -369,7 +367,7 @@ export function tagsFromPlay(s: ScriptRally): { shots: ShotTags[]; fa: number | 
 export function rallyFromScript(videoId: string, s: ScriptRally, index: number): RallyData {
   const saved = tagsFromPlay(s)
   const n = s.contacts.length
-  const ending = s.ending === 'Lucky' ? 'Winner' : s.ending
+  const ending = s.ending
   const parts = bestParts(n, saved.shots).map((part) => part.part)
   const marked: BestPart | undefined = index % 12 === 0 ? parts[index % parts.length] : undefined
   const result = n <= 1 ? (ending === 'Winner' ? 'Ace' : 'Serve fault') : ending
@@ -482,25 +480,6 @@ function legOf(rally: ScriptRally, i: number): Leg {
     }
   }
   const b = shot.bounce ?? { x: END_X[far], y: 0.5 }
-  if (rally.ending === 'Lucky') {
-    // Clips the net, drops short and dies before the other player gets there.
-    const net = { x: NET_X, y: lerp(from.y, b.y, 0.85) }
-    const second = { x: b.x + out * 0.08, y: b.y }
-    const rest = { x: second.x + out * 0.05, y: b.y }
-    land(at(0.6), b)
-    land(at(0.8), second)
-    return {
-      ways: [
-        start,
-        { ...net, t: at(0.4), h: 0.3, arc },
-        { ...b, t: at(0.6), h: 0, arc: 0.25 },
-        { ...second, t: at(0.8), h: 0, arc: 0.15 },
-        { ...rest, t: at(1), h: 0, arc: 0.05 },
-      ],
-      marks,
-      netAt: at(0.4),
-    }
-  }
   // Winner, Long and Wide run on in a straight line through where they land.
   const slope = (b.y - from.y) / (b.x - from.x)
   const floor = rally.ending !== 'Winner'
@@ -607,7 +586,7 @@ export function sceneAt(script: VideoScript, t: number): Scene {
     const fly = flightAt(leg, t)
     const ending = i === c.length - 1
     const p = ending ? Math.min(1, (t - last) / TAIL_S) : 0
-    const stopped = rally.ending === 'Net' || rally.ending === 'Lucky'
+    const stopped = rally.ending === 'Net'
     const fade = stopped ? 1 : 1 - Math.max(0, p - 0.8) * 4
 
     const landed = [...(i > 0 ? legOf(rally, i - 1).marks : []), ...leg.marks]
