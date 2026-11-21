@@ -1,10 +1,13 @@
 import { useEffect, useRef, type ReactNode } from 'react'
 import { Icon } from '@/ui-mine'
-import type { VideoAsset } from '@/data/demoStore'
 import { cn } from '@/helpers/utils'
-import { SPEED_STEPS, servesText, type Side } from './rally'
-import { sceneAt, type VideoScript } from './script'
+import type { VideoAsset } from '@/types/match'
+import type { Side } from '@/types/rally'
+import type { VideoScript } from '@/types/video'
+import { SPEED_STEPS, servesText } from './rally'
+import { sceneAt } from './script'
 import { type Segment } from './timeline'
+import type { SeekSpan } from './models'
 import type { Player } from './usePlayer'
 
 const MARKS = [0, 1, 2, 3]
@@ -198,9 +201,6 @@ function Transport({
     </button>
   )
 }
-
-/** One rally on the seek bar, first contact to last. `on` is the rally being reviewed. */
-export type SeekSpan = { a: number; b: number; on?: boolean; likely?: boolean }
 
 /** Seek bar along the bottom of the picture. Rally spans, one knob, no played fill. */
 export function PictureSeek({

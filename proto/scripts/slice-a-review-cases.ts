@@ -3,7 +3,8 @@ import {
   type ServeRally, type ReviewPress,
 } from '@/features/tagging/continuity'
 import { deleteRally, restoreRally, confirmServe, insertRallyAt, leaveMark, saveRally } from '@/features/tagging/matchOps'
-import { pointRally, type RallyData, type Side } from '@/features/tagging/rally'
+import { pointRally } from '@/features/tagging/rally'
+import type { RallyData, Side } from '@/types/rally'
 
 const Y: Side = 'me', S: Side = 'them'
 const L = (s: Side) => (s === Y ? 'Y' : 'S')

@@ -2,7 +2,8 @@ import { Button, Card, CardDescription, CardTitle, Icon } from '@/ui-mine'
 import { APP_VERSION } from '@/version'
 import { ThemeSwitcher } from '@/theme/ThemeSwitcher'
 import { WfBadge, WfField, WfRow } from '@/layout/Wireframe'
-import { useDemo, type DemoMode } from '@/data/demoStore'
+import { useDemo } from '@/data/demoStore'
+import type { DemoMode } from '@/types/match'
 import { cn } from '@/helpers/utils'
 
 export function AccountPage() {

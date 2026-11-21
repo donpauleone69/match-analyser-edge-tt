@@ -2,8 +2,10 @@
  * The fourteen demo matches. Every rally is a Best + FA save from the script,
  * and every set mark is written here. Dates are days before `today`.
  */
-import type { MatchRecord, SetData, SetMark, VideoAsset } from '@/data/demoStore'
-import { otherSide, pointRally, type RallyData, type Side } from '@/features/tagging/rally'
+import type { MatchRecord, Points, SetData, SetMark, VideoAsset } from '@/types/match'
+import type { RallyData, Side } from '@/types/rally'
+import type { VideoScript } from '@/types/video'
+import { otherSide, pointRally } from '@/features/tagging/rally'
 import {
   addPoint,
   firstServerForSet,
@@ -12,7 +14,6 @@ import {
   isSetWon,
   serverAt,
   setOverOnRule,
-  type Points,
 } from '@/features/tagging/score'
 import {
   buildScripts,
@@ -20,7 +21,6 @@ import {
   rallyFromScript,
   setWinners,
   type ScriptSet,
-  type VideoScript,
 } from '@/features/tagging/script'
 import {
   firstContactG,

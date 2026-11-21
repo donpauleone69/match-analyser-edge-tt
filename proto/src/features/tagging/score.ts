@@ -1,8 +1,8 @@
 /** Score, server and set-end rules, ported from the real app (pure). */
 
-import { otherSide, type Side } from './rally'
-
-export type Points = { me: number; them: number }
+import type { Points } from '@/types/match'
+import type { Side } from '@/types/rally'
+import { otherSide } from './rally'
 
 export const ZERO: Points = { me: 0, them: 0 }
 

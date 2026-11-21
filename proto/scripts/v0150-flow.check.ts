@@ -3,8 +3,8 @@
  * Serve, each shot, then End. The winner comes from the server, the count and End.
  * One contact asks End: Winner is an ace, an error a serve fault. Run: npm run check:v0150
  */
-import type { MatchRecord, SetData } from '../src/data/demoStore'
 import { taggedScore } from '../src/data/demoStore'
+import type { MatchRecord, Points, SetData } from '../src/types/match'
 import {
   BEST_ENDS,
   bestAdvance,
@@ -26,8 +26,9 @@ import {
   type BestEnd,
 } from '../src/features/tagging/bestFlow'
 import { saveRally } from '../src/features/tagging/matchOps'
-import { addContact, emptyDraft, otherSide, winnerOf, type Draft, type Side, type Wing } from '../src/features/tagging/rally'
-import { addPoint, serverAt, ZERO, type Points } from '../src/features/tagging/score'
+import { addContact, emptyDraft, otherSide, winnerOf } from '../src/features/tagging/rally'
+import { addPoint, serverAt, ZERO } from '../src/features/tagging/score'
+import type { Draft, Side, Wing } from '../src/types/rally'
 
 const fails: string[] = []
 const ok = (name: string, cond: boolean, detail = '') => {

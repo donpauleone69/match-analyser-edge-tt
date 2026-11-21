@@ -1,24 +1,5 @@
 import { cn } from '@/helpers/utils'
-
-/** One control in the Input Area. Empty cells are space, so a missing region draws nothing. */
-export type AreaRegion = {
-  key: string
-  label: string
-  column: 1 | 2
-  row: number
-  /** Portrait: both columns. Landscape: the same control in each wing. */
-  span?: boolean
-  /** The row stays at control height. The other rows share what is left. */
-  short?: boolean
-  bg: string
-  fg: string
-  pressed?: boolean
-  /** Shown, and a press does nothing. */
-  dim?: boolean
-  outline?: boolean
-  onClick: () => void
-  data?: Record<string, string | undefined>
-}
+import type { AreaRegion } from './models'
 
 /**
  * Two columns in portrait. In landscape, one column of a wing: pass `column`

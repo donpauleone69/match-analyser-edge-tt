@@ -1,16 +1,10 @@
 /** Pure changes tagging makes to a match. Applied through the store's mutateMatch. */
 
-import {
-  emptySet,
-  resultSetCount,
-  setScoresDiffer,
-  taggedScore,
-  type MatchRecord,
-  type SetData,
-  type SetMark,
-} from '@/data/demoStore'
-import { otherSide, pointRally, swapPlayers, type Draft, type MarkKind, type RallyData } from './rally'
-import { addPoint, firstServerAt, isSetWon, scoreAtSetEnd, serverAt, setEndIndex, ZERO, type Points } from './score'
+import { emptySet, resultSetCount, setScoresDiffer, taggedScore } from '@/data/demoStore'
+import type { MatchRecord, Points, SetData, SetMark } from '@/types/match'
+import type { Draft, MarkKind, RallyData } from '@/types/rally'
+import { otherSide, pointRally, swapPlayers } from './rally'
+import { ZERO, addPoint, firstServerAt, isSetWon, scoreAtSetEnd, serverAt, setEndIndex } from './score'
 import { LONG_GAP_S, serveBands } from './continuity'
 import { endedEarly, markBounds } from './setMark'
 import { firstContactG, insertIndex, lastContactG, segmentsOf, toGlobal, type Segment } from './timeline'

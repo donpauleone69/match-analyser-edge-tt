@@ -3,22 +3,12 @@
  * Named insightCounts so it can live next to MatchInsights.tsx.
  * One function of (rallies, player) builds each card for both sides.
  */
-import { derivePhase, type MatchRecord, type SetData } from '@/data/demoStore'
+import { derivePhase } from '@/data/demoStore'
 import { bestParts, partWindow } from '@/features/tagging/bestFlow'
-import {
-  hitterOf,
-  isAttackStroke,
-  isError,
-  rallyEnd,
-  rallyStart,
-  type BestPart,
-  type Draft,
-  type Ending,
-  type RallyData,
-  type ShotTags,
-  type Side,
-} from '@/features/tagging/rally'
-import { leader, scoreAtSetEnd, type Points } from '@/features/tagging/score'
+import { hitterOf, isAttackStroke, isError, rallyEnd, rallyStart } from '@/features/tagging/rally'
+import { leader, scoreAtSetEnd } from '@/features/tagging/score'
+import type { MatchRecord, Points, SetData } from '@/types/match'
+import type { BestPart, Draft, Ending, RallyData, ShotTags, Side } from '@/types/rally'
 
 export type Phase = 'serve' | 'receive' | 'rally'
 export type Grade = 'Excellent' | 'Good' | 'Pass' | 'Below'

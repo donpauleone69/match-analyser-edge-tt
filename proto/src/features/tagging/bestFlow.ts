@@ -9,26 +9,19 @@
  * Pure: no React, no store. The other flows do not use this file.
  */
 
-import {
-  rallyEnd,
-  rallyStart,
-  hitterOf,
-  otherSide,
-  serverForWinner,
-  winnerOf,
-  type BestFirst,
-  type BestMark,
-  type BestPart,
-  type BestStep,
-  type Draft,
-  type Ending,
-  type RallyData,
-  type ShotTags,
-  type Side,
-  type Wing,
-} from './rally'
-
-export type { BestFirst, BestPart, BestStep }
+import type {
+  BestFirst,
+  BestMark,
+  BestPart,
+  BestStep,
+  Draft,
+  Ending,
+  RallyData,
+  ShotTags,
+  Side,
+  Wing,
+} from '@/types/rally'
+import { hitterOf, otherSide, rallyEnd, rallyStart, serverForWinner, winnerOf } from './rally'
 
 export const BEST_ENDS = ['Winner', 'Net', 'Long', 'Wide'] as const
 export type BestEnd = (typeof BEST_ENDS)[number]

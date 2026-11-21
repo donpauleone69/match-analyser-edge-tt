@@ -2,9 +2,11 @@
  * v0.17.28 demo seed. Fails on the first broken rule, naming the match, set and rally.
  * Run: npm run check:v01728-seed
  */
-import { SEED, derivePhase, matchSetsWon, setScoresDiffer, type MatchRecord, type SetData } from '../src/data/demoStore'
+import { SEED, derivePhase, matchSetsWon, setScoresDiffer } from '../src/data/demoStore'
 import { bestOpener, bestParts } from '../src/features/tagging/bestFlow'
-import { isError, winnerOf, type RallyData, type ShotTags } from '../src/features/tagging/rally'
+import { isError, winnerOf } from '../src/features/tagging/rally'
+import type { MatchRecord, SetData } from '../src/types/match'
+import type { RallyData, ShotTags } from '../src/types/rally'
 import { phaseOf } from '../src/features/insights/insightCounts'
 import {
   countPoints,
@@ -14,7 +16,8 @@ import {
   setOverOnRule,
 } from '../src/features/tagging/score'
 import { endedEarly, gapsOf, MIN_SET_S, rallyOutside, spansOnVideo } from '../src/features/tagging/setMark'
-import { tagsFromPlay, type ScriptRally } from '../src/features/tagging/script'
+import { tagsFromPlay } from '../src/features/tagging/script'
+import type { ScriptRally } from '../src/types/video'
 import { firstContactG, lastContactG, segmentsOf, toGlobal, totalDuration } from '../src/features/tagging/timeline'
 
 const fails: string[] = []

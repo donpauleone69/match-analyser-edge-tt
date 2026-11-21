@@ -1,9 +1,6 @@
 import { forwardRef, type HTMLAttributes } from 'react'
 import { cn } from '@/helpers/utils'
-
-export interface CardProps extends HTMLAttributes<HTMLDivElement> {
-  variant?: 'default' | 'interactive'
-}
+import type { CardProps } from './types'
 
 const Card = forwardRef<HTMLDivElement, CardProps>(
   ({ className, variant = 'default', ...props }, ref) => (

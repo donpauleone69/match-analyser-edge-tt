@@ -1,9 +1,11 @@
 import { Icon } from '@/ui-mine'
 import { cn } from '@/helpers/utils'
 import { restStyle } from './AnswerCells'
-import { bestOpener, cellMark, partsOf, type BestAt, type BestPart } from './bestFlow'
+import { bestOpener, cellMark, partsOf, type BestAt } from './bestFlow'
 import { PartLabel, railCell, shotPaint } from './BestPanel'
-import { hitterOf, type Draft, type Side } from './rally'
+import type { BestPart, Draft, Side } from '@/types/rally'
+import { hitterOf } from './rally'
+import type { RallyState } from './models'
 import { zoneButton, zonePressed, zoneRest } from './zoneButton'
 
 /**
@@ -12,8 +14,6 @@ import { zoneButton, zonePressed, zoneRest } from './zoneButton'
  * shot row and the part lines sit under it. Review fills the shot row with
  * part chips. A mode only changes what fills those places.
  */
-export type RallyState = 'before' | 'gap' | 'insert' | 'tapping' | 'answering' | 'saved' | 'editing' | 'review'
-
 export function RallyZone({
   state,
   draft,

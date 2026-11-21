@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { emptySet, useDemo, type MatchRecord, type SetData, type SetMark, type VideoAsset } from '@/data/demoStore'
+import { emptySet, useDemo } from '@/data/demoStore'
+import type { MatchRecord, SetData, SetMark, VideoAsset } from '@/types/match'
 import { videoRallyCount } from '@/features/match/matchChecks'
 import { deleteTags, moveSet, unmarkSet } from '@/features/tagging/matchOps'
 import {
