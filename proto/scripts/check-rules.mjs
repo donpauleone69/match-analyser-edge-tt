@@ -14,6 +14,17 @@ const RULES = {
   R3: 'store-writes',
   R4: 'types-in-tsx',
   R5: 'test-imports',
+  R6: 'storage-place',
+  R7: 'thin-pages',
+  R8: 'presentational',
+  R9: 'data-layer',
+  R10: 'store-layer',
+  R11: 'types-layer',
+  R12: 'no-persist',
+  R13: 'ui-folders',
+  R14: 'file-names',
+  R15: 'rules-tested',
+  R16: 'alias-imports',
 }
 
 const args = process.argv.slice(2)
@@ -137,6 +148,64 @@ function push(findings, rule, file, src, index, text) {
   findings.push({ rule, file, line: lineOf(src, index), text })
 }
 
+function resolveRel(file, spec) {
+  return path.posix.normalize(path.posix.join(path.posix.dirname(file), spec))
+}
+
+function under(resolved, base) {
+  return resolved === base || resolved.startsWith(`${base}/`)
+}
+
+function isRouter(spec) {
+  return spec === 'react-router' || spec.startsWith('react-router/') || spec.startsWith('react-router-')
+}
+
+/** True when spec names one of the `src/<dir>` folders, by alias or by a relative path from file. */
+function importsDir(file, spec, dirs) {
+  for (const dir of dirs) {
+    if (spec === `@/${dir}` || spec.startsWith(`@/${dir}/`)) return true
+    if (spec.startsWith('.') && under(resolveRel(file, spec), `src/${dir}`)) return true
+  }
+  return false
+}
+
+const DATA_BANNED_DIRS = ['stores', 'features', 'pages', 'layout', 'ui-mine', 'components', 'theme']
+const STORE_BANNED_DIRS = ['features', 'pages', 'layout', 'ui-mine', 'components', 'theme']
+const TYPES_BANNED_DIRS = ['stores', 'data', 'features', 'pages', 'layout', 'ui-mine', 'components', 'theme']
+
+/** The folder a relative import may stay inside: one feature, or one top-level folder. Null for files at the src root. */
+function importUnit(file) {
+  const parts = file.split('/')
+  if (parts.length < 3) return null
+  if (parts[1] === 'features' && parts.length >= 4) return parts.slice(0, 3).join('/')
+  return parts.slice(0, 2).join('/')
+}
+
+const NAME_RULES = [
+  { re: /^src\/pages\/[^/]+\.tsx$/, ok: /^[A-Z]\w*Page\.tsx$/, want: '<Thing>Page.tsx' },
+  { re: /^src\/features\/[^/]+\/composers\/.+\.tsx$/, ok: /^[A-Z]\w*Composer\.tsx$/, want: '<Thing>Composer.tsx' },
+  { re: /^src\/features\/[^/]+\/sections\/.+\.tsx$/, ok: /^[A-Z]\w*Section\.tsx$/, want: '<Thing>Section.tsx' },
+  { re: /^src\/features\/[^/]+\/blocks\/.+\.tsx$/, ok: /^[A-Z]\w*Block\.tsx$/, want: '<Thing>Block.tsx' },
+  { re: /^src\/features\/[^/]+\/derive\/.+$/, ok: /^derive[A-Z]\w*\.ts$/, want: 'derive<Thing>.ts' },
+  { re: /^src\/features\/[^/]+\/hooks\/.+$/, ok: /^use[A-Z]\w*\.ts$/, want: 'use<Thing>.ts' },
+]
+
+function kebab(name) {
+  return name.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase()
+}
+
+/** Each src/rules module needs tests/rules/<same dirs>/<name>.test.ts, camelCase or kebab-case. */
+function rulesTested(file) {
+  if (!file.startsWith('src/rules/') || !file.endsWith('.ts') || file.endsWith('.d.ts')) return []
+  const sub = file.slice('src/rules/'.length, -'.ts'.length)
+  const dir = path.posix.dirname(sub)
+  const base = path.posix.basename(sub)
+  if (base === 'index') return []
+  const names = [...new Set([base, kebab(base)])].map((name) => path.posix.join('tests/rules', dir, `${name}.test.ts`))
+  if (names.some((name) => fs.existsSync(path.join(rootAbs, name)))) return []
+  return [{ rule: RULES.R15, file, line: 1, text: `no ${names.join(' or ')}` }]
+}
+
 function scanFile(file, src0) {
   const src = stripComments(src0)
   const findings = []
@@ -190,7 +259,90 @@ function scanFile(file, src0) {
     }
   }
 
+  if (inSrc) scanLayers(file, src, findings)
+
   return findings
+}
+
+function scanLayers(file, src, findings) {
+  const inStores = file.startsWith('src/stores/')
+  const inData = file.startsWith('src/data/')
+  const inTypes = file.startsWith('src/types/')
+  const tsx = file.endsWith('.tsx')
+  const found = imports(src)
+
+  if (!inStores && !inData) {
+    const storageRe = /\b(localStorage|sessionStorage|indexedDB)\b/g
+    let hit
+    while ((hit = storageRe.exec(src))) push(findings, RULES.R6, file, src, hit.index, hit[0])
+  }
+
+  if (file.startsWith('src/pages/')) {
+    for (const item of found) {
+      if (importsDir(file, item.spec, ['stores', 'data'])) push(findings, RULES.R7, file, src, item.index, `import '${item.spec}'`)
+    }
+  }
+
+  if (/^src\/features\/[^/]+\/(blocks|sections)\//.test(file)) {
+    for (const item of found) {
+      if (importsDir(file, item.spec, ['stores', 'data'])) push(findings, RULES.R8, file, src, item.index, `import '${item.spec}'`)
+    }
+  }
+
+  if (inData) {
+    if (tsx) push(findings, RULES.R9, file, src, 0, 'tsx file')
+    for (const item of found) {
+      const spec = item.spec
+      const framework = spec === 'react' || spec === 'react-dom' || spec.startsWith('react-dom/') || isRouter(spec) || spec === 'zustand' || spec.startsWith('zustand/')
+      if (framework || importsDir(file, spec, DATA_BANNED_DIRS)) push(findings, RULES.R9, file, src, item.index, `import '${spec}'`)
+    }
+  }
+
+  if (inStores) {
+    if (tsx) push(findings, RULES.R10, file, src, 0, 'tsx file')
+    for (const item of found) {
+      if (isRouter(item.spec) || importsDir(file, item.spec, STORE_BANNED_DIRS)) push(findings, RULES.R10, file, src, item.index, `import '${item.spec}'`)
+    }
+  }
+
+  if (inTypes) {
+    if (tsx) push(findings, RULES.R11, file, src, 0, 'tsx file')
+    for (const item of found) {
+      const spec = item.spec
+      const framework = rulesImport(spec) && !spec.startsWith('@/')
+      if (framework || importsDir(file, spec, TYPES_BANNED_DIRS)) push(findings, RULES.R11, file, src, item.index, `import '${spec}'`)
+    }
+    const fnRe = /\bexport\s+(?:default\s+)?(?:async\s+)?function\b|\bexport\s+(?:const|let|var)\s+\w+\s*(?::[^=]+)?=\s*(?:async\s+)?(?:function\b|\([^)]*\)\s*(?::[^=]+)?=>|\w+\s*=>)/g
+    let hit
+    while ((hit = fnRe.exec(src))) push(findings, RULES.R11, file, src, hit.index, hit[0].replace(/\s+/g, ' ').slice(0, 60))
+  }
+
+  const persistRe = /\bimport\s+([^;'"]*?)\s*from\s*['"]zustand\/middleware['"]|\bimport\s*\(\s*['"]zustand\/middleware['"]\s*\)/g
+  let persistHit
+  while ((persistHit = persistRe.exec(src))) {
+    const clause = persistHit[1]
+    if (clause === undefined || /\b(persist|createJSONStorage)\b/.test(clause)) {
+      push(findings, RULES.R12, file, src, persistHit.index, 'zustand persist middleware')
+    }
+  }
+
+  if (/^src\/ui-mine\/[^/]+\.tsx$/.test(file)) push(findings, RULES.R13, file, src, 0, 'component outside its folder')
+
+  const base = path.posix.basename(file)
+  for (const name of NAME_RULES) {
+    if (name.re.test(file) && !name.ok.test(base)) push(findings, RULES.R14, file, src, 0, `name ${base}, want ${name.want}`)
+  }
+
+  findings.push(...rulesTested(file))
+
+  const unit = importUnit(file)
+  if (unit) {
+    for (const item of found) {
+      if (!item.spec.startsWith('.')) continue
+      const resolved = resolveRel(file, item.spec)
+      if (!under(resolved, unit)) push(findings, RULES.R16, file, src, item.index, `import '${item.spec}' leaves ${unit}, use @/`)
+    }
+  }
 }
 
 function scanned(file) {
