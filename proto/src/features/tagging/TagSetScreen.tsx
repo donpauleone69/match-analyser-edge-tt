@@ -4,7 +4,7 @@ import { Button, Icon } from '@/ui-mine'
 import { WfEmpty } from '@/layout/Wireframe'
 import { emptySet, formatScore, calculateMatchSetsWon, calculateTaggedScore } from '@/rules/match'
 import { useMatchRecord, useMatchStore } from '@/stores/matchStore'
-import type { MatchRecord, Points, SetData } from '@/types/match'
+import type { MatchRecord, SetData } from '@/types/match'
 import type { BestPart, Draft, Mark, RallyData, Side, Stage, Wing } from '@/types/rally'
 import { SERVE_AFTER_S, SERVE_BEFORE_S, serveBands, expectedServer, leaveIds } from '@/rules/continuity'
 import {
@@ -93,12 +93,14 @@ import {
   type BestLoopWhat,
 } from '@/rules/bestFa'
 import { useActionGuard, type ActionGuard } from './hooks/useActionGuard'
-import { TAG_LOCK_LINE, useTagLock, type TagLock } from './hooks/useTagLock'
+import { useLandscape } from './hooks/useLandscape'
+import { useTagKeys } from './hooks/useTagKeys'
+import { TAG_LOCK_LINE, useTagLock } from './hooks/useTagLock'
+import { useTagMessages } from './hooks/useTagMessages'
+import type { BestSavedRow, EditPick, FlowName, Gap, ShotEdit, StartPick, TagLock } from './models'
 import { firstContactG, lastContactG, segmentAt, segmentsOf, toGlobal, type Segment } from '@/rules/timeline'
 import { usePlayer, type Window } from './hooks/usePlayer'
 import { PictureSeek, VideoStage } from './VideoStage'
-
-type FlowName = 'bestfa'
 
 /** Route entry: checks the set can be shown, then mounts the tagger per set. */
 export function TagSetScreen() {
@@ -132,20 +134,9 @@ export function TagSetScreen() {
   return <TagSet key={`${match.id}:${set.setId}:${videoKey}`} match={match} set={set} lock={lock} initialStart={start} />
 }
 
-/** The Start card's answers. Kept on screen only, and carried across a set number change. */
-type StartPick = { videoId: string; score: Points; server: Side | null }
-
-type Toast = { text: string; undo?: () => void; extra?: { label: string; run: () => void } }
-
-const HINT_MS = 2500
-/** Back, between rallies: far enough to see a serve again. */
-const BACK_S = 5
-
 /** Watching speed per match, kept while the app is open. */
 const watchRates = new Map<string, number>()
 
-/** A rally being added between two saved ones: the stretch of video it may use. */
-type Gap = { index: number; a: number; b: number }
 /** The stage-driven choice of what is selected after a change. */
 function selectionAfter(prev: Stage, next: Stage, d: Draft, current: Mark | null): Mark | null {
   const end: Mark = { kind: 'shot', shot: d.contacts.length }
@@ -156,23 +147,6 @@ function selectionAfter(prev: Stage, next: Stage, d: Draft, current: Mark | null
   if (next !== prev) return null
   return current
 }
-
-/** Any landscape window, and a square one. Portrait stays stacked. */
-const LANDSCAPE_QUERY = '(orientation: landscape), (min-aspect-ratio: 1/1)'
-
-function useLandscape() {
-  const [land, setLand] = useState(false)
-  useEffect(() => {
-    const mq = window.matchMedia(LANDSCAPE_QUERY)
-    const apply = () => setLand(mq.matches)
-    apply()
-    mq.addEventListener('change', apply)
-    return () => mq.removeEventListener('change', apply)
-  }, [])
-  return land
-}
-
-type EditPick = { kind: 'rally'; id: string } | { kind: 'gap'; index: number }
 
 function TagSet({
   match,
@@ -197,9 +171,7 @@ function TagSet({
   const [selected, setSelected] = useState<Mark | null>(null)
   /** After a nudge the loop tightens around the mark that moved. */
   const [tight, setTight] = useState(false)
-  const [toast, setToast] = useState<Toast | null>(null)
   const [lastTap, setLastTap] = useState<number | null>(null)
-  const [hint, setHint] = useState<string | null>(null)
   /** Play or a seek reached the end of a complete mark before the set was won. */
   const [boundNote, setBoundNote] = useState(false)
   const [gap, setGap] = useState<Gap | null>(null)
@@ -226,11 +198,7 @@ function TagSet({
   const loopWhat = useRef<{ what: BestLoopWhat; rate: number } | null>(null)
   const [bestLook, setBestLook] = useState(false)
   /** Edit Rally: the stop on screen, and where Done returns. */
-  const [shotEdit, setShotEdit] = useState<{
-    rallyId: string | null
-    stop: number | 'end'
-    back: 'question' | 'saved' | 'set'
-  } | null>(null)
+  const [shotEdit, setShotEdit] = useState<ShotEdit | null>(null)
   const shotGuard = useActionGuard(shotEdit ? `shot:${shotEdit.rallyId ?? 'live'}` : 'off')
   /** Corner pad only: an End question opened again from its one-line reminder. */
   const [endBack, setEndBack] = useState<'end' | 'point' | null>(null)
@@ -238,7 +206,7 @@ function TagSet({
    * The rally just saved. Its row stays until the next rally's first contact:
    * part buttons and ★ change the saved rally, a cell reopens the rally from `before`.
    */
-  const [bestSaved, setBestSaved] = useState<{ rallyId: string; draft: Draft } | null>(null)
+  const [bestSaved, setBestSaved] = useState<BestSavedRow | null>(null)
   /** Where capture resumed after Check, in the rally video. */
   const [start, setStart] = useState<StartPick>(
     () => initialStart ?? { videoId: latestVideoId(match) ?? '', score: ZERO, server: null }
@@ -471,34 +439,9 @@ function TagSet({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  useEffect(() => {
-    if (!toast) return
-    const id = setTimeout(() => setToast(null), 6000)
-    return () => clearTimeout(id)
-  }, [toast])
-
   // A message belongs to the rally on screen. It goes when that changes.
   const messageScene = live ? `live:${live.contacts[0] ?? ''}` : 'between'
-  const messageHome = useRef(messageScene)
-  const messageShown = useRef<Toast | null>(null)
-  useEffect(() => {
-    if (toast !== messageShown.current) {
-      messageShown.current = toast
-      messageHome.current = messageScene
-      return
-    }
-    if (!toast) {
-      messageHome.current = messageScene
-      return
-    }
-    if (messageHome.current !== messageScene) setToast(null)
-  }, [toast, messageScene])
-
-  useEffect(() => {
-    if (!hint) return
-    const id = setTimeout(() => setHint(null), HINT_MS)
-    return () => clearTimeout(id)
-  }, [hint])
+  const { toast, setToast, hint, setHint } = useTagMessages(messageScene)
 
   const selKey = selected ? (selected.kind === 'shot' ? `shot-${selected.shot}` : selected.kind) : ''
   const stepKey = `${mode}:${stage ?? ''}:${selKey}`
@@ -1535,71 +1478,7 @@ function TagSet({
     navigate(`/matches/${match.id}/tag?from=${set.setId}`, { replace: true, state: { saved: set.setId } })
   }
 
-  // Keys (desktop). Space is the pad. Backspace deletes a tap while tapping
-  // and steps back 5 seconds between rallies. K plays or pauses, arrows step 10 seconds.
-  const handlers = {
-    onPad,
-    onUndoTap,
-    onSave,
-    seekTo,
-  }
-  const keys = useRef(handlers)
-  useEffect(() => {
-    keys.current = handlers
-  })
-  useEffect(() => {
-    const typing = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement | null
-      return Boolean(target && /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))
-    }
-    const onKey = (e: KeyboardEvent) => {
-      if (typing(e) || e.metaKey || e.ctrlKey || e.altKey) return
-      const p = playerRef.current
-      const now = latest.current
-      const k = keys.current
-      const toggle = () => (p.isPlaying() ? p.pause() : p.play())
-      const key = e.key.length === 1 ? e.key.toLowerCase() : e.key
-      if (key === ' ') {
-        e.preventDefault()
-        if (e.repeat) return
-        if (now.review) return
-        if (now.mode === 'watch' || now.mode === 'tapping' || now.mode === 'setPoint') k.onPad()
-        // While tagging, a Space that comes too late does nothing.
-        else if (now.mode !== 'tagging') toggle()
-      } else if (key === 'Enter') {
-        if (now.mode !== 'tagging') return
-        // Enter is Save here. It must not click whatever the mouse last pressed.
-        e.preventDefault()
-        if (e.repeat) return
-        k.onSave()
-      } else if (key === 'k') {
-        toggle()
-      } else if (key === 'Backspace') {
-        // Delete last while tapping, and 5 seconds between rallies. Not while answering.
-        if (now.mode === 'tapping') {
-          e.preventDefault()
-          k.onUndoTap()
-        } else if (now.mode === 'watch') {
-          e.preventDefault()
-          k.seekTo(p.getTime() - BACK_S)
-        }
-      } else if (key === 'ArrowLeft') {
-        k.seekTo(p.getTime() - 10)
-      } else if (key === 'ArrowRight') {
-        k.seekTo(p.getTime() + 10)
-      }
-    }
-    // Space clicks a focused button on key up: stop that too.
-    const onKeyUp = (e: KeyboardEvent) => {
-      if (e.key === ' ' && !typing(e)) e.preventDefault()
-    }
-    window.addEventListener('keydown', onKey)
-    window.addEventListener('keyup', onKeyUp)
-    return () => {
-      window.removeEventListener('keydown', onKey)
-      window.removeEventListener('keyup', onKeyUp)
-    }
-  }, [])
+  useTagKeys({ playerRef, latest, handlers: { onPad, onUndoTap, onSave, seekTo } })
 
   const seekSeg = player.segs[player.segIndex]
   const seekSpan = bounds

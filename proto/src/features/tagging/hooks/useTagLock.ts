@@ -1,12 +1,7 @@
 import { isArchived } from '@/rules/match'
 import type { MatchRecord } from '@/types/match'
 import { useArchiveStep } from '@/features/match/archiveJobs'
-
-/**
- * An archive keeps only the tagged rallies. While one runs, and once it is
- * made, sets cannot be reopened or tagged further. Saved rallies still play.
- */
-export type TagLock = 'archiving' | 'archived' | null
+import type { TagLock } from '../models'
 
 export function useTagLock(matchId: string, match: MatchRecord | undefined): TagLock {
   const running = useArchiveStep(matchId) !== null
