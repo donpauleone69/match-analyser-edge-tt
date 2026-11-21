@@ -25,7 +25,7 @@ export const ATTACK_STROKES = ['Flick', 'Loop', 'Drive', 'Smash'] as const
 /** Cell order on the Defensive side. The fifth cell is left empty. */
 export const DEFENSIVE_STROKES_ROW = ['Block', 'Lob', 'Push', 'Chop'] as const
 /** Offensive and Defensive lists joined. Replies and end shots draw from this. */
-export const ALL_STROKES = ['Block', 'Flick', 'Loop', 'Drive', 'Smash', 'Lob', 'Push', 'Chop'] as const
+const ALL_STROKES = ['Block', 'Flick', 'Loop', 'Drive', 'Smash', 'Lob', 'Push', 'Chop'] as const
 export const REPLY_STROKES = ALL_STROKES
 export const END_STROKES = ALL_STROKES
 /** Block has no side. The other three are the Defensive side only. */
@@ -45,8 +45,6 @@ export function strokeSide(stroke: string | undefined): StrokeSide | null {
   return null
 }
 
-export const MISS_REASONS = ['Forced', 'Position', 'Technical', 'Misread'] as const
-
 /** Speed while contacts are tapped, and the reaction time taken off each tap. */
 export const CAPTURE_SPEED = 0.75
 export const NORMAL_SPEED = 1
@@ -55,7 +53,6 @@ export const CONTACT_IDLE_MS = 2000
 export const RALLY_PAD_S = 1
 /** A rally starts this long before the serve contact, which has no toss or routine in it. */
 export const RALLY_LEAD_S = 2
-export const NUDGE_STEP_S = 0.1
 export const MARK_LOOP_HALF_S = 0.5
 /**
  * A shot being asked about loops from the contact before to the contact after.
@@ -131,8 +128,6 @@ export function undoClosedContact(d: Draft): Draft {
   }
 }
 
-/** Add contact loops from this long before the first tap. A serve earlier than that is out of reach. */
-export const ADD_CONTACT_LEAD_S = 4
 /** Re-tap starts this long before the serve, so the thumb has time to get back to the pad. */
 export const RETAP_LEAD_S = 2.5
 /** Two contacts are never closer than this. */
@@ -447,14 +442,6 @@ export function roleOf(d: Draft, shot: number): ShotRole {
   if (shot === d.fa) return 'firstAttack'
   if (shot <= d.fa + 2) return 'reply'
   return 'later'
-}
-
-export const ROLE_LABEL: Record<ShotRole, string> = {
-  serve: 'Serve',
-  before: 'Receive',
-  firstAttack: 'First attack',
-  reply: 'Reply',
-  later: 'Ball',
 }
 
 /**

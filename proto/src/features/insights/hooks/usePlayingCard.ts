@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { PlayItem } from '@/rules/insights'
 
-export type Playing = {
+type Playing = {
   cardId: string
   name: string
   items: PlayItem[]

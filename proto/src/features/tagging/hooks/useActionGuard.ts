@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 
 /** A press within this long of a button's action changing is ignored. */
-export const GUARD_MS = 250
+const GUARD_MS = 250
 
 export type ActionGuard = {
   /** The button dims while this is true. */

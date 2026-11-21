@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { NavigateFunction } from 'react-router-dom'
 import { formatScore } from '@/rules/format'
 import { calculateTaggedScore } from '@/rules/match'
@@ -154,7 +154,6 @@ export function useTagSetFlow({
   flowLockRef.current = flowLock
   /** The speed chosen for watching between rallies. Tapping, Save and the next set do not lose it. */
   const watchRate = useRef<number>(watchRates.get(match.id) ?? NORMAL_SPEED)
-  const body = useRef<HTMLDivElement>(null)
 
   const {
     have,
@@ -245,15 +244,6 @@ export function useTagSetFlow({
   // A message belongs to the rally on screen. It goes when that changes.
   const messageScene = live ? `live:${live.contacts[0] ?? ''}` : 'between'
   const { toast, setToast, hint, setHint } = useTagMessages(messageScene)
-
-  const selKey = selected ? (selected.kind === 'shot' ? `shot-${selected.shot}` : selected.kind) : ''
-  const stepKey = `${mode}:${stage ?? ''}:${selKey}`
-
-  // Where the band still overflows, the section being asked stays in reach above the foot.
-  useLayoutEffect(() => {
-    const el = body.current
-    if (el) el.scrollTop = el.scrollHeight
-  }, [stepKey])
 
   /** Seeks for the user, and says in a few words when one is held back. */
   const seekTo = (g: number) => {
@@ -1358,14 +1348,11 @@ export function useTagSetFlow({
     editGuardRef,
     flowLockRef,
     watchRate,
-    body,
     latest,
     onCeil,
     ceilRef,
     savedRowOf,
     messageScene,
-    selKey,
-    stepKey,
     seekTo,
     onRate,
     writeDraft,

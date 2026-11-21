@@ -3,7 +3,7 @@
 import { emptySet, calculateResultSetCount, hasDifferingScores, calculateTaggedScore } from './match'
 import type { MatchRecord, Points, SetData, SetMark, VideoAsset } from '@/types/match'
 import type { Draft, MarkKind, RallyData } from '@/types/rally'
-import { otherSide, pointRally, swapPlayers } from './rally'
+import { otherSide, pointRally } from './rally'
 import { ZERO, addPoint, firstServerAt, isSetWon, calculateScoreAtSetEnd, serverAt, setEndIndex } from './score'
 import { LONG_GAP_S, serveBands } from './continuity'
 import { endedEarly, markBounds } from './marks'
@@ -39,13 +39,6 @@ function placed(segs: Segment[], rallies: RallyData[], rally: RallyData): RallyD
 export const saveRally = (m: MatchRecord, setId: number, rally: RallyData) =>
   inSet(m, setId, (s) => ({ ...s, rallies: placed(segmentsOf(m.videos), s.rallies, rally), draft: null }))
 
-/** A point with no video goes in at `index`, between its neighbours. */
-export const insertRallyAt = (m: MatchRecord, setId: number, rally: RallyData, index: number) =>
-  inSet(m, setId, (s) => ({
-    ...s,
-    rallies: [...s.rallies.slice(0, index), rally, ...s.rallies.slice(index)],
-  }))
-
 export const replaceRally = (m: MatchRecord, setId: number, rally: RallyData) =>
   inSet(m, setId, (s) => ({
     ...s,
@@ -62,31 +55,6 @@ export const deleteRally = (m: MatchRecord, setId: number, rallyId: string) =>
       placed(segmentsOf(m.videos), deletedOf(s), s.rallies[index])
     )
   })
-
-/** Restore puts a deleted rally back in its place in video order. */
-export const restoreRally = (m: MatchRecord, setId: number, rallyId: string) =>
-  inSet(m, setId, (s) => {
-    const rally = deletedOf(s).find((r) => r.id === rallyId)
-    if (!rally) return s
-    return withDeleted(
-      { ...s, rallies: placed(segmentsOf(m.videos), s.rallies, rally) },
-      deletedOf(s).filter((r) => r.id !== rallyId)
-    )
-  })
-
-/**
- * A press in Review serves. `swap` is the other player: server and winner flip.
- * Either press only checks this rally. No other rally is written.
- */
-export const confirmServe = (m: MatchRecord, setId: number, rallyId: string, swap: boolean) =>
-  inSet(m, setId, (s) => ({
-    ...s,
-    rallies: s.rallies.map((r) => {
-      if (r.id !== rallyId) return r
-      const next = swap ? swapPlayers(r) : r
-      return { ...next, serveChecked: true }
-    }),
-  }))
 
 /** Leave a continuity mark as it is. */
 export const leaveMark = (m: MatchRecord, setId: number, rallyId: string, kind: MarkKind) =>
