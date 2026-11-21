@@ -105,12 +105,17 @@ function InsightsFilter({
   const { filters, setFilters } = useInsightsFilters()
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState<InsightsFilters>(filters)
+  const [desktop, setDesktop] = useState(() => window.matchMedia('(min-width: 768px)').matches)
   const active = activeFilterLabels(filters)
   const n = countActive(filters)
 
   useEffect(() => {
-    if (open) setDraft(filters)
-  }, [open, filters])
+    const mq = window.matchMedia('(min-width: 768px)')
+    const apply = () => setDesktop(mq.matches)
+    apply()
+    mq.addEventListener('change', apply)
+    return () => mq.removeEventListener('change', apply)
+  }, [])
 
   useEffect(() => {
     if (!open) return
@@ -159,7 +164,10 @@ function InsightsFilter({
       data-filter-count={n}
       aria-label="Filter"
       aria-expanded={open}
-      onClick={() => setOpen((v) => !v)}
+      onClick={() => {
+        setDraft(filters)
+        setOpen((v) => !v)
+      }}
       className="btn-kind-control btn-kind-square relative inline-flex shrink-0 items-center justify-center text-primary hover:bg-pill-idle"
     >
       <Icon name="filter" size="sm" />
@@ -191,9 +199,9 @@ function InsightsFilter({
         </div>
       ) : null}
       <div className="px-4 sm:px-6 lg:px-8">
-        {open ? (
+        {open && desktop ? (
           <div
-            className="mt-3 hidden space-y-3 rounded-lg border border-border bg-bg-surface p-4 md:block"
+            className="mt-3 space-y-3 rounded-lg border border-border bg-bg-surface p-4"
             data-filter-surface
             role="group"
             aria-label="Filters"
@@ -209,8 +217,8 @@ function InsightsFilter({
             </div>
           </div>
         ) : null}
-        {open ? (
-          <div className="fixed inset-0 z-50 md:hidden" data-filter-surface role="dialog" aria-label="Filters">
+        {open && !desktop ? (
+          <div className="fixed inset-0 z-50" data-filter-surface role="dialog" aria-label="Filters">
             <button
               type="button"
               className="absolute inset-0 bg-neutral-50/60"

@@ -17,7 +17,7 @@
 - Usual is your rate across every tagged match. It shows when a filter is set, that rate has 100 rallies, and the gap is 10 points, or 3 errors per 100 on End. On a match page, Usual is your rate in the other tagged matches, on the same rule, and it sits between the opponent and Elite. End on a match stays a count. Usual there is the count that rate gives over this match.
 - The coverage line reads "12 matches · 825 points", and adds "· 1 part tagged" when a kept match is only partly tagged. A removed video says so. The filter that keeps nothing uses the Matches empty state.
 - A playlist pools newest match first. The bar names the match, and the score is that match's score. The same player sticks under the top row.
-- The demo seed is fourteen matches, twelve of them tagged, about 850 points. Pat's matches are arranged so Usual shows on Serve for Opponent: Pat, and on Receive for the League final.
+- The demo seed is fourteen matches, twelve of them tagged, 825 points. Pat's matches are arranged so Usual shows on Serve for Opponent: Pat, and on Receive for the League final. Club night set 2 is under way at 4 - 3 and the rest of its video is a 9 - 11 to Sam, with the mark running onto the second video. Set 3 is on that video, still to tag.
 
 **Rationale:** Global Insights is the last page in this proto round. The thresholds and Usual are the trust rules settled on 21 Nov, and the seed is large enough for those rules to show.
 

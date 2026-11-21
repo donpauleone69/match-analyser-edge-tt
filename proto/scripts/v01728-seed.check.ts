@@ -13,8 +13,8 @@ import {
   serverAt,
   setOverOnRule,
 } from '../src/features/tagging/score'
-import { endedEarly, rallyOutside } from '../src/features/tagging/setMark'
-import { tagsFromPlay } from '../src/features/tagging/script'
+import { endedEarly, gapsOf, MIN_SET_S, rallyOutside, spansOnVideo } from '../src/features/tagging/setMark'
+import { tagsFromPlay, type ScriptRally } from '../src/features/tagging/script'
 import { firstContactG, lastContactG, segmentsOf, toGlobal, totalDuration } from '../src/features/tagging/timeline'
 
 const fails: string[] = []
@@ -190,12 +190,14 @@ for (const match of SEED) {
       say('m-h3 set 5 mark ends at the video', clock !== null && Math.abs(clock.b - end) < 0.05, String(clock?.b))
     } else if (under) {
       say(`${match.id} set ${set.setId} under way`, !isLegalEnd(score) && !setOverOnRule(set.rallies.map((r) => r.winner)), `${score.me}-${score.them}`)
-      const clock = markClock(match, set)
-      const last = set.rallies[set.rallies.length - 1]
-      const seg = segmentsOf(match.videos).find((s) => s.id === last.videoId)
-      const end = seg ? seg.offset + seg.duration : -1
-      say(`${match.id} set ${set.setId} mark to video end`, clock !== null && seg !== null && Math.abs(clock.b - end) < 0.05, String(clock?.b))
       say(`${match.id} set ${set.setId} not complete`, set.mark?.complete === false, String(set.mark?.complete))
+      if (!(match.id === 'm-partial' && set.setId === 2)) {
+        const clock = markClock(match, set)
+        const last = set.rallies[set.rallies.length - 1]
+        const seg = segmentsOf(match.videos).find((s) => s.id === last.videoId)
+        const end = seg ? seg.offset + seg.duration : -1
+        say(`${match.id} set ${set.setId} mark to video end`, clock !== null && seg !== null && Math.abs(clock.b - end) < 0.05, String(clock?.b))
+      }
     } else if (won) {
       say(`${match.id} set ${set.setId} no overrun`, true)
       say(`${match.id} set ${set.setId} complete mark`, set.mark?.complete === true, String(set.mark?.complete))
@@ -256,10 +258,74 @@ say('about ninety days', span >= 80 && span <= 100, String(span))
 
 const points = SEED.find((m) => m.id === 'm-h9')!.sets[1].rallies.filter((r) => r.point)
 say('two points without video', points.length === 2, String(points.length))
+const h9 = SEED.find((m) => m.id === 'm-h9')!
+for (const point of points) {
+  const video = h9.videos.find((v) => v.id === point.videoId)
+  const onPlay = (video?.script?.rallies ?? []).some((rally) => {
+    const last = rally.contacts[rally.contacts.length - 1]
+    return rally.contacts[0] - 0.05 <= point.start && point.start <= last + 0.05
+  })
+  say(`m-h9 point at ${point.start} is off the picture`, !onPlay)
+}
 const partial = SEED.find((m) => m.id === 'm-partial')!
 say('partial two videos', partial.videos.length === 2)
-say('partial set 2 on the first video', partial.sets[1].rallies.every((r) => r.videoId === 'v-club-1'))
-say('partial video 2 has play', (partial.videos[1].script?.rallies.length ?? 0) > 0)
+say('partial set 2 saved on the first video', partial.sets[1].rallies.every((r) => r.videoId === 'v-club-1'))
+say('partial set 2 details', partial.sets[1].entered.me === '9' && partial.sets[1].entered.them === '11')
+say('partial set 2 mark runs onto video 2', partial.sets[1].mark?.from.videoId === 'v-club-1' && partial.sets[1].mark?.to.videoId === 'v-club-2')
+const partialSpans = spansOnVideo(partial.videos, partial.sets, 'v-club-2')
+const partialGaps = gapsOf(partial.videos[1].durationS, partialSpans)
+say('set 3 has room to tag', partialGaps.some((gap) => gap.b - gap.a >= MIN_SET_S), partialGaps.map((gap) => `${gap.a.toFixed(0)}-${gap.b.toFixed(0)}`).join(','))
+say('set 3 is not marked', partial.sets[2].mark === null && partial.sets[2].rallies.length === 0)
+say('set 4 is not on video', partial.sets[3].mark === null && (partial.videos[1].script?.rallies ?? []).every((rally) => rally.setNo !== 4))
+
+function scriptedSets(match: MatchRecord): Map<number, { videoId: string; rally: ScriptRally }[]> {
+  const out = new Map<number, { videoId: string; rally: ScriptRally }[]>()
+  for (const video of match.videos) {
+    for (const rally of video.script?.rallies ?? []) {
+      const list = out.get(rally.setNo) ?? []
+      list.push({ videoId: video.id, rally })
+      out.set(rally.setNo, list)
+    }
+  }
+  return out
+}
+
+function playsToEnd(winners: Array<'me' | 'them'>): boolean {
+  return winners.length > 0 && setOverOnRule(winners) && isLegalEnd(countPoints(winners))
+}
+
+for (const match of SEED) {
+  const bySet = scriptedSets(match)
+  for (const [setNo, scripted] of bySet) {
+    const set = match.sets.find((row) => row.setId === setNo)
+    const saved = set?.rallies ?? []
+    const paired = new Set<ScriptRally>()
+    for (const rally of saved) {
+      if (rally.point) continue
+      const hit = scripted.find(
+        (item) => !paired.has(item.rally) && item.videoId === rally.videoId && item.rally.contacts[0] === rally.contacts[0] && item.rally.server === rally.server,
+      )
+      say(`${match.id} set ${setNo} saved rally is on the script`, Boolean(hit), rally.id)
+      if (hit) paired.add(hit.rally)
+    }
+    const untagged = scripted.filter((item) => !paired.has(item.rally))
+    if (untagged.length === 0) continue
+    const winners = [...saved.map((rally) => rally.winner), ...untagged.map((item) => item.rally.winner)]
+    const score = countPoints(winners)
+    say(`${match.id} set ${setNo} script ends on the rule`, playsToEnd(winners), `${score.me}-${score.them}`)
+    if (set && set.entered.me !== '' && set.entered.them !== '') {
+      say(
+        `${match.id} set ${setNo} script matches details`,
+        set.entered.me === String(score.me) && set.entered.them === String(score.them),
+        `${set.entered.me}-${set.entered.them} vs ${score.me}-${score.them}`,
+      )
+    }
+    if (set && saved.length > 0) {
+      const prefix = scripted.slice(0, saved.length).every((item, i) => item.rally.winner === saved[i].winner)
+      say(`${match.id} set ${setNo} saved rallies start the script`, prefix)
+    }
+  }
+}
 const h7 = SEED.find((m) => m.id === 'm-h7')!
 const spanned = h7.sets.find((s) => s.mark && s.mark.from.videoId !== s.mark.to.videoId)
 say('a set across the cut', Boolean(spanned), spanned ? String(spanned.setId) : '')

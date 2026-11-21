@@ -7,6 +7,7 @@ import { otherSide, pointRally, type RallyData, type Side } from '@/features/tag
 import {
   addPoint,
   firstServerForSet,
+  countPoints,
   isLegalEnd,
   isSetWon,
   serverAt,
@@ -116,6 +117,8 @@ type Filmed = {
   finished: boolean
   /** The mark runs to the end of the video that holds the last saved rally. */
   toEnd: boolean
+  /** The mark runs through the rest of this set's script and stays incomplete. */
+  coverRest: boolean
   entered: { me: string; them: string }
   /** Saved indexes that are points added without video. */
   points: number[]
@@ -143,7 +146,21 @@ function globalOf(segs: Segment[], point: { videoId: string; t: number }): numbe
 }
 
 /** Pads of a few seconds, then pull neighbouring marks together when a gap would be 8s or more. */
-function marksFor(videos: VideoAsset[], sets: SetData[], toEnd: Set<number>): SetData[] {
+function scriptContact(videos: VideoAsset[], setId: number, which: 'first' | 'last'): { videoId: string; t: number } | null {
+  let found: { videoId: string; t: number } | null = null
+  for (const video of videos) {
+    for (const rally of video.script?.rallies ?? []) {
+      if (rally.setNo !== setId || rally.contacts.length === 0) continue
+      const t = which === 'first' ? rally.contacts[0] : rally.contacts[rally.contacts.length - 1]
+      const point = { videoId: video.id, t }
+      if (which === 'first' && found) return found
+      found = point
+    }
+  }
+  return found
+}
+
+function marksFor(videos: VideoAsset[], sets: SetData[], toEnd: Set<number>, coverRest: Set<number>): SetData[] {
   const segs = segmentsOf(videos)
   const next = sets.map((set) => {
     const rallies = set.rallies.filter((r) => r.contacts.length > 0 || r.point)
@@ -154,8 +171,22 @@ function marksFor(videos: VideoAsset[], sets: SetData[], toEnd: Set<number>): Se
     if (startG === null || endG === null) return set
     const from = clockAt(segs, Math.max(0.2, startG - 3))
     const endVideo = segmentAt(segs, Math.min(endG, totalDuration(segs) - 0.01))
-    const to = toEnd.has(set.setId) && endVideo ? videoEnd(segs, endVideo.id) : clockAt(segs, endG + 3)
-    const complete = !toEnd.has(set.setId) && from.t > 0 && !(endVideo && to.videoId === segs[segs.length - 1].id && to.t >= segs[segs.length - 1].duration - 0.05)
+    const scriptEnd = coverRest.has(set.setId) ? scriptContact(videos, set.setId, 'last') : null
+    const nextSet = scriptContact(videos, set.setId + 1, 'first')
+    let to = scriptEnd
+      ? clockAt(segs, globalOf(segs, scriptEnd) + 3)
+      : toEnd.has(set.setId) && endVideo
+        ? videoEnd(segs, endVideo.id)
+        : clockAt(segs, endG + 3)
+    if (scriptEnd && nextSet) {
+      const limit = globalOf(segs, nextSet) - 1
+      if (globalOf(segs, to) > limit) to = clockAt(segs, limit)
+    }
+    const complete =
+      !toEnd.has(set.setId) &&
+      !coverRest.has(set.setId) &&
+      from.t > 0 &&
+      !(endVideo && to.videoId === segs[segs.length - 1].id && to.t >= segs[segs.length - 1].duration - 0.05)
     return { ...set, mark: { from, to, complete } as SetMark }
   })
 
@@ -211,6 +242,7 @@ function film(seed: number, plans: Filmed[], cuts: number[], videoIds: string[],
   let cursor = 0
   let rallyNo = 0
   const toEnd = new Set<number>()
+  const coverRest = new Set<number>()
   const sets: SetData[] = plans.map((plan) => {
     const slice = flat.slice(cursor, cursor + plan.winners.length)
     cursor += plan.winners.length
@@ -219,12 +251,17 @@ function film(seed: number, plans: Filmed[], cuts: number[], videoIds: string[],
       const index = rallyNo
       rallyNo += 1
       if (plan.points.includes(i)) {
+        const video = videos.find((v) => v.id === item.videoId)
+        if (video?.script) {
+          video.script = { ...video.script, rallies: video.script.rallies.filter((rally) => rally !== item.rally) }
+        }
         const server = serverAt(firstServerForSet('me', plan.setId), scoreBefore(plan.winners, i))
         return pointRally(`${item.videoId}-p${index}`, item.videoId, round(item.rally.contacts[0]), server, plan.winners[i])
       }
       return rallyFromScript(item.videoId, item.rally, index)
     })
     if (plan.toEnd) toEnd.add(plan.setId)
+    if (plan.coverRest) coverRest.add(plan.setId)
     return {
       ...blankSet(plan.setId),
       entered: plan.entered,
@@ -234,7 +271,7 @@ function film(seed: number, plans: Filmed[], cuts: number[], videoIds: string[],
       mark: rallies.length ? { from: { videoId: videos[0].id, t: 0 }, to: { videoId: videos[0].id, t: 1 }, complete: false } : null,
     }
   })
-  return { videos, sets: marksFor(videos, sets, toEnd) }
+  return { videos, sets: marksFor(videos, sets, toEnd, coverRest) }
 }
 
 function scoreBefore(winners: Side[], index: number): Points {
@@ -252,6 +289,7 @@ function saved(seed: number, setId: number, me: number, them: number, keepServer
     save: winners.length,
     finished: true,
     toEnd: false,
+    coverRest: false,
     entered: enteredOf(entered?.me ?? me, entered?.them ?? them),
     points,
   }
@@ -286,18 +324,26 @@ export function buildSeed(today: Date): MatchRecord[] {
   const on = (days: number) => isoDaysBefore(today, days)
 
   const partialSeven: Side[] = ['me', 'me', 'them', 'me', 'them', 'them', 'me']
-  const partialTail = setWinners(77, 11, 9)
+  // From 4 - 3 the rest trades until 9 - 10, then Sam takes the set 9 - 11.
+  const samTail: Side[] = ['them', 'me', 'them', 'me', 'them', 'me', 'them', 'me', 'them', 'me', 'them', 'them', 'them']
+  const set2 = [...partialSeven, ...samTail]
+  const set2Score = countPoints(set2)
+  if (set2Score.me !== 9 || set2Score.them !== 11 || !setOverOnRule(set2)) {
+    throw new Error(`Club night set 2 scripts ${set2Score.me} - ${set2Score.them}`)
+  }
   const partialPlans: Filmed[] = [
     { ...saved(11, 1, 11, 7), winners: setWinners(11, 11, 7) },
     {
       setId: 2,
-      winners: [...partialSeven, ...partialTail],
+      winners: set2,
       save: partialSeven.length,
       finished: false,
-      toEnd: true,
-      entered: { me: '', them: '' },
+      toEnd: false,
+      coverRest: true,
+      entered: enteredOf(9, 11),
       points: [],
     },
+    { ...saved(13, 3, 11, 8), save: 0, finished: false },
   ]
   // The cut is the first point after the seven saved rallies of set 2.
   const partialCut = setWinners(11, 11, 7).length + partialSeven.length
@@ -333,6 +379,7 @@ export function buildSeed(today: Date): MatchRecord[] {
     save: earlyWinners().length,
     finished: true,
     toEnd: true,
+    coverRest: false,
     entered: enteredOf(9, 7),
     points: [],
   }
@@ -387,7 +434,7 @@ export function buildSeed(today: Date): MatchRecord[] {
     matchOf('m-partial', 'Sam', 'Club night', on(6), { me: 3, them: 1 }, partial.videos, [
       partial.sets[0],
       partial.sets[1],
-      off(3, 11, 8),
+      partial.sets[2],
       off(4, 11, 6),
     ]),
     matchOf('m-complete', 'Pat', 'League final', on(12), { me: 3, them: 2 }, complete.videos, complete.sets),
