@@ -30,6 +30,7 @@ const RULES = {
   R19: 'one-confirm',
   R20: 'kind-tokens',
   R21: 'zone-paint',
+  R22: 'one-badge',
 }
 
 const args = process.argv.slice(2)
@@ -269,6 +270,7 @@ function scanFile(file, src0) {
   if (inSrc) scanOneConfirm(file, src, findings)
   scanKindTokens(file, src, findings)
   scanZonePaint(file, src, findings)
+  scanOneBadge(file, src, findings)
 
   return findings
 }
@@ -368,6 +370,24 @@ function scanImportType(file, src, findings) {
   while ((hit = re.exec(src))) {
     if (!inlineImportAllTypes(hit[1])) continue
     push(findings, RULES.R18, file, src, hit.index, 'import { type … }')
+  }
+}
+
+/**
+ * The warning badge pair `border-warning bg-warning/15` together with the badge
+ * treatment (`uppercase`) only in WfBadge.tsx. Confirm flags use the colours
+ * without that treatment and stay put.
+ */
+function scanOneBadge(file, src, findings) {
+  if (file === 'src/ui-mine/WfBadge/WfBadge.tsx') return
+  const re = /border-warning bg-warning\/15/g
+  let hit
+  while ((hit = re.exec(src))) {
+    const start = src.lastIndexOf('\n', hit.index) + 1
+    const end = src.indexOf('\n', hit.index)
+    const line = src.slice(start, end === -1 ? src.length : end)
+    if (!line.includes('uppercase')) continue
+    push(findings, RULES.R22, file, src, hit.index, 'border-warning bg-warning/15')
   }
 }
 
