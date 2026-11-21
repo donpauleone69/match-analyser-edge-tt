@@ -6,7 +6,7 @@ import { MatchesPage } from '@/pages/MatchesPage'
 import { MatchPage, MatchIndexRedirect } from '@/pages/MatchPage'
 import { MatchInsights } from '@/features/insights/MatchInsights'
 import { TagSetComposer } from '@/features/tagging/composers/TagSetComposer'
-import { MatchDetails } from '@/features/match/MatchDetails'
+import { MatchDetailsPage } from '@/pages/MatchDetailsPage'
 import { MatchTagPage } from '@/pages/MatchTagPage'
 import { DiscardUntouched } from '@/layout/DiscardUntouched'
 import { InsightsPage } from '@/pages/InsightsPage'
@@ -45,7 +45,7 @@ export default function App() {
             <Route index element={<MatchIndexRedirect />} />
             <Route path="insights" element={<MatchInsights />} />
             <Route path="insights/:section" element={<MatchInsightsRedirect />} />
-            <Route path="details" element={<MatchDetails />} />
+            <Route path="details" element={<MatchDetailsPage />} />
             <Route path="tag" element={<MatchTagPage />} />
             <Route path="tag/:setId" element={<TagSetComposer />} />
             <Route path="mark/:videoId" element={<MarkRedirect />} />
