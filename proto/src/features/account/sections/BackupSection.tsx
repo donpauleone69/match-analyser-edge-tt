@@ -1,17 +1,11 @@
-import { Button, Card, CardDescription, CardTitle, Icon } from '@/ui-mine'
+import { Button, Card, CardDescription, CardHead, Icon } from '@/ui-mine'
 import { WfBadge } from '@/ui-mine'
 
 export function BackupSection({ empty }: { empty: boolean }) {
   return empty ? null : (
     <>
       <Card className="space-y-3">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <Icon name="upload" size="sm" className="text-brand" />
-            <CardTitle>Import / export / backup</CardTitle>
-          </div>
-          <WfBadge>data</WfBadge>
-        </div>
+        <CardHead icon="upload" title="Import / export / backup" badge={<WfBadge>data</WfBadge>} />
         <CardDescription>Bundle and sync. Reel download stays on Insights.</CardDescription>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
           <Button kind="control" disabled>
@@ -35,10 +29,7 @@ export function BackupSection({ empty }: { empty: boolean }) {
       </Card>
 
       <Card className="space-y-3">
-        <div className="flex items-center gap-2">
-          <Icon name="cloud" size="sm" className="text-brand" />
-          <CardTitle>Permissions notes</CardTitle>
-        </div>
+        <CardHead icon="cloud" title="Permissions notes" />
         <ul className="space-y-2 text-sm text-muted">
           <li>
             <span className="font-semibold text-primary">Device:</span> local matches, tags,

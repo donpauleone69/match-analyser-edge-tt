@@ -31,6 +31,7 @@ const RULES = {
   R20: 'kind-tokens',
   R21: 'zone-paint',
   R22: 'one-badge',
+  R23: 'card-head',
 }
 
 const args = process.argv.slice(2)
@@ -271,6 +272,7 @@ function scanFile(file, src0) {
   scanKindTokens(file, src, findings)
   scanZonePaint(file, src, findings)
   scanOneBadge(file, src, findings)
+  scanCardHead(file, src, findings)
 
   return findings
 }
@@ -371,6 +373,13 @@ function scanImportType(file, src, findings) {
     if (!inlineImportAllTypes(hit[1])) continue
     push(findings, RULES.R18, file, src, hit.index, 'import { type … }')
   }
+}
+
+/** A feature file must not contain both `<CardTitle` and `<Icon`. CardHead owns that row. */
+function scanCardHead(file, src, findings) {
+  if (!/^src\/features\//.test(file)) return
+  if (!src.includes('<CardTitle') || !src.includes('<Icon')) return
+  push(findings, RULES.R23, file, src, src.indexOf('<CardTitle'), '<CardTitle and <Icon')
 }
 
 /**

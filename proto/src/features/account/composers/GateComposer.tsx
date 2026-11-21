@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { Button, Card, CardDescription, CardTitle, Icon } from '@/ui-mine'
+import { Button, Card, CardDescription, CardHead } from '@/ui-mine'
 import { BrandMark } from '@/layout/BrandMark'
 import { WfBadge, WfField } from '@/ui-mine'
 
@@ -21,13 +21,7 @@ export function GateComposer() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card className="space-y-3">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <Icon name="log-in" size="sm" className="text-brand" />
-                <CardTitle>Login</CardTitle>
-              </div>
-              <WfBadge>stub</WfBadge>
-            </div>
+            <CardHead icon="log-in" title="Login" badge={<WfBadge>stub</WfBadge>} />
             <CardDescription>Cloud sign-in.</CardDescription>
             <div className="space-y-2">
               <WfField label="Email" placeholder="you@example.com" />
@@ -42,13 +36,7 @@ export function GateComposer() {
           </Card>
 
           <Card className="space-y-3">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <Icon name="user" size="sm" className="text-brand" />
-                <CardTitle>Registration</CardTitle>
-              </div>
-              <WfBadge>stub</WfBadge>
-            </div>
+            <CardHead icon="user" title="Registration" badge={<WfBadge>stub</WfBadge>} />
             <CardDescription>Create account.</CardDescription>
             <div className="space-y-2">
               <WfField label="Display name" placeholder="Paul" />
@@ -64,13 +52,7 @@ export function GateComposer() {
           </Card>
 
           <Card className="space-y-3">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <Icon name="hard-drive" size="sm" className="text-brand" />
-                <CardTitle>Device session</CardTitle>
-              </div>
-              <WfBadge>stub</WfBadge>
-            </div>
+            <CardHead icon="hard-drive" title="Device session" badge={<WfBadge>stub</WfBadge>} />
             <CardDescription>Local only, no cloud.</CardDescription>
             <ul className="space-y-1.5 text-sm text-muted list-disc pl-4">
               <li>No sign-in</li>

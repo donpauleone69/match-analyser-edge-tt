@@ -1,4 +1,4 @@
-import { Pressable, Card, CardDescription, CardTitle } from '@/ui-mine'
+import { Pressable, Card, CardDescription, CardHead } from '@/ui-mine'
 import { WfBadge } from '@/ui-mine'
 import type { DemoMode } from '@/types/match'
 import { cn } from '@/helpers/utils'
@@ -12,10 +12,7 @@ export function DemoDataSection({
 }) {
   return (
     <Card className="space-y-3">
-      <div className="flex items-center justify-between gap-2">
-        <CardTitle>Prototype</CardTitle>
-        <WfBadge>demo data</WfBadge>
-      </div>
+      <CardHead title="Prototype" badge={<WfBadge>demo data</WfBadge>} />
       <CardDescription>
         Empty shows only empty states. Filled restores the seed matches.
       </CardDescription>

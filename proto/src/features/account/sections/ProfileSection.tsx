@@ -1,4 +1,4 @@
-import { Button, Card, CardDescription, CardTitle, Icon } from '@/ui-mine'
+import { Button, Card, CardDescription, CardHead, CardTitle } from '@/ui-mine'
 import { WfBadge, WfField, WfRow } from '@/ui-mine'
 
 export function ProfileSection({ empty }: { empty: boolean }) {
@@ -15,13 +15,7 @@ export function ProfileSection({ empty }: { empty: boolean }) {
   ) : (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <Card className="space-y-3">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <Icon name="user" size="sm" className="text-brand" />
-            <CardTitle>Profile</CardTitle>
-          </div>
-          <WfBadge>identity</WfBadge>
-        </div>
+        <CardHead icon="user" title="Profile" badge={<WfBadge>identity</WfBadge>} />
         <div className="space-y-2">
           <WfField label="Display name" value="Paul (stub)" />
           <WfField label="Role" value="Player / coach" />
@@ -39,13 +33,7 @@ export function ProfileSection({ empty }: { empty: boolean }) {
       </Card>
 
       <Card className="space-y-3">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <Icon name="users" size="sm" className="text-brand" />
-            <CardTitle>Reviewing as</CardTitle>
-          </div>
-          <WfBadge>focal</WfBadge>
-        </div>
+        <CardHead icon="users" title="Reviewing as" badge={<WfBadge>focal</WfBadge>} />
         <CardDescription>Whose library you view.</CardDescription>
         <WfField label="Focal player" value="Paul Overton" />
         <ul className="space-y-2">

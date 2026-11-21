@@ -20,8 +20,9 @@ import {
 } from '@/rules/marks'
 import { formatClock, segmentsOf } from '@/rules/timeline'
 import { cn } from '@/helpers/utils'
-import { Pressable, Button, Card, CardTitle, Icon, buttonKindControlSquare, buttonKindField, buttonKindTextLink } from '@/ui-mine'
+import { Pressable, Button, Card, CardTitle, buttonKindField, buttonKindTextLink } from '@/ui-mine'
 import { ConfirmBlock } from '../blocks/ConfirmBlock'
+import { VideoMoveBlock } from '../blocks/VideoMoveBlock'
 
 type Drag = { setId: number; edge: WingEdge; local: number }
 
@@ -114,30 +115,7 @@ export function TagVideoSection({
           Video {index + 1} · {formatClock(video.durationS)}
         </CardTitle>
         {many ? (
-          <>
-            {index > 0 ? (
-              <Pressable
-                type="button"
-                className={`${buttonKindControlSquare} shrink-0 rounded-md text-primary`}
-                aria-label={`Move video ${index + 1} up`}
-                disabled={locked}
-                onClick={() => onMove(-1)}
-              >
-                <Icon name="chevron-up" size="sm" />
-              </Pressable>
-            ) : null}
-            {index < match.videos.length - 1 ? (
-              <Pressable
-                type="button"
-                className={`${buttonKindControlSquare} shrink-0 rounded-md text-primary`}
-                aria-label={`Move video ${index + 1} down`}
-                disabled={locked}
-                onClick={() => onMove(1)}
-              >
-                <Icon name="chevron-down" size="sm" />
-              </Pressable>
-            ) : null}
-          </>
+          <VideoMoveBlock index={index} count={match.videos.length} locked={locked} onMove={onMove} />
         ) : null}
         <Button kind="control" variant="ghost" disabled={locked} onClick={() => setRemoving(true)}>
           Remove
