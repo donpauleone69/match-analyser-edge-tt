@@ -39,7 +39,8 @@ Mirrors the [Key documents canvas](https://cursor.com/canvas/store-7c210afe-9d07
 | Set tagger review fixes | Context: [docs/set-tagger-review-fixes-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/set-tagger-review-fixes-plan.md) | Shipped in v0.17.13 ([PR #156](https://github.com/donpauleone69/match-analyser-edge-tt/pull/156)). Short gaps are stops, a serve break flags the pill, and the shot quadrants have no tap guard. |
 | Tag page cards plan | Context: [docs/tag-page-cards-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/tag-page-cards-plan.md) | Shipped in v0.17.23 ([PR #171](https://github.com/donpauleone69/match-analyser-edge-tt/pull/171)). One card per video. Details holds the result. |
 | Match Insights plan | Context: [docs/match-insights-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/match-insights-plan.md) | Shipped in v0.17.26 ([PR #175](https://github.com/donpauleone69/match-analyser-edge-tt/pull/175)). Five cards from saved rallies: Phases, Serve, Receive, Attack and End. |
-| Global Insights plan | Context: [docs/global-insights-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/global-insights-plan.md) | Plan for v0.17.28. The same five cards pooled across filtered matches, with coverage and a demo reseed. |
+| Global Insights plan | Context: [docs/global-insights-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/global-insights-plan.md) | Shipped in v0.17.28 ([PR #180](https://github.com/donpauleone69/match-analyser-edge-tt/pull/180)). Five cards pooled across filtered matches, Usual, and the demo reseed. |
+| Refactor plan | Context: [docs/refactor-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/refactor-plan.md) | **Running overnight:** phases 0 to 8 unattended. **Freeze** on new development until Paul reviews. Ships as v0.18.0. |
 | Matches page plan | Context: [docs/matches-page-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/matches-page-plan.md) | Shipped in v0.17.25 ([PR #174](https://github.com/donpauleone69/match-analyser-edge-tt/pull/174)). Home rows from Details fields and tagging status. |
 | Rally Row plan | Context: [docs/rally-row-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/rally-row-plan.md) | Shipped in v0.17.14 ([PR #157](https://github.com/donpauleone69/match-analyser-edge-tt/pull/157)). Paul's six decisions in section 8. |
 | Product ideas | [product-ideas.md](./product-ideas.md) | Running list of product ideas. |
@@ -48,6 +49,7 @@ Mirrors the [Key documents canvas](https://cursor.com/canvas/store-7c210afe-9d07
 
 | Build | Link | Notes |
 |-------|------|-------|
+| v0.17.28 | [PR #180](https://github.com/donpauleone69/match-analyser-edge-tt/pull/180) | Global Insights pools the filter's matches into five cards. Filter is Dates, Opponent and Event. Usual is your rate across other tagged matches. Demo reseed: fourteen matches, twelve tagged, 825 points. Old Insights tabs redirect. |
 | v0.17.27 | [PR #176](https://github.com/donpauleone69/match-analyser-edge-tt/pull/176) | Set over follows the rule only. An overrun pad leads with Edit Rally N, then Remove N or Remove N+1 to M. Save at the mark or the video end is ended early when the score has a leader. A level score is Save set, stays incomplete, and a Details score settles it. |
 | v0.17.26 | [PR #175](https://github.com/donpauleone69/match-analyser-edge-tt/pull/175) | Match Insights counts saved rallies: Phases, Serve, Receive, Attack and End. An info icon turns a card over. Download on a playlist stays disabled. |
 | v0.17.25 | [PR #174](https://github.com/donpauleone69/match-analyser-edge-tt/pull/174) | Each Matches row is the opponent, then the date, the entered result and the event. One status sits on the right. Filter is Opponent, Event and Status. |
@@ -86,15 +88,16 @@ Mirrors the [Key documents canvas](https://cursor.com/canvas/store-7c210afe-9d07
 | v0.16.4 | [PR #144](https://github.com/donpauleone69/match-analyser-edge-tt/pull/144) | Latest merged on proto (d303eda). Version in video Settings. Top Nav removed with Back on video; Set Zone one row with set name and Rallies; portrait Video, Set, Rally, Shot Input; landscape three columns with full-height wings; Discard for the rally in progress. |
 | v0.16.3 | [PR #143](https://github.com/donpauleone69/match-analyser-edge-tt/pull/143) | Latest merged on proto (7e2d6f1). Version in video Settings. "In net" line removed, landscape video fits height, fixed 82px rally row at bottom in both orientations, shot timer on top of rally row, slimmer 16px phase tags and shot row. |
 | v0.16.1 | [PR #140](https://github.com/donpauleone69/match-analyser-edge-tt/pull/140) | Latest merged on proto (7f3b893). Version in video Settings. Rally row: server pill, Not a shot, Star, Edit (was Check). Removed narrative line, toss offer, fix row, Delete last. |
-| Live app | [edge-tt.apps.grok.bot](https://edge-tt.apps.grok.bot) | Private. v0.17.26 live (1065d71). v0.17.27 merged on proto; publish pending Paul's click. |
+| Live app | [edge-tt.apps.grok.bot](https://edge-tt.apps.grok.bot) | Private. v0.17.27 live (9c4efff). v0.17.28 merged on proto; publish pending Paul's click. |
 | v0.16.0 | [PR #139](https://github.com/donpauleone69/match-analyser-edge-tt/pull/139) | Latest merged on proto (dd8ff43). Serve landing quadrants. Phone landscape tapping with video in the middle. Best + FA only in the dropdown. |
 | v0.15.1 | [PR #138](https://github.com/donpauleone69/match-analyser-edge-tt/pull/138) | Home screen mode removed. New timing defaults. |
-| Proto branch | [PR #129](https://github.com/donpauleone69/match-analyser-edge-tt/pull/129) | `cursor/mvp-proto-shell-d372` at `9c4efff` (v0.17.27). Main prototype PR the builds merge into. |
+| Proto branch | [PR #129](https://github.com/donpauleone69/match-analyser-edge-tt/pull/129) | `cursor/mvp-proto-shell-d372` at `d2e1b3f` (v0.17.28). Main prototype PR the builds merge into. Refactor phases 0 to 8 running; dev freeze until Paul reviews. |
 
 ## Theme and style
 
 | Document | Canvas | Notes |
 |----------|--------|-------|
+| UI component and theme plan | Context: [docs/ui-component-theme-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/ui-component-theme-plan.md) | After refactor v0.18.0. One `ui-mine` set on every screen, then light and dark theme. Paul approves each screen. |
 | Style guide v3 | [Canvas](https://cursor.com/canvas/store-7c210afe-9d07-40db-82c4-34e629d311ff/7c5f04e3-951d-43aa-8f4c-0bc9c3ee0bf9) | iPhone 15 sizing. Layouts A and B. B uses v2 components. A and B in v1 styles. |
 | Fresh pass themes | [Canvas](https://cursor.com/canvas/store-7c210afe-9d07-40db-82c4-34e629d311ff/aff1e37f-c39f-4123-a302-566a55e5294e) | Clay, Ink, and Mist. |
 | Style guide v1 | [Canvas](https://cursor.com/canvas/store-7c210afe-9d07-40db-82c4-34e629d311ff/2b779b80-7719-478c-ad55-cb68b3f2e1ed) | Earliest Courtside night canvas. |
