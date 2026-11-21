@@ -1,9 +1,10 @@
+import { Pressable } from '@/ui-mine'
 import { cn } from '@/helpers/utils'
 import type { AreaRegion } from '../models'
 
 export function RegionButtonBlock({ region, short }: { region: AreaRegion; short: boolean }) {
   return (
-    <button
+    <Pressable
       type="button"
       {...region.data}
       data-guard={region.dim ? '' : undefined}
@@ -29,6 +30,6 @@ export function RegionButtonBlock({ region, short }: { region: AreaRegion; short
       }}
     >
       {region.label}
-    </button>
+    </Pressable>
   )
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Button } from '@/ui-mine'
-import { WfEmpty } from '@/layout/Wireframe'
+import { WfEmpty } from '@/ui-mine'
 import { DEFAULT_INSIGHTS_FILTERS } from '@/rules/filters'
 import type { PlayItem } from '@/rules/insights'
 import { useSettingsStore } from '@/stores/settingsStore'

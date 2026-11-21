@@ -5,7 +5,7 @@ import { PictureSeekBlock } from '@/features/tagging/blocks/PictureSeekBlock'
 import { VideoSection } from '@/features/tagging/sections/VideoSection'
 import { segmentsOf, toGlobal } from '@/rules/timeline'
 import { usePlayer } from '@/features/tagging/hooks/usePlayer'
-import { Icon } from '@/ui-mine'
+import { Pressable, Icon } from '@/ui-mine'
 import type { PlayItem } from '@/rules/insights'
 
 const HOLD_MS = 500
@@ -149,7 +149,7 @@ export function PlaylistSection({
         }
       />
       <div className="flex items-center gap-1 border-b border-border px-2 py-1">
-        <button
+        <Pressable
           type="button"
           aria-label="Previous"
           disabled={index <= 0}
@@ -157,11 +157,11 @@ export function PlaylistSection({
           onClick={() => goRef.current(index - 1, player.playing)}
         >
           <Icon name="chevron-left" size="sm" />
-        </button>
+        </Pressable>
         <p className="min-w-0 flex-1 truncate text-center text-sm text-primary" data-playlist-caption="">
           {bar}
         </p>
-        <button
+        <Pressable
           type="button"
           aria-label="Next"
           disabled={index >= items.length - 1}
@@ -169,15 +169,15 @@ export function PlaylistSection({
           onClick={() => goRef.current(index + 1, player.playing)}
         >
           <Icon name="chevron-right" size="sm" />
-        </button>
-        <button
+        </Pressable>
+        <Pressable
           type="button"
           aria-label="Close"
           className="btn-kind-control btn-kind-square inline-flex shrink-0 items-center justify-center text-primary"
           onClick={onClose}
         >
           <Icon name="x" size="sm" />
-        </button>
+        </Pressable>
       </div>
     </div>
   )

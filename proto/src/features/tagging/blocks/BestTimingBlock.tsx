@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Icon } from '@/ui-mine'
+import { Pressable, Icon } from '@/ui-mine'
 import { APP_VERSION } from '@/version'
 import type { BestTiming } from '@/rules/bestFa'
 
@@ -39,7 +39,7 @@ export function BestTimingBlock({
 
   return (
     <div className="relative inline-flex" data-best-timing>
-      <button
+      <Pressable
         ref={button}
         type="button"
         aria-expanded={open}
@@ -48,7 +48,7 @@ export function BestTimingBlock({
         onClick={() => onOpen(!open)}
       >
         <Icon name="settings" size="sm" />
-      </button>
+      </Pressable>
       {open && place
         ? createPortal(
             <div

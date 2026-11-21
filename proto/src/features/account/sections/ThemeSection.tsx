@@ -1,6 +1,6 @@
 import { Card, CardDescription, CardTitle, Icon } from '@/ui-mine'
 import { ThemeSwitcher } from '@/theme/ThemeSwitcher'
-import { WfBadge } from '@/layout/Wireframe'
+import { WfBadge } from '@/ui-mine'
 
 export function ThemeSection() {
   return (

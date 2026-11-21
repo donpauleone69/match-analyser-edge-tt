@@ -66,6 +66,7 @@ it('bad fixtures fire every layer rule', () => {
   expect(hit('rules-tested', 'src/rules/a.ts', 'tests/rules/a.test.ts')).toBe(true)
   expect(hit('alias-imports', 'src/features/x/sections/ListSection.tsx', 'leaves src/features/x')).toBe(true)
   expect(hit('alias-imports', 'src/rules/rel.ts', 'leaves src/rules')).toBe(true)
+  expect(hit('raw-button', 'src/features/raw/RawButtonSection.tsx', '<button')).toBe(true)
 })
 
 it('good fixtures are clean', () => {

@@ -1,7 +1,7 @@
 import { Outlet, useMatch } from 'react-router-dom'
 import { PageHeader } from '@/layout/PageHeader'
 import { StickyChrome } from '@/layout/StickyChrome'
-import { WfEmpty } from '@/layout/Wireframe'
+import { WfEmpty } from '@/ui-mine'
 import { useMatchRecord } from '@/stores/matchStore'
 import { matchDiffers, formatMatchName } from '@/rules/matchStatus'
 

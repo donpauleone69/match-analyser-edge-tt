@@ -1,5 +1,5 @@
-import { Card, CardDescription, CardTitle } from '@/ui-mine'
-import { WfBadge } from '@/layout/Wireframe'
+import { Pressable, Card, CardDescription, CardTitle } from '@/ui-mine'
+import { WfBadge } from '@/ui-mine'
 import type { DemoMode } from '@/types/match'
 import { cn } from '@/helpers/utils'
 
@@ -21,7 +21,7 @@ export function DemoDataSection({
       </CardDescription>
       <div className="grid grid-cols-2 gap-2" role="group" aria-label="Demo data">
         {(['empty', 'filled'] as DemoMode[]).map((opt) => (
-          <button
+          <Pressable
             key={opt}
             type="button"
             onClick={() => setMode(opt)}
@@ -34,7 +34,7 @@ export function DemoDataSection({
             aria-pressed={mode === opt}
           >
             {opt}
-          </button>
+          </Pressable>
         ))}
       </div>
     </Card>

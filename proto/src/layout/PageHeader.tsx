@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { NavLink, Link } from 'react-router-dom'
 import { Icon } from '@/ui-mine'
 import { cn } from '@/helpers/utils'
-import { WfWarnBadge } from '@/layout/Wireframe'
+import { WfWarnBadge } from '@/ui-mine'
 import type { TopTab } from './pageHeaderTypes'
 
 /**

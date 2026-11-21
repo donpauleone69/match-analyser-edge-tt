@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { Button, Card, CardTitle } from '@/ui-mine'
-import { WfWarnBadge } from '@/layout/Wireframe'
+import { WfWarnBadge } from '@/ui-mine'
 import {
   formatScore,
   deriveLastTaggedSetId,

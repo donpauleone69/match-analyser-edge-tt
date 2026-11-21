@@ -1,4 +1,4 @@
-import { Button } from '@/ui-mine'
+import { Pressable, Button } from '@/ui-mine'
 import type { MatchListFilters } from '@/types/filters'
 import type { MatchRecord } from '@/types/match'
 import { MatchFilterPickersBlock } from '../blocks/MatchFilterPickersBlock'
@@ -31,7 +31,7 @@ export function MatchFilterSection({
       {active.length > 0 ? (
         <div className="flex flex-wrap items-center gap-2 px-3 pt-2">
           {active.map((a) => (
-            <button
+            <Pressable
               key={a}
               type="button"
               onClick={() => clearOne(a)}
@@ -40,7 +40,7 @@ export function MatchFilterSection({
             >
               {a}
               <span aria-hidden>×</span>
-            </button>
+            </Pressable>
           ))}
         </div>
       ) : null}
@@ -65,7 +65,7 @@ export function MatchFilterSection({
         ) : null}
         {open && hasMatches ? (
           <div className="fixed inset-0 z-50 md:hidden" data-filter-surface role="dialog" aria-label="Filters">
-            <button
+            <Pressable
               type="button"
               className="absolute inset-0 bg-neutral-50/60"
               aria-label="Close filters"

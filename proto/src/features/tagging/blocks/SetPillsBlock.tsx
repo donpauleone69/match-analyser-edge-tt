@@ -1,3 +1,4 @@
+import { Pressable } from '@/ui-mine'
 import { Fragment, useLayoutEffect, useRef } from 'react'
 import { cn } from '@/helpers/utils'
 import { formatScore } from '@/rules/match'
@@ -71,7 +72,7 @@ export function SetPillsBlock({
                 {insert.n}
               </span>
             ) : slot ? (
-              <button
+              <Pressable
                 type="button"
                 data-gap-slot=""
                 data-gap-index={slot.index}
@@ -83,10 +84,10 @@ export function SetPillsBlock({
                 onClick={() => onGap(slot.index)}
               >
                 <span className="tag-gap-slot" data-on={on ? '' : undefined} data-likely={slot.likely ? '' : undefined} />
-              </button>
+              </Pressable>
             ) : null}
             {onRally ? (
-              <button
+              <Pressable
                 type="button"
                 data-set-pill={n}
                 data-pill-id={r.id}
@@ -106,7 +107,7 @@ export function SetPillsBlock({
                 onClick={() => onRally(r.id)}
               >
                 {n}
-              </button>
+              </Pressable>
             ) : (
               <span
                 data-set-pill={n}

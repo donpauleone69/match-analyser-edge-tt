@@ -1,5 +1,5 @@
 import type { VideoSectionProps } from '../models'
-import { Icon } from '@/ui-mine'
+import { Pressable, Icon } from '@/ui-mine'
 import { cn } from '@/helpers/utils'
 import { SPEED_STEPS, servesText } from '@/rules/rally'
 import { type Segment } from '@/rules/timeline'
@@ -88,14 +88,14 @@ export function VideoSection({
           >
             <span className="min-w-0 flex-1">{toast.text}</span>
             {toast.extra ? (
-              <button type="button" className="shrink-0 font-bold underline" onClick={toast.extra.run}>
+              <Pressable type="button" className="shrink-0 font-bold underline" onClick={toast.extra.run}>
                 {toast.extra.label}
-              </button>
+              </Pressable>
             ) : null}
             {toast.undo ? (
-              <button type="button" className="shrink-0 font-bold underline" onClick={toast.undo}>
+              <Pressable type="button" className="shrink-0 font-bold underline" onClick={toast.undo}>
                 Undo
-              </button>
+              </Pressable>
             ) : null}
           </div>
         ) : hint ? (
