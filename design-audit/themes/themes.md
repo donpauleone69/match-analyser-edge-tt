@@ -62,6 +62,9 @@ All required pairs pass. The tightest:
 | Mark label on the mark fill | 6.19 | 6.15 | 10.82 |
 | First-attack edge on both soft cells | above 5.1 | above 4.9 | above 5.6 |
 | White-frame chrome text, and the muted line | 9.23 / 8.25 | 9.23 / 8.25 | 9.23 / 8.25 |
+| Danger button, label on the danger fill | 6.15 | 5.92 | 5.27 |
+
+Scorebook and Daylight put `--ink-inverse` on `--danger`. Lamplight's coral fill (`#e15d4e`) is only 3.18:1 under ivory, so the danger button uses `--ink-on-player` (`#14110e`) on that fill. The same dark ink stays on the lighter hover fill (`--danger-ink`), at 11.07:1. Quiet danger text on the page is still `--danger-ink`.
 
 The base amber `#f59e0b` was 2.0:1 on the page, so a marked part was told apart by hue only. Each theme replaces it. On the two light pages the ochre is darkened until the line clears 3:1 on the page, on sunken, and on both player soft cells, and the label flips to light text. Dark text on a bright amber cannot hit both bars. On lamplight the mark goes the other way, to gold, with dark text.
 

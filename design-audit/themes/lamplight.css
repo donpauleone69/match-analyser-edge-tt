@@ -144,3 +144,10 @@
   --row-min: 3.625rem; /* 58 */
   --pad-row-y: 0.5rem; /* 8 */
 }
+
+/* Ivory on the coral fill is 3.18:1. The danger button uses the dark
+   player ink instead, which clears 4.5:1 on the fill and on the lighter
+   hover fill. Quiet danger text stays --danger-ink. */
+[data-theme="lamplight"] .btn-danger {
+  color: var(--ink-on-player);
+}
