@@ -46,7 +46,7 @@ Best + FA shot keys, for `n` contacts:
 
 `idea` (`IdeaTag`): `flow: 'bestfa'`, optional `serve` (copy of serve depth), `result` (`Ace`, `Serve fault`, or the ending), `review` (parts in row order), `check` (`Check the point` when Point to was kept against End).
 
-`Draft` is the open rally: the rally fields plus `closed`, `noAttack`, and `best` (`BestMark`: step, page, end, point, kept, review, cut). A draft is not in the score. Default start is 2 s before the first contact (`RALLY_LEAD_S`), default end is 1 s after the last (`RALLY_PAD_S`). `nudgeMark` can move them. They still have to contain the contacts.
+`Draft` is the open rally: the rally fields plus `closed`, `noAttack`, and `best` (`BestMark`: `flow`, `step`, `endPage`, `end`, `point`, `kept`, `first`, `review`, `cut`). There is no `page` field. A draft is not in the score. Default start is 2 s before the first contact (`RALLY_LEAD_S`), default end is 1 s after the last (`RALLY_PAD_S`). `nudgeMark` can move them. They still have to contain the contacts.
 
 A point with no video has empty contacts, `start === end`, null ending, null `fa`, no shots.
 
@@ -68,7 +68,29 @@ A point with no video has empty contacts, `start === end`, null ending, null `fa
 | Sets won, tagged result, Differs | From leaders and entered scores | `app/src/rules/match.ts` |
 | Continuity | Serve-order breaks; gaps of at least 9 s | `app/src/rules/continuity.ts` |
 
-`fa` and `winner` are stored when the rally is saved, from those rules. The running score is not a field.
+`fa` and `winner` are stored when the rally is saved, from those rules. The user does not type `fa`. The running score is not a field.
+
+## Set states
+
+Exactly one applies. `isSettled` and `isSpareSet` are in `app/src/rules/match.ts`. `isIncomplete` and `endedEarly` are in `app/src/rules/marks.ts`.
+
+| State | When | Score that counts | Settled |
+|---|---|---|---|
+| Not on video | No mark, no rallies, no draft, not finished, and not the spare | Details | Only with a Details score |
+| Spare | No result. The last listed set, unmarked, no rallies, no draft, no Details score | none | No. Tagged result skips it |
+| Ready | Marked, not finished, no rallies, no draft | none | No |
+| Under way | Not finished, with rallies or a draft | none | No |
+| Saved, won | Finished, and the last rally is the first win (`setOverOnRule`) | Tagged | Yes |
+| Ended early | Finished, one side ahead, and the score is not a legal end | Tagged | Yes |
+| Incomplete | Finished, with rallies, and the score is level | Details | Only with a Details score |
+
+## Marks and video status
+
+`deriveMarkState`: `off` when there is no mark, then `saved` when finished, then `tagging` when there are rallies, otherwise `ready`.
+
+`deriveVideoStatus`, first line that fits: Archived, No sets yet, Tagging, Ready to tag, Done.
+
+`migrateSetMark`: a set with rallies and no mark gets one. From is 5 s before the first contact (`MARK_PAD_S`). To is 5 s after the last contact when the set is finished, otherwise the end of that video. `complete` equals `finished`. A set that already has a mark is unchanged.
 
 ## Invariants
 
@@ -97,7 +119,7 @@ Checked over the seed. Ids and the catalog text:
 - I-33 Finishing a set leaves the Details score unchanged.
 - I-34 `hasDifferingScores` is a finished set whose Details score and tagged score disagree.
 - I-40 The set list is the result count, or the used sets plus a spare, with no gaps.
-- I-41 Sets won count a leader from the score that state uses. A set still to tag counts for nobody.
+- I-41 Sets won count a leader from the score column of the set-state table. Ready, under way, and the spare count for nobody.
 - I-42 Tagged result is null until every listed non-spare set has a leader.
 - I-43 Complete means no set under way, one set finished, and every set the result lists is settled.
 - I-44 An entered result is a real best of 3, 5, or 7, and a complete match agrees with the tagged result.
@@ -107,8 +129,8 @@ Checked over the seed. Ids and the catalog text:
 - I-53 A new mark that fits is at least 60 s and starts in free time.
 - I-54 Won sets are complete, under-way sets are not, deleting tags sets complete, and finishing keeps it.
 - I-55 A video a set spans is locked, and moving it breaks.
-- I-56 Mark state follows the table, and video status is the first line that fits.
-- I-57 Every set with rallies has a mark, and migrating the mark changes nothing.
+- I-56 Mark state is off, ready, tagging, or saved, as listed above. Video status is the first of Archived, No sets yet, Tagging, Ready to tag, and Done that fits.
+- I-57 A set with rallies and no mark gets the `migrateSetMark` pads: 5 s before the first contact, and 5 s after the last when finished, otherwise to the end of that video. `complete` equals `finished`. A set that already has a mark is left as it is.
 
 The catalog also runs `set-states`: exactly one set state applies. It has no I-number.
 

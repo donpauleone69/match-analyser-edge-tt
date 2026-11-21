@@ -8,7 +8,7 @@ Best + FA is the only flow. Code: `app/src/rules/bestFa.ts`, `app/src/rules/rall
 
 Rally 1 asks who served, after the taps. If that side is not the set default, `flipFirstServer` updates the set. Later rallies are offered the server the score expects. Switch is explicit (`bestSwitchServer`, `bestSetServer`). A saved rally keeps the server it was given. Editing another rally does not rewrite it.
 
-`serveChecked` is written on a Best + FA save. It means the server was chosen or confirmed, not merely proposed.
+Every Best + FA save writes `serveChecked: true` (`bestRally`, I-8). The chosen-or-confirmed meaning applies only on the draft, where it decides whether rally 1 still asks who served (`serverKnown`).
 
 ## Contacts and the idle close
 

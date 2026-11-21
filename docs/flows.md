@@ -39,7 +39,7 @@ The Set Tagger tags one rally at a time. The question order is `docs/tagging-rul
 
 ## Read the tags
 
-Match Insights and global Insights use the same five cards plus a marked-parts card: Phases, Serve, Receive, Attack, End, Marked (`app/src/rules/insights.ts`). Global Insights adds a filter (opponent, event, dates) stored in `settingsStore`. Chips show only while a filter is set. The filter persists across visits because settings do. An empty global page says to tag a rally. Each card can play its reel. Download on a reel stays disabled. Match Insights has no Improve section and no second row of tabs.
+Match Insights and global Insights use the same five cards plus a marked-parts card: Phases, Serve, Receive, Attack, End, Marked (`app/src/rules/insights.ts`). Global Insights adds a filter (opponent, event, dates) stored in `settingsStore`. Chips show only while a filter is set. That filter is written to sessionStorage (`app/src/stores/settingsStore.ts`), so it lasts for this tab session and not across visits. An empty global page says to tag a rally. Each card can play its reel. Download on a reel stays disabled. Match Insights has no Improve section and no second row of tabs.
 
 ## Account and demo
 

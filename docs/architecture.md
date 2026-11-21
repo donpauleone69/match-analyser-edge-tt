@@ -27,7 +27,7 @@ Features: `tagging`, `match`, `matches`, `insights`, `account`. The file list is
 
 ## Data flow
 
-A page renders a composer. The composer selects store state, calls a derive hook, and passes view models and callbacks down. A callback calls a store action. The action runs a rules function and replaces the match. Derived facts (score, server, parts, insights, reels) are computed when read, not written back onto the rally, except the fields the user actually set (`winner`, `server`, `fa`, `idea`).
+A page renders a composer. The composer selects store state, calls a derive hook, and passes view models and callbacks down. A callback calls a store action. The action runs a rules function and replaces the match. Derived facts (score, server, parts, insights, reels) are computed when read, not written back onto the rally, except `winner`, `server`, and `idea`, which the user set. `fa` is derived on save (`bestOpener` in `app/src/rules/bestFa.ts`).
 
 Video time is seconds inside one video. A match clock is the videos laid end to end in list order (`segmentsOf` in `app/src/rules/timeline.ts`). Reordering videos does not rewrite rally times.
 

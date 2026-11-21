@@ -35,7 +35,7 @@ Terms the app uses now. Screen boxes are in `docs/layouts.md`. Tagging behaviour
 | Reel | The rallies behind an insight card, played from the card. The word "clip" is not used on Tag |
 | Insights | The same cards for one match and for all filtered matches |
 | Demo stand-in | The scripted picture used when the video is `kind: 'demo'` |
-| Archive | Rallies joined, lower size, one way. Offered once the match is fully tagged |
+| Archive | `addArchiveJob` is on the match store. Nothing calls it, so nothing starts an archive. An archived video is rallies joined, at lower size, one way |
 | Gate | `/`. A login stub. It does not check a password |
 | Matches | The home list at `/matches` |
 
