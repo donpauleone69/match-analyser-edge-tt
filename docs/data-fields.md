@@ -2,7 +2,7 @@
 
 Every column of schema v1 (`app/src/types/db.ts`): its allowed values, what writes it today, and what reads it. The shape, the links and what is derived are in `docs/data.md`. This is a second file because one would pass 200 lines.
 
-Rows are built from memory by `deriveDbRows` in `app/src/rules/dbRows.ts`. The store (`app/src/stores/matchStore.ts`) writes them through `saveMatch`, `saveDraft` and `deleteMatch` in `app/src/data/matchRepo.ts`. "Written by" is the function that changes the value. Set and rally changes are in `app/src/rules/matchOps.ts`, called from `app/src/features/tagging/hooks/useTagSetFlow.ts`, `app/src/features/match/sections/TagVideoSection.tsx` and `app/src/features/match/composers/MatchTagComposer.tsx`. "Phase 10" and "phase 8.3" mean nothing writes it yet. Null is allowed wherever a value says "or null"; every other column is required.
+Rows are built from memory by `deriveDbRows` in `app/src/rules/dbRows.ts`. The store (`app/src/stores/matchStore.ts`) writes them through `saveMatch`, `saveDraft` and `deleteMatch` in `app/src/data/matchRepo.ts`. "Written by" is the function that changes the value. Set and rally changes are in `app/src/rules/matchOps.ts`, called from `app/src/features/tagging/hooks/useTagSetFlow.ts`, `app/src/features/match/sections/TagVideoSection.tsx` and `app/src/features/match/composers/MatchTagComposer.tsx`. "Phase 10" means nothing writes it yet. Null is allowed wherever a value says "or null"; every other column is required.
 
 Each row is checked before a write by `validateOpponentRow`, `validateEventRow`, `validateMatchRow`, `validateVideoRow`, `validateSetRow`, `validateRallyRow` (with its shots, through `validateShotRow`) or `validateDraftRow`, in `app/src/rules/dbValidate.ts`. `validateDbRows` adds the rules across rows: unique keys, every link names a row that is there, names unique ignoring case (`validateUniqueNames`), and numbering with no gaps. They return a list of `{ table, id, field, problem }` and never throw. Tests: `app/tests/rules/db-validate.test.ts`.
 
@@ -54,9 +54,9 @@ Each row is checked before a write by `validateOpponentRow`, `validateEventRow`,
 | `fileName` | text, not empty | `addVideo`: the picked file's name in `AddVideoSection`, or `demo-video-<n>.mp4` | no screen shows it |
 | `sizeBytes` | whole bytes at or after 0 | `File.size` from `AddVideoSection` (`videoRow` inside `saveMatch`); archive stores the rounded MB (`archiveVideos`) | no screen shows it |
 | `durationS` | seconds at or after 0 | `addVideo`, from the loaded file or the demo script | timeline, marks, player, `TagVideoSection` |
-| `lastModifiedMs` | whole ms, or null | phase 8.3 | phase 8.3 |
-| `fingerprint` | text or null | phase 8.3 | phase 8.3 |
-| `storedOnDevice` | true or false | phase 8.3 | phase 8.3 |
+| `lastModifiedMs` | whole ms, or null | `addVideo` (`File.lastModified`); `findVideo` | `isSameVideoFile` (`app/src/rules/videoFile.ts`) when there is no fingerprint |
+| `fingerprint` | 64 hex (SHA-256 of size, first and last MiB), or null without SubtleCrypto | `keepOnDevice` in the store after `addVideo` or `findVideo` (`fingerprintFile` in `app/src/data/videoFiles.ts`) | `isSameVideoFile` on Find video |
+| `storedOnDevice` | true or false; never true on a demo video | `keepOnDevice`: true when the copy in `edge-tt-videos/<user or demo>/` landed, false when it failed; `findVideo` and `removeVideo` set false | boot reads those copies (`app/src/data/boot.ts`); a file video with no copy shows Find video |
 | `archivedAt` | whole ms, or null | `setVideosArchived` at the end of `addArchiveJob` (no screen starts one today); seed history videos | `isArchived`, video status, tag lock |
 | `myEnd` | `Near`, `Far`, or null | phase 10 | phase 10 (`deriveMyEnd`) |
 | `removedAt` | whole ms, or null | `removeVideo` (no screen calls it today) | `addVideo` takes the id and place back |
@@ -114,7 +114,7 @@ Each row is checked before a write by `validateOpponentRow`, `validateEventRow`,
 
 ## Gaps
 
-Columns nothing writes today: `lastModifiedMs`, `fingerprint`, `storedOnDevice` (phase 8.3); `club`, `handedness`, `style`, `birthYear`, `notes`, `location`, `rankingStatus`, `importance`, `category`, `stage`, `round`, `myEnd`, `Defence`, and `outcome` with no result (phase 10, decision 19). `archivedAt` and `removedAt` are written only by store actions no screen calls; the seed writes `archivedAt`.
+Columns nothing writes today: `club`, `handedness`, `style`, `birthYear`, `notes`, `location`, `rankingStatus`, `importance`, `category`, `stage`, `round`, `myEnd`, `Defence`, and `outcome` with no result (phase 10, decision 19). `archivedAt` and `removedAt` are written only by store actions no screen calls; the seed writes `archivedAt`.
 
 Data the app keeps that the plan's columns did not store. G1 to G4 are fixed in v1 with an added column; the rest are for phase 8 or a call.
 

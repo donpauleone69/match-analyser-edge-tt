@@ -21,7 +21,7 @@ Every command after that `cd` runs from `app/`. Dev server: http://localhost:517
 | `npm test` | Vitest: rules, invariants I-1 to I-61, golden outputs. Under two minutes |
 | `npm run check:rules` | Layer rules in `app/scripts/check-rules.mjs` |
 | `npm run check:docs` | Cited repo paths exist, and each scanned doc is at most 200 lines |
-| `npm run check:db` | The database layer in Chrome (`app/tests/db/check-db.mjs`), then invariants and golden outputs over the rows read back |
+| `npm run check:db` | The database layer and the on-device video copy in Chrome (`app/tests/db/check-db.mjs`), then invariants and golden outputs over the rows read back |
 | `npm run check:persist` | Six rallies, export, reload, export again (`app/tests/persist/check-persist.mjs`). Rows and the matches shot match. Then invariants and golden derivation over those rows |
 | `npm run smoke` | Every route at 393x660 and 1440x912, plus a six-rally tagging run. Pass is 0 differing pixels |
 
