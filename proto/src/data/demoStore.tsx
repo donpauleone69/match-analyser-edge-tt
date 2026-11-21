@@ -8,13 +8,8 @@ import {
   type ReactNode,
 } from 'react'
 import { type Draft, type RallyData, type Side } from '@/features/tagging/rally'
-import {
-  buildScripts,
-  matchScript,
-  ralliesFromScript,
-  setWinners,
-  type VideoScript,
-} from '@/features/tagging/script'
+import { matchScript, type VideoScript } from '@/features/tagging/script'
+import { buildSeed } from '@/data/buildSeed'
 import {
   countPoints,
   firstServerForSet,
@@ -405,106 +400,8 @@ function demoVideo(id: string, fileName: string, script: VideoScript): VideoAsse
   }
 }
 
-/** Club night vs Sam: two videos. The second starts ten points into set 2. */
-const CLUB_SETS = [
-  { firstServer: 'me' as Side, winners: setWinners(11, 11, 7) },
-  { firstServer: 'them' as Side, winners: setWinners(12, 9, 11) },
-  { firstServer: 'me' as Side, winners: setWinners(13, 11, 8) },
-]
-const CLUB_SCRIPTS = buildScripts(101, CLUB_SETS, [28])
-const CLUB_VIDEOS = [
-  demoVideo('v-club-1', 'club-night-part-1.mp4', CLUB_SCRIPTS[0]),
-  demoVideo('v-club-2', 'club-night-part-2.mp4', CLUB_SCRIPTS[1]),
-]
-/** League final vs Pat: one video, three sets. Set 2 is tagged 8 - 11. */
-const FINAL_SETS = [
-  { firstServer: 'me' as Side, winners: setWinners(21, 11, 7) },
-  { firstServer: 'them' as Side, winners: setWinners(22, 8, 11) },
-  { firstServer: 'me' as Side, winners: setWinners(23, 11, 5) },
-]
-const FINAL_SCRIPT = buildScripts(202, FINAL_SETS)[0]
-const FINAL_VIDEO = demoVideo('v-final', 'league-final.mp4', FINAL_SCRIPT)
-const finalSet = (from: number, count: number) =>
-  ralliesFromScript('v-final', FINAL_SCRIPT, from, count)
-
-export const SEED: MatchRecord[] = [
-  {
-    id: 'm-new',
-    opponent: 'Lee',
-    event: 'Open trial',
-    date: '',
-    result: { me: null, them: null },
-    videos: [],
-    sets: [emptySet(1)],
-    tagDone: false,
-  },
-  {
-    // Video added, nothing tagged.
-    id: 'm-ready',
-    opponent: 'Kim',
-    event: 'County open',
-    date: '2026-11-13',
-    result: { me: null, them: null },
-    videos: [demoVideo('v-county', 'county-open.mp4', matchScript(31))],
-    sets: [emptySet(1)],
-    tagDone: false,
-  },
-  {
-    // Part way through set 2. Set 4 skipped by choice.
-    id: 'm-partial',
-    opponent: 'Sam',
-    event: 'Club night',
-    date: '2026-11-11',
-    result: { me: 3, them: 1 },
-    videos: CLUB_VIDEOS,
-    sets: [
-      {
-        ...emptySet(1),
-        entered: { me: '11', them: '7' },
-        finished: true,
-        rallies: ralliesFromScript('v-club-1', CLUB_SCRIPTS[0], 0, 18),
-      },
-      {
-        ...emptySet(2),
-        entered: { me: '9', them: '11' },
-        rallies: ralliesFromScript('v-club-1', CLUB_SCRIPTS[0], 18, 7),
-      },
-      { ...emptySet(3), entered: { me: '11', them: '8' } },
-      { ...emptySet(4), entered: { me: '11', them: '6' }, skipped: true },
-    ],
-    tagDone: false,
-  },
-  {
-    id: 'm-complete',
-    opponent: 'Pat',
-    event: 'League final',
-    date: '2026-10-04',
-    result: { me: 2, them: 1 },
-    videos: [FINAL_VIDEO],
-    sets: [
-      {
-        ...emptySet(1),
-        entered: { me: '11', them: '7' },
-        finished: true,
-        rallies: finalSet(0, 18),
-      },
-      {
-        // Entered and tagged disagree on purpose, to show the flag.
-        ...emptySet(2),
-        entered: { me: '9', them: '11' },
-        finished: true,
-        rallies: finalSet(18, 19),
-      },
-      {
-        ...emptySet(3),
-        entered: { me: '11', them: '5' },
-        finished: true,
-        rallies: finalSet(37, 16),
-      },
-    ],
-    tagDone: false,
-  },
-]
+/** Fourteen matches. Dates are days before the day the app loaded. */
+export const SEED: MatchRecord[] = buildSeed(new Date())
 
 /** A local file picked by the user. Held in memory only; never uploaded. */
 export type LocalVideo = { fileName: string; sizeMb: number; durationS: number; src: string }

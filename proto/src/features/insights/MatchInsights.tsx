@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { derivePhase, useDemo } from '@/data/demoStore'
+import { derivePhase, hasTaggedRallies, useDemo } from '@/data/demoStore'
 import { WfEmpty } from '@/layout/Wireframe'
 import { Button } from '@/ui-mine'
 import { InsightCard } from './InsightCard'
@@ -17,10 +17,14 @@ type Playing = {
 /** Match Insights: five cards from the saved rallies, then marked parts. */
 export function MatchInsights() {
   const { matchId = '' } = useParams()
-  const { getMatch } = useDemo()
+  const { matches, getMatch } = useDemo()
   const navigate = useNavigate()
   const match = getMatch(matchId)
-  const model = useMemo(() => (match ? matchInsights(match) : null), [match])
+  const usualFrom = useMemo(
+    () => matches.filter((row) => hasTaggedRallies(row) && row.id !== matchId),
+    [matches, matchId],
+  )
+  const model = useMemo(() => (match ? matchInsights(match, usualFrom) : null), [match, usualFrom])
   const [playing, setPlaying] = useState<Playing | null>(null)
 
   useEffect(() => {
@@ -38,7 +42,7 @@ export function MatchInsights() {
     <div className="insights-page px-4 py-4 sm:px-6 lg:px-8">
       {playing ? (
         <PlaylistPlayer
-          match={match}
+          videos={match.videos}
           name={playing.name}
           items={playing.items}
           caption={playing.caption}

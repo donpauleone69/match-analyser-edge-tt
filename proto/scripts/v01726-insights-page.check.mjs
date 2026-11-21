@@ -55,7 +55,9 @@ for (const view of VIEWS) {
   for (const title of ['Phases', 'Serve', 'Receive', 'Attack', 'End']) {
     ok(`${view.label} card ${title}`, await page.locator(`[data-insight] h3:text-is("${title}")`).count().then((n) => n > 0))
   }
-  ok(`${view.label} coverage`, (await page.locator('[data-coverage]').innerText()) === 'Sets 1 to 3')
+  ok(`${view.label} coverage`, (await page.locator('[data-coverage]').innerText()) === 'Sets 1 to 5')
+  const receiveCompare = await page.locator('[data-insight="receive"] p').nth(1).innerText()
+  ok(`${view.label} receive shows Usual`, receiveCompare.includes('Usual'), receiveCompare)
   const downloads = page.locator('button[aria-label="Download"]')
   const downloadCount = await downloads.count()
   ok(`${view.label} downloads`, downloadCount >= 4, String(downloadCount))
@@ -114,11 +116,57 @@ await openMatch(phone, 'm-ready')
 ok('nothing tagged', (await phone.locator('body').innerText()).includes('Nothing tagged yet'))
 ok('go to tag', (await phone.locator('button:has-text("Go to Tag")').count()) === 1)
 await phone.goto(`${BASE}/insights/summary`, { waitUntil: 'domcontentloaded' })
-await phone.locator('button[aria-label="Filter"]').waitFor()
-ok('global summary stays', (await phone.locator('body').innerText()).includes('Summary'))
+await phone.locator('[data-insight="phases"]').waitFor()
+ok('old summary route is the global page', !((await phone.locator('body').innerText()).includes('Summary')))
+ok('global page has the five cards', (await phone.locator('[data-insight="phases"]').count()) === 1)
 await phone.locator('button[aria-label="Filter"]').click()
 const filters = await phone.locator('[role="dialog"][aria-label="Filters"]').innerText()
-ok('global filters stay', filters.includes('Tournament') && filters.includes('Dates'), filters.slice(0, 80))
+ok('global filters are Dates and Event', filters.includes('Event') && filters.includes('Dates') && !filters.includes('Tournament'), filters.slice(0, 80))
+await phone.locator('[role="dialog"] label', { hasText: 'Opponent' }).locator('select').selectOption('Pat')
+await phone.locator('[role="dialog"]').getByRole('button', { name: 'Apply', exact: true }).click()
+await phone.locator('[data-insight="serve"]').waitFor()
+const compare = phone.locator('[data-insight="serve"] p').nth(1)
+const compareText = await compare.innerText()
+ok('Pat serve compare has Usual', compareText.includes('Usual') && compareText.includes('Elite'), compareText)
+const fit = await compare.evaluate((el) => el.scrollWidth <= el.clientWidth + 1)
+ok('compare fits on one line', fit, compareText)
+await phone.locator('button[aria-label="Filter"]').click()
+const range = phone.locator('[role="dialog"]')
+await range.locator('label', { hasText: 'Dates' }).locator('select').selectOption('From and to')
+await range.locator('input[aria-label="From"]').waitFor()
+await range.locator('input[aria-label="From"]').fill('2099-01-01')
+await range.getByRole('button', { name: 'Apply', exact: true }).click()
+ok('filter that keeps nothing', (await phone.locator('body').innerText()).includes('Nothing fits this filter'))
+ok('chips stay', (await phone.getByRole('button', { name: /^Remove Dates:/ }).count()) === 1)
+await phone.getByRole('button', { name: 'Clear filter', exact: true }).click()
+await phone.locator('[data-insight="phases"]').waitFor()
+ok('clear filter restores the cards', true)
+await phone.goto(`${BASE}/insights/serve`, { waitUntil: 'domcontentloaded' })
+await phone.locator('[data-insight="phases"]').waitFor()
+ok('old serve route redirects', !phone.url().includes('/serve'))
+
+const narrow = await browser.newPage({ viewport: { width: 393, height: 660 }, hasTouch: true })
+await boot(narrow)
+await narrow.goto(`${BASE}/insights`, { waitUntil: 'domcontentloaded' })
+await narrow.locator('button[aria-label^="Play "]').filter({ visible: true }).first().click()
+await narrow.locator('[data-playlist-caption]').waitFor()
+const firstCaption = await narrow.locator('[data-playlist-caption]').innerText()
+let crossed = false
+let last = firstCaption
+for (let i = 0; i < 40; i++) {
+  const next = narrow.locator('button[aria-label="Next"]')
+  if (!(await next.isEnabled())) break
+  await next.click()
+  last = await narrow.locator('[data-playlist-caption]').innerText()
+  const firstVs = firstCaption.split('·')[1]
+  const nextVs = last.split('·')[1]
+  if (firstVs && nextVs && firstVs.trim() !== nextVs.trim()) {
+    crossed = true
+    break
+  }
+}
+ok('playlist steps across matches', crossed, `${firstCaption} -> ${last}`)
+await narrow.close()
 await phone.close()
 await browser.close()
 

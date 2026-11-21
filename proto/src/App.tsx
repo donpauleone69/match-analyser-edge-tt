@@ -10,7 +10,7 @@ import { MatchDetails } from '@/features/match/MatchDetails'
 import { MatchTagChecklist } from '@/features/match/MatchTagChecklist'
 import { ArchiveRunner } from '@/features/match/archiveJobs'
 import { DiscardUntouched } from '@/layout/DiscardUntouched'
-import { InsightsPage, InsightsSectionPage } from '@/pages/InsightsPage'
+import { InsightsPage } from '@/pages/InsightsPage'
 import { AccountPage } from '@/pages/AccountPage'
 
 /** Old section addresses (summary, serve, receive) land on the match Insights page. */
@@ -52,13 +52,11 @@ export default function App() {
             <Route path="tag/:setId" element={<TagSetScreen />} />
             <Route path="mark/:videoId" element={<MarkRedirect />} />
           </Route>
-          <Route path="/insights" element={<InsightsPage />}>
-            <Route index element={<Navigate to="summary" replace />} />
-            <Route path="story" element={<Navigate to="/insights/summary" replace />} />
-            <Route path="reels" element={<Navigate to="/insights/summary" replace />} />
-            <Route path="scope" element={<Navigate to="/insights/improve" replace />} />
-            <Route path=":section" element={<InsightsSectionPage />} />
-          </Route>
+          <Route path="/insights" element={<InsightsPage />} />
+          <Route path="/insights/story" element={<Navigate to="/insights" replace />} />
+          <Route path="/insights/reels" element={<Navigate to="/insights" replace />} />
+          <Route path="/insights/scope" element={<Navigate to="/insights" replace />} />
+          <Route path="/insights/:section" element={<Navigate to="/insights" replace />} />
           <Route path="/account" element={<AccountPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
