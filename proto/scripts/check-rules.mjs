@@ -34,6 +34,7 @@ const RULES = {
   R23: 'card-head',
   R24: 'format-home',
   R25: 'old-predicates',
+  R26: 'one-media',
 }
 
 const args = process.argv.slice(2)
@@ -277,6 +278,7 @@ function scanFile(file, src0) {
   scanCardHead(file, src, findings)
   scanFormatHome(file, src, findings)
   scanOldPredicates(file, src, findings)
+  scanOneMedia(file, src, findings)
 
   return findings
 }
@@ -376,6 +378,18 @@ function scanImportType(file, src, findings) {
   while ((hit = re.exec(src))) {
     if (!inlineImportAllTypes(hit[1])) continue
     push(findings, RULES.R18, file, src, hit.index, 'import { type … }')
+  }
+}
+
+/** matchMedia together with addEventListener('change') only in useMediaQuery. */
+function scanOneMedia(file, src, findings) {
+  if (!file.startsWith('src/')) return
+  if (file === 'src/features/tagging/hooks/useMediaQuery.ts') return
+  if (!src.includes('matchMedia')) return
+  const re = /addEventListener\(\s*['"]change['"]/g
+  let hit
+  while ((hit = re.exec(src))) {
+    push(findings, RULES.R26, file, src, hit.index, "matchMedia plus addEventListener('change'")
   }
 }
 
