@@ -68,6 +68,8 @@ it('bad fixtures fire every layer rule', () => {
   expect(hit('alias-imports', 'src/rules/rel.ts', 'leaves src/rules')).toBe(true)
   expect(hit('raw-button', 'src/features/raw/RawButtonSection.tsx', '<button')).toBe(true)
   expect(hit('import-type', 'src/helpers/typed.ts', 'import { type')).toBe(true)
+  expect(hit('one-confirm', 'src/features/x/sections/ConfirmSection.tsx', 'function ConfirmBox')).toBe(true)
+  expect(hit('one-confirm', 'src/features/x/sections/ConfirmSection.tsx', 'role="alertdialog"')).toBe(true)
 })
 
 it('good fixtures are clean', () => {

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useState } from 'react'
 import { emptySet } from '@/rules/match'
 import type { MatchRecord, SetData, SetMark, VideoAsset } from '@/types/match'
 import { calculateVideoRallyCount } from '@/rules/matchStatus'
@@ -21,6 +21,7 @@ import {
 import { formatClock, segmentsOf } from '@/rules/timeline'
 import { cn } from '@/helpers/utils'
 import { Pressable, Button, Card, CardTitle, Icon, buttonKindField, buttonKindTextLink } from '@/ui-mine'
+import { ConfirmBlock } from '../blocks/ConfirmBlock'
 
 type Drag = { setId: number; edge: WingEdge; local: number }
 
@@ -144,7 +145,7 @@ export function TagVideoSection({
       </div>
 
       {removing ? (
-        <ConfirmBox label={`Remove video ${index + 1}`}>
+        <ConfirmBlock label={`Remove video ${index + 1}`}>
           <p>Remove video {index + 1}?</p>
           {tagged ? <p>Its tags stay but will not play</p> : null}
           <div className="flex flex-wrap gap-2">
@@ -155,7 +156,7 @@ export function TagVideoSection({
               Cancel
             </Button>
           </div>
-        </ConfirmBox>
+        </ConfirmBlock>
       ) : null}
 
       <CardTimeline
@@ -335,7 +336,7 @@ function SetRow({
         ) : null}
       </div>
       {asking && selected ? (
-        <ConfirmBox label={tagged ? `Delete set ${s.setId} or only its tags` : `Delete set ${s.setId}`}>
+        <ConfirmBlock label={tagged ? `Delete set ${s.setId} or only its tags` : `Delete set ${s.setId}`}>
           <p>{tagged ? `Delete set ${s.setId} or only its tags?` : `Delete set ${s.setId}?`}</p>
           <div className="flex flex-wrap gap-2">
             {tagged ? (
@@ -357,26 +358,9 @@ function SetRow({
               Cancel
             </Button>
           </div>
-        </ConfirmBox>
+        </ConfirmBlock>
       ) : null}
     </li>
-  )
-}
-
-function ConfirmBox({ label, children }: { label: string; children: ReactNode }) {
-  const ref = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    ref.current?.scrollIntoView({ block: 'nearest' })
-  }, [])
-  return (
-    <div
-      ref={ref}
-      className="space-y-2 scroll-mb-16 rounded-md border border-warning bg-warning/15 px-3 py-2 text-sm text-primary md:scroll-mb-4"
-      role="alertdialog"
-      aria-label={label}
-    >
-      {children}
-    </div>
   )
 }
 
