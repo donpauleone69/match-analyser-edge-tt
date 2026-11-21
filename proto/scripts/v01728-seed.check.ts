@@ -2,7 +2,7 @@
  * v0.17.28 demo seed. Fails on the first broken rule, naming the match, set and rally.
  * Run: npm run check:v01728-seed
  */
-import { derivePhase, calculateMatchSetsWon, setScoresDiffer } from '../src/rules/match'
+import { derivePhase, calculateMatchSetsWon, hasDifferingScores } from '../src/rules/match'
 import { SEED } from '../src/stores/matchStore'
 import { bestOpener, bestParts } from '../src/rules/bestFa'
 import { isError, winnerOf } from '../src/rules/rally'
@@ -209,7 +209,7 @@ for (const match of SEED) {
       if (!(match.id === 'm-complete' && set.setId === 2)) {
         say(`${match.id} set ${set.setId} details`, set.entered.me === String(counted.me) && set.entered.them === String(counted.them), `${set.entered.me}-${set.entered.them} vs ${counted.me}-${counted.them}`)
       } else {
-        say('m-complete set 2 differs', setScoresDiffer(set), `${set.entered.me}-${set.entered.them} vs ${counted.me}-${counted.them}`)
+        say('m-complete set 2 differs', hasDifferingScores(set), `${set.entered.me}-${set.entered.them} vs ${counted.me}-${counted.them}`)
       }
     } else if (off && match.id !== 'm-new' && match.id !== 'm-ready') {
       const me = Number(set.entered.me)

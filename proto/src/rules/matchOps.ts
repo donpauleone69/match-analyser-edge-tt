@@ -1,6 +1,6 @@
 /** Pure changes tagging makes to a match. Applied through the store's mutateMatch. */
 
-import { emptySet, calculateResultSetCount, setScoresDiffer, calculateTaggedScore } from './match'
+import { emptySet, calculateResultSetCount, hasDifferingScores, calculateTaggedScore } from './match'
 import type { MatchRecord, Points, SetData, SetMark, VideoAsset } from '@/types/match'
 import type { Draft, MarkKind, RallyData } from '@/types/rally'
 import { otherSide, pointRally, swapPlayers } from './rally'
@@ -125,7 +125,7 @@ export const applyTaggedScore = (m: MatchRecord, setId: number) =>
 
 export const applyTaggedScores = (m: MatchRecord): MatchRecord => ({
   ...m,
-  sets: m.sets.map((s) => (setScoresDiffer(s) ? { ...s, entered: scoreText(s) } : s)),
+  sets: m.sets.map((s) => (hasDifferingScores(s) ? { ...s, entered: scoreText(s) } : s)),
 })
 
 /**
@@ -229,7 +229,7 @@ export function nextSetToTag(m: MatchRecord, setId: number): SetData | null {
 }
 
 /** The set the user is part way through, for one-press resume. */
-export function setInProgress(m: MatchRecord): SetData | null {
+export function deriveSetInProgress(m: MatchRecord): SetData | null {
   return m.sets.find((s) => !s.skipped && !s.finished && (s.rallies.length > 0 || s.draft)) ?? null
 }
 

@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { Button, buttonKindTextLink } from '@/ui-mine'
 import { WfWarnBadge } from '@/ui-mine'
 import { formatScore } from '@/rules/format'
-import { setScoresDiffer, deriveSetState, calculateTaggedScore } from '@/rules/match'
+import { hasDifferingScores, deriveSetState, calculateTaggedScore } from '@/rules/match'
 import type { SetData } from '@/types/match'
 import { cn } from '@/helpers/utils'
 
@@ -26,7 +26,7 @@ export function TaggedCellBlock({
   return (
     <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
       <span className="font-semibold text-primary">{formatScore(tagged)}</span>
-      {setScoresDiffer(set) ? (
+      {hasDifferingScores(set) ? (
         <>
           <WfWarnBadge>Differs</WfWarnBadge>
           <Button kind="control" variant="secondary" onClick={onUseTagged}>

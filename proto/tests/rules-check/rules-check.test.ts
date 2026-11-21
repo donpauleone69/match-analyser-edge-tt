@@ -76,6 +76,18 @@ it('bad fixtures fire every layer rule', () => {
   expect(hit('one-badge', 'src/ui-mine/OtherBadge/OtherBadge.tsx', 'border-warning ' + 'bg-warning/15')).toBe(true)
   expect(hit('card-head', 'src/features/x/sections/BothSection.tsx', '<CardTitle and <Icon')).toBe(true)
   expect(hit('format-home', 'src/rules/formatAway.ts', 'export function ' + 'formatAway')).toBe(true)
+  for (const name of [
+    'setHasTagProgress',
+    'setSettled',
+    'setScoresDiffer',
+    'setIncomplete',
+    'setInProgress',
+    'setLineLabel',
+    'videoStatus',
+    'markState',
+  ]) {
+    expect(hit('old-predicates', 'src/rules/oldPred.ts', 'function ' + name)).toBe(true)
+  }
 })
 
 it('good fixtures are clean', () => {

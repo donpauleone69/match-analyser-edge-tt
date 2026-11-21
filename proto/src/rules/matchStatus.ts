@@ -9,12 +9,12 @@ import {
   parseEntered,
   resultDiffers,
   calculateResultSetCount,
-  setScoresDiffer,
-  setSettled,
+  hasDifferingScores,
+  isSettled,
 } from './match'
 import type { MatchRecord, MatchResult, Score, SetData } from '@/types/match'
-import { setInProgress } from './matchOps'
-import { setIncomplete } from './marks'
+import { deriveSetInProgress } from './matchOps'
+import { isIncomplete } from './marks'
 
 /** Sets needed to win a best of 3, 5 or 7. */
 const SETS_TO_WIN = [2, 3, 4]
@@ -61,7 +61,7 @@ export function enteredScoresMissResult(match: MatchRecord): boolean {
  * as a Differs mark outside Details. Nothing else earns the mark.
  */
 export function matchDiffers(match: MatchRecord): boolean {
-  return match.sets.some(setScoresDiffer) || resultDiffers(match)
+  return match.sets.some(hasDifferingScores) || resultDiffers(match)
 }
 
 /** Some tagged rally sits on a video that is still in the match. */
@@ -121,7 +121,7 @@ export function taggedResultReady(match: MatchRecord): boolean {
   if (!isRealResult(fromTagging)) return false
   const deciding = fromTagging.me + fromTagging.them
   return Array.from({ length: deciding }, (_, i) => match.sets.find((s) => s.setId === i + 1)).every(
-    (s) => Boolean(s && setSettled(s) && !setIncomplete(s))
+    (s) => Boolean(s && isSettled(s) && !isIncomplete(s))
   )
 }
 
@@ -138,7 +138,7 @@ export function deriveMatchRowStatus(match: MatchRecord): MatchRowStatus {
   if (phase === 'new') return { kind: 'no-video', text: 'No video', setId: null, tab: 'tag' }
   if (phase === 'ready') return { kind: 'not-tagged', text: 'Not tagged', setId: null, tab: 'tag' }
   if (phase === 'complete') return { kind: 'tagged', text: 'Tagged', setId: null, tab: 'insights' }
-  const open = match.videos.length > 0 && !isArchived(match) ? setInProgress(match) : null
+  const open = match.videos.length > 0 && !isArchived(match) ? deriveSetInProgress(match) : null
   if (open) return { kind: 'continue', text: `Continue set ${open.setId}`, setId: open.setId, tab: 'tag' }
   const noResult = match.result.me === null || match.result.them === null
   if (noResult && taggedResultReady(match)) {

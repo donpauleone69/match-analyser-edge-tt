@@ -1,6 +1,8 @@
 /** Text for scores, dates, clocks and match titles. No phase logic: that stays in matchStatus. */
 
-import type { MatchRecord, Score } from '@/types/match'
+import type { MatchRecord, Score, SetData } from '@/types/match'
+import { endedEarly } from './marks'
+import { calculateScoreAtSetEnd, countPoints } from './score'
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
@@ -80,6 +82,14 @@ export function formatMatchResultLine(match: MatchRecord): string {
 export function formatMatchRowLine(match: MatchRecord): string {
   const event = match.opponent.trim() ? match.event.trim() : ''
   return [formatMatchDate(match.date), formatMatchResultLine(match), event].filter(Boolean).join(' · ')
+}
+
+/** Set 2, or Set 2 · Saved · 9 - 7 · ended early. */
+export function formatSetLine(s: SetData): string {
+  if (!endedEarly(s)) return `Set ${s.setId}`
+  const winners = s.rallies.map((r) => r.winner)
+  const score = calculateScoreAtSetEnd(winners) ?? countPoints(winners)
+  return `Set ${s.setId} · Saved · ${formatScore(score)} · ended early`
 }
 
 export function formatClock(seconds: number, tenths = false): string {

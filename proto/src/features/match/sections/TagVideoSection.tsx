@@ -11,14 +11,13 @@ import {
   lineAction,
   markBounds,
   MIN_SET_S,
-  markState,
+  deriveMarkState,
   setsStartingOn,
-  setLineLabel,
   spansOnVideo,
   wingLimits,
   type WingEdge,
 } from '@/rules/marks'
-import { formatClock } from '@/rules/format'
+import { formatClock, formatSetLine } from '@/rules/format'
 import { segmentsOf } from '@/rules/timeline'
 import { cn } from '@/helpers/utils'
 import { Pressable, Button, Card, CardTitle, buttonKindField, buttonKindTextLink } from '@/ui-mine'
@@ -232,8 +231,8 @@ function SetRow({
 }) {
   const [asking, setAsking] = useState(false)
   const action = lineAction(s)
-  const state = markState(s)
-  const line = setLineLabel(s)
+  const state = deriveMarkState(s)
+  const line = formatSetLine(s)
   const early = endedEarly(s)
   const bounds = markBounds(match.videos, mark)
   const numbers = bounds ? allowedMarkNumbers(match, bounds.start, s.setId) : [s.setId]
@@ -450,7 +449,7 @@ function CardTimeline({
           const fromHere = set.mark.from.videoId === video.id
           const toHere = set.mark.to.videoId === video.id
           const cut = !fromHere && !toHere ? 'both' : !fromHere ? 'start' : !toHere ? 'end' : undefined
-          const state = markState(set)
+          const state = deriveMarkState(set)
           const fromN = match.videos.findIndex((v) => v.id === set.mark?.from.videoId) + 1
           const toN = match.videos.findIndex((v) => v.id === set.mark?.to.videoId) + 1
           const label =

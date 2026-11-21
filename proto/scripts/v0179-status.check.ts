@@ -4,7 +4,7 @@
  */
 import type { MatchRecord, SetData, SetMark, VideoAsset } from '../src/data/demoStore'
 import { saveMark } from '../src/rules/matchOps'
-import { clampWing, lineAction, newMarkAt, spanBack, spanOnto, videoStatus, wingLimits } from '../src/rules/marks'
+import { clampWing, lineAction, newMarkAt, spanBack, spanOnto, deriveVideoStatus, wingLimits } from '../src/rules/marks'
 
 const fails: string[] = []
 const ok = (name: string, cond: boolean, detail = '') => {
@@ -58,12 +58,12 @@ const v1 = video('v1')
 const v2 = video('v2')
 const archived = video('arc', true)
 
-ok('archived wins', videoStatus(match([archived], [setOf(1, mark('arc', 0, 100, true), 'tagging')]), 'arc') === 'Archived')
-ok('no sets yet', videoStatus(match([v1], [setOf(1, null, 'off')]), 'v1') === 'No sets yet')
-ok('tagging', videoStatus(match([v1], [setOf(1, mark('v1', 0, 200, true), 'tagging')]), 'v1') === 'Tagging')
+ok('archived wins', deriveVideoStatus(match([archived], [setOf(1, mark('arc', 0, 100, true), 'tagging')]), 'arc') === 'Archived')
+ok('no sets yet', deriveVideoStatus(match([v1], [setOf(1, null, 'off')]), 'v1') === 'No sets yet')
+ok('tagging', deriveVideoStatus(match([v1], [setOf(1, mark('v1', 0, 200, true), 'tagging')]), 'v1') === 'Tagging')
 ok(
   'tagging before ready',
-  videoStatus(
+  deriveVideoStatus(
     match(
       [v1],
       [setOf(1, mark('v1', 0, 100, true), 'saved'), setOf(2, mark('v1', 100, 400, true), 'tagging'), setOf(3, mark('v1', 400, 500, true), 'ready')]
@@ -73,21 +73,21 @@ ok(
 )
 ok(
   'ready to tag',
-  videoStatus(match([v1], [setOf(1, mark('v1', 0, 100, true), 'saved'), setOf(2, mark('v1', 200, 400, true), 'ready')]), 'v1') === 'Ready to tag'
+  deriveVideoStatus(match([v1], [setOf(1, mark('v1', 0, 100, true), 'saved'), setOf(2, mark('v1', 200, 400, true), 'ready')]), 'v1') === 'Ready to tag'
 )
-ok('part filmed is ready', videoStatus(match([v1], [setOf(1, mark('v1', 0, 80, false), 'part')]), 'v1') === 'Ready to tag')
+ok('part filmed is ready', deriveVideoStatus(match([v1], [setOf(1, mark('v1', 0, 80, false), 'part')]), 'v1') === 'Ready to tag')
 ok(
   'saved and part filmed is ready',
-  videoStatus(match([v1], [setOf(1, mark('v1', 0, 100, true), 'saved'), setOf(2, mark('v1', 100, 180, false), 'part')]), 'v1') === 'Ready to tag'
+  deriveVideoStatus(match([v1], [setOf(1, mark('v1', 0, 100, true), 'saved'), setOf(2, mark('v1', 100, 180, false), 'part')]), 'v1') === 'Ready to tag'
 )
-ok('free time still done', videoStatus(match([v1], [setOf(1, mark('v1', 0, 90, true), 'saved')]), 'v1') === 'Done')
+ok('free time still done', deriveVideoStatus(match([v1], [setOf(1, mark('v1', 0, 90, true), 'saved')]), 'v1') === 'Done')
 
 const spanning = match(
   [v1, v2],
   [setOf(3, { from: { videoId: 'v1', t: 500 }, to: { videoId: 'v2', t: 40 }, complete: true }, 'ready')]
 )
-ok('span counts on the next video', videoStatus(spanning, 'v2') === 'Ready to tag')
-ok('span counts on the first video', videoStatus(spanning, 'v1') === 'Ready to tag')
+ok('span counts on the next video', deriveVideoStatus(spanning, 'v2') === 'Ready to tag')
+ok('span counts on the first video', deriveVideoStatus(spanning, 'v1') === 'Ready to tag')
 
 ok('ready button', lineAction(setOf(2, mark('v1', 0, 10, true), 'ready')) === 'Tag')
 ok('tagging button', lineAction(setOf(2, mark('v1', 0, 10, true), 'tagging')) === 'Continue')

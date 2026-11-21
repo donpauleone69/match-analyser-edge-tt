@@ -8,7 +8,7 @@ import {
   calculateMatchSetsWon,
   resultDiffers,
   calculateResultSetCount,
-  setScoresDiffer,
+  hasDifferingScores,
 } from '@/rules/match'
 import type { EnteredScore, MatchRecord, MatchResult, SetData } from '@/types/match'
 import { applyTaggedScore, applyTaggedScores } from '@/rules/matchOps'
@@ -53,7 +53,7 @@ export function ResultSection({
 }) {
   const count = calculateResultSetCount(match)
   const lastTagged = deriveLastTaggedSetId(match)
-  const differing = match.sets.filter(setScoresDiffer).length
+  const differing = match.sets.filter(hasDifferingScores).length
   const them = match.opponent.trim() || 'Opponent'
   const fromTagging = calculateMatchSetsWon(match)
   const taggedReady = taggedResultReady(match)
@@ -187,7 +187,7 @@ export function ResultSection({
         </thead>
         <tbody>
           {match.sets.map((s) => {
-            const flagged = setScoresDiffer(s)
+            const flagged = hasDifferingScores(s)
             return (
               <tr key={s.setId} className="border-t border-border">
                 <td className="py-2 pr-3 font-medium text-primary tabular-nums">{s.setId}</td>
