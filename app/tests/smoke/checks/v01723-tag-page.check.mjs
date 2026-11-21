@@ -5,6 +5,7 @@
 import { spawnSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { chromium } from 'playwright-core'
+import { waitForApp } from '../routes.mjs'
 
 const BASE = process.env.BASE || 'http://127.0.0.1:5174'
 const VIEWS = [
@@ -57,6 +58,7 @@ function ensureFile(path, color) {
 
 async function boot(page) {
   await page.goto(`${BASE}/`, { waitUntil: 'domcontentloaded' })
+  await waitForApp(page)
   await page.evaluate(() => localStorage.setItem('proto-demo-mode', 'filled'))
 }
 
@@ -81,6 +83,7 @@ async function vid(page) {
 async function run(page, label) {
   await boot(page)
   await page.goto(`${BASE}/matches/m-new/tag`, { waitUntil: 'domcontentloaded' })
+  await waitForApp(page)
   await page.locator('input[type=file]').setInputFiles(FILE_A)
   await page.waitForSelector('[data-video-block]', { timeout: 15000 })
   await page.locator('input[type=file]').setInputFiles(FILE_B)
@@ -169,6 +172,7 @@ async function run(page, label) {
   await plain.getByRole('button', { name: 'Cancel' }).click()
 
   await page.goto(`${BASE}/matches/m-partial/tag`, { waitUntil: 'domcontentloaded' })
+  await waitForApp(page)
   await uncover(page)
   const body = await page.locator('body').innerText()
   const gone = ['Menu', 'Undo', 'Part filmed', '-1 s'].filter((word) => body.includes(word))
@@ -205,6 +209,7 @@ async function run(page, label) {
   await remove.getByRole('button', { name: 'Cancel' }).click()
 
   await page.goto(`${BASE}/matches/m-complete/details`, { waitUntil: 'domcontentloaded' })
+  await waitForApp(page)
   await page.locator('select[aria-label="Result"]').selectOption('')
   const change = page.getByRole('alertdialog', { name: 'Change result' })
   if ((await change.count()) > 0) await change.getByRole('button', { name: /^Change to/ }).click()

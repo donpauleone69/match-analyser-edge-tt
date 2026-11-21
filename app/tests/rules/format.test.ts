@@ -1,5 +1,14 @@
 import { expect, it } from 'vitest'
-import { formatChipDate, formatClock, formatMatchDate, formatScore, isoDaysBefore, todayDate } from '../lib/app'
+import {
+  formatBytes,
+  formatChipDate,
+  formatClock,
+  formatExportWhen,
+  formatMatchDate,
+  formatScore,
+  isoDaysBefore,
+  todayDate,
+} from '../lib/app'
 
 const TODAY = new Date(2026, 10, 21)
 
@@ -8,6 +17,16 @@ it('scores, clocks and today stay on the same text', () => {
   expect(formatClock(65)).toBe('01:05')
   expect(todayDate(TODAY)).toBe('2026-11-21')
   expect(todayDate(TODAY)).toBe(isoDaysBefore(TODAY, 0))
+})
+
+it('storage and export time stay short', () => {
+  expect(formatBytes(500)).toBe('500 B')
+  expect(formatBytes(12_000)).toBe('12 KB')
+  expect(formatBytes(1_765_376)).toBe('2 MB')
+  expect(formatBytes(10_739_183_616)).toBe('11 GB')
+  expect(formatBytes(9_700_000_000)).toBe('9.7 GB')
+  expect(formatExportWhen(Date.UTC(2026, 10, 21, 15, 4), TODAY)).toBe('21 Nov, 15:04')
+  expect(formatExportWhen(Date.UTC(2025, 9, 4, 9, 5), TODAY)).toBe('4 Oct 2025, 09:05')
 })
 
 it('match dates drop a bad month and chip dates keep an unparseable string', () => {

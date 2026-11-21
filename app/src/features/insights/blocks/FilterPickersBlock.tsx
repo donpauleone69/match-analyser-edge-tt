@@ -1,23 +1,29 @@
-import { DATE_CHOICES, filterChoices } from '@/rules/filters'
-import { FilterSelect, filterFieldClass } from '@/features/matches/blocks/FilterSelectBlock'
+import { DATE_CHOICES, type NameRef } from '@/rules/filters'
+import { FilterSelect, filterFieldClass, textOptions } from '@/features/matches/blocks/FilterSelectBlock'
 import type { InsightsFilters } from '@/rules/filters'
-import type { MatchRecord } from '@/types/match'
+
+function nameOptions(rows: readonly NameRef[], saved: string) {
+  const options = [{ value: 'Any', label: 'Any' }, ...rows.map((row) => ({ value: row.id, label: row.name }))]
+  if (options.some((option) => option.value === saved)) return options
+  const known = rows.find((row) => row.id === saved)
+  return [...options, { value: saved, label: known?.name ?? saved }]
+}
 
 export function FilterPickersBlock({
   draft,
   setDraft,
-  tagged,
+  opponents,
+  events,
 }: {
   draft: InsightsFilters
   setDraft: (next: InsightsFilters) => void
-  tagged: MatchRecord[]
+  opponents: readonly NameRef[]
+  events: readonly NameRef[]
 }) {
-  const { opponents, events } = filterChoices(tagged)
-  const withSaved = (options: string[], saved: string) => (options.includes(saved) ? options : [...options, saved])
-  const pickers: { key: 'dates' | 'opponent' | 'event'; label: string; options: string[] }[] = [
-    { key: 'dates', label: 'Dates', options: [...DATE_CHOICES] },
-    { key: 'opponent', label: 'Opponent', options: withSaved(['Any', ...opponents], draft.opponent) },
-    { key: 'event', label: 'Event', options: withSaved(['Any', ...events], draft.event) },
+  const pickers: { key: 'dates' | 'opponent' | 'event'; label: string; options: { value: string; label: string }[] }[] = [
+    { key: 'dates', label: 'Dates', options: textOptions(DATE_CHOICES) },
+    { key: 'opponent', label: 'Opponent', options: nameOptions(opponents, draft.opponent) },
+    { key: 'event', label: 'Event', options: nameOptions(events, draft.event) },
   ]
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">

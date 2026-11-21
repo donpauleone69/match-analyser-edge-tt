@@ -1,27 +1,29 @@
-import { filterChoices } from '@/rules/filters'
-import { FilterSelect } from './FilterSelectBlock'
-import {
-  MATCH_STATUSES as STATUSES,
-  type MatchListFilters,
-} from '@/types/filters'
-import type { MatchRecord } from '@/types/match'
+import { FilterSelect, textOptions } from './FilterSelectBlock'
+import { MATCH_STATUSES as STATUSES, type MatchListFilters } from '@/types/filters'
+import type { NameRef } from '@/rules/filters'
+
+function nameOptions(rows: readonly NameRef[], saved: string) {
+  const options = [{ value: 'Any', label: 'Any' }, ...rows.map((row) => ({ value: row.id, label: row.name }))]
+  if (options.some((option) => option.value === saved)) return options
+  const known = rows.find((row) => row.id === saved)
+  return [...options, { value: saved, label: known?.name ?? saved }]
+}
 
 export function MatchFilterPickersBlock({
   draft,
   setDraft,
-  matches,
+  opponents,
+  events,
 }: {
   draft: MatchListFilters
   setDraft: (next: MatchListFilters) => void
-  matches: MatchRecord[]
+  opponents: readonly NameRef[]
+  events: readonly NameRef[]
 }) {
-  const { opponents, events } = filterChoices(matches)
-  const withSaved = (options: string[], saved: string) =>
-    options.includes(saved) ? options : [...options, saved]
-  const pickers: { key: keyof MatchListFilters; label: string; options: string[] }[] = [
-    { key: 'opponent', label: 'Opponent', options: withSaved(['Any', ...opponents], draft.opponent) },
-    { key: 'event', label: 'Event', options: withSaved(['Any', ...events], draft.event) },
-    { key: 'status', label: 'Status', options: STATUSES },
+  const pickers: { key: keyof MatchListFilters; label: string; options: { value: string; label: string }[] }[] = [
+    { key: 'opponent', label: 'Opponent', options: nameOptions(opponents, draft.opponent) },
+    { key: 'event', label: 'Event', options: nameOptions(events, draft.event) },
+    { key: 'status', label: 'Status', options: textOptions(STATUSES) },
   ]
   return (
     <div className="grid grid-cols-1 gap-3">

@@ -48,6 +48,8 @@ export type VideoAsset = {
   id: string
   fileName: string
   sizeMb: number
+  /** Exact `File.size` when this video was picked from a file. Demo and seed videos omit it. */
+  sizeBytes?: number
   /** Rallies only, joined, lower quality. Cannot be undone. */
   archived: boolean
   kind: 'demo' | 'file'
@@ -92,7 +94,7 @@ export type MatchPhase = 'new' | 'ready' | 'partial' | 'complete'
 export type SetState = 'finished' | 'progress' | 'none'
 
 /** A local file picked by the user. Held in memory only; never uploaded. */
-export type LocalVideo = { fileName: string; sizeMb: number; durationS: number; src: string }
+export type LocalVideo = { fileName: string; sizeMb: number; durationS: number; src: string; sizeBytes?: number }
 
 /** Archive job labels, in order. A running job's step is an index into this list. */
 export const ARCHIVE_STEPS = ['Making archive', 'Checking archive', 'Removing original'] as const

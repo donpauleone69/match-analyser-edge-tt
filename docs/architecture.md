@@ -13,7 +13,7 @@ Vite app in `app/`. Entry `app/src/main.tsx`, routes in `app/src/App.tsx`, versi
 | Rules | `app/src/rules/` | Pure functions. No React, no storage, no clock except a `today` argument |
 | Types | `app/src/types/` | Types and fixed vocabularies. No functions |
 | Stores | `app/src/stores/` | Zustand actions. The only writers of match state and of device preferences |
-| Data | `app/src/data/seed/` | Deterministic demo matches (`buildSeed.ts`, `script.ts`) |
+| Data | `app/src/data/` | Deterministic demo matches (`app/src/data/seed/`). The Dexie database and its repositories, the only database writers (`docs/data.md`) |
 | UI kit | `app/src/ui-mine/` | Visual components. The only importer of `lucide-react` |
 | Layout | `app/src/layout/` | Shell, header, sticky chrome |
 
@@ -33,7 +33,7 @@ Video time is seconds inside one video. A match clock is the videos laid end to 
 
 ## Tests and the gate
 
-From `app/`, in order: `npm run build`, `npm test`, `npm run check:rules`, `npm run check:docs`, `npm run smoke`.
+From `app/`, in order: `npm run build`, `npm test`, `npm run check:rules`, `npm run check:docs`, `npm run check:db`, `npm run smoke`.
 
 - `app/tests/lib/app.ts` is the only test module that imports `app/src`. Other tests import the shim.
 - `app/tests/rules/` is one file per rules module.
@@ -42,9 +42,10 @@ From `app/`, in order: `npm run build`, `npm test`, `npm run check:rules`, `npm 
 - `app/tests/smoke/smoke.mjs` builds, serves, screenshots, and compares. Baseline and `SMOKE_BASELINE` are in `AGENTS.md`.
 - `app/scripts/check-rules.mjs` enforces the layer table. `app/scripts/rules-allowlist.json` may only shrink.
 - `app/scripts/check-docs.mjs` checks paths cited from `AGENTS.md`, `.cursorrules`, `docs/`, and `app/README.md`, and the 200 line cap.
+- `app/tests/db/check-db.mjs` opens a test-only page in Chrome that drives the database layer, then runs the invariants and golden outputs over the rows it read back.
 
 Do not loosen a test or rewrite a golden or a smoke baseline unless the change is named.
 
 ## Not in this tree
 
-Phase 7 designed the database: schema v1 in `app/src/types/db.ts`, mapping and checks in `app/src/rules/`, columns in `docs/data-fields.md`. Phase 8 adds Dexie, repositories, and on-device video. Phase 9 adds a file reference beside these docs, and a check that every source file is listed. None of that code is here. Match rows still reset on reload.
+The database layer is here (schema v1 in `app/src/types/db.ts`, mapping and checks in `app/src/rules/`, Dexie and repositories in `app/src/data/`), but no store or screen uses it yet: match rows still reset on reload. Phase 8.2 wires the stores to it; later phase 8 steps add on-device video. Phase 9 adds a file reference beside these docs, and a check that every source file is listed.

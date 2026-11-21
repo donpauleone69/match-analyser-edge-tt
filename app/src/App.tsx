@@ -10,6 +10,7 @@ import { TagSetPage } from '@/pages/TagSetPage'
 import { MatchDetailsPage } from '@/pages/MatchDetailsPage'
 import { MatchTagPage } from '@/pages/MatchTagPage'
 import { DiscardUntouched } from '@/layout/DiscardUntouched'
+import { SaveNotice } from '@/layout/SaveNotice'
 import { InsightsPage } from '@/pages/InsightsPage'
 import { AccountPage } from '@/pages/AccountPage'
 
@@ -18,6 +19,7 @@ export default function App() {
     <>
       <ScrollToTop />
       <DiscardUntouched />
+      <SaveNotice />
       <Routes>
         <Route path="/" element={<GatePage />} />
         <Route element={<AppShell />}>

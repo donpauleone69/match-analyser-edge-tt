@@ -3,6 +3,7 @@
  * BASE=http://127.0.0.1:5174 node scripts/v01725-matches-page.check.mjs
  */
 import { chromium } from 'playwright-core'
+import { waitForApp } from '../routes.mjs'
 
 const BASE = process.env.BASE || 'http://127.0.0.1:5174'
 const VIEWS = [
@@ -27,11 +28,13 @@ const banned = (text) => {
 
 async function boot(page, mode) {
   await page.goto(`${BASE}/`, { waitUntil: 'domcontentloaded' })
+  await waitForApp(page)
   await page.evaluate((next) => {
     localStorage.setItem('proto-demo-mode', next)
     sessionStorage.removeItem('proto-matches-filters')
   }, mode)
   await page.goto(`${BASE}/matches`, { waitUntil: 'domcontentloaded' })
+  await waitForApp(page)
 }
 
 async function rowText(page, id) {
@@ -98,6 +101,7 @@ async function run(page, label) {
   ok(`${label} continue opens set 2`, page.url().includes('/matches/m-partial/tag/2'))
 
   await page.goto(`${BASE}/matches`, { waitUntil: 'domcontentloaded' })
+  await waitForApp(page)
   await page.getByRole('button', { name: 'Filter', exact: true }).click()
   const sheet = page.getByRole('dialog', { name: 'Filters' })
   await sheet.waitFor()
@@ -126,6 +130,7 @@ async function run(page, label) {
   ok(`${label} clear filter`, (await page.locator('[data-match-row]').count()) === 14)
 
   await page.goto(`${BASE}/matches/m-complete/details`, { waitUntil: 'domcontentloaded' })
+  await waitForApp(page)
   const details = await page.locator('body').innerText()
   ok(`${label} no open insights button`, !details.includes('Open match Insights'))
   ok(`${label} delete stays`, details.includes('Delete match'))
@@ -167,6 +172,7 @@ async function run(page, label) {
 
   await page.evaluate(() => localStorage.setItem('proto-demo-mode', 'filled'))
   await page.goto(`${BASE}/insights`, { waitUntil: 'domcontentloaded' })
+  await waitForApp(page)
   await page.getByRole('button', { name: 'Filter', exact: true }).click()
   const insights = page.getByRole('dialog', { name: 'Filters' })
   await insights.waitFor()
