@@ -35,6 +35,7 @@ const RULES = {
   R24: 'format-home',
   R25: 'old-predicates',
   R26: 'one-media',
+  R27: 'one-filter-sheet',
 }
 
 const args = process.argv.slice(2)
@@ -279,6 +280,7 @@ function scanFile(file, src0) {
   scanFormatHome(file, src, findings)
   scanOldPredicates(file, src, findings)
   scanOneMedia(file, src, findings)
+  scanOneFilterSheet(file, src, findings)
 
   return findings
 }
@@ -379,6 +381,14 @@ function scanImportType(file, src, findings) {
     if (!inlineImportAllTypes(hit[1])) continue
     push(findings, RULES.R18, file, src, hit.index, 'import { type … }')
   }
+}
+
+/** Filter chip and scrim classes only in the shared sheet. */
+function scanOneFilterSheet(file, src, findings) {
+  if (file === 'src/features/matches/blocks/FilterSheetBlock.tsx') return
+  const re = /uppercase tracking-wide text-muted hover:bg-bg-elevated|bg-neutral-50\/60/g
+  let hit
+  while ((hit = re.exec(src))) push(findings, RULES.R27, file, src, hit.index, hit[0])
 }
 
 /** matchMedia together with addEventListener('change') only in useMediaQuery. */

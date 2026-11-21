@@ -28,23 +28,6 @@ export function MatchesComposer() {
     if (open) setDraft(filters)
   }, [open, filters])
 
-  useEffect(() => {
-    if (!open) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false)
-    }
-    const onPress = (e: PointerEvent) => {
-      const el = e.target instanceof Element ? e.target : null
-      if (!el?.closest('[data-filter-surface]')) setOpen(false)
-    }
-    window.addEventListener('keydown', onKey)
-    document.addEventListener('pointerdown', onPress)
-    return () => {
-      window.removeEventListener('keydown', onKey)
-      document.removeEventListener('pointerdown', onPress)
-    }
-  }, [open])
-
   const apply = () => {
     setFilters(draft)
     setOpen(false)
