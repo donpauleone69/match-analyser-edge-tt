@@ -652,6 +652,43 @@ button[disabled] {
   padding-left: env(safe-area-inset-left, 0px);
   padding-right: env(safe-area-inset-right, 0px);
 }
+/* Insights card flip. Reduced motion swaps the faces with no turn. */
+.insight-flip {
+  perspective: 800px;
+}
+.insight-flip-inner {
+  display: grid;
+  transform-style: preserve-3d;
+  transition: transform 0.45s;
+}
+.insight-flip-inner.is-flipped {
+  transform: rotateY(180deg);
+}
+.insight-face {
+  grid-area: 1 / 1;
+  backface-visibility: hidden;
+}
+.insight-back {
+  transform: rotateY(180deg);
+}
+/* The face that is turned away stays out of the taps. It stays painted until it passes 90 degrees. */
+.insight-flip-inner:not(.is-flipped) .insight-back,
+.insight-flip-inner.is-flipped .insight-front {
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .insight-flip-inner {
+    transition: none;
+  }
+}
+.insights-player {
+  position: sticky;
+  top: var(--btn-kind-control);
+  z-index: 15;
+}
+.insight-on {
+  scroll-margin-top: calc(var(--btn-kind-control) + 17rem);
+}
 /* Tabs keep their width. The match name shrinks first, then the tabs scroll. */
 .top-row-tabs {
   flex: 1 1 auto;
@@ -697,6 +734,26 @@ button[disabled] {
   }
   .tag-page .tag-cards {
     min-width: 0;
+  }
+  .insights-page {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    align-items: start;
+  }
+  .insights-player {
+    position: sticky;
+    top: 0;
+    min-width: 0;
+  }
+  .insights-cards {
+    min-width: 0;
+    grid-column: 1 / -1;
+  }
+  .insights-page:has(.insights-player) .insights-cards {
+    grid-column: auto;
+  }
+  .insight-on {
+    scroll-margin-top: 0;
   }
 }
 @media (pointer: coarse) {

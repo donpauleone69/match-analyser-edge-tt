@@ -1,19 +1,12 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { Button, Card, CardDescription, Icon } from '@/ui-mine'
 import { cn } from '@/helpers/utils'
 import { WfBadge, WfEmpty } from '@/layout/Wireframe'
-import {
-  derivePhase,
-  hasTaggedRallies,
-  taggedSetIds,
-  useDemo,
-  type MatchRecord,
-} from '@/data/demoStore'
+import { hasTaggedRallies, useDemo, type MatchRecord } from '@/data/demoStore'
 import { filterMatches, useInsightsFilterValues } from '@/features/insights/insightsFilterContext'
 import { hasPlayableRallies, matchLabel } from '@/features/match/matchChecks'
 
-export type InsightsScope = 'global' | 'match'
 export type SectionId = 'summary' | 'serve' | 'receive' | 'improve'
 
 const GLOBAL_SECTIONS: { id: SectionId; label: string }[] = [
@@ -22,8 +15,6 @@ const GLOBAL_SECTIONS: { id: SectionId; label: string }[] = [
   { id: 'receive', label: 'Receive' },
   { id: 'improve', label: 'Improve' },
 ]
-
-const MATCH_SECTIONS = GLOBAL_SECTIONS.filter((s) => s.id !== 'improve')
 
 type Reel = { id: string; title: string; meta: string }
 
@@ -56,7 +47,6 @@ const FULL_SAMPLE = 20
  */
 function sectionData(
   section: SectionId,
-  scope: InsightsScope,
   /** What the reels are cut from: a match title, "All matches" or "2 matches". */
   prefix: string,
   /** Global only: the matches the numbers cover. */
@@ -83,10 +73,7 @@ function sectionData(
 
   if (section === 'summary') {
     return {
-      stats:
-        scope === 'match'
-          ? `FA 58% · ${countOf(fit(12), 'winner', 'winners')}`
-          : `${countOf(total, 'point', 'points')} · FA 54%`,
+      stats: `${countOf(total, 'point', 'points')} · FA 54%`,
       reels: reels([
         ['sum-1', 'Highlight', 8],
         ['sum-2', 'Key winners', 5],
@@ -95,10 +82,7 @@ function sectionData(
   }
   if (section === 'serve') {
     return {
-      stats:
-        scope === 'match'
-          ? `1st in 64% · short ${fit(3)} · long ${fit(7)}`
-          : `1st in 62% · short ${fit(4)} · long ${fit(9)} · fault 3%`,
+      stats: `1st in 62% · short ${fit(4)} · long ${fit(9)} · fault 3%`,
       reels: reels([
         ['srv-1', 'Serve +1', 6],
         ['srv-2', 'Serve faults', 2],
@@ -108,10 +92,7 @@ function sectionData(
   }
   if (section === 'receive') {
     return {
-      stats:
-        scope === 'match'
-          ? `Short miss ${fit(2)} · deep hold ${fit(5)}`
-          : `Short miss ${fit(6)} · deep hold ${fit(11)} · flick ${fit(4)}`,
+      stats: `Short miss ${fit(6)} · deep hold ${fit(11)} · flick ${fit(4)}`,
       reels: reels([
         ['rcv-1', 'Short receive', 6],
         ['rcv-2', 'Flick return', 3],
@@ -190,95 +171,49 @@ export function SectionPills({
   )
 }
 
-function SectionBody({
-  section,
-  scope,
-  match,
-}: {
-  section: SectionId
-  scope: InsightsScope
-  match?: MatchRecord
-}) {
-  const navigate = useNavigate()
+function SectionBody({ section }: { section: SectionId }) {
   const { matches } = useDemo()
   const filters = useInsightsFilterValues()
   const [playingId, setPlayingId] = useState<string | null>(null)
 
-  // Global: the tagged matches the filter keeps, and those that can still play.
   const tagged = matches.filter(hasTaggedRallies)
-  const covered = scope === 'global' ? filterMatches(tagged, filters) : []
-  const playable = scope === 'global' ? covered.filter(hasPlayableRallies) : []
-  // Reels are cut from the matches that still have their video.
+  const covered = filterMatches(tagged, filters)
+  const playable = covered.filter(hasPlayableRallies)
   const inReels = playable.length > 0 ? playable : covered
   const prefix =
-    scope === 'match' && match
-      ? matchLabel(match)
-      : inReels.length === 1
-        ? matchLabel(inReels[0])
-        : inReels.length === tagged.length
-          ? 'All matches'
-          : countOf(inReels.length, 'match', 'matches')
-  const total = scope === 'match' && match ? pointsIn([match]) : pointsIn(covered)
-  const reelTotal = scope === 'match' ? total : pointsIn(inReels)
-  const data = sectionData(section, scope, prefix, covered, total, reelTotal)
+    inReels.length === 1
+      ? matchLabel(inReels[0])
+      : inReels.length === tagged.length
+        ? 'All matches'
+        : countOf(inReels.length, 'match', 'matches')
+  const total = pointsIn(covered)
+  const reelTotal = pointsIn(inReels)
+  const data = sectionData(section, prefix, covered, total, reelTotal)
 
   useEffect(() => {
     setPlayingId(null)
   }, [section])
 
-  if (scope === 'match' && match) {
-    const tagged = taggedSetIds(match)
-    if (tagged.length === 0) {
-      const phase = derivePhase(match)
-      return (
-        <div className="space-y-3">
-          <WfEmpty
-            title="Nothing tagged yet"
-            body={
-              phase === 'new'
-                ? 'Add the video in Tag to start.'
-                : 'Tag a rally to see insights for this match.'
-            }
-          />
-          <Button kind="main" onClick={() => navigate(`/matches/${match.id}/tag`)}>
-            Go to Tag
-          </Button>
-        </div>
-      )
-    }
-  }
-
-  if (scope === 'global' && covered.length === 0) {
+  if (covered.length === 0) {
     return <WfEmpty title="Nothing fits this filter" body="Remove a filter to see insights." />
   }
 
-  // A match whose video was removed keeps its numbers, but nothing can play.
-  const videoGone =
-    scope === 'match'
-      ? match !== undefined && hasTaggedRallies(match) && !hasPlayableRallies(match)
-      : playable.length === 0
+  const videoGone = playable.length === 0
   const playing = videoGone ? null : (data.reels.find((r) => r.id === playingId) ?? null)
   const noVideo = covered.length - playable.length
 
   return (
     <div className="space-y-4">
-      {scope === 'match' && match && taggedSetIds(match).length > 0 ? (
-        <p className="text-xs text-muted">
-          Covers set {taggedSetIds(match).join(', set ')}.
-        </p>
-      ) : null}
-      {scope === 'global' ? (
-        <p className="text-xs text-muted">
-          Covers{' '}
-          {covered.length === tagged.length
-            ? countOf(covered.length, 'match', 'matches')
-            : `${covered.length} of ${countOf(tagged.length, 'match', 'matches')}`}
-          .
-          {noVideo > 0 && !videoGone
-            ? ` ${noVideo} ${noVideo === 1 ? 'has' : 'have'} no video, so ${noVideo === 1 ? 'it is' : 'they are'} left out of reels.`
-            : ''}
-        </p>
-      ) : null}
+      <p className="text-xs text-muted">
+        Covers{' '}
+        {covered.length === tagged.length
+          ? countOf(covered.length, 'match', 'matches')
+          : `${covered.length} of ${countOf(tagged.length, 'match', 'matches')}`}
+        .
+        {noVideo > 0 && !videoGone
+          ? ` ${noVideo} ${noVideo === 1 ? 'has' : 'have'} no video, so ${noVideo === 1 ? 'it is' : 'they are'} left out of reels.`
+          : ''}
+      </p>
 
       <Card className="space-y-3">
         <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
@@ -287,16 +222,7 @@ function SectionBody({
           <WfBadge>Sample numbers</WfBadge>
         </div>
 
-        {videoGone && match ? (
-          <p className="rounded-md border border-dashed border-border bg-bg-card px-3 py-2 text-sm text-primary">
-            The video was removed, so these reels cannot play.{' '}
-            <Link to={`/matches/${match.id}/details`} className="font-semibold text-brand underline">
-              Add it back in Details
-            </Link>
-            .
-          </p>
-        ) : null}
-        {videoGone && scope === 'global' ? (
+        {videoGone ? (
           <p className="rounded-md border border-dashed border-border bg-bg-card px-3 py-2 text-sm text-primary">
             {covered.length === 1 ? 'This match has' : 'These matches have'} no video, so reels
             cannot play.
@@ -394,40 +320,19 @@ function SectionBody({
 }
 
 export function InsightsScreen({
-  scope,
-  matchId,
   section,
   basePath,
-  chrome = 'full',
+  chrome = 'body',
 }: {
-  scope: InsightsScope
-  matchId?: string
   section: SectionId
   basePath: string
-  /** full = pills + body (match). body = content only (global chrome on InsightsPage). */
+  /** full = pills and body. body = content only, under the Insights page chrome. */
   chrome?: 'full' | 'body'
 }) {
-  const { getMatch } = useDemo()
-  const match = matchId ? getMatch(matchId) : undefined
-  const sections = scope === 'global' ? GLOBAL_SECTIONS : MATCH_SECTIONS
-
-  if (scope === 'match' && !match) {
-    return (
-      <div className="px-4 sm:px-6 lg:px-8 py-6">
-        <WfEmpty title="Match not found" />
-        <div className="mt-3">
-          <Link to="/matches" className="text-sm font-semibold text-brand">
-            Matches
-          </Link>
-        </div>
-      </div>
-    )
-  }
-
   if (chrome === 'body') {
     return (
       <div className="px-4 sm:px-6 lg:px-8 py-4">
-        <SectionBody key={section} section={section} scope={scope} match={match} />
+        <SectionBody key={section} section={section} />
       </div>
     )
   }
@@ -435,36 +340,18 @@ export function InsightsScreen({
   return (
     <div>
       <div className="px-4 sm:px-6 lg:px-8 pt-3 pb-2">
-        <SectionPills sections={sections} section={section} basePath={basePath} />
+        <SectionPills sections={GLOBAL_SECTIONS} section={section} basePath={basePath} />
       </div>
       <div className="px-4 sm:px-6 lg:px-8 py-4">
-        <SectionBody key={section} section={section} scope={scope} match={match} />
+        <SectionBody key={section} section={section} />
       </div>
     </div>
   )
 }
 
-export function InsightsSectionRoute({
-  scope,
-  chrome = 'full',
-}: {
-  scope: InsightsScope
-  chrome?: 'full' | 'body'
-}) {
-  const { matchId, section = 'summary' } = useParams()
-  const base = scope === 'global' ? '/insights' : `/matches/${matchId}/insights`
-  const allowed =
-    scope === 'global'
-      ? ['summary', 'serve', 'receive', 'improve']
-      : ['summary', 'serve', 'receive']
+export function InsightsSectionRoute({ chrome = 'body' }: { chrome?: 'full' | 'body' }) {
+  const { section = 'summary' } = useParams()
+  const allowed = ['summary', 'serve', 'receive', 'improve']
   const safe = (allowed.includes(section) ? section : 'summary') as SectionId
-  return (
-    <InsightsScreen
-      scope={scope}
-      matchId={matchId}
-      section={safe}
-      basePath={base}
-      chrome={chrome}
-    />
-  )
+  return <InsightsScreen section={safe} basePath="/insights" chrome={chrome} />
 }
