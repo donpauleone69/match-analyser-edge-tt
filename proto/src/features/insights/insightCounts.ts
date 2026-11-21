@@ -203,15 +203,15 @@ function rateText(won: number, n: number): string {
 }
 
 function rateCell(won: number, n: number): Cell {
-  if (n <= 0) return { text: '0', of: null }
+  if (n <= 0) return { text: '-', of: null }
   if (n < 5) return { text: `${won} of ${n}`, of: null }
   return { text: `${Math.round((won / n) * 100)}%`, of: `of ${n}` }
 }
 
-function gradeOf(phase: Phase, won: number, n: number): Grade | null {
+export function gradeOf(phase: Phase, won: number, n: number): Grade | null {
   if (n < 20) return null
   const mark = PHASE_MARKS[phase]
-  const pct = (won / n) * 100
+  const pct = Math.round((won / n) * 100)
   if (pct >= mark.excellent) return 'Excellent'
   if (pct >= mark.good) return 'Good'
   if (pct >= mark.pass) return 'Pass'
@@ -469,7 +469,10 @@ function threeBall(
   const weakKey = weak === null ? null : buckets[weak].key
   const listRows = weakKey ? buckets[weak!].rows : rows
   const listName = weakKey ? lost[weakKey] : fallback
-  const compareFig = them.n === 0 ? `${names.name} none yet` : `${names.name} ${rateText(them.won, them.n)} · Elite ${elite}`
+  const compareFig =
+    them.n === 0
+      ? `${names.name} none yet · Elite ${elite}`
+      : `${names.name} ${rateText(them.won, them.n)} · Elite ${elite}`
   return {
     id,
     title,
@@ -521,7 +524,9 @@ function attackCard(all: Placed[], videos: Set<string>, names: Names): InsightCa
   const listRows = weakKey ? mineB.find((b) => b.key === weakKey)!.rows : mine
   const listName = weakKey ? lost[weakKey] : `Lost when ${names.who} attacked first`
   const compare =
-    them.n === 0 ? `${names.name} none yet` : `${names.name} ${rateText(them.won, them.n)} · Elite 48%`
+    them.n === 0
+      ? `${names.name} none yet · Elite 48%`
+      : `${names.name} ${rateText(them.won, them.n)} · Elite 48%`
   return {
     id: 'attack',
     title: 'Attack',

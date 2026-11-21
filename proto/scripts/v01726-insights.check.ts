@@ -2,8 +2,8 @@
  * v0.17.26 Match Insights counts.
  * Run: npm run check:v01726
  */
-import { SEED, type MatchRecord } from '../src/data/demoStore'
-import { matchInsights, phaseOf, type InsightCardModel, type InsightRow } from '../src/features/insights/insightCounts'
+import { SEED, emptySet, type MatchRecord } from '../src/data/demoStore'
+import { gradeOf, matchInsights, phaseOf, type InsightCardModel, type InsightRow } from '../src/features/insights/insightCounts'
 import type { Ending, Side } from '../src/features/tagging/rally'
 
 const fails: string[] = []
@@ -147,6 +147,48 @@ for (const [name, server, n, ending, player, phase] of cases) {
   ok(`phase ${name}`, phaseOf(server, n, ending, player) === phase, String(phaseOf(server, n, ending, player)))
 }
 ok('lucky counts as a winner', phaseOf('me', 1, 'Lucky', 'me') === 'serve' && phaseOf('me', 1, 'Lucky', 'them') === 'receive')
+// 13 of 21 is 61.9, which rounds to 62. Serve Good starts at 62.
+ok('grade uses the shown percent', gradeOf('serve', 13, 21) === 'Good', String(gradeOf('serve', 13, 21)))
+ok('grade under the shown percent stays Pass', gradeOf('serve', 12, 21) === 'Pass', String(gradeOf('serve', 12, 21)))
+
+const onlyMine: MatchRecord = {
+  id: 'only-mine',
+  opponent: 'Pat',
+  event: '',
+  date: '',
+  result: { me: null, them: null },
+  videos: [],
+  sets: [
+    {
+      ...emptySet(1),
+      finished: true,
+      rallies: [
+        {
+          id: 'a',
+          videoId: 'v',
+          server: 'me',
+          contacts: [1, 2, 3, 4],
+          start: 0,
+          end: 4,
+          ending: 'Net',
+          fa: 2,
+          shots: [{}, { stroke: 'Attack' }, { stroke: 'Control' }, { stroke: 'Control', wing: 'FH' }],
+          winner: 'them',
+        },
+      ],
+    },
+  ],
+  tagDone: false,
+}
+const solo = matchInsights(onlyMine)
+const soloServe = solo.cards.find((c) => c.id === 'serve')!
+const soloReceive = solo.cards.find((c) => c.id === 'receive')!
+const soloAttack = solo.cards.find((c) => c.id === 'attack')!
+ok('elite when they have no serves', soloServe.compare === 'Pat none yet · Elite 51%', soloServe.compare ?? '')
+ok('receive empty has no elite line', soloReceive.compare === null)
+ok('elite when you have not attacked first', soloAttack.compare === 'Pat none yet · Elite 48%', soloAttack.compare ?? '')
+const zeroCell = solo.cards.find((c) => c.id === 'phases')!.rows.find((row) => row.youN === 0)
+ok('empty rate cell is a dash', zeroCell?.you?.text === '-', zeroCell?.you?.text ?? '')
 
 if (fails.length) {
   console.log(`\n${fails.length} failed`)

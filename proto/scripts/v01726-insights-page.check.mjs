@@ -61,7 +61,17 @@ for (const view of VIEWS) {
   ok(`${view.label} downloads`, downloadCount >= 4, String(downloadCount))
   ok(`${view.label} download disabled`, await downloads.first().isDisabled())
   const about = page.locator('button[aria-label="About Phases"]')
+  const beforeH = (await page.locator('[data-insight="phases"]').boundingBox()).height
   await about.click()
+  await page.waitForTimeout(120)
+  const mid = await page.locator('[data-insight="phases"] .insight-flip-inner').evaluate((el) => {
+    const t = getComputedStyle(el).transform
+    const m = t.match(/matrix3d\(([^)]+)\)/)
+    return m ? Number(m[1].split(',')[0]) : 1
+  })
+  const midH = (await page.locator('[data-insight="phases"]').boundingBox()).height
+  ok(`${view.label} flip shows the front first`, mid < 0.999 && mid > 0, String(mid))
+  ok(`${view.label} flip keeps its height`, Math.abs(beforeH - midH) < 2, `${beforeH} ${midH}`)
   await page.locator('[data-insight="phases"][data-insight-face="back"]').waitFor()
   const back = await page.locator('[data-insight="phases"]').innerText()
   ok(`${view.label} flip names Zhang`, back.includes('Zhang 2004'))

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { useDemo } from '@/data/demoStore'
+import { derivePhase, useDemo } from '@/data/demoStore'
+import { WfEmpty } from '@/layout/Wireframe'
 import { Button } from '@/ui-mine'
 import { InsightCard } from './InsightCard'
 import { matchInsights, type PlayItem } from './insightCounts'
@@ -53,7 +54,14 @@ export function MatchInsights() {
         {model.videoLine ? <p className="text-sm text-muted">{model.videoLine}</p> : null}
         {model.empty ? (
           <div className="space-y-3">
-            <p className="text-sm text-muted">Nothing tagged yet</p>
+            <WfEmpty
+              title="Nothing tagged yet"
+              body={
+                derivePhase(match) === 'new'
+                  ? 'Add the video in Tag to start.'
+                  : 'Tag a rally to see insights for this match.'
+              }
+            />
             <Button kind="main" onClick={() => navigate(`/matches/${match.id}/tag`)}>
               Go to Tag
             </Button>

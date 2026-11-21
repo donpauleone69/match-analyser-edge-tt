@@ -17,6 +17,7 @@
 - Each card has an info icon that turns the card over. The back says what is counted, how the point is credited, and where the mark comes from. Tap the icon or the back to return. Reduced motion swaps the faces at once.
 - Every playlist row has Play and a disabled Download. Download all is not on this page. A playing list sticks under the match row and steps through the points.
 - Lets are not tagged. A let tapped by mistake is deleted on Tag. There is no let button. Attack is a flick, loop, drive or smash. Control is a push, chop, touch, block or lob.
+- Elite stays on the compare line even when the opponent has no points in that card ("Pat none yet · Elite 51%"). A grade uses the rounded percentage on the card. A rate cell with no rallies shows a dash. Nothing tagged uses the existing empty card. The card flip keeps the front in view until it is side on, and the card keeps its height.
 
 **Rationale:** The match page was still sample numbers. These five cards use the tags the Set Tagger already saves, with the published marks that count the same way.
 

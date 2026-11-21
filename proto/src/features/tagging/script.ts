@@ -217,9 +217,9 @@ function scriptRally(
     c += 0.8 + r() * 0.3
   }
   const hitter = hitterOf(server, n)
-  // The 0.15 draw stays, so later draws do not move. The End pad has no Lucky, so both land on Winner.
-  const ending: Ending =
-    hitter === winner ? (r() < 0.15 ? 'Winner' : 'Winner') : pick(r, ['Net', 'Long', 'Wide'] as const)
+  // The 0.15 draw stays, so later draws do not move. The End pad has no Lucky.
+  if (hitter === winner) r()
+  const ending: Ending = hitter === winner ? 'Winner' : pick(r, ['Net', 'Long', 'Wide'] as const)
 
   const shots: ShotTags[] = contacts.map(() => ({}))
   let fa: number | null = null

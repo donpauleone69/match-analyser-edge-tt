@@ -271,5 +271,5 @@ export function InsightsPage() {
 }
 
 export function InsightsSectionPage() {
-  return <InsightsSectionRoute scope="global" chrome="body" />
+  return <InsightsSectionRoute chrome="body" />
 }
