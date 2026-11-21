@@ -36,6 +36,7 @@ const RULES = {
   R25: 'old-predicates',
   R26: 'one-media',
   R27: 'one-filter-sheet',
+  R28: 'section-navigate',
 }
 
 const args = process.argv.slice(2)
@@ -281,6 +282,7 @@ function scanFile(file, src0) {
   scanOldPredicates(file, src, findings)
   scanOneMedia(file, src, findings)
   scanOneFilterSheet(file, src, findings)
+  scanSectionNavigate(file, src, findings)
 
   return findings
 }
@@ -381,6 +383,14 @@ function scanImportType(file, src, findings) {
     if (!inlineImportAllTypes(hit[1])) continue
     push(findings, RULES.R18, file, src, hit.index, 'import { type … }')
   }
+}
+
+/** useNavigate stays in composers. Sections and blocks receive a callback. */
+function scanSectionNavigate(file, src, findings) {
+  if (!/src\/features\/[^/]+\/(?:sections|blocks)\//.test(file)) return
+  const re = /\buseNavigate\b/g
+  let hit
+  while ((hit = re.exec(src))) push(findings, RULES.R28, file, src, hit.index, hit[0])
 }
 
 /** Filter chip and scrim classes only in the shared sheet. */
