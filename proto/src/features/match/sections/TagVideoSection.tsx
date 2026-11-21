@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { emptySet } from '@/rules/match'
-import { useMatchStore } from '@/stores/matchStore'
 import type { MatchRecord, SetData, SetMark, VideoAsset } from '@/types/match'
 import { calculateVideoRallyCount } from '@/rules/matchStatus'
 import { deleteTags, moveSet, unmarkSet } from '@/rules/matchOps'
@@ -29,8 +28,9 @@ type Drag = { setId: number; edge: WingEdge; local: number }
  * One video as a Details card. The bar seeks the shared player. One selected
  * set grows its number and Delete in place. Confirms open here, not in a sheet.
  */
-export function TagVideoCard({
+export function TagVideoSection({
   match,
+  mutateMatch,
   video,
   index,
   locked,
@@ -51,6 +51,7 @@ export function TagVideoCard({
   onAdd,
 }: {
   match: MatchRecord
+  mutateMatch: (id: string, fn: (m: MatchRecord) => MatchRecord) => void
   video: VideoAsset
   index: number
   locked: boolean
@@ -71,7 +72,6 @@ export function TagVideoCard({
   onHint: (text: string) => void
   onAdd: () => void
 }) {
-  const mutateMatch = useMatchStore((s) => s.mutateMatch)
   const [removing, setRemoving] = useState(false)
   const [drag, setDrag] = useState<Drag | null>(null)
   const many = match.videos.length > 1

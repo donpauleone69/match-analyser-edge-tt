@@ -1,6 +1,6 @@
 import { useRef, useState, type ChangeEvent } from 'react'
 import { Button, Icon } from '@/ui-mine'
-import { useMatchStore } from '@/stores/matchStore'
+import type { LocalVideo } from '@/types/match'
 import { cn } from '@/helpers/utils'
 
 /** Reads a local file's length without uploading or storing it. */
@@ -21,12 +21,13 @@ function probeDuration(src: string): Promise<number> {
  * way in, or the scripted demo video, which only stands in for one in this
  * prototype. A chosen file plays through a blob URL held in memory only.
  */
-export function AddVideoChoice({
+export function AddVideoSection({
   matchId,
   align = 'start',
   disabled = false,
   label = true,
   hint = true,
+  addVideo,
 }: {
   matchId: string
   align?: 'start' | 'center'
@@ -35,8 +36,8 @@ export function AddVideoChoice({
   label?: boolean
   /** The line under the buttons. Off on the compact empty state. */
   hint?: boolean
+  addVideo: (matchId: string, file?: LocalVideo) => void
 }) {
-  const addVideo = useMatchStore((s) => s.addVideo)
   const input = useRef<HTMLInputElement>(null)
   const [state, setState] = useState<'idle' | 'reading' | 'failed'>('idle')
 

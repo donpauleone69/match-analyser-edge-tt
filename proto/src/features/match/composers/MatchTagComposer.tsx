@@ -1,12 +1,12 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { Card } from '@/ui-mine'
 import { calculateMatchSetsWon, calculateTaggedScore } from '@/rules/match'
 import { useArchiveStep, useMatchRecord, useMatchStore } from '@/stores/matchStore'
 import type { MatchRecord, SetMark, VideoAsset } from '@/types/match'
-import { AddVideoChoice } from '@/features/match/AddVideoChoice'
-import { TagVideoCard } from '@/features/match/TagVideoCard'
+import { AddVideoSection } from '../sections/AddVideoSection'
+import { TagVideoSection } from '../sections/TagVideoSection'
 import { reopenSet, saveMark } from '@/rules/matchOps'
 import type { Side } from '@/types/rally'
 import { lineAction, markBounds, newMarkAt, setIncomplete, videoMoveBreaks, type WingEdge } from '@/rules/marks'
@@ -22,8 +22,7 @@ import { usePlayer } from '@/features/tagging/hooks/usePlayer'
  * Tag page. One shared player, then a card per video. The page places sets
  * and opens them. Scores and the result stay on Details.
  */
-export function MatchTagChecklist() {
-  const { matchId = '' } = useParams()
+export function MatchTagComposer({ matchId }: { matchId: string }) {
   const [search] = useSearchParams()
   const location = useLocation()
   const navigate = useNavigate()
@@ -50,6 +49,7 @@ export function MatchTagChecklist() {
   const match = useMatchRecord(matchId)
   const updateVideoPosition = useMatchStore((s) => s.updateVideoPosition)
   const mutateMatch = useMatchStore((s) => s.mutateMatch)
+  const addVideo = useMatchStore((s) => s.addVideo)
   const player = usePlayer(match?.videos ?? [])
   const archiveStep = useArchiveStep(matchId)
   const lock = useTagLock(match, archiveStep)
@@ -181,7 +181,7 @@ export function MatchTagChecklist() {
     return (
       <div className="px-4 py-4">
         <Card data-no-video>
-          <AddVideoChoice matchId={match.id} hint={false} disabled={running} />
+          <AddVideoSection matchId={match.id} hint={false} disabled={running} addVideo={addVideo} />
         </Card>
       </div>
     )
@@ -225,9 +225,10 @@ export function MatchTagChecklist() {
           </p>
         ) : null}
         {match.videos.map((video, index) => (
-          <TagVideoCard
+          <TagVideoSection
             key={video.id}
             match={match}
+            mutateMatch={mutateMatch}
             video={video}
             index={index}
             locked={held}
@@ -260,7 +261,7 @@ export function MatchTagChecklist() {
             onAdd={() => addSet(video.id)}
           />
         ))}
-        <AddVideoChoice matchId={match.id} hint={false} disabled={held} />
+        <AddVideoSection matchId={match.id} hint={false} disabled={held} addVideo={addVideo} />
       </div>
     </div>
   )
