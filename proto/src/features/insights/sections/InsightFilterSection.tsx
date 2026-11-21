@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { Pressable, Button, Icon, buttonKindControlSquare } from '@/ui-mine'
+import { useMediaQuery } from '@/features/tagging/hooks/useMediaQuery'
 import { DEFAULT_INSIGHTS_FILTERS, activeFilterLabels, type InsightsFilters } from '@/rules/filters'
 import type { MatchRecord } from '@/types/match'
 import { FilterPickersBlock } from '../blocks/FilterPickersBlock'
@@ -29,17 +30,9 @@ export function InsightFilterSection({
 }) {
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState<InsightsFilters>(filters)
-  const [desktop, setDesktop] = useState(() => window.matchMedia('(min-width: 768px)').matches)
+  const desktop = useMediaQuery('(min-width: 768px)', () => window.matchMedia('(min-width: 768px)').matches)
   const active = activeFilterLabels(filters)
   const n = countActive(filters)
-
-  useEffect(() => {
-    const mq = window.matchMedia('(min-width: 768px)')
-    const apply = () => setDesktop(mq.matches)
-    apply()
-    mq.addEventListener('change', apply)
-    return () => mq.removeEventListener('change', apply)
-  }, [])
 
   useEffect(() => {
     if (!open) return
