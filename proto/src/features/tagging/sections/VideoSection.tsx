@@ -2,7 +2,7 @@ import type { VideoSectionProps } from '../models'
 import { Pressable, Icon } from '@/ui-mine'
 import { cn } from '@/helpers/utils'
 import { SPEED_STEPS, servesText } from '@/rules/rally'
-import { type Segment } from '@/rules/timeline'
+import type { Segment } from '@/rules/timeline'
 import { StandInBlock } from '../blocks/StandInBlock'
 import { TransportBlock } from '../blocks/TransportBlock'
 
