@@ -45,7 +45,7 @@ Mirrors the [Key documents canvas](https://cursor.com/canvas/store-7c210afe-9d07
 
 | Build | Link | Notes |
 |-------|------|-------|
-| v0.17.27 | | Set over follows the rule only. An overrun pad leads with Edit rally N, then Remove N+1 to M. Save at the mark or the video end only when the score is not level, and the set line reads ended early. |
+| v0.17.27 | [PR #176](https://github.com/donpauleone69/match-analyser-edge-tt/pull/176) | Set over follows the rule only. An overrun pad leads with Edit rally N, then Remove N+1 to M. Save at the mark or the video end only when the score is not level, and the set line reads ended early. |
 | v0.17.26 | [PR #175](https://github.com/donpauleone69/match-analyser-edge-tt/pull/175) | Match Insights counts saved rallies: Phases, Serve, Receive, Attack and End. An info icon turns a card over. Download on a playlist stays disabled. |
 | v0.17.25 | [PR #174](https://github.com/donpauleone69/match-analyser-edge-tt/pull/174) | Each Matches row is the opponent, then the date, the entered result and the event. One status sits on the right. Filter is Opponent, Event and Status. |
 | v0.17.24 | [PR #172](https://github.com/donpauleone69/match-analyser-edge-tt/pull/172) | As soon as End is pressed, the Rally Zone head reads the next rally, its server and the new score, and the head cell draws dashed in that server's colour. The 2 second countdown bar runs along the bottom edge of the Rally Zone. |
