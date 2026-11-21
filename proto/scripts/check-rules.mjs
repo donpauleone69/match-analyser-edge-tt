@@ -29,6 +29,7 @@ const RULES = {
   R18: 'import-type',
   R19: 'one-confirm',
   R20: 'kind-tokens',
+  R21: 'zone-paint',
 }
 
 const args = process.argv.slice(2)
@@ -267,6 +268,7 @@ function scanFile(file, src0) {
   scanImportType(file, src, findings)
   if (inSrc) scanOneConfirm(file, src, findings)
   scanKindTokens(file, src, findings)
+  scanZonePaint(file, src, findings)
 
   return findings
 }
@@ -367,6 +369,13 @@ function scanImportType(file, src, findings) {
     if (!inlineImportAllTypes(hit[1])) continue
     push(findings, RULES.R18, file, src, hit.index, 'import { type … }')
   }
+}
+
+/** `function restStyle` is banned. Review chips use zonePressed and zoneRest. */
+function scanZonePaint(file, src, findings) {
+  const re = /\bfunction\s+restStyle\b/g
+  let hit
+  while ((hit = re.exec(src))) push(findings, RULES.R21, file, src, hit.index, 'function restStyle')
 }
 
 /** The kind-token literals live only in buttonKinds.ts. Call sites use the constants. */
