@@ -1,5 +1,3 @@
 {
-  "entries": [
-    { "rule": "thin-pages", "file": "src/pages/AccountPage.tsx" }
-  ]
+  "entries": []
 }
