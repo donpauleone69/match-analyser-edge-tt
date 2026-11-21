@@ -1,6 +1,6 @@
 # Key documents
 
-Updated 20 Nov 2026. The working set for decisions. Kept current as each one changes.
+Updated 21 Nov 2026. The working set for decisions. Kept current as each one changes.
 
 Mirrors the [Key documents canvas](https://cursor.com/canvas/store-7c210afe-9d07-40db-82c4-34e629d311ff/7c7577ce-ca6a-47ed-a64a-c83282ecdde0). Older plans and ideation live in Context and in git history. Proto docs are six files after [PR #158](https://github.com/donpauleone69/match-analyser-edge-tt/pull/158) merged at `c9f2ccb`.
 
@@ -11,6 +11,8 @@ Mirrors the [Key documents canvas](https://cursor.com/canvas/store-7c210afe-9d07
 | Product brief | [product-brief.md](./product-brief.md) · Context: [product-brief-review.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/product-brief-review.md) | Revised 20 Nov 2026. Goal, users, key flows and shared concepts. |
 | UI zones | [ui-zones.md](./ui-zones.md) | The Set Tagger's four zones: what each does, its layout, sizes, states and modes, the text rules, and where each lives in code. The reference. Plans propose changes to it. |
 | Glossary | [glossary.md](./glossary.md) | Terms used in the proto, the brief and reviews. |
+| Proto data model | Context: [docs/proto-data-model.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/proto-data-model.md) | What the prototype stores and derives, with numbered invariants. Baseline for reseed and persistence. |
+| Proto vs main rules | Context: [docs/proto-vs-main-rules.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/proto-vs-main-rules.md) | How proto follows, diverges from, or should fix drift against main's Architecture and DataSchema rules. |
 
 ## For decisions
 
@@ -37,6 +39,7 @@ Mirrors the [Key documents canvas](https://cursor.com/canvas/store-7c210afe-9d07
 | Set tagger review fixes | Context: [docs/set-tagger-review-fixes-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/set-tagger-review-fixes-plan.md) | Shipped in v0.17.13 ([PR #156](https://github.com/donpauleone69/match-analyser-edge-tt/pull/156)). Short gaps are stops, a serve break flags the pill, and the shot quadrants have no tap guard. |
 | Tag page cards plan | Context: [docs/tag-page-cards-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/tag-page-cards-plan.md) | Shipped in v0.17.23 ([PR #171](https://github.com/donpauleone69/match-analyser-edge-tt/pull/171)). One card per video. Details holds the result. |
 | Match Insights plan | Context: [docs/match-insights-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/match-insights-plan.md) | Shipped in v0.17.26 ([PR #175](https://github.com/donpauleone69/match-analyser-edge-tt/pull/175)). Five cards from saved rallies: Phases, Serve, Receive, Attack and End. |
+| Global Insights plan | Context: [docs/global-insights-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/global-insights-plan.md) | Plan for v0.17.28. The same five cards pooled across filtered matches, with coverage and a demo reseed. |
 | Matches page plan | Context: [docs/matches-page-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/matches-page-plan.md) | Shipped in v0.17.25 ([PR #174](https://github.com/donpauleone69/match-analyser-edge-tt/pull/174)). Home rows from Details fields and tagging status. |
 | Rally Row plan | Context: [docs/rally-row-plan.md](/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/docs/rally-row-plan.md) | Shipped in v0.17.14 ([PR #157](https://github.com/donpauleone69/match-analyser-edge-tt/pull/157)). Paul's six decisions in section 8. |
 | Product ideas | [product-ideas.md](./product-ideas.md) | Running list of product ideas. |
@@ -85,7 +88,7 @@ Mirrors the [Key documents canvas](https://cursor.com/canvas/store-7c210afe-9d07
 | Live app | [edge-tt.apps.grok.bot](https://edge-tt.apps.grok.bot) | Private. v0.17.21 live (e633fad). |
 | v0.16.0 | [PR #139](https://github.com/donpauleone69/match-analyser-edge-tt/pull/139) | Latest merged on proto (dd8ff43). Serve landing quadrants. Phone landscape tapping with video in the middle. Best + FA only in the dropdown. |
 | v0.15.1 | [PR #138](https://github.com/donpauleone69/match-analyser-edge-tt/pull/138) | Home screen mode removed. New timing defaults. |
-| Proto branch | [PR #129](https://github.com/donpauleone69/match-analyser-edge-tt/pull/129) | `cursor/mvp-proto-shell-d372` at `ad80a1c` (v0.17.24). Main prototype PR the builds merge into. |
+| Proto branch | [PR #129](https://github.com/donpauleone69/match-analyser-edge-tt/pull/129) | `cursor/mvp-proto-shell-d372` at `1065d71` (v0.17.26). Main prototype PR the builds merge into. |
 
 ## Theme and style
 
