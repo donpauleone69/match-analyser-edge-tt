@@ -141,8 +141,10 @@ export type { MatchRecord, SetData, SetMark, VideoAsset } from '@/types/match'
 
 // -> @/rules/format
 export {
+  formatBytes,
   formatChipDate,
   formatClock,
+  formatExportWhen,
   formatMatchDate,
   formatScore,
   formatSize,
@@ -176,7 +178,9 @@ export {
   filterChoices,
   filterIsSet,
   filterMatches,
+  idsForNameFilters,
   migrateFilters,
+  resolveNameFilters,
 } from '@/rules/filters'
 export type { InsightsFilters } from '@/features/insights/models'
 
@@ -239,3 +243,49 @@ export {
   validateVideoRow,
 } from '@/rules/dbValidate'
 export type { RemovedVideo } from '@/types/match'
+export { DB_COLUMNS, DB_TABLES as TABLES, MATCH_FILE_FORMAT } from '@/types/db'
+export type { MatchFile, RepoResult } from '@/types/db'
+export { deriveSetRowId, deriveShotRowId, stableJson } from '@/rules/dbRows'
+export { SETTINGS_STORAGE_KEYS } from '@/stores/settingsStore'
+
+// -> @/rules/videoFile, @/data/videoFiles
+export { calculateLastModifiedMs, isSameVideoFile } from '@/rules/videoFile'
+export type { VideoFileFacts } from '@/rules/videoFile'
+
+// -> @/data (phase 8 database layer; the browser check runs these)
+export { DEMO_DB_NAME, MatchDb, SCHEMA_V1_STORES, USER_DB_NAME, createMatchDb, openMatchDb } from '@/data/db'
+export { createRowId } from '@/data/ids'
+export {
+  deleteMatch,
+  deriveListRows,
+  isEmpty,
+  loadAll,
+  readAllRows,
+  reseedDemo,
+  saveDraft,
+  saveMatch,
+  saveRally,
+} from '@/data/matchRepo'
+export { removeEvent, removeOpponent, renameEvent, renameOpponent } from '@/data/nameRepo'
+export { deriveMatchFileName, exportMatchFile, importMatchFile, serializeMatchFile } from '@/data/matchFile'
+export { readStorageInfo, requestPersistentStorage } from '@/data/storage'
+export {
+  VIDEO_DIR,
+  deleteVideoFiles,
+  fingerprintFile,
+  listVideoFiles,
+  pruneVideoFiles,
+  readFileFacts,
+  readVideoFile,
+  saveVideoFile,
+} from '@/data/videoFiles'
+export { openMode } from '@/data/boot'
+export {
+  OLD_DATABASES,
+  OLD_LOCAL_KEYS,
+  OLD_LOCAL_PREFIXES,
+  OLD_OPFS_DIRS,
+  OLD_SESSION_KEYS,
+  cleanupOldStorage,
+  isOldLocalKey,
+} from '@/data/cleanupOldStorage'

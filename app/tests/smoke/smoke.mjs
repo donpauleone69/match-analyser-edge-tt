@@ -12,7 +12,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright-core'
 import { assertFont, fontStats, installFontCache } from './fonts.mjs'
-import { URL_ASSERTIONS, VIEWPORTS, assertUrls, captureRoutes, contextOptions } from './routes.mjs'
+import { URL_ASSERTIONS, VIEWPORTS, assertUrls, captureRoutes, contextOptions, waitForApp } from './routes.mjs'
 import { runTagging } from './tagging-run.mjs'
 import { compareShots } from './compare.mjs'
 
@@ -21,7 +21,7 @@ const PAUSE_AT = new Date(NOW.getTime() + 1000)
 const CHROME = '/usr/local/bin/google-chrome'
 const PORT = 4318
 const BASE = `http://127.0.0.1:${PORT}`
-const DEFAULT_BASELINE = '/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/media/refactor/baseline-v0.17.29'
+const DEFAULT_BASELINE = '/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/media/refactor/baseline-v0.18.0'
 const PAGE_SCRIPTS = [
   'checks/v01723-tag-page.check.mjs',
   'checks/v01725-matches-page.check.mjs',
@@ -260,7 +260,7 @@ async function main() {
 
     const tagPage = await context.newPage()
     await installClock(tagPage)
-    taken.push(...(await runTagging(tagPage, BASE, vp, prepare, (name) => shoot(tagPage, name))))
+    taken.push(...(await runTagging(tagPage, BASE, vp, prepare, (name) => shoot(tagPage, name), waitForApp)))
     await context.close()
   }
 

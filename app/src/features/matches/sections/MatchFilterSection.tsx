@@ -1,5 +1,5 @@
+import type { NameRef } from '@/rules/filters'
 import type { MatchListFilters } from '@/types/filters'
-import type { MatchRecord } from '@/types/match'
 import { MatchFilterPickersBlock } from '../blocks/MatchFilterPickersBlock'
 import { FilterSheet } from '../blocks/FilterSheetBlock'
 
@@ -9,7 +9,8 @@ export function MatchFilterSection({
   hasMatches,
   draft,
   setDraft,
-  matches,
+  opponents,
+  events,
   clear,
   apply,
   clearOne,
@@ -20,7 +21,8 @@ export function MatchFilterSection({
   hasMatches: boolean
   draft: MatchListFilters
   setDraft: (next: MatchListFilters) => void
-  matches: MatchRecord[]
+  opponents: readonly NameRef[]
+  events: readonly NameRef[]
   clear: () => void
   apply: () => void
   clearOne: (label: string) => void
@@ -39,7 +41,9 @@ export function MatchFilterSection({
       desktop={false}
       desktopClass="mt-3 hidden rounded-lg border border-border bg-bg-surface p-4 space-y-3 md:block"
       phoneClass="fixed inset-0 z-50 md:hidden"
-      pickers={() => <MatchFilterPickersBlock draft={draft} setDraft={setDraft} matches={matches} />}
+      pickers={() => (
+        <MatchFilterPickersBlock draft={draft} setDraft={setDraft} opponents={opponents} events={events} />
+      )}
     />
   )
 }

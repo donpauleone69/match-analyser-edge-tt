@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { NavigateFunction } from 'react-router-dom'
+import { createRowId } from '@/data/ids'
 import { formatScore } from '@/rules/format'
 import { calculateTaggedScore } from '@/rules/match'
 import type { MatchRecord, SetData } from '@/types/match'
@@ -685,7 +686,7 @@ export function useTagSetFlow({
   const onSave = () => {
     if (flowWanted === 'bestfa') return
     if (!live || !canSave(live)) return
-    const rally = rallyFromDraft(live, `r-${Date.now()}`)
+    const rally = rallyFromDraft(live, createRowId('r'))
     if (!rally) return
     commitRally(rally)
   }
@@ -734,7 +735,7 @@ export function useTagSetFlow({
       const insertAt = gap.index
       const window = gap
       if (insertAt === 0) d = { ...d, serveChecked: true }
-      const rally = bestRally(d, `r-${Date.now()}`, winner, kept)
+      const rally = bestRally(d, createRowId('r'), winner, kept)
       const flip = insertAt === 0 && d.server !== set.firstServer
       const before = set
       const apply = (m: MatchRecord) => {
@@ -766,7 +767,7 @@ export function useTagSetFlow({
       if (saved) loopPick(saved)
       return
     }
-    const rally = bestRally(d, `r-${Date.now()}`, winner, kept)
+    const rally = bestRally(d, createRowId('r'), winner, kept)
     const opening = rally1 && start.server !== null
     const was = opening ? start.score : score
     const after = addPoint(was, winner)

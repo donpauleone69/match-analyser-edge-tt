@@ -55,7 +55,8 @@ export function deriveOutcome(me: number | null, them: number | null): Outcome |
   return me > them ? 'Win' : 'Loss'
 }
 
-function stableJson(value: unknown): string {
+/** JSON with sorted keys and undefined left out, so two equal rows give one text. */
+export function stableJson(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`
   if (value && typeof value === 'object') {
     const entries = Object.keys(value)
@@ -122,11 +123,11 @@ function videoRow(
     matchId,
     position,
     fileName: v.fileName,
-    sizeBytes: Math.round(v.sizeMb * BYTES_PER_MB),
+    sizeBytes: v.sizeBytes ?? Math.round(v.sizeMb * BYTES_PER_MB),
     durationS: v.durationS,
-    lastModifiedMs: prev?.lastModifiedMs ?? null,
-    fingerprint: prev?.fingerprint ?? null,
-    storedOnDevice: prev?.storedOnDevice ?? false,
+    lastModifiedMs: v.lastModifiedMs ?? prev?.lastModifiedMs ?? null,
+    fingerprint: v.fingerprint ?? prev?.fingerprint ?? null,
+    storedOnDevice: v.storedOnDevice ?? prev?.storedOnDevice ?? false,
     archivedAt: v.archived ? (prev?.archivedAt ?? now) : null,
     myEnd: v.myEnd ?? null,
     removedAt,
@@ -259,6 +260,19 @@ function childRowsOf(m: MatchRecord, ctx: RowContext, prev: ReturnType<typeof pr
   return { videos, sets, rallies, shots, drafts }
 }
 
+/** Child rows sorted by key, so stored rows (read in key order) compare equal to rows built in list order. */
+function inKeyOrder(kids: ChildRows): ChildRows {
+  const sort = <T>(rows: readonly T[], key: (row: T) => string) => [...rows].sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0))
+  const id = (row: { id: string }) => row.id
+  return {
+    videos: sort(kids.videos, id),
+    sets: sort(kids.sets, id),
+    rallies: sort(kids.rallies, id),
+    shots: sort(kids.shots, id),
+    drafts: sort(kids.drafts, (d) => d.setId),
+  }
+}
+
 function prevIndex(prev: DbRows | null | undefined) {
   return {
     matches: byId(prev?.matches),
@@ -321,7 +335,7 @@ export function deriveDbRows(matches: readonly MatchRecord[], ctx: RowContext): 
     if (was) {
       const same =
         stableJson({ ...row, updatedAt: 0 }) === stableJson({ ...was, updatedAt: 0 }) &&
-        stableJson(kids) === stableJson(deriveMatchChildRows(prevRows, m.id))
+        stableJson(inKeyOrder(kids)) === stableJson(inKeyOrder(deriveMatchChildRows(prevRows, m.id)))
       if (same) row.updatedAt = was.updatedAt
     }
     out.matches.push(row)
@@ -375,15 +389,24 @@ export function deriveRallyData(row: RallyRow, shots: readonly ShotRow[]): Rally
 }
 
 function videoAsset(row: VideoRow): VideoAsset {
+  const sizeMb = row.sizeBytes / BYTES_PER_MB
+  // An exact byte count that MB cannot round-trip (a real file) is kept.
+  // Seed and demo sizes are whole MB and must not gain a field: the round trip
+  // is compared as text.
+  const exact = Math.round(sizeMb * BYTES_PER_MB) === row.sizeBytes ? {} : { sizeBytes: row.sizeBytes }
   return {
     id: row.id,
     fileName: row.fileName,
-    sizeMb: row.sizeBytes / BYTES_PER_MB,
+    sizeMb,
+    ...exact,
     archived: row.archivedAt !== null,
     kind: row.demoScript ? 'demo' : 'file',
     durationS: row.durationS,
     ...(row.demoScript ? { script: row.demoScript } : {}),
     ...(row.myEnd !== null ? { myEnd: row.myEnd } : {}),
+    ...(row.storedOnDevice ? { storedOnDevice: true } : {}),
+    ...(row.lastModifiedMs !== null ? { lastModifiedMs: row.lastModifiedMs } : {}),
+    ...(row.fingerprint !== null ? { fingerprint: row.fingerprint } : {}),
   }
 }
 

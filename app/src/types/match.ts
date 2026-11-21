@@ -41,13 +41,16 @@ export type SetData = {
 
 /**
  * One source video. A match's videos play in list order; no set mapping.
- * demo = the scripted stand-in. file = a local file through a blob URL,
- * in memory only, never uploaded or stored.
+ * demo = the scripted stand-in. file = a local file, never uploaded: it plays
+ * through a blob URL (`src`, memory only) of the picked file or of its copy on
+ * this device. A file with no `src` is not on this device.
  */
 export type VideoAsset = {
   id: string
   fileName: string
   sizeMb: number
+  /** Exact `File.size` when this video was picked from a file. Demo and seed videos omit it. */
+  sizeBytes?: number
   /** Rallies only, joined, lower quality. Cannot be undone. */
   archived: boolean
   kind: 'demo' | 'file'
@@ -56,6 +59,12 @@ export type VideoAsset = {
   src?: string
   /** No writer until phase 10. */
   myEnd?: MyEnd
+  /** The file's bytes are copied onto this device (OPFS). Absent on demo videos and until a copy lands. */
+  storedOnDevice?: boolean
+  /** `File.lastModified` of the picked file. */
+  lastModifiedMs?: number
+  /** Hash of the picked file's size, first and last MiB (`fingerprintFile`). */
+  fingerprint?: string
 }
 
 /** A video taken off the list and where it sat, so it can come back to the same place. */
@@ -91,8 +100,15 @@ export type MatchPhase = 'new' | 'ready' | 'partial' | 'complete'
 
 export type SetState = 'finished' | 'progress' | 'none'
 
-/** A local file picked by the user. Held in memory only; never uploaded. */
-export type LocalVideo = { fileName: string; sizeMb: number; durationS: number; src: string }
+/** A local file picked by the user. Never uploaded; `file` is copied onto this device when there is a database. */
+export type LocalVideo = {
+  fileName: string
+  sizeMb: number
+  durationS: number
+  src: string
+  sizeBytes?: number
+  file?: File
+}
 
 /** Archive job labels, in order. A running job's step is an index into this list. */
 export const ARCHIVE_STEPS = ['Making archive', 'Checking archive', 'Removing original'] as const

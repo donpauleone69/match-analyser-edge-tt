@@ -10,11 +10,14 @@
     "test": "TZ=UTC vitest run",
     "check:rules": "node scripts/check-rules.mjs",
     "check:docs": "node scripts/check-docs.mjs",
-    "smoke": "node tests/smoke/smoke.mjs"
+    "smoke": "node tests/smoke/smoke.mjs",
+    "check:db": "node tests/db/check-db.mjs",
+    "check:persist": "node tests/persist/check-persist.mjs"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "dexie": "4.4.7",
     "lucide-react": "^0.555.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

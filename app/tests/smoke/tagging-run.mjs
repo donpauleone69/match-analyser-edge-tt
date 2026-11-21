@@ -1,6 +1,6 @@
 /**
  * Six rallies across a set change and a finish. Twelve shots per viewport.
- * No second goto: a reload would reset the seed, which lives in memory.
+ * Smoke does not reload. Persistence across a reload is `npm run check:persist`.
  */
 
 function fail(message) {
@@ -92,7 +92,7 @@ async function snapStandInClock(page) {
   await page.clock.runFor(16 - phase)
 }
 
-export async function runTagging(page, base, vp, prepare, shoot) {
+export async function runTagging(page, base, vp, prepare, shoot, waitForApp) {
   const name = (leaf) => `${vp.name}/${leaf}.png`
   const names = []
   const take = async (leaf) => {
@@ -103,6 +103,7 @@ export async function runTagging(page, base, vp, prepare, shoot) {
   }
 
   await page.goto(`${base}/matches/m-partial/tag/2`, { waitUntil: 'load' })
+  if (waitForApp) await waitForApp(page)
   await prepare(page)
   await snapStandInClock(page)
   await page.clock.runFor(1000)

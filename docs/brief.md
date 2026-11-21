@@ -2,14 +2,14 @@
 
 Edge TT Match Analyser lets a table tennis player tag their own match video quickly, then read the tags as insights and short reels. Players come first, then coaches. Input and review are phone first. Tagging has to be fast and accurate. A blank is not an answer: leave a fact out rather than collect it badly.
 
-The visible version is v0.17.29 (`app/src/version.ts`). The app is local. Nothing is uploaded.
+The visible version is v0.18.0 (`app/src/version.ts`). The app is local. Nothing is uploaded. Matches stay in the browser database.
 
 ## Two jobs
 
 1. Tag a match: videos, set marks, then Best + FA on one set at a time.
 2. Read the tags: insights and reels for one match, or for all matches the filter keeps.
 
-Account and the gate are stubs. Import, export, sync, and a real login are not built.
+Account exports and imports match files. Sync and a real login are not built. The gate is still a stub.
 
 ## What a session is
 

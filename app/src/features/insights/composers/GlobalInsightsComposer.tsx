@@ -1,6 +1,6 @@
 import { Button } from '@/ui-mine'
 import { WfEmpty } from '@/ui-mine'
-import { DEFAULT_INSIGHTS_FILTERS } from '@/rules/filters'
+import { DEFAULT_INSIGHTS_FILTERS, type NameRef } from '@/rules/filters'
 import { useSettingsStore } from '@/stores/settingsStore'
 import type { MatchRecord } from '@/types/match'
 import type { SceneAt } from '@/features/tagging/models'
@@ -9,10 +9,20 @@ import { usePlayingCard } from '../hooks/usePlayingCard'
 import { InsightCardsSection } from '../sections/InsightCardsSection'
 import { PlaylistSection } from '../sections/PlaylistSection'
 
-export function GlobalInsightsComposer({ tagged, sceneAt }: { tagged: MatchRecord[]; sceneAt: SceneAt }) {
+export function GlobalInsightsComposer({
+  tagged,
+  sceneAt,
+  opponents,
+  events,
+}: {
+  tagged: MatchRecord[]
+  sceneAt: SceneAt
+  opponents: readonly NameRef[]
+  events: readonly NameRef[]
+}) {
   const filters = useSettingsStore((s) => s.insightsFilters)
   const setFilters = useSettingsStore((s) => s.setInsightsFilters)
-  const { kept, model, videos } = useDeriveGlobalInsights(tagged, filters)
+  const { kept, model, videos } = useDeriveGlobalInsights(tagged, filters, opponents, events)
   const { playing, setPlaying, open } = usePlayingCard(filters)
 
   const clear = () => setFilters(DEFAULT_INSIGHTS_FILTERS)

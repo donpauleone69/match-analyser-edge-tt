@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState, type ChangeEvent } from 'react'
 import { emptySet } from '@/rules/match'
 import type { MatchRecord, SetData, SetMark, VideoAsset } from '@/types/match'
 import { calculateVideoRallyCount } from '@/rules/matchStatus'
@@ -29,6 +29,7 @@ type Drag = { setId: number; edge: WingEdge; local: number }
 /**
  * One video as a Details card. The bar seeks the shared player. One selected
  * set grows its number and Delete in place. Confirms open here, not in a sheet.
+ * A file video that is not on this device offers Find video.
  */
 export function TagVideoSection({
   match,
@@ -51,6 +52,10 @@ export function TagVideoSection({
   onCommit,
   onHint,
   onAdd,
+  onFind,
+  asking,
+  onUseAnyway,
+  onCancelFind,
 }: {
   match: MatchRecord
   mutateMatch: (id: string, fn: (m: MatchRecord) => MatchRecord) => void
@@ -73,8 +78,21 @@ export function TagVideoSection({
   onCommit: (setId: number, edge: WingEdge, local: number, hint: string | null) => void
   onHint: (text: string) => void
   onAdd: () => void
+  /** A file picked to stand for this video when it is not on this device. */
+  onFind: (file: File) => void
+  /** The picked file does not match: ask once before using it. */
+  asking: boolean
+  onUseAnyway: () => void
+  onCancelFind: () => void
 }) {
   const [removing, setRemoving] = useState(false)
+  const finder = useRef<HTMLInputElement>(null)
+  const missing = video.kind === 'file' && !video.src
+  const onPick = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (file) onFind(file)
+  }
   const [drag, setDrag] = useState<Drag | null>(null)
   const many = match.videos.length > 1
   const spans = spansOnVideo(match.videos, match.sets, video.id)
@@ -121,6 +139,37 @@ export function TagVideoSection({
           Remove
         </Button>
       </div>
+
+      {missing ? (
+        <div className="flex items-center gap-2" data-video-missing={video.id}>
+          <p className="min-w-0 flex-1 text-sm text-muted">Not on this device</p>
+          <Button kind="control" variant="secondary" onClick={() => finder.current?.click()}>
+            Find video
+          </Button>
+          <input
+            ref={finder}
+            type="file"
+            accept="video/*"
+            className="hidden"
+            aria-label={`Find video ${index + 1}`}
+            onChange={onPick}
+          />
+        </div>
+      ) : null}
+
+      {asking ? (
+        <ConfirmBlock label={`Use this file for video ${index + 1}`}>
+          <p>That file does not match video {index + 1}. Use it anyway?</p>
+          <div className="flex flex-wrap gap-2">
+            <Button kind="control" onClick={onUseAnyway}>
+              Use it
+            </Button>
+            <Button kind="control" variant="ghost" onClick={onCancelFind}>
+              Cancel
+            </Button>
+          </div>
+        </ConfirmBlock>
+      ) : null}
 
       {removing ? (
         <ConfirmBlock label={`Remove video ${index + 1}`}>

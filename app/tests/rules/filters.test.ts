@@ -1,5 +1,13 @@
 import { expect, it } from 'vitest'
-import { filterMatches, hasTaggedRallies, migrateFilters, SEED, type InsightsFilters } from '../lib/app'
+import {
+  filterMatches,
+  hasTaggedRallies,
+  idsForNameFilters,
+  migrateFilters,
+  resolveNameFilters,
+  SEED,
+  type InsightsFilters,
+} from '../lib/app'
 import { TAGGED, TODAY } from '../lib/fixed'
 
 it('old filter reads as Dates and Event', () => {
@@ -9,6 +17,20 @@ it('old filter reads as Dates and Event', () => {
 })
 
 const tagged = SEED.filter(hasTaggedRallies)
+
+it('a saved name becomes the row id, and the filter still compares the name', () => {
+  const rows = [{ id: 'o-pat', name: 'Pat' }]
+  const named = { dates: 'Any' as const, from: '', to: '', opponent: 'Pat', event: 'Any' }
+  const stored = idsForNameFilters(named, rows, [])
+  expect(stored.opponent).toBe('o-pat')
+  expect(idsForNameFilters(stored, rows, [])).toBe(stored)
+  const any = { opponent: 'Any', event: 'Any' }
+  expect(idsForNameFilters(any, rows, [])).toBe(any)
+  expect(idsForNameFilters({ opponent: 'Nobody', event: 'Any' }, rows, []).opponent).toBe('Any')
+  expect(resolveNameFilters(stored, rows, []).opponent).toBe('Pat')
+  const kept = filterMatches(tagged, resolveNameFilters(stored, rows, []), TODAY)
+  expect(kept.map((m) => m.id).sort()).toEqual(['m-complete', 'm-h6'])
+})
 
 it('Opponent Pat filter', () => {
   const kept = filterMatches(tagged, { dates: 'Any', from: '', to: '', opponent: 'Pat', event: 'Any' }, TODAY)

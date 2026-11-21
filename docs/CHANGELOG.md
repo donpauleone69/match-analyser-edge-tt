@@ -1,6 +1,10 @@
 # Changelog
 
-Visible version: v0.17.29 in `app/src/version.ts`. The old reference app's v3.x log left with that app in phase 5. This file is the proto line that became `app/`, condensed from the version notes, the tags, and that removed log's proto entries.
+Visible version: v0.18.0 in `app/src/version.ts`. The old reference app's v3.x log left with that app in phase 5. This file is the proto line that became `app/`, condensed from the version notes, the tags, and that removed log's proto entries.
+
+## v0.18.0
+
+Matches load from the browser database before the first paint and every change is written back. Account exports and imports match files, and shows whether storage is persistent. Sync stays a stub. A picked video is copied onto the device and plays from there after a reload; a video that is not on the device offers Find video on its Tag page card.
 
 ## Unreleased: refactor phases 0 to 7
 

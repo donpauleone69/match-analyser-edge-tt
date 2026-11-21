@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
   deriveDbRows,
+  deriveSetRowId,
+  deriveShotRowId,
   validateDbRows,
   validateDraftRow,
   validateEventRow,
@@ -131,7 +133,9 @@ table<VideoRow>('validateVideoRow', videoRow, validateVideoRow, [
 ])
 
 table<SetRow>('validateSetRow', setRow, validateSetRow, [
-  { rule: 'setNumber is 1 to 7', ok: (r) => (r.setNumber = 7), bad: (r) => (r.setNumber = 8), field: 'setNumber' },
+  { rule: 'id is <matchId>:<setNumber>', ok: (r) => (r.id = deriveSetRowId(r.matchId, r.setNumber)), bad: (r) => (r.id = 'm-other:1'), field: 'id' },
+  { rule: 'id follows matchId', ok: (r) => Object.assign(r, { matchId: 'm-x', id: 'm-x:' + r.setNumber }), bad: (r) => (r.matchId = 'm-x'), field: 'id' },
+  { rule: 'setNumber is 1 to 7', ok: (r) => Object.assign(r, { setNumber: 7, id: deriveSetRowId(r.matchId, 7) }), bad: (r) => (r.setNumber = 8), field: 'setNumber' },
   { rule: 'enteredMe is 0 to 99 or null', ok: (r) => (r.enteredMe = 0), bad: (r) => (r.enteredMe = -1), field: 'enteredMe' },
   { rule: 'enteredThem is a whole number or null', ok: (r) => (r.enteredThem = null), bad: (r) => (r.enteredThem = 10.5), field: 'enteredThem' },
   { rule: 'firstServer is me or them', ok: (r) => (r.firstServer = 'them'), bad: (r) => ((r as { firstServer: unknown }).firstServer = 'you'), field: 'firstServer' },
@@ -153,7 +157,9 @@ table<SetRow>('validateSetRow', setRow, validateSetRow, [
 ])
 
 table<ShotRow>('validateShotRow', shot, validateShotRow, [
-  { rule: 'rallyId is an id', ok: (r) => (r.rallyId = 'r-1'), bad: (r) => (r.rallyId = ''), field: 'rallyId' },
+  { rule: 'id is <rallyId>:<shotNumber>', ok: (r) => (r.id = deriveShotRowId(r.rallyId, r.shotNumber)), bad: (r) => (r.id = 'r-other:1'), field: 'id' },
+  { rule: 'id follows shotNumber', ok: (r) => Object.assign(r, { shotNumber: 9, id: deriveShotRowId(r.rallyId, 9) }), bad: (r) => (r.shotNumber = 9), field: 'id' },
+  { rule: 'rallyId is an id', ok: (r) => Object.assign(r, { rallyId: 'r-1', id: deriveShotRowId('r-1', r.shotNumber) }), bad: (r) => (r.rallyId = ''), field: 'rallyId' },
   { rule: 'shotNumber is a whole number from 1', ok: (r) => (r.shotNumber = 1), bad: (r) => (r.shotNumber = 0), field: 'shotNumber' },
   { rule: 'contactT is seconds from 0', ok: (r) => (r.contactT = 0), bad: (r) => (r.contactT = -0.1), field: 'contactT' },
   { rule: 'wing is BH or FH', ok: (r) => (r.wing = 'BH'), bad: (r) => ((r as { wing: unknown }).wing = 'Both'), field: 'wing' },
@@ -210,6 +216,15 @@ table<R>('validateRallyRow on a point', point, checkRally, [
   { rule: 'a point has no review parts', ok: (r) => (r.row.leftMarks = ['serve']), bad: (r) => (r.row.reviewParts = ['opening']), field: 'reviewParts' },
   { rule: 'a point is not kept', ok: () => {}, bad: (r) => (r.row.pointKept = true), field: 'pointKept' },
 ])
+
+describe('validateRallyRow with no shot list', () => {
+  for (const missing of [null, undefined, 'shots']) {
+    it(`${String(missing)}: refused, not thrown`, () => {
+      const errors = validateRallyRow(point().row, missing as unknown as ShotRow[])
+      expect(fields(errors)).toEqual(['shots'])
+    })
+  }
+})
 
 table<DraftRow>('validateDraftRow', draft, validateDraftRow, [
   { rule: 'setId is an id', ok: (r) => (r.setId = 's'), bad: (r) => (r.setId = ''), field: 'setId' },

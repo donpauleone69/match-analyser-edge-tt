@@ -86,12 +86,50 @@ describe('seed to rows and back', () => {
     const { src: _src, ...noSrc } = file
     expect(back.matches[0].videos).toEqual([noSrc, demo])
   })
+
+  it('a file copied onto the device keeps its flag, fingerprint and last modified; a demo video writes none', () => {
+    const file = {
+      ...video('f'),
+      kind: 'file' as const,
+      sizeMb: 0.123457,
+      storedOnDevice: true,
+      lastModifiedMs: 1_700_000_000_000,
+      fingerprint: 'ab12',
+    }
+    const demo = { ...video('d'), script: { duration: 600, rallies: [], breaks: [] } }
+    const { rows, back } = roundTrip([matchRecord({ videos: [file, demo] })])
+    expect(rows.videos.map((v) => [v.storedOnDevice, v.fingerprint, v.lastModifiedMs])).toEqual([
+      [true, 'ab12', 1_700_000_000_000],
+      [false, null, null],
+    ])
+    expect(back.matches[0].videos).toEqual([file, demo])
+    const { storedOnDevice: _s, fingerprint: _f, lastModifiedMs: _l, ...bare } = file
+    const kept = deriveDbRows([matchRecord({ videos: [bare, demo] })], { now: NOW, prev: rows })
+    expect(kept.videos[0]).toEqual(rows.videos[0])
+    const gone = deriveDbRows([matchRecord({ videos: [{ ...bare, storedOnDevice: false }, demo] })], { now: NOW, prev: rows })
+    expect([gone.videos[0].storedOnDevice, gone.videos[0].fingerprint]).toEqual([false, 'ab12'])
+  })
 })
 
 describe('stamps', () => {
   it('a second write with nothing changed keeps every stamp', () => {
     const first = deriveDbRows(SEED, { now: NOW })
     expect(deriveDbRows(SEED, { now: NOW + 5000, prev: first })).toEqual(first)
+  })
+
+  it('stored rows in another order (as a database reads them, by key) keep every time', () => {
+    const first = deriveDbRows(SEED, { now: NOW })
+    const byKey = <T>(rows: T[], key: (row: T) => string) => [...rows].sort((a, b) => (key(a) < key(b) ? -1 : 1)).reverse()
+    const id = (row: { id: string }) => row.id
+    const shuffled: DbRows = {
+      ...first,
+      videos: byKey(first.videos, id),
+      sets: byKey(first.sets, id),
+      rallies: byKey(first.rallies, id),
+      shots: byKey(first.shots, id),
+      drafts: byKey(first.drafts, (d) => d.setId),
+    }
+    expect(deriveDbRows(SEED, { now: NOW + 5000, prev: shuffled })).toEqual(first)
   })
 
   it('a change moves only that match updatedAt', () => {

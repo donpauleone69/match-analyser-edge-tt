@@ -14,7 +14,7 @@ export function DemoDataSection({
     <Card className="space-y-3">
       <CardHead title="Prototype" badge={<WfBadge>demo data</WfBadge>} />
       <CardDescription>
-        Empty shows only empty states. Filled restores the seed matches.
+        Empty is your own matches, saved on this device. Filled is the demo matches, reset each time you pick it.
       </CardDescription>
       <div className="grid grid-cols-2 gap-2" role="group" aria-label="Demo data">
         {(['empty', 'filled'] as DemoMode[]).map((opt) => (

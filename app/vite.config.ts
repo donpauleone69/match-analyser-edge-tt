@@ -18,7 +18,7 @@ export default defineConfig({
     port: 5174,
   },
   build: {
-    target: 'es2015',
+    target: 'es2022',
     minify: 'esbuild',
   },
 })

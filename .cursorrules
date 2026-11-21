@@ -5,10 +5,10 @@ Table tennis match video tagging and analysis. Not the same project as "Edge TT"
 ## Project
 
 - The product is `app/`. Paths below are under `app/` unless they start with `docs/` or name a root file. The old reference app is tag `pre-refactor-v0.17.28`, restored with a worktree (see `AGENTS.md`).
-- Stack: Vite 7, React 19, React Router 7, Tailwind 4, TypeScript 5.9, Vitest, Zustand. Dexie is phase 8 and is not installed.
+- Stack: Vite 7, React 19, React Router 7, Tailwind 4, TypeScript 5.9, Vitest, Zustand, Dexie (the browser database in `data/`; the stores use it from phase 8.2).
 - Install and run in `app/`: `npm install --legacy-peer-deps`, then `npm run dev` (port 5174).
-- Local only, nothing uploaded. A picked video is a blob URL in memory. The demo uses the scripted stand-in. Phase 8 copies video onto the device (OPFS) and adds a re-pick when it is missing.
-- What persists today: theme, demo mode, Best timing, filters, and test speed. `app/src/stores/settingsStore.ts` reads them on start and writes them in its actions (`localStorage` and `sessionStorage`). No Zustand persist middleware. Match data is memory only until phase 8.
+- Local only, nothing uploaded. A picked video plays from a blob URL and is copied onto the device (OPFS, `edge-tt-videos/`); a missing copy offers Find video. The demo uses the scripted stand-in.
+- What persists today: theme, demo mode, Best timing, filters, and test speed. `app/src/stores/settingsStore.ts` reads them on start and writes them in its actions (`localStorage` and `sessionStorage`). No Zustand persist middleware. Match data is memory only until phase 8.2 wires `matchStore` to the database.
 
 ## Folders (`app/src/`)
 
@@ -24,7 +24,7 @@ features/<feature>/
 rules/          pure domain logic, one module per topic
 types/          shared domain types and the fixed vocabularies that define them
 stores/         Zustand stores and their actions
-data/           seed/ now; database and repositories in phase 8
+data/           seed/, the Dexie database, repositories, match file, storage helpers
 ui-mine/        shared UI kit, one folder per component; the only home of shadcn and lucide
 layout/         AppShell, PageHeader, StickyChrome
 theme/          ThemeProvider and tokens
@@ -44,6 +44,7 @@ helpers/        pure utilities (cn)
 - **types/**: `match`, `rally`, `video`, `filters`, `theme`, `db` (schema v1).
 - **stores/**: `matchStore`, `settingsStore`.
 - **data/seed/**: `buildSeed.ts`, `script.ts`.
+- **data/**: `db` (the two databases), `repo` (shared transaction helpers), `matchRepo` (load, save, drafts, rallies, demo reseed), `nameRepo` (rename and remove opponents and events), `matchFile` (export and import), `storage` (persist, quota), `videoFiles` (video copies on the device), `cleanupOldStorage`, `ids` (`createRowId`).
 
 ## Naming
 
@@ -58,8 +59,8 @@ helpers/        pure utilities (cn)
 - **features/**: only composers read stores and call actions. Sections and blocks never import `@/stores` or `@/data`.
 - **rules/**: pure TypeScript, no `.tsx`. No React, router, Zustand, Dexie, stores, data, features, pages, layout or ui-mine imports. No `window`, `document`, `navigator`, storage or `fetch`. Same inputs, same output; a default `today` parameter is the only clock read.
 - **types/**: types and fixed vocabularies only, no functions.
-- **stores/**: Zustand `create` without persist middleware. Actions are the only way to change state: an action reads state, runs a pure `rules/` op and sets the result (the `mutateMatch(fn)` pattern). Actions do not throw. Device preferences live in `settingsStore`. From phase 8 `matchStore` loads and saves through the `data/` repositories. No `.tsx`, no feature, page, layout or ui-mine imports.
-- **data/**: plain TypeScript; no React, Zustand, stores, features, pages, layout or ui-mine. The seed is deterministic for a given today. From phase 8: Dexie, `schemaVersion` 1, additive upgrades only; repositories; a rally and its shots save in one transaction.
+- **stores/**: Zustand `create` without persist middleware. Actions are the only way to change state: an action reads state, runs a pure `rules/` op and sets the result (the `mutateMatch(fn)` pattern). Actions do not throw. Device preferences live in `settingsStore`. From phase 8.2 `matchStore` loads and saves through the `data/` repositories, one repository call per action. No `.tsx`, no feature, page, layout or ui-mine imports.
+- **data/**: plain TypeScript; no React, Zustand, stores, features, pages, layout or ui-mine. The seed is deterministic for a given today. Dexie, `schemaVersion` 1, additive upgrades only. Repositories are the only database writers: they run the `rules/dbValidate.ts` checks, return a `RepoResult` and never throw; a rally and its shots save in one transaction.
 - **Storage** (`localStorage`, `sessionStorage`, `indexedDB`) is used only in `stores/` and `data/`.
 - **ui-mine/**: visual only. One folder per component (`<Component>/<Component>.tsx`, its prop types in `<Component>/types.ts`, `<Component>/index.ts`). The only place that imports `lucide-react` or shadcn primitives; features import from `@/ui-mine`.
 - No types exported from `.tsx` files: use `models.ts`, `types/` or the component's `types.ts`.
@@ -73,6 +74,7 @@ helpers/        pure utilities (cn)
 - Never loosen a test, re-baseline golden files (`UPDATE_GOLDEN=1`) or smoke screenshots unless the change is named and agreed.
 - `app/scripts/check-rules.mjs` enforces the layer rules above. Each new rule gets a bad and a good fixture in `app/tests/rules-check/fixtures/`. `app/scripts/rules-allowlist.json` only shrinks: never add an entry.
 - `app/scripts/check-docs.mjs` fails when a scanned doc cites a repo path that is not there, or runs past 200 lines.
+- `app/tests/db/` runs the database layer in Chrome (`npm run check:db`, a test-only page outside the build), the video copy through the app (`video-flow.mjs`), then the invariants and golden outputs over the rows read back.
 
 ## Gate (required before merge, run in `app/`)
 
@@ -80,7 +82,8 @@ helpers/        pure utilities (cn)
 2. `npm test`
 3. `npm run check:rules`
 4. `npm run check:docs`
-5. `npm run smoke`
+5. `npm run check:db`
+6. `npm run smoke`
 
 Also look at changed surfaces in a real browser. Lint is not a gate. How to run each command, and what to do when the smoke baseline is not on this machine, is in `AGENTS.md`.
 
