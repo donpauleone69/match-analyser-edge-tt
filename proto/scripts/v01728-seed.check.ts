@@ -3,7 +3,7 @@
  * Run: npm run check:v01728-seed
  */
 import { derivePhase, calculateMatchSetsWon, setScoresDiffer } from '../src/rules/match'
-import { SEED } from '../src/data/demoStore'
+import { SEED } from '../src/stores/matchStore'
 import { bestOpener, bestParts } from '../src/rules/bestFa'
 import { isError, winnerOf } from '../src/rules/rally'
 import type { MatchRecord, SetData } from '../src/types/match'

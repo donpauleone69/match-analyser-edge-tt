@@ -3,7 +3,7 @@
  * Run: npm run check:v01726
  */
 import { emptySet } from '../src/rules/match'
-import { SEED } from '../src/data/demoStore'
+import { SEED } from '../src/stores/matchStore'
 import { gradeOf, matchInsights, phaseOf, type InsightCardModel, type InsightRow } from '../src/rules/insights'
 import type { MatchRecord } from '../src/types/match'
 import type { Ending, Side } from '../src/types/rally'
