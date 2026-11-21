@@ -2,7 +2,7 @@ import { Pressable, Icon } from '@/ui-mine'
 import { cn } from '@/helpers/utils'
 import { bestOpener, cellMark, partsOf } from '@/rules/bestFa'
 import { PartLabel } from '../blocks/PartLabelBlock'
-import { railCell, restStyle, shotPaint, zoneButton, zonePressed, zoneRest } from '../styles'
+import { railCell, shotPaint, zoneButton, zonePressed, zoneRest } from '../styles'
 import { hitterOf } from '@/rules/rally'
 import type { RallyZoneView } from '../models'
 
@@ -167,9 +167,7 @@ export function RallyZoneSection({
                   style={{
                     gridRow: 1,
                     gridColumn: `${p.from + g} / span ${p.to - p.from + 1}`,
-                    ...(marked
-                      ? { backgroundColor: 'var(--color-warning)', borderColor: 'var(--color-warning)', color: '#0b1220' }
-                      : { ...restStyle(), color: 'var(--color-text)' }),
+                    ...(marked ? zonePressed() : zoneRest()),
                   }}
                   onClick={() => onReviewPart?.(p.part)}
                 >

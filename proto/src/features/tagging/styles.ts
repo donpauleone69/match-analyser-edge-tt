@@ -18,10 +18,6 @@ export function zoneRest(): CSSProperties {
   }
 }
 
-export function restStyle(): CSSProperties {
-  return { backgroundColor: 'var(--tag-cell-rest)', borderColor: 'var(--tag-cell-rest-line)' }
-}
-
 export const railCell =
   'btn-kind-control relative w-full px-1 rounded-md border text-sm font-bold tabular-nums inline-flex items-center justify-center'
 
