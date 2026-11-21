@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { Pressable, Button, Icon } from '@/ui-mine'
+import { Pressable, Button, Icon, buttonKindControlSquare } from '@/ui-mine'
 import { DEFAULT_INSIGHTS_FILTERS, activeFilterLabels, type InsightsFilters } from '@/rules/filters'
 import type { MatchRecord } from '@/types/match'
 import { FilterPickersBlock } from '../blocks/FilterPickersBlock'
@@ -92,7 +92,7 @@ export function InsightFilterSection({
         setDraft(filters)
         setOpen((v) => !v)
       }}
-      className="btn-kind-control btn-kind-square relative inline-flex shrink-0 items-center justify-center text-primary hover:bg-pill-idle"
+      className={`${buttonKindControlSquare} relative inline-flex shrink-0 items-center justify-center text-primary hover:bg-pill-idle`}
     >
       <Icon name="filter" size="sm" />
       {n > 0 ? (

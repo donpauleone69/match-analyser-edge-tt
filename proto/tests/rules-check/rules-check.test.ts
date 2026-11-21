@@ -70,6 +70,8 @@ it('bad fixtures fire every layer rule', () => {
   expect(hit('import-type', 'src/helpers/typed.ts', 'import { type')).toBe(true)
   expect(hit('one-confirm', 'src/features/x/sections/ConfirmSection.tsx', 'function ConfirmBox')).toBe(true)
   expect(hit('one-confirm', 'src/features/x/sections/ConfirmSection.tsx', 'role="alertdialog"')).toBe(true)
+  expect(hit('kind-tokens', 'src/features/x/blocks/KindBlock.tsx', 'btn-kind-control ' + 'btn-kind-square')).toBe(true)
+  expect(hit('kind-tokens', 'src/features/x/blocks/KindBlock.tsx', 'btn-kind-' + 'field')).toBe(true)
 })
 
 it('good fixtures are clean', () => {

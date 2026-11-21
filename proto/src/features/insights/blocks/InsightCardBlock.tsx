@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { cn } from '@/helpers/utils'
-import { Pressable, Icon } from '@/ui-mine'
+import { Pressable, Icon, buttonKindControlSquare } from '@/ui-mine'
 import type { Grade, InsightCardModel } from '@/rules/insights'
 
 function gradeClass(grade: Grade | null | undefined): string {
@@ -84,7 +84,7 @@ export function InsightCardBlock({
               <Pressable
                 type="button"
                 aria-label={`Play ${card.playlist.name}`}
-                className="btn-kind-control btn-kind-square inline-flex shrink-0 items-center justify-center text-primary"
+                className={`${buttonKindControlSquare} inline-flex shrink-0 items-center justify-center text-primary`}
                 onClick={onPlay}
               >
                 <Icon name="play" size="sm" />
@@ -96,7 +96,7 @@ export function InsightCardBlock({
                 type="button"
                 disabled
                 aria-label="Download"
-                className="btn-kind-control btn-kind-square inline-flex shrink-0 items-center justify-center text-muted"
+                className={`${buttonKindControlSquare} inline-flex shrink-0 items-center justify-center text-muted`}
               >
                 <Icon name="download" size="sm" />
               </Pressable>
@@ -144,7 +144,7 @@ function FaceHead({
           aria-label={flipped ? `Back to ${title}` : `About ${title}`}
           aria-pressed={flipped}
           aria-hidden={quiet || undefined}
-          className="btn-kind-control btn-kind-square inline-flex items-center justify-center text-muted"
+          className={`${buttonKindControlSquare} inline-flex items-center justify-center text-muted`}
           onClick={(e) => {
             e.stopPropagation()
             onFlip()

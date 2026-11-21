@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { NavLink, Link } from 'react-router-dom'
-import { Icon } from '@/ui-mine'
+import { Icon, buttonKindControlSquare } from '@/ui-mine'
 import { cn } from '@/helpers/utils'
 import { WfWarnBadge } from '@/ui-mine'
 import type { TopTab } from './pageHeaderTypes'
@@ -32,7 +32,7 @@ export function PageHeader({
         <Link
           to={backTo}
           aria-label="Back"
-          className="btn-kind-control btn-kind-square inline-flex shrink-0 items-center justify-center text-brand hover:bg-pill-idle"
+          className={`${buttonKindControlSquare} inline-flex shrink-0 items-center justify-center text-brand hover:bg-pill-idle`}
         >
           <Icon name="chevron-left" size="sm" />
         </Link>

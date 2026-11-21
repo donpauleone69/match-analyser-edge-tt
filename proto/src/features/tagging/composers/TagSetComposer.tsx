@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
-import { Button, Icon } from '@/ui-mine'
+import { Button, Icon, buttonKindControlSquare } from '@/ui-mine'
 import { WfEmpty } from '@/ui-mine'
 import { emptySet } from '@/rules/match'
 import { useArchiveStep, useMatchRecord, useMatchStore } from '@/stores/matchStore'
@@ -212,7 +212,7 @@ function TagSet({
             <Link
               to={`/matches/${match.id}/tag?from=${set.setId}`}
               aria-label="Back"
-              className="btn-kind-control btn-kind-square inline-flex items-center justify-center rounded-md bg-black/60 text-white hover:bg-black/80"
+              className={`${buttonKindControlSquare} inline-flex items-center justify-center rounded-md bg-black/60 text-white hover:bg-black/80`}
             >
               <Icon name="chevron-left" size="sm" />
             </Link>

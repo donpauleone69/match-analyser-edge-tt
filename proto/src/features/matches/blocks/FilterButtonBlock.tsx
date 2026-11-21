@@ -1,4 +1,4 @@
-import { Pressable, Icon } from '@/ui-mine'
+import { Pressable, Icon, buttonKindControlSquare } from '@/ui-mine'
 
 export function FilterButtonBlock({
   n,
@@ -17,7 +17,7 @@ export function FilterButtonBlock({
       aria-label="Filter"
       aria-expanded={open}
       onClick={onClick}
-      className="btn-kind-control btn-kind-square relative inline-flex shrink-0 items-center justify-center text-primary hover:bg-pill-idle"
+      className={`${buttonKindControlSquare} relative inline-flex shrink-0 items-center justify-center text-primary hover:bg-pill-idle`}
     >
       <Icon name="filter" size="sm" />
       {n > 0 ? (

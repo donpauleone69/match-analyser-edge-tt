@@ -20,7 +20,7 @@ import {
 } from '@/rules/marks'
 import { formatClock, segmentsOf } from '@/rules/timeline'
 import { cn } from '@/helpers/utils'
-import { Pressable, Button, Card, CardTitle, Icon, buttonKindField, buttonKindTextLink } from '@/ui-mine'
+import { Pressable, Button, Card, CardTitle, Icon, buttonKindControlSquare, buttonKindField, buttonKindTextLink } from '@/ui-mine'
 import { ConfirmBlock } from '../blocks/ConfirmBlock'
 
 type Drag = { setId: number; edge: WingEdge; local: number }
@@ -118,7 +118,7 @@ export function TagVideoSection({
             {index > 0 ? (
               <Pressable
                 type="button"
-                className="btn-kind-control btn-kind-square shrink-0 rounded-md text-primary"
+                className={`${buttonKindControlSquare} shrink-0 rounded-md text-primary`}
                 aria-label={`Move video ${index + 1} up`}
                 disabled={locked}
                 onClick={() => onMove(-1)}
@@ -129,7 +129,7 @@ export function TagVideoSection({
             {index < match.videos.length - 1 ? (
               <Pressable
                 type="button"
-                className="btn-kind-control btn-kind-square shrink-0 rounded-md text-primary"
+                className={`${buttonKindControlSquare} shrink-0 rounded-md text-primary`}
                 aria-label={`Move video ${index + 1} down`}
                 disabled={locked}
                 onClick={() => onMove(1)}
