@@ -9,6 +9,7 @@
     "preview": "vite preview --port 5174",
     "test": "TZ=UTC vitest run",
     "check:rules": "node scripts/check-rules.mjs",
+    "check:docs": "node scripts/check-docs.mjs",
     "smoke": "node tests/smoke/smoke.mjs"
   },
   "dependencies": {

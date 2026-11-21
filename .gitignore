@@ -41,7 +41,6 @@ _ai_gpt/
 # Videos and media files
 videos/
 @videos/
-docs-match-analyser-edge-tt/videos/
 *.MOV
 *.mov
 *.mp4
@@ -49,9 +48,6 @@ docs-match-analyser-edge-tt/videos/
 *.avi
 *.mkv
 *.webm
-# Keep the tiny smoke fixture for phone E2E (MA-37+)
-!app/public/fixtures/
-!app/public/fixtures/smoke-set.mp4
 
 # Executable and binary files
 *.exe
@@ -64,18 +60,6 @@ docs-match-analyser-edge-tt/videos/
 **/match-data-*.csv
 **/match-export-*.csv
 **/export-*.json
-
-# Large image files (screenshots and downloads in docs)
-docs-match-analyser-edge-tt/chat_notes/**/download.*
-docs-match-analyser-edge-tt/chat_notes/**/*.png
-docs-match-analyser-edge-tt/chat_notes/**/*.jpg
-docs-match-analyser-edge-tt/chat_notes/**/*.jpeg
-
-# Keep design mockups and intentional images
-!docs-match-analyser-edge-tt/designs/**/*.png
-!docs-match-analyser-edge-tt/designs/**/*.jpg
-# Local Playwright smoke output (MA-47)
-app/smoke-artifacts/
 
 # Page smoke output and font cache (glob paths; no app/ prefix so they survive folder renames).
 **/tests/smoke/out/
