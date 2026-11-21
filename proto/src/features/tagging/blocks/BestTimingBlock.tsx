@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Pressable, Icon } from '@/ui-mine'
+import { Pressable, Icon, buttonKindControlSquare } from '@/ui-mine'
 import { APP_VERSION } from '@/version'
 import type { BestTiming } from '@/rules/bestFa'
 
@@ -44,7 +44,7 @@ export function BestTimingBlock({
         type="button"
         aria-expanded={open}
         aria-label="Settings"
-        className="btn-kind-control btn-kind-square inline-flex items-center justify-center rounded-md bg-black/60 text-white hover:bg-black/80"
+        className={`${buttonKindControlSquare} inline-flex items-center justify-center rounded-md bg-black/60 text-white hover:bg-black/80`}
         onClick={() => onOpen(!open)}
       >
         <Icon name="settings" size="sm" />

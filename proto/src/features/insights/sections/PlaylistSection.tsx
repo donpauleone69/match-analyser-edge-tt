@@ -5,7 +5,7 @@ import { PictureSeekBlock } from '@/features/tagging/blocks/PictureSeekBlock'
 import { VideoSection } from '@/features/tagging/sections/VideoSection'
 import { segmentsOf, toGlobal } from '@/rules/timeline'
 import { usePlayer } from '@/features/tagging/hooks/usePlayer'
-import { Pressable, Icon } from '@/ui-mine'
+import { Pressable, Icon, buttonKindControlSquare } from '@/ui-mine'
 import type { PlayItem } from '@/rules/insights'
 
 const HOLD_MS = 500
@@ -153,7 +153,7 @@ export function PlaylistSection({
           type="button"
           aria-label="Previous"
           disabled={index <= 0}
-          className="btn-kind-control btn-kind-square inline-flex shrink-0 items-center justify-center text-primary"
+          className={`${buttonKindControlSquare} inline-flex shrink-0 items-center justify-center text-primary`}
           onClick={() => goRef.current(index - 1, player.playing)}
         >
           <Icon name="chevron-left" size="sm" />
@@ -165,7 +165,7 @@ export function PlaylistSection({
           type="button"
           aria-label="Next"
           disabled={index >= items.length - 1}
-          className="btn-kind-control btn-kind-square inline-flex shrink-0 items-center justify-center text-primary"
+          className={`${buttonKindControlSquare} inline-flex shrink-0 items-center justify-center text-primary`}
           onClick={() => goRef.current(index + 1, player.playing)}
         >
           <Icon name="chevron-right" size="sm" />
@@ -173,7 +173,7 @@ export function PlaylistSection({
         <Pressable
           type="button"
           aria-label="Close"
-          className="btn-kind-control btn-kind-square inline-flex shrink-0 items-center justify-center text-primary"
+          className={`${buttonKindControlSquare} inline-flex shrink-0 items-center justify-center text-primary`}
           onClick={onClose}
         >
           <Icon name="x" size="sm" />

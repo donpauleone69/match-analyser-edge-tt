@@ -1,3 +1,4 @@
+import { buttonKindField } from '@/ui-mine'
 import { filterChoices } from '@/rules/filters'
 import {
   MATCH_STATUSES as STATUSES,
@@ -30,7 +31,7 @@ export function MatchFilterPickersBlock({
           <label key={picker.key} className="block space-y-1">
             <span className="text-xs font-semibold text-muted">{picker.label}</span>
             <select
-              className="btn-kind-field w-full rounded-md border border-border bg-bg-card px-2 text-sm text-primary"
+              className={`${buttonKindField} w-full rounded-md border border-border bg-bg-card px-2 text-sm text-primary`}
               value={draft[picker.key]}
               onChange={(e) => setDraft({ ...draft, [picker.key]: e.target.value })}
             >

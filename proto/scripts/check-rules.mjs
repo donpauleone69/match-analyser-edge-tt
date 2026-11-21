@@ -28,6 +28,7 @@ const RULES = {
   R17: 'raw-button',
   R18: 'import-type',
   R19: 'one-confirm',
+  R20: 'kind-tokens',
 }
 
 const args = process.argv.slice(2)
@@ -265,6 +266,7 @@ function scanFile(file, src0) {
   if (inSrc) scanLayers(file, src, findings)
   scanImportType(file, src, findings)
   if (inSrc) scanOneConfirm(file, src, findings)
+  scanKindTokens(file, src, findings)
 
   return findings
 }
@@ -365,6 +367,14 @@ function scanImportType(file, src, findings) {
     if (!inlineImportAllTypes(hit[1])) continue
     push(findings, RULES.R18, file, src, hit.index, 'import { type … }')
   }
+}
+
+/** The kind-token literals live only in buttonKinds.ts. Call sites use the constants. */
+function scanKindTokens(file, src, findings) {
+  if (file === 'src/ui-mine/buttonKinds.ts') return
+  const re = /btn-kind-control btn-kind-square|btn-kind-field/g
+  let hit
+  while ((hit = re.exec(src))) push(findings, RULES.R20, file, src, hit.index, hit[0])
 }
 
 /** `function ConfirmBox` is banned. `role="alertdialog"` only in ConfirmBlock.tsx. */
