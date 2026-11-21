@@ -241,7 +241,7 @@ export {
 export type { RemovedVideo } from '@/types/match'
 export { DB_COLUMNS, DB_TABLES as TABLES, MATCH_FILE_FORMAT } from '@/types/db'
 export type { MatchFile, RepoResult } from '@/types/db'
-export { deriveSetRowId, stableJson } from '@/rules/dbRows'
+export { deriveSetRowId, deriveShotRowId, stableJson } from '@/rules/dbRows'
 export { SETTINGS_STORAGE_KEYS } from '@/stores/settingsStore'
 
 // -> @/data (phase 8 database layer; the browser check runs these)

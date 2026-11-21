@@ -105,6 +105,7 @@ create table public.sets (
   mark_to_t double precision check (mark_to_t >= 0 and mark_to_t < 'infinity'),
   mark_complete boolean,
   unique (match_id, set_number) deferrable initially deferred,
+  constraint sets_id_from_match check (id = match_id || ':' || set_number),
   foreign key (match_id, mark_from_video_id) references public.videos (match_id, id),
   foreign key (match_id, mark_to_video_id) references public.videos (match_id, id),
   constraint sets_mark_all_or_none check (
@@ -151,7 +152,8 @@ create table public.shots (
   wing text check (wing in ('BH', 'FH')),
   depth text check (depth in ('Short', 'Long')),
   stroke text check (stroke in ('Attack', 'Control', 'Defence')),
-  unique (rally_id, shot_number) deferrable initially deferred
+  unique (rally_id, shot_number) deferrable initially deferred,
+  constraint shots_id_from_rally check (id = rally_id || ':' || shot_number)
 );
 
 -- The open rally of one set.

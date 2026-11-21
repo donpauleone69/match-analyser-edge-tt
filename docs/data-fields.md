@@ -78,7 +78,7 @@ Each row is checked before a write by `validateOpponentRow`, `validateEventRow`,
 
 | Column | Allowed | Written by | Read by |
 |---|---|---|---|
-| `id` | text, unique | `bestRally` on save (`r-<ms>`); `pointRally` in `startSet` (points) | shots |
+| `id` | text, unique | `bestRally` on save (`r-<ms>-<8 hex>`, `createRowId`); `pointRally` in `startSet` (points) | shots |
 | `setId` | a set id | the set saved into | |
 | `videoId` | a video of the same match | the draft's video (`emptyDraft`), the open video | timeline, reels, continuity |
 | `kind` | `rally` or `point` | `point` on a point | load, validation |

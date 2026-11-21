@@ -18,6 +18,8 @@ import {
   createMatchDb,
   deleteMatch,
   deriveListRows,
+  deriveSetRowId,
+  deriveShotRowId,
   emptyDraft,
   emptySet,
   exportMatchFile,
@@ -99,6 +101,27 @@ const seedMatch = (id: string): MatchRecord => structuredClone(SEED.find((m) => 
 
 function bareMatch(id: string, opponent: string, event = ''): MatchRecord {
   return { id, opponent, event, date: '2026-11-01', result: { me: null, them: null }, videos: [], sets: [emptySet(1)] }
+}
+
+const copied = (id: string) => `${id}~copy`
+
+/**
+ * The file as another match `id`, every id renamed. `keep` leaves the set or
+ * shot ids as they were, which is how a crafted file would reach the original
+ * match's rows.
+ */
+function copyMatchFile(file: MatchFile, id: string, keep: { setIds?: boolean; shotIds?: boolean } = {}): MatchFile {
+  const setIds = new Map(file.sets.map((s) => [s.id, keep.setIds ? s.id : deriveSetRowId(id, s.setNumber)]))
+  const video = (v: string | null) => (v === null ? null : copied(v))
+  return {
+    ...file,
+    match: { ...file.match, id },
+    videos: file.videos.map((v) => ({ ...v, id: copied(v.id), matchId: id })),
+    sets: file.sets.map((s) => ({ ...s, id: setIds.get(s.id)!, matchId: id, markFromVideoId: video(s.markFromVideoId), markToVideoId: video(s.markToVideoId) })),
+    rallies: file.rallies.map((r) => ({ ...r, id: copied(r.id), setId: setIds.get(r.setId)!, videoId: copied(r.videoId) })),
+    shots: file.shots.map((s) => ({ ...s, rallyId: copied(s.rallyId), id: keep.shotIds ? s.id : deriveShotRowId(copied(s.rallyId), s.shotNumber) })),
+    drafts: file.drafts.map((d) => ({ setId: setIds.get(d.setId)!, rally: { ...d.rally, videoId: copied(d.rally.videoId) } })),
+  }
 }
 
 async function deleteDb(name: string) {
@@ -193,10 +216,70 @@ async function run() {
     refused(bad, await importMatchFile(demo, text({ ...file, shots: [{ ...file.shots[0], contactT: -1 }, ...file.shots.slice(1)] }), OPTS), 'invalid', 'import a bad shot')
     refused(bad, await importMatchFile(demo, text({ ...file, match: { ...file.match, resultMe: 2, resultThem: 2 } }), OPTS), 'invalid', 'import a bad result')
     refused(bad, await importMatchFile(demo, text({ ...file, match: { ...file.match, id: 'm-other' }, videos: file.videos.map((v) => ({ ...v, matchId: 'm-other' })), sets: [] , rallies: [], shots: [], drafts: [] }), OPTS), 'conflict', 'import a video id another match has')
+    refused(bad, await importMatchFile(demo, text(copyMatchFile(file, 'm-copy', { setIds: true })), OPTS), 'invalid', 'import a new match id with the old set ids')
+    refused(bad, await importMatchFile(demo, text(copyMatchFile(file, 'm-copy', { shotIds: true })), OPTS), 'invalid', 'import new rallies with the old shot ids')
+    const otherRally = rows.rallies.find((r) => r.id !== rally.id && rows.shots.some((s) => s.rallyId === r.id))!
+    const otherShot = rows.shots.find((s) => s.rallyId === otherRally.id && s.shotNumber === 1)!
+    const stolen = shots.map((s) => (s.shotNumber === 1 ? { ...s, id: otherShot.id } : s))
+    refused(bad, await saveRally(demo, rally, stolen, OPTS), 'invalid', "saveRally with another rally's shot id")
+    refused(bad, await saveRally(demo, { ...rally, position: rally.position + 50 }, shots, OPTS), 'invalid', 'saveRally leaving a gap in the places')
     refused(bad, await reseedDemo(user, SEED, OPTS), 'conflict', 'reseed the user database')
 
     if ((await snapshot(demo)) !== before) bad('demo database changed')
     if ((await snapshot(user)) !== userBefore) bad('user database changed')
+  })
+
+  await check('a set, rally or shot stored under another parent is never overwritten', async (bad) => {
+    await deleteDb('edge-tt-check-foreign')
+    const db = createMatchDb('edge-tt-check-foreign', 'user')
+    value(await saveMatch(db, seedMatch('m-complete'), OPTS), 'save m-complete')
+    const file = value(await exportMatchFile(db, 'm-complete', OPTS), 'export')
+    const copy = copyMatchFile(file, 'm-copy')
+    const original = await snapshot(db)
+
+    // Rows no repository writes: only a damaged database holds them.
+    const plantedSet = { ...file.sets[0], id: copy.sets[0].id }
+    await db.sets.put(plantedSet)
+    const withSet = await snapshot(db)
+    refused(bad, await importMatchFile(db, JSON.stringify(copy), OPTS), 'conflict', 'import over a set stored under another match')
+    if ((await snapshot(db)) !== withSet) bad('rows changed after the set conflict')
+    await db.sets.delete(plantedSet.id)
+
+    const plantedShot = { ...file.shots[0], id: copy.shots[0].id }
+    await db.shots.put(plantedShot)
+    const withShot = await snapshot(db)
+    refused(bad, await importMatchFile(db, JSON.stringify(copy), OPTS), 'conflict', 'import over a shot stored under another rally')
+    if ((await snapshot(db)) !== withShot) bad('rows changed after the shot conflict')
+    await db.shots.delete(plantedShot.id)
+
+    const ownShot = file.shots[0]
+    const rally = file.rallies.find((r) => r.id === ownShot.rallyId)!
+    await db.shots.put({ ...ownShot, rallyId: 'r-elsewhere' })
+    const withMoved = await snapshot(db)
+    refused(bad, await saveRally(db, rally, file.shots.filter((s) => s.rallyId === rally.id), OPTS), 'conflict', 'saveRally over a shot stored under another rally')
+    if ((await snapshot(db)) !== withMoved) bad('rows changed after the saveRally shot conflict')
+    await db.shots.put(ownShot)
+    if ((await snapshot(db)) !== original) bad('cleaning the planted rows did not restore the database')
+
+    const done = value(await importMatchFile(db, JSON.stringify(copy), OPTS), 'import the honest copy')
+    if (done.replaced) bad('the copy replaced a match')
+    const after = value(await readAllRows(db), 'read')
+    const before = JSON.parse(original) as DbRows
+    const ofOriginal = (rows: DbRows) => {
+      const sets = new Set(rows.sets.filter((s) => s.matchId === 'm-complete').map((s) => s.id))
+      const rallies = new Set(rows.rallies.filter((r) => sets.has(r.setId)).map((r) => r.id))
+      return stableJson({
+        match: rows.matches.find((m) => m.id === 'm-complete'),
+        videos: rows.videos.filter((v) => v.matchId === 'm-complete'),
+        sets: rows.sets.filter((s) => sets.has(s.id)),
+        rallies: rows.rallies.filter((r) => rallies.has(r.id)),
+        shots: rows.shots.filter((s) => rallies.has(s.rallyId)),
+      })
+    }
+    if (ofOriginal(after) !== ofOriginal(sortedRows(before))) bad('importing the copy changed the original match')
+    if (after.matches.length !== 2) bad(`${after.matches.length} matches after the copy, want 2`)
+    db.close()
+    await deleteDb('edge-tt-check-foreign')
   })
 
   await check('a rally and its shots save in one transaction (shot write fails on purpose)', async (bad) => {

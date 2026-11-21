@@ -106,18 +106,24 @@ export async function writeMatchRows(db: MatchDb, before: DbRows, after: DbRows)
 }
 
 /**
- * Refuses rows of this match whose ids another match already uses. Set,
- * shot and draft keys carry the match or rally id, so videos and rallies are
- * the ones to check.
+ * Refuses rows of this match whose ids are stored under another parent: a put
+ * by id would move that row here. Drafts are keyed by a set id checked here.
  */
 export async function refuseForeignIds(db: MatchDb, matchId: string, before: ChildRows, after: ChildRows) {
   const videos = await db.videos.bulkGet(after.videos.map((v) => v.id))
-  const taken = videos.find((v) => v !== undefined && v.matchId !== matchId)
-  if (taken) refuse('conflict', `video ${taken.id} belongs to match ${taken.matchId}`)
+  const video = videos.find((v) => v !== undefined && v.matchId !== matchId)
+  if (video) refuse('conflict', `video ${video.id} belongs to match ${video.matchId}`)
+  const sets = await db.sets.bulkGet(after.sets.map((s) => s.id))
+  const set = sets.find((s) => s !== undefined && s.matchId !== matchId)
+  if (set) refuse('conflict', `set ${set.id} belongs to match ${set.matchId}`)
   const ownSets = new Set([...before.sets, ...after.sets].map((s) => s.id))
   const rallies = await db.rallies.bulkGet(after.rallies.map((r) => r.id))
-  const clash = rallies.find((r) => r !== undefined && !ownSets.has(r.setId))
-  if (clash) refuse('conflict', `rally ${clash.id} belongs to set ${clash.setId}`)
+  const rally = rallies.find((r) => r !== undefined && !ownSets.has(r.setId))
+  if (rally) refuse('conflict', `rally ${rally.id} belongs to set ${rally.setId}`)
+  const ownRallies = new Set([...before.rallies, ...after.rallies].map((r) => r.id))
+  const shots = await db.shots.bulkGet(after.shots.map((s) => s.id))
+  const shot = shots.find((s) => s !== undefined && !ownRallies.has(s.rallyId))
+  if (shot) refuse('conflict', `shot ${shot.id} belongs to rally ${shot.rallyId}`)
 }
 
 const bareOpponent = (o: OpponentRow) => [o.club, o.handedness, o.style, o.birthYear, o.notes].every((v) => v === null)

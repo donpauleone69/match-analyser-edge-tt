@@ -59,12 +59,14 @@ The repositories are the only writers. Each checks its rows with the validators,
 |---|---|
 | `loadAll` | Every match in `createdAt` order, ties by id (G15), with removed videos and the name rows |
 | `saveMatch` | One match and its rows in one transaction, only rows that changed. Links typed names; drops a name row the edit unlinked that no match uses and that has no details |
-| `saveRally` | One rally and its shots in one transaction; shots no longer listed are deleted |
+| `saveRally` | One rally and its shots in one transaction; shots no longer listed are deleted. Saves in place or at the end: places stay 0 to k-1 |
 | `saveDraft` | The one draft of a set, or clears it |
 | `deleteMatch` | The match and its rows; name rows stay |
 | `renameOpponent`, `renameEvent`, `removeOpponent`, `removeEvent` | By id; a rename shows in every linked match; remove is refused while a match links it |
 | `reseedDemo` | Clears the demo database and writes the seed; refused on yours |
 | `exportMatchFile`, `importMatchFile` | One match as JSON (`format` `edge-tt-match`, `schemaVersion`). Import checks every row, links names to stored rows ignoring case, and replaces a match with the same id |
+
+Set ids are `<matchId>:<setNumber>` and shot ids `<rallyId>:<shotNumber>`, checked by the validators. A save or import whose video, set, rally or shot id is stored under another parent is refused (`conflict`), so a write never moves another match's rows.
 
 `app/src/data/storage.ts` asks for persistent storage and reads usage and quota. `cleanupOldStorage` in `app/src/data/cleanupOldStorage.ts` deletes the reference app's databases (`EdgeTTMatchAnalyser`, `tt-match-videos`), its `videos` folder in the origin private file system and its storage keys, by exact name or prefix. It keeps the settings keys and every name it does not know. New code must not reuse those names. Tests: `npm run check:db` in Chrome, `app/tests/db/data-layer.test.ts` in `npm test`.
 

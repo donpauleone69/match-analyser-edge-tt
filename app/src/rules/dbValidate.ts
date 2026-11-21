@@ -33,7 +33,7 @@ import {
 } from '@/types/db'
 import { ENDINGS, WINGS } from '@/types/rally'
 import { bestParts } from './bestFa'
-import { deriveNameKey, deriveOutcome } from './dbRows'
+import { deriveNameKey, deriveOutcome, deriveSetRowId, deriveShotRowId } from './dbRows'
 import { MAX_SETS } from './matchOps'
 import { isRealResult } from './matchStatus'
 import { winnerOf } from './rally'
@@ -165,6 +165,7 @@ export function validateSetRow(row: SetRow): DbError[] {
   need(say, 'id', isText(row.id), 'an id')
   need(say, 'matchId', isText(row.matchId), 'an id')
   need(say, 'setNumber', isInt(row.setNumber, 1, MAX_SETS), `1 to ${MAX_SETS}`)
+  if (isText(row.id) && row.id !== deriveSetRowId(row.matchId, row.setNumber)) say('id', `${deriveSetRowId(row.matchId, row.setNumber)}, from matchId and setNumber`)
   nullable(say, 'enteredMe', row.enteredMe, (v) => isInt(v, 0, MAX_ENTERED_POINTS), `0 to ${MAX_ENTERED_POINTS}`)
   nullable(say, 'enteredThem', row.enteredThem, (v) => isInt(v, 0, MAX_ENTERED_POINTS), `0 to ${MAX_ENTERED_POINTS}`)
   need(say, 'firstServer', oneOf(SIDES, row.firstServer), 'me or them')
@@ -191,6 +192,7 @@ export function validateShotRow(row: ShotRow): DbError[] {
   need(say, 'id', isText(row.id), 'an id')
   need(say, 'rallyId', isText(row.rallyId), 'an id')
   need(say, 'shotNumber', isInt(row.shotNumber, 1, Number.MAX_SAFE_INTEGER), 'a whole number from 1')
+  if (isText(row.id) && row.id !== deriveShotRowId(row.rallyId, row.shotNumber)) say('id', `${deriveShotRowId(row.rallyId, row.shotNumber)}, from rallyId and shotNumber`)
   need(say, 'contactT', isTime(row.contactT), 'seconds at or after 0')
   enumOrNull(say, 'wing', WINGS, row.wing)
   enumOrNull(say, 'depth', DEPTHS, row.depth)

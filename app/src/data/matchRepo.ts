@@ -128,6 +128,8 @@ export function saveDraft(
  * One rally and its shots in one transaction. A re-save replaces the shots:
  * shot rows the new list does not have are deleted. The set and the video must
  * be stored, in one match, and no other rally of the set may hold its place.
+ * Places must stay 0 to k-1, so this saves a rally in place or adds one at the
+ * end; a save that moves other rallies goes through `saveMatch`.
  */
 export function saveRally(db: MatchDb, rally: RallyRow, shots: readonly ShotRow[], opts: { now?: number } = {}): Promise<RepoResult<WriteCount>> {
   const now = opts.now ?? Date.now()
@@ -145,6 +147,15 @@ export function saveRally(db: MatchDb, rally: RallyRow, shots: readonly ShotRow[
       const deleted = rally.deletedAt !== null
       const holder = inSet.find((r) => r.id !== rally.id && r.position === rally.position && (r.deletedAt !== null) === deleted)
       if (holder) refuse('conflict', `rally ${holder.id} holds place ${rally.position} in set ${rally.setId}`)
+      const next = [...inSet.filter((r) => r.id !== rally.id), rally]
+      for (const inDeleted of [false, true]) {
+        const places = next.filter((r) => (r.deletedAt !== null) === inDeleted).map((r) => r.position).sort((a, b) => a - b)
+        const at = places.findIndex((p, i) => p !== i)
+        if (at >= 0) refuseInvalid([{ table: 'rallies', id: rally.id, field: 'position', problem: `${at}: numbered 0 up with no gap in set ${rally.setId}` }])
+      }
+      const storedShots = await db.shots.bulkGet(shots.map((s) => s.id))
+      const foreign = storedShots.find((s) => s !== undefined && s.rallyId !== rally.id)
+      if (foreign) refuse('conflict', `shot ${foreign.id} belongs to rally ${foreign.rallyId}`)
       const oldShots = await db.shots.where('rallyId').equals(rally.id).primaryKeys()
       const keep = new Set(shots.map((s) => s.id))
       const gone = oldShots.filter((id) => !keep.has(id))
