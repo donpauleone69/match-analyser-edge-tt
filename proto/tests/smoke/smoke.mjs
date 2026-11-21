@@ -23,9 +23,9 @@ const PORT = 4318
 const BASE = `http://127.0.0.1:${PORT}`
 const DEFAULT_BASELINE = '/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/media/refactor/before'
 const PAGE_SCRIPTS = [
-  'v01723-tag-page.check.mjs',
-  'v01725-matches-page.check.mjs',
-  'v01726-insights-page.check.mjs',
+  'checks/v01723-tag-page.check.mjs',
+  'checks/v01725-matches-page.check.mjs',
+  'checks/v01726-insights-page.check.mjs',
 ]
 
 const smokeDir = path.dirname(fileURLToPath(import.meta.url))
@@ -148,7 +148,7 @@ async function openContext(vp) {
 
 function runPageScript(script) {
   return new Promise((resolve) => {
-    const child = spawn(process.execPath, [path.join(protoDir, 'scripts', script)], {
+    const child = spawn(process.execPath, [path.join(smokeDir, script)], {
       cwd: protoDir,
       env: { ...process.env, BASE },
       stdio: 'inherit',
