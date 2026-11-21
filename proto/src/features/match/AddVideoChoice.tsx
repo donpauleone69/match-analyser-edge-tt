@@ -1,6 +1,6 @@
 import { useRef, useState, type ChangeEvent } from 'react'
 import { Button, Icon } from '@/ui-mine'
-import { useDemo } from '@/data/demoStore'
+import { useMatchStore } from '@/stores/matchStore'
 import { cn } from '@/helpers/utils'
 
 /** Reads a local file's length without uploading or storing it. */
@@ -36,7 +36,7 @@ export function AddVideoChoice({
   /** The line under the buttons. Off on the compact empty state. */
   hint?: boolean
 }) {
-  const { addVideo } = useDemo()
+  const addVideo = useMatchStore((s) => s.addVideo)
   const input = useRef<HTMLInputElement>(null)
   const [state, setState] = useState<'idle' | 'reading' | 'failed'>('idle')
 

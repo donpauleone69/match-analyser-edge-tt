@@ -4,7 +4,7 @@ import { StickyChrome } from '@/layout/StickyChrome'
 import { WfEmpty } from '@/layout/Wireframe'
 import { Button, Icon } from '@/ui-mine'
 import { hasTaggedRallies } from '@/rules/match'
-import { useDemo } from '@/data/demoStore'
+import { useMatchStore } from '@/stores/matchStore'
 import type { MatchRecord, VideoAsset } from '@/types/match'
 import { InsightCard } from '@/features/insights/InsightCard'
 import { insightRules, insightsFor, type PlayItem } from '@/rules/insights'
@@ -354,7 +354,7 @@ function GlobalCards({ tagged }: { tagged: MatchRecord[] }) {
  * matches the filter keeps. Empty until some match has tagged rallies.
  */
 export function InsightsPage() {
-  const { matches } = useDemo()
+  const matches = useMatchStore((s) => s.matches)
   const tagged = matches.filter(hasTaggedRallies)
 
   return (

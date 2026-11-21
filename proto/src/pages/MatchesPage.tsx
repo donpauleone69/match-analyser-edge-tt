@@ -6,7 +6,7 @@ import { StickyChrome } from '@/layout/StickyChrome'
 import { WfEmpty } from '@/layout/Wireframe'
 import { formatMatchName, formatMatchRowLine, deriveMatchRowStatus } from '@/rules/matchStatus'
 import { derivePhase } from '@/rules/match'
-import { useDemo } from '@/data/demoStore'
+import { useMatchStore } from '@/stores/matchStore'
 import type { MatchRecord } from '@/types/match'
 import { filterChoices } from '@/rules/filters'
 import {
@@ -92,7 +92,8 @@ function MatchFilterPickers({
 
 export function MatchesPage() {
   const navigate = useNavigate()
-  const { matches, createMatch } = useDemo()
+  const matches = useMatchStore((s) => s.matches)
+  const createMatch = useMatchStore((s) => s.createMatch)
   const filters = useSettingsStore((s) => s.matchesFilters)
   const setFilters = useSettingsStore((s) => s.setMatchesFilters)
   const [open, setOpen] = useState(false)

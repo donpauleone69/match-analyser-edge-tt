@@ -1,5 +1,5 @@
 import { useEffect, useSyncExternalStore } from 'react'
-import { useDemo } from '@/data/demoStore'
+import { useMatchStore } from '@/stores/matchStore'
 
 export const ARCHIVE_STEPS = ['Making archive', 'Checking archive', 'Removing original'] as const
 const ARCHIVE_STEP_MS = 1100
@@ -57,15 +57,15 @@ export function useArchiveStep(matchId: string): number | null {
 /** Mounted once for the whole app: writes each finished archive to its match. */
 export function ArchiveRunner() {
   const all = useSyncExternalStore(subscribe, () => snapshot)
-  const { archiveVideos } = useDemo()
+  const setVideosArchived = useMatchStore((s) => s.setVideosArchived)
 
   useEffect(() => {
     for (const [matchId, step] of all) {
       if (step < ARCHIVE_STEPS.length) continue
-      archiveVideos(matchId)
+      setVideosArchived(matchId)
       clearArchive(matchId)
     }
-  }, [all, archiveVideos])
+  }, [all, setVideosArchived])
 
   return null
 }

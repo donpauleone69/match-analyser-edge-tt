@@ -174,5 +174,7 @@ export type { InsightsFilters } from '@/features/insights/models'
 
 // -> @/data/seed
 export { emptySet } from '@/rules/match'
-export { SEED } from '@/data/demoStore'
 export { buildSeed, isoDaysBefore } from '@/data/seed/buildSeed'
+
+// -> @/stores/matchStore
+export { SEED, createMatchStore, selectMatch } from '@/stores/matchStore'

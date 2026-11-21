@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
-import { useDemo } from '@/data/demoStore'
+import { useMatchStore } from '@/stores/matchStore'
 
 /**
  * A new match nobody filled in is discarded as soon as it is left, however it
@@ -8,7 +8,7 @@ import { useDemo } from '@/data/demoStore'
  */
 export function DiscardUntouched() {
   const { pathname } = useLocation()
-  const { removeUntouchedMatches } = useDemo()
+  const removeUntouchedMatches = useMatchStore((s) => s.removeUntouchedMatches)
   const openId = pathname.match(/^\/matches\/([^/]+)/)?.[1]
 
   useEffect(() => {

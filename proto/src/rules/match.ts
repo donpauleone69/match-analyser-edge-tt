@@ -277,3 +277,31 @@ export function isUntouched(match: MatchRecord): boolean {
     )
   )
 }
+
+/** The seed with deleted ones dropped and changed ones swapped in, then the created ones. */
+export function mergeMatches(seed: MatchRecord[], extra: MatchRecord[], deleted: string[]): MatchRecord[] {
+  const seedIds = new Set(seed.map((s) => s.id))
+  const overrides = new Map(extra.map((m) => [m.id, m]))
+  const merged = seed.filter((s) => !deleted.includes(s.id)).map(
+    (s) => overrides.get(s.id) ?? s
+  )
+  const onlyExtra = extra.filter((m) => !seedIds.has(m.id))
+  return [...merged, ...onlyExtra].map(normalizeMatch)
+}
+
+/**
+ * Newest first, with no date sorting as newest. On the same date a created
+ * match comes before a seed, and the latest created comes first.
+ */
+export function sortNewestFirst(list: MatchRecord[], seedIds: ReadonlySet<string>): MatchRecord[] {
+  const at = new Map(list.map((m, i) => [m.id, i]))
+  const index = (m: MatchRecord) => at.get(m.id) ?? 0
+  return [...list].sort((a, b) => {
+    if (a.date !== b.date) {
+      if (!a.date || !b.date) return a.date ? 1 : -1
+      return b.date.localeCompare(a.date)
+    }
+    const created = !seedIds.has(a.id) || !seedIds.has(b.id)
+    return created ? index(b) - index(a) : index(a) - index(b)
+  })
+}

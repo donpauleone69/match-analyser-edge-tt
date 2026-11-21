@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { derivePhase, hasTaggedRallies } from '@/rules/match'
-import { useDemo } from '@/data/demoStore'
+import { useMatchRecord, useMatchStore } from '@/stores/matchStore'
 import { WfEmpty } from '@/layout/Wireframe'
 import { Button } from '@/ui-mine'
 import { InsightCard } from './InsightCard'
@@ -18,9 +18,9 @@ type Playing = {
 /** Match Insights: five cards from the saved rallies, then marked parts. */
 export function MatchInsights() {
   const { matchId = '' } = useParams()
-  const { matches, getMatch } = useDemo()
+  const matches = useMatchStore((s) => s.matches)
+  const match = useMatchRecord(matchId)
   const navigate = useNavigate()
-  const match = getMatch(matchId)
   const usualFrom = useMemo(
     () => matches.filter((row) => hasTaggedRallies(row) && row.id !== matchId),
     [matches, matchId],

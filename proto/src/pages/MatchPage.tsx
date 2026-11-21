@@ -3,14 +3,13 @@ import { PageHeader } from '@/layout/PageHeader'
 import { StickyChrome } from '@/layout/StickyChrome'
 import { WfEmpty } from '@/layout/Wireframe'
 import { deriveDefaultMatchTab, derivePhase } from '@/rules/match'
-import { useDemo } from '@/data/demoStore'
+import { useMatchRecord } from '@/stores/matchStore'
 import { matchDiffers, formatMatchName } from '@/rules/matchStatus'
 
 export function MatchPage() {
   const { matchId = '' } = useParams()
-  const { getMatch } = useDemo()
+  const match = useMatchRecord(matchId)
   const onSetView = Boolean(useMatch('/matches/:matchId/tag/:setId'))
-  const match = getMatch(matchId)
   const base = `/matches/${matchId}`
 
   if (!match) {
@@ -58,8 +57,7 @@ export function MatchPage() {
 
 export function MatchIndexRedirect() {
   const { matchId = '' } = useParams()
-  const { getMatch } = useDemo()
-  const match = getMatch(matchId)
+  const match = useMatchRecord(matchId)
   if (!match) return <Navigate to="/matches" replace />
   const tab = deriveDefaultMatchTab(derivePhase(match))
   return <Navigate to={`/matches/${matchId}/${tab}`} replace />

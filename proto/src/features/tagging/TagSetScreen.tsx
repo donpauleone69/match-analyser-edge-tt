@@ -3,7 +3,7 @@ import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-route
 import { Button, Icon } from '@/ui-mine'
 import { WfEmpty } from '@/layout/Wireframe'
 import { emptySet, formatScore, calculateMatchSetsWon, calculateTaggedScore } from '@/rules/match'
-import { useDemo } from '@/data/demoStore'
+import { useMatchRecord, useMatchStore } from '@/stores/matchStore'
 import type { MatchRecord, Points, SetData } from '@/types/match'
 import type { BestPart, Draft, Mark, RallyData, Side, Stage, Wing } from '@/types/rally'
 import { SERVE_AFTER_S, SERVE_BEFORE_S, serveBands, expectedServer, leaveIds } from '@/rules/continuity'
@@ -105,8 +105,7 @@ export function TagSetScreen() {
   const navigate = useNavigate()
   const location = useLocation()
   const { matchId = '', setId = '1' } = useParams()
-  const { getMatch } = useDemo()
-  const match = getMatch(matchId)
+  const match = useMatchRecord(matchId)
   const lock = useTagLock(matchId, match)
   const n = Number(setId)
   // A set number not listed yet (a skipped set 1, say) can still be started. It is added on its first write.
@@ -189,7 +188,7 @@ function TagSet({
   const navigate = useNavigate()
   /** The address no longer picks a flow. Every rally is Best + FA. */
   const flowWanted: FlowName = 'bestfa'
-  const { mutateMatch } = useDemo()
+  const mutateMatch = useMatchStore((s) => s.mutateMatch)
   const player = usePlayer(match.videos)
   const playerRef = useRef(player)
   const segs = player.segs

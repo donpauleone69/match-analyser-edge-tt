@@ -19,7 +19,7 @@ import {
   deriveSetState,
   calculateTaggedScore,
 } from '@/rules/match'
-import { useDemo } from '@/data/demoStore'
+import { useMatchRecord, useMatchStore } from '@/stores/matchStore'
 import type { MatchRecord, MatchResult, SetData } from '@/types/match'
 import { applyTaggedScore, applyTaggedScores } from '@/rules/matchOps'
 import { useArchiveStep } from '@/features/match/archiveJobs'
@@ -47,8 +47,7 @@ const noteRowClass =
 /** Details: who and when, then result and set scores as one area. Videos live on Tag. */
 export function MatchDetails() {
   const { matchId = '' } = useParams()
-  const { getMatch } = useDemo()
-  const match = getMatch(matchId)
+  const match = useMatchRecord(matchId)
   if (!match) return null
 
   return (
@@ -65,7 +64,7 @@ export function MatchDetails() {
 }
 
 function MatchFieldsCard({ match }: { match: MatchRecord }) {
-  const { updateMatch } = useDemo()
+  const updateMatch = useMatchStore((s) => s.updateMatch)
   return (
     <Card className="space-y-3">
       <CardTitle>Match</CardTitle>
@@ -243,7 +242,9 @@ function setList(sets: SetData[]): string {
  * the set scores.
  */
 function ResultCard({ match }: { match: MatchRecord }) {
-  const { setResult, setEnteredScore, mutateMatch } = useDemo()
+  const setResult = useMatchStore((s) => s.setResult)
+  const setEnteredScore = useMatchStore((s) => s.setEnteredScore)
+  const mutateMatch = useMatchStore((s) => s.mutateMatch)
   const count = calculateResultSetCount(match)
   const lastTagged = deriveLastTaggedSetId(match)
   const differing = match.sets.filter(setScoresDiffer).length
@@ -421,7 +422,7 @@ function ResultCard({ match }: { match: MatchRecord }) {
 
 function DeleteMatch({ match }: { match: MatchRecord }) {
   const navigate = useNavigate()
-  const { deleteMatch } = useDemo()
+  const deleteMatch = useMatchStore((s) => s.deleteMatch)
   const [confirming, setConfirming] = useState(false)
   const archiving = useArchiveStep(match.id) !== null
 

@@ -1,6 +1,5 @@
 {
   "entries": [
-    { "rule": "data-layer", "file": "src/data/demoStore.tsx" },
     { "rule": "thin-pages", "file": "src/pages/AccountPage.tsx" },
     { "rule": "thin-pages", "file": "src/pages/InsightsPage.tsx" },
     { "rule": "thin-pages", "file": "src/pages/MatchesPage.tsx" },
