@@ -18,10 +18,10 @@ import {
   setScoresDiffer,
   setState,
   taggedScore,
-  useDemo,
-} from '@/data/demoStore'
+} from '@/rules/match'
+import { useDemo } from '@/data/demoStore'
 import type { MatchRecord, MatchResult, SetData } from '@/types/match'
-import { applyTaggedScore, applyTaggedScores } from '@/features/tagging/matchOps'
+import { applyTaggedScore, applyTaggedScores } from '@/rules/matchOps'
 import { useArchiveStep } from '@/features/match/archiveJobs'
 import {
   enteredScoresMissResult,
@@ -30,7 +30,7 @@ import {
   REAL_RESULTS,
   setsLostByResult,
   taggedResultReady,
-} from '@/features/match/matchChecks'
+} from '@/rules/matchStatus'
 import { cn } from '@/helpers/utils'
 
 const labelClass = 'text-xs font-semibold uppercase tracking-wide text-muted'

@@ -16,7 +16,7 @@ export {
   serverAt,
   setEndIndex,
   setOverOnRule,
-} from '@/features/tagging/score'
+} from '@/rules/score'
 export type { Points } from '@/types/match'
 
 // -> @/rules/rally
@@ -34,7 +34,7 @@ export {
   rallyStart,
   shotWindow,
   winnerOf,
-} from '@/features/tagging/rally'
+} from '@/rules/rally'
 export type { Draft, Ending, RallyData, ShotTags, Side } from '@/types/rally'
 
 // -> @/rules/best
@@ -51,8 +51,8 @@ export {
   routeAfter,
   setDepth,
   setWingStroke,
-} from '@/features/tagging/bestFlow'
-export type { BestEnd, BestPartSpan } from '@/features/tagging/bestFlow'
+} from '@/rules/bestFa'
+export type { BestEnd, BestPartSpan } from '@/rules/bestFa'
 export type { BestPart } from '@/types/rally'
 
 // -> @/rules/mark
@@ -76,7 +76,7 @@ export {
   videoMoveBreaks,
   videoStatus,
   wingLimits,
-} from '@/features/tagging/setMark'
+} from '@/rules/marks'
 
 // -> @/rules/match
 export {
@@ -88,7 +88,7 @@ export {
   saveMark,
   settleFinished,
   startSet,
-} from '@/features/tagging/matchOps'
+} from '@/rules/matchOps'
 
 // -> @/rules/continuity
 export {
@@ -98,41 +98,49 @@ export {
   openReview,
   pressReview,
   serveBands,
-} from '@/features/tagging/continuity'
-export type { ReviewPress, ServeRally } from '@/features/tagging/continuity'
+} from '@/rules/continuity'
+export type { ReviewPress, ServeRally } from '@/rules/continuity'
 
 // -> @/rules/input-modes
 export { overrunLabels, tagRegions } from '@/features/tagging/inputModes'
 
 // -> @/rules/timeline
-export { lastContactG, totalDuration } from '@/features/tagging/timeline'
+export { formatClock, insertIndex, lastContactG, segmentAt, totalDuration } from '@/rules/timeline'
 
 // -> @/rules/script
 export { tagsFromPlay } from '@/features/tagging/script'
 export type { ScriptRally } from '@/types/video'
 
 // -> @/rules/timeline
-export { firstContactG, segmentsOf, toGlobal } from '@/features/tagging/timeline'
+export { firstContactG, segmentsOf, toGlobal } from '@/rules/timeline'
 
 // -> @/rules/match
 export {
   defaultMatchTab,
   derivePhase,
+  formatScore,
+  formatSize,
   hasTaggedRallies,
   isArchived,
   isMatchTagged,
   isSpareSet,
+  isUntouched,
   matchSetsWon,
   matchTitle,
   missingVideoIds,
   parseEntered,
   resultDiffers,
+  resultSetCount,
+  setHasTagProgress,
+  setRalliesWithoutVideo,
   setScoresDiffer,
   setSettled,
   setState,
   taggedResult,
   taggedScore,
-} from '@/data/demoStore'
+  taggedSetIds,
+  todayDate,
+} from '@/rules/match'
 export type { MatchRecord, SetData, SetMark, VideoAsset } from '@/types/match'
 
 // -> @/rules/match
@@ -146,11 +154,11 @@ export {
   matchRowStatus,
   taggedResultReady,
   videoRallyCount,
-} from '@/features/match/matchChecks'
+} from '@/rules/matchStatus'
 
 // -> @/rules/insights
-export { gradeOf, insightRules, insightsFor, matchInsights, phaseOf } from '@/features/insights/insightCounts'
-export type { InsightCardModel, InsightRow } from '@/features/insights/insightCounts'
+export { gradeOf, insightRules, insightsFor, matchInsights, phaseOf } from '@/rules/insights'
+export type { InsightCardModel, InsightRow } from '@/rules/insights'
 
 // -> @/rules/filters
 export {
@@ -161,9 +169,10 @@ export {
   filterIsSet,
   filterMatches,
   migrateFilters,
-} from '@/features/insights/insightsFilterContext'
+} from '@/rules/filters'
 export type { InsightsFilters } from '@/features/insights/models'
 
 // -> @/data/seed
-export { emptySet, SEED } from '@/data/demoStore'
+export { emptySet } from '@/rules/match'
+export { SEED } from '@/data/demoStore'
 export { buildSeed, isoDaysBefore } from '@/data/buildSeed'

@@ -2,23 +2,24 @@
  * v0.17.28 demo seed. Fails on the first broken rule, naming the match, set and rally.
  * Run: npm run check:v01728-seed
  */
-import { SEED, derivePhase, matchSetsWon, setScoresDiffer } from '../src/data/demoStore'
-import { bestOpener, bestParts } from '../src/features/tagging/bestFlow'
-import { isError, winnerOf } from '../src/features/tagging/rally'
+import { derivePhase, matchSetsWon, setScoresDiffer } from '../src/rules/match'
+import { SEED } from '../src/data/demoStore'
+import { bestOpener, bestParts } from '../src/rules/bestFa'
+import { isError, winnerOf } from '../src/rules/rally'
 import type { MatchRecord, SetData } from '../src/types/match'
 import type { RallyData, ShotTags } from '../src/types/rally'
-import { phaseOf } from '../src/features/insights/insightCounts'
+import { phaseOf } from '../src/rules/insights'
 import {
   countPoints,
   firstServerForSet,
   isLegalEnd,
   serverAt,
   setOverOnRule,
-} from '../src/features/tagging/score'
-import { endedEarly, gapsOf, MIN_SET_S, rallyOutside, spansOnVideo } from '../src/features/tagging/setMark'
+} from '../src/rules/score'
+import { endedEarly, gapsOf, MIN_SET_S, rallyOutside, spansOnVideo } from '../src/rules/marks'
 import { tagsFromPlay } from '../src/features/tagging/script'
 import type { ScriptRally } from '../src/types/video'
-import { firstContactG, lastContactG, segmentsOf, toGlobal, totalDuration } from '../src/features/tagging/timeline'
+import { firstContactG, lastContactG, segmentsOf, toGlobal, totalDuration } from '../src/rules/timeline'
 
 const fails: string[] = []
 const say = (where: string, cond: boolean, detail = '') => {

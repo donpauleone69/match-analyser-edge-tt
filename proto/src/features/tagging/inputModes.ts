@@ -1,5 +1,5 @@
 import type { AreaRegion } from './models'
-import type { BestAt } from './bestFlow'
+import type { BestAt } from '@/rules/bestFa'
 
 const SLATE = '#334155'
 const BRAND = 'var(--color-brand-primary)'

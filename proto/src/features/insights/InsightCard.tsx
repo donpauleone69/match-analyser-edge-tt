@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { cn } from '@/helpers/utils'
 import { Icon } from '@/ui-mine'
-import type { Grade, InsightCardModel } from './insightCounts'
+import type { Grade, InsightCardModel } from '@/rules/insights'
 
 function gradeClass(grade: Grade | null | undefined): string {
   if (grade === 'Excellent' || grade === 'Good') return 'text-brand'

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { NORMAL_SPEED } from './rally'
-import { segmentAt, segmentsOf, totalDuration, type Segment } from './timeline'
+import { NORMAL_SPEED } from '@/rules/rally'
+import { segmentAt, segmentsOf, totalDuration, type Segment } from '@/rules/timeline'
 
 export type PlayerVideo = { id: string; kind: 'demo' | 'file'; durationS: number; src?: string }
 export type Window = { a: number; b: number; /** Seconds to hold the last frame before the loop repeats. */ hold?: number }

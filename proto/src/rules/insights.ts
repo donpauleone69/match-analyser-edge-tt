@@ -1,12 +1,11 @@
 /**
  * Match Insights counts. Pure: no React, no IO.
- * Named insightCounts so it can live next to MatchInsights.tsx.
  * One function of (rallies, player) builds each card for both sides.
  */
-import { derivePhase } from '@/data/demoStore'
-import { bestParts, partWindow } from '@/features/tagging/bestFlow'
-import { hitterOf, isAttackStroke, isError, rallyEnd, rallyStart } from '@/features/tagging/rally'
-import { leader, scoreAtSetEnd } from '@/features/tagging/score'
+import { derivePhase } from './match'
+import { bestParts, partWindow } from './bestFa'
+import { hitterOf, isAttackStroke, isError, rallyEnd, rallyStart } from './rally'
+import { leader, scoreAtSetEnd } from './score'
 import type { MatchRecord, Points, SetData } from '@/types/match'
 import type { BestPart, Draft, Ending, RallyData, ShotTags, Side } from '@/types/rally'
 

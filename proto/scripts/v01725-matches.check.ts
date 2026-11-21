@@ -2,7 +2,7 @@
  * v0.17.25 Matches row name, line and status.
  * Run: npm run check:v01725
  */
-import { emptySet } from '../src/data/demoStore'
+import { emptySet } from '../src/rules/match'
 import type { MatchRecord, SetData, VideoAsset } from '../src/types/match'
 import {
   formatMatchDate,
@@ -11,7 +11,7 @@ import {
   matchRowLine,
   matchRowStatus,
   taggedResultReady,
-} from '../src/features/match/matchChecks'
+} from '../src/rules/matchStatus'
 
 const fails: string[] = []
 const ok = (name: string, cond: boolean, detail = '') => {

@@ -1,5 +1,5 @@
 import type { MatchRecord, SetData, SetMark, VideoAsset } from '@/types/match'
-import { countPoints, isLegalEnd, isSetWon, leader, scoreAtSetEnd } from '@/features/tagging/score'
+import { countPoints, isLegalEnd, isSetWon, leader, scoreAtSetEnd } from './score'
 import {
   firstContactG,
   lastContactG,
@@ -8,7 +8,7 @@ import {
   toGlobal,
   totalDuration,
   type Segment,
-} from '@/features/tagging/timeline'
+} from './timeline'
 
 /** Old rallies grow a mark this far past the first and last contact. New marks have none. */
 export const MARK_PAD_S = 5

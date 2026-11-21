@@ -2,16 +2,11 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Button, Icon } from '@/ui-mine'
 import { WfEmpty } from '@/layout/Wireframe'
-import {
-  emptySet,
-  formatScore,
-  matchSetsWon,
-  taggedScore,
-  useDemo,
-} from '@/data/demoStore'
+import { emptySet, formatScore, matchSetsWon, taggedScore } from '@/rules/match'
+import { useDemo } from '@/data/demoStore'
 import type { MatchRecord, Points, SetData } from '@/types/match'
 import type { BestPart, Draft, Mark, RallyData, Side, Stage, Wing } from '@/types/rally'
-import { SERVE_AFTER_S, SERVE_BEFORE_S, serveBands, expectedServer, leaveIds } from './continuity'
+import { SERVE_AFTER_S, SERVE_BEFORE_S, serveBands, expectedServer, leaveIds } from '@/rules/continuity'
 import {
   deleteRally,
   dropAfter,
@@ -31,8 +26,8 @@ import {
   setFloorG,
   settleFinished,
   startSet,
-} from './matchOps'
-import { markBounds, markState } from './setMark'
+} from '@/rules/matchOps'
+import { markBounds, markState } from '@/rules/marks'
 import {
   CAPTURE_SPEED,
   CONTACT_IDLE_MS,
@@ -55,8 +50,8 @@ import {
   stageOf,
   winnerOf,
   undoContact,
-} from './rally'
-import { ZERO, addPoint, canSaveEarly, countPoints, isSetWon, setEndIndex, setOverOnRule } from './score'
+} from '@/rules/rally'
+import { ZERO, addPoint, canSaveEarly, countPoints, isSetWon, setEndIndex, setOverOnRule } from '@/rules/score'
 import { bestPadRegions, editRallyRegions } from './BestPanel'
 import { InputArea } from './InputArea'
 import { tagRegions } from './inputModes'
@@ -64,6 +59,7 @@ import { RallyZone } from './RallyZone'
 import type { RallyState } from './models'
 import { SetZone } from './SetZone'
 import { BestTimingControl } from './BestTimingControl'
+import { loadBestTiming, saveBestTiming } from '@/stores/bestTimingStorage'
 import {
   BEST_SHOT_RATE,
   bestAdvance,
@@ -79,7 +75,6 @@ import {
   carryBest,
   draftFromRally,
   editStopWindow,
-  loadBestTiming,
   PART_LABEL,
   partWindow,
   partsOf,
@@ -87,7 +82,6 @@ import {
   removeBestContact,
   reviewFocusOf,
   routeAfter,
-  saveBestTiming,
   setDepth,
   setWingStroke,
   stepEditStop,
@@ -98,10 +92,10 @@ import {
   type BestEnd,
   type BestLoopWhat,
   type BestTiming,
-} from './bestFlow'
+} from '@/rules/bestFa'
 import { useActionGuard, type ActionGuard } from './pressGuard'
 import { TAG_LOCK_LINE, useTagLock, type TagLock } from './tagLock'
-import { firstContactG, lastContactG, segmentAt, segmentsOf, toGlobal, type Segment } from './timeline'
+import { firstContactG, lastContactG, segmentAt, segmentsOf, toGlobal, type Segment } from '@/rules/timeline'
 import { usePlayer, type Window } from './usePlayer'
 import { PictureSeek, VideoStage } from './VideoStage'
 

@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { derivePhase, hasTaggedRallies, useDemo } from '@/data/demoStore'
+import { derivePhase, hasTaggedRallies } from '@/rules/match'
+import { useDemo } from '@/data/demoStore'
 import { WfEmpty } from '@/layout/Wireframe'
 import { Button } from '@/ui-mine'
 import { InsightCard } from './InsightCard'
-import { matchInsights, type PlayItem } from './insightCounts'
+import { matchInsights, type PlayItem } from '@/rules/insights'
 import { PlaylistPlayer } from './PlaylistPlayer'
 
 type Playing = {

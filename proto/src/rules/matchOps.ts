@@ -1,12 +1,12 @@
 /** Pure changes tagging makes to a match. Applied through the store's mutateMatch. */
 
-import { emptySet, resultSetCount, setScoresDiffer, taggedScore } from '@/data/demoStore'
+import { emptySet, resultSetCount, setScoresDiffer, taggedScore } from './match'
 import type { MatchRecord, Points, SetData, SetMark } from '@/types/match'
 import type { Draft, MarkKind, RallyData } from '@/types/rally'
 import { otherSide, pointRally, swapPlayers } from './rally'
 import { ZERO, addPoint, firstServerAt, isSetWon, scoreAtSetEnd, serverAt, setEndIndex } from './score'
 import { LONG_GAP_S, serveBands } from './continuity'
-import { endedEarly, markBounds } from './setMark'
+import { endedEarly, markBounds } from './marks'
 import { firstContactG, insertIndex, lastContactG, segmentsOf, toGlobal, type Segment } from './timeline'
 
 /** A set number that is not listed yet (a skipped set 1, say) is added when it is first written. */

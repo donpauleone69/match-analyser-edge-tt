@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import type { VideoAsset } from '@/types/match'
 import { PictureSeek, VideoStage } from '@/features/tagging/VideoStage'
-import { segmentsOf, toGlobal } from '@/features/tagging/timeline'
+import { segmentsOf, toGlobal } from '@/rules/timeline'
 import { usePlayer } from '@/features/tagging/usePlayer'
 import { Icon } from '@/ui-mine'
-import type { PlayItem } from './insightCounts'
+import type { PlayItem } from '@/rules/insights'
 
 const HOLD_MS = 500
 

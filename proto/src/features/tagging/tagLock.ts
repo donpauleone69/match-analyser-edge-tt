@@ -1,4 +1,4 @@
-import { isArchived } from '@/data/demoStore'
+import { isArchived } from '@/rules/match'
 import type { MatchRecord } from '@/types/match'
 import { useArchiveStep } from '@/features/match/archiveJobs'
 

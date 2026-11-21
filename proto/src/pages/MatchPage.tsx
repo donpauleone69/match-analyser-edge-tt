@@ -2,8 +2,9 @@ import { Navigate, Outlet, useMatch, useParams } from 'react-router-dom'
 import { PageHeader } from '@/layout/PageHeader'
 import { StickyChrome } from '@/layout/StickyChrome'
 import { WfEmpty } from '@/layout/Wireframe'
-import { defaultMatchTab, derivePhase, useDemo } from '@/data/demoStore'
-import { matchDiffers, matchName } from '@/features/match/matchChecks'
+import { defaultMatchTab, derivePhase } from '@/rules/match'
+import { useDemo } from '@/data/demoStore'
+import { matchDiffers, matchName } from '@/rules/matchStatus'
 
 export function MatchPage() {
   const { matchId = '' } = useParams()

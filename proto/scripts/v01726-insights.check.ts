@@ -2,8 +2,9 @@
  * v0.17.26 Match Insights counts.
  * Run: npm run check:v01726
  */
-import { SEED, emptySet } from '../src/data/demoStore'
-import { gradeOf, matchInsights, phaseOf, type InsightCardModel, type InsightRow } from '../src/features/insights/insightCounts'
+import { emptySet } from '../src/rules/match'
+import { SEED } from '../src/data/demoStore'
+import { gradeOf, matchInsights, phaseOf, type InsightCardModel, type InsightRow } from '../src/rules/insights'
 import type { MatchRecord } from '../src/types/match'
 import type { Ending, Side } from '../src/types/rally'
 

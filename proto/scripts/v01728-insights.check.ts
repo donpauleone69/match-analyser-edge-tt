@@ -2,15 +2,16 @@
  * v0.17.28 global Insights. Prints the pooled cards and checks the rules
  * that differ from a single match.
  */
-import { SEED, hasTaggedRallies } from '../src/data/demoStore'
+import { hasTaggedRallies } from '../src/rules/match'
+import { SEED } from '../src/data/demoStore'
 import type { MatchRecord } from '../src/types/match'
 import {
   insightRules,
   insightsFor,
   matchInsights,
   type InsightCardModel,
-} from '../src/features/insights/insightCounts'
-import { filterMatches, migrateFilters } from '../src/features/insights/insightsFilterContext'
+} from '../src/rules/insights'
+import { filterMatches, migrateFilters } from '../src/rules/filters'
 import type { InsightsFilters } from '../src/features/insights/models'
 
 const fails: string[] = []

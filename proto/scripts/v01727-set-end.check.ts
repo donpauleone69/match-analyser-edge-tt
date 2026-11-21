@@ -3,10 +3,10 @@
  * Run: npm run check:v01727
  */
 import { readFileSync } from 'node:fs'
-import { emptySet, isMatchTagged, matchSetsWon, setSettled } from '../src/data/demoStore'
+import { emptySet, isMatchTagged, matchSetsWon, setSettled } from '../src/rules/match'
 import type { MatchRecord, Points, SetData } from '../src/types/match'
 import { overrunLabels, tagRegions } from '../src/features/tagging/inputModes'
-import { settleFinished } from '../src/features/tagging/matchOps'
+import { settleFinished } from '../src/rules/matchOps'
 import type { Side } from '../src/types/rally'
 import {
   canSaveEarly,
@@ -15,8 +15,8 @@ import {
   isSetWon,
   setEndIndex,
   setOverOnRule,
-} from '../src/features/tagging/score'
-import { endedEarly, lineAction, setIncomplete, setLineLabel } from '../src/features/tagging/setMark'
+} from '../src/rules/score'
+import { endedEarly, lineAction, setIncomplete, setLineLabel } from '../src/rules/marks'
 
 const fails: string[] = []
 const ok = (name: string, cond: boolean, detail = '') => {

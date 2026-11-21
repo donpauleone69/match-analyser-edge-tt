@@ -12,10 +12,10 @@ import {
   resultSetCount,
   setScoresDiffer,
   setSettled,
-} from '@/data/demoStore'
+} from './match'
 import type { MatchRecord, MatchResult, Score, SetData } from '@/types/match'
-import { setInProgress } from '@/features/tagging/matchOps'
-import { setIncomplete } from '@/features/tagging/setMark'
+import { setInProgress } from './matchOps'
+import { setIncomplete } from './marks'
 
 /** Sets needed to win a best of 3, 5 or 7. */
 const SETS_TO_WIN = [2, 3, 4]

@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { emptySet, useDemo } from '@/data/demoStore'
+import { emptySet } from '@/rules/match'
+import { useDemo } from '@/data/demoStore'
 import type { MatchRecord, SetData, SetMark, VideoAsset } from '@/types/match'
-import { videoRallyCount } from '@/features/match/matchChecks'
-import { deleteTags, moveSet, unmarkSet } from '@/features/tagging/matchOps'
+import { videoRallyCount } from '@/rules/matchStatus'
+import { deleteTags, moveSet, unmarkSet } from '@/rules/matchOps'
 import {
   allowedMarkNumbers,
   clampWing,
@@ -17,8 +18,8 @@ import {
   spansOnVideo,
   wingLimits,
   type WingEdge,
-} from '@/features/tagging/setMark'
-import { formatClock, segmentsOf } from '@/features/tagging/timeline'
+} from '@/rules/marks'
+import { formatClock, segmentsOf } from '@/rules/timeline'
 import { cn } from '@/helpers/utils'
 import { Button, Card, CardTitle, Icon, buttonKindField, buttonKindTextLink } from '@/ui-mine'
 
