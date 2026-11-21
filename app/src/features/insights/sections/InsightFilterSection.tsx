@@ -2,8 +2,13 @@ import { useState, type ReactNode } from 'react'
 import { useMediaQuery } from '@/features/tagging/hooks/useMediaQuery'
 import { FilterButtonBlock } from '@/features/matches/blocks/FilterButtonBlock'
 import { FilterSheet } from '@/features/matches/blocks/FilterSheetBlock'
-import { DEFAULT_INSIGHTS_FILTERS, activeFilterLabels, type InsightsFilters } from '@/rules/filters'
-import type { MatchRecord } from '@/types/match'
+import {
+  DEFAULT_INSIGHTS_FILTERS,
+  activeFilterLabels,
+  resolveNameFilters,
+  type InsightsFilters,
+  type NameRef,
+} from '@/rules/filters'
 import { FilterPickersBlock } from '../blocks/FilterPickersBlock'
 
 function countInsightsActive(f: InsightsFilters): number {
@@ -19,20 +24,22 @@ function countInsightsActive(f: InsightsFilters): number {
  * away. Desktop: the pickers open in the page flow. Phone: a bottom sheet.
  */
 export function InsightFilterSection({
-  tagged,
   renderRow,
   filters,
   setFilters,
+  opponents,
+  events,
 }: {
-  tagged: MatchRecord[]
   renderRow: (end: ReactNode) => ReactNode
   filters: InsightsFilters
   setFilters: (filters: InsightsFilters) => void
+  opponents: readonly NameRef[]
+  events: readonly NameRef[]
 }) {
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState<InsightsFilters>(filters)
   const desktop = useMediaQuery('(min-width: 768px)', () => window.matchMedia('(min-width: 768px)').matches)
-  const active = activeFilterLabels(filters)
+  const active = activeFilterLabels(resolveNameFilters(filters, opponents, events))
   const n = countInsightsActive(filters)
 
   const apply = () => {
@@ -82,7 +89,9 @@ export function InsightFilterSection({
         desktop={desktop}
         desktopClass="mt-3 space-y-3 rounded-lg border border-border bg-bg-surface p-4"
         phoneClass="fixed inset-0 z-50"
-        pickers={() => <FilterPickersBlock draft={draft} setDraft={setDraft} tagged={tagged} />}
+        pickers={() => (
+          <FilterPickersBlock draft={draft} setDraft={setDraft} opponents={opponents} events={events} />
+        )}
       />
     </>
   )

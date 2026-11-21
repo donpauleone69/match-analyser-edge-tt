@@ -191,3 +191,14 @@ export function reseedDemo(db: MatchDb, seed: readonly MatchRecord[], opts: { no
 export function isEmpty(db: MatchDb): Promise<RepoResult<boolean>> {
   return run(async () => (await db.matches.count()) === 0)
 }
+
+/** Opponent and event rows, by name, for the filter lists. */
+export function loadNames(db: MatchDb): Promise<RepoResult<Pick<LoadedMatches, 'opponents' | 'events'>>> {
+  return run(async () => {
+    const byName = (a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name)
+    return {
+      opponents: (await db.opponents.toArray()).sort(byName),
+      events: (await db.events.toArray()).sort(byName),
+    }
+  })
+}

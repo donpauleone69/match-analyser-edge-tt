@@ -51,7 +51,8 @@ export function AddVideoSection({
       const durationS = await probeDuration(src)
       addVideo(matchId, {
         fileName: file.name,
-        sizeMb: Math.max(1, Math.round(file.size / 1_000_000)),
+        sizeMb: file.size / 1_000_000,
+        sizeBytes: file.size,
         durationS,
         src,
       })

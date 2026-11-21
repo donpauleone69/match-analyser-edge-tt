@@ -15,12 +15,13 @@ const THEME_KEY = 'proto-theme'
 const DEMO_MODE_KEY = 'proto-demo-mode'
 const BEST_TIMING_KEY = 'edge-tt.best-timing'
 const TEST_SPEED_KEY = 'proto-test-speed'
+const LAST_EXPORT_KEY = 'edge-tt.last-export'
 const MATCHES_FILTERS_KEY = 'proto-matches-filters'
 const INSIGHTS_FILTERS_KEY = 'proto-insights-filters'
 
 /** Every browser storage key this store reads. Old-storage cleanup must keep them. */
 export const SETTINGS_STORAGE_KEYS = {
-  local: [THEME_KEY, DEMO_MODE_KEY, BEST_TIMING_KEY, TEST_SPEED_KEY],
+  local: [THEME_KEY, DEMO_MODE_KEY, BEST_TIMING_KEY, TEST_SPEED_KEY, LAST_EXPORT_KEY],
   session: [MATCHES_FILTERS_KEY, INSIGHTS_FILTERS_KEY],
 } as const
 
@@ -108,6 +109,16 @@ function readBestTiming(): BestTiming {
 }
 
 /** Test-only clock speed: a number from 2 to 16 set before the page loads, otherwise 1. */
+function readLastExport(): number | null {
+  try {
+    const n = Number(localStorage.getItem(LAST_EXPORT_KEY))
+    if (Number.isFinite(n) && n > 0) return n
+  } catch {
+    /* ignore */
+  }
+  return null
+}
+
 function readTestSpeed(): number {
   try {
     const n = Number(localStorage.getItem(TEST_SPEED_KEY))
@@ -156,11 +167,14 @@ export type SettingsState = {
   insightsFilters: InsightsFilters
   /** No writer and no storage key until phase 10. */
   myHandedness: Handedness | null
+  /** When export last finished, or null when this device has never exported. */
+  lastExportAt: number | null
   setTheme: (theme: ThemeId) => void
   setDemoMode: (mode: DemoMode) => void
   setBestTiming: (timing: BestTiming) => void
   setMatchesFilters: (filters: MatchListFilters) => void
   setInsightsFilters: (filters: InsightsFilters) => void
+  setLastExportAt: (ms: number) => void
 }
 
 export const useSettingsStore = create<SettingsState>()((set) => ({
@@ -171,6 +185,7 @@ export const useSettingsStore = create<SettingsState>()((set) => ({
   matchesFilters: readMatchesFilters(),
   insightsFilters: readInsightsFilters(),
   myHandedness: null,
+  lastExportAt: readLastExport(),
   setTheme: (theme) => {
     set({ theme })
     write(local, THEME_KEY, theme)
@@ -190,5 +205,9 @@ export const useSettingsStore = create<SettingsState>()((set) => ({
   setInsightsFilters: (insightsFilters) => {
     set({ insightsFilters })
     write(session, INSIGHTS_FILTERS_KEY, JSON.stringify(insightsFilters))
+  },
+  setLastExportAt: (lastExportAt) => {
+    set({ lastExportAt })
+    write(local, LAST_EXPORT_KEY, String(lastExportAt))
   },
 }))

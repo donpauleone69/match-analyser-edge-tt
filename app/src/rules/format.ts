@@ -25,6 +25,28 @@ export function formatSize(sizeMb: number): string {
   return sizeMb >= 1000 ? `${(sizeMb / 1000).toFixed(1)} GB` : `${sizeMb} MB`
 }
 
+/** Storage estimate, short enough for one line. 10 GB, 4 MB, 12 KB or bytes. */
+export function formatBytes(bytes: number): string {
+  const abs = Math.abs(bytes)
+  if (abs >= 1_000_000_000) {
+    const gb = abs / 1_000_000_000
+    return `${gb >= 10 ? Math.round(gb) : gb.toFixed(1)} GB`
+  }
+  if (abs >= 1_000_000) return `${Math.round(abs / 1_000_000)} MB`
+  if (abs >= 1_000) return `${Math.round(abs / 1_000)} KB`
+  return `${Math.round(abs)} B`
+}
+
+/** When an export finished: "21 Nov, 15:04". The year is added when it is not this year. */
+export function formatExportWhen(ms: number, today = new Date()): string {
+  const date = new Date(ms)
+  const two = (n: number) => String(n).padStart(2, '0')
+  const iso = `${date.getFullYear()}-${two(date.getMonth() + 1)}-${two(date.getDate())}`
+  const hh = two(date.getHours())
+  const mm = two(date.getMinutes())
+  return `${formatMatchDate(iso, today)}, ${hh}:${mm}`
+}
+
 /** Days before today, as YYYY-MM-DD. Zero days is today. */
 export function isoDaysBefore(today: Date, days: number): string {
   const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - days)

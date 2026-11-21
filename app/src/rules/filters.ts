@@ -158,6 +158,43 @@ export function filterMatchList(matches: MatchRecord[], f: MatchListFilters): Ma
   })
 }
 
+export type NameRef = { id: string; name: string }
+
+function nameOf(rows: readonly NameRef[], value: string): string {
+  if (value === 'Any') return 'Any'
+  return rows.find((row) => row.id === value)?.name ?? rows.find((row) => row.name === value)?.name ?? value
+}
+
+function idOf(rows: readonly NameRef[], value: string): string {
+  if (value === 'Any' || value === '') return 'Any'
+  if (rows.some((row) => row.id === value)) return value
+  return rows.find((row) => row.name === value)?.id ?? 'Any'
+}
+
+/** The names `filterMatches` compares. A stored id becomes the row's name. */
+export function resolveNameFilters<T extends { opponent: string; event: string }>(
+  filters: T,
+  opponents: readonly NameRef[],
+  events: readonly NameRef[],
+): T {
+  return { ...filters, opponent: nameOf(opponents, filters.opponent), event: nameOf(events, filters.event) }
+}
+
+/**
+ * What the filter stores. A saved name from an older session becomes that
+ * row's id. A value that matches nothing becomes Any.
+ */
+export function idsForNameFilters<T extends { opponent: string; event: string }>(
+  filters: T,
+  opponents: readonly NameRef[],
+  events: readonly NameRef[],
+): T {
+  const opponent = idOf(opponents, filters.opponent)
+  const event = idOf(events, filters.event)
+  if (opponent === filters.opponent && event === filters.event) return filters
+  return { ...filters, opponent, event }
+}
+
 export function activeLabels(f: MatchListFilters): string[] {
   const out: string[] = []
   if (f.opponent !== 'Any') out.push(`Opponent: ${f.opponent}`)

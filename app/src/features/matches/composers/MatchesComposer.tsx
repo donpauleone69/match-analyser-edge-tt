@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Pressable, Icon } from '@/ui-mine'
 import { PageHeader } from '@/layout/PageHeader'
 import { StickyChrome } from '@/layout/StickyChrome'
+import { idsForNameFilters } from '@/rules/filters'
 import { useMatchStore } from '@/stores/matchStore'
 import {
   DEFAULT_MATCH_LIST_FILTERS as DEFAULT_FILTERS,
@@ -17,12 +18,19 @@ import { MatchListSection } from '../sections/MatchListSection'
 export function MatchesComposer() {
   const navigate = useNavigate()
   const matches = useMatchStore((s) => s.matches)
+  const opponents = useMatchStore((s) => s.opponents)
+  const events = useMatchStore((s) => s.events)
   const createMatch = useMatchStore((s) => s.createMatch)
   const filters = useSettingsStore((s) => s.matchesFilters)
   const setFilters = useSettingsStore((s) => s.setMatchesFilters)
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState<MatchListFilters>(filters)
-  const { shown, active, n, hasMatches } = useDeriveMatchList(matches, filters)
+  const { shown, active, n, hasMatches } = useDeriveMatchList(matches, filters, opponents, events)
+
+  useEffect(() => {
+    const next = idsForNameFilters(filters, opponents, events)
+    if (next !== filters) setFilters(next)
+  }, [filters, opponents, events, setFilters])
 
   useEffect(() => {
     if (open) setDraft(filters)
@@ -77,7 +85,8 @@ export function MatchesComposer() {
         hasMatches={hasMatches}
         draft={draft}
         setDraft={setDraft}
-        matches={matches}
+        opponents={opponents}
+        events={events}
         clear={clear}
         apply={apply}
         clearOne={clearOne}

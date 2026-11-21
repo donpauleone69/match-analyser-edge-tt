@@ -123,7 +123,7 @@ function videoRow(
     matchId,
     position,
     fileName: v.fileName,
-    sizeBytes: Math.round(v.sizeMb * BYTES_PER_MB),
+    sizeBytes: v.sizeBytes ?? Math.round(v.sizeMb * BYTES_PER_MB),
     durationS: v.durationS,
     lastModifiedMs: prev?.lastModifiedMs ?? null,
     fingerprint: prev?.fingerprint ?? null,
@@ -389,10 +389,16 @@ export function deriveRallyData(row: RallyRow, shots: readonly ShotRow[]): Rally
 }
 
 function videoAsset(row: VideoRow): VideoAsset {
+  const sizeMb = row.sizeBytes / BYTES_PER_MB
+  // An exact byte count that MB cannot round-trip (a real file) is kept.
+  // Seed and demo sizes are whole MB and must not gain a field: the round trip
+  // is compared as text.
+  const exact = Math.round(sizeMb * BYTES_PER_MB) === row.sizeBytes ? {} : { sizeBytes: row.sizeBytes }
   return {
     id: row.id,
     fileName: row.fileName,
-    sizeMb: row.sizeBytes / BYTES_PER_MB,
+    sizeMb,
+    ...exact,
     archived: row.archivedAt !== null,
     kind: row.demoScript ? 'demo' : 'file',
     durationS: row.durationS,

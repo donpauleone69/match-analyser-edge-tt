@@ -141,8 +141,10 @@ export type { MatchRecord, SetData, SetMark, VideoAsset } from '@/types/match'
 
 // -> @/rules/format
 export {
+  formatBytes,
   formatChipDate,
   formatClock,
+  formatExportWhen,
   formatMatchDate,
   formatScore,
   formatSize,
@@ -176,7 +178,9 @@ export {
   filterChoices,
   filterIsSet,
   filterMatches,
+  idsForNameFilters,
   migrateFilters,
+  resolveNameFilters,
 } from '@/rules/filters'
 export type { InsightsFilters } from '@/features/insights/models'
 

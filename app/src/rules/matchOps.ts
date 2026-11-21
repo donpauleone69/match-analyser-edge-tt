@@ -402,6 +402,14 @@ export const ARCHIVE_RATIO = 0.12
 export const archiveVideos = (m: MatchRecord): MatchRecord => ({
   ...m,
   videos: m.videos.map((v) =>
-    v.archived ? v : { ...v, archived: true, sizeMb: Math.round(v.sizeMb * ARCHIVE_RATIO) }
+    v.archived
+      ? v
+      : {
+          ...v,
+          archived: true,
+          sizeMb: Math.round(v.sizeMb * ARCHIVE_RATIO),
+          // The rounded MB is the stored size again. An exact file size would override it.
+          sizeBytes: undefined,
+        }
   ),
 })

@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { insightRules, insightsFor } from '@/rules/insights'
-import { filterIsSet, filterMatches, type InsightsFilters } from '@/rules/filters'
+import { filterIsSet, filterMatches, resolveNameFilters, type InsightsFilters, type NameRef } from '@/rules/filters'
 import type { MatchRecord, VideoAsset } from '@/types/match'
 
 function videosOf(matches: MatchRecord[]): VideoAsset[] {
@@ -16,12 +16,18 @@ function videosOf(matches: MatchRecord[]): VideoAsset[] {
   return out
 }
 
-export function useDeriveGlobalInsights(tagged: MatchRecord[], filters: InsightsFilters) {
-  const kept = useMemo(() => filterMatches(tagged, filters), [tagged, filters])
-  const opponent = filters.opponent === 'Any' ? '' : filters.opponent
+export function useDeriveGlobalInsights(
+  tagged: MatchRecord[],
+  filters: InsightsFilters,
+  opponents: readonly NameRef[],
+  events: readonly NameRef[],
+) {
+  const named = resolveNameFilters(filters, opponents, events)
+  const kept = useMemo(() => filterMatches(tagged, named), [tagged, named])
+  const opponent = named.opponent === 'Any' ? '' : named.opponent
   const model = useMemo(
-    () => insightsFor(kept, insightRules('global', opponent, filterIsSet(filters)), tagged),
-    [kept, opponent, filters, tagged],
+    () => insightsFor(kept, insightRules('global', opponent, filterIsSet(named)), tagged),
+    [kept, opponent, named, tagged],
   )
   const videos = useMemo(() => videosOf(kept), [kept])
   return { kept, model, videos }
