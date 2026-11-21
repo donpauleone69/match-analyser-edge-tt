@@ -5,7 +5,7 @@
 
 import type { Points } from '@/types/match'
 import type { BestPart, Ending, RallyData, ShotTags, Side, Wing } from '@/types/rally'
-import type { ScriptRally, ShotPlay, Spot, VideoScript } from '@/types/video'
+import type { Scene, ScriptRally, ShotPlay, Spot, VideoScript } from '@/types/video'
 import { bestParts } from '@/rules/bestFa'
 import {
   ATTACK_STROKES,
@@ -403,21 +403,6 @@ export function ralliesFromScript(
   count: number
 ): RallyData[] {
   return script.rallies.slice(from, from + count).map((s, i) => rallyFromScript(videoId, s, from + i))
-}
-
-export type Scene = {
-  /** Ball position in 0..1 of the picture. Null only after the last point. */
-  ball: { x: number; y: number; opacity: number; scale: number; attack: boolean } | null
-  /** Side whose bat is at the ball right now. */
-  hit: Side | null
-  /** Where each bat is. It goes to the ball, so it shows forehand or backhand. */
-  bats: Record<Side, Spot>
-  /** Where the ball has just landed. `age` is seconds since. */
-  marks: { x: number; y: number; age: number; floor: boolean }[]
-  /** Seconds since the ball hit the net, while it still shakes. */
-  net: number | null
-  label: string | null
-  setNo: number | null
 }
 
 const TOSS_S = 1

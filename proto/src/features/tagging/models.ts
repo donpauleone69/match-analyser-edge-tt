@@ -1,5 +1,8 @@
-import type { Points } from '@/types/match'
+import type { ReactNode } from 'react'
+import type { Points, VideoAsset } from '@/types/match'
 import type { Draft, Side } from '@/types/rally'
+import type { Scene, VideoScript } from '@/types/video'
+import type { Player } from './hooks/usePlayer'
 
 export type FlowName = 'bestfa'
 
@@ -47,3 +50,42 @@ export type RallyState = 'before' | 'gap' | 'insert' | 'tapping' | 'answering' |
 
 /** One rally on the seek bar, first contact to last. `on` is the rally being reviewed. */
 export type SeekSpan = { a: number; b: number; on?: boolean; likely?: boolean }
+
+export type SceneAt = (script: VideoScript, t: number) => Scene
+
+export type PictureSeekProps = {
+  /** Global times the bar covers. A set's mark, start to end. */
+  span: { a: number; b: number }
+  time: number
+  /** This set's rallies, first contact to last. */
+  spans: SeekSpan[]
+  /** A gap or the open rally, drawn as a warning band. */
+  band: { a: number; b: number } | null
+  onSeek: (g: number) => void
+  /** Edit Set: a tap picks the rally or gap under the finger. */
+  onPick?: (g: number) => void
+}
+
+export type VideoSectionProps = {
+  player: Player
+  videos: VideoAsset[]
+  names: Record<Side, string>
+  bug: { sets: Record<Side, number>; points: Record<Side, number>; server: Side | null; setId: number }
+  /** A few words over the picture, such as why a step back stopped short. */
+  hint: string | null
+  /** A toast on the picture. While it is up, it takes the hint's place. */
+  toast?: Toast | null
+  /** Seeks go through the screen so it can say why one stopped short. */
+  onSeek: (g: number) => void
+  /** Tapping: a jump forward would lose the rally being tapped. */
+  noForward?: boolean
+  onRate: (rate: number) => void
+  /** Last control in the playback row, after Mute. */
+  settings?: ReactNode
+  /** Top left of the picture, such as Back. The score sits to its right. */
+  leading?: ReactNode
+  /** The picture's seek bar. There is no other one. */
+  seek: ReactNode
+  className?: string
+  sceneAt: SceneAt
+}

@@ -91,7 +91,9 @@ import { useTagMessages } from './hooks/useTagMessages'
 import type { BestSavedRow, EditPick, FlowName, Gap, ShotEdit, StartPick, TagLock } from './models'
 import { firstContactG, lastContactG, segmentAt, segmentsOf } from '@/rules/timeline'
 import { usePlayer } from './hooks/usePlayer'
-import { PictureSeek, VideoStage } from './VideoStage'
+import { sceneAt } from '@/data/seed/script'
+import { PictureSeekBlock } from './blocks/PictureSeekBlock'
+import { VideoSection } from './sections/VideoSection'
 
 /** Route entry: checks the set can be shown, then mounts the tagger per set. */
 export function TagSetScreen() {
@@ -1682,7 +1684,8 @@ function TagSet({
       ) : null}
       <div className="tag-flow">
       <div className="tag-media">
-        <VideoStage
+        <VideoSection
+          sceneAt={sceneAt}
           player={player}
           videos={match.videos}
           names={names}
@@ -1710,7 +1713,7 @@ function TagSet({
               />
           }
           seek={
-            <PictureSeek
+            <PictureSeekBlock
               span={seekSpan}
               time={player.time}
               spans={seekSpans}

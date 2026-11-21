@@ -13,7 +13,9 @@ import type { Side } from '@/types/rally'
 import { lineAction, markBounds, newMarkAt, setIncomplete, videoMoveBreaks, type WingEdge } from '@/rules/marks'
 import { useActionGuard } from '@/features/tagging/hooks/useActionGuard'
 import { TAG_LOCK_LINE, useTagLock } from '@/features/tagging/hooks/useTagLock'
-import { PictureSeek, VideoStage } from '@/features/tagging/VideoStage'
+import { sceneAt } from '@/data/seed/script'
+import { PictureSeekBlock } from '@/features/tagging/blocks/PictureSeekBlock'
+import { VideoSection } from '@/features/tagging/sections/VideoSection'
 import { segmentsOf } from '@/rules/timeline'
 import { usePlayer } from '@/features/tagging/hooks/usePlayer'
 
@@ -192,7 +194,8 @@ export function MatchTagChecklist() {
         : null}
       {seg ? (
         <div className="tag-preview sticky z-10 bg-bg-app" style={{ top: stick }} data-preview-player>
-          <VideoStage
+          <VideoSection
+            sceneAt={sceneAt}
             player={player}
             videos={match.videos}
             names={names}
@@ -201,7 +204,7 @@ export function MatchTagChecklist() {
             onSeek={(g) => player.seek(g)}
             onRate={player.setRate}
             seek={
-              <PictureSeek
+              <PictureSeekBlock
                 span={{ a: seg.offset, b: seg.offset + seg.duration }}
                 time={player.time}
                 spans={[]}

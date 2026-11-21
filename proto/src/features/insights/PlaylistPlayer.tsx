@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import type { VideoAsset } from '@/types/match'
-import { PictureSeek, VideoStage } from '@/features/tagging/VideoStage'
+import { sceneAt } from '@/data/seed/script'
+import { PictureSeekBlock } from '@/features/tagging/blocks/PictureSeekBlock'
+import { VideoSection } from '@/features/tagging/sections/VideoSection'
 import { segmentsOf, toGlobal } from '@/rules/timeline'
 import { usePlayer } from '@/features/tagging/hooks/usePlayer'
 import { Icon } from '@/ui-mine'
@@ -115,7 +117,8 @@ export function PlaylistPlayer({
 
   return (
     <div className="insights-player bg-bg-app">
-      <VideoStage
+      <VideoSection
+        sceneAt={sceneAt}
         player={stage}
         videos={videos}
         names={names}
@@ -131,7 +134,7 @@ export function PlaylistPlayer({
         }}
         onRate={(rate) => player.setRate(rate)}
         seek={
-          <PictureSeek
+          <PictureSeekBlock
             span={span}
             time={player.time}
             spans={[{ a: span.a, b: span.b, on: true }]}
