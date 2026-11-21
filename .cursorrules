@@ -1,147 +1,132 @@
-# Edge TT Match Analyser — Cursor Rules
+# Edge TT Match Analyser: agent rules
 
-## Project Identity
+Table tennis match video tagging and analysis. Not the same project as "Edge TT" (the club session app).
 
-- **Project Name:** Edge TT Match Analyser
-- **NOT** the same as "Edge TT" (club session management app) — these are separate projects
-- **Purpose:** Table tennis match video tagging and analysis tool
-- **Stack:** Vite + React 19 + TypeScript + Zustand + Dexie + Tailwind CSS
+## Project
 
----
+- The product is `proto/`. Phase 5 of the refactor deletes the old `app/` (restorable from tag `pre-refactor-v0.17.28`) and renames `proto/` to `app/`; until then the old `app/` is a reference only, do not edit it. Paths below are under `proto/`.
+- Stack: Vite 7, React 19, React Router 7, Tailwind 4, TypeScript 5.9, Vitest. Zustand for state (from phase 3), Dexie for the on-device database (from phase 8).
+- Install and run in `proto/`: `npm install --legacy-peer-deps`, then `npm run dev` (port 5174).
+- Local only, nothing uploaded. Video is a local file (blob URL) or the demo stand-in; from phase 8 it is copied onto the device (OPFS), with a re-pick when missing.
+- What persists: device preferences (theme, demo mode, Best timing, filters, test speed) already persist in `localStorage` and `sessionStorage`, and must keep persisting; phase 3 moves them into `settingsStore`, whose actions write the storage (no Zustand persist middleware). Match data lives in memory and resets on reload until phase 8 stores it in Dexie.
 
-## Folder Structure
+## Folders (`src/`)
 
 ```
-app/src/
-  pages/              # Route components (thin, import Composers)
-  features/           # Feature-specific UI & orchestration
-    <feature>/
-      composers/      # Route-level composition
-      sections/       # Page sections (larger UI regions)
-      blocks/         # Smaller UI units (presentational)
-      derive/         # View model derivation hooks
-      models.ts       # View model types
-  rules/              # Pure domain logic (NO React, NO IO)
-  stores/             # Zustand stores
-  ui-mine/            # Shared UI kit (folder-per-component)
-  components/
-    ui/               # shadcn primitives (NEVER import in features)
-    layout/           # AppShell, Sidebar
-  helpers/            # Pure utilities
-  styles/             # Global CSS, theme
+pages/          one thin file per route: reads params, renders a composer
+features/<feature>/
+  composers/    <Thing>Composer.tsx: reads stores, calls derive hooks, passes actions down
+  sections/     <Thing>Section.tsx: a screen region; view models and callbacks via props
+  blocks/       <Thing>Block.tsx: presentational; props in, JSX out
+  derive/       derive<Thing>.ts exporting useDerive<Thing>(): view models from state
+  hooks/        use<Thing>.ts: stateful UI hooks that are not view models (player, guards)
+  models.ts     view model types
+rules/          pure domain logic, one module per topic
+types/          shared domain types and the fixed vocabularies that define them
+stores/         Zustand stores and their actions
+data/           seed/ (demo matches, demo script); database and repositories (phase 8)
+ui-mine/        shared UI kit, one folder per component; the only home of shadcn and lucide
+layout/         AppShell, PageHeader, StickyChrome
+theme/          ThemeProvider and tokens
+helpers/        pure utilities (cn)
 ```
 
----
+## Target map (phase 3 builds to this)
 
-## Naming Conventions
+Names are the target; a builder may adjust a name but keeps the layer. `App.tsx` routes only to pages, so the match tabs and the Set Tagger get pages too (`MatchInsightsPage`, `MatchDetailsPage`, `MatchTagPage`, `TagSetPage`).
 
-### Components
-- Composers: `<Thing>Composer.tsx` → `TaggingScreenComposer.tsx`
-- Sections: `<Thing>Section.tsx` → `MatchPanelSection.tsx`
-- Blocks: `<Thing>Block.tsx` → `RallyPodBlock.tsx`
+- **tagging** (Set Tagger, `/matches/:id/tag/:setId`)
+  - `composers/TagSetComposer.tsx` from `TagSetScreen.tsx`
+  - `sections/VideoSection.tsx` (VideoStage, PictureSeek, demo stand-in), `RallyZoneSection.tsx`, `SetZoneSection.tsx`, `InputAreaSection.tsx` (InputArea and the `inputModes` regions), `BestPanelSection.tsx` (Best pad and edit rally regions)
+  - `blocks/`: `ShotCellBlock`, `PartLabelBlock`, `ZoneButtonBlock`, `BestTimingBlock` (from `BestTimingControl.tsx`)
+  - `derive/`: `deriveRallyZone`, `deriveSetZone`, `deriveInputArea`, `deriveBestPanel`
+  - `hooks/`: `usePlayer`, `useActionGuard` (from `pressGuard.ts`), `useTagLock` (from `tagLock.ts`), `useLandscape`
+  - `models.ts`: `RallyState`, `AreaRegion`
+- **match** (match hub `/matches/:id`)
+  - `composers/MatchHubComposer.tsx` (header, tabs, opening tab; from `MatchPage.tsx`), `MatchDetailsComposer.tsx`, `MatchTagComposer.tsx` (from `MatchTagChecklist.tsx`)
+  - `sections/ResultSection.tsx` (result and set scores), `MatchFieldsSection.tsx`, `TagVideoSection.tsx` (from `TagVideoCard.tsx`), `AddVideoSection.tsx` (from `AddVideoChoice.tsx`)
+  - `blocks/`: `ScoreInputBlock`, `ResultSelectBlock`, `TaggedCellBlock`, `ConfirmBlock`
+  - archive job state (`archiveJobs.tsx`) moves into `matchStore`
+- **matches** (`/matches`): `composers/MatchesComposer.tsx`, `sections/MatchFilterSection.tsx`, `sections/MatchListSection.tsx`, `blocks/MatchRowBlock.tsx`
+- **insights** (`/insights` and the match Insights tab): `composers/InsightsComposer.tsx` (global), `composers/MatchInsightsComposer.tsx`, `sections/InsightFilterSection.tsx`, `sections/InsightCardsSection.tsx`, `sections/PlaylistSection.tsx` (from `PlaylistPlayer.tsx`), `blocks/InsightCardBlock.tsx`
+- **account** (`/` gate and `/account`): `composers/GateComposer.tsx`, `composers/AccountComposer.tsx`, sections for profile, demo data and theme
+- **rules/**: `score`, `rally`, `bestFa` (from `bestFlow.ts`, without its storage), `continuity`, `marks` (from `setMark.ts`), `matchOps`, `match` (the `demoStore.tsx` functions), `matchStatus` (from `matchChecks.ts`), `timeline`, `insights` (from `insightCounts.ts`), `filters` (the pure part of `insightsFilterContext.tsx`)
+- **types/**: `match.ts` (MatchRecord, SetData, SetMark, VideoAsset and the rest of `demoStore.tsx`), `rally.ts`
+- **stores/**: `matchStore.ts` (replaces `DemoProvider`), `settingsStore.ts` (theme, demo mode, Best timing, filters, test speed)
+- **data/seed/**: `buildSeed.ts`, `script.ts`
 
-### Hooks
-- Derive: `derive<Thing>.ts` → exports `useDerive<Thing>()`
+## Naming
 
-### Rules (pure functions)
-- Calculate: `calculate<Thing>()` → `calculateServer()`
-- Derive: `derive<Thing>()` → `deriveEndOfPoint()`
-- Validate: `validate<Thing>()` → `validateShot()`
+- Pages `<Thing>Page.tsx`, composers `<Thing>Composer.tsx`, sections `<Thing>Section.tsx`, blocks `<Thing>Block.tsx`.
+- Hooks: `derive/derive<Thing>.ts` exports `useDerive<Thing>()`; `hooks/use<Thing>.ts` exports `use<Thing>()`.
+- Rules: `calculate<Thing>()` for counts and scores, `derive<Thing>()` for state worked out from tags, `validate<Thing>()` for checks. Predicates (`is<Thing>`, `has<Thing>`) and formatters (`format<Thing>`) keep those prefixes.
+- Store actions: `add<Thing>`, `update<Thing>`, `set<Thing>`, `remove<Thing>`, `toggle<Thing>`.
 
-### Store Actions
-- Create: `add<Thing>`, `create<Thing>`
-- Update: `update<Thing>`, `set<Thing>`
-- Delete: `delete<Thing>`, `remove<Thing>`
-- Toggle: `toggle<Thing>`
+## Layers
 
----
+- **pages/**: thin. No store, data or storage imports; render a composer.
+- **features/**: only composers read stores and call actions. Sections and blocks never import `@/stores` or `@/data`.
+- **rules/**: pure TypeScript, no `.tsx`. No React, router, Zustand, Dexie, stores, data, features, pages, layout or ui-mine imports. No `window`, `document`, `navigator`, storage or `fetch`. Same inputs, same output; a default `today` parameter is the only clock read.
+- **types/**: types and fixed vocabularies only, no functions.
+- **stores/**: Zustand `create` without persist middleware. Actions are the only way to change state: an action reads state, runs a pure `rules/` op and sets the result (the `mutateMatch(fn)` pattern). Actions do not throw. Device preferences live in `settingsStore`, which reads browser storage on start and writes it in its actions. From phase 8 `matchStore` loads and saves through the `data/` repositories. No `.tsx`, no feature, page, layout or ui-mine imports.
+- **data/**: plain TypeScript; no React, Zustand, stores, features, pages, layout or ui-mine. The seed is deterministic for a given today. From phase 8: Dexie, `schemaVersion` 1, additive upgrades only; repositories; a rally and its shots save in one transaction.
+- **Storage** (`localStorage`, `sessionStorage`, `indexedDB`) is used only in `stores/` and `data/`.
+- **ui-mine/**: visual only. One folder per component (`<Component>/<Component>.tsx`, its prop types in `<Component>/types.ts`, `<Component>/index.ts`). The only place that imports `lucide-react` or shadcn primitives; features import from `@/ui-mine`.
+- No types exported from `.tsx` files: use `models.ts`, `types/` or the component's `types.ts`.
+- Imports across folders use `@/` aliases (`@/rules/score`, `@/stores/matchStore`). Relative imports stay inside one feature or one top-level folder.
 
-## Import Rules
+## Tests (`tests/`, Vitest)
 
-- Features import from `@/ui-mine`, NEVER from `@/components/ui`
-- Features NEVER import `lucide-react` directly — use `@/ui-mine/Icon`
-- Use path aliases: `@/features/...`, `@/rules/...`, `@/ui-mine/...`, `@/stores/...`
+- `tests/lib/app.ts` is the only test file that imports app code. When code moves or is renamed, edit only this shim and alias the old name.
+- One test file per rules module: `tests/rules/<module>.test.ts` (camelCase or kebab-case), importing through `tests/lib/app.ts`.
+- `tests/invariants/` checks invariants I-1 to I-57 over the seed. `tests/golden/` pins every derived output as JSON. `tests/smoke/` screenshots every route at 393x660 and 1440x912 plus a six rally tagging run, compared to the baseline at 0 differing pixels.
+- Never loosen a test, re-baseline golden files (`UPDATE_GOLDEN=1`) or smoke screenshots unless the change is named and agreed.
+- `scripts/check-rules.mjs` enforces the layer rules above. Each new rule gets a bad and a good fixture in `tests/rules-check/fixtures/`. `scripts/rules-allowlist.json` only shrinks: never add an entry.
 
----
+## Gate (required before merge, run in `proto/`)
 
-## Code Rules
+1. `npm run build`
+2. `npm test`
+3. `npm run check:rules`
+4. `npm run smoke`
 
-### `rules/` Layer
-- Pure functions only — NO React, NO IO, NO side effects
-- Deterministic: same inputs → same outputs
-- These are the heart of domain logic
+Also look at changed surfaces in a real browser. Lint is not a gate.
 
-### `features/` Layer
-- Composers access stores and call derive hooks
-- Sections receive view models via props
-- Blocks are presentational only (props in → JSX out, no store access)
+## Domain
 
-### `stores/` Layer
-- Zustand with persist middleware (localStorage)
-- Actions are the only way to modify state
-- Actions should not throw — handle errors gracefully
+- Two jobs: tag a match, and see insights and reels from the tags (one match or all matches).
+- Nav: Matches, Insights, Account (bottom bar on phone, top bar on desktop). The Gate (`/`) is a login stub.
+- **Match hub** `/matches/:id`: tabs Insights, Details, Tag. A new match opens straight into the hub (no Create page). A match opens on Tag until it is fully tagged, then on Insights.
+- **Tag**: the match's videos (one ordered list, no mapping of sets to videos) and a per-set checklist. Each set has one set mark (its start and end on the videos). A set opens the Set Tagger.
+- **Best + FA** (FA is first attack), the tagging flow in the Set Tagger: tap each contact (Space taps), an idle of 2 s closes the rally, then one question per screen in contact order: who served (rally 1 only), Serve, each later shot (wing BH or FH, Attack or Control), End (Winner, Net, Long, Wide). Point to is asked only when the winner cannot be worked out, and never on rally 1. The last answer saves.
+- **Stored** (what the user did): taps, answers, the rally's server as tagged, the user's point call (`winner`), typed scores and result, set marks, nudged rally start and end, review parts, continuity marks left.
+- **Derived, never stored**: hitter, score, expected server, first attack, parts (Opening, Attack, Rally, End), set and match state, sets won, tagged result, the Differs flag, coverage, reels and insight stats, "Check the point". The score is counted from the stored rally winners.
+- Tagging tolerates mistakes: the server comes from the score but is easy to switch; continuity marks highlight what does not add up and never fix it. Lets are dropped. A rally starts 2 s before the serve contact. A tap within 150 ms of the last contact is ignored.
+- **Details**: the result and set scores as one area. The result sets the set count (3 - 2 means 5 sets); a mismatch with tagging is flagged (Differs).
+- **Insights**: one screen at two scopes, the match Insights tab and global `/insights` (with a Filter: opponent, event, dates). The same cards at both scopes, each with a reel to play and download. The word "clip" is not used in Tag.
+- Demo data: 14 seed matches, deterministic for a given today; from phase 8 in its own database, switched in Account.
 
-### `ui-mine/` Layer
-- Visual components only — no domain logic, no IO
-- Folder-per-component structure
-- Can use shadcn primitives and lucide internally
+## Working rules
 
----
+- Read a file before editing it. Check this file and the docs below before a structural or type change.
+- Build only what was asked; raise anything else as a suggestion.
+- No new npm dependency without asking. No folders outside the map above. No doc files unless asked; docs are short and written for agents.
+- Domain logic goes in `rules/`, never in components.
+- UI copy is thin, with no forward arrows and no long dashes.
+- The version shown top right comes from `src/version.ts`.
+- Record user-visible changes in the PR body, and from phase 6 in `docs/CHANGELOG.md` (phase 6).
 
-## Before Making Changes
+## Docs
 
-- Read existing code in a file before editing it
-- Check `Architecture.md` before proposing structural changes
-- Check `DataSchema.md` before modifying types or store fields
-- Check `specAddendumMVP.md` for prior decisions on the feature
+`docs-match-analyser-edge-tt/` describes the old `app/` only; do not follow it for `proto/`.
 
----
-
-## After Making Changes
-
-- Update `docs-match-analyser-edge-tt/specs/specAddendumMVP.md` for significant changes
-- Document: UI/UX changes, data model changes, store actions, behavior changes
-- Include rationale where relevant
-- Update version history table
-
----
-
-## Avoid
-
-- Don't create folders outside the defined structure without discussion
-- Don't add npm dependencies without checking if existing tools suffice
-- Don't import from `@/components/ui` in features
-- Don't put domain logic in components — move to `rules/`
-- Don't put React code in `rules/`
-- Don't create documentation files unless explicitly requested
-- Don't over-engineer — MVP first, polish later
-
----
-
-## Testing (MVP)
-
-- Merge gate: `cd app && npm install --legacy-peer-deps && npm run build`
-- Lint is not a gate
-- Manual / browser smoke for flows; keep `rules/` pure for later tests
-
----
-
-## Domain Context
-
-- Core loop: Home → **Pass 1** tag → Match Review (Summary / Work on) → **Clips** playlists → optional fix tags
-- Playlists of tagged shots/rallies are the product payoff; dashboards/numbers are secondary
-- Highlight = show-reel (keep the “Highlight” label)
-- Inference engine is retired — do not revive
-- Local-first: Dexie + OPFS `video_assets`; cloud sync is optional/out of overnight scope
-- Video times are source-video seconds; clips are derived EDLs, not stored clip rows
-
----
-
-## Source of Truth Documents
-
-| Document | Path |
-|----------|------|
-| Architecture | `docs-match-analyser-edge-tt/Architecture.md` |
-| Data Schema | `docs-match-analyser-edge-tt/DataSchema.md` |
-| Glossary | `docs-match-analyser-edge-tt/Glossary.md` |
-| Changelog | `docs-match-analyser-edge-tt/specs/specAddendumMVP.md` |
+| Topic | Read now | Phase 6 target |
+|---|---|---|
+| Agent setup | this file | `AGENTS.md` (phase 6) |
+| Product brief | `proto/docs/product-brief.md` | `docs/brief.md` (phase 6) |
+| Architecture | this file | `docs/architecture.md` (phase 6) |
+| Data model and invariants | `proto/tests/invariants/catalog.ts` | `docs/data.md` (phase 6) |
+| Tagging rules | `proto/tests/rules/` | `docs/tagging-rules.md` (phase 6) |
+| Screen areas | `proto/docs/ui-zones.md` | `docs/layouts.md` (phase 6) |
+| Glossary | `proto/docs/glossary.md` | `docs/glossary.md` (phase 6) |
+| Flows, components, changelog | | `docs/flows.md`, `docs/components.md`, `docs/CHANGELOG.md` (phase 6) |

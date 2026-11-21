@@ -1,5 +1,16 @@
 {
   "entries": [
+    { "rule": "data-layer", "file": "src/data/buildSeed.ts" },
+    { "rule": "data-layer", "file": "src/data/demoStore.tsx" },
+    { "rule": "storage-place", "file": "src/features/insights/insightsFilterContext.tsx" },
+    { "rule": "storage-place", "file": "src/features/tagging/bestFlow.ts" },
+    { "rule": "storage-place", "file": "src/pages/MatchesPage.tsx" },
+    { "rule": "storage-place", "file": "src/testSpeed.ts" },
+    { "rule": "storage-place", "file": "src/theme/ThemeProvider.tsx" },
+    { "rule": "thin-pages", "file": "src/pages/AccountPage.tsx" },
+    { "rule": "thin-pages", "file": "src/pages/InsightsPage.tsx" },
+    { "rule": "thin-pages", "file": "src/pages/MatchesPage.tsx" },
+    { "rule": "thin-pages", "file": "src/pages/MatchPage.tsx" },
     { "rule": "types-in-tsx", "file": "src/data/demoStore.tsx" },
     { "rule": "types-in-tsx", "file": "src/features/insights/insightsFilterContext.tsx" },
     { "rule": "types-in-tsx", "file": "src/features/tagging/InputArea.tsx" },
