@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { VideoAsset } from '@/types/match'
-import { sceneAt } from '@/data/seed/script'
+import type { SceneAt } from '@/features/tagging/models'
 import { PictureSeekBlock } from '@/features/tagging/blocks/PictureSeekBlock'
 import { VideoSection } from '@/features/tagging/sections/VideoSection'
 import { segmentsOf, toGlobal } from '@/rules/timeline'
@@ -14,7 +14,8 @@ const HOLD_MS = 500
  * One shared player for a card's playlist. It sticks under the match row,
  * plays each item once, holds the last frame, then steps on.
  */
-export function PlaylistPlayer({
+export function PlaylistSection({
+  sceneAt,
   videos,
   name,
   items,
@@ -22,6 +23,7 @@ export function PlaylistPlayer({
   showVersus = false,
   onClose,
 }: {
+  sceneAt: SceneAt
   videos: VideoAsset[]
   name: string
   items: PlayItem[]

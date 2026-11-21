@@ -5,7 +5,7 @@ import { GatePage } from '@/pages/GatePage'
 import { MatchesPage } from '@/pages/MatchesPage'
 import { MatchPage } from '@/pages/MatchPage'
 import { MatchIndexPage } from '@/pages/MatchIndexPage'
-import { MatchInsights } from '@/features/insights/MatchInsights'
+import { MatchInsightsPage } from '@/pages/MatchInsightsPage'
 import { TagSetPage } from '@/pages/TagSetPage'
 import { MatchDetailsPage } from '@/pages/MatchDetailsPage'
 import { MatchTagPage } from '@/pages/MatchTagPage'
@@ -44,7 +44,7 @@ export default function App() {
           <Route path="/matches" element={<MatchesPage />} />
           <Route path="/matches/:matchId" element={<MatchPage />}>
             <Route index element={<MatchIndexPage />} />
-            <Route path="insights" element={<MatchInsights />} />
+            <Route path="insights" element={<MatchInsightsPage />} />
             <Route path="insights/:section" element={<MatchInsightsRedirect />} />
             <Route path="details" element={<MatchDetailsPage />} />
             <Route path="tag" element={<MatchTagPage />} />

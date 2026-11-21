@@ -13,7 +13,7 @@ function gradeClass(grade: Grade | null | undefined): string {
  * One Insights card. The info icon flips it to a short explanation.
  * The flip is instant when the user prefers reduced motion.
  */
-export function InsightCard({
+export function InsightCardBlock({
   card,
   playing,
   onPlay,

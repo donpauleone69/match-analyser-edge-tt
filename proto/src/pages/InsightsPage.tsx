@@ -6,9 +6,10 @@ import { Button, Icon } from '@/ui-mine'
 import { hasTaggedRallies } from '@/rules/match'
 import { useMatchStore } from '@/stores/matchStore'
 import type { MatchRecord, VideoAsset } from '@/types/match'
-import { InsightCard } from '@/features/insights/InsightCard'
+import { sceneAt } from '@/data/seed/script'
+import { InsightCardBlock } from '@/features/insights/blocks/InsightCardBlock'
 import { insightRules, insightsFor, type PlayItem } from '@/rules/insights'
-import { PlaylistPlayer } from '@/features/insights/PlaylistPlayer'
+import { PlaylistSection } from '@/features/insights/sections/PlaylistSection'
 import {
   DATE_CHOICES,
   DEFAULT_INSIGHTS_FILTERS,
@@ -301,7 +302,8 @@ function GlobalCards({ tagged }: { tagged: MatchRecord[] }) {
   return (
     <>
       {playing ? (
-        <PlaylistPlayer
+        <PlaylistSection
+          sceneAt={sceneAt}
           videos={videos}
           name={playing.name}
           items={playing.items}
@@ -326,7 +328,7 @@ function GlobalCards({ tagged }: { tagged: MatchRecord[] }) {
           ) : null}
           {model.videoLine ? <p className="text-sm text-muted">{model.videoLine}</p> : null}
           {model.cards.map((card) => (
-            <InsightCard
+            <InsightCardBlock
               key={card.id}
               card={card}
               playing={playing?.cardId === card.id}
@@ -334,7 +336,7 @@ function GlobalCards({ tagged }: { tagged: MatchRecord[] }) {
             />
           ))}
           {model.marked?.playlist ? (
-            <InsightCard
+            <InsightCardBlock
               card={model.marked}
               playing={playing?.cardId === model.marked.id}
               onPlay={() =>
