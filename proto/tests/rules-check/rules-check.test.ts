@@ -26,6 +26,8 @@ it('bad fixtures fire every rule', () => {
   expect(hit('rules-pure', 'src/rules/b.tsx')).toBe(true)
   expect(json.findings.some((f) => f.file === 'src/rules/a.ts' && f.text.includes('react'))).toBe(true)
   expect(json.findings.some((f) => f.file === 'src/rules/a.ts' && f.text.includes('localStorage'))).toBe(true)
+  expect(hit('rules-pure', 'src/rules/rel.ts')).toBe(true)
+  expect(json.findings.some((f) => f.file === 'src/rules/rel.ts' && f.text.includes('../stores/useMatch'))).toBe(true)
   expect(hit('ui-imports', 'src/features/x/X.tsx')).toBe(true)
   expect(hit('types-in-tsx', 'src/features/x/X.tsx')).toBe(true)
   expect(hit('store-writes', 'src/features/y.ts')).toBe(true)

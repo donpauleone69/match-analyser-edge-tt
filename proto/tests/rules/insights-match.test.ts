@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { emptySet, matchInsights, phaseOf, SEED, type Ending, type InsightCardModel, type InsightRow, type MatchRecord, type Side } from '../lib/app'
+import { emptySet, gradeOf, matchInsights, phaseOf, SEED, type Ending, type InsightCardModel, type InsightRow, type MatchRecord, type Side } from '../lib/app'
 
 const BANNED = /clip|reel|—|–|→|➔/i
 
@@ -221,4 +221,10 @@ it('elite when you have not attacked first', () => {
 const zeroCell = solo.cards.find((c) => c.id === 'phases')!.rows.find((row) => row.youN === 0)
 it('empty rate cell is a dash', () => {
   expect(zeroCell?.you?.text).toBe('-')
+})
+it('grade uses the shown percent', () => {
+  expect(gradeOf('serve', 13, 21)).toBe('Good')
+})
+it('grade under the shown percent stays Pass', () => {
+  expect(gradeOf('serve', 12, 21)).toBe('Pass')
 })

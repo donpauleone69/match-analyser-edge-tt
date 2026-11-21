@@ -97,12 +97,25 @@ function imports(src) {
 }
 
 const RULES_ROOTS = ['@/stores', '@/data', '@/features', '@/pages', '@/layout', '@/ui-mine', '@/components']
+const RULES_REL_DIRS = ['stores', 'data', 'features', 'pages', 'layout', 'ui-mine', 'components']
 
 function rulesImport(spec) {
   if (spec === 'react' || spec === 'react-dom' || spec === 'zustand' || spec === 'dexie') return spec
   if (spec === 'react-router' || spec.startsWith('react-router/') || spec.startsWith('react-router-')) return spec
   for (const base of RULES_ROOTS) {
     if (spec === base || spec.startsWith(`${base}/`)) return spec
+  }
+  return null
+}
+
+/** A relative import from src/rules that lands in a forbidden app directory. Null when it stays in rules or leaves toward something else. */
+function rulesRelativeEscape(file, spec) {
+  if (!spec.startsWith('.')) return null
+  const resolved = path.posix.normalize(path.posix.join(path.posix.dirname(file), spec))
+  if (resolved === 'src/rules' || resolved.startsWith('src/rules/')) return null
+  for (const dir of RULES_REL_DIRS) {
+    const base = `src/${dir}`
+    if (resolved === base || resolved.startsWith(`${base}/`)) return spec
   }
   return null
 }
@@ -137,7 +150,7 @@ function scanFile(file, src0) {
 
   if (inRules) {
     for (const hit of imports(src)) {
-      const spec = rulesImport(hit.spec)
+      const spec = rulesImport(hit.spec) || rulesRelativeEscape(file, hit.spec)
       if (spec) push(findings, RULES.R1, file, src, hit.index, `import '${spec}'`)
     }
     const globalRe = /\b(localStorage|sessionStorage|indexedDB|window|document|navigator)\b|\bfetch\(/g
