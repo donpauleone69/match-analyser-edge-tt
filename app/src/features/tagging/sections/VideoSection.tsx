@@ -48,6 +48,13 @@ export function VideoSection({
             names={names}
             sceneAt={sceneAt}
           />
+        ) : video?.kind === 'file' ? (
+          <p
+            data-video-missing
+            className="absolute inset-0 flex items-center justify-center px-4 text-center text-sm text-white/80"
+          >
+            Video not on this device
+          </p>
         ) : null}
 
         {leading ? <div className="absolute left-1.5 top-1.5 z-20">{leading}</div> : null}

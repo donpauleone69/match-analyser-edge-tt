@@ -19,7 +19,8 @@ function probeDuration(src: string): Promise<number> {
 /**
  * Add video offers two sources: a file from this device, which is the real
  * way in, or the scripted demo video, which only stands in for one in this
- * prototype. A chosen file plays through a blob URL held in memory only.
+ * prototype. A chosen file plays at once through a blob URL; the store copies
+ * it onto this device in the background.
  */
 export function AddVideoSection({
   matchId,
@@ -55,6 +56,7 @@ export function AddVideoSection({
         sizeBytes: file.size,
         durationS,
         src,
+        file,
       })
       setState('idle')
     } catch {

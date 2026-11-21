@@ -14,6 +14,8 @@ import { deleteMatch as deleteMatchRow, loadAll, loadNames, saveDraft, saveMatch
 import { buildSeed } from '@/data/seed/buildSeed'
 import { matchScript } from '@/data/seed/script'
 import { readStorageInfo, requestPersistentStorage, type StorageInfo } from '@/data/storage'
+import { deleteVideoFiles, readFileFacts, readVideoFiles, saveVideoFile, storedVideoIds } from '@/data/videoFiles'
+import { BYTES_PER_MB } from '@/rules/dbRows'
 import { formatTodayDate } from '@/rules/format'
 import {
   deriveMissingVideoIds,
@@ -25,6 +27,7 @@ import {
   sortNewestFirst,
 } from '@/rules/match'
 import { archiveVideos, insertVideo, moveVideo, patchSet, withoutVideo } from '@/rules/matchOps'
+import { calculateLastModifiedMs, isSameVideoFile } from '@/rules/videoFile'
 import { afterWrite, draftOnly, invalidateWrites, writeEpoch } from './matchPersistence'
 import {
   ARCHIVE_STEPS,
@@ -43,8 +46,47 @@ import { useSettingsStore } from './settingsStore'
 
 const EMPTY_STORAGE: StorageInfo = { persisted: null, usage: null, quota: null }
 const SAVE_NOTICE = 'Could not save'
+const COPY_NOTICE = 'Video not copied to this device'
 
 let askedPersist = false
+
+/** Blob URL per file video, made once a session from the picked file or its copy on this device. */
+const videoUrls = new Map<string, string>()
+
+function urlFor(videoId: string, file: Blob): string {
+  const known = videoUrls.get(videoId)
+  if (known) return known
+  const url = URL.createObjectURL(file)
+  videoUrls.set(videoId, url)
+  return url
+}
+
+/** File videos get a source from this session's URL or from their copy on this device; others stay without. */
+function withVideoSources(records: MatchRecord[], files: Record<string, File>): MatchRecord[] {
+  return records.map((m) => {
+    if (!m.videos.some((v) => v.kind === 'file' && !v.src)) return m
+    return {
+      ...m,
+      videos: m.videos.map((v) => {
+        if (v.kind !== 'file' || v.src) return v
+        const file = files[v.id]
+        const src = videoUrls.get(v.id) ?? (file ? urlFor(v.id, file) : undefined)
+        return src ? { ...v, src } : v
+      }),
+    }
+  })
+}
+
+function patchVideo(m: MatchRecord, videoId: string, fn: (v: VideoAsset) => VideoAsset): MatchRecord {
+  return { ...m, videos: m.videos.map((v) => (v.id === videoId ? fn(v) : v)) }
+}
+
+function fileVideoIds(videos: readonly VideoAsset[]): string[] {
+  return videos.filter((v) => v.kind === 'file').map((v) => v.id)
+}
+
+/** What a re-picked file did: played, needs a yes first, or the video is gone. */
+export type FindVideoResult = 'used' | 'differs' | 'missing'
 
 /** Fourteen matches. Dates are days before the day the app loaded. */
 export const SEED: MatchRecord[] = buildSeed(new Date())
@@ -76,8 +118,16 @@ export type MatchState = {
   updateMatch: (id: string, patch: MatchFields) => void
   setResult: (matchId: string, result: MatchResult) => void
   setEnteredScore: (matchId: string, setId: number, entered: EnteredScore) => void
-  /** Adds the scripted demo video, or the given local file video. */
+  /**
+   * Adds the scripted demo video, or the given local file video. With a
+   * database the file is copied onto this device in the background.
+   */
   addVideo: (matchId: string, file?: LocalVideo) => void
+  /**
+   * Plays a file picked for a video that is not on this device, then copies it
+   * in. A file that does not match the video returns `differs` unless `force`.
+   */
+  findVideo: (matchId: string, videoId: string, file: File, force?: boolean) => Promise<FindVideoResult>
   /** Applies any change to the latest copy of a match (tagging uses this). */
   mutateMatch: (id: string, fn: (current: MatchRecord) => MatchRecord) => void
   updateVideoPosition: (matchId: string, videoId: string, by: -1 | 1) => void
@@ -120,6 +170,7 @@ type DbHydration = {
   opponents: OpponentRow[]
   events: EventRow[]
   storage: StorageInfo
+  videoFiles: Record<string, File>
 }
 
 const ARCHIVE_STEP_MS = 1100
@@ -231,11 +282,15 @@ function matchState(seed: MatchRecord[], initialMode: DemoMode): StateCreator<Ma
       if (wasPending && isUntouched(next)) return
       const delta = wasPending ? null : draftOnly(prev, next)
       const namesChanged = prev.opponent !== next.opponent || prev.event !== next.event
+      const listed = new Set(next.videos.map((v) => v.id))
+      const dropped = fileVideoIds(prev.videos).filter((id) => !listed.has(id))
+      for (const id of dropped) copies.delete(id)
       queueSave(before, async (epochAt) => {
         const result = delta
           ? await saveDraft(db, next.id, delta.setId, delta.draft)
           : await saveMatch(db, next, { removedVideos: removed })
         if (!result.ok) return false
+        await deleteVideoFiles(db.kind, dropped)
         if (writeEpoch() !== epochAt) return true
         if (wasPending) set((s) => ({ pendingIds: s.pendingIds.filter((id) => id !== next.id) }))
         if (!delta && namesChanged) {
@@ -284,6 +339,41 @@ function matchState(seed: MatchRecord[], initialMode: DemoMode): StateCreator<Ma
 
     const updateSet = (matchId: string, setId: number, patch: Partial<SetData>) =>
       mutateMatch(matchId, (m) => patchSet(m, setId, patch))
+
+    /** The copy running for each video. A removed video's entry goes, so its copy cleans up after itself. */
+    const copies = new Map<string, number>()
+    let copySeq = 0
+
+    /** Copies the file onto this device without holding anything up, then stores the facts and the flag. */
+    const keepOnDevice = (db: MatchDb, matchId: string, videoId: string, file: File) => {
+      const token = ++copySeq
+      copies.set(videoId, token)
+      void (async () => {
+        const facts = await readFileFacts(file)
+        const saved = await saveVideoFile(db.kind, videoId, file)
+        if (copies.get(videoId) !== token) {
+          if (saved && !copies.has(videoId)) await deleteVideoFiles(db.kind, [videoId])
+          return
+        }
+        copies.delete(videoId)
+        const now = get()
+        const listed = now.db === db && now.catalog.some((m) => m.id === matchId && m.videos.some((v) => v.id === videoId))
+        if (!listed) {
+          if (saved) await deleteVideoFiles(db.kind, [videoId])
+          return
+        }
+        mutateMatch(matchId, (m) =>
+          patchVideo(m, videoId, (v) => ({
+            ...v,
+            ...(facts.lastModifiedMs !== null ? { lastModifiedMs: facts.lastModifiedMs } : {}),
+            ...(facts.fingerprint !== null ? { fingerprint: facts.fingerprint } : {}),
+            storedOnDevice: saved,
+            src: v.src ?? urlFor(videoId, file),
+          }))
+        )
+        if (!saved) set({ notice: COPY_NOTICE })
+      })()
+    }
 
     return {
       seedIds,
@@ -343,7 +433,7 @@ function matchState(seed: MatchRecord[], initialMode: DemoMode): StateCreator<Ma
             set({ notice: SAVE_NOTICE })
             return
           }
-          const records = result.value.loaded.matches.map(normalizeMatch)
+          const records = withVideoSources(result.value.loaded.matches.map(normalizeMatch), result.value.videoFiles)
           set({
             mode: next,
             db: result.value.db,
@@ -390,6 +480,8 @@ function matchState(seed: MatchRecord[], initialMode: DemoMode): StateCreator<Ma
         }
         const pending = before.pendingIds.includes(id)
         const catalog = before.catalog.filter((m) => m.id !== id)
+        const files = fileVideoIds(before.catalog.find((m) => m.id === id)?.videos ?? [])
+        for (const videoId of files) copies.delete(videoId)
         set({
           ...dbSlice(before.seedIds, catalog),
           pendingIds: before.pendingIds.filter((item) => item !== id),
@@ -398,6 +490,7 @@ function matchState(seed: MatchRecord[], initialMode: DemoMode): StateCreator<Ma
         const db = before.db
         queueSave(before, async () => {
           const result = await deleteMatchRow(db, id)
+          if (result.ok) await deleteVideoFiles(db.kind, files)
           return result.ok
         })
       },
@@ -442,11 +535,14 @@ function matchState(seed: MatchRecord[], initialMode: DemoMode): StateCreator<Ma
        * place (same id and position), so those rallies play again. The demo video
        * comes back as it was; a chosen file is trusted to be the same footage.
        */
-      addVideo: (matchId, file) =>
+      addVideo: (matchId, file) => {
+        const made: { id?: string } = {}
+        const lastModifiedMs = file?.file ? calculateLastModifiedMs(file.file.lastModified) : null
         mutateMatch(matchId, (m) => {
           const lostId = deriveMissingVideoIds(m)[0]
           const lost = lostId ? get().removedVideos[lostId] : undefined
           const id = lostId ?? createRowId(`v-${matchId}`)
+          made.id = id
           const video: VideoAsset = file
             ? {
                 id,
@@ -457,12 +553,52 @@ function matchState(seed: MatchRecord[], initialMode: DemoMode): StateCreator<Ma
                 kind: 'file',
                 durationS: file.durationS,
                 src: file.src,
+                ...(lastModifiedMs !== null ? { lastModifiedMs } : {}),
               }
             : lost && lost.video.kind === 'demo'
               ? { ...lost.video, archived: false }
               : demoVideo(id, `demo-video-${m.videos.length + 1}.mp4`, demoScriptFor(m))
           return insertVideo(m, video, lostId ? (lost?.index ?? 0) : null)
-        }),
+        })
+        const s = get()
+        if (!file || !made.id || !s.dbBacked || !s.db) return
+        if (!s.catalog.some((m) => m.id === matchId && m.videos.some((v) => v.id === made.id))) return
+        videoUrls.set(made.id, file.src)
+        if (file.file) keepOnDevice(s.db, matchId, made.id, file.file)
+      },
+
+      findVideo: async (matchId, videoId, file, force = false) => {
+        const video = selectMatch(get(), matchId)?.videos.find((v) => v.id === videoId)
+        if (!video || video.kind !== 'file') return 'missing'
+        const facts = await readFileFacts(file)
+        const stored = {
+          fileName: video.fileName,
+          sizeBytes: video.sizeBytes ?? Math.round(video.sizeMb * BYTES_PER_MB),
+          lastModifiedMs: video.lastModifiedMs ?? null,
+          fingerprint: video.fingerprint ?? null,
+        }
+        if (!force && !isSameVideoFile(stored, facts)) return 'differs'
+        if (!selectMatch(get(), matchId)?.videos.some((v) => v.id === videoId)) return 'missing'
+        const old = videoUrls.get(videoId)
+        if (old) URL.revokeObjectURL(old)
+        videoUrls.delete(videoId)
+        const src = urlFor(videoId, file)
+        mutateMatch(matchId, (m) =>
+          patchVideo(m, videoId, (v) => ({
+            ...v,
+            fileName: facts.fileName,
+            sizeMb: facts.sizeBytes / BYTES_PER_MB,
+            sizeBytes: facts.sizeBytes,
+            ...(facts.lastModifiedMs !== null ? { lastModifiedMs: facts.lastModifiedMs } : {}),
+            ...(facts.fingerprint !== null ? { fingerprint: facts.fingerprint } : {}),
+            storedOnDevice: false,
+            src,
+          }))
+        )
+        const s = get()
+        if (s.dbBacked && s.db) keepOnDevice(s.db, matchId, videoId, file)
+        return 'used'
+      },
 
       mutateMatch,
 
@@ -473,7 +609,10 @@ function matchState(seed: MatchRecord[], initialMode: DemoMode): StateCreator<Ma
         const seen: { removed?: RemovedVideo } = {}
         const strip = (m: MatchRecord) => {
           const index = m.videos.findIndex((v) => v.id === videoId)
-          if (index >= 0) seen.removed = { video: m.videos[index], index }
+          if (index >= 0) {
+            const { src: _src, ...video } = m.videos[index]
+            seen.removed = { video: video.kind === 'file' ? { ...video, storedOnDevice: false } : m.videos[index], index }
+          }
           return withoutVideo(m, videoId)
         }
         if (!before.dbBacked) {
@@ -534,8 +673,9 @@ function matchState(seed: MatchRecord[], initialMode: DemoMode): StateCreator<Ma
           return false
         }
         const pending = get().catalog.filter((m) => get().pendingIds.includes(m.id))
+        const files = await readVideoFiles(db.kind, storedVideoIds(loaded.value.matches))
         const records = [
-          ...loaded.value.matches.map(normalizeMatch),
+          ...withVideoSources(loaded.value.matches.map(normalizeMatch), files),
           ...pending.filter((m) => !loaded.value.matches.some((row) => row.id === m.id)),
         ]
         set({
@@ -564,7 +704,7 @@ function matchState(seed: MatchRecord[], initialMode: DemoMode): StateCreator<Ma
           mode: payload.mode,
           db: payload.db,
           dbBacked: true,
-          ...dbSlice(seedIds, payload.records),
+          ...dbSlice(seedIds, withVideoSources(payload.records, payload.videoFiles)),
           removedVideos: payload.removedVideos,
           opponents: payload.opponents,
           events: payload.events,
@@ -600,6 +740,7 @@ export async function bootMatches() {
     opponents: result.value.loaded.opponents,
     events: result.value.loaded.events,
     storage: result.value.storage,
+    videoFiles: result.value.videoFiles,
   })
 }
 

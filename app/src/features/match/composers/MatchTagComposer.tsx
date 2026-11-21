@@ -49,6 +49,8 @@ export function MatchTagComposer({ matchId }: { matchId: string }) {
   const updateVideoPosition = useMatchStore((s) => s.updateVideoPosition)
   const mutateMatch = useMatchStore((s) => s.mutateMatch)
   const addVideo = useMatchStore((s) => s.addVideo)
+  const findVideo = useMatchStore((s) => s.findVideo)
+  const [finding, setFinding] = useState<{ videoId: string; file: File } | null>(null)
   const player = usePlayer(match?.videos ?? [])
   const archiveStep = useArchiveStep(matchId)
   const lock = useTagLock(match, archiveStep)
@@ -171,6 +173,17 @@ export function MatchTagComposer({ matchId }: { matchId: string }) {
     player.seek(seg.offset + shown)
   }
 
+  const pickFor = async (videoId: string, file: File) => {
+    const result = await findVideo(matchId, videoId, file)
+    setFinding(result === 'differs' ? { videoId, file } : null)
+  }
+
+  const acceptPicked = () => {
+    if (!finding) return
+    setFinding(null)
+    void findVideo(matchId, finding.videoId, finding.file, true)
+  }
+
   const seg = player.segs[player.segIndex]
   const activeId = seg?.id ?? null
   const names = { me: 'You' as const, them: match.opponent.trim() || 'Opponent' }
@@ -258,6 +271,10 @@ export function MatchTagComposer({ matchId }: { matchId: string }) {
             onCommit={(setId, edge, local, hint) => commitWing(setId, edge, video.id, local, hint)}
             onHint={flash}
             onAdd={() => addSet(video.id)}
+            onFind={(file) => void pickFor(video.id, file)}
+            asking={finding?.videoId === video.id}
+            onUseAnyway={acceptPicked}
+            onCancelFind={() => setFinding(null)}
           />
         ))}
         <AddVideoSection matchId={match.id} hint={false} disabled={held} addVideo={addVideo} />
