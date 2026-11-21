@@ -94,6 +94,21 @@ describe('stamps', () => {
     expect(deriveDbRows(SEED, { now: NOW + 5000, prev: first })).toEqual(first)
   })
 
+  it('stored rows in another order (as a database reads them, by key) keep every time', () => {
+    const first = deriveDbRows(SEED, { now: NOW })
+    const byKey = <T>(rows: T[], key: (row: T) => string) => [...rows].sort((a, b) => (key(a) < key(b) ? -1 : 1)).reverse()
+    const id = (row: { id: string }) => row.id
+    const shuffled: DbRows = {
+      ...first,
+      videos: byKey(first.videos, id),
+      sets: byKey(first.sets, id),
+      rallies: byKey(first.rallies, id),
+      shots: byKey(first.shots, id),
+      drafts: byKey(first.drafts, (d) => d.setId),
+    }
+    expect(deriveDbRows(SEED, { now: NOW + 5000, prev: shuffled })).toEqual(first)
+  })
+
   it('a change moves only that match updatedAt', () => {
     const first = deriveDbRows(SEED, { now: NOW })
     const changed = SEED.map((m) => (m.id === 'm-h1' ? { ...m, date: '2026-01-02' } : m))

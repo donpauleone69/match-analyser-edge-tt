@@ -18,6 +18,12 @@ const TEST_SPEED_KEY = 'proto-test-speed'
 const MATCHES_FILTERS_KEY = 'proto-matches-filters'
 const INSIGHTS_FILTERS_KEY = 'proto-insights-filters'
 
+/** Every browser storage key this store reads. Old-storage cleanup must keep them. */
+export const SETTINGS_STORAGE_KEYS = {
+  local: [THEME_KEY, DEMO_MODE_KEY, BEST_TIMING_KEY, TEST_SPEED_KEY],
+  session: [MATCHES_FILTERS_KEY, INSIGHTS_FILTERS_KEY],
+} as const
+
 function write(storage: () => Storage, key: string, value: string) {
   try {
     storage().setItem(key, value)

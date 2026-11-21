@@ -153,6 +153,29 @@ export type DraftRow = {
   rally: Draft
 }
 
+type Columns<T> = { [K in keyof T]-?: K }[keyof T][]
+
+/** Every column of each table, for checks that run on rows from outside (a match file). */
+export const DB_COLUMNS = {
+  opponents: ['id', 'name', 'club', 'handedness', 'style', 'birthYear', 'notes', 'createdAt', 'updatedAt'],
+  events: ['id', 'name', 'location', 'rankingStatus', 'importance', 'createdAt', 'updatedAt'],
+  matches: ['id', 'opponentId', 'eventId', 'playedOn', 'category', 'stage', 'round', 'outcome', 'resultMe', 'resultThem', 'createdAt', 'updatedAt'],
+  videos: ['id', 'matchId', 'position', 'fileName', 'sizeBytes', 'durationS', 'lastModifiedMs', 'fingerprint', 'storedOnDevice', 'archivedAt', 'myEnd', 'removedAt', 'demoScript'],
+  sets: ['id', 'matchId', 'setNumber', 'enteredMe', 'enteredThem', 'firstServer', 'finishedAt', 'markFromVideoId', 'markFromT', 'markToVideoId', 'markToT', 'markComplete'],
+  rallies: ['id', 'setId', 'videoId', 'kind', 'position', 'server', 'startT', 'endT', 'ending', 'winner', 'pointKept', 'reviewParts', 'leftMarks', 'createdAt', 'deletedAt'],
+  shots: ['id', 'rallyId', 'shotNumber', 'contactT', 'wing', 'depth', 'stroke'],
+  drafts: ['setId', 'rally'],
+} satisfies {
+  opponents: Columns<OpponentRow>
+  events: Columns<EventRow>
+  matches: Columns<MatchRow>
+  videos: Columns<VideoRow>
+  sets: Columns<SetRow>
+  rallies: Columns<RallyRow>
+  shots: Columns<ShotRow>
+  drafts: Columns<DraftRow>
+}
+
 export type DbRows = {
   opponents: OpponentRow[]
   events: EventRow[]
@@ -166,3 +189,33 @@ export type DbRows = {
 
 /** One refused value. `id` is the row's key, or the name for a duplicate. */
 export type DbError = { table: DbTable; id: string; field: string; problem: string }
+
+/**
+ * Why a repository call changed nothing. `invalid`: a validator refused a row.
+ * `conflict`: an id or a name clashes with a stored row. `missing`: a row the
+ * call needs is not stored. `file`: a match file that cannot be read.
+ * `storage`: the browser database failed (quota, blocked, closed).
+ */
+export type RepoError =
+  | { kind: 'invalid'; errors: DbError[] }
+  | { kind: 'conflict' | 'missing' | 'file' | 'storage'; problem: string }
+
+/** Repository calls return this and never throw. A failed call wrote nothing. */
+export type RepoResult<T> = { ok: true; value: T } | { ok: false; error: RepoError }
+
+export const MATCH_FILE_FORMAT = 'edge-tt-match'
+
+/** One match as a backup file: its rows, and the opponent and event it links to. */
+export type MatchFile = {
+  format: typeof MATCH_FILE_FORMAT
+  schemaVersion: number
+  exportedAt: number
+  match: MatchRow
+  opponent: OpponentRow | null
+  event: EventRow | null
+  videos: VideoRow[]
+  sets: SetRow[]
+  rallies: RallyRow[]
+  shots: ShotRow[]
+  drafts: DraftRow[]
+}

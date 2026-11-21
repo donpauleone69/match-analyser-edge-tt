@@ -239,3 +239,34 @@ export {
   validateVideoRow,
 } from '@/rules/dbValidate'
 export type { RemovedVideo } from '@/types/match'
+export { DB_COLUMNS, DB_TABLES as TABLES, MATCH_FILE_FORMAT } from '@/types/db'
+export type { MatchFile, RepoResult } from '@/types/db'
+export { deriveSetRowId, deriveShotRowId, stableJson } from '@/rules/dbRows'
+export { SETTINGS_STORAGE_KEYS } from '@/stores/settingsStore'
+
+// -> @/data (phase 8 database layer; the browser check runs these)
+export { DEMO_DB_NAME, MatchDb, SCHEMA_V1_STORES, USER_DB_NAME, createMatchDb, openMatchDb } from '@/data/db'
+export { createRowId } from '@/data/ids'
+export {
+  deleteMatch,
+  deriveListRows,
+  isEmpty,
+  loadAll,
+  readAllRows,
+  reseedDemo,
+  saveDraft,
+  saveMatch,
+  saveRally,
+} from '@/data/matchRepo'
+export { removeEvent, removeOpponent, renameEvent, renameOpponent } from '@/data/nameRepo'
+export { deriveMatchFileName, exportMatchFile, importMatchFile, serializeMatchFile } from '@/data/matchFile'
+export { readStorageInfo, requestPersistentStorage } from '@/data/storage'
+export {
+  OLD_DATABASES,
+  OLD_LOCAL_KEYS,
+  OLD_LOCAL_PREFIXES,
+  OLD_OPFS_DIRS,
+  OLD_SESSION_KEYS,
+  cleanupOldStorage,
+  isOldLocalKey,
+} from '@/data/cleanupOldStorage'

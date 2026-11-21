@@ -5,6 +5,7 @@
  * settingsStore, and setDemoMode writes it back there.
  */
 import { create, createStore, type StateCreator } from 'zustand'
+import { createRowId } from '@/data/ids'
 import { buildSeed } from '@/data/seed/buildSeed'
 import { matchScript } from '@/data/seed/script'
 import { formatTodayDate } from '@/rules/format'
@@ -205,7 +206,7 @@ function matchState(seed: MatchRecord[], initialMode: DemoMode): StateCreator<Ma
 
       createMatch: () => {
         const created: MatchRecord = {
-          id: `m-new-${Date.now()}`,
+          id: createRowId('m-new'),
           opponent: '',
           event: '',
           date: formatTodayDate(),
@@ -245,7 +246,7 @@ function matchState(seed: MatchRecord[], initialMode: DemoMode): StateCreator<Ma
         mutateMatch(matchId, (m) => {
           const lostId = deriveMissingVideoIds(m)[0]
           const lost = lostId ? get().removedVideos[lostId] : undefined
-          const id = lostId ?? `v-${matchId}-${Date.now()}`
+          const id = lostId ?? createRowId(`v-${matchId}`)
           const video: VideoAsset = file
             ? {
                 id,
