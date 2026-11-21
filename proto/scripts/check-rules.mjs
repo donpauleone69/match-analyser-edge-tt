@@ -27,6 +27,7 @@ const RULES = {
   R16: 'alias-imports',
   R17: 'raw-button',
   R18: 'import-type',
+  R19: 'one-confirm',
 }
 
 const args = process.argv.slice(2)
@@ -263,6 +264,7 @@ function scanFile(file, src0) {
 
   if (inSrc) scanLayers(file, src, findings)
   scanImportType(file, src, findings)
+  if (inSrc) scanOneConfirm(file, src, findings)
 
   return findings
 }
@@ -363,6 +365,16 @@ function scanImportType(file, src, findings) {
     if (!inlineImportAllTypes(hit[1])) continue
     push(findings, RULES.R18, file, src, hit.index, 'import { type … }')
   }
+}
+
+/** `function ConfirmBox` is banned. `role="alertdialog"` only in ConfirmBlock.tsx. */
+function scanOneConfirm(file, src, findings) {
+  const fnRe = /\bfunction\s+ConfirmBox\b/g
+  let hit
+  while ((hit = fnRe.exec(src))) push(findings, RULES.R19, file, src, hit.index, 'function ConfirmBox')
+  if (file.endsWith('/ConfirmBlock.tsx')) return
+  const roleRe = /role=(["'])alertdialog\1/g
+  while ((hit = roleRe.exec(src))) push(findings, RULES.R19, file, src, hit.index, 'role="alertdialog"')
 }
 
 function inlineImportAllTypes(clause) {
