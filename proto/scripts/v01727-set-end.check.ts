@@ -84,11 +84,17 @@ ok(
 )
 ok('details differ still sets over on the rule', setOverOnRule(legal))
 
+const state = readFileSync('src/features/tagging/derive/deriveTagState.ts', 'utf8')
 const screen = readFileSync('src/features/tagging/TagSetScreen.tsx', 'utf8')
-ok('screen uses the rule', screen.includes('setOverOnRule('))
+ok('screen uses the rule', state.includes('setOverOnRule('))
 ok(
   'details clause is gone',
-  !screen.includes('reachedEntered') && !screen.includes('atEntered') && !screen.includes('isSetWon(entered)'),
+  !state.includes('reachedEntered') &&
+    !state.includes('atEntered') &&
+    !state.includes('isSetWon(entered)') &&
+    !screen.includes('reachedEntered') &&
+    !screen.includes('atEntered') &&
+    !screen.includes('isSetWon(entered)'),
 )
 
 const labels = overrunLabels(18, 20)

@@ -42,14 +42,14 @@ import {
   rallyFromDraft,
   rallyStart,
   retapStart,
-  stageOf,
   winnerOf,
   undoContact,
 } from '@/rules/rally'
-import { ZERO, addPoint, canSaveEarly, countPoints, isSetWon, setEndIndex, setOverOnRule } from '@/rules/score'
+import { ZERO, addPoint, countPoints, isSetWon } from '@/rules/score'
 import { bestPadRegions, editRallyRegions } from './derive/deriveBestPanel'
 import { InputAreaSection } from './sections/InputAreaSection'
 import { tagRegions } from './derive/deriveInputArea'
+import { useDeriveTagState } from './derive/deriveTagState'
 import { RallyZoneSection } from './sections/RallyZoneSection'
 import type { RallyState } from './models'
 import { SetZoneSection } from './sections/SetZoneSection'
@@ -205,58 +205,36 @@ function TagSet({
   const watchRate = useRef<number>(watchRates.get(match.id) ?? NORMAL_SPEED)
   const body = useRef<HTMLDivElement>(null)
 
-  const have = new Set(match.videos.map((v) => v.id))
-  const stops = useMemo(() => editStops(match, set.setId), [match, set])
-  /** The open rally sits on a removed video: it cannot be tagged or tapped over. */
-  const draftGone = set.draft !== null && !have.has(set.draft.videoId)
-  const live = draftGone ? null : set.draft
-  const readOnly = lock !== null
-  const active = live
-  const stage = active ? stageOf(active) : null
-  const editing = editPick !== null || editOf !== null
-  /** A rally is being added into a gap. The questions must open on a finished set too. */
-  const inserting = Boolean(gap && editPick?.kind === 'gap')
-  /** Best + FA, contacts closed, this rally's steps open. An edit opens them on a finished set too. */
-  const bestOn = !shotEdit && (!set.finished || editOf !== null || inserting) && !draftGone && Boolean(live?.closed)
-  /** End is on screen with no result, and whenever a press has opened it. */
-  const score = calculateTaggedScore(set) ?? ZERO
-  /** Who should serve next goes by what was tagged before the place the rally goes in. */
-  const expected = expectedServer(set.rallies, set.firstServer, gap ? gap.index : set.rallies.length)
-  const nextServer = serverPick ?? expected
-  /** Before the first rally: where the chosen video picks up. */
-  const bounds = set.mark ? markBounds(match.videos, set.mark) : null
-  const markStart = bounds?.start ?? 0
-  const markEnd = bounds?.end ?? null
-  const liveFloor = Math.max(markStart, setFloorG(match, set, markStart))
-  const pickedId = editPick?.kind === 'rally' ? editPick.id : null
-  const viewedGap = editPick?.kind === 'gap' ? (stops.gaps.find((g) => g.index === editPick.index) ?? null) : null
-  /** Behind the mark start or the last saved rally, and inside a gap when one is open. */
-  const floorG = gap ? Math.max(gap.a, markStart) : viewedGap ? viewedGap.a : liveFloor
-  /** The set first reaches a winning score at this rally. Rallies after it do not belong. */
-  const winners = set.rallies.map((r) => r.winner)
-  const running = countPoints(winners)
-  const endIndex = setEndIndex(winners)
-  const overrun = endIndex >= 0 && endIndex < set.rallies.length - 1
-  /** Set over is the rule only. Matching the Details score does not finish a broken set. */
-  const setWon = setOverOnRule(winners)
-  /** A leader at the end is ended early. A level score still saves, as incomplete. */
-  const saveEarly = canSaveEarly(running)
-  const mode = set.finished && !editing
-    ? 'finished'
-    : draftGone
-      ? 'blocked'
-      : live
-      ? live.closed
-        ? 'tagging'
-        : 'tapping'
-      : editPick !== null
-        ? 'edit'
-        : setWon && !gap
-          ? 'setPoint'
-          : 'watch'
-  /** The saved rally being changed or picked in Edit Set. */
-  const editIndex = set.rallies.findIndex((r) => r.id === (editOf ?? pickedId))
-  const editRally = editIndex >= 0 ? set.rallies[editIndex] : null
+  const {
+    have,
+    stops,
+    draftGone,
+    live,
+    readOnly,
+    active,
+    stage,
+    inserting,
+    bestOn,
+    score,
+    expected,
+    nextServer,
+    bounds,
+    markStart,
+    markEnd,
+    liveFloor,
+    pickedId,
+    viewedGap,
+    floorG,
+    running,
+    endIndex,
+    overrun,
+    saveEarly,
+    mode,
+    editIndex,
+    editRally,
+    bestRowSaved,
+  } = useDeriveTagState({ match, set, lock, gap, editPick, editOf, shotEdit, serverPick, bestSaved })
+
 
   const latest = useRef({ live, set, match, floorG, segs, mode, selected, tight, nextServer, stage, flowWanted, review })
   useEffect(() => {
@@ -1414,8 +1392,6 @@ function TagSet({
   useEffect(() => {
     if (bestQ?.step !== 'end') setEndBack(null)
   }, [bestQ?.step])
-  /** The saved row shows until the next rally's first contact. */
-  const bestRowSaved = Boolean(bestSaved && (!live || live.contacts.length === 0))
   const bestRowDraft = bestRowSaved ? bestSaved!.draft : active
   const scoreBefore = (index: number) => formatScore(countPoints(set.rallies.slice(0, Math.max(0, index)).map((r) => r.winner)))
   const savedIndex = bestSaved ? set.rallies.findIndex((r) => r.id === bestSaved.rallyId) : -1
