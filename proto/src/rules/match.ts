@@ -18,7 +18,6 @@ export function hasTagProgress(s: SetData): boolean {
 }
 
 export function deriveSetState(s: SetData): SetState {
-  if (s.skipped) return 'skipped'
   if (s.finished) return 'finished'
   return hasTagProgress(s) ? 'progress' : 'none'
 }
@@ -44,7 +43,6 @@ export function emptySet(setId: number): SetData {
   return {
     setId,
     entered: { me: '', them: '' },
-    skipped: false,
     finished: false,
     firstServer: firstServerForSet('me', setId),
     rallies: [],
@@ -55,22 +53,18 @@ export function emptySet(setId: number): SetData {
 
 /**
  * The result dictates the set list. With no result, list every set that is
- * tagged, not filmed or has an entered score, then one spare set to start
- * next. An older tagDone flag drops the spare, and only holds while every
- * set that is left is finished or not filmed.
+ * tagged, on video or has an entered score, then one spare set to start next.
  */
 export function normalizeMatch(match: MatchRecord): MatchRecord {
   const fromResult = calculateResultSetCount(match)
   const used = Math.max(
-    lastSetId(match.sets, (s) => hasTagProgress(s) || s.skipped || s.mark !== null),
+    lastSetId(match.sets, (s) => hasTagProgress(s) || s.mark !== null),
     lastSetId(match.sets, (s) => s.entered.me !== '' || s.entered.them !== '')
   )
-  const loose = match.sets.some((s) => s.setId <= used && !isSettled(s))
-  const tagDone = match.tagDone && !loose && match.sets.some((s) => deriveSetState(s) === 'finished')
   const count =
     fromResult !== null
       ? Math.max(fromResult, deriveLastTaggedSetId(match))
-      : Math.max(1, tagDone ? used : used + 1)
+      : Math.max(1, used + 1)
   const listed =
     count === match.sets.length
       ? match.sets
@@ -80,10 +74,10 @@ export function normalizeMatch(match: MatchRecord): MatchRecord {
         )
   const sets = listed.map((s) => migrateSetMark(match.videos, s))
   const sameSets = sets.length === match.sets.length && sets.every((s, i) => s === match.sets[i])
-  return sameSets && tagDone === match.tagDone ? match : { ...match, sets, tagDone }
+  return sameSets ? match : { ...match, sets }
 }
 
-/** With no result the last listed set is a spare: it can be started, not skipped. */
+/** With no result the last listed set is a spare: it can be started. */
 export function isSpareSet(match: MatchRecord, s: SetData): boolean {
   return (
     calculateResultSetCount(match) === null &&
@@ -97,30 +91,30 @@ export function isSpareSet(match: MatchRecord, s: SetData): boolean {
 
 /**
  * Saved and won, or unmarked / incomplete once Details has a score.
- * A legacy not-filmed flag still counts. Ready and tagging do not.
+ * Ready and tagging do not.
  */
 export function isSettled(s: SetData): boolean {
   if (isIncomplete(s)) return parseEntered(s.entered) !== null
-  if (s.finished || s.skipped) return true
+  if (s.finished) return true
   if (deriveMarkState(s) === 'off') return parseEntered(s.entered) !== null
   return false
 }
 
-/** A won set uses its tagged score. Incomplete, skipped and unmarked sets use Details. */
+/** A won set uses its tagged score. Incomplete and unmarked sets use Details. */
 function calculateCountedScore(s: SetData): Score | null {
   if (isIncomplete(s)) return parseEntered(s.entered)
   if (s.finished) {
     const atEnd = calculateScoreAtSetEnd(s.rallies.map((r) => r.winner))
     return atEnd ?? calculateTaggedScore(s)
   }
-  if (s.skipped || deriveMarkState(s) === 'off') return parseEntered(s.entered)
+  if (deriveMarkState(s) === 'off') return parseEntered(s.entered)
   return null
 }
 
 /**
  * The one sets count, used wherever the app says "sets X - Y". A saved set
- * counts from its tagged score. Skipped and unmarked sets count from the
- * Details score. A set still to tag counts for nobody.
+ * counts from its tagged score. Unmarked sets count from the Details score.
+ * A set still to tag counts for nobody.
  */
 export function calculateMatchSetsWon(match: MatchRecord): Score {
   const won = { me: 0, them: 0 }
@@ -134,19 +128,19 @@ export function calculateMatchSetsWon(match: MatchRecord): Score {
 
 /**
  * Tagged comes from tagging. With a result entered, every set it lists is
- * saved or counted from Details. With no result, only an older tagDone flag
- * counts. Never while a set is still being tagged.
+ * saved or counted from Details. With no result the match is not tagged.
+ * Never while a set is still being tagged.
  */
 export function isMatchTagged(match: MatchRecord): boolean {
   if (match.sets.some((s) => deriveSetState(s) === 'progress')) return false
   if (!match.sets.some((s) => s.finished)) return false
   const count = calculateResultSetCount(match)
-  if (count === null) return match.tagDone
+  if (count === null) return false
   return match.sets.filter((s) => s.setId <= count).every(isSettled)
 }
 
 export function derivePhase(match: MatchRecord): MatchPhase {
-  const tagged = match.sets.some((s) => !s.skipped && hasTagProgress(s))
+  const tagged = match.sets.some(hasTagProgress)
   if (!tagged) return match.videos.length === 0 ? 'new' : 'ready'
   return isMatchTagged(match) ? 'complete' : 'partial'
 }
@@ -160,13 +154,11 @@ export function deriveDefaultMatchTab(
 }
 
 export function deriveTaggedSetIds(match: MatchRecord): number[] {
-  return match.sets
-    .filter((s) => !s.skipped && hasTagProgress(s))
-    .map((s) => s.setId)
+  return match.sets.filter(hasTagProgress).map((s) => s.setId)
 }
 
 export function hasTaggedRallies(match: MatchRecord): boolean {
-  return match.sets.some((s) => !s.skipped && s.rallies.length > 0)
+  return match.sets.some((s) => s.rallies.length > 0)
 }
 
 export function parseEntered(entered: EnteredScore): Score | null {
@@ -178,7 +170,7 @@ export function parseEntered(entered: EnteredScore): Score | null {
 export function hasDifferingScores(s: SetData): boolean {
   const entered = parseEntered(s.entered)
   const tagged = calculateTaggedScore(s)
-  if (!entered || !tagged || s.skipped || !s.finished) return false
+  if (!entered || !tagged || !s.finished) return false
   return entered.me !== tagged.me || entered.them !== tagged.them
 }
 
@@ -247,7 +239,6 @@ export function isUntouched(match: MatchRecord): boolean {
     match.sets.every(
       (s) =>
         !s.mark &&
-        !s.skipped &&
         !hasTagProgress(s) &&
         s.entered.me === '' &&
         s.entered.them === ''

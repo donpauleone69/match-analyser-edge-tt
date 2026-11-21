@@ -5,9 +5,8 @@
 
 export type Side = 'me' | 'them'
 
-export const ENDINGS = ['Winner', 'Lucky', 'Net', 'Long', 'Wide', 'Air'] as const
-/** `Off` is kept so rallies saved with it still load. No flow offers it any more. */
-export type Ending = (typeof ENDINGS)[number] | 'Off'
+export const ENDINGS = ['Winner', 'Net', 'Long', 'Wide'] as const
+export type Ending = (typeof ENDINGS)[number]
 
 export const WINGS = ['BH', 'FH'] as const
 export type Wing = (typeof WINGS)[number]
@@ -17,11 +16,8 @@ export type StrokeSide = 'offensive' | 'defensive'
 /** Rally Row groups. Opening, Attack, Rally, End. The same ids are the review marks. */
 export type BestPart = 'opening' | 'attack' | 'rally' | 'end'
 
-/**
- * Questions in the order they are asked. Serve, then each later shot (`shots`),
- * then End. `receive`, `third` and `fourth` still load from an older draft.
- */
-export type BestStep = 'server' | 'end' | 'serve' | 'receive' | 'third' | 'fourth' | 'shots'
+/** Questions in the order they are asked. Serve, then each later shot (`shots`), then End. */
+export type BestStep = 'server' | 'end' | 'serve' | 'shots'
 
 /** Who attacked first. Covers the shots never asked. */
 export type BestFirst = 'me' | 'them' | 'none'
@@ -48,18 +44,10 @@ export type BestMark = {
 
 export type ShotTags = {
   wing?: Wing
-  /** Not asked any more. Kept so rallies saved with it still load. Never set, never saved. */
-  pivot?: boolean
+  /** `Attack` or `Control` from shot 2. The serve has no stroke. */
   stroke?: string
-  spin?: string
+  /** Serve length: `Short` or `Long`. */
   depth?: string
-  contact?: string
-  intent?: string
-  initiative?: string
-  high?: boolean
-  heavy?: boolean
-  review?: boolean
-  missReason?: string
 }
 
 /** A rally being tagged or edited. Times are seconds within `videoId`. */
@@ -143,28 +131,21 @@ export type RallyData = {
   /** The server was chosen or confirmed. See `isKnownGood` in continuity.ts. */
   serveChecked?: boolean
   /**
-   * Rally Spine or Best + FA. Absent on Shot by shot.
+   * Best + FA answers. Absent when the rally was not saved that way.
    * The score still comes from `winner`, not from these answers.
    */
   idea?: IdeaTag
 }
 
-/** Answers from Rally Spine or Best + FA. Shot by shot never sets this. */
+/** Answers from a Best + FA save. */
 export type IdeaTag = {
-  flow: 'spine' | 'bestfa'
-  /** Spine result token, or the Best + FA end button. */
+  flow: 'bestfa'
+  /** Ace, Serve fault, or the end button. */
   result?: string
+  /** Copy of the serve depth when the serve was asked. */
   serve?: string
-  /** Shot number to the button that was pressed. */
-  shots?: Record<number, string>
-  /** Who attacked first, from the optional Best + FA question. */
-  first?: BestFirst
   /** Parts marked for review. Same ids as the Rally Row. */
   review?: BestPart[]
-  /** Finish wing, Rally Spine only. */
-  wing?: string
-  /** Finish stroke, Rally Spine only. Empty when the earlier sweep already named it. */
-  finish?: string
   /** Set when the last ball disagrees with the point winner. */
   check?: string
 }

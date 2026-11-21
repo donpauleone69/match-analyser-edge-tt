@@ -6,9 +6,9 @@ export type Spot = { x: number; y: number }
 /** What one shot really was and where it went. The stand-in draws it, the answer key reads it. */
 export type ShotPlay = {
   wing: Wing
-  /** 'Serve' on shot 1, then one of the tagging strokes. */
+  /** 'Serve' on shot 1, then the picture stroke the stand-in drew. Saved tags use Attack or Control. */
   stroke: string
-  /** Flick, Loop, Drive or Smash. The first one in a rally is its first attack. */
+  /** An attacking picture stroke. The first one in a rally is its first attack. */
   attack: boolean
   /** Where the ball is hit. */
   at: Spot

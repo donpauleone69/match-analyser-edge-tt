@@ -67,7 +67,7 @@ export function matchDiffers(match: MatchRecord): boolean {
 /** Some tagged rally sits on a video that is still in the match. */
 export function hasPlayableRallies(match: MatchRecord): boolean {
   const have = new Set(match.videos.map((v) => v.id))
-  return match.sets.some((s) => !s.skipped && s.rallies.some((r) => have.has(r.videoId)))
+  return match.sets.some((s) => s.rallies.some((r) => have.has(r.videoId)))
 }
 
 function hasEntered(s: SetData): boolean {
@@ -75,13 +75,13 @@ function hasEntered(s: SetData): boolean {
 }
 
 /**
- * Sets a new result would stop listing that hold an entered score or a
- * Not filmed mark. Tagged sets are never dropped, so they are not in here.
+ * Sets a new result would stop listing that hold an entered score.
+ * Tagged sets are never dropped, so they are not in here.
  */
 export function deriveSetsLostByResult(match: MatchRecord, next: MatchResult): SetData[] {
   if (next.me === null || next.them === null || next.me + next.them === 0) return []
   const keep = Math.max(next.me + next.them, deriveLastTaggedSetId(match))
-  return match.sets.filter((s) => s.setId > keep && (hasEntered(s) || s.skipped))
+  return match.sets.filter((s) => s.setId > keep && hasEntered(s))
 }
 
 /** Saved rallies that were tagged on this video. An open rally is not counted. */

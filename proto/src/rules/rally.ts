@@ -189,10 +189,9 @@ export function hitterOf(server: Side, shot: number): Side {
   return shot % 2 === 1 ? server : otherSide(server)
 }
 
-export const isError = (e: Ending | null): boolean =>
-  e === 'Net' || e === 'Long' || e === 'Wide' || e === 'Air' || e === 'Off'
+export const isError = (e: Ending | null): boolean => e === 'Net' || e === 'Long' || e === 'Wide'
 
-/** Winner or Lucky: the end shot's hitter. Any error: the other player. */
+/** Winner: the end shot's hitter. Any error: the other player. */
 export function winnerOf(d: Pick<Draft, 'server' | 'contacts' | 'ending'>): Side | null {
   if (!d.ending || d.contacts.length === 0) return null
   const hitter = hitterOf(d.server, d.contacts.length)
@@ -200,7 +199,7 @@ export function winnerOf(d: Pick<Draft, 'server' | 'contacts' | 'ending'>): Side
 }
 
 /**
- * The server that makes `winner` win this rally. Winner or Lucky: the last
+ * The server that makes `winner` win this rally. Winner: the last
  * shot's hitter won. An error: the other player won. The number of shots then
  * says who served. With no result yet the server is left as it is.
  */
@@ -282,12 +281,6 @@ export function faStrokeRefused(d: Draft, shot: number, stroke: string | undefin
  */
 export function patchShot(d: Draft, shot: number, patch: Partial<ShotTags>): Draft {
   if (faStrokeRefused(d, shot, patch.stroke)) return d
-  // Pivot is not asked: nothing sets it.
-  if ('pivot' in patch) {
-    patch = { ...patch }
-    delete patch.pivot
-    if (Object.keys(patch).length === 0) return d
-  }
   // Two shots: a defensive stroke takes the first attack off shot 2, and the stroke decides again.
   if (twoShotEnd(d, shot) && d.fa === shot && NO_FIRST_ATTACK.has(patch.stroke ?? '')) d = { ...d, fa: null }
   const shots = d.shots.map((s, i) => (i === shot - 1 ? { ...s, ...patch } : s))
@@ -619,18 +612,15 @@ export function swapPlayers(r: RallyData): RallyData {
  * shows: the last shot, the first attack and the two replies after it. A stroke
  * answered on a shot that has since lost its row (the first attack moved, No
  * attack, a contact added after the end shot) stays in the draft, so the
- * answer comes back with the row, and is left out here. Pivot, on a rally
- * saved when it was still asked, is left out too.
+ * answer comes back with the row, and is left out here.
  */
 export function savedShots(d: Draft): ShotTags[] {
   const hidden = (s: ShotTags | undefined, i: number) => Boolean(s?.stroke) && !showsStroke(d, i + 1)
-  const drops = (s: ShotTags | undefined, i: number) => hidden(s, i) || (s !== undefined && 'pivot' in s)
-  if (!d.shots.some(drops)) return d.shots
+  if (!d.shots.some(hidden)) return d.shots
   return d.shots.map((s, i) => {
-    if (!drops(s, i)) return s
+    if (!hidden(s, i)) return s
     const kept = { ...s }
-    if (hidden(s, i)) delete kept.stroke
-    delete kept.pivot
+    delete kept.stroke
     return kept
   })
 }

@@ -27,8 +27,6 @@ export type SetData = {
   setId: number
   /** Entered on Details. */
   entered: EnteredScore
-  /** Legacy skip. No longer written: no mark means the set is not on video. */
-  skipped: boolean
   /** The user pressed Finish set. */
   finished: boolean
   firstServer: Side
@@ -68,8 +66,6 @@ export type MatchRecord = {
   result: MatchResult
   videos: VideoAsset[]
   sets: SetData[]
-  /** Older matches could be marked finished. Nothing on Tag sets this now. */
-  tagDone: boolean
 }
 
 /**
@@ -77,11 +73,11 @@ export type MatchRecord = {
  * ready = video added, nothing tagged
  * partial = tagging started, match not finished
  * complete = Tagged: with a result, every set it lists is saved or counted
- *   from Details. With no result, an older match can still carry tagDone.
+ *   from Details. With no result a match is not complete.
  */
 export type MatchPhase = 'new' | 'ready' | 'partial' | 'complete'
 
-export type SetState = 'skipped' | 'finished' | 'progress' | 'none'
+export type SetState = 'finished' | 'progress' | 'none'
 
 /** A local file picked by the user. Held in memory only; never uploaded. */
 export type LocalVideo = { fileName: string; sizeMb: number; durationS: number; src: string }

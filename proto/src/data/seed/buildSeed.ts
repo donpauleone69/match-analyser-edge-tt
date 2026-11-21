@@ -52,7 +52,6 @@ function blankSet(setId: number): SetData {
   return {
     setId,
     entered: { me: '', them: '' },
-    skipped: false,
     finished: false,
     firstServer: firstServerForSet('me', setId),
     rallies: [],
@@ -311,7 +310,6 @@ function matchOf(
     result: result ? { me: result.me, them: result.them } : { me: null, them: null },
     videos,
     sets,
-    tagDone: false,
   }
 }
 

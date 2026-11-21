@@ -20,7 +20,6 @@ export function setOf(
   return {
     setId,
     entered: { me: '', them: '' },
-    skipped: false,
     finished: kind === 'saved',
     firstServer: 'me',
     rallies:
@@ -43,7 +42,6 @@ export function matchOfSets(videos: VideoAsset[], sets: SetData[]): MatchRecord 
     result: { me: null, them: null },
     videos,
     sets,
-    tagDone: false,
   }
 }
 
@@ -56,7 +54,6 @@ export function matchRecord(over: Partial<MatchRecord> = {}): MatchRecord {
     result: { me: null, them: null },
     videos: [],
     sets: [emptySet(1)],
-    tagDone: false,
     ...over,
   }
 }
@@ -110,6 +107,5 @@ export function minimalMatchFromSet(s: SetData, result: MatchRecord['result'] = 
     result,
     videos: [],
     sets: [s],
-    tagDone: false,
   }
 }
