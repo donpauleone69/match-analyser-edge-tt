@@ -1,5 +1,5 @@
-import { buttonKindField } from '@/ui-mine'
 import { filterChoices } from '@/rules/filters'
+import { FilterSelect } from './FilterSelectBlock'
 import {
   MATCH_STATUSES as STATUSES,
   type MatchListFilters,
@@ -28,20 +28,13 @@ export function MatchFilterPickersBlock({
       {pickers
         .filter((picker) => picker.options.length > 1)
         .map((picker) => (
-          <label key={picker.key} className="block space-y-1">
-            <span className="text-xs font-semibold text-muted">{picker.label}</span>
-            <select
-              className={`${buttonKindField} w-full rounded-md border border-border bg-bg-card px-2 text-sm text-primary`}
-              value={draft[picker.key]}
-              onChange={(e) => setDraft({ ...draft, [picker.key]: e.target.value })}
-            >
-              {picker.options.map((o) => (
-                <option key={o} value={o}>
-                  {o}
-                </option>
-              ))}
-            </select>
-          </label>
+          <FilterSelect
+            key={picker.key}
+            label={picker.label}
+            value={draft[picker.key]}
+            options={picker.options}
+            onChange={(value) => setDraft({ ...draft, [picker.key]: value })}
+          />
         ))}
     </div>
   )

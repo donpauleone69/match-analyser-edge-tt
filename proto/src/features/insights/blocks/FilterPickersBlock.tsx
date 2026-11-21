@@ -1,5 +1,5 @@
-import { buttonKindField } from '@/ui-mine'
 import { DATE_CHOICES, filterChoices } from '@/rules/filters'
+import { FilterSelect, filterFieldClass } from '@/features/matches/blocks/FilterSelectBlock'
 import type { InsightsFilters } from '@/rules/filters'
 import type { MatchRecord } from '@/types/match'
 
@@ -24,20 +24,13 @@ export function FilterPickersBlock({
       {pickers
         .filter((picker) => picker.options.length > 1)
         .map((picker) => (
-          <label key={picker.key} className="block space-y-1">
-            <span className="text-xs font-semibold text-muted">{picker.label}</span>
-            <select
-              className={`${buttonKindField} w-full rounded-md border border-border bg-bg-card px-2 text-sm text-primary`}
-              value={draft[picker.key]}
-              onChange={(e) => setDraft({ ...draft, [picker.key]: e.target.value })}
-            >
-              {picker.options.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </label>
+          <FilterSelect
+            key={picker.key}
+            label={picker.label}
+            value={draft[picker.key]}
+            options={picker.options}
+            onChange={(value) => setDraft({ ...draft, [picker.key]: value })}
+          />
         ))}
       {draft.dates === 'From and to' ? (
         <div className="grid grid-cols-2 gap-3 sm:col-span-2 lg:col-span-3">
@@ -46,7 +39,7 @@ export function FilterPickersBlock({
             <input
               type="date"
               aria-label="From"
-              className={`${buttonKindField} w-full rounded-md border border-border bg-bg-card px-2 text-sm text-primary`}
+              className={filterFieldClass}
               value={draft.from}
               onChange={(e) => setDraft({ ...draft, from: e.target.value })}
             />
@@ -56,7 +49,7 @@ export function FilterPickersBlock({
             <input
               type="date"
               aria-label="To"
-              className={`${buttonKindField} w-full rounded-md border border-border bg-bg-card px-2 text-sm text-primary`}
+              className={filterFieldClass}
               value={draft.to}
               onChange={(e) => setDraft({ ...draft, to: e.target.value })}
             />

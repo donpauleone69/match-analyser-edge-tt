@@ -1,6 +1,8 @@
 /** Which matches a filter keeps, and the labels for that filter. Pure. */
 
 import { formatChipDate } from './format'
+import { derivePhase } from './match'
+import type { MatchListFilters, MatchStatus } from '@/types/filters'
 import type { MatchRecord } from '@/types/match'
 
 export type InsightsFilters = {
@@ -130,4 +132,36 @@ export function activeFilterLabels(filters: InsightsFilters, today = new Date())
 
 export function filterIsSet(filters: InsightsFilters): boolean {
   return filters.dates !== 'Any' || filters.opponent !== 'Any' || filters.event !== 'Any'
+}
+
+export function countActive(f: MatchListFilters): number {
+  let n = 0
+  if (f.opponent !== 'Any') n++
+  if (f.event !== 'Any') n++
+  if (f.status !== 'Any') n++
+  return n
+}
+
+function matchesStatus(match: MatchRecord, status: MatchStatus): boolean {
+  if (status === 'Any') return true
+  const phase = derivePhase(match)
+  if (status === 'Not tagged') return phase === 'new' || phase === 'ready'
+  if (status === 'Part tagged') return phase === 'partial'
+  return phase === 'complete'
+}
+
+export function filterMatchList(matches: MatchRecord[], f: MatchListFilters): MatchRecord[] {
+  return matches.filter((m) => {
+    if (f.opponent !== 'Any' && m.opponent.trim() !== f.opponent) return false
+    if (f.event !== 'Any' && m.event.trim() !== f.event) return false
+    return matchesStatus(m, f.status)
+  })
+}
+
+export function activeLabels(f: MatchListFilters): string[] {
+  const out: string[] = []
+  if (f.opponent !== 'Any') out.push(`Opponent: ${f.opponent}`)
+  if (f.event !== 'Any') out.push(`Event: ${f.event}`)
+  if (f.status !== 'Any') out.push(`Status: ${f.status}`)
+  return out
 }

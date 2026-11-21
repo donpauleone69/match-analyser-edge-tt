@@ -89,6 +89,8 @@ it('bad fixtures fire every layer rule', () => {
     expect(hit('old-predicates', 'src/rules/oldPred.ts', 'function ' + name)).toBe(true)
   }
   expect(hit('one-media', 'src/features/x/hooks/useWide.ts', "addEventListener('change'")).toBe(true)
+  expect(hit('one-filter-sheet', 'src/features/x/sections/SheetSection.tsx', 'hover:bg-bg-elevated')).toBe(true)
+  expect(hit('one-filter-sheet', 'src/features/x/sections/SheetSection.tsx', 'bg-neutral-' + '50/60')).toBe(true)
 })
 
 it('good fixtures are clean', () => {
