@@ -10,6 +10,15 @@ function region(part: AreaRegion): AreaRegion {
   return part
 }
 
+/** Overrun pad. Edit Rally N leads. One rally after is Remove N. A run is Remove N+1 to M. */
+export function overrunLabels(endRally: number, lastRally: number): { edit: string; remove: string } {
+  const from = endRally + 1
+  return {
+    edit: `Edit Rally ${endRally}`,
+    remove: from === lastRally ? `Remove ${from}` : `Remove ${from} to ${lastRally}`,
+  }
+}
+
 /** Which controls the Input Area shows. Words never go in here. */
 export function tagRegions(p: {
   mode: string
@@ -26,7 +35,11 @@ export function tagRegions(p: {
   removeDim: boolean
   showRemove: boolean
   removeAfter: number
+  removeLast: number
   endPad: boolean
+  saveEarly: boolean
+  saveLabel: string
+  onOverrunEdit: () => void
   editing: boolean
   editKind: 'rally' | 'gap' | null
   editName: string
@@ -254,18 +267,30 @@ export function tagRegions(p: {
   }
   if (p.showRemove) {
     attrs['data-overrun'] = ''
+    const labels = overrunLabels(p.removeAfter, p.removeLast)
     return {
       regions: [
         region({
-          key: 'remove',
-          label: `Remove after ${p.removeAfter}`,
+          key: 'edit',
+          label: labels.edit,
           column: 1,
           row: 0,
           bg: SLATE,
           fg: '#fff',
           dim: p.removeDim,
+          onClick: p.onOverrunEdit,
+          data: { 'data-edit-rally': String(p.removeAfter) },
+        }),
+        region({
+          key: 'remove',
+          label: labels.remove,
+          column: 2,
+          row: 0,
+          bg: SLATE,
+          fg: '#fff',
+          dim: p.removeDim,
           onClick: p.onRemove,
-          data: { 'data-remove-after': String(p.removeAfter) },
+          data: { 'data-remove-from': String(p.removeAfter + 1), 'data-remove-to': String(p.removeLast) },
         }),
       ],
       attrs,
@@ -273,17 +298,21 @@ export function tagRegions(p: {
   }
   if (p.endPad) {
     attrs['data-end-pad'] = ''
+    // A leader is Save at 9 - 7. A level score is Save set, and stays incomplete.
+    const level = !p.saveEarly
     return {
       regions: [
         region({
           key: 'save',
-          label: 'Save set',
+          label: level ? 'Save set' : p.saveLabel,
           column: 2,
           row: 0,
           bg: BRAND,
           fg: '#fff',
           onClick: p.onFinish,
-          data: { 'data-save-set': '' },
+          data: level
+            ? { 'data-save-set': '', 'data-save-level': '' }
+            : { 'data-save-set': '', 'data-save-early': '' },
         }),
       ],
       attrs,

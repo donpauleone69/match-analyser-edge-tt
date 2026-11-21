@@ -14,7 +14,8 @@
     "check:v01725": "esbuild scripts/v01725-matches.check.ts --bundle --platform=node --format=esm --alias:@=./src --outfile=/tmp/v01725-matches.check.mjs && node /tmp/v01725-matches.check.mjs",
     "check:v01725-page": "node scripts/v01725-matches-page.check.mjs",
     "check:v01726": "esbuild scripts/v01726-insights.check.ts --bundle --platform=node --format=esm --alias:@=./src --outfile=/tmp/v01726-insights.check.mjs && node /tmp/v01726-insights.check.mjs",
-    "check:v01726-page": "node scripts/v01726-insights-page.check.mjs"
+    "check:v01726-page": "node scripts/v01726-insights-page.check.mjs",
+    "check:v01727": "esbuild scripts/v01727-set-end.check.ts --bundle --platform=node --format=esm --alias:@=./src --outfile=/tmp/v01727-set-end.check.mjs && node /tmp/v01727-set-end.check.mjs"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",

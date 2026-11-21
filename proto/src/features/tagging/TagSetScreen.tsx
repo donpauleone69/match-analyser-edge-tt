@@ -6,7 +6,6 @@ import {
   emptySet,
   formatScore,
   matchSetsWon,
-  parseEntered,
   taggedScore,
   useDemo,
   type MatchRecord,
@@ -63,7 +62,7 @@ import {
   type Stage,
   type Wing,
 } from './rally'
-import { ZERO, addPoint, countPoints, isSetWon, setEndIndex, type Points } from './score'
+import { ZERO, addPoint, canSaveEarly, countPoints, isSetWon, setEndIndex, setOverOnRule, type Points } from './score'
 import { bestPadRegions, editRallyRegions } from './BestPanel'
 import { InputArea } from './InputArea'
 import { tagRegions } from './inputModes'
@@ -291,7 +290,6 @@ function TagSet({
   const bestOn = !shotEdit && (!set.finished || editOf !== null || inserting) && !draftGone && Boolean(live?.closed)
   /** End is on screen with no result, and whenever a press has opened it. */
   const score = taggedScore(set) ?? ZERO
-  const entered = parseEntered(set.entered)
   /** Who should serve next goes by what was tagged before the place the rally goes in. */
   const expected = expectedServer(set.rallies, set.firstServer, gap ? gap.index : set.rallies.length)
   const nextServer = serverPick ?? expected
@@ -304,11 +302,15 @@ function TagSet({
   const viewedGap = editPick?.kind === 'gap' ? (stops.gaps.find((g) => g.index === editPick.index) ?? null) : null
   /** Behind the mark start or the last saved rally, and inside a gap when one is open. */
   const floorG = gap ? Math.max(gap.a, markStart) : viewedGap ? viewedGap.a : liveFloor
-  const reachedEntered = entered !== null && entered.me === score.me && entered.them === score.them
   /** The set first reaches a winning score at this rally. Rallies after it do not belong. */
-  const endIndex = setEndIndex(set.rallies.map((r) => r.winner))
+  const winners = set.rallies.map((r) => r.winner)
+  const running = countPoints(winners)
+  const endIndex = setEndIndex(winners)
   const overrun = endIndex >= 0 && endIndex < set.rallies.length - 1
-  const setWon = set.rallies.length > 0 && (endIndex === set.rallies.length - 1 || (reachedEntered && isSetWon(entered)))
+  /** Set over is the rule only. Matching the Details score does not finish a broken set. */
+  const setWon = setOverOnRule(winners)
+  /** A leader at the end is ended early. A level score still saves, as incomplete. */
+  const saveEarly = canSaveEarly(running)
   const mode = set.finished && !editing
     ? 'finished'
     : draftGone
@@ -955,9 +957,7 @@ function TagSet({
     setGap(null)
     p.setFloor(Math.max(floorG, endG))
     p.seek(endG)
-    const atEntered =
-      entered !== null && isSetWon(entered) && entered.me === after.me && entered.them === after.them
-    if (isSetWon(after) || atEntered) p.pause()
+    if (isSetWon(after)) p.pause()
     else p.play()
     setSelected(null)
     setTight(false)
@@ -1051,8 +1051,7 @@ function TagSet({
     const opening = rally1 && start.server !== null
     const was = opening ? start.score : score
     const after = addPoint(was, winner)
-    const atEntered = entered !== null && isSetWon(entered) && entered.me === after.me && entered.them === after.them
-    const winsNow = !isSetWon(was) && (isSetWon(after) || atEntered)
+    const winsNow = !isSetWon(was) && isSetWon(after)
     mutateMatch(match.id, (m) => {
       if (opening) return startSet(m, set.setId, rally, start.score)
       const base = rally1 && d.server !== set.firstServer ? flipFirstServer(m, set.setId) : m
@@ -1236,7 +1235,7 @@ function TagSet({
     editPick?.kind === 'gap'
       ? stops.gaps.findIndex((g) => g.index === editPick.index)
       : stops.rallies.findIndex((r) => r.id === pickedId)
-  /** The pad's Edit rally N opens Edit Rally on shot 1. */
+  /** The pad's Edit Rally N opens Edit Rally on shot 1. */
   const onPickEdit = () => {
     const r = pickable.find((row) => row.id === pickedId)
     if (r) beginShotEdit(r.id, 'set')
@@ -1355,6 +1354,20 @@ function TagSet({
     mutateMatch(match.id, (m) => dropAfter(m, set.setId, endIndex))
     withUndo(`Rallies after rally ${endIndex + 1} removed`, before)
     parkLive(setAfter((m) => dropAfter(m, set.setId, endIndex)))
+  }
+
+  /** Overrun: open the rally that ended the set, so a wrong winner can be fixed. */
+  const onOverrunEdit = () => {
+    const row = set.rallies[endIndex]
+    if (row && !row.point && have.has(row.videoId)) {
+      beginShotEdit(row.id, 'saved')
+      return
+    }
+    const fallback = [...set.rallies]
+      .slice(0, Math.max(0, endIndex + 1))
+      .reverse()
+      .find((r) => !r.point && have.has(r.videoId))
+    if (fallback) loopPick(fallback)
   }
 
   /** The rally picked in Edit Set, shown as saved. Review marks change it at once. */
@@ -1529,11 +1542,11 @@ function TagSet({
     setServerPick(null)
   }
 
-  /** A set can be saved once it has a rally and nothing is open, at any score. */
-  const canFinishNow = !set.finished && !live && !draftGone && set.rallies.length > 0
+  /** A set can be saved once it has a rally and nothing is open, level score included. */
+  const readyToFinish = !set.finished && !live && !draftGone && set.rallies.length > 0
 
   const onFinishSet = () => {
-    if (!canFinishNow || readOnly) return
+    if (!readyToFinish || readOnly) return
     playerRef.current.pause()
     mutateMatch(match.id, (m) => finishSet(m, set.setId))
     navigate(`/matches/${match.id}/tag?from=${set.setId}`, { replace: true, state: { saved: set.setId } })
@@ -1643,7 +1656,7 @@ function TagSet({
   /** Set over: Edit and Save set, as soon as the winning rally is saved. */
   const overCard = mode === 'setPoint'
   /** When the video runs out before the set is won, Finish is offered in the panel. */
-  const finishCard = canFinishNow && atEnd && mode !== 'setPoint'
+  const finishCard = readyToFinish && atEnd && mode !== 'setPoint'
   const loopNow =
     active && stage && mode === 'tagging' ? windowFor(active, selected, stage, tight) : null
   const shotAt = !shotEdit
@@ -1821,7 +1834,7 @@ function TagSet({
       : []
   /** The end pad is on screen. The Rally Zone is Before serve, the next rally, not the last one. */
   const atEndPad = Boolean(
-    canFinishNow &&
+    readyToFinish &&
       !shotEdit &&
       !bestOn &&
       mode !== 'edit' &&
@@ -1865,14 +1878,19 @@ function TagSet({
     removeDim: removeGuard.waiting || readOnly,
     showRemove,
     removeAfter: endIndex + 1,
+    removeLast: set.rallies.length,
     endPad: Boolean(
-      finishCard || (canFinishNow && boundNote && mode !== 'setPoint' && mode !== 'edit' && !set.finished),
+      !showRemove &&
+        (finishCard || (readyToFinish && boundNote && mode !== 'setPoint' && mode !== 'edit' && !set.finished)),
     ),
+    saveEarly,
+    saveLabel: `Save at ${formatScore(running)}`,
+    onOverrunEdit: guarded(removeGuard, onOverrunEdit),
     editing: mode === 'edit' && editPick !== null && !gap,
     editKind: editPick?.kind ?? null,
     editName: editPick?.kind === 'gap' ? String(viewedGap?.n ?? '') : String(editIndex + 1),
     rallyOn: editPick?.kind !== 'gap',
-    saveOn: !set.finished && canFinishNow,
+    saveOn: readyToFinish,
     saveDim: tapGuard.waiting || editGuard.waiting || readOnly,
     backDim: stepAt <= 0,
     forwardDim: stepAt >= stepList.length - 1,

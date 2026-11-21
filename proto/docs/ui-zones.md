@@ -80,11 +80,13 @@ Two columns. Rows share the height. Empty cells are space, not boxes.
 | Edit Rally | Back, Delete or Out of turn, two quadrants | Forward, Kim served or space, two quadrants |
 | Review | Back, Review [part] | Forward |
 | Set over | Edit | Save set |
-| End of the mark or the video, not won | | Save set |
-| Won earlier, rallies after | Remove after N | |
+| End of the mark or the video, not won, not level | | Save at 9 - 7 |
+| End of the mark or the video, level | | Save set |
+| Won earlier, one rally after | Edit Rally N | Remove N |
+| Won earlier, rallies after | Edit Rally N | Remove N+1 to M |
 | A saved set, opened | (empty) | (empty) |
 
-Colours: player colours for You and Kim, brand for Save set, slate for Back, Forward, Edit and Remove after N, amber for a marked Review [part].
+Colours: player colours for You and Kim, brand for Save set and Save at 9 - 7, slate for Back, Forward, Edit, Edit Rally N, Remove N and Remove N+1 to M, amber for a marked Review [part].
 
 **Step modes share one pattern:** Back and Forward move the focus (rallies in Edit Set, shots in Edit Rally, parts in Review), the actions act on the focus, and the video plays it.
 

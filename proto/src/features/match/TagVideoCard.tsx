@@ -5,12 +5,14 @@ import { deleteTags, moveSet, unmarkSet } from '@/features/tagging/matchOps'
 import {
   allowedMarkNumbers,
   clampWing,
+  endedEarly,
   gapsOf,
   lineAction,
   markBounds,
   MIN_SET_S,
   markState,
   setsStartingOn,
+  setLineLabel,
   spansOnVideo,
   wingLimits,
   type WingEdge,
@@ -249,6 +251,8 @@ function SetRow({
   const [asking, setAsking] = useState(false)
   const action = lineAction(s)
   const state = markState(s)
+  const line = setLineLabel(s)
+  const early = endedEarly(s)
   const bounds = markBounds(match.videos, mark)
   const numbers = bounds ? allowedMarkNumbers(match, bounds.start, s.setId) : [s.setId]
   const tagged = s.rallies.length > 0
@@ -263,7 +267,13 @@ function SetRow({
   }
 
   return (
-    <li className="space-y-1" data-set-line={s.setId} data-set-state={state} data-set-selected={selected ? '' : undefined}>
+    <li
+      className="space-y-1"
+      data-set-line={s.setId}
+      data-set-state={state}
+      data-set-selected={selected ? '' : undefined}
+      data-ended-early={early ? '' : undefined}
+    >
       <div className={cn('flex h-11 items-center gap-1 rounded-md px-1', selected && 'bg-brand-primary/10')}>
         {selected && !locked && numbers.length > 1 ? (
           <div className="flex min-w-0 items-center gap-2 text-sm font-semibold text-primary">
@@ -292,12 +302,16 @@ function SetRow({
         ) : (
           <button
             type="button"
-            className={cn(buttonKindTextLink, 'min-w-0 flex-1 truncate text-left text-sm font-semibold')}
+            className={cn(
+              buttonKindTextLink,
+              'min-w-0 flex-1 text-left font-semibold',
+              early ? 'text-xs leading-tight whitespace-normal' : 'truncate text-sm',
+            )}
             data-set-label
             data-pick-set={s.setId}
             onClick={toggle}
           >
-            Set {s.setId}
+            {line}
           </button>
         )}
         {selected && !locked ? (

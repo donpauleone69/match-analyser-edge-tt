@@ -12,7 +12,7 @@ import {
 import { otherSide, pointRally, swapPlayers, type Draft, type MarkKind, type RallyData } from './rally'
 import { addPoint, firstServerAt, isSetWon, scoreAtSetEnd, serverAt, setEndIndex, ZERO, type Points } from './score'
 import { LONG_GAP_S, serveBands } from './continuity'
-import { markBounds } from './setMark'
+import { endedEarly, markBounds } from './setMark'
 import { firstContactG, insertIndex, lastContactG, segmentsOf, toGlobal, type Segment } from './timeline'
 
 /** A set number that is not listed yet (a skipped set 1, say) is added when it is first written. */
@@ -332,10 +332,13 @@ export function endsOnLast(s: SetData): boolean {
   return i >= 0 && i === s.rallies.length - 1
 }
 
-/** After an edit: a finished set whose score no longer ends on its last rally is open again. */
+/**
+ * After an edit: a finished set that is neither won on its last rally nor
+ * ended early is open again. A level score and an overrun both reopen.
+ */
 export function settleFinished(m: MatchRecord, setId: number): MatchRecord {
   const s = m.sets.find((x) => x.setId === setId)
-  if (!s || !s.finished || endsOnLast(s)) return m
+  if (!s || !s.finished || endsOnLast(s) || endedEarly(s)) return m
   return { ...inSet(m, setId, (x) => ({ ...x, finished: false })), tagDone: false }
 }
 
