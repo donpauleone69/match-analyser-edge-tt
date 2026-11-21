@@ -19,7 +19,7 @@ export type MarkState = 'off' | 'ready' | 'tagging' | 'saved'
  * Saved wins, then any rallies still open. A mark that is not complete is
  * ready, so an old part-filmed set can be tagged. Nothing on Tag sets complete.
  */
-export function markState(s: SetData): MarkState {
+export function deriveMarkState(s: SetData): MarkState {
   if (!s.mark) return 'off'
   if (s.finished) return 'saved'
   if (s.rallies.length > 0) return 'tagging'
@@ -116,14 +116,14 @@ export type VideoStatusLine = 'Archived' | 'Tagging' | 'Ready to tag' | 'No sets
  * One line under a video's name. The first that fits, in this order.
  * Free time on a video does not stop it being Done.
  */
-export function videoStatus(m: MatchRecord, videoId: string): VideoStatusLine {
+export function deriveVideoStatus(m: MatchRecord, videoId: string): VideoStatusLine {
   const video = m.videos.find((v) => v.id === videoId)
   if (video?.archived) return 'Archived'
   const onIt = new Set(spansOnVideo(m.videos, m.sets, videoId).map((span) => span.setId))
   const sets = m.sets.filter((s) => onIt.has(s.setId))
   if (sets.length === 0) return 'No sets yet'
-  if (sets.some((s) => markState(s) === 'tagging')) return 'Tagging'
-  if (sets.some((s) => markState(s) === 'ready')) return 'Ready to tag'
+  if (sets.some((s) => deriveMarkState(s) === 'tagging')) return 'Tagging'
+  if (sets.some((s) => deriveMarkState(s) === 'ready')) return 'Ready to tag'
   return 'Done'
 }
 
@@ -147,19 +147,12 @@ export function endedEarly(s: SetData): boolean {
   return deriveLeader(score) !== null && !isLegalEnd(score)
 }
 
-/** Set 2, or Set 2 · Saved · 9 - 7 · ended early. */
-export function setLineLabel(s: SetData): string {
-  if (!endedEarly(s)) return `Set ${s.setId}`
-  const score = taggedNow(s)
-  return `Set ${s.setId} · Saved · ${score.me} - ${score.them} · ended early`
-}
-
 /**
  * Finished, but it cannot stand: the score is level, or there is no score.
  * A short set with a leader is ended early and stays saved.
  * Continue reopens an incomplete set.
  */
-export function setIncomplete(s: SetData): boolean {
+export function isIncomplete(s: SetData): boolean {
   if (!s.finished || s.rallies.length === 0) return false
   if (endedEarly(s)) return false
   const atEnd = calculateScoreAtSetEnd(s.rallies.map((r) => r.winner))
@@ -168,8 +161,8 @@ export function setIncomplete(s: SetData): boolean {
 
 /** The one button on a set row. */
 export function lineAction(s: SetData): 'Tag' | 'Continue' | 'Open' | null {
-  if (setIncomplete(s)) return 'Continue'
-  const state = markState(s)
+  if (isIncomplete(s)) return 'Continue'
+  const state = deriveMarkState(s)
   if (state === 'saved') return 'Open'
   if (state === 'tagging') return 'Continue'
   if (state === 'ready') return 'Tag'

@@ -3,7 +3,7 @@
  * Run: npm run check:v01727
  */
 import { readFileSync } from 'node:fs'
-import { emptySet, isMatchTagged, calculateMatchSetsWon, setSettled } from '../src/rules/match'
+import { emptySet, isMatchTagged, calculateMatchSetsWon, isSettled } from '../src/rules/match'
 import type { MatchRecord, Points, SetData } from '../src/types/match'
 import { overrunLabels, tagRegions } from '../src/features/tagging/derive/deriveInputArea'
 import { settleFinished } from '../src/rules/matchOps'
@@ -16,7 +16,8 @@ import {
   setEndIndex,
   setOverOnRule,
 } from '../src/rules/score'
-import { endedEarly, lineAction, setIncomplete, setLineLabel } from '../src/rules/marks'
+import { formatSetLine } from '../src/rules/format'
+import { endedEarly, lineAction, isIncomplete } from '../src/rules/marks'
 
 const fails: string[] = []
 const ok = (name: string, cond: boolean, detail = '') => {
@@ -180,15 +181,15 @@ const earlySet = placed(2, early, true)
 const levelSet = placed(2, level, true)
 const wonSet = placed(1, legal, true)
 const overrunSet = placed(2, overrun, true)
-ok('ended early line', setLineLabel(earlySet) === 'Set 2 · Saved · 9 - 7 · ended early')
-ok('ended early flag', endedEarly(earlySet) && !setIncomplete(earlySet) && lineAction(earlySet) === 'Open')
-ok('a win is not ended early', setLineLabel(wonSet) === 'Set 1' && !endedEarly(wonSet))
-ok('level is not ended early', setLineLabel(levelSet) === 'Set 2' && !endedEarly(levelSet))
-ok('level stays incomplete', setIncomplete(levelSet) && lineAction(levelSet) === 'Continue')
+ok('ended early line', formatSetLine(earlySet) === 'Set 2 · Saved · 9 - 7 · ended early')
+ok('ended early flag', endedEarly(earlySet) && !isIncomplete(earlySet) && lineAction(earlySet) === 'Open')
+ok('a win is not ended early', formatSetLine(wonSet) === 'Set 1' && !endedEarly(wonSet))
+ok('level is not ended early', formatSetLine(levelSet) === 'Set 2' && !endedEarly(levelSet))
+ok('level stays incomplete', isIncomplete(levelSet) && lineAction(levelSet) === 'Continue')
 const levelOne = placed(1, level, true)
-ok('level save is not settled yet', !setSettled(levelOne))
+ok('level save is not settled yet', !isSettled(levelOne))
 const levelDetails = { ...levelOne, entered: { me: '11', them: '9' } }
-ok('details settles a saved level set', setSettled(levelDetails) && !endedEarly(levelDetails) && setIncomplete(levelDetails))
+ok('details settles a saved level set', isSettled(levelDetails) && !endedEarly(levelDetails) && isIncomplete(levelDetails))
 ok(
   'a settled level set tags the match',
   isMatchTagged(matchOf(levelDetails, { me: 1, them: 0 })) && calculateMatchSetsWon(matchOf(levelDetails)).me === 1,
@@ -196,7 +197,7 @@ ok(
 ok('a result alone does not settle it', !isMatchTagged(matchOf(levelOne, { me: 1, them: 0 })))
 ok(
   'details does not settle an unsaved level set',
-  !setSettled({ ...placed(1, level, false), entered: { me: '11', them: '9' } }),
+  !isSettled({ ...placed(1, level, false), entered: { me: '11', them: '9' } }),
 )
 ok('overrun is not ended early', !endedEarly(overrunSet) && lineAction(overrunSet) === 'Open')
 ok('early set counts for the leader', calculateMatchSetsWon(matchOf(earlySet)).me === 1 && calculateMatchSetsWon(matchOf(earlySet)).them === 0)
@@ -206,7 +207,7 @@ ok('level save reopens', settleFinished(matchOf(levelSet), 2).sets[0]?.finished 
 ok('overrun edit reopens', settleFinished(matchOf(overrunSet), 2).sets[0]?.finished === false)
 ok('a won set stays finished', settleFinished(matchOf(wonSet), 1).sets[0]?.finished === true)
 
-const words = [labels.edit, labels.remove, overrunLabels(11, 12).edit, overrunLabels(11, 12).remove, 'Save at 9 - 7', 'Save set', setLineLabel(earlySet)].join('\n')
+const words = [labels.edit, labels.remove, overrunLabels(11, 12).edit, overrunLabels(11, 12).remove, 'Save at 9 - 7', 'Save set', formatSetLine(earlySet)].join('\n')
 ok('no clip', !/\bclip\b/i.test(words))
 ok('no long dash', !words.includes('—') && !words.includes('–'))
 ok('no arrow', !words.includes('→') && !words.includes('➔'))

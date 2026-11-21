@@ -2,7 +2,7 @@
 
 import { formatTodayDate } from './format'
 import { countPoints, firstServerForSet, deriveLeader, calculateScoreAtSetEnd } from './score'
-import { markState, migrateSetMark, setIncomplete } from './marks'
+import { deriveMarkState, migrateSetMark, isIncomplete } from './marks'
 import type { EnteredScore, MatchPhase, MatchRecord, Score, SetData, SetState } from '@/types/match'
 
 /** Counted from the saved rallies; null until the set has one. A set that was won, then tagged past that rally, counts the score at the win. */
@@ -12,14 +12,14 @@ export function calculateTaggedScore(s: SetData): Score | null {
   return calculateScoreAtSetEnd(winners) ?? countPoints(winners)
 }
 
-export function setHasTagProgress(s: SetData): boolean {
+export function hasTagProgress(s: SetData): boolean {
   return s.rallies.length > 0 || s.draft !== null || s.finished
 }
 
 export function deriveSetState(s: SetData): SetState {
   if (s.skipped) return 'skipped'
   if (s.finished) return 'finished'
-  return setHasTagProgress(s) ? 'progress' : 'none'
+  return hasTagProgress(s) ? 'progress' : 'none'
 }
 
 /** Number of sets the result dictates (3 - 2 means 5), or null if not entered. */
@@ -36,7 +36,7 @@ function lastSetId(sets: SetData[], test: (s: SetData) => boolean): number {
 
 /** Highest set with tagging in it. Never dropped, even if the result says fewer. */
 export function deriveLastTaggedSetId(match: MatchRecord): number {
-  return lastSetId(match.sets, setHasTagProgress)
+  return lastSetId(match.sets, hasTagProgress)
 }
 
 export function emptySet(setId: number): SetData {
@@ -61,10 +61,10 @@ export function emptySet(setId: number): SetData {
 export function normalizeMatch(match: MatchRecord): MatchRecord {
   const fromResult = calculateResultSetCount(match)
   const used = Math.max(
-    lastSetId(match.sets, (s) => setHasTagProgress(s) || s.skipped || s.mark !== null),
+    lastSetId(match.sets, (s) => hasTagProgress(s) || s.skipped || s.mark !== null),
     lastSetId(match.sets, (s) => s.entered.me !== '' || s.entered.them !== '')
   )
-  const loose = match.sets.some((s) => s.setId <= used && !setSettled(s))
+  const loose = match.sets.some((s) => s.setId <= used && !isSettled(s))
   const tagDone = match.tagDone && !loose && match.sets.some((s) => deriveSetState(s) === 'finished')
   const count =
     fromResult !== null
@@ -98,21 +98,21 @@ export function isSpareSet(match: MatchRecord, s: SetData): boolean {
  * Saved and won, or unmarked / incomplete once Details has a score.
  * A legacy not-filmed flag still counts. Ready and tagging do not.
  */
-export function setSettled(s: SetData): boolean {
-  if (setIncomplete(s)) return parseEntered(s.entered) !== null
+export function isSettled(s: SetData): boolean {
+  if (isIncomplete(s)) return parseEntered(s.entered) !== null
   if (s.finished || s.skipped) return true
-  if (markState(s) === 'off') return parseEntered(s.entered) !== null
+  if (deriveMarkState(s) === 'off') return parseEntered(s.entered) !== null
   return false
 }
 
 /** A won set uses its tagged score. Incomplete, skipped and unmarked sets use Details. */
 function calculateCountedScore(s: SetData): Score | null {
-  if (setIncomplete(s)) return parseEntered(s.entered)
+  if (isIncomplete(s)) return parseEntered(s.entered)
   if (s.finished) {
     const atEnd = calculateScoreAtSetEnd(s.rallies.map((r) => r.winner))
     return atEnd ?? calculateTaggedScore(s)
   }
-  if (s.skipped || markState(s) === 'off') return parseEntered(s.entered)
+  if (s.skipped || deriveMarkState(s) === 'off') return parseEntered(s.entered)
   return null
 }
 
@@ -141,11 +141,11 @@ export function isMatchTagged(match: MatchRecord): boolean {
   if (!match.sets.some((s) => s.finished)) return false
   const count = calculateResultSetCount(match)
   if (count === null) return match.tagDone
-  return match.sets.filter((s) => s.setId <= count).every(setSettled)
+  return match.sets.filter((s) => s.setId <= count).every(isSettled)
 }
 
 export function derivePhase(match: MatchRecord): MatchPhase {
-  const tagged = match.sets.some((s) => !s.skipped && setHasTagProgress(s))
+  const tagged = match.sets.some((s) => !s.skipped && hasTagProgress(s))
   if (!tagged) return match.videos.length === 0 ? 'new' : 'ready'
   return isMatchTagged(match) ? 'complete' : 'partial'
 }
@@ -160,7 +160,7 @@ export function deriveDefaultMatchTab(
 
 export function deriveTaggedSetIds(match: MatchRecord): number[] {
   return match.sets
-    .filter((s) => !s.skipped && setHasTagProgress(s))
+    .filter((s) => !s.skipped && hasTagProgress(s))
     .map((s) => s.setId)
 }
 
@@ -174,7 +174,7 @@ export function parseEntered(entered: EnteredScore): Score | null {
 }
 
 /** Entered and tagged scores are only compared once the set is finished. */
-export function setScoresDiffer(s: SetData): boolean {
+export function hasDifferingScores(s: SetData): boolean {
   const entered = parseEntered(s.entered)
   const tagged = calculateTaggedScore(s)
   if (!entered || !tagged || s.skipped || !s.finished) return false
@@ -247,7 +247,7 @@ export function isUntouched(match: MatchRecord): boolean {
       (s) =>
         !s.mark &&
         !s.skipped &&
-        !setHasTagProgress(s) &&
+        !hasTagProgress(s) &&
         s.entered.me === '' &&
         s.entered.them === ''
     )

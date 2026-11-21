@@ -9,7 +9,7 @@ import { AddVideoSection } from '../sections/AddVideoSection'
 import { TagVideoSection } from '../sections/TagVideoSection'
 import { reopenSet, saveMark } from '@/rules/matchOps'
 import type { Side } from '@/types/rally'
-import { lineAction, markBounds, newMarkAt, setIncomplete, videoMoveBreaks, type WingEdge } from '@/rules/marks'
+import { lineAction, markBounds, newMarkAt, isIncomplete, videoMoveBreaks, type WingEdge } from '@/rules/marks'
 import { useActionGuard } from '@/features/tagging/hooks/useActionGuard'
 import { TAG_LOCK_LINE, useTagLock } from '@/features/tagging/hooks/useTagLock'
 import { sceneAt } from '@/data/seed/script'
@@ -124,7 +124,7 @@ export function MatchTagComposer({ matchId }: { matchId: string }) {
     const s = match.sets.find((x) => x.setId === setId)
     if (!s) return
     if (lock && lineAction(s) !== 'Open') return
-    if (setIncomplete(s)) mutateMatch(match.id, (m) => reopenSet(m, setId))
+    if (isIncomplete(s)) mutateMatch(match.id, (m) => reopenSet(m, setId))
     navigate(`/matches/${match.id}/tag/${setId}`)
   }
 

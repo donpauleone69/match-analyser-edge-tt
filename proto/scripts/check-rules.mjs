@@ -33,6 +33,7 @@ const RULES = {
   R22: 'one-badge',
   R23: 'card-head',
   R24: 'format-home',
+  R25: 'old-predicates',
 }
 
 const args = process.argv.slice(2)
@@ -275,6 +276,7 @@ function scanFile(file, src0) {
   scanOneBadge(file, src, findings)
   scanCardHead(file, src, findings)
   scanFormatHome(file, src, findings)
+  scanOldPredicates(file, src, findings)
 
   return findings
 }
@@ -374,6 +376,26 @@ function scanImportType(file, src, findings) {
   while ((hit = re.exec(src))) {
     if (!inlineImportAllTypes(hit[1])) continue
     push(findings, RULES.R18, file, src, hit.index, 'import { type … }')
+  }
+}
+
+const OLD_PREDICATES = [
+  'setHasTagProgress',
+  'setSettled',
+  'setScoresDiffer',
+  'setIncomplete',
+  'setInProgress',
+  'setLineLabel',
+  'videoStatus',
+  'markState',
+]
+
+/** The pre-rename predicate and label names cannot come back as functions. */
+function scanOldPredicates(file, src, findings) {
+  for (const name of OLD_PREDICATES) {
+    const re = new RegExp(`\\bfunction\\s+${name}\\b`, 'g')
+    let hit
+    while ((hit = re.exec(src))) push(findings, RULES.R25, file, src, hit.index, `function ${name}`)
   }
 }
 
