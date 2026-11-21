@@ -7,6 +7,9 @@
     "dev": "vite --port 5174",
     "build": "tsc -b && vite build",
     "preview": "vite preview --port 5174",
+    "test": "TZ=UTC vitest run",
+    "check:rules": "node scripts/check-rules.mjs",
+    "smoke": "node tests/smoke/smoke.mjs",
     "check:item14": "node scripts/item14-heights.mjs",
     "check:v0150": "esbuild scripts/v0150-flow.check.ts --bundle --platform=node --format=esm --alias:@=./src --outfile=/tmp/v0150-flow.check.mjs && node /tmp/v0150-flow.check.mjs",
     "check:v0179": "esbuild scripts/v0179-status.check.ts --bundle --platform=node --format=esm --alias:@=./src --outfile=/tmp/v0179-status.check.mjs && node /tmp/v0179-status.check.mjs",
@@ -37,6 +40,7 @@
     "playwright-core": "^1.65.1",
     "tailwindcss": "^4.1.17",
     "typescript": "~5.9.3",
-    "vite": "^7.2.4"
+    "vite": "^7.2.4",
+    "vitest": "5.1.1"
   }
 }
