@@ -2,8 +2,9 @@
 
 import { formatTodayDate } from './format'
 import { countPoints, firstServerForSet, deriveLeader, calculateScoreAtSetEnd } from './score'
-import { deriveMarkState, migrateSetMark, isIncomplete } from './marks'
+import { deriveMarkState, markBounds, migrateSetMark, isIncomplete } from './marks'
 import type { EnteredScore, MatchPhase, MatchRecord, Score, SetData, SetState } from '@/types/match'
+import type { Side } from '@/types/rally'
 
 /** Counted from the saved rallies; null until the set has one. A set that was won, then tagged past that rally, counts the score at the win. */
 export function calculateTaggedScore(s: SetData): Score | null {
@@ -280,4 +281,24 @@ export function sortNewestFirst(list: MatchRecord[], seedIds: ReadonlySet<string
     const created = !seedIds.has(a.id) || !seedIds.has(b.id)
     return created ? index(b) - index(a) : index(a) - index(b)
   })
+}
+
+/** Sets, points and server for the tag-page score bug at one playback time. */
+export function deriveScoreBug(match: MatchRecord, time: number) {
+  const sets = calculateMatchSetsWon(match)
+  let setId = match.sets[0]?.setId ?? 1
+  let points = { me: 0, them: 0 }
+  let server: Side = 'me'
+  for (const s of match.sets) {
+    if (!s.mark) continue
+    const b = markBounds(match.videos, s.mark)
+    if (!b) continue
+    if (time >= b.start - 0.05 && time <= b.end + 0.05) {
+      setId = s.setId
+      points = calculateTaggedScore(s) ?? points
+      server = s.firstServer
+      break
+    }
+  }
+  return { sets, points, server, setId }
 }

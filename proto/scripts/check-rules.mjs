@@ -37,6 +37,9 @@ const RULES = {
   R26: 'one-media',
   R27: 'one-filter-sheet',
   R28: 'section-navigate',
+  R29: 'score-bug',
+  R30: 'one-player',
+  R31: 'css-color-utils',
 }
 
 const args = process.argv.slice(2)
@@ -283,6 +286,8 @@ function scanFile(file, src0) {
   scanOneMedia(file, src, findings)
   scanOneFilterSheet(file, src, findings)
   scanSectionNavigate(file, src, findings)
+  scanScoreBug(file, src, findings)
+  scanOnePlayer(file, src, findings)
 
   return findings
 }
@@ -383,6 +388,65 @@ function scanImportType(file, src, findings) {
     if (!inlineImportAllTypes(hit[1])) continue
     push(findings, RULES.R18, file, src, hit.index, 'import { type … }')
   }
+}
+
+const COLOR_UTILITIES = ['.text-primary', '.text-muted', '.text-brand', '.text-on-accent', '.tag-pill-wait']
+
+/** Single-declaration color classes. `.tag-pill-wait` already is one and stays. */
+function colorUtilitySelectors(src) {
+  const clean = stripComments(src)
+  const found = []
+  let i = 0
+  while (i < clean.length) {
+    const open = clean.indexOf('{', i)
+    if (open === -1) break
+    let depth = 1
+    let j = open + 1
+    while (j < clean.length && depth > 0) {
+      if (clean[j] === '{') depth++
+      else if (clean[j] === '}') depth--
+      j++
+    }
+    const decls = clean.slice(open + 1, j - 1).split(';').map((part) => part.trim()).filter(Boolean)
+    if (decls.length === 1 && /^color\s*:/.test(decls[0])) {
+      const start = clean.lastIndexOf('}', open - 1) + 1
+      const selector = clean.slice(start, open).trim()
+      if (/^\.[A-Za-z0-9-]+$/.test(selector)) found.push(selector)
+    }
+    i = j
+  }
+  return found
+}
+
+function scanCssColorUtils(findings) {
+  const file = 'src/index.css'
+  const abs = path.join(rootAbs, file)
+  if (!fs.existsSync(abs)) {
+    findings.push({ rule: RULES.R31, file, line: 1, text: 'missing index.css' })
+    return
+  }
+  const got = colorUtilitySelectors(fs.readFileSync(abs, 'utf8'))
+  const extra = got.filter((name) => !COLOR_UTILITIES.includes(name))
+  const missing = COLOR_UTILITIES.filter((name) => !got.includes(name))
+  if (extra.length === 0 && missing.length === 0) return
+  const text = [...extra, ...missing.map((name) => `missing ${name}`)].join(' ')
+  findings.push({ rule: RULES.R31, file, line: 1, text })
+}
+
+/** `function scoreBug` is the private tag-page copy. The rule is deriveScoreBug. */
+function scanScoreBug(file, src, findings) {
+  const re = /\bfunction\s+scoreBug\b/g
+  let hit
+  while ((hit = re.exec(src))) push(findings, RULES.R29, file, src, hit.index, hit[0])
+}
+
+/** A video element only in the shared player section. */
+function scanOnePlayer(file, src, findings) {
+  if (!file.startsWith('src/') || !file.endsWith('.tsx')) return
+  if (file === 'src/features/tagging/sections/VideoSection.tsx') return
+  const re = /<video\b/g
+  let hit
+  while ((hit = re.exec(src))) push(findings, RULES.R30, file, src, hit.index, hit[0])
 }
 
 /** useNavigate stays in composers. Sections and blocks receive a callback. */
@@ -520,6 +584,7 @@ for (const abs of [...walk(path.join(rootAbs, 'src'), []), ...walk(path.join(roo
   if (!scanned(file)) continue
   findings.push(...scanFile(file, fs.readFileSync(abs, 'utf8')))
 }
+scanCssColorUtils(findings)
 findings.sort((a, b) => a.rule.localeCompare(b.rule) || a.file.localeCompare(b.file) || a.line - b.line)
 
 let entries = []
