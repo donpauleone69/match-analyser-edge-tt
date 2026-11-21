@@ -62,7 +62,7 @@ Live shipping tokens: `app/src/index.css` `@theme`. Proto tokens: `proto/src/ind
 | Shipping bottom nav | `app/src/components/layout/AppShell.tsx` | Home, Clips, Account. 48px, 10px labels, 16px lucide icons. Fixed, all widths | Active = brand colour | Refine on phone. Remove on desktop and short landscape |
 | Shipping sidebar | `components/layout/Sidebar.tsx` | Not mounted. 224px, five items (Home, Matches, Training, Clips, Account) | — | Remove |
 | Shipping header | `components/layout/Header.tsx` | Not mounted | — | Remove |
-| Proto shell | `proto/src/layout/AppShell.tsx`, `.shell` in `proto/src/index.css` | Portrait: fixed bottom bar, height `--btn-kind-main` (44px) + safe area. Landscape: left rail `4.5rem` + safe area. Hidden inside a match | 10px labels | Keep the orientation switch |
+| Proto shell | `proto/src/layout/AppShell.tsx`, `.shell` in `proto/src/index.css` | Portrait: fixed bottom bar, height `--btn-kind-main` (44px with a mouse, 48px on a coarse pointer) + safe area. Landscape: left rail `4.5rem` + safe area. Hidden inside a match | 10px labels | Keep the orientation switch |
 | Proto page header | `layout/PageHeader.tsx`, `StickyChrome.tsx` | Match tabs, back, opponent name. Scrolls away under 500px landscape | — | Keep |
 | Brand mark | `layout/BrandMark.tsx` | Proto gate | “EdgeTT” | Keep |
 | Wireframe bits | `layout/Wireframe.tsx` (`WfBadge`, `WfField`, `WfEmpty`) | Proto gate, account, empty match | STUB pills | Remove from anything a player sees |
@@ -103,7 +103,7 @@ Live shipping tokens: `app/src/index.css` `@theme`. Proto tokens: `proto/src/ind
 | Element | Source | Variants | Disposition |
 |---|---|---|---|
 | Input region | `InputArea.tsx` `RegionButton` | Portrait 22px/700 measured. Landscape CSS forces 20px (`1.25rem`) on `.pad-region` | Keep the full-colour region. Make landscape 22px too, as the spec says |
-| Corner pad / best panel | `CornerPad.tsx`, `BestPanel.tsx`, `inputModes.ts` | Watch, serve, stroke, end, edit, review | Keep. One pattern: Back / Forward plus the action for the focus |
+| Corner pad / best panel | `BestPanel.tsx`, `inputModes.ts` (`CornerPad.tsx` is named in `ui-zones.md` and is not in the repo) | Watch, serve, stroke, end, edit, review | Keep. One pattern: Back / Forward plus the action for the focus |
 | Answer cells | `AnswerCells.tsx` | Marks on the rally row | Keep |
 
 ## Feature blocks worth naming
@@ -213,6 +213,10 @@ Transport buttons on that screen: 26×28px, 10px type. The contact pad is the ex
 | `VideoStage.tsx`, `usePlayer.ts`, `timeline.ts` | Video |
 | `SetZone.tsx` | Set |
 | `RallyZone.tsx` | Rally. States: before, gap, insert, tapping, answering, saved, editing, review |
-| `InputArea.tsx`, `inputModes.ts`, `CornerPad.tsx`, `BestPanel.tsx` | Input |
+| `InputArea.tsx`, `inputModes.ts`, `BestPanel.tsx` | Input |
 | `zoneButton.ts` | Shared star box |
 | `proto/src/index.css` `.tag-set`, `.tag-setzone`, `.tag-rally`, `.tag-picture`, `.pad-wing` | Sizes |
+
+## Corrections
+
+Stage 2 fixed two facts in this file: the proto nav bar is 48px on a coarse pointer (44px with a mouse), and `CornerPad.tsx` does not exist (the zone doc still lists it).

@@ -1,0 +1,329 @@
+/*
+  Edge TT Match Analyser: design tokens, base layer.
+  Spec: design-audit/design-system.md. Custom properties only, no component rules.
+
+  HOW TO USE
+  - Import this file first, then one or more theme files.
+  - A theme is a rule on [data-theme="<name>"] that overrides tokens from
+    section 1 only. Sections 2 and 3 are structure and stay shared.
+  - Section 1 is declared on ":root, [data-theme]" so derived tokens
+    (color-mix, aliases) recompute on any element that carries data-theme.
+    Three themes can therefore sit side by side on one page.
+  - Sizes follow the pointer, not the width. Previews that simulate a phone in
+    a desktop browser set data-pointer="coarse" on the device frame.
+  - Default values are the live proto's Slate Teal pack, corrected where a
+    value failed contrast. They are a neutral baseline, not a fourth theme.
+*/
+
+/* ==========================================================================
+   1. THEME CONTRACT. Themes override these values. Names never change.
+   ========================================================================== */
+:root,
+[data-theme] {
+  /* ---- Font roles ---- */
+  --font-ui: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-display: var(--font-ui); /* page titles and the big stat value */
+  --font-numeric: var(--font-ui); /* scores, counts, percentages, times */
+  --font-numeric-variant: tabular-nums lining-nums; /* apply wherever --font-numeric is used */
+
+  --font-weight-regular: 400;
+  --font-weight-strong: 600; /* labels, buttons, row titles */
+  --font-weight-heavy: 700; /* titles, stat values, pills, input regions */
+
+  --label-transform: none; /* field and column labels: none or uppercase */
+  --label-tracking: 0; /* 0.04em when uppercase */
+  --display-tracking: -0.01em;
+
+  /* ---- Type scale. Five roles. Allowed range in the comment. ---- */
+  --type-micro-size: 0.75rem; /* 12. Floor. Never below 12 */
+  --type-micro-line: 1rem;
+  --type-meta-size: 0.8125rem; /* 13. Range 13 to 14 */
+  --type-meta-line: 1.125rem;
+  --type-body-size: 0.9375rem; /* 15. Range 15 to 16 */
+  --type-body-line: 1.375rem;
+  --type-title-size: 1.0625rem; /* 17. Range 17 to 20 */
+  --type-title-line: 1.5rem;
+  --type-display-size: 1.5rem; /* 24. Range 24 to 32 */
+  --type-display-line: 1.75rem;
+
+  /* ---- Surfaces ---- */
+  --surface-page: #f4f6f9;
+  --surface-nav: #eef1f5; /* bottom bar and rail */
+  --surface-raised: #ffffff; /* cards, sheets, dialogs, menus, fields */
+  --surface-sunken: #e9edf2; /* tracks, idle controls, zone rest fill */
+  --surface-inverse: #0f172a; /* toast */
+  --surface-video: #000000; /* Video Zone, letterbox bands, any player */
+  --scrim: rgb(15 23 42 / 0.5); /* behind sheets and dialogs */
+
+  /* ---- Ink ---- */
+  --ink: #0f172a;
+  --ink-muted: #475569; /* secondary text. At least 4.5:1 on page and raised */
+  --ink-disabled: #64748b;
+  --ink-inverse: #ffffff; /* on inverse surface, video chrome, strong fills */
+  --ink-on-accent: #ffffff;
+
+  /* ---- Lines ---- */
+  --line: #cbd5e1; /* hairlines, card edges, row dividers */
+  --line-strong: #7c8ba1; /* field and control edges. At least 3:1 on raised */
+  --border-width: 1px;
+
+  /* ---- Accent (brand) ---- */
+  --accent: #0f766e; /* primary action fill. At least 4.5:1 with --ink-on-accent */
+  --accent-hover: color-mix(in srgb, var(--accent) 88%, #000000);
+  --accent-pressed: color-mix(in srgb, var(--accent) 76%, #000000);
+  --accent-ink: var(--accent); /* accent as text or icon. At least 4.5:1 on page */
+  --accent-soft: color-mix(in srgb, var(--accent) 12%, var(--surface-raised)); /* selected row, picked set */
+  --accent-on-video: #2dd4bf; /* accent on the black seek track */
+
+  /* ---- Status. solid = fill, ink = text or strong fill under white, soft = tint ---- */
+  --positive: #16a34a;
+  --positive-ink: #15803d;
+  --positive-soft: color-mix(in srgb, var(--positive) 14%, var(--surface-raised));
+  --warning: #f59e0b;
+  --warning-ink: #b45309;
+  --warning-soft: color-mix(in srgb, var(--warning) 12%, var(--surface-raised));
+  --danger: #dc2626;
+  --danger-ink: #b91c1c;
+  --danger-soft: color-mix(in srgb, var(--danger) 10%, var(--surface-raised));
+  --info: #0284c7;
+  --info-ink: #0369a1;
+  --info-soft: color-mix(in srgb, var(--info) 12%, var(--surface-raised));
+
+  /* ---- Neutral control (secondary button, idle pill, field) ---- */
+  --control-bg: var(--surface-sunken);
+  --control-bg-hover: color-mix(in srgb, var(--ink) 8%, var(--control-bg));
+  --control-bg-pressed: color-mix(in srgb, var(--ink) 14%, var(--control-bg));
+  --control-line: transparent;
+  --control-ink: var(--ink);
+  --control-disabled-bg: #eef2f7;
+  --control-disabled-ink: var(--ink-disabled);
+  --control-disabled-line: #e2e8f0;
+  --field-bg: var(--surface-raised);
+  --field-line: var(--line-strong);
+
+  /* ---- Interaction states ---- */
+  --focus-ring-color: var(--accent);
+  --focus-ring-color-on-video: #ffffff;
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+  --ghost-bg-hover: color-mix(in srgb, var(--ink) 6%, transparent);
+  --ghost-bg-pressed: color-mix(in srgb, var(--ink) 12%, transparent);
+  --press-scale: 0.98; /* buttons. 1 turns it off */
+  --press-dim: 0.9; /* brightness on a pressed input region */
+  --selected-bg: var(--accent-soft);
+  --selected-line: var(--accent);
+
+  /* ---- Domain: players ---- */
+  --player-a: #3b82f6; /* You. Solid: rally pill, open shot cell, server dot, "You served" */
+  --player-b: #f97316; /* Them */
+  --ink-on-player: #0b1220; /* text on both solids. At least 4.5:1 */
+  --player-a-ink: #1d4ed8; /* player colour as text or dashed outline on the page */
+  --player-b-ink: #c2410c;
+  --player-a-soft: color-mix(in srgb, var(--player-a) 18%, var(--surface-page)); /* opaque rest cell, head cell */
+  --player-b-soft: color-mix(in srgb, var(--player-b) 18%, var(--surface-page));
+
+  /* ---- Domain: tagging marks ---- */
+  --first-attack: var(--positive-ink); /* 2px edge on the first-attack shot cell. At least 3:1 on the soft cells */
+  --mark: var(--warning); /* zone toggle that is on, part marked for review, gap warning */
+  --ink-on-mark: #0b1220;
+
+  /* ---- Domain: Input Area region fills. Text is --ink-inverse unless noted ---- */
+  --region-action: var(--accent); /* Play, Tap serve, Tap shot N, Save set, Save at 9 - 7 */
+  --region-step: #334155; /* Back, Forward, Edit, Edit Rally N, Remove N, Review [part] */
+  --region-other: #475569; /* Not a shot, Out of turn, Point to [name] */
+  --region-destructive: #991b1b; /* Delete, Delete rally N */
+  --region-idle: var(--surface-raised); /* the unselected half of Rallies / Gaps. Text --ink, 1px --line */
+  --wing-bh: #1d4ed8; /* BH Long, BH Attack */
+  --wing-bh-soft: #bfdbfe; /* BH Short, BH Control. Text --ink-on-player */
+  --wing-fh: #c2410c; /* FH Long, FH Attack */
+  --wing-fh-soft: #fed7aa; /* FH Short, FH Control. Text --ink-on-player */
+  --end-winner: var(--positive-ink);
+  --end-long: var(--warning-ink);
+  --end-net: var(--danger-ink);
+
+  /* ---- Domain: on-video chrome (Back, score bug, transport, hints, seek bar) ---- */
+  --video-chrome-bg: rgb(0 0 0 / 0.6);
+  --video-chrome-bg-hover: rgb(0 0 0 / 0.8);
+  --video-chrome-ink: #ffffff;
+  --video-chrome-ink-muted: rgb(255 255 255 / 0.7);
+  --video-seek-track: rgb(0 0 0 / 0.55);
+  --video-seek-span: rgb(255 255 255 / 0.88); /* a saved rally on the seek bar */
+  --video-seek-span-on: var(--accent-on-video); /* the picked rally */
+
+  /* ---- Domain: Tag page timeline ---- */
+  --timeline-track: var(--surface-sunken);
+  --timeline-span-open: var(--accent); /* a marked or part-tagged set */
+  --timeline-span-saved: var(--positive-ink); /* a saved set */
+  --timeline-ink: #ffffff;
+
+  /* ---- Shape ---- */
+  --radius-control: 6px; /* buttons, fields, zone buttons, rally pills. The zone doc says 6 */
+  --radius-cell: 4px; /* shot cells, chips, badges, timeline spans */
+  --radius-surface: 8px; /* cards, callouts */
+  --radius-region: 8px; /* Input Area regions, one value in both orientations */
+  --radius-overlay: 12px; /* sheets, dialogs */
+  --radius-round: 999px;
+
+  /* ---- Elevation. A theme may set either to none ---- */
+  --shadow-raised: 0 1px 2px rgb(15 23 42 / 0.08);
+  --shadow-overlay: 0 10px 24px rgb(15 23 42 / 0.16);
+  --card-line: var(--line); /* transparent removes the card edge */
+
+  /* ---- Density. Page content only, never the tagger zones ---- */
+  --pad-card: 1rem; /* 16. Range 12 to 20 */
+  --gap-stack: 0.75rem; /* 12 between cards and sections. Range 8 to 16 */
+  --row-min: 3.75rem; /* 60, a two-line list row. Range 56 to 68 */
+  --pad-row-y: 0.625rem; /* 10 */
+}
+
+/* ==========================================================================
+   2. STRUCTURE. Shared by every theme. Themes do not override these.
+   ========================================================================== */
+:root {
+  /* ---- Type locked by the zone doc or by the platform ---- */
+  --type-zone-size: 0.75rem; /* 12. Zone buttons, head cell, rally pills, shot cells, part chips */
+  --type-zone-line: 1;
+  --type-input-size: 1.375rem; /* 22 bold. Input Area regions, both orientations */
+  --type-input-line: 1.15;
+  --type-field-size: 0.9375rem; /* 15 with a mouse. 16 on touch, see below */
+
+  /* ---- Spacing scale ---- */
+  --space-0-5: 0.125rem; /* 2 */
+  --space-1: 0.25rem; /* 4 */
+  --space-1-5: 0.375rem; /* 6 */
+  --space-2: 0.5rem; /* 8 */
+  --space-3: 0.75rem; /* 12 */
+  --space-4: 1rem; /* 16 */
+  --space-6: 1.5rem; /* 24 */
+  --space-8: 2rem; /* 32 */
+  --gap-inline: var(--space-2); /* between controls in a row */
+  --pad-control-x: var(--space-3); /* inside a button or field */
+
+  /* ---- Page frame ---- */
+  --gutter: 1rem; /* 16. Grows at 640 and 1024, see below */
+  --page-max: 72rem; /* 1152. Card grids, forms, media pages */
+  --page-max-list: 45rem; /* 720. Single-column lists at 1024 and up */
+  --page-max-gate: 25rem; /* 400 */
+  --card-col-min: 20rem; /* 320. A card grid adds a column per 320 of room */
+
+  /* ---- Control sizes. Mouse values here, touch values below ---- */
+  --size-control: 2.25rem; /* 36. Buttons, fields, icon buttons, tabs, top row, on-video transport */
+  --size-control-lg: 2.75rem; /* 44. Lead action, nav item, sheet actions */
+  --size-control-dense: 2rem; /* 32. Drawn height of zone buttons and the head cell. Same on touch */
+  --size-hit-dense: 2rem; /* 32. Hit height of a dense control */
+  --size-short-row: 2.75rem; /* 44. The fixed-height row of the Input Area (Rallies / Gaps) */
+  --size-icon-sm: 1rem; /* 16 */
+  --size-icon: 1.25rem; /* 20 */
+  --size-icon-lg: 1.5rem; /* 24 */
+
+  /* ---- Shell ---- */
+  --nav-bar-height: var(--size-control-lg); /* portrait. Add env(safe-area-inset-bottom) */
+  --nav-rail-width: 4.5rem; /* 72, landscape. Add env(safe-area-inset-left) */
+  --top-row-height: var(--size-control);
+
+  /* ---- Set Tagger zones. From proto/docs/ui-zones.md ---- */
+  --zone-set: 2.5rem; /* 40. Set Zone height */
+  --zone-rally: 4rem; /* 64. Rally Zone: pad 4, head 32, gap 4, shots 16, gap 2, lines 3, pad 3 */
+  --zone-strip: calc(var(--zone-set) + var(--zone-rally)); /* 104 */
+  --zone-wing-min: 9rem; /* 144. A wing track, safe-area inset included */
+  --zone-input-min: 15rem; /* 240. Least Input Area height in portrait */
+  --zone-gap: var(--space-1-5); /* 6 between regions */
+  --zone-pad: var(--space-2); /* 8 around the portrait Input Area */
+  --zone-wing-pad: var(--space-1-5); /* 6 around a wing */
+  --zone-pill: 1.5rem; /* 24. Rally pill, square at least */
+  --zone-shot: 1rem; /* 16. Shot cell and part chip height */
+  --zone-shot-min: 1.5rem; /* 24. Least shot cell width */
+  --zone-part-line: 3px;
+  --zone-countdown: 6px; /* drawn on the Rally Zone's bottom edge, takes no space */
+  --zone-seek-hit: 1.75rem; /* 28. Seek bar touch height */
+  --zone-seek-track: 6px;
+
+  /*
+    Zone geometry. Use inside the tagger root, which sets container-type: size.
+    Landscape (width >= height): wing | middle | wing.
+      grid-template-columns: minmax(var(--zone-wing-min), 1fr) var(--zone-mid-w) minmax(var(--zone-wing-min), 1fr)
+      Video Zone: var(--zone-mid-w) wide, var(--zone-video-h-split) tall, picture 16:9 contained and centred.
+    Portrait: Video, Set, Rally, Input in one column.
+      Picture: full width, 16:9, height var(--zone-video-h-stack).
+  */
+  --zone-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --zone-video-h-split: calc(100cqh - var(--zone-strip) - var(--zone-safe-bottom));
+  --zone-mid-w: min(calc(var(--zone-video-h-split) * 16 / 9), calc(100cqw - 2 * var(--zone-wing-min)));
+  --zone-video-h-stack: min(calc(100cqw * 9 / 16), calc(100cqh - var(--zone-strip) - var(--zone-input-min)));
+
+  /* ---- Motion ---- */
+  --motion-fast: 150ms; /* hover, press, toggle */
+  --motion-slow: 300ms; /* sheet, dialog, card flip */
+  --motion-ease: cubic-bezier(0.2, 0, 0, 1);
+  --hint-duration: 2500ms; /* on-picture hint */
+  --toast-duration: 6000ms; /* on-picture toast with Undo */
+  --countdown-duration: 2000ms; /* rally closes after 2 s with no tap */
+
+  /* ---- Layers ---- */
+  --z-sticky: 20; /* top row, sticky player */
+  --z-nav: 40;
+  --z-overlay: 50; /* sheet, dialog, menu */
+  --z-toast: 60;
+}
+
+/* Touch sizes. The pointer decides, not the width. */
+@media (pointer: coarse) {
+  :root {
+    --size-control: 2.75rem; /* 44 */
+    --size-control-lg: 3rem; /* 48 */
+    --size-hit-dense: 2.5rem; /* 40. The most a 40px Set Zone can hold */
+    --type-field-size: 1rem; /* 16. Stops iOS zooming a focused field */
+  }
+}
+[data-pointer="coarse"] {
+  --size-control: 2.75rem;
+  --size-control-lg: 3rem;
+  --size-hit-dense: 2.5rem;
+  --type-field-size: 1rem;
+  --nav-bar-height: var(--size-control-lg);
+  --top-row-height: var(--size-control);
+}
+[data-pointer="fine"] {
+  --size-control: 2.25rem;
+  --size-control-lg: 2.75rem;
+  --size-hit-dense: 2rem;
+  --type-field-size: 0.9375rem;
+  --nav-bar-height: var(--size-control-lg);
+  --top-row-height: var(--size-control);
+}
+
+/* Page gutter by width. */
+@media (min-width: 640px) {
+  :root {
+    --gutter: 1.5rem; /* 24 */
+  }
+}
+@media (min-width: 1024px) {
+  :root {
+    --gutter: 2rem; /* 32 */
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0.01ms;
+    --motion-slow: 0.01ms;
+  }
+  :root,
+  [data-theme] {
+    --press-scale: 1;
+  }
+}
+
+/*
+  3. QUERIES. Custom properties cannot be used in media queries, so the five
+  conditions the system uses are listed here once.
+
+    portrait   (orientation: portrait)                         bottom nav bar, stacked zones
+    landscape  (orientation: landscape), (min-aspect-ratio: 1/1)   nav rail, zone wings
+    short      (orientation: landscape) and (max-height: 500px)    phone landscape: top row scrolls away
+    mid        (min-width: 640px)                              gutter 24, two-column forms and card grids
+    wide       (min-width: 1024px)                             gutter 32, page max widths, side-by-side media pages
+    touch      (pointer: coarse)                               control sizes above
+    hover      (hover: hover)                                  hover styles apply only here
+*/
