@@ -5,7 +5,7 @@
 import { readFileSync } from 'node:fs'
 import { emptySet, isMatchTagged, calculateMatchSetsWon, setSettled } from '../src/rules/match'
 import type { MatchRecord, Points, SetData } from '../src/types/match'
-import { overrunLabels, tagRegions } from '../src/features/tagging/inputModes'
+import { overrunLabels, tagRegions } from '../src/features/tagging/derive/deriveInputArea'
 import { settleFinished } from '../src/rules/matchOps'
 import type { Side } from '../src/types/rally'
 import {

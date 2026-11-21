@@ -47,9 +47,9 @@ import {
   undoContact,
 } from '@/rules/rally'
 import { ZERO, addPoint, canSaveEarly, countPoints, isSetWon, setEndIndex, setOverOnRule } from '@/rules/score'
-import { bestPadRegions, editRallyRegions } from './BestPanel'
+import { bestPadRegions, editRallyRegions } from './derive/deriveBestPanel'
 import { InputAreaSection } from './sections/InputAreaSection'
-import { tagRegions } from './inputModes'
+import { tagRegions } from './derive/deriveInputArea'
 import { RallyZoneSection } from './sections/RallyZoneSection'
 import type { RallyState } from './models'
 import { SetZoneSection } from './sections/SetZoneSection'

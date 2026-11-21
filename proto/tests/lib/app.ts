@@ -102,7 +102,7 @@ export {
 export type { ReviewPress, ServeRally } from '@/rules/continuity'
 
 // -> @/rules/input-modes
-export { overrunLabels, tagRegions } from '@/features/tagging/inputModes'
+export { overrunLabels, tagRegions } from '@/features/tagging/derive/deriveInputArea'
 
 // -> @/rules/timeline
 export { formatClock, insertIndex, lastContactG, segmentAt, totalDuration } from '@/rules/timeline'

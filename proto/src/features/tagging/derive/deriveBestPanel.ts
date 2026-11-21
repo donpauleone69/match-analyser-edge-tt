@@ -8,7 +8,7 @@ import {
   type PadBack,
   type BestEnd,
 } from '@/rules/bestFa'
-import type { AreaRegion } from './models'
+import type { AreaRegion } from '../models'
 import type { Draft, Side, Wing } from '@/types/rally'
 import { hitterOf, otherSide, winnerOf } from '@/rules/rally'
 

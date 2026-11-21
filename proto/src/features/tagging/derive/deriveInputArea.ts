@@ -1,4 +1,4 @@
-import type { AreaRegion } from './models'
+import type { AreaRegion } from '../models'
 import type { BestAt } from '@/rules/bestFa'
 
 const SLATE = '#334155'
