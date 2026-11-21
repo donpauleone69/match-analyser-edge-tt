@@ -65,3 +65,4 @@ videos/
 **/tests/smoke/out/
 **/tests/smoke/.cache/
 **/tests/db/out/
+**/tests/persist/out/
