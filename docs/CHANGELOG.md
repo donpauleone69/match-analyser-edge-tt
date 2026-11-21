@@ -2,7 +2,7 @@
 
 Visible version: v0.17.29 in `app/src/version.ts`. The old reference app's v3.x log left with that app in phase 5. This file is the proto line that became `app/`, condensed from the version notes, the tags, and that removed log's proto entries.
 
-## Unreleased: refactor phases 0 to 6
+## Unreleased: refactor phases 0 to 7
 
 No tagging or scoring change. Settings shows v0.17.29 for the phase 6 (`refactor-p6`) phone publish off `cursor/refactor-run-1886`; behaviour matches v0.17.28.
 
@@ -13,6 +13,7 @@ No tagging or scoring change. Settings shows v0.17.29 for the phase 6 (`refactor
 - Phase 4. Shared filters, formatters, cards, badges, and the rules that keep them shared. Tag `refactor-p4`.
 - Phase 5. Legacy values removed from types and readers. Stale scripts and root leftovers removed. The reference app deleted. The product folder renamed to `app/`. Tag `refactor-p5`.
 - Phase 6. These docs. `AGENTS.md`, `.cursorrules`, and `docs/`. The old doc trees removed. `npm run check:docs`.
+- Phase 7. Database schema v1 in code, no database: `app/src/types/db.ts`, `app/src/rules/dbRows.ts`, `app/src/rules/dbValidate.ts`, invariants I-58 to I-61, `docs/data-fields.md`. I-6 accepts `Defence`, which nothing writes yet. No visible change.
 
 Run branch: `cursor/refactor-run-1886`.
 

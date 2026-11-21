@@ -40,8 +40,8 @@ helpers/        pure utilities (cn)
 - **matches** (`/matches`): `MatchesComposer`, `MatchFilterSection`, `MatchListSection`, `deriveMatchList`. Blocks: `MatchRowBlock`, `FilterSheetBlock`, `FilterButtonBlock`, `FilterSelectBlock`, `MatchFilterPickersBlock`.
 - **insights** (`/insights` and the match Insights tab): `InsightsComposer`, `GlobalInsightsComposer`, `MatchInsightsComposer`. Sections: `InsightFilterSection`, `InsightCardsSection`, `PlaylistSection`. Blocks: `InsightCardBlock`, `FilterPickersBlock`. Derive: `deriveMatchInsights`, `deriveGlobalInsights`. Hook: `usePlayingCard`.
 - **account** (`/` and `/account`): `GateComposer`, `AccountComposer`. Sections: `ProfileSection`, `DemoDataSection`, `ThemeSection`, `BackupSection`.
-- **rules/**: `score`, `rally`, `bestFa`, `continuity`, `marks`, `match`, `matchOps`, `matchStatus`, `timeline`, `insights`, `filters`, `format`.
-- **types/**: `match`, `rally`, `video`, `filters`, `theme`.
+- **rules/**: `score`, `rally`, `bestFa`, `continuity`, `marks`, `match`, `matchOps`, `matchStatus`, `timeline`, `insights`, `filters`, `format`, `dbRows` (memory to database rows and back), `dbValidate` (checks before a row is written).
+- **types/**: `match`, `rally`, `video`, `filters`, `theme`, `db` (schema v1).
 - **stores/**: `matchStore`, `settingsStore`.
 - **data/seed/**: `buildSeed.ts`, `script.ts`.
 
@@ -69,7 +69,7 @@ helpers/        pure utilities (cn)
 
 - `app/tests/lib/app.ts` is the only test file that imports app code. When code moves or is renamed, edit only this shim and alias the old name.
 - One test file per rules module under `app/tests/rules/`, importing through `app/tests/lib/app.ts`.
-- `app/tests/invariants/` checks invariants I-1 to I-57 over the seed. `app/tests/golden/` pins every derived output as JSON. `app/tests/smoke/` screenshots every route at 393x660 and 1440x912 plus a six rally tagging run, compared to the baseline at 0 differing pixels.
+- `app/tests/invariants/` checks invariants I-1 to I-61 over the seed and its database rows. `app/tests/golden/` pins every derived output as JSON. `app/tests/smoke/` screenshots every route at 393x660 and 1440x912 plus a six rally tagging run, compared to the baseline at 0 differing pixels.
 - Never loosen a test, re-baseline golden files (`UPDATE_GOLDEN=1`) or smoke screenshots unless the change is named and agreed.
 - `app/scripts/check-rules.mjs` enforces the layer rules above. Each new rule gets a bad and a good fixture in `app/tests/rules-check/fixtures/`. `app/scripts/rules-allowlist.json` only shrinks: never add an entry.
 - `app/scripts/check-docs.mjs` fails when a scanned doc cites a repo path that is not there, or runs past 200 lines.
@@ -116,6 +116,7 @@ Also look at changed surfaces in a real browser. Lint is not a gate. How to run 
 | Product brief | `docs/brief.md` |
 | Architecture | `docs/architecture.md` |
 | Data model and invariants | `docs/data.md` |
+| Database columns and gaps | `docs/data-fields.md` |
 | Tagging rules | `docs/tagging-rules.md` |
 | Screen areas | `docs/layouts.md` |
 | Glossary | `docs/glossary.md` |

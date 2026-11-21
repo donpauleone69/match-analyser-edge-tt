@@ -2,7 +2,7 @@
 
 Table tennis match video tagging and insights. This is not the club session app called Edge TT.
 
-The product is `app/` (Vite 7, React 19, React Router 7, Tailwind 4, TypeScript 5.9, Zustand, Vitest). The visible version is v0.17.29 in `app/src/version.ts`. Match data lives in memory and resets on reload. Device preferences persist through `app/src/stores/settingsStore.ts`. There is no database yet.
+The product is `app/` (Vite 7, React 19, React Router 7, Tailwind 4, TypeScript 5.9, Zustand, Vitest). The visible version is v0.17.29 in `app/src/version.ts`. Match data lives in memory and resets on reload. Device preferences persist through `app/src/stores/settingsStore.ts`. There is no database yet; phase 7 designed its schema (`app/src/types/db.ts`) and phase 8 builds it.
 
 ## Run and test
 
@@ -18,7 +18,7 @@ Every command after that `cd` runs from `app/`. Dev server: http://localhost:517
 | Command | What it does |
 |---|---|
 | `npm run build` | Typecheck and production build |
-| `npm test` | Vitest: rules, invariants I-1 to I-57, golden outputs. Under two minutes |
+| `npm test` | Vitest: rules, invariants I-1 to I-61, golden outputs. Under two minutes |
 | `npm run check:rules` | Layer rules in `app/scripts/check-rules.mjs` |
 | `npm run check:docs` | Cited repo paths exist, and each scanned doc is at most 200 lines |
 | `npm run smoke` | Every route at 393x660 and 1440x912, plus a six-rally tagging run. Pass is 0 differing pixels |
@@ -48,6 +48,7 @@ Routes are in `app/src/App.tsx`: `/` gate, `/matches`, `/matches/:matchId` (Insi
 | Product | `docs/brief.md` |
 | Layers, stores, tests | `docs/architecture.md` |
 | Stored data and invariants | `docs/data.md` |
+| Database columns and gaps | `docs/data-fields.md` |
 | Best + FA tagging | `docs/tagging-rules.md` |
 | Routes and jobs | `docs/flows.md` |
 | Screen zones | `docs/layouts.md` |

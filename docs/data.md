@@ -1,6 +1,8 @@
 # Data model
 
-What the app stores today. Types live in `app/src/types/`. Rules that read them live in `app/src/rules/`. Invariants are `app/tests/invariants/catalog.ts`. There is one nested record per match, in memory. "You" is `me`. Opponent and event are text, not rows.
+Two shapes. In memory, one nested `MatchRecord` per match in `app/src/stores/matchStore.ts`; it resets on reload. In the database, schema v1: eight tables in `app/src/types/db.ts`, mapped from memory and back by `app/src/rules/dbRows.ts`, checked before every write by `app/src/rules/dbValidate.ts`. Phase 8 creates the tables (Dexie). Every column with its type, allowed values, writer and reader, plus the gaps, is in `docs/data-fields.md`. "You" is `me`. Invariants are `app/tests/invariants/catalog.ts` and `app/tests/invariants/rows.ts`.
+
+## In memory
 
 ```
 MatchRecord
@@ -12,71 +14,81 @@ MatchRecord
     draft: Draft | null
 ```
 
-Times are seconds in one video. The match clock is derived by laying videos end to end.
+Times are seconds in one video. The match clock lays videos end to end.
 
-## MatchRecord
-
-`id`, `opponent`, `date` (`YYYY-MM-DD` or empty), `event`, `result` (`{ me, them }`, both numbers or both null), `videos`, `sets`. No stored status, no best-of field, no created time. Seed ids are `m-new`, `m-ready`, `m-partial`, `m-complete`, `m-h1` to `m-h10`. Created ids look like `m-new-<ms>`.
-
-`result` on Details is a real best of 3, 5, or 7 (`REAL_RESULTS` in `app/src/rules/matchStatus.ts`). Phase (`new`, `ready`, `partial`, `complete`) is `derivePhase`.
-
-## VideoAsset
-
-`id`, `fileName`, `sizeMb`, `archived`, `kind` (`demo` or `file`), `durationS`, optional `script` (demo only), optional `src` (blob URL, memory only). Order is play order. Archive keeps rallies joined, at lower size, and cannot be undone. A re-added video takes the missing id and position (second I-52).
-
-## SetData and SetMark
-
-`setId`, `entered` (score strings as typed), `finished` (the user saved the set), `firstServer`, `rallies`, `draft`, `mark`. `SetMark` is `from` and `to` (`{ videoId, t }`) and `complete` (the whole set is on video from the first serve). Null mark means the set is not on video. At most 7 sets (`MAX_SETS` in `app/src/rules/matchOps.ts`), or the count the result implies.
-
-Delete keeps the rally on a `deleted` array cast onto the set until `finishSet` clears it. It is not a field of `SetData`, and the score never counts it.
-
-## RallyData, shots, idea
-
-`id`, `videoId`, `server`, `contacts`, `start`, `end`, `ending`, `fa`, `shots`, `winner`. Optional: `point` (a point with no video), `left` (`serve` or `gap` marks the user left), `serveChecked`, `idea`.
-
-`ending` is `Winner`, `Net`, `Long`, or `Wide`, and null only when `point` is set. The live End pad writes Winner, Long, and Net (labelled In net). Wide is still a legal value and appears in the seed.
-
-Best + FA shot keys, for `n` contacts:
+- **MatchRecord**: `id`, `opponent` and `event` (text), `date` (`YYYY-MM-DD` or empty), `result` (`{ me, them }`, both numbers or both null, a real best of 3, 5 or 7 from `REAL_RESULTS` in `app/src/rules/matchStatus.ts`), `videos`, `sets`. Optional, no writer until phase 10: `category`, `stage`, `round`, `outcome` (only when picked with no result). Seed ids are `m-new`, `m-ready`, `m-partial`, `m-complete`, `m-h1` to `m-h10`; created ids are `m-new-<ms>`.
+- **VideoAsset**: `id`, `fileName`, `sizeMb`, `archived`, `kind` (`demo` or `file`), `durationS`, optional `script` (demo only), `src` (blob URL, memory only), `myEnd` (phase 10). Archive keeps rallies joined at lower size and cannot be undone. A removed video stays in the store's `removedVideos` while rallies name it; the next video added takes its id and place (second I-52).
+- **SetData**: `setId`, `entered` (score strings as typed), `finished`, `firstServer`, `rallies`, `draft`, `mark`. `SetMark` is `from`, `to` (`{ videoId, t }`) and `complete` (the whole set is on video). Null mark: not on video. At most 7 sets (`MAX_SETS`). Delete keeps a rally on a `deleted` array cast onto the set until `finishSet` clears it; the score never counts it.
+- **RallyData**: `id`, `videoId`, `server`, `contacts`, `start`, `end`, `ending`, `fa`, `shots`, `winner`. Optional: `point` (no video), `left` (`serve` or `gap` marks left), `serveChecked`, `idea`. `ending` is `Winner`, `Net`, `Long` or `Wide`, null only on a point. The pad writes Winner, Long and Net (In net); Wide is legal and in the seed.
+- **idea** (`IdeaTag`): `flow: 'bestfa'`, `serve` (copy of serve depth), `result` (`Ace`, `Serve fault` or the ending), `review` (parts in row order), `check` (`Check the point`).
+- **Draft**: the open rally: rally fields plus `closed`, `noAttack`, `serveChecked` (decides whether rally 1 still asks who served) and `best` (`BestMark`: `flow`, `step`, `endPage`, `end`, `point`, `kept`, `first`, `review`, `cut`). Not in the score.
+- A point with no video has empty contacts, `start === end`, null ending, null `fa`, no shots. Default rally start is 2 s before the first contact (`RALLY_LEAD_S`), end 1 s after the last (`RALLY_PAD_S`); `nudgeMark` moves them and they still hold the contacts.
 
 | Shot | Keys | Values |
 |---|---|---|
 | 1, when n is 1 | none | End alone: ace or serve fault |
 | 1, when n is at least 2 | `depth`, `wing` | `Short` or `Long`; `BH` or `FH` (landing) |
-| 2..n | `wing`, `stroke` | `BH` or `FH`; `Attack` or `Control` |
+| 2..n | `wing`, `stroke` | `BH` or `FH`; `Attack` or `Control` (`Defence` from phase 10) |
 
-`idea` (`IdeaTag`): `flow: 'bestfa'`, optional `serve` (copy of serve depth), `result` (`Ace`, `Serve fault`, or the ending), `review` (parts in row order), `check` (`Check the point` when Point to was kept against End).
+## Database schema v1
 
-`Draft` is the open rally: the rally fields plus `closed`, `noAttack`, and `best` (`BestMark`: `flow`, `step`, `endPage`, `end`, `point`, `kept`, `first`, `review`, `cut`). There is no `page` field. A draft is not in the score. Default start is 2 s before the first contact (`RALLY_LEAD_S`), default end is 1 s after the last (`RALLY_PAD_S`). `nudgeMark` can move them. They still have to contain the contacts.
+`SCHEMA_VERSION` is 1. Additive upgrades only. Ids are text. `...At` columns are whole ms since 1970; `...T` and `durationS` are seconds in one video. Null means not entered.
 
-A point with no video has empty contacts, `start === end`, null ending, null `fa`, no shots.
+| Table | Key | Links to | One row per |
+|---|---|---|---|
+| `opponents` | `id` | | opponent name, unique ignoring case |
+| `events` | `id` | | event name, unique ignoring case |
+| `matches` | `id` | `opponentId` to `opponents`, `eventId` to `events` (both optional) | match |
+| `videos` | `id` | `matchId` | video, listed or removed |
+| `sets` | `id` = `<matchId>:<setNumber>` | `matchId`; mark ends to `videos` of the same match | listed set |
+| `rallies` | `id` | `setId`; `videoId` to a video of the same match | saved or deleted rally, or point |
+| `shots` | `id` = `<rallyId>:<shotNumber>` | `rallyId` | contact |
+| `drafts` | `setId` | `setId`; `rally.videoId` to a video of the match | open rally |
 
-## Derived, never stored as its own field
+Plan columns, decision 19 columns (null, writer in phase 10), and four added in phase 7 for gaps G1 to G4 in `docs/data-fields.md`: `rallies.position`, `rallies.pointKept`, `videos.removedAt`, `videos.demoScript`.
 
-| Value | Rule | Code |
-|---|---|---|
-| Hitter of shot k | Server hits odd shots | `hitterOf` |
-| Winner from tags | Winner: last hitter. Net, Long, Wide: the other side | `winnerOf` |
-| Score | Count of stored `winner` | `countPoints` |
-| Server at a score | Two each, then one each from 10-all | `serverAt` |
-| Set won | 11 or more, two clear | `isSetWon` |
-| Legal end | 11 with the other on 9 or less, or both at least 10 and exactly two apart | `isLegalEnd` |
-| Set end rally | First rally whose running score is a win | `setEndIndex` |
-| Tagged set score | Score at that rally, else the plain count | `calculateScoreAtSetEnd`, `calculateTaggedScore` |
-| First attack | First `Attack` from shot 2, else null, never 1 | `bestOpener` |
-| Parts | Opening, Attack, Rally, End. Cover 1..n once | `bestParts` |
-| Phase | Serve to 5th, Receive to 4th, Rally | `phaseOf` |
-| Sets won, tagged result, Differs | From leaders and entered scores | `app/src/rules/match.ts` |
-| Continuity | Serve-order breaks; gaps of at least 9 s | `app/src/rules/continuity.ts` |
+Dropped (not in rows, worked out again on load): `serveChecked` on saved rallies, `idea.flow`, `idea.serve`, `idea.result`, `fa`, the `deleted` cast (now `deletedAt`), `src` blob URLs, `kind` (from `demoScript`), `sizeMb` (from `sizeBytes`), `archived` and `finished` (from their times). Seed to rows to memory gives the seed back exactly (`app/tests/rules/db-rows.test.ts`), and every golden output matches from rows.
 
-`fa` and `winner` are stored when the rally is saved, from those rules. The user does not type `fa`. The running score is not a field.
+## Derived, and when
+
+On render means every time a screen or selector reads it; nothing is cached in the data.
+
+| Value | From | When | Code |
+|---|---|---|---|
+| Contact time | Video time minus reaction | On tap | `captureContactTime` |
+| Hitter of shot k | Server, odd shots | On render | `hitterOf` |
+| Winner from tags | Last hitter; Net, Long, Wide give the other side | On tap (End), stored as `winner` on save | `winnerOf`, `settlePoint` |
+| Server offered | First server and the score | On render, when a rally opens | `serverAt` |
+| First attack `fa` | First `Attack` from shot 2 | On save in memory; on load from shot rows | `bestOpener` |
+| Rally start and end | Contacts and pads | On save; nudged on tap | `rallyStart`, `rallyEnd`, `nudgeMark` |
+| Parts | Count and strokes | On render | `bestParts` |
+| Score, set won, legal end | Stored winners | On render | `countPoints`, `isSetWon`, `isLegalEnd` |
+| Set end rally, tagged score | Winners | On render | `setEndIndex`, `calculateTaggedScore` |
+| Phase of a rally | Server, count, ending | On render | `phaseOf` |
+| Set state, mark state, video status | See the two tables below | On render | `app/src/rules/match.ts`, `app/src/rules/marks.ts` |
+| Sets won, tagged result, Differs | Leaders and entered scores | On render | `app/src/rules/match.ts` |
+| Match phase, Tagged | Sets and result | On render | `derivePhase`, `isMatchTagged` |
+| Set list | Result count, or used sets plus a spare | Every store write and catalog build (`mergeMatches`) | `normalizeMatch` |
+| Mark from rallies | First and last contact | Every store write and catalog build | `migrateSetMark` |
+| Continuity marks | Serve order, gaps of 9 s | On render | `app/src/rules/continuity.ts` |
+| Insight cards and reels | Saved rallies of the filtered matches | On render | `app/src/rules/insights.ts` |
+| `serveChecked` on a saved rally | Kind `rally` (every save writes true) | On load | `deriveRallyData` |
+| `idea.flow`, `serve`, `result` | Kind, serve depth, ending and count | On load | `deriveRallyData` |
+| Check the point | `pointKept` | On load | `deriveRallyData` |
+| `outcome` | `resultMe` greater than `resultThem` | On row write | `deriveOutcome` |
+| Opponent and event ids | Typed name, ignoring case and outer spaces | On row write | `deriveDbRows` |
+| Row times | `createdAt`, `updatedAt`, `finishedAt`, `archivedAt`, `deletedAt`, `removedAt` | On row write; a stored time is kept | `deriveDbRows` |
+| Video kind, size in MB | `demoScript`, `sizeBytes` | On load | `deriveMatchRecords` |
+| Event start date | Earliest `playedOn` of its matches | Phase 10 reader; no code yet | |
+| Your end at a rally | `myEnd`, swap per set and at 5 in the deciding set | Phase 10, `deriveMyEnd`; no code yet | |
 
 ## Set states
 
-Exactly one applies. `isSettled` and `isSpareSet` are in `app/src/rules/match.ts`. `isIncomplete` and `endedEarly` are in `app/src/rules/marks.ts`.
+Exactly one applies. `isSettled` and `isSpareSet` are in `app/src/rules/match.ts`; `isIncomplete` and `endedEarly` in `app/src/rules/marks.ts`.
 
 | State | When | Score that counts | Settled |
 |---|---|---|---|
-| Not on video | No mark, no rallies, no draft, not finished, and not the spare | Details | Only with a Details score |
+| Not on video | No mark, no rallies, no draft, not finished, not the spare | Details | Only with a Details score |
 | Spare | No result. The last listed set, unmarked, no rallies, no draft, no Details score | none | No. Tagged result skips it |
 | Ready | Marked, not finished, no rallies, no draft | none | No |
 | Under way | Not finished, with rallies or a draft | none | No |
@@ -86,22 +98,18 @@ Exactly one applies. `isSettled` and `isSpareSet` are in `app/src/rules/match.ts
 
 ## Marks and video status
 
-`deriveMarkState`: `off` when there is no mark, then `saved` when finished, then `tagging` when there are rallies, otherwise `ready`.
-
-`deriveVideoStatus`, first line that fits: Archived, No sets yet, Tagging, Ready to tag, Done.
-
-`migrateSetMark`: a set with rallies and no mark gets one. From is 5 s before the first contact (`MARK_PAD_S`). To is 5 s after the last contact when the set is finished, otherwise the end of that video. `complete` equals `finished`. A set that already has a mark is unchanged.
+`deriveMarkState`: `off` with no mark, then `saved` when finished, then `tagging` with rallies, else `ready`. `deriveVideoStatus`, first line that fits: Archived, No sets yet, Tagging, Ready to tag, Done. `migrateSetMark`: a set with rallies and no mark gets one from 5 s before the first contact (`MARK_PAD_S`) to 5 s after the last when finished, else to the end of that video; `complete` equals `finished`. A set with a mark is unchanged.
 
 ## Invariants
 
-Checked over the seed. Ids and the catalog text:
+I-1 to I-57 run over the seed and again over the matches read back from rows built from the seed. I-58 to I-61 run over those rows.
 
 - I-1 `shots.length` equals `contacts.length`.
 - I-2 Contacts strictly increase, stay inside the video, and are at least 0.05 s apart.
 - I-3 Start and end hold the contacts. Unedited pads are 2 s before and 1 s after.
 - I-4 Ending is Winner, Net, Long, or Wide, and null exactly on a point.
 - I-5 Winner follows the server, the count, and the ending, unless the point was kept.
-- I-6 Shots follow the Best + FA key sets.
+- I-6 Shots follow the Best + FA key sets; a stroke is `Attack`, `Control` or `Defence`.
 - I-7 `fa` is the first Attack from shot 2, else null, and never 1.
 - I-8 `serveChecked` is true on a tagged rally.
 - I-9 `idea` is a Best + FA save.
@@ -112,7 +120,7 @@ Checked over the seed. Ids and the catalog text:
 - I-21 Rally 1 is served by the set's first server. A 3 - 2 start writes points served by `serverAt`.
 - I-22 Each rally is served by `serverAt` of the score before it. The seed has no serve break.
 - I-23 First servers alternate from you in set 1.
-- I-24 Parts cover shots 1 to n once, in order, and match the formula.
+- I-24 Parts cover shots 1 to n once, in order, and match the formula (`Defence` counts as not an attack).
 - I-30 A finished set that is not early and not level was won on the rule.
 - I-31 A finished set has no rally after the one that won it.
 - I-32 An ended-early line reads Set N, Saved, the score, ended early.
@@ -129,11 +137,11 @@ Checked over the seed. Ids and the catalog text:
 - I-53 A new mark that fits is at least 60 s and starts in free time.
 - I-54 Won sets are complete, under-way sets are not, deleting tags sets complete, and finishing keeps it.
 - I-55 A video a set spans is locked, and moving it breaks.
-- I-56 Mark state is off, ready, tagging, or saved, as listed above. Video status is the first of Archived, No sets yet, Tagging, Ready to tag, and Done that fits.
-- I-57 A set with rallies and no mark gets the `migrateSetMark` pads: 5 s before the first contact, and 5 s after the last when finished, otherwise to the end of that video. `complete` equals `finished`. A set that already has a mark is left as it is.
+- I-56 Mark state and video status follow the lists above.
+- I-57 A set with rallies and no mark gets the `migrateSetMark` pads; a set that has a mark is left as it is.
+- I-58 When `resultMe` and `resultThem` are set, `outcome` is `Win` if `resultMe > resultThem`, else `Loss`.
+- I-59 Every row passes its validator, and keys, links and numbering hold across rows (`validateDbRows`).
+- I-60 Rows read back give the same matches, and rows built from those are the same rows.
+- I-61 Today's writers fill no decision 19 column, no `Defence`, no `myEnd`; `outcome` comes only from the result.
 
 The catalog also runs `set-states`: exactly one set state applies. It has no I-number.
-
-## Database (phase 7)
-
-Not built. The table design is not in this file. Phase 8 will add a field map here when the database exists.
