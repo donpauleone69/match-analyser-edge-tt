@@ -25,4 +25,3 @@ export const THEME_PACKS = [
 export type ThemeId = (typeof THEME_PACKS)[number]['id']
 
 export const DEFAULT_THEME: ThemeId = 'slate-teal'
-export const THEME_STORAGE_KEY = 'proto-theme'

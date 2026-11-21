@@ -59,7 +59,7 @@ import { RallyZone } from './RallyZone'
 import type { RallyState } from './models'
 import { SetZone } from './SetZone'
 import { BestTimingControl } from './BestTimingControl'
-import { loadBestTiming, saveBestTiming } from '@/stores/bestTimingStorage'
+import { useSettingsStore } from '@/stores/settingsStore'
 import {
   BEST_SHOT_RATE,
   bestAdvance,
@@ -91,7 +91,6 @@ import {
   type BestAt,
   type BestEnd,
   type BestLoopWhat,
-  type BestTiming,
 } from '@/rules/bestFa'
 import { useActionGuard, type ActionGuard } from './pressGuard'
 import { TAG_LOCK_LINE, useTagLock, type TagLock } from './tagLock'
@@ -215,7 +214,8 @@ function TagSet({
    */
   const [flowLock, setFlowLock] = useState<FlowName | null>(null)
   /** Best + FA: loop timings, contact check, and add. */
-  const [timing, setTiming] = useState(loadBestTiming)
+  const timing = useSettingsStore((s) => s.bestTiming)
+  const setBestTiming = useSettingsStore((s) => s.setBestTiming)
   const landscape = useLandscape()
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [bestSpan, setBestSpan] = useState<{ a: number; b: number } | null>(null)
@@ -225,10 +225,6 @@ function TagSet({
   const reviewRef = useRef(false)
   const reviewPlay = useRef<{ d: Draft; part: BestPart } | null>(null)
   const loopWhat = useRef<{ what: BestLoopWhat; rate: number } | null>(null)
-  const setBestTiming = (next: BestTiming) => {
-    setTiming(next)
-    saveBestTiming(next)
-  }
   const [bestLook, setBestLook] = useState(false)
   /** Edit Rally: the stop on screen, and where Done returns. */
   const [shotEdit, setShotEdit] = useState<{

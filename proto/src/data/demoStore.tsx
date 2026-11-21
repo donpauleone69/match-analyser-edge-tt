@@ -9,6 +9,7 @@ import {
 } from 'react'
 import { buildSeed } from '@/data/seed/buildSeed'
 import { matchScript } from '@/data/seed/script'
+import { useSettingsStore } from '@/stores/settingsStore'
 import {
   emptySet,
   isUntouched,
@@ -82,18 +83,6 @@ type DemoContextValue = {
 }
 
 const DemoContext = createContext<DemoContextValue | null>(null)
-const MODE_KEY = 'proto-demo-mode'
-
-function readMode(): DemoMode {
-  try {
-    const v = localStorage.getItem(MODE_KEY)
-    if (v === 'empty' || v === 'filled') return v
-  } catch {
-    /* ignore */
-  }
-  return 'filled'
-}
-
 function mergeMatches(extra: MatchRecord[], deleted: string[]): MatchRecord[] {
   const overrides = new Map(extra.map((m) => [m.id, m]))
   const merged = SEED.filter((s) => !deleted.includes(s.id)).map(
@@ -134,7 +123,7 @@ function findCurrent(
 }
 
 export function DemoProvider({ children }: { children: ReactNode }) {
-  const [mode, setModeState] = useState<DemoMode>(() => readMode())
+  const [mode, setModeState] = useState<DemoMode>(() => useSettingsStore.getState().demoMode)
   const [extra, setExtra] = useState<MatchRecord[]>([])
   const [deleted, setDeleted] = useState<string[]>([])
 
@@ -142,11 +131,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
     setModeState(next)
     // Filled restores the seed matches, including any that were deleted.
     if (next === 'filled') setDeleted([])
-    try {
-      localStorage.setItem(MODE_KEY, next)
-    } catch {
-      /* ignore */
-    }
+    useSettingsStore.getState().setDemoMode(next)
   }, [])
 
   const catalog = useMemo(() => mergeMatches(extra, deleted), [extra, deleted])

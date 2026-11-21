@@ -9,42 +9,13 @@ import { derivePhase } from '@/rules/match'
 import { useDemo } from '@/data/demoStore'
 import type { MatchRecord } from '@/types/match'
 import { filterChoices } from '@/rules/filters'
-
-const FILTER_KEY = 'proto-matches-filters'
-
-type MatchStatus = 'Any' | 'Not tagged' | 'Part tagged' | 'Tagged'
-
-type MatchListFilters = {
-  opponent: string
-  event: string
-  status: MatchStatus
-}
-
-const DEFAULT_FILTERS: MatchListFilters = {
-  opponent: 'Any',
-  event: 'Any',
-  status: 'Any',
-}
-
-const STATUSES: MatchStatus[] = ['Any', 'Not tagged', 'Part tagged', 'Tagged']
-
-function readFilters(): MatchListFilters {
-  try {
-    const raw = sessionStorage.getItem(FILTER_KEY)
-    if (!raw) return DEFAULT_FILTERS
-    const parsed = JSON.parse(raw) as Partial<MatchListFilters> & { tournament?: string }
-    const status = STATUSES.includes(parsed.status as MatchStatus)
-      ? (parsed.status as MatchStatus)
-      : 'Any'
-    return {
-      opponent: parsed.opponent || 'Any',
-      event: parsed.event || parsed.tournament || 'Any',
-      status,
-    }
-  } catch {
-    return DEFAULT_FILTERS
-  }
-}
+import {
+  DEFAULT_MATCH_LIST_FILTERS as DEFAULT_FILTERS,
+  MATCH_STATUSES as STATUSES,
+  type MatchListFilters,
+  type MatchStatus,
+} from '@/types/filters'
+import { useSettingsStore } from '@/stores/settingsStore'
 
 function countActive(f: MatchListFilters): number {
   let n = 0
@@ -122,17 +93,10 @@ function MatchFilterPickers({
 export function MatchesPage() {
   const navigate = useNavigate()
   const { matches, createMatch } = useDemo()
-  const [filters, setFiltersState] = useState<MatchListFilters>(readFilters)
+  const filters = useSettingsStore((s) => s.matchesFilters)
+  const setFilters = useSettingsStore((s) => s.setMatchesFilters)
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState<MatchListFilters>(filters)
-  const setFilters = (next: MatchListFilters) => {
-    setFiltersState(next)
-    try {
-      sessionStorage.setItem(FILTER_KEY, JSON.stringify(next))
-    } catch {
-      /* ignore */
-    }
-  }
   const shown = filterMatchList(matches, filters)
   const active = activeLabels(filters)
   const n = countActive(filters)

@@ -1,24 +1,11 @@
 /**
  * Test-only clock. Off unless `proto-test-speed` in localStorage is a number
- * from 2 to 16, set before the page loads. A person never sees it: nothing
- * in the speed control changes. The demo clock, Date.now and the timers
+ * from 2 to 16, set before the page loads; settingsStore reads it and passes
+ * it in. A person never sees it: nothing in the speed control changes. The demo clock, Date.now and the timers
  * (the 2 second close, the guards) move by the same factor,
  * so a 2 second close is still 2 seconds of video.
  */
-const KEY = 'proto-test-speed'
-
-function readSpeed(): number {
-  try {
-    const n = Number(localStorage.getItem(KEY))
-    if (n >= 2 && n <= 16) return n
-  } catch {
-    /* no storage */
-  }
-  return 1
-}
-
-export function installTestSpeed(): void {
-  const scale = readSpeed()
+export function installTestSpeed(scale: number): void {
   if (scale === 1) return
   const mark = globalThis as { __protoTestSpeed?: number }
   if (mark.__protoTestSpeed) return

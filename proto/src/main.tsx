@@ -5,9 +5,10 @@ import { BrowserRouter } from 'react-router-dom'
 import App from './App'
 import { ThemeProvider } from '@/theme/ThemeProvider'
 import { DemoProvider } from '@/data/demoStore'
+import { useSettingsStore } from '@/stores/settingsStore'
 import './index.css'
 
-installTestSpeed()
+installTestSpeed(useSettingsStore.getState().testSpeed)
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
