@@ -14,4 +14,4 @@ export {
   buttonKindTextLink,
   type ButtonKind,
 } from './buttonKinds'
-export { Card, CardTitle, CardDescription, type CardProps } from './Card'
+export { Card, CardHead, CardTitle, CardDescription, type CardProps, type CardHeadProps } from './Card'

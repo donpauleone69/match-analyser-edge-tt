@@ -1,17 +1,11 @@
-import { Card, CardDescription, CardTitle, Icon } from '@/ui-mine'
+import { Card, CardDescription, CardHead } from '@/ui-mine'
 import { ThemeSwitcher } from '@/theme/ThemeSwitcher'
 import { WfBadge } from '@/ui-mine'
 
 export function ThemeSection() {
   return (
     <Card className="space-y-2">
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <Icon name="settings" size="sm" className="text-brand" />
-          <CardTitle>Look & feel</CardTitle>
-        </div>
-        <WfBadge>proto</WfBadge>
-      </div>
+      <CardHead icon="settings" title="Look & feel" badge={<WfBadge>proto</WfBadge>} />
       <CardDescription>Theme packs for this proto.</CardDescription>
       <ThemeSwitcher />
     </Card>

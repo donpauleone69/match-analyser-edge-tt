@@ -74,6 +74,7 @@ it('bad fixtures fire every layer rule', () => {
   expect(hit('kind-tokens', 'src/features/x/blocks/KindBlock.tsx', 'btn-kind-' + 'field')).toBe(true)
   expect(hit('zone-paint', 'src/features/x/rest.ts', 'function ' + 'restStyle')).toBe(true)
   expect(hit('one-badge', 'src/ui-mine/OtherBadge/OtherBadge.tsx', 'border-warning ' + 'bg-warning/15')).toBe(true)
+  expect(hit('card-head', 'src/features/x/sections/BothSection.tsx', '<CardTitle and <Icon')).toBe(true)
 })
 
 it('good fixtures are clean', () => {
