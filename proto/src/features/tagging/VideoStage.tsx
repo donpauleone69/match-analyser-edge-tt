@@ -8,7 +8,7 @@ import { SPEED_STEPS, servesText } from '@/rules/rally'
 import { sceneAt } from '@/data/seed/script'
 import { type Segment } from '@/rules/timeline'
 import type { SeekSpan } from './models'
-import type { Player } from './usePlayer'
+import type { Player } from './hooks/usePlayer'
 
 const MARKS = [0, 1, 2, 3]
 /** How long a landing mark shows, in seconds of video. Matches the script. */

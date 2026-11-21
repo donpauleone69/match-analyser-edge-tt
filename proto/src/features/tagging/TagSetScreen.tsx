@@ -92,10 +92,10 @@ import {
   type BestEnd,
   type BestLoopWhat,
 } from '@/rules/bestFa'
-import { useActionGuard, type ActionGuard } from './pressGuard'
-import { TAG_LOCK_LINE, useTagLock, type TagLock } from './tagLock'
+import { useActionGuard, type ActionGuard } from './hooks/useActionGuard'
+import { TAG_LOCK_LINE, useTagLock, type TagLock } from './hooks/useTagLock'
 import { firstContactG, lastContactG, segmentAt, segmentsOf, toGlobal, type Segment } from '@/rules/timeline'
-import { usePlayer, type Window } from './usePlayer'
+import { usePlayer, type Window } from './hooks/usePlayer'
 import { PictureSeek, VideoStage } from './VideoStage'
 
 type FlowName = 'bestfa'

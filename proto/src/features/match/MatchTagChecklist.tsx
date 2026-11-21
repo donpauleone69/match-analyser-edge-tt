@@ -11,11 +11,11 @@ import { TagVideoCard } from '@/features/match/TagVideoCard'
 import { reopenSet, saveMark } from '@/rules/matchOps'
 import type { Side } from '@/types/rally'
 import { lineAction, markBounds, newMarkAt, setIncomplete, videoMoveBreaks, type WingEdge } from '@/rules/marks'
-import { useActionGuard } from '@/features/tagging/pressGuard'
-import { TAG_LOCK_LINE, useTagLock } from '@/features/tagging/tagLock'
+import { useActionGuard } from '@/features/tagging/hooks/useActionGuard'
+import { TAG_LOCK_LINE, useTagLock } from '@/features/tagging/hooks/useTagLock'
 import { PictureSeek, VideoStage } from '@/features/tagging/VideoStage'
 import { segmentsOf } from '@/rules/timeline'
-import { usePlayer } from '@/features/tagging/usePlayer'
+import { usePlayer } from '@/features/tagging/hooks/usePlayer'
 
 /**
  * Tag page. One shared player, then a card per video. The page places sets
