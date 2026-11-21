@@ -3,11 +3,8 @@ import { AppShell } from '@/layout/AppShell'
 import { ScrollToTop } from '@/layout/ScrollToTop'
 import { GatePage } from '@/pages/GatePage'
 import { MatchesPage } from '@/pages/MatchesPage'
-import {
-  MatchPage,
-  MatchIndexRedirect,
-  MatchInsightsSection,
-} from '@/pages/MatchPage'
+import { MatchPage, MatchIndexRedirect } from '@/pages/MatchPage'
+import { MatchInsights } from '@/features/insights/MatchInsights'
 import { TagSetScreen } from '@/features/tagging/TagSetScreen'
 import { MatchDetails } from '@/features/match/MatchDetails'
 import { MatchTagChecklist } from '@/features/match/MatchTagChecklist'
@@ -15,6 +12,12 @@ import { ArchiveRunner } from '@/features/match/archiveJobs'
 import { DiscardUntouched } from '@/layout/DiscardUntouched'
 import { InsightsPage, InsightsSectionPage } from '@/pages/InsightsPage'
 import { AccountPage } from '@/pages/AccountPage'
+
+/** Old section addresses (summary, serve, receive) land on the match Insights page. */
+function MatchInsightsRedirect() {
+  const { matchId = '' } = useParams()
+  return <Navigate to={`/matches/${matchId}/insights`} replace />
+}
 
 /** Old mark addresses land on the Tag page, with that video in view and the set picked. */
 function MarkRedirect() {
@@ -42,8 +45,8 @@ export default function App() {
           <Route path="/matches" element={<MatchesPage />} />
           <Route path="/matches/:matchId" element={<MatchPage />}>
             <Route index element={<MatchIndexRedirect />} />
-            <Route path="insights" element={<Navigate to="summary" replace />} />
-            <Route path="insights/:section" element={<MatchInsightsSection />} />
+            <Route path="insights" element={<MatchInsights />} />
+            <Route path="insights/:section" element={<MatchInsightsRedirect />} />
             <Route path="details" element={<MatchDetails />} />
             <Route path="tag" element={<MatchTagChecklist />} />
             <Route path="tag/:setId" element={<TagSetScreen />} />

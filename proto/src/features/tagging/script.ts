@@ -217,12 +217,9 @@ function scriptRally(
     c += 0.8 + r() * 0.3
   }
   const hitter = hitterOf(server, n)
+  // The 0.15 draw stays, so later draws do not move. The End pad has no Lucky, so both land on Winner.
   const ending: Ending =
-    hitter === winner
-      ? r() < 0.15
-        ? 'Lucky'
-        : 'Winner'
-      : pick(r, ['Net', 'Long', 'Wide'] as const)
+    hitter === winner ? (r() < 0.15 ? 'Winner' : 'Winner') : pick(r, ['Net', 'Long', 'Wide'] as const)
 
   const shots: ShotTags[] = contacts.map(() => ({}))
   let fa: number | null = null
@@ -346,6 +343,36 @@ export function matchScript(seed: number, result: Points | null = null, plan: Se
   return buildScripts(seed, sets)[0]
 }
 
+/** The near half of the far side is a short serve. The far half is long. */
+function serveDepth(bounce: Spot | null): 'Short' | 'Long' {
+  if (!bounce) return 'Short'
+  const half = Math.abs(END_X.them - NET_X) / 2
+  return Math.abs(bounce.x - NET_X) <= half ? 'Short' : 'Long'
+}
+
+/**
+ * Best + FA tags from how the point was played. Serve length from the landing,
+ * landing wing from shot 2, and Attack or Control on every later shot.
+ */
+function tagsFromPlay(s: ScriptRally): { shots: ShotTags[]; fa: number | null } {
+  const n = s.play.length
+  const shots: ShotTags[] = s.play.map((shot, i) => {
+    if (i === 0) {
+      if (n < 2) return {}
+      return { wing: s.play[1]?.wing, depth: serveDepth(shot.bounce) }
+    }
+    return { wing: shot.wing, stroke: shot.attack || isAttackStroke(shot.stroke) ? 'Attack' : 'Control' }
+  })
+  let fa: number | null = null
+  for (let i = 1; i < shots.length; i++) {
+    if (shots[i].stroke === 'Attack') {
+      fa = i + 1
+      break
+    }
+  }
+  return { shots, fa }
+}
+
 /** Saved rallies made from scripted ones, for seeded matches. */
 export function ralliesFromScript(
   videoId: string,
@@ -353,19 +380,23 @@ export function ralliesFromScript(
   from: number,
   count: number
 ): RallyData[] {
-  return script.rallies.slice(from, from + count).map((s, i) => ({
-    id: `${videoId}-r${from + i}`,
-    videoId,
-    server: s.server,
-    contacts: s.contacts,
-    start: Math.max(0, round(s.contacts[0] - RALLY_LEAD_S)),
-    end: round(s.contacts[s.contacts.length - 1] + RALLY_PAD_S),
-    ending: s.ending,
-    fa: s.fa,
-    shots: s.shots,
-    winner: s.winner,
-    idea: { flow: 'bestfa', ...(s.ending ? { result: s.ending } : {}) },
-  }))
+  return script.rallies.slice(from, from + count).map((s, i) => {
+    const saved = tagsFromPlay(s)
+    const ending = s.ending === 'Lucky' ? 'Winner' : s.ending
+    return {
+      id: `${videoId}-r${from + i}`,
+      videoId,
+      server: s.server,
+      contacts: s.contacts,
+      start: Math.max(0, round(s.contacts[0] - RALLY_LEAD_S)),
+      end: round(s.contacts[s.contacts.length - 1] + RALLY_PAD_S),
+      ending,
+      fa: saved.fa,
+      shots: saved.shots,
+      winner: s.winner,
+      idea: { flow: 'bestfa', ...(ending ? { result: ending } : {}) },
+    }
+  })
 }
 
 export type Scene = {

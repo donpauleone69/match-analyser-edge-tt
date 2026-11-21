@@ -427,7 +427,7 @@ const FINAL_VIDEO = demoVideo('v-final', 'league-final.mp4', FINAL_SCRIPT)
 const finalSet = (from: number, count: number) =>
   ralliesFromScript('v-final', FINAL_SCRIPT, from, count)
 
-const SEED: MatchRecord[] = [
+export const SEED: MatchRecord[] = [
   {
     id: 'm-new',
     opponent: 'Lee',

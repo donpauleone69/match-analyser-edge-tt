@@ -12,7 +12,9 @@
     "check:v0179": "esbuild scripts/v0179-status.check.ts --bundle --platform=node --format=esm --alias:@=./src --outfile=/tmp/v0179-status.check.mjs && node /tmp/v0179-status.check.mjs",
     "check:v01723": "node scripts/v01723-tag-page.check.mjs",
     "check:v01725": "esbuild scripts/v01725-matches.check.ts --bundle --platform=node --format=esm --alias:@=./src --outfile=/tmp/v01725-matches.check.mjs && node /tmp/v01725-matches.check.mjs",
-    "check:v01725-page": "node scripts/v01725-matches-page.check.mjs"
+    "check:v01725-page": "node scripts/v01725-matches-page.check.mjs",
+    "check:v01726": "esbuild scripts/v01726-insights.check.ts --bundle --platform=node --format=esm --alias:@=./src --outfile=/tmp/v01726-insights.check.mjs && node /tmp/v01726-insights.check.mjs",
+    "check:v01726-page": "node scripts/v01726-insights-page.check.mjs"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",

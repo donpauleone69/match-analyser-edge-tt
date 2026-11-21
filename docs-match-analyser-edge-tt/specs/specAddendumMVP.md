@@ -6,6 +6,20 @@
 
 ## Change Log
 
+### 2026-11-21: Match Insights (proto v0.17.26)
+
+**Change Type:** Match Insights page. Proto only.
+
+**What Changed:**
+- Match Insights counts the saved rallies. The page is Phases, Serve, Receive, Attack and End, then Marked for review when a part is starred. The old Summary, Serve and Receive pills, the sample numbers and the opponent prompt are gone. Global Insights is unchanged.
+- Phases grades you only, from the China team marks (Zhang 2004). The grade needs 20 of your points in that row. Pat's rate sits beside yours. Serve to 5th, Receive to 4th and Rally follow the decisive stroke: the player who misses is charged on that ball, and the player who wins is credited on the ball before.
+- Serve and Receive are the first three balls. Elite 51% and Elite 49% are Djokic 2020. Attack is the reply to the first attack. Elite 48% is Fuchs and Lames 2021. A blocked fast serve counts as Control here. End counts your errors after the serve, and a free ball is one where the shot before was Control.
+- Each card has an info icon that turns the card over. The back says what is counted, how the point is credited, and where the mark comes from. Tap the icon or the back to return. Reduced motion swaps the faces at once.
+- Every playlist row has Play and a disabled Download. Download all is not on this page. A playing list sticks under the match row and steps through the points.
+- Lets are not tagged. A let tapped by mistake is deleted on Tag. There is no let button. Attack is a flick, loop, drive or smash. Control is a push, chop, touch, block or lob.
+
+**Rationale:** The match page was still sample numbers. These five cards use the tags the Set Tagger already saves, with the published marks that count the same way.
+
 ### 2026-11-20: Matches page (proto v0.17.25)
 
 **Change Type:** Matches list. Proto only.
