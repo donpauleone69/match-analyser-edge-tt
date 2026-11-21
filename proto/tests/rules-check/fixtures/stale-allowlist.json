@@ -1,0 +1,3 @@
+{
+  "entries": [{ "rule": "types-in-tsx", "file": "src/features/nope.tsx" }]
+}

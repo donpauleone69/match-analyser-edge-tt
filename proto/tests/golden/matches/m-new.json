@@ -1,0 +1,58 @@
+{
+  "archived": false,
+  "date": "",
+  "defaultTab": "tag",
+  "insights": {
+    "cards": [],
+    "coverage": null,
+    "empty": true,
+    "marked": null,
+    "videoLine": null
+  },
+  "matchDiffers": false,
+  "missingVideoIds": [],
+  "name": "vs Lee",
+  "phase": "new",
+  "resultDiffers": false,
+  "rowLine": "Open trial",
+  "rowStatus": {
+    "kind": "no-video",
+    "setId": null,
+    "tab": "tag",
+    "text": "No video"
+  },
+  "sets": [
+    {
+      "editStops": {
+        "gaps": [],
+        "rallies": []
+      },
+      "endedEarly": false,
+      "incomplete": false,
+      "lineAction": null,
+      "lineLabel": "Set 1",
+      "markBounds": null,
+      "markState": "off",
+      "overOnRule": false,
+      "rallies": [],
+      "scoresDiffer": false,
+      "serveBands": [],
+      "serveBreaks": [],
+      "setEndIndex": -1,
+      "setId": 1,
+      "settled": false,
+      "spare": true,
+      "state": "none",
+      "taggedScore": null
+    }
+  ],
+  "setsWon": {
+    "me": 0,
+    "them": 0
+  },
+  "tagged": false,
+  "taggedResult": null,
+  "taggedResultReady": false,
+  "title": "Open trial vs Lee",
+  "videos": []
+}
