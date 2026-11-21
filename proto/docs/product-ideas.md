@@ -18,8 +18,15 @@ Parked ideas to review with Paul after his current reviews. One line each, with 
 | Shot direction and redirect: wing alone cannot give it, because a BH can be played from the FH side and vice versa (pivots, round the corner). Needs where the ball lands (as the serve landing quadrant) or a light redirect mark. Left-handers flip. | Paul and coordinator | 2026-11-18 |
 | Parked (Paul, 2026-11-18: likely too much mental load). Prototype test: capture placement during the contact phase. Instead of one contact tap, tap left or right for each contact so the tap gives contact plus side or corner (the serve tap gives where the server contacts the ball). Risk: live tapping is fast and result buttons during the rally were tried and dropped. | Paul | 2026-11-18 |
 | Order Matches by last edited, once a change records an updated time. | Matches page plan | 2026-11-20 |
-| Rename Tournament to Event on the Insights filter. | Matches page plan | 2026-11-20 |
 | Playlists of points you won, not only the ones you lost. | Match Insights plan | 2026-11-21 |
 | Rows for where the serve landed, once that tag is on the card. | Match Insights plan | 2026-11-21 |
 | One seek bar for a whole playlist, with a segment per point. | Match Insights plan | 2026-11-21 |
 | Real video export behind the Download button on a playlist. | Match Insights plan | 2026-11-21 |
+
+## Built
+
+| Idea | Built |
+|------|-------|
+| Rename Tournament to Event on the Insights filter. | v0.17.28 |
+| Trust tiers on global Insights: a percentage at 30 points, a grade at 100, Early, Fair and Solid. | v0.17.28 |
+| Your usual on an insight card, from your other tagged matches, when the gap is 10 points (3 errors per 100 on End). | v0.17.28 |

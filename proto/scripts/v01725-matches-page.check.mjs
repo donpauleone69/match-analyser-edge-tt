@@ -45,7 +45,7 @@ async function run(page, label) {
   const ids = await page.locator('[data-match-row]').evaluateAll((nodes) =>
     nodes.map((node) => node.getAttribute('data-match-row'))
   )
-  ok(`${label} order`, ids.join(',') === 'm-new,m-ready,m-partial,m-complete', ids.join(','))
+  ok(`${label} order`, ids.join(',') === 'm-new,m-ready,m-partial,m-complete,m-h1,m-h2,m-h3,m-h4,m-h5,m-h6,m-h7,m-h8,m-h9,m-h10', ids.join(','))
 
   const lee = await rowText(page, 'm-new')
   ok(`${label} Lee`, lee.includes('vs Lee') && lee.includes('Open trial') && lee.includes('No video'))
@@ -54,14 +54,21 @@ async function run(page, label) {
     (await page.locator('[data-match-row="m-new"] a').getAttribute('href')) === '/matches/m-new/tag'
   )
 
+  const today = new Date()
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  const dateLabel = (days) => {
+    const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - days)
+    const text = `${d.getDate()} ${months[d.getMonth()]}`
+    return d.getFullYear() === today.getFullYear() ? text : `${text} ${d.getFullYear()}`
+  }
   const kim = await rowText(page, 'm-ready')
-  ok(`${label} Kim`, kim.includes('vs Kim') && kim.includes('13 Nov') && kim.includes('County open') && kim.includes('Not tagged'))
-  ok(`${label} Kim has no year`, !kim.includes('2026'))
+  ok(`${label} Kim`, kim.includes('vs Kim') && kim.includes(dateLabel(3)) && kim.includes('County open') && kim.includes('Not tagged'))
+  ok(`${label} Kim has no year`, !kim.includes(String(today.getFullYear())) || dateLabel(3).includes(String(today.getFullYear())))
 
   const sam = await rowText(page, 'm-partial')
   ok(
     `${label} Sam`,
-    sam.includes('vs Sam') && sam.includes('11 Nov') && sam.includes('Won 3 - 1') && sam.includes('Club night') && sam.includes('Continue set 2')
+    sam.includes('vs Sam') && sam.includes(dateLabel(6)) && sam.includes('Won 3 - 1') && sam.includes('Club night') && sam.includes('Continue set 2')
   )
   ok(
     `${label} Sam row opens Tag`,
@@ -71,9 +78,10 @@ async function run(page, label) {
   const pat = await rowText(page, 'm-complete')
   ok(
     `${label} Pat`,
-    pat.includes('vs Pat') && pat.includes('4 Oct') && pat.includes('Won 2 - 1') && pat.includes('League final') && pat.includes('Tagged')
+    pat.includes('vs Pat') && pat.includes(dateLabel(12)) && pat.includes('Won 3 - 2') && pat.includes('League final') && pat.includes('Tagged')
   )
-  ok(`${label} Pat has no year`, !pat.includes('2026') && !pat.includes('2025'))
+  const patYear = dateLabel(12).includes(String(today.getFullYear() - 1)) || dateLabel(12).includes(String(today.getFullYear()))
+  ok(`${label} Pat year only when it is not this year`, patYear ? pat.includes(dateLabel(12)) : !pat.includes(String(today.getFullYear())))
   ok(
     `${label} Pat opens Insights`,
     (await page.locator('[data-match-row="m-complete"] a').getAttribute('href')) === '/matches/m-complete/insights'
@@ -108,14 +116,14 @@ async function run(page, label) {
 
   await page.getByRole('button', { name: 'Filter', exact: true }).click()
   const again = page.getByRole('dialog', { name: 'Filters' })
-  await again.locator('label', { hasText: 'Opponent' }).locator('select').selectOption('Lee')
-  await again.locator('label', { hasText: 'Status' }).locator('select').selectOption('Tagged')
+  await again.locator('label', { hasText: 'Opponent' }).locator('select').selectOption('Max')
+  await again.locator('label', { hasText: 'Status' }).locator('select').selectOption('Not tagged')
   await again.getByRole('button', { name: 'Apply', exact: true }).click()
   await page.getByText('Nothing fits this filter').waitFor()
   ok(`${label} nothing fits`, (await page.locator('[data-match-row]').count()) === 0)
   await page.getByRole('button', { name: 'Clear filter', exact: true }).click()
   await page.locator('[data-match-row="m-new"]').waitFor()
-  ok(`${label} clear filter`, (await page.locator('[data-match-row]').count()) === 4)
+  ok(`${label} clear filter`, (await page.locator('[data-match-row]').count()) === 14)
 
   await page.goto(`${BASE}/matches/m-complete/details`, { waitUntil: 'domcontentloaded' })
   const details = await page.locator('body').innerText()
@@ -158,12 +166,12 @@ async function run(page, label) {
   ok(`${label} new match`, (await page.getByRole('button', { name: 'New match', exact: true }).count()) === 1)
 
   await page.evaluate(() => localStorage.setItem('proto-demo-mode', 'filled'))
-  await page.goto(`${BASE}/insights/summary`, { waitUntil: 'domcontentloaded' })
+  await page.goto(`${BASE}/insights`, { waitUntil: 'domcontentloaded' })
   await page.getByRole('button', { name: 'Filter', exact: true }).click()
   const insights = page.getByRole('dialog', { name: 'Filters' })
   await insights.waitFor()
   const insightsText = await insights.innerText()
-  ok(`${label} insights keeps Tournament`, insightsText.includes('Tournament') && insightsText.includes('Dates'))
+  ok(`${label} insights filter is Event`, insightsText.includes('Event') && insightsText.includes('Dates') && !insightsText.includes('Tournament'))
   ok(`${label} insights has no status`, !insightsText.includes('Status'))
 }
 

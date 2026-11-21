@@ -35,7 +35,7 @@ export function InsightCard({
           <FaceHead title={card.title} value={card.value} flipped={false} onFlip={() => setFlipped(true)} />
           {card.empty ? <p className="text-sm text-muted">{card.empty}</p> : null}
           {card.sub ? <p className="text-[13px] text-muted">{card.sub}</p> : null}
-          {card.compare ? <p className="text-[13px] text-muted">{card.compare}</p> : null}
+          {card.compare ? <p className="whitespace-nowrap text-[13px] text-muted">{card.compare}</p> : null}
           {cols > 0 && card.rows.length > 0 ? (
             <div
               className="grid items-end gap-x-2 text-[13px] text-muted"

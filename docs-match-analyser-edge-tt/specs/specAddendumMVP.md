@@ -6,6 +6,21 @@
 
 ## Change Log
 
+### 2026-11-21: Global Insights and the demo reseed (proto v0.17.28)
+
+**Change Type:** Global Insights. Proto only.
+
+**What Changed:**
+- Insights pools every tagged match the filter keeps into the same five cards as a match: Phases, Serve, Receive, Attack, End, then Marked for review. A rate is the pooled points, not an average of match percentages. Summary, Serve, Receive and Improve, and the old section routes, redirect to Insights.
+- The filter is Dates, Opponent and Event. Dates are Any, Last 5 matches, Last 30 days, Last 3 months, Last 12 months, and From and to. They count back from today. A match with no date is kept only by Any and by Last 5 matches. An old saved Tournament reads as Event. An old Matches value of Last 3 or This month reads as Last 5 matches or Last 30 days.
+- A percentage, a tier word and Elite need 30 points on this page. A grade needs 100 of your points in the row. A weak row needs 30 points, and it has to sit under the card by 10 points and by more than its own margin. Under 30 the card shows counts. End is errors per 100 points, to one decimal, once the page has 100 points.
+- Usual is your rate across every tagged match. It shows when a filter is set, that rate has 100 rallies, and the gap is 10 points, or 3 errors per 100 on End. On a match page, Usual is your rate in the other tagged matches, on the same rule, and it sits between the opponent and Elite. End on a match stays a count. Usual there is the count that rate gives over this match.
+- The coverage line reads "12 matches · 825 points", and adds "· 1 part tagged" when a kept match is only partly tagged. A removed video says so. The filter that keeps nothing uses the Matches empty state.
+- A playlist pools newest match first. The bar names the match, and the score is that match's score. The same player sticks under the top row.
+- The demo seed is fourteen matches, twelve of them tagged, 825 points. Pat's matches are arranged so Usual shows on Serve for Opponent: Pat, and on Receive for the League final. Club night set 2 is under way at 4 - 3 and the rest of its video is a 9 - 11 to Sam, with the mark running onto the second video. Set 3 is on that video, still to tag.
+
+**Rationale:** Global Insights is the last page in this proto round. The thresholds and Usual are the trust rules settled on 21 Nov, and the seed is large enough for those rules to show.
+
 ### 2026-11-21: Set over and early save (proto v0.17.27)
 
 **Change Type:** Set Tagger. Proto only.

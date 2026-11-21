@@ -72,7 +72,7 @@ const bare = matchInsights(ready)
 
 ok('league has five cards', league.cards.map((c) => c.id).join(',') === 'phases,serve,receive,attack,end')
 ok('club has five cards', night.cards.map((c) => c.id).join(',') === 'phases,serve,receive,attack,end')
-ok('league coverage', league.coverage === 'Sets 1 to 3', league.coverage ?? '')
+ok('league coverage', league.coverage === 'Sets 1 to 5', league.coverage ?? '')
 ok('club coverage', (night.coverage ?? '').includes('part of set 2'), night.coverage ?? '')
 ok('nothing tagged', bare.empty && bare.cards.length === 0)
 

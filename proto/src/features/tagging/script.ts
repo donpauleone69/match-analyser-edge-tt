@@ -3,6 +3,7 @@
  * contact times, so there is something true to tap against. No file, no sound.
  */
 
+import { bestParts } from './bestFlow'
 import {
   ATTACK_STROKES,
   DEFENSIVE_STROKES_ROW,
@@ -13,6 +14,7 @@ import {
   hitterOf,
   isAttackStroke,
   otherSide,
+  type BestPart,
   type Ending,
   type RallyData,
   type ShotTags,
@@ -57,7 +59,7 @@ export type VideoScript = {
   breaks: { a: number; b: number }[]
 }
 
-export type ScriptSet = { firstServer: Side; winners: Side[] }
+export type ScriptSet = { firstServer: Side; winners: Side[]; setNo?: number }
 
 function rng(seed: number) {
   let a = seed >>> 0
@@ -99,7 +101,30 @@ export function setWinners(seed: number, me: number, them: number): Side[] {
   return [...body, ...pairs, winner, winner]
 }
 
-const LENGTHS = [1, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 6, 7]
+/** Weights sum to 100. Parity flips nudge the mean up a little. */
+const LENGTH_WEIGHTS: [number, number][] = [
+  [1, 5],
+  [2, 15],
+  [3, 18],
+  [4, 16],
+  [5, 14],
+  [6, 10],
+  [7, 8],
+  [8, 5],
+  [9, 4],
+  [10, 3],
+  [11, 2],
+]
+
+function pickLength(r: () => number): number {
+  const roll = r() * 100
+  let acc = 0
+  for (const [n, weight] of LENGTH_WEIGHTS) {
+    acc += weight
+    if (roll < acc) return n
+  }
+  return 4
+}
 const round = (v: number) => Math.round(v * 100) / 100
 const round3 = (v: number) => Math.round(v * 1000) / 1000
 const lerp = (a: number, b: number, p: number) => a + (b - a) * p
@@ -209,7 +234,13 @@ function scriptRally(
   winner: Side,
   setNo: number
 ): ScriptRally {
-  const n = pick(r, LENGTHS)
+  let n = pickLength(r)
+  // About four points in five end on an error. Flipping the length flips who hit last.
+  // A serve-only length stays, so aces and faults stay in the 3 to 5% band.
+  const wantError = r() < 0.8
+  const errorIfOdd = server !== winner
+  const wouldError = (n % 2 === 1) === errorIfOdd
+    if (n > 1 && wouldError !== wantError) n = n >= 8 ? n - 1 : n + 1
   const contacts: number[] = []
   let c = t
   for (let i = 0; i < n; i++) {
@@ -269,7 +300,7 @@ export function buildScripts(seed: number, sets: ScriptSet[], cuts: number[] = [
       }
       t += 3.5 + r() * 2
       const detail = rng((seed * 9973 + pointIndex * 131 + 17) >>> 0)
-      const rally = scriptRally(r, detail, t, serverAt(set.firstServer, score), winner, setIndex + 1)
+      const rally = scriptRally(r, detail, t, serverAt(set.firstServer, score), winner, set.setNo ?? setIndex + 1)
       current.rallies.push(rally)
       t = rally.contacts[rally.contacts.length - 1] + 1.3
       score = addPoint(score, winner)
@@ -354,7 +385,7 @@ function serveDepth(bounce: Spot | null): 'Short' | 'Long' {
  * Best + FA tags from how the point was played. Serve length from the landing,
  * landing wing from shot 2, and Attack or Control on every later shot.
  */
-function tagsFromPlay(s: ScriptRally): { shots: ShotTags[]; fa: number | null } {
+export function tagsFromPlay(s: ScriptRally): { shots: ShotTags[]; fa: number | null } {
   const n = s.play.length
   const shots: ShotTags[] = s.play.map((shot, i) => {
     if (i === 0) {
@@ -373,6 +404,36 @@ function tagsFromPlay(s: ScriptRally): { shots: ShotTags[]; fa: number | null } 
   return { shots, fa }
 }
 
+/** One saved rally from a scripted one. `index` picks the review mark, about one in twelve. */
+export function rallyFromScript(videoId: string, s: ScriptRally, index: number): RallyData {
+  const saved = tagsFromPlay(s)
+  const n = s.contacts.length
+  const ending = s.ending === 'Lucky' ? 'Winner' : s.ending
+  const parts = bestParts(n, saved.shots).map((part) => part.part)
+  const marked: BestPart | undefined = index % 12 === 0 ? parts[index % parts.length] : undefined
+  const result = n <= 1 ? (ending === 'Winner' ? 'Ace' : 'Serve fault') : ending
+  const depth = n >= 2 ? saved.shots[0]?.depth : undefined
+  return {
+    id: `${videoId}-r${index}`,
+    videoId,
+    server: s.server,
+    contacts: s.contacts,
+    start: Math.max(0, round(s.contacts[0] - RALLY_LEAD_S)),
+    end: round(s.contacts[s.contacts.length - 1] + RALLY_PAD_S),
+    ending,
+    fa: saved.fa,
+    shots: saved.shots,
+    winner: s.winner,
+    serveChecked: true as const,
+    idea: {
+      flow: 'bestfa' as const,
+      ...(depth ? { serve: depth } : {}),
+      result,
+      ...(marked ? { review: [marked] } : {}),
+    },
+  }
+}
+
 /** Saved rallies made from scripted ones, for seeded matches. */
 export function ralliesFromScript(
   videoId: string,
@@ -380,23 +441,7 @@ export function ralliesFromScript(
   from: number,
   count: number
 ): RallyData[] {
-  return script.rallies.slice(from, from + count).map((s, i) => {
-    const saved = tagsFromPlay(s)
-    const ending = s.ending === 'Lucky' ? 'Winner' : s.ending
-    return {
-      id: `${videoId}-r${from + i}`,
-      videoId,
-      server: s.server,
-      contacts: s.contacts,
-      start: Math.max(0, round(s.contacts[0] - RALLY_LEAD_S)),
-      end: round(s.contacts[s.contacts.length - 1] + RALLY_PAD_S),
-      ending,
-      fa: saved.fa,
-      shots: saved.shots,
-      winner: s.winner,
-      idea: { flow: 'bestfa', ...(ending ? { result: ending } : {}) },
-    }
-  })
+  return script.rallies.slice(from, from + count).map((s, i) => rallyFromScript(videoId, s, from + i))
 }
 
 export type Scene = {

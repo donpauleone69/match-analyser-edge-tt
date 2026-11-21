@@ -1,76 +1,92 @@
-import { useEffect, useState } from 'react'
-import { Outlet } from 'react-router-dom'
-import type { ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { PageHeader } from '@/layout/PageHeader'
 import { StickyChrome } from '@/layout/StickyChrome'
-import { InsightsSectionRoute, type SectionId } from '@/features/insights/InsightsScreen'
-import {
-  InsightsFilterProvider,
-  useInsightsFilters,
-  activeFilterLabels,
-  DEFAULT_INSIGHTS_FILTERS,
-  filterChoices,
-  type InsightsFilters,
-} from '@/features/insights/insightsFilterContext'
-import { hasTaggedRallies, useDemo } from '@/data/demoStore'
 import { WfEmpty } from '@/layout/Wireframe'
 import { Button, Icon } from '@/ui-mine'
-
-const GLOBAL_SECTIONS: { id: SectionId; label: string }[] = [
-  { id: 'summary', label: 'Summary' },
-  { id: 'serve', label: 'Serve' },
-  { id: 'receive', label: 'Receive' },
-  { id: 'improve', label: 'Improve' },
-]
+import { hasTaggedRallies, useDemo, type MatchRecord, type VideoAsset } from '@/data/demoStore'
+import { InsightCard } from '@/features/insights/InsightCard'
+import { insightRules, insightsFor, type PlayItem } from '@/features/insights/insightCounts'
+import { PlaylistPlayer } from '@/features/insights/PlaylistPlayer'
+import {
+  DATE_CHOICES,
+  DEFAULT_INSIGHTS_FILTERS,
+  InsightsFilterProvider,
+  activeFilterLabels,
+  filterChoices,
+  filterIsSet,
+  filterMatches,
+  useInsightsFilters,
+  type InsightsFilters,
+} from '@/features/insights/insightsFilterContext'
 
 function countActive(f: InsightsFilters): number {
   let n = 0
-  if (f.matches !== 'All') n++
-  if (f.opponent !== 'Any') n++
-  if (f.tournament !== 'Any') n++
   if (f.dates !== 'Any') n++
+  if (f.opponent !== 'Any') n++
+  if (f.event !== 'Any') n++
   return n
 }
 
 function FilterPickers({
   draft,
   setDraft,
+  tagged,
 }: {
   draft: InsightsFilters
   setDraft: (next: InsightsFilters) => void
+  tagged: MatchRecord[]
 }) {
-  // Opponents and events come from the tagged matches, so every choice finds one.
-  const { matches } = useDemo()
-  const { opponents, events } = filterChoices(matches.filter(hasTaggedRallies))
-  // A choice saved earlier stays listed even if its match is gone.
-  const withSaved = (options: string[], saved: string) =>
-    options.includes(saved) ? options : [...options, saved]
-  const all: [keyof InsightsFilters, string, string[]][] = [
-    ['matches', 'Matches', ['All', 'Last 3', 'This month']],
-    ['opponent', 'Opponent', withSaved(['Any', ...opponents], draft.opponent)],
-    ['tournament', 'Tournament', withSaved(['Any', ...events], draft.tournament)],
-    ['dates', 'Dates', ['Any', 'This week', 'Last 30 days']],
+  const { opponents, events } = filterChoices(tagged)
+  const withSaved = (options: string[], saved: string) => (options.includes(saved) ? options : [...options, saved])
+  const pickers: { key: 'dates' | 'opponent' | 'event'; label: string; options: string[] }[] = [
+    { key: 'dates', label: 'Dates', options: [...DATE_CHOICES] },
+    { key: 'opponent', label: 'Opponent', options: withSaved(['Any', ...opponents], draft.opponent) },
+    { key: 'event', label: 'Event', options: withSaved(['Any', ...events], draft.event) },
   ]
-  // A picker with nothing to pick is left out.
-  const pickers = all.filter(([, , options]) => options.length > 1)
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-      {pickers.map(([key, label, options]) => (
-        <label key={key} className="block space-y-1">
-          <span className="text-xs font-semibold text-muted">{label}</span>
-          <select
-            className="btn-kind-field w-full rounded-md border border-border bg-bg-card px-2 text-sm text-primary"
-            value={draft[key]}
-            onChange={(e) => setDraft({ ...draft, [key]: e.target.value })}
-          >
-            {options.map((o) => (
-              <option key={o} value={o}>
-                {o}
-              </option>
-            ))}
-          </select>
-        </label>
-      ))}
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      {pickers
+        .filter((picker) => picker.options.length > 1)
+        .map((picker) => (
+          <label key={picker.key} className="block space-y-1">
+            <span className="text-xs font-semibold text-muted">{picker.label}</span>
+            <select
+              className="btn-kind-field w-full rounded-md border border-border bg-bg-card px-2 text-sm text-primary"
+              value={draft[picker.key]}
+              onChange={(e) => setDraft({ ...draft, [picker.key]: e.target.value })}
+            >
+              {picker.options.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </label>
+        ))}
+      {draft.dates === 'From and to' ? (
+        <div className="grid grid-cols-2 gap-3 sm:col-span-2 lg:col-span-3">
+          <label className="block space-y-1">
+            <span className="text-xs font-semibold text-muted">From</span>
+            <input
+              type="date"
+              aria-label="From"
+              className="btn-kind-field w-full rounded-md border border-border bg-bg-card px-2 text-sm text-primary"
+              value={draft.from}
+              onChange={(e) => setDraft({ ...draft, from: e.target.value })}
+            />
+          </label>
+          <label className="block space-y-1">
+            <span className="text-xs font-semibold text-muted">To</span>
+            <input
+              type="date"
+              aria-label="To"
+              className="btn-kind-field w-full rounded-md border border-border bg-bg-card px-2 text-sm text-primary"
+              value={draft.to}
+              onChange={(e) => setDraft({ ...draft, to: e.target.value })}
+            />
+          </label>
+        </div>
+      ) : null}
     </div>
   )
 }
@@ -79,18 +95,28 @@ function FilterPickers({
  * Filter sits in the top row. Chips and the pickers sit under it and scroll
  * away. Desktop: the pickers open in the page flow. Phone: a bottom sheet.
  */
-function InsightsFilter({ renderRow }: { renderRow: (end: ReactNode) => ReactNode }) {
+function InsightsFilter({
+  tagged,
+  renderRow,
+}: {
+  tagged: MatchRecord[]
+  renderRow: (end: ReactNode) => ReactNode
+}) {
   const { filters, setFilters } = useInsightsFilters()
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState<InsightsFilters>(filters)
+  const [desktop, setDesktop] = useState(() => window.matchMedia('(min-width: 768px)').matches)
   const active = activeFilterLabels(filters)
   const n = countActive(filters)
 
   useEffect(() => {
-    if (open) setDraft(filters)
-  }, [open, filters])
+    const mq = window.matchMedia('(min-width: 768px)')
+    const apply = () => setDesktop(mq.matches)
+    apply()
+    mq.addEventListener('change', apply)
+    return () => mq.removeEventListener('change', apply)
+  }, [])
 
-  // Closes on Escape and on a press anywhere outside the button and the pickers.
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => {
@@ -121,10 +147,13 @@ function InsightsFilter({ renderRow }: { renderRow: (end: ReactNode) => ReactNod
 
   const clearOne = (label: string) => {
     const next = { ...filters }
-    if (label.startsWith('Matches:')) next.matches = 'All'
+    if (label.startsWith('Dates:')) {
+      next.dates = 'Any'
+      next.from = ''
+      next.to = ''
+    }
     if (label.startsWith('Opponent:')) next.opponent = 'Any'
-    if (label.startsWith('Tournament:')) next.tournament = 'Any'
-    if (label.startsWith('Dates:')) next.dates = 'Any'
+    if (label.startsWith('Event:')) next.event = 'Any'
     setFilters(next)
   }
 
@@ -135,7 +164,10 @@ function InsightsFilter({ renderRow }: { renderRow: (end: ReactNode) => ReactNod
       data-filter-count={n}
       aria-label="Filter"
       aria-expanded={open}
-      onClick={() => setOpen((v) => !v)}
+      onClick={() => {
+        setDraft(filters)
+        setOpen((v) => !v)
+      }}
       className="btn-kind-control btn-kind-square relative inline-flex shrink-0 items-center justify-center text-primary hover:bg-pill-idle"
     >
       <Icon name="filter" size="sm" />
@@ -152,124 +184,200 @@ function InsightsFilter({ renderRow }: { renderRow: (end: ReactNode) => ReactNod
       {renderRow(button)}
       {active.length > 0 ? (
         <div className="flex flex-wrap items-center gap-2 px-3 pt-2">
-          {active.map((a) => (
+          {active.map((label) => (
             <button
-              key={a}
+              key={label}
               type="button"
-              onClick={() => clearOne(a)}
+              onClick={() => clearOne(label)}
               className="btn-kind-control inline-flex items-center gap-1 rounded border border-border bg-pill-idle px-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted hover:bg-bg-elevated"
-              aria-label={`Remove ${a}`}
+              aria-label={`Remove ${label}`}
             >
-              {a}
+              {label}
               <span aria-hidden>×</span>
             </button>
           ))}
         </div>
       ) : null}
       <div className="px-4 sm:px-6 lg:px-8">
-
-      {/* Desktop: in the page flow, so nothing below is covered */}
-      {open ? (
-        <div
-          className="hidden md:block rounded-lg border border-border bg-bg-surface p-4 space-y-3"
-          data-filter-surface
-          role="group"
-          aria-label="Filters"
-        >
-          <FilterPickers draft={draft} setDraft={setDraft} />
-          <div className="flex justify-end gap-2">
-            <Button kind="control" variant="ghost" onClick={clear}>
-              Clear
-            </Button>
-            <Button kind="control" onClick={apply}>
-              Apply
-            </Button>
-          </div>
-        </div>
-      ) : null}
-
-      {/* Phone bottom sheet */}
-      {open ? (
-        <div
-          className="md:hidden fixed inset-0 z-50"
-          data-filter-surface
-          role="dialog"
-          aria-label="Filters"
-        >
-          <button
-            type="button"
-            className="absolute inset-0 bg-neutral-50/60"
-            aria-label="Close filters"
-            onClick={() => setOpen(false)}
-          />
-          <div className="absolute inset-x-0 bottom-0 max-h-[100dvh] overflow-auto rounded-t-xl border border-border bg-bg-surface p-4 pb-8 space-y-3 shadow-lg">
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-sm font-semibold text-primary">Filter</p>
-              <Button kind="control" variant="ghost" className="shrink-0 px-2" onClick={() => setOpen(false)}>
-                Close
-              </Button>
-            </div>
-            <FilterPickers draft={draft} setDraft={setDraft} />
-            <div className="flex gap-2">
-              <Button fullWidth kind="control" variant="ghost" onClick={clear}>
+        {open && desktop ? (
+          <div
+            className="mt-3 space-y-3 rounded-lg border border-border bg-bg-surface p-4"
+            data-filter-surface
+            role="group"
+            aria-label="Filters"
+          >
+            <FilterPickers draft={draft} setDraft={setDraft} tagged={tagged} />
+            <div className="flex justify-end gap-2">
+              <Button kind="control" variant="ghost" onClick={clear}>
                 Clear
               </Button>
-              <Button fullWidth kind="control" onClick={apply}>
+              <Button kind="control" onClick={apply}>
                 Apply
               </Button>
             </div>
           </div>
-        </div>
-      ) : null}
+        ) : null}
+        {open && !desktop ? (
+          <div className="fixed inset-0 z-50" data-filter-surface role="dialog" aria-label="Filters">
+            <button
+              type="button"
+              className="absolute inset-0 bg-neutral-50/60"
+              aria-label="Close filters"
+              onClick={() => setOpen(false)}
+            />
+            <div className="absolute inset-x-0 bottom-0 max-h-[100dvh] space-y-3 overflow-auto rounded-t-xl border border-border bg-bg-surface p-4 pb-8 shadow-lg">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-semibold text-primary">Filter</p>
+                <Button kind="control" variant="ghost" className="shrink-0 px-2" onClick={() => setOpen(false)}>
+                  Close
+                </Button>
+              </div>
+              <FilterPickers draft={draft} setDraft={setDraft} tagged={tagged} />
+              <div className="flex gap-2">
+                <Button fullWidth kind="control" variant="ghost" onClick={clear}>
+                  Clear
+                </Button>
+                <Button fullWidth kind="control" onClick={apply}>
+                  Apply
+                </Button>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
     </>
   )
 }
 
-/**
- * Global Insights: tabs and Filter in the top row, chips under it, then the content.
- * Empty until some match has tagged rallies, and then the row is a title only.
- */
-export function InsightsPage() {
-  const { matches } = useDemo()
-  const empty = !matches.some(hasTaggedRallies)
+type Playing = {
+  cardId: string
+  name: string
+  items: PlayItem[]
+  caption: 'name' | 'note'
+}
+
+function videosOf(matches: MatchRecord[]): VideoAsset[] {
+  const seen = new Set<string>()
+  const out: VideoAsset[] = []
+  for (const match of matches) {
+    for (const video of match.videos) {
+      if (seen.has(video.id)) continue
+      seen.add(video.id)
+      out.push(video)
+    }
+  }
+  return out
+}
+
+function GlobalCards({ tagged }: { tagged: MatchRecord[] }) {
+  const { filters, setFilters } = useInsightsFilters()
+  const kept = useMemo(() => filterMatches(tagged, filters), [tagged, filters])
+  const opponent = filters.opponent === 'Any' ? '' : filters.opponent
+  const model = useMemo(
+    () => insightsFor(kept, insightRules('global', opponent, filterIsSet(filters)), tagged),
+    [kept, opponent, filters, tagged],
+  )
+  const videos = useMemo(() => videosOf(kept), [kept])
+  const [playing, setPlaying] = useState<Playing | null>(null)
+
+  useEffect(() => {
+    setPlaying(null)
+  }, [filters])
+
+  useEffect(() => {
+    if (!playing) return
+    document.querySelector(`[data-insight="${playing.cardId}"]`)?.scrollIntoView({ block: 'start' })
+  }, [playing])
+
+  const open = (cardId: string, name: string, items: PlayItem[], caption: 'name' | 'note') => {
+    setPlaying({ cardId, name, items, caption })
+  }
+
+  const clear = () => setFilters(DEFAULT_INSIGHTS_FILTERS)
 
   return (
-    <InsightsFilterProvider>
-      <div>
-        {empty ? (
-          <>
-            <StickyChrome>
-              <PageHeader title="Insights" />
-            </StickyChrome>
-            <div className="px-4 sm:px-6 lg:px-8 py-6">
-              <WfEmpty
-                title="No insights yet"
-                body="Tag a rally in any match to see insights."
-              />
-            </div>
-          </>
-        ) : (
-          <>
-            <InsightsFilter
-              renderRow={(end) => (
-                <StickyChrome>
-                  <PageHeader
-                    tabsLabel="Insights"
-                    tabs={GLOBAL_SECTIONS.map((item) => ({ to: `/insights/${item.id}`, label: item.label }))}
-                    end={end}
-                  />
-                </StickyChrome>
-              )}
+    <>
+      {playing ? (
+        <PlaylistPlayer
+          videos={videos}
+          name={playing.name}
+          items={playing.items}
+          caption={playing.caption}
+          showVersus
+          onClose={() => setPlaying(null)}
+        />
+      ) : null}
+      {kept.length === 0 ? (
+        <div className="space-y-3 px-4 py-6 sm:px-6 lg:px-8">
+          <WfEmpty title="Nothing fits this filter" />
+          <Button fullWidth kind="main" onClick={clear}>
+            Clear filter
+          </Button>
+        </div>
+      ) : (
+        <div className="insights-cards space-y-3 px-4 py-4 sm:px-6 lg:px-8">
+          {model.coverage ? (
+            <p className="text-sm text-muted" data-coverage="">
+              {model.coverage}
+            </p>
+          ) : null}
+          {model.videoLine ? <p className="text-sm text-muted">{model.videoLine}</p> : null}
+          {model.cards.map((card) => (
+            <InsightCard
+              key={card.id}
+              card={card}
+              playing={playing?.cardId === card.id}
+              onPlay={() => card.playlist && open(card.id, card.playlist.name, card.playlist.items, card.playlist.caption)}
             />
-            <Outlet />
-          </>
-        )}
-      </div>
-    </InsightsFilterProvider>
+          ))}
+          {model.marked?.playlist ? (
+            <InsightCard
+              card={model.marked}
+              playing={playing?.cardId === model.marked.id}
+              onPlay={() =>
+                model.marked?.playlist &&
+                open(model.marked.id, model.marked.playlist.name, model.marked.playlist.items, model.marked.playlist.caption)
+              }
+            />
+          ) : null}
+        </div>
+      )}
+    </>
   )
 }
 
-export function InsightsSectionPage() {
-  return <InsightsSectionRoute chrome="body" />
+/**
+ * Global Insights: the same five cards as a match, pooled across the tagged
+ * matches the filter keeps. Empty until some match has tagged rallies.
+ */
+export function InsightsPage() {
+  const { matches } = useDemo()
+  const tagged = matches.filter(hasTaggedRallies)
+
+  return (
+    <InsightsFilterProvider>
+      {tagged.length === 0 ? (
+        <>
+          <StickyChrome>
+            <PageHeader title="Insights" />
+          </StickyChrome>
+          <div className="px-4 py-6 sm:px-6 lg:px-8">
+            <WfEmpty title="No insights yet" body="Tag a rally in any match to see insights." />
+          </div>
+        </>
+      ) : (
+        <div className="insights-page">
+          <InsightsFilter
+            tagged={tagged}
+            renderRow={(end) => (
+              <StickyChrome>
+                <PageHeader title="Insights" end={end} />
+              </StickyChrome>
+            )}
+          />
+          <GlobalCards tagged={tagged} />
+        </div>
+      )}
+    </InsightsFilterProvider>
+  )
 }

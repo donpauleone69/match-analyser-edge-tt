@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { MatchRecord } from '@/data/demoStore'
+import type { VideoAsset } from '@/data/demoStore'
 import { PictureSeek, VideoStage } from '@/features/tagging/VideoStage'
 import { segmentsOf, toGlobal } from '@/features/tagging/timeline'
 import { usePlayer } from '@/features/tagging/usePlayer'
@@ -13,19 +13,22 @@ const HOLD_MS = 500
  * plays each item once, holds the last frame, then steps on.
  */
 export function PlaylistPlayer({
-  match,
+  videos,
   name,
   items,
   caption,
+  showVersus = false,
   onClose,
 }: {
-  match: MatchRecord
+  videos: VideoAsset[]
   name: string
   items: PlayItem[]
   caption: 'name' | 'note'
+  /** A pooled list names the match on the bar. */
+  showVersus?: boolean
   onClose: () => void
 }) {
-  const player = usePlayer(match.videos)
+  const player = usePlayer(videos)
   const [index, setIndex] = useState(0)
   const indexRef = useRef(0)
   const itemsRef = useRef(items)
@@ -50,7 +53,7 @@ export function PlaylistPlayer({
     setIndex(i)
     atEnd.current = false
     const item = list[i]
-    const segs = segmentsOf(match.videos)
+    const segs = segmentsOf(videos)
     const a = toGlobal(segs, item.videoId, item.a)
     const b = toGlobal(segs, item.videoId, item.b)
     if (a === null || b === null) return
@@ -79,18 +82,23 @@ export function PlaylistPlayer({
   }, [name, items])
 
   const item = items[index] ?? items[0]
-  const segs = segmentsOf(match.videos)
+  const segs = segmentsOf(videos)
   const a = item ? toGlobal(segs, item.videoId, item.a) : null
   const b = item ? toGlobal(segs, item.videoId, item.b) : null
   const span = a !== null && b !== null ? { a, b: Math.max(b, a) } : { a: 0, b: 1 }
-  const names = { me: 'You', them: match.opponent.trim() || 'Them' }
+  const opponent = item?.versus.replace(/^vs /, '') || 'Them'
+  const names = { me: 'You', them: opponent }
   const bar =
     item && items.length > 0
-      ? caption === 'note'
-        ? `${index + 1} of ${items.length} · ${item.note}`
-        : item.note
-          ? `${index + 1} of ${items.length} · ${name} · ${item.note}`
-          : `${index + 1} of ${items.length} · ${name}`
+      ? showVersus
+        ? caption === 'note'
+          ? `${index + 1} of ${items.length} · ${item.versus} · ${item.note}`
+          : `${index + 1} of ${items.length} · ${item.versus}`
+        : caption === 'note'
+          ? `${index + 1} of ${items.length} · ${item.note}`
+          : item.note
+            ? `${index + 1} of ${items.length} · ${name} · ${item.note}`
+            : `${index + 1} of ${items.length} · ${name}`
       : ''
 
   const stage = {
@@ -109,7 +117,7 @@ export function PlaylistPlayer({
     <div className="insights-player bg-bg-app">
       <VideoStage
         player={stage}
-        videos={match.videos}
+        videos={videos}
         names={names}
         bug={
           item

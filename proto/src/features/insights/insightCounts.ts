@@ -3,7 +3,7 @@
  * Named insightCounts so it can live next to MatchInsights.tsx.
  * One function of (rallies, player) builds each card for both sides.
  */
-import type { MatchRecord, SetData } from '@/data/demoStore'
+import { derivePhase, type MatchRecord, type SetData } from '@/data/demoStore'
 import { bestParts, partWindow } from '@/features/tagging/bestFlow'
 import {
   hitterOf,
@@ -50,6 +50,9 @@ export type PlayItem = {
   server: Side
   /** Extra words on the bar, such as Net or the marked part. */
   note: string
+  matchId: string
+  /** "vs Sam", added on a playlist that spans matches. */
+  versus: string
 }
 
 export type InsightCardModel = {
@@ -63,8 +66,36 @@ export type InsightCardModel = {
   empty: string | null
   playlist: { name: string; items: PlayItem[]; caption: 'name' | 'note' } | null
   about: string[]
-  counts: { youWon: number; youN: number; themWon: number; themN: number }
+  counts: { youWon: number; youN: number; themWon: number; themN: number; points: number }
 }
+
+/** Match rules count one match. Global rules pool matches and say how far the rate can be trusted. */
+export type InsightRules = {
+  scope: 'match' | 'global'
+  label: string
+  they: string
+  their: string
+  who: string
+  /** Usual on the global page needs a filter. A match page always passes true. */
+  subset: boolean
+}
+
+export function insightRules(scope: 'match' | 'global', opponent: string, subset: boolean): InsightRules {
+  const raw = opponent.trim()
+  return {
+    scope,
+    label: raw || 'Them',
+    they: raw || 'They',
+    their: raw ? `${raw}'s` : 'their',
+    who: raw || 'they',
+    subset,
+  }
+}
+
+const valueMin = (rules: InsightRules) => (rules.scope === 'global' ? 30 : 10)
+const rowMin = (rules: InsightRules) => (rules.scope === 'global' ? 30 : 5)
+const gradeMin = (rules: InsightRules) => (rules.scope === 'global' ? 100 : 20)
+const weakMin = (rules: InsightRules) => (rules.scope === 'global' ? 30 : 5)
 
 export type MatchInsightsModel = {
   /** No saved point with an End answer. */
@@ -123,13 +154,13 @@ export const CARD_ABOUT: Record<string, string[]> = {
   ],
 }
 
-type Names = { name: string; they: string; their: string; who: string }
-
 type Placed = {
   rally: RallyData
   setId: number
   sets: Points
   points: Points
+  matchId: string
+  versus: string
 }
 
 /**
@@ -144,16 +175,6 @@ export function phaseOf(server: Side, n: number, ending: Ending | null, player: 
   const youServed = server === player
   if (youServed) return stroke >= 7 ? 'rally' : 'serve'
   return stroke >= 6 ? 'rally' : 'receive'
-}
-
-function namesOf(match: MatchRecord): Names {
-  const raw = match.opponent.trim()
-  return {
-    name: raw || 'Them',
-    they: raw || 'They',
-    their: raw ? `${raw}'s` : 'their',
-    who: raw || 'they',
-  }
 }
 
 function shotAttack(shot: ShotTags | undefined): boolean {
@@ -197,19 +218,19 @@ function countedRally(set: SetData, r: RallyData): boolean {
   return !set.skipped && !r.point && r.contacts.length >= 1 && r.ending !== null
 }
 
-function rateText(won: number, n: number): string {
-  if (n < 10) return `${won} of ${n}`
+function rateText(won: number, n: number, min: number): string {
+  if (n < min) return `${won} of ${n}`
   return `${Math.round((won / n) * 100)}%`
 }
 
-function rateCell(won: number, n: number): Cell {
+function rateCell(won: number, n: number, min: number): Cell {
   if (n <= 0) return { text: '-', of: null }
-  if (n < 5) return { text: `${won} of ${n}`, of: null }
+  if (n < min) return { text: `${won} of ${n}`, of: null }
   return { text: `${Math.round((won / n) * 100)}%`, of: `of ${n}` }
 }
 
-export function gradeOf(phase: Phase, won: number, n: number): Grade | null {
-  if (n < 20) return null
+export function gradeOf(phase: Phase, won: number, n: number, min = 20): Grade | null {
+  if (n < min) return null
   const mark = PHASE_MARKS[phase]
   const pct = Math.round((won / n) * 100)
   if (pct >= mark.excellent) return 'Excellent'
@@ -218,16 +239,18 @@ export function gradeOf(phase: Phase, won: number, n: number): Grade | null {
   return 'Below'
 }
 
-/** Lowest rate at least 10 points under the card, with 5 or more. Ties take the bigger row. */
-function pickWeak(rows: { won: number; n: number }[], cardWon: number, cardN: number): number | null {
+/** Lowest rate at least 10 points under the card. Global rows also clear their own margin. */
+function pickWeak(rows: { won: number; n: number }[], cardWon: number, cardN: number, rules: InsightRules): number | null {
   if (cardN <= 0) return null
   const base = cardWon / cardN
   let best: { i: number; rate: number; n: number } | null = null
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i]
-    if (row.n < 5) continue
+    if (row.n < weakMin(rules)) continue
     const rate = row.won / row.n
-    if (base - rate < 0.1 - 1e-9) continue
+    const points = (base - rate) * 100
+    if (points < 10 - 1e-6) continue
+    if (rules.scope === 'global' && points <= 100 / Math.sqrt(row.n)) continue
     if (!best || rate < best.rate - 1e-9 || (Math.abs(rate - best.rate) < 1e-9 && row.n > best.n)) {
       best = { i, rate, n: row.n }
     }
@@ -263,11 +286,12 @@ function coverageOf(sets: SetData[]): string | null {
 
 function place(match: MatchRecord): Placed[] {
   const out: Placed[] = []
+  const versus = `vs ${match.opponent.trim() || 'Them'}`
   let setsWon: Points = { me: 0, them: 0 }
   for (const set of [...match.sets].sort((a, b) => a.setId - b.setId)) {
     let points: Points = { me: 0, them: 0 }
     for (const rally of set.rallies) {
-      out.push({ rally, setId: set.setId, sets: { ...setsWon }, points: { ...points } })
+      out.push({ rally, setId: set.setId, sets: { ...setsWon }, points: { ...points }, matchId: match.id, versus })
       points = { me: points.me + (rally.winner === 'me' ? 1 : 0), them: points.them + (rally.winner === 'them' ? 1 : 0) }
     }
     if (set.finished && !set.skipped) {
@@ -277,6 +301,13 @@ function place(match: MatchRecord): Placed[] {
     }
   }
   return out
+}
+
+function newestFirst(matches: MatchRecord[]): MatchRecord[] {
+  return [...matches].sort((a, b) => {
+    if (!a.date !== !b.date) return a.date ? 1 : -1
+    return b.date.localeCompare(a.date)
+  })
 }
 
 type Bucket<K extends string> = { key: K; rows: Placed[] }
@@ -318,6 +349,8 @@ function itemsFrom(
       points: row.points,
       server: rally.server,
       note: noteFor(rally),
+      matchId: row.matchId,
+      versus: row.versus,
     })
   }
   return items
@@ -338,7 +371,22 @@ function playlistOf(
   return { name, items, caption }
 }
 
-function emptyCard(id: string, title: string, empty: string): InsightCardModel {
+function aboutFor(id: string, rules: InsightRules): string[] {
+  const lines = [...CARD_ABOUT[id]]
+  if (rules.scope === 'global') {
+    lines.push('Across the matches in the filter. Each point counts once.')
+    if (id === 'phases') lines.push('A grade here needs 100 of your points in the row.')
+    if (id === 'end') lines.push('Per 100 points, so long and short matches compare.')
+  }
+  if (id === 'end') {
+    lines.push('Usual is your rate in your other tagged matches. It shows when today differs by 3 errors per 100 points or more.')
+  } else if (id !== 'marked') {
+    lines.push('Usual is your rate in your other tagged matches. It shows when today differs by 10 points or more.')
+  }
+  return lines
+}
+
+function emptyCard(id: string, title: string, empty: string, rules: InsightRules): InsightCardModel {
   return {
     id,
     title,
@@ -349,9 +397,57 @@ function emptyCard(id: string, title: string, empty: string): InsightCardModel {
     rows: [],
     empty,
     playlist: null,
-    about: CARD_ABOUT[id],
-    counts: { youWon: 0, youN: 0, themWon: 0, themN: 0 },
+    about: aboutFor(id, rules),
+    counts: { youWon: 0, youN: 0, themWon: 0, themN: 0, points: 0 },
   }
+}
+
+function tierWord(n: number): string | null {
+  if (n >= 270) return 'Solid'
+  if (n >= 100) return 'Fair'
+  if (n >= 30) return 'Early'
+  return null
+}
+
+function withTier(sub: string, n: number, rules: InsightRules): string {
+  if (rules.scope !== 'global') return sub
+  const tier = tierWord(n)
+  return tier ? `${sub} · ${tier}` : sub
+}
+
+function per100(count: number, points: number): string {
+  return ((count / points) * 100).toFixed(1)
+}
+
+type Rate = { won: number; n: number }
+
+function usualRate(rules: InsightRules, yours: Rate, usual: Rate | null): string | null {
+  if (!usual || usual.n < 100 || yours.n <= 0) return null
+  if (rules.scope === 'global' && !rules.subset) return null
+  if (yours.n < valueMin(rules)) return null
+  const gap = Math.abs(Math.round((yours.won / yours.n) * 100) - Math.round((usual.won / usual.n) * 100))
+  if (gap < 10) return null
+  return `Usual ${Math.round((usual.won / usual.n) * 100)}%`
+}
+
+function usualEnd(rules: InsightRules, errors: number, points: number, usualErrors: number, usualPoints: number): string | null {
+  if (rules.scope === 'global' && !rules.subset) return null
+  if (usualPoints < 100 || points < (rules.scope === 'global' ? 30 : 1)) return null
+  const gap = Math.abs(errors / points - usualErrors / usualPoints) * 100
+  if (gap < 3 - 1e-9) return null
+  if (rules.scope === 'global' && points >= 100) return `Usual ${per100(usualErrors, usualPoints)}`
+  return `Usual ${Math.round((usualErrors / usualPoints) * points)}`
+}
+
+function eliteBit(rules: InsightRules, n: number, elite: string): string | null {
+  if (n <= 0) return null
+  if (rules.scope === 'global' && n < valueMin(rules)) return null
+  return `Elite ${elite}`
+}
+
+function joinBits(bits: (string | null)[]): string | null {
+  const kept = bits.filter((bit): bit is string => Boolean(bit))
+  return kept.length ? kept.join(' · ') : null
 }
 
 function serveBucket(r: RallyData): 'ace' | 'opp' | 'third' | 'none' {
@@ -383,7 +479,16 @@ function missWord(r: RallyData): string {
   return ''
 }
 
-function phasesCard(all: Placed[], videos: Set<string>, names: Names): InsightCardModel {
+type UsualPack = {
+  phases: Rate
+  serve: Rate
+  receive: Rate
+  attack: Rate
+  endErrors: number
+  endPoints: number
+}
+
+function phasesCard(all: Placed[], videos: Set<string>, rules: InsightRules, usual: UsualPack | null): InsightCardModel {
   const yours = { won: 0, n: all.length }
   const phases: Phase[] = ['serve', 'receive', 'rally']
   const buckets = phases.map((phase) => {
@@ -394,7 +499,7 @@ function phasesCard(all: Placed[], videos: Set<string>, names: Names): InsightCa
     yours.won += you.won
     return { phase, mine, you, them }
   })
-  const graded = buckets.map((b) => ({ grade: gradeOf(b.phase, b.you.won, b.you.n), n: b.you.n, won: b.you.won }))
+  const graded = buckets.map((b) => ({ grade: gradeOf(b.phase, b.you.won, b.you.n, gradeMin(rules)), n: b.you.n, won: b.you.won }))
   let weak = -1
   let bestRank = 9
   let bestN = -1
@@ -407,7 +512,7 @@ function phasesCard(all: Placed[], videos: Set<string>, names: Names): InsightCa
       bestN = row.n
     }
   })
-  if (weak < 0) weak = pickWeak(graded, yours.won, yours.n) ?? -1
+  if (weak < 0) weak = pickWeak(graded, yours.won, yours.n, rules) ?? -1
   const themHas = all.length > 0
   const lostName: Record<Phase, string> = {
     serve: 'Lost on serve to 5th',
@@ -420,10 +525,10 @@ function phasesCard(all: Placed[], videos: Set<string>, names: Names): InsightCa
   return {
     id: 'phases',
     title: 'Phases',
-    value: rateText(yours.won, yours.n),
-    sub: `Won ${yours.won} of ${yours.n} · China team marks`,
-    compare: null,
-    columns: ['You', names.name, 'Grade'],
+    value: rateText(yours.won, yours.n, valueMin(rules)),
+    sub: withTier(`Won ${yours.won} of ${yours.n} · China team marks`, yours.n, rules),
+    compare: usualRate(rules, yours, usual?.phases ?? null),
+    columns: ['You', rules.label, 'Grade'],
     rows: buckets.map((b, i) => ({
       label: PHASE_LABEL[b.phase],
       weak: i === weak,
@@ -431,14 +536,14 @@ function phasesCard(all: Placed[], videos: Set<string>, names: Names): InsightCa
       youN: b.you.n,
       themWon: b.them.won,
       themN: b.them.n,
-      you: rateCell(b.you.won, b.you.n),
-      them: themHas ? rateCell(b.them.won, b.them.n) : null,
-      grade: gradeOf(b.phase, b.you.won, b.you.n),
+      you: rateCell(b.you.won, b.you.n, rowMin(rules)),
+      them: themHas ? rateCell(b.them.won, b.them.n, rowMin(rules)) : null,
+      grade: gradeOf(b.phase, b.you.won, b.you.n, gradeMin(rules)),
     })),
     empty: null,
     playlist: playlistOf(listName, listRows, videos, 'phases', wholeWindow, () => '', 'name', true),
-    about: CARD_ABOUT.phases,
-    counts: { youWon: yours.won, youN: yours.n, themWon: all.length - yours.won, themN: all.length },
+    about: aboutFor('phases', rules),
+    counts: { youWon: yours.won, youN: yours.n, themWon: all.length - yours.won, themN: all.length, points: yours.n },
   }
 }
 
@@ -447,7 +552,7 @@ function threeBall(
   title: string,
   rows: Placed[],
   videos: Set<string>,
-  names: Names,
+  rules: InsightRules,
   empty: string,
   sub: (won: number, n: number) => string,
   labels: Record<'ace' | 'opp' | 'third' | 'none', string>,
@@ -455,34 +560,32 @@ function threeBall(
   fallback: string,
   elite: string,
   themRows: Placed[],
+  usual: Rate | null,
 ): InsightCardModel {
   if (rows.length === 0) {
     const them = wonOf(themRows, 'them')
-    return { ...emptyCard(id, title, empty), counts: { youWon: 0, youN: 0, themWon: them.won, themN: them.n } }
+    return { ...emptyCard(id, title, empty, rules), counts: { youWon: 0, youN: 0, themWon: them.won, themN: them.n, points: 0 } }
   }
   const you = wonOf(rows, 'me')
   const them = wonOf(themRows, 'them')
   const keys = ['ace', 'opp', 'third', 'none'] as const
   const buckets = group(rows, (r) => serveBucket(r), [...keys]).filter((b) => b.rows.length > 0)
   const stats = buckets.map((b) => wonOf(b.rows, 'me'))
-  const weak = pickWeak(stats, you.won, you.n)
+  const weak = pickWeak(stats, you.won, you.n, rules)
   const weakKey = weak === null ? null : buckets[weak].key
   const listRows = weakKey ? buckets[weak!].rows : rows
   const listName = weakKey ? lost[weakKey] : fallback
-  const compareFig =
-    them.n === 0
-      ? `${names.name} none yet · Elite ${elite}`
-      : `${names.name} ${rateText(them.won, them.n)} · Elite ${elite}`
+  const opp = them.n === 0 ? `${rules.label} none yet` : `${rules.label} ${rateText(them.won, them.n, valueMin(rules))}`
   return {
     id,
     title,
-    value: rateText(you.won, you.n),
-    sub: sub(you.won, you.n),
-    compare: compareFig,
+    value: rateText(you.won, you.n, valueMin(rules)),
+    sub: withTier(sub(you.won, you.n), you.n, rules),
+    compare: joinBits([opp, usualRate(rules, you, usual), eliteBit(rules, you.n, elite)]),
     columns: null,
     rows: buckets.map((b, i) => {
       const s = stats[i]
-      const detail = s.n >= 5 ? `${Math.round((s.won / s.n) * 100)}%` : null
+      const detail = s.n >= rowMin(rules) ? `${Math.round((s.won / s.n) * 100)}%` : null
       return {
         label: labels[b.key],
         weak: i === weak,
@@ -495,16 +598,16 @@ function threeBall(
     }),
     empty: null,
     playlist: playlistOf(listName, listRows, videos, id, wholeWindow, () => '', 'name', true),
-    about: CARD_ABOUT[id],
-    counts: { youWon: you.won, youN: you.n, themWon: them.won, themN: them.n },
+    about: aboutFor(id, rules),
+    counts: { youWon: you.won, youN: you.n, themWon: them.won, themN: them.n, points: you.n },
   }
 }
 
-function attackCard(all: Placed[], videos: Set<string>, names: Names): InsightCardModel {
+function attackCard(all: Placed[], videos: Set<string>, rules: InsightRules, usual: Rate | null): InsightCardModel {
   const mine = all.filter((row) => row.rally.fa !== null && hitterOf(row.rally.server, row.rally.fa) === 'them')
   const theirs = all.filter((row) => row.rally.fa !== null && hitterOf(row.rally.server, row.rally.fa) === 'me')
   if (mine.length === 0) {
-    return emptyCard('attack', 'Attack', `${names.they} ${names.they === 'They' ? 'have' : 'has'} not attacked first yet`)
+    return emptyCard('attack', 'Attack', `${rules.they} ${rules.they === 'They' ? 'have' : 'has'} not attacked first yet`, rules)
   }
   const you = wonOf(mine, 'me')
   const them = wonOf(theirs, 'them')
@@ -514,7 +617,7 @@ function attackCard(all: Placed[], videos: Set<string>, names: Names): InsightCa
   const themB = group(theirs, (r) => replyBucket(r), [...keys])
   const shown = keys.filter((key) => mineB.find((b) => b.key === key)!.rows.length + themB.find((b) => b.key === key)!.rows.length > 0)
   const stats = shown.map((key) => wonOf(mineB.find((b) => b.key === key)!.rows, 'me'))
-  const weak = pickWeak(stats, you.won, you.n)
+  const weak = pickWeak(stats, you.won, you.n, rules)
   const weakKey = weak === null ? null : shown[weak]
   const lost = {
     counter: 'Lost after you countered',
@@ -522,18 +625,15 @@ function attackCard(all: Placed[], videos: Set<string>, names: Names): InsightCa
     none: 'Lost to their attack',
   }
   const listRows = weakKey ? mineB.find((b) => b.key === weakKey)!.rows : mine
-  const listName = weakKey ? lost[weakKey] : `Lost when ${names.who} attacked first`
-  const compare =
-    them.n === 0
-      ? `${names.name} none yet · Elite 48%`
-      : `${names.name} ${rateText(them.won, them.n)} · Elite 48%`
+  const listName = weakKey ? lost[weakKey] : `Lost when ${rules.who} attacked first`
+  const opp = them.n === 0 ? `${rules.label} none yet` : `${rules.label} ${rateText(them.won, them.n, valueMin(rules))}`
   return {
     id: 'attack',
     title: 'Attack',
-    value: rateText(you.won, you.n),
-    sub: `Won ${you.won} of ${you.n} when ${names.who} attacked first`,
-    compare,
-    columns: ['You', names.name],
+    value: rateText(you.won, you.n, valueMin(rules)),
+    sub: withTier(`Won ${you.won} of ${you.n} when ${rules.who} attacked first`, you.n, rules),
+    compare: joinBits([opp, usualRate(rules, you, usual), eliteBit(rules, you.n, '48%')]),
+    columns: ['You', rules.label],
     rows: shown.map((key, i) => {
       const y = wonOf(mineB.find((b) => b.key === key)!.rows, 'me')
       const t = wonOf(themB.find((b) => b.key === key)!.rows, 'them')
@@ -544,20 +644,20 @@ function attackCard(all: Placed[], videos: Set<string>, names: Names): InsightCa
         youN: y.n,
         themWon: t.won,
         themN: t.n,
-        you: rateCell(y.won, y.n),
-        them: them.n === 0 ? null : rateCell(t.won, t.n),
+        you: rateCell(y.won, y.n, rowMin(rules)),
+        them: them.n === 0 ? null : rateCell(t.won, t.n, rowMin(rules)),
       }
     }),
     empty: null,
     playlist: playlistOf(listName, listRows, videos, 'attack', wholeWindow, () => '', 'name', true),
-    about: CARD_ABOUT.attack,
-    counts: { youWon: you.won, youN: you.n, themWon: them.won, themN: them.n },
+    about: aboutFor('attack', rules),
+    counts: { youWon: you.won, youN: you.n, themWon: them.won, themN: them.n, points: you.n },
   }
 }
 
-function endCard(all: Placed[], videos: Set<string>, names: Names): InsightCardModel {
+function endCard(all: Placed[], videos: Set<string>, rules: InsightRules, usualErrors: number, usualPoints: number): InsightCardModel {
   const past = all.filter((row) => row.rally.contacts.length >= 2)
-  if (past.length === 0) return emptyCard('end', 'End', 'No rallies past the serve yet')
+  if (past.length === 0) return emptyCard('end', 'End', 'No rallies past the serve yet', rules)
   const keys = ['fh', 'bh', 'under', 'receive'] as const
   const labels = {
     fh: 'Free ball, FH',
@@ -596,14 +696,19 @@ function endCard(all: Placed[], videos: Set<string>, names: Names): InsightCardM
   const lost = { fh: 'FH errors on a free ball', bh: 'BH errors on a free ball' }
   const listRows = weakKey ? mine.get(weakKey)! : [...mine.values()].flat()
   const listName = weakKey ? lost[weakKey] : 'Your errors'
-  const compare = `${names.name} ${themN}`
+  const scaled = rules.scope === 'global' && all.length >= 100
+  const cell = (count: number) => (scaled ? { text: per100(count, all.length), of: null } : { text: String(count), of: null })
+  const opp = scaled ? `${rules.label} ${per100(themN, all.length)}` : `${rules.label} ${themN}`
+  const sub = scaled
+    ? `Your errors per 100 points · ${per100(free, all.length)} on a free ball`
+    : `${free} on a free ball`
   return {
     id: 'end',
     title: 'End',
-    value: String(youN),
-    sub: `${free} on a free ball`,
-    compare,
-    columns: shown.length ? ['You', names.name] : null,
+    value: scaled ? per100(youN, all.length) : String(youN),
+    sub: withTier(sub, all.length, rules),
+    compare: joinBits([opp, usualPoints > 0 ? usualEnd(rules, youN, all.length, usualErrors, usualPoints) : null]),
+    columns: shown.length ? ['You', rules.label] : null,
     rows: shown.map((key) => ({
       label: labels[key],
       weak: key === weakKey,
@@ -611,13 +716,13 @@ function endCard(all: Placed[], videos: Set<string>, names: Names): InsightCardM
       youN: mine.get(key)!.length,
       themWon: 0,
       themN: theirs.get(key)!.length,
-      you: { text: String(mine.get(key)!.length), of: null },
-      them: { text: String(theirs.get(key)!.length), of: null },
+      you: cell(mine.get(key)!.length),
+      them: cell(theirs.get(key)!.length),
     })),
     empty: null,
     playlist: playlistOf(listName, listRows, videos, 'end', endWindow, (r) => missWord(r), 'name', false),
-    about: CARD_ABOUT.end,
-    counts: { youWon: 0, youN, themWon: 0, themN },
+    about: aboutFor('end', rules),
+    counts: { youWon: 0, youN, themWon: 0, themN, points: all.length },
   }
 }
 
@@ -628,7 +733,7 @@ const PART_LABEL: Record<BestPart, string> = {
   end: 'End',
 }
 
-function markedCard(all: Placed[], videos: Set<string>): InsightCardModel | null {
+function markedCard(all: Placed[], videos: Set<string>, rules: InsightRules): InsightCardModel | null {
   const order: BestPart[] = ['opening', 'attack', 'rally', 'end']
   const rows: { row: Placed; part: BestPart; w: { a: number; b: number } }[] = []
   for (const row of all) {
@@ -652,6 +757,8 @@ function markedCard(all: Placed[], videos: Set<string>): InsightCardModel | null
     points: entry.row.points,
     server: entry.row.rally.server,
     note: PART_LABEL[entry.part],
+    matchId: entry.row.matchId,
+    versus: entry.row.versus,
   }))
   return {
     id: 'marked',
@@ -663,78 +770,147 @@ function markedCard(all: Placed[], videos: Set<string>): InsightCardModel | null
     rows: [],
     empty: null,
     playlist: { name: 'Marked for review', items, caption: 'note' },
-    about: CARD_ABOUT.marked,
-    counts: { youWon: 0, youN: items.length, themWon: 0, themN: 0 },
+    about: aboutFor('marked', rules),
+    counts: { youWon: 0, youN: items.length, themWon: 0, themN: 0, points: items.length },
   }
 }
 
-export function matchInsights(match: MatchRecord): MatchInsightsModel {
-  const videos = new Set(match.videos.map((v) => v.id))
-  const names = namesOf(match)
-  const all = place(match).filter((row) => {
-    const set = match.sets.find((s) => s.setId === row.setId)
-    return set ? countedRally(set, row.rally) : false
-  })
-  const coverage = coverageOf(match.sets)
-  if (all.length === 0) {
-    return { empty: true, coverage, videoLine: null, cards: [], marked: null }
+function countedOf(matches: MatchRecord[]): Placed[] {
+  const out: Placed[] = []
+  for (const match of newestFirst(matches)) {
+    for (const row of place(match)) {
+      const set = match.sets.find((s) => s.setId === row.setId)
+      if (set && countedRally(set, row.rally)) out.push(row)
+    }
   }
-  const anyPlay = all.some((row) => videos.has(row.rally.videoId))
-  const videoLine = anyPlay ? null : 'The video was removed, so rallies cannot play. Add it on Tag.'
+  return out
+}
+
+function videoLineFor(all: Placed[], videos: Set<string>, rules: InsightRules): string | null {
+  if (all.length === 0) return null
+  const playable = all.filter((row) => videos.has(row.rally.videoId)).length
+  if (playable === all.length) return null
+  if (rules.scope === 'match') {
+    return playable === 0 ? 'The video was removed, so rallies cannot play. Add it on Tag.' : null
+  }
+  if (playable === 0) return 'The videos were removed, so rallies cannot play.'
+  return 'Some rallies cannot play. Their video was removed.'
+}
+
+function coverageLine(matches: MatchRecord[], points: number, rules: InsightRules): string | null {
+  if (rules.scope === 'match') return matches[0] ? coverageOf(matches[0].sets) : null
+  const n = matches.length
+  const parts = matches.filter((m) => derivePhase(m) === 'partial').length
+  let line = `${n === 1 ? '1 match' : `${n} matches`} · ${points} points`
+  if (parts === 1) line += ' · 1 part tagged'
+  else if (parts > 1) line += ` · ${parts} parts tagged`
+  return line
+}
+
+function packFrom(cards: InsightCardModel[]): UsualPack {
+  const by = (id: string) => cards.find((card) => card.id === id)!
+  const end = by('end')
+  return {
+    phases: { won: by('phases').counts.youWon, n: by('phases').counts.youN },
+    serve: { won: by('serve').counts.youWon, n: by('serve').counts.youN },
+    receive: { won: by('receive').counts.youWon, n: by('receive').counts.youN },
+    attack: { won: by('attack').counts.youWon, n: by('attack').counts.youN },
+    endErrors: end.counts.youN,
+    endPoints: end.counts.points,
+  }
+}
+
+function buildCards(all: Placed[], videos: Set<string>, rules: InsightRules, usual: UsualPack | null): InsightCardModel[] {
   const serves = all.filter((row) => row.rally.server === 'me')
   const receives = all.filter((row) => row.rally.server === 'them')
-  const cards = [
-    all.length ? phasesCard(all, videos, names) : emptyCard('phases', 'Phases', 'No points yet'),
+  return [
+    all.length ? phasesCard(all, videos, rules, usual) : emptyCard('phases', 'Phases', 'No points yet', rules),
     threeBall(
       'serve',
       'Serve',
       serves,
       videos,
-      names,
+      rules,
       'No serves of yours yet',
       (won, n) => `Won ${won} of ${n} on your serve`,
       {
         ace: 'Ace or fault',
-        opp: `${names.they} attacked`,
+        opp: `${rules.they} attacked`,
         third: 'You attacked 3rd',
         none: 'No attack by 3rd',
       },
       {
         ace: 'Your serve faults',
-        opp: `Lost when ${names.who} attacked your serve`,
+        opp: `Lost when ${rules.who} attacked your serve`,
         third: 'Lost after your 3rd ball',
         none: 'Lost with no attack by 3rd',
       },
       'Lost on your serve',
       '51%',
       receives,
+      usual?.serve ?? null,
     ),
     threeBall(
       'receive',
       'Receive',
       receives,
       videos,
-      names,
-      `No serves from ${names.who === 'they' ? 'them' : names.they} yet`,
-      (won, n) => `Won ${won} of ${n} on ${names.their} serve`,
+      rules,
+      `No serves from ${rules.who === 'they' ? 'them' : rules.they} yet`,
+      (won, n) => `Won ${won} of ${n} on ${rules.their} serve`,
       {
         ace: 'Ace or fault',
         opp: 'You attacked',
-        third: `${names.they} attacked 3rd`,
+        third: `${rules.they} attacked 3rd`,
         none: 'No attack by 3rd',
       },
       {
-        ace: `Lost to ${names.their} ace`,
+        ace: `Lost to ${rules.their} ace`,
         opp: 'Lost when you attacked',
-        third: `Lost when ${names.who} attacked the 3rd`,
+        third: `Lost when ${rules.who} attacked the 3rd`,
         none: 'Lost with no attack by 3rd',
       },
-      `Lost on ${names.their} serve`,
+      `Lost on ${rules.their} serve`,
       '49%',
       serves,
+      usual?.receive ?? null,
     ),
-    attackCard(all, videos, names),
-    endCard(all, videos, names),
+    attackCard(all, videos, rules, usual?.attack ?? null),
+    endCard(all, videos, rules, usual?.endErrors ?? 0, usual?.endPoints ?? 0),
   ]
-  return { empty: false, coverage, videoLine, cards, marked: markedCard(all, videos) }
 }
+
+/**
+ * The five cards for one match or a pool of matches.
+ * `usualFrom` is every tagged match on the global page, and every other tagged match on a match page.
+ */
+export function insightsFor(matches: MatchRecord[], rules: InsightRules, usualFrom: MatchRecord[]): MatchInsightsModel {
+  const videos = new Set(matches.flatMap((match) => match.videos.map((video) => video.id)))
+  const all = countedOf(matches)
+  const coverage = coverageLine(matches, all.length, rules)
+  if (all.length === 0) {
+    if (rules.scope === 'match') return { empty: true, coverage, videoLine: null, cards: [], marked: null }
+    return {
+      empty: false,
+      coverage,
+      videoLine: null,
+      cards: buildCards([], videos, rules, null),
+      marked: null,
+    }
+  }
+  const usual =
+    usualFrom.length > 0 ? packFrom(buildCards(countedOf(usualFrom), new Set(), rules, null)) : null
+  return {
+    empty: false,
+    coverage,
+    videoLine: videoLineFor(all, videos, rules),
+    cards: buildCards(all, videos, rules, usual),
+    marked: markedCard(all, videos, rules),
+  }
+}
+
+/** One match, with the match thresholds. Pass the other tagged matches so Usual can show. */
+export function matchInsights(match: MatchRecord, usualFrom: MatchRecord[] = []): MatchInsightsModel {
+  return insightsFor([match], insightRules('match', match.opponent, true), usualFrom)
+}
+
