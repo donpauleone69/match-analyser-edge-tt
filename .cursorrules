@@ -4,9 +4,9 @@ Table tennis match video tagging and analysis. Not the same project as "Edge TT"
 
 ## Project
 
-- The product is `proto/`. Phase 5 of the refactor deletes the old `app/` (restorable from tag `pre-refactor-v0.17.28`) and renames `proto/` to `app/`; until then the old `app/` is a reference only, do not edit it. Paths below are under `proto/`.
+- The product is `app/` (the former `proto/` tree; the old reference `app/` was removed in phase 5 and is restorable from tag `pre-refactor-v0.17.28`). Paths below are under `app/`.
 - Stack: Vite 7, React 19, React Router 7, Tailwind 4, TypeScript 5.9, Vitest. Zustand for state (from phase 3), Dexie for the on-device database (from phase 8).
-- Install and run in `proto/`: `npm install --legacy-peer-deps`, then `npm run dev` (port 5174).
+- Install and run in `app/`: `npm install --legacy-peer-deps`, then `npm run dev` (port 5174).
 - Local only, nothing uploaded. Video is a local file (blob URL) or the demo stand-in; from phase 8 it is copied onto the device (OPFS), with a re-pick when missing.
 - What persists: device preferences (theme, demo mode, Best timing, filters, test speed) already persist in `localStorage` and `sessionStorage`, and must keep persisting; phase 3 moves them into `settingsStore`, whose actions write the storage (no Zustand persist middleware). Match data lives in memory and resets on reload until phase 8 stores it in Dexie.
 
@@ -83,7 +83,7 @@ Names are the target; a builder may adjust a name but keeps the layer. `App.tsx`
 - Never loosen a test, re-baseline golden files (`UPDATE_GOLDEN=1`) or smoke screenshots unless the change is named and agreed.
 - `scripts/check-rules.mjs` enforces the layer rules above. Each new rule gets a bad and a good fixture in `tests/rules-check/fixtures/`. `scripts/rules-allowlist.json` only shrinks: never add an entry.
 
-## Gate (required before merge, run in `proto/`)
+## Gate (required before merge, run in `app/`)
 
 1. `npm run build`
 2. `npm test`
@@ -118,15 +118,15 @@ Also look at changed surfaces in a real browser. Lint is not a gate.
 
 ## Docs
 
-`docs-match-analyser-edge-tt/` describes the old `app/` only; do not follow it for `proto/`.
+`docs-match-analyser-edge-tt/` describes the removed reference app only; do not follow it for the product in `app/`.
 
 | Topic | Read now | Phase 6 target |
 |---|---|---|
 | Agent setup | this file | `AGENTS.md` (phase 6) |
-| Product brief | `proto/docs/product-brief.md` | `docs/brief.md` (phase 6) |
+| Product brief | `app/docs/product-brief.md` | `docs/brief.md` (phase 6) |
 | Architecture | this file | `docs/architecture.md` (phase 6) |
-| Data model and invariants | `proto/tests/invariants/catalog.ts` | `docs/data.md` (phase 6) |
-| Tagging rules | `proto/tests/rules/` | `docs/tagging-rules.md` (phase 6) |
-| Screen areas | `proto/docs/ui-zones.md` | `docs/layouts.md` (phase 6) |
-| Glossary | `proto/docs/glossary.md` | `docs/glossary.md` (phase 6) |
+| Data model and invariants | `app/tests/invariants/catalog.ts` | `docs/data.md` (phase 6) |
+| Tagging rules | `app/tests/rules/` | `docs/tagging-rules.md` (phase 6) |
+| Screen areas | `app/docs/ui-zones.md` | `docs/layouts.md` (phase 6) |
+| Glossary | `app/docs/glossary.md` | `docs/glossary.md` (phase 6) |
 | Flows, components, changelog | | `docs/flows.md`, `docs/components.md`, `docs/CHANGELOG.md` (phase 6) |

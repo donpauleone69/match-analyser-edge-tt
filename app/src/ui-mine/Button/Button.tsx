@@ -1,41 +1,61 @@
-/**
- * Button — ui-mine wrapper
- * 
- * Wraps shadcn Button with project-specific variants and theming.
- * Features NEVER import lucide-react directly — use Icon component.
- */
-
 import { forwardRef } from 'react'
-import { Button as ShadcnButton, type ButtonProps as ShadcnButtonProps } from '@/components/ui/Button'
+import { cva } from 'class-variance-authority'
 import { cn } from '@/helpers/utils'
+import { buttonKindClass } from '@/ui-mine/buttonKinds'
+import type { ButtonProps } from './types'
 
-export interface ButtonProps extends ShadcnButtonProps {
-  /** Full width button */
-  fullWidth?: boolean
-  /** Keyboard shortcut hint */
-  shortcut?: string
-}
+const buttonVariants = cva(
+  `inline-flex items-center justify-center gap-1.5 font-semibold
+   transition-all duration-[var(--animate-micro)]
+   focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary
+   focus-visible:ring-offset-2 focus-visible:ring-offset-bg-surface
+   disabled:pointer-events-none disabled:active:scale-100 disabled:shadow-none disabled:opacity-100
+   active:scale-[0.98]`,
+  {
+    variants: {
+      variant: {
+        primary: 'bg-brand-primary text-on-accent hover:bg-brand-primary-hover border border-transparent',
+        secondary:
+          'bg-pill-idle border border-pill-idle-border text-primary hover:bg-bg-elevated',
+        ghost: 'bg-transparent text-primary hover:bg-pill-idle border border-transparent',
+      },
+      size: {
+        sm: `${buttonKindClass.control} px-[var(--control-px)] text-[length:var(--control-text)] rounded-[var(--control-radius)]`,
+        default: `${buttonKindClass.control} px-3 text-sm rounded-md`,
+        lg: `${buttonKindClass.main} px-5 text-base rounded-md`,
+      },
+    },
+    defaultVariants: {
+      variant: 'primary',
+      size: 'default',
+    },
+  }
+)
+
+/** Applied after variants so disabled colors beat text-on-accent / text-primary. */
+const disabledSurface =
+  'disabled:bg-disabled-bg disabled:text-disabled-text disabled:border-disabled-border'
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, fullWidth, shortcut, children, ...props }, ref) => {
-    return (
-      <ShadcnButton
-        ref={ref}
-        className={cn(fullWidth && 'w-full', className)}
-        {...props}
-      >
-        {children}
-        {shortcut && (
-          <kbd className="ml-2 px-1.5 py-0.5 text-xs bg-neutral-800 rounded border border-neutral-600 font-mono">
-            {shortcut}
-          </kbd>
-        )}
-      </ShadcnButton>
-    )
-  }
+  ({ className, variant, size, kind, fullWidth, children, ...props }, ref) => (
+    <button
+      ref={ref}
+      className={cn(
+        buttonVariants({ variant, size: kind ? null : size }),
+        !kind && size === undefined && `${buttonKindClass.control} px-3 text-sm rounded-md`,
+        kind && buttonKindClass[kind],
+        kind && 'px-3 text-sm rounded-md',
+        disabledSurface,
+        fullWidth && 'w-full',
+        className
+      )}
+      {...props}
+    >
+      {children}
+    </button>
+  )
 )
 
 Button.displayName = 'Button'
 
-export { Button }
-
+export { Button, buttonVariants }

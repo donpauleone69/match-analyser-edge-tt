@@ -1,15 +1,20 @@
+import { installTestSpeed } from './testSpeed'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { BrowserRouter } from 'react-router-dom'
+import App from './App'
+import { ThemeProvider } from '@/theme/ThemeProvider'
+import { useSettingsStore } from '@/stores/settingsStore'
 import './index.css'
-import App from './App.tsx'
 
-// Load database inspection API in development
-if (import.meta.env.DEV) {
-  import('./helpers/devInspectDB')
-}
+installTestSpeed(useSettingsStore.getState().testSpeed)
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
-  </StrictMode>,
+    <BrowserRouter>
+      <ThemeProvider>
+        <App />
+      </ThemeProvider>
+    </BrowserRouter>
+  </StrictMode>
 )

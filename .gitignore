@@ -77,6 +77,6 @@ docs-match-analyser-edge-tt/chat_notes/**/*.jpeg
 # Local Playwright smoke output (MA-47)
 app/smoke-artifacts/
 
-# Page smoke output and font cache. No proto/ prefix, so they survive the phase 5 rename.
+# Page smoke output and font cache (glob paths; no app/ prefix so they survive folder renames).
 **/tests/smoke/out/
 **/tests/smoke/.cache/
