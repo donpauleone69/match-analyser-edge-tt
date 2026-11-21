@@ -26,8 +26,13 @@ export {
   addContact,
   emptyDraft,
   hitterOf,
+  isError,
+  loopShotOf,
   otherSide,
   pointRally,
+  rallyEnd,
+  rallyStart,
+  shotWindow,
   winnerOf,
 } from '@/features/tagging/rally'
 export type { Draft, Ending, RallyData, ShotTags, Side } from '@/features/tagging/rally'
@@ -51,25 +56,59 @@ export type { BestEnd, BestPart, BestPartSpan } from '@/features/tagging/bestFlo
 
 // -> @/rules/mark
 export {
+  clampWing,
   endedEarly,
+  gapsOf,
   lineAction,
   markBounds,
   markState,
   migrateSetMark,
+  MIN_SET_S,
   newMarkAt,
   rallyOutside,
   setIncomplete,
   setLineLabel,
+  spanBack,
+  spanOnto,
+  spansOnVideo,
   videoLocked,
   videoMoveBreaks,
   videoStatus,
+  wingLimits,
 } from '@/features/tagging/setMark'
 
 // -> @/rules/match
-export { deleteTags, editStops, finishSet, startSet } from '@/features/tagging/matchOps'
+export {
+  deleteRally,
+  deleteTags,
+  editStops,
+  finishSet,
+  leaveMark,
+  saveMark,
+  settleFinished,
+  startSet,
+} from '@/features/tagging/matchOps'
 
 // -> @/rules/continuity
-export { serveBands } from '@/features/tagging/continuity'
+export {
+  breakIndexes,
+  expectedServer,
+  leaveIds,
+  openReview,
+  pressReview,
+  serveBands,
+} from '@/features/tagging/continuity'
+export type { ReviewPress, ServeRally } from '@/features/tagging/continuity'
+
+// -> @/rules/input-modes
+export { overrunLabels, tagRegions } from '@/features/tagging/inputModes'
+
+// -> @/rules/timeline
+export { lastContactG, totalDuration } from '@/features/tagging/timeline'
+
+// -> @/rules/script
+export { tagsFromPlay } from '@/features/tagging/script'
+export type { ScriptRally } from '@/features/tagging/script'
 
 // -> @/rules/timeline
 export { firstContactG, segmentsOf, toGlobal } from '@/features/tagging/timeline'
@@ -102,13 +141,15 @@ export {
   matchDiffers,
   matchName,
   matchRowLine,
+  matchResultLine,
   matchRowStatus,
   taggedResultReady,
   videoRallyCount,
 } from '@/features/match/matchChecks'
 
 // -> @/rules/insights
-export { insightRules, insightsFor, matchInsights, phaseOf } from '@/features/insights/insightCounts'
+export { gradeOf, insightRules, insightsFor, matchInsights, phaseOf } from '@/features/insights/insightCounts'
+export type { InsightCardModel, InsightRow } from '@/features/insights/insightCounts'
 
 // -> @/rules/filters
 export {
@@ -118,9 +159,10 @@ export {
   filterChoices,
   filterIsSet,
   filterMatches,
+  migrateFilters,
 } from '@/features/insights/insightsFilterContext'
 export type { InsightsFilters } from '@/features/insights/insightsFilterContext'
 
 // -> @/data/seed
-export { SEED } from '@/data/demoStore'
-export { buildSeed } from '@/data/buildSeed'
+export { emptySet, SEED } from '@/data/demoStore'
+export { buildSeed, isoDaysBefore } from '@/data/buildSeed'
