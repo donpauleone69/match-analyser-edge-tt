@@ -1,6 +1,6 @@
 # Data model
 
-Two shapes. In memory, one nested `MatchRecord` per match in `app/src/stores/matchStore.ts`; it resets on reload. In the database, schema v1: eight tables in `app/src/types/db.ts`, mapped from memory and back by `app/src/rules/dbRows.ts`, checked before every write by `app/src/rules/dbValidate.ts`. Phase 8 creates the tables (Dexie). Every column with its type, allowed values, writer and reader, plus the gaps, is in `docs/data-fields.md`. "You" is `me`. Invariants are `app/tests/invariants/catalog.ts` and `app/tests/invariants/rows.ts`.
+Two shapes. In memory, one nested `MatchRecord` per match in `app/src/stores/matchStore.ts`; it resets on reload. In the database, schema v1: eight tables in `app/src/types/db.ts`, mapped from memory and back by `app/src/rules/dbRows.ts`, checked before every write by `app/src/rules/dbValidate.ts`, and stored in the browser by `app/src/data/` (Dexie). Until phase 8.2 wires the stores to it, nothing on screen reads or writes the database. Every column with its type, allowed values, writer and reader, plus the gaps, is in `docs/data-fields.md`. "You" is `me`. Invariants are `app/tests/invariants/catalog.ts` and `app/tests/invariants/rows.ts`.
 
 ## In memory
 
@@ -16,7 +16,7 @@ MatchRecord
 
 Times are seconds in one video. The match clock lays videos end to end.
 
-- **MatchRecord**: `id`, `opponent` and `event` (text), `date` (`YYYY-MM-DD` or empty), `result` (`{ me, them }`, both numbers or both null, a real best of 3, 5 or 7 from `REAL_RESULTS` in `app/src/rules/matchStatus.ts`), `videos`, `sets`. Optional, no writer until phase 10: `category`, `stage`, `round`, `outcome` (only when picked with no result). Seed ids are `m-new`, `m-ready`, `m-partial`, `m-complete`, `m-h1` to `m-h10`; created ids are `m-new-<ms>`.
+- **MatchRecord**: `id`, `opponent` and `event` (text), `date` (`YYYY-MM-DD` or empty), `result` (`{ me, them }`, both numbers or both null, a real best of 3, 5 or 7 from `REAL_RESULTS` in `app/src/rules/matchStatus.ts`), `videos`, `sets`. Optional, no writer until phase 10: `category`, `stage`, `round`, `outcome` (only when picked with no result). Seed ids are `m-new`, `m-ready`, `m-partial`, `m-complete`, `m-h1` to `m-h10`; created ids are `m-new-<ms>-<8 hex>` (`createRowId`).
 - **VideoAsset**: `id`, `fileName`, `sizeMb`, `archived`, `kind` (`demo` or `file`), `durationS`, optional `script` (demo only), `src` (blob URL, memory only), `myEnd` (phase 10). Archive keeps rallies joined at lower size and cannot be undone. A removed video stays in the store's `removedVideos` while rallies name it; the next video added takes its id and place (second I-52).
 - **SetData**: `setId`, `entered` (score strings as typed), `finished`, `firstServer`, `rallies`, `draft`, `mark`. `SetMark` is `from`, `to` (`{ videoId, t }`) and `complete` (the whole set is on video). Null mark: not on video. At most 7 sets (`MAX_SETS`). Delete keeps a rally on a `deleted` array cast onto the set until `finishSet` clears it; the score never counts it.
 - **RallyData**: `id`, `videoId`, `server`, `contacts`, `start`, `end`, `ending`, `fa`, `shots`, `winner`. Optional: `point` (no video), `left` (`serve` or `gap` marks left), `serveChecked`, `idea`. `ending` is `Winner`, `Net`, `Long` or `Wide`, null only on a point. The pad writes Winner, Long and Net (In net); Wide is legal and in the seed.
@@ -48,6 +48,25 @@ Times are seconds in one video. The match clock lays videos end to end.
 Plan columns, decision 19 columns (null, writer in phase 10), and four added in phase 7 for gaps G1 to G4 in `docs/data-fields.md`: `rallies.position`, `rallies.pointKept`, `videos.removedAt`, `videos.demoScript`.
 
 Dropped (not in rows, worked out again on load): `serveChecked` on saved rallies, `idea.flow`, `idea.serve`, `idea.result`, `fa`, the `deleted` cast (now `deletedAt`), `src` blob URLs, `kind` (from `demoScript`), `sizeMb` (from `sizeBytes`), `archived` and `finished` (from their times). Seed to rows to memory gives the seed back exactly (`app/tests/rules/db-rows.test.ts`), and every golden output matches from rows.
+
+## Browser database
+
+`app/src/data/db.ts`: two IndexedDB databases with the same tables, `edge-tt-matches` (yours) and `edge-tt-matches-demo` (demo mode, G7). Dexie version 1 is IndexedDB version 10. Indexes: names on `opponents` and `events`; `createdAt`, `opponentId`, `eventId` on `matches`; the parent id on each child table. The same tables in Postgres, for a later mirror, are in the migration under `supabase/migrations/`; nothing uses it yet.
+
+The repositories are the only writers. Each checks its rows with the validators, returns a `RepoResult` and never throws; a refused or failed call writes nothing.
+
+| Call | Does |
+|---|---|
+| `loadAll` | Every match in `createdAt` order, ties by id (G15), with removed videos and the name rows |
+| `saveMatch` | One match and its rows in one transaction, only rows that changed. Links typed names; drops a name row the edit unlinked that no match uses and that has no details |
+| `saveRally` | One rally and its shots in one transaction; shots no longer listed are deleted |
+| `saveDraft` | The one draft of a set, or clears it |
+| `deleteMatch` | The match and its rows; name rows stay |
+| `renameOpponent`, `renameEvent`, `removeOpponent`, `removeEvent` | By id; a rename shows in every linked match; remove is refused while a match links it |
+| `reseedDemo` | Clears the demo database and writes the seed; refused on yours |
+| `exportMatchFile`, `importMatchFile` | One match as JSON (`format` `edge-tt-match`, `schemaVersion`). Import checks every row, links names to stored rows ignoring case, and replaces a match with the same id |
+
+`app/src/data/storage.ts` asks for persistent storage and reads usage and quota. `cleanupOldStorage` in `app/src/data/cleanupOldStorage.ts` deletes the reference app's databases (`EdgeTTMatchAnalyser`, `tt-match-videos`), its `videos` folder in the origin private file system and its storage keys, by exact name or prefix. It keeps the settings keys and every name it does not know. New code must not reuse those names. Tests: `npm run check:db` in Chrome, `app/tests/db/data-layer.test.ts` in `npm test`.
 
 ## Derived, and when
 
@@ -102,7 +121,7 @@ Exactly one applies. `isSettled` and `isSpareSet` are in `app/src/rules/match.ts
 
 ## Invariants
 
-I-1 to I-57 run over the seed and again over the matches read back from rows built from the seed. I-58 to I-61 run over those rows.
+I-1 to I-57 run over the seed and again over the matches read back from rows built from the seed. I-58 to I-61 run over those rows. `npm run check:db` runs them all again, with every golden output, over the rows read back from the browser database.
 
 - I-1 `shots.length` equals `contacts.length`.
 - I-2 Contacts strictly increase, stay inside the video, and are at least 0.05 s apart.
