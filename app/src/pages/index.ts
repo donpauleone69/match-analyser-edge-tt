@@ -1,8 +1,0 @@
-export { HomePage } from './Home'
-export { default as MatchesPage } from './Matches'
-export { default as MatchCreatePage } from './MatchCreate'
-export { default as MatchReviewPage } from './MatchReview'
-export { ShotTaggingEngine } from './ShotTaggingEngine'
-export { Settings } from './Settings'
-export { DataViewer } from './DataViewer'
-export { DataViewerAudit } from './DataViewerAudit'
