@@ -6,6 +6,7 @@
 import { create } from 'zustand'
 import { DEFAULT_BEST_TIMING, type BestTiming } from '@/rules/bestFa'
 import { DEFAULT_INSIGHTS_FILTERS, migrateFilters, type InsightsFilters, type SavedFilters } from '@/rules/filters'
+import type { Handedness } from '@/types/db'
 import type { DemoMode } from '@/types/match'
 import { DEFAULT_MATCH_LIST_FILTERS, MATCH_STATUSES, type MatchListFilters, type MatchStatus } from '@/types/filters'
 import { DEFAULT_THEME, THEME_PACKS, type ThemeId } from '@/types/theme'
@@ -147,6 +148,8 @@ export type SettingsState = {
   testSpeed: number
   matchesFilters: MatchListFilters
   insightsFilters: InsightsFilters
+  /** No writer and no storage key until phase 10. */
+  myHandedness: Handedness | null
   setTheme: (theme: ThemeId) => void
   setDemoMode: (mode: DemoMode) => void
   setBestTiming: (timing: BestTiming) => void
@@ -161,6 +164,7 @@ export const useSettingsStore = create<SettingsState>()((set) => ({
   testSpeed: readTestSpeed(),
   matchesFilters: readMatchesFilters(),
   insightsFilters: readInsightsFilters(),
+  myHandedness: null,
   setTheme: (theme) => {
     set({ theme })
     write(local, THEME_KEY, theme)

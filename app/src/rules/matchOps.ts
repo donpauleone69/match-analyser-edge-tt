@@ -26,7 +26,7 @@ export const setDraft = (m: MatchRecord, setId: number, draft: Draft | null) =>
  */
 type WithDeleted = SetData & { deleted?: RallyData[] }
 export const deletedOf = (s: SetData): RallyData[] => (s as WithDeleted).deleted ?? []
-const withDeleted = (s: SetData, deleted: RallyData[]): SetData => ({ ...s, deleted }) as WithDeleted
+export const withDeleted = (s: SetData, deleted: RallyData[]): SetData => ({ ...s, deleted }) as WithDeleted
 
 /** Puts a rally where it belongs in video order. No other rally is touched. */
 function placed(segs: Segment[], rallies: RallyData[], rally: RallyData): RallyData[] {
