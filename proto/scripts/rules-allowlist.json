@@ -11,12 +11,6 @@
     { "rule": "thin-pages", "file": "src/pages/InsightsPage.tsx" },
     { "rule": "thin-pages", "file": "src/pages/MatchesPage.tsx" },
     { "rule": "thin-pages", "file": "src/pages/MatchPage.tsx" },
-    { "rule": "types-in-tsx", "file": "src/data/demoStore.tsx" },
-    { "rule": "types-in-tsx", "file": "src/features/insights/insightsFilterContext.tsx" },
-    { "rule": "types-in-tsx", "file": "src/features/tagging/InputArea.tsx" },
-    { "rule": "types-in-tsx", "file": "src/features/tagging/RallyZone.tsx" },
-    { "rule": "types-in-tsx", "file": "src/features/tagging/VideoStage.tsx" },
-    { "rule": "types-in-tsx", "file": "src/layout/PageHeader.tsx" },
     { "rule": "types-in-tsx", "file": "src/ui-mine/Button/Button.tsx" },
     { "rule": "types-in-tsx", "file": "src/ui-mine/Card/Card.tsx" },
     { "rule": "types-in-tsx", "file": "src/ui-mine/Icon/Icon.tsx" }

@@ -8,10 +8,10 @@ import {
   type BestAt,
   type PadBack,
   type BestEnd,
-  type BestPart,
 } from './bestFlow'
-import type { AreaRegion } from './InputArea'
-import { hitterOf, otherSide, winnerOf, type Draft, type Side, type Wing } from './rally'
+import type { AreaRegion } from './models'
+import type { BestPart, Draft, Side, Wing } from '@/types/rally'
+import { hitterOf, otherSide, winnerOf } from './rally'
 
 export const railCell =
   'btn-kind-control relative w-full px-1 rounded-md border text-sm font-bold tabular-nums inline-flex items-center justify-center'

@@ -3,7 +3,8 @@ import { PageHeader } from '@/layout/PageHeader'
 import { StickyChrome } from '@/layout/StickyChrome'
 import { WfEmpty } from '@/layout/Wireframe'
 import { Button, Icon } from '@/ui-mine'
-import { hasTaggedRallies, useDemo, type MatchRecord, type VideoAsset } from '@/data/demoStore'
+import { hasTaggedRallies, useDemo } from '@/data/demoStore'
+import type { MatchRecord, VideoAsset } from '@/types/match'
 import { InsightCard } from '@/features/insights/InsightCard'
 import { insightRules, insightsFor, type PlayItem } from '@/features/insights/insightCounts'
 import { PlaylistPlayer } from '@/features/insights/PlaylistPlayer'
@@ -16,8 +17,8 @@ import {
   filterIsSet,
   filterMatches,
   useInsightsFilters,
-  type InsightsFilters,
 } from '@/features/insights/insightsFilterContext'
+import type { InsightsFilters } from '@/features/insights/models'
 
 function countActive(f: InsightsFilters): number {
   let n = 0

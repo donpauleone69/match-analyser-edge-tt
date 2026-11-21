@@ -1,9 +1,10 @@
 import { Fragment, useLayoutEffect, useRef } from 'react'
 import { cn } from '@/helpers/utils'
-import { formatScore, type SetData } from '@/data/demoStore'
+import { formatScore } from '@/data/demoStore'
+import type { SetData } from '@/types/match'
+import type { RallyData, Side } from '@/types/rally'
 import { countPoints, setEndIndex } from './score'
 import type { EditGapStop } from './matchOps'
-import type { RallyData, Side } from './rally'
 import { zoneButton, zonePressed, zoneRest } from './zoneButton'
 
 /**

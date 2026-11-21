@@ -1,4 +1,4 @@
-import type { MatchRecord, SetData, SetMark, VideoAsset } from '@/data/demoStore'
+import type { MatchRecord, SetData, SetMark, VideoAsset } from '@/types/match'
 import { countPoints, isLegalEnd, isSetWon, leader, scoreAtSetEnd } from '@/features/tagging/score'
 import {
   firstContactG,

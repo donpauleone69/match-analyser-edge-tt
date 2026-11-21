@@ -1,4 +1,4 @@
-import type { AreaRegion } from './InputArea'
+import type { AreaRegion } from './models'
 import type { BestAt } from './bestFlow'
 
 const SLATE = '#334155'

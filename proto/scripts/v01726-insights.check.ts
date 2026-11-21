@@ -2,9 +2,10 @@
  * v0.17.26 Match Insights counts.
  * Run: npm run check:v01726
  */
-import { SEED, emptySet, type MatchRecord } from '../src/data/demoStore'
+import { SEED, emptySet } from '../src/data/demoStore'
 import { gradeOf, matchInsights, phaseOf, type InsightCardModel, type InsightRow } from '../src/features/insights/insightCounts'
-import type { Ending, Side } from '../src/features/tagging/rally'
+import type { MatchRecord } from '../src/types/match'
+import type { Ending, Side } from '../src/types/rally'
 
 const fails: string[] = []
 const ok = (name: string, cond: boolean, detail = '') => {

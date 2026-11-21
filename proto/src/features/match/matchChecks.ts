@@ -12,11 +12,8 @@ import {
   resultSetCount,
   setScoresDiffer,
   setSettled,
-  type MatchRecord,
-  type MatchResult,
-  type Score,
-  type SetData,
 } from '@/data/demoStore'
+import type { MatchRecord, MatchResult, Score, SetData } from '@/types/match'
 import { setInProgress } from '@/features/tagging/matchOps'
 import { setIncomplete } from '@/features/tagging/setMark'
 

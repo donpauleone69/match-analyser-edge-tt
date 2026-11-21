@@ -3,14 +3,7 @@ import { NavLink, Link } from 'react-router-dom'
 import { Icon } from '@/ui-mine'
 import { cn } from '@/helpers/utils'
 import { WfWarnBadge } from '@/layout/Wireframe'
-
-export interface TopTab {
-  to: string
-  label: string
-  end?: boolean
-  /** Small amber mark after the label, for something on that tab needing a look. */
-  mark?: string
-}
+import type { TopTab } from './pageHeaderTypes'
 
 /**
  * The one top row. Back only when there is somewhere to go up to, then tabs

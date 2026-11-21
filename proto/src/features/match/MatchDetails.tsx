@@ -19,10 +19,8 @@ import {
   setState,
   taggedScore,
   useDemo,
-  type MatchRecord,
-  type MatchResult,
-  type SetData,
 } from '@/data/demoStore'
+import type { MatchRecord, MatchResult, SetData } from '@/types/match'
 import { applyTaggedScore, applyTaggedScores } from '@/features/tagging/matchOps'
 import { useArchiveStep } from '@/features/match/archiveJobs'
 import {

@@ -6,8 +6,10 @@
  * Serve order review (the rule for Review serves) is at the bottom of this file.
  */
 
-import { otherSide, type MarkKind, type RallyData, type Side } from './rally'
-import { ZERO, addPoint, isSetWon, type Points } from './score'
+import type { Points } from '@/types/match'
+import type { MarkKind, RallyData, Side } from '@/types/rally'
+import { otherSide } from './rally'
+import { ZERO, addPoint, isSetWon } from './score'
 import { firstContactG, lastContactG, type Segment } from './timeline'
 
 /** A gap this long between two rallies of one video could hold a rally. */

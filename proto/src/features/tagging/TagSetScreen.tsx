@@ -8,9 +8,9 @@ import {
   matchSetsWon,
   taggedScore,
   useDemo,
-  type MatchRecord,
-  type SetData,
 } from '@/data/demoStore'
+import type { MatchRecord, Points, SetData } from '@/types/match'
+import type { BestPart, Draft, Mark, RallyData, Side, Stage, Wing } from '@/types/rally'
 import { SERVE_AFTER_S, SERVE_BEFORE_S, serveBands, expectedServer, leaveIds } from './continuity'
 import {
   deleteRally,
@@ -55,18 +55,13 @@ import {
   stageOf,
   winnerOf,
   undoContact,
-  type Draft,
-  type Mark,
-  type RallyData,
-  type Side,
-  type Stage,
-  type Wing,
 } from './rally'
-import { ZERO, addPoint, canSaveEarly, countPoints, isSetWon, setEndIndex, setOverOnRule, type Points } from './score'
+import { ZERO, addPoint, canSaveEarly, countPoints, isSetWon, setEndIndex, setOverOnRule } from './score'
 import { bestPadRegions, editRallyRegions } from './BestPanel'
 import { InputArea } from './InputArea'
 import { tagRegions } from './inputModes'
-import { RallyZone, type RallyState } from './RallyZone'
+import { RallyZone } from './RallyZone'
+import type { RallyState } from './models'
 import { SetZone } from './SetZone'
 import { BestTimingControl } from './BestTimingControl'
 import {
@@ -102,7 +97,6 @@ import {
   type BestAt,
   type BestEnd,
   type BestLoopWhat,
-  type BestPart,
   type BestTiming,
 } from './bestFlow'
 import { useActionGuard, type ActionGuard } from './pressGuard'

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { VideoAsset } from '@/data/demoStore'
+import type { VideoAsset } from '@/types/match'
 import { PictureSeek, VideoStage } from '@/features/tagging/VideoStage'
 import { segmentsOf, toGlobal } from '@/features/tagging/timeline'
 import { usePlayer } from '@/features/tagging/usePlayer'

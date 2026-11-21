@@ -1,13 +1,6 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from 'react'
-import type { MatchRecord } from '@/data/demoStore'
-
-export type InsightsFilters = {
-  dates: string
-  from: string
-  to: string
-  opponent: string
-  event: string
-}
+import type { MatchRecord } from '@/types/match'
+import type { InsightsFilters } from './models'
 
 export const DATE_CHOICES = ['Any', 'Last 5 matches', 'Last 30 days', 'Last 3 months', 'Last 12 months', 'From and to'] as const
 

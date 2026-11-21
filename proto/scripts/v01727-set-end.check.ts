@@ -3,10 +3,11 @@
  * Run: npm run check:v01727
  */
 import { readFileSync } from 'node:fs'
-import { emptySet, isMatchTagged, matchSetsWon, setSettled, type MatchRecord, type SetData } from '../src/data/demoStore'
+import { emptySet, isMatchTagged, matchSetsWon, setSettled } from '../src/data/demoStore'
+import type { MatchRecord, Points, SetData } from '../src/types/match'
 import { overrunLabels, tagRegions } from '../src/features/tagging/inputModes'
 import { settleFinished } from '../src/features/tagging/matchOps'
-import type { Side } from '../src/features/tagging/rally'
+import type { Side } from '../src/types/rally'
 import {
   canSaveEarly,
   countPoints,
@@ -14,7 +15,6 @@ import {
   isSetWon,
   setEndIndex,
   setOverOnRule,
-  type Points,
 } from '../src/features/tagging/score'
 import { endedEarly, lineAction, setIncomplete, setLineLabel } from '../src/features/tagging/setMark'
 

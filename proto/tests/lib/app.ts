@@ -17,7 +17,7 @@ export {
   setEndIndex,
   setOverOnRule,
 } from '@/features/tagging/score'
-export type { Points } from '@/features/tagging/score'
+export type { Points } from '@/types/match'
 
 // -> @/rules/rally
 export {
@@ -35,7 +35,7 @@ export {
   shotWindow,
   winnerOf,
 } from '@/features/tagging/rally'
-export type { Draft, Ending, RallyData, ShotTags, Side } from '@/features/tagging/rally'
+export type { Draft, Ending, RallyData, ShotTags, Side } from '@/types/rally'
 
 // -> @/rules/best
 export {
@@ -52,7 +52,8 @@ export {
   setDepth,
   setWingStroke,
 } from '@/features/tagging/bestFlow'
-export type { BestEnd, BestPart, BestPartSpan } from '@/features/tagging/bestFlow'
+export type { BestEnd, BestPartSpan } from '@/features/tagging/bestFlow'
+export type { BestPart } from '@/types/rally'
 
 // -> @/rules/mark
 export {
@@ -108,7 +109,7 @@ export { lastContactG, totalDuration } from '@/features/tagging/timeline'
 
 // -> @/rules/script
 export { tagsFromPlay } from '@/features/tagging/script'
-export type { ScriptRally } from '@/features/tagging/script'
+export type { ScriptRally } from '@/types/video'
 
 // -> @/rules/timeline
 export { firstContactG, segmentsOf, toGlobal } from '@/features/tagging/timeline'
@@ -132,7 +133,7 @@ export {
   taggedResult,
   taggedScore,
 } from '@/data/demoStore'
-export type { MatchRecord, SetData, SetMark, VideoAsset } from '@/data/demoStore'
+export type { MatchRecord, SetData, SetMark, VideoAsset } from '@/types/match'
 
 // -> @/rules/match
 export {
@@ -161,7 +162,7 @@ export {
   filterMatches,
   migrateFilters,
 } from '@/features/insights/insightsFilterContext'
-export type { InsightsFilters } from '@/features/insights/insightsFilterContext'
+export type { InsightsFilters } from '@/features/insights/models'
 
 // -> @/data/seed
 export { emptySet, SEED } from '@/data/demoStore'
