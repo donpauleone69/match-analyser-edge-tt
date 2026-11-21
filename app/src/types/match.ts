@@ -1,3 +1,4 @@
+import type { Category, KnockoutRound, MatchStage, MyEnd, Outcome } from './db'
 import type { Draft, RallyData, Side } from './rally'
 import type { VideoScript } from './video'
 
@@ -53,7 +54,12 @@ export type VideoAsset = {
   durationS: number
   script?: VideoScript
   src?: string
+  /** No writer until phase 10. */
+  myEnd?: MyEnd
 }
+
+/** A video taken off the list and where it sat, so it can come back to the same place. */
+export type RemovedVideo = { video: VideoAsset; index: number }
 
 /** Sets won by each side. Both set means the result is entered. */
 export type MatchResult = { me: number | null; them: number | null }
@@ -66,6 +72,12 @@ export type MatchRecord = {
   result: MatchResult
   videos: VideoAsset[]
   sets: SetData[]
+  /** No writer until phase 10. Absent means not entered. */
+  category?: Category
+  stage?: MatchStage
+  round?: KnockoutRound
+  /** Win or Loss picked with no result typed. A typed result gives it instead. */
+  outcome?: Outcome
 }
 
 /**

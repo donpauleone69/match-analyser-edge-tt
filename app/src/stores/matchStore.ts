@@ -25,6 +25,7 @@ import {
   type LocalVideo,
   type MatchRecord,
   type MatchResult,
+  type RemovedVideo,
   type SetData,
   type VideoAsset,
 } from '@/types/match'
@@ -35,9 +36,6 @@ import { useSettingsStore } from './settingsStore'
 export const SEED: MatchRecord[] = buildSeed(new Date())
 
 type MatchFields = Partial<Pick<MatchRecord, 'opponent' | 'event' | 'date'>>
-
-/** A removed video and where it sat, so it can come back to the same place. */
-type RemovedVideo = { video: VideoAsset; index: number }
 
 export type MatchState = {
   /** Ids of the seed this store started from. */

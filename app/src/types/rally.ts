@@ -2,10 +2,10 @@
 
 export type Side = 'me' | 'them'
 
-const ENDINGS = ['Winner', 'Net', 'Long', 'Wide'] as const
+export const ENDINGS = ['Winner', 'Net', 'Long', 'Wide'] as const
 export type Ending = (typeof ENDINGS)[number]
 
-const WINGS = ['BH', 'FH'] as const
+export const WINGS = ['BH', 'FH'] as const
 export type Wing = (typeof WINGS)[number]
 
 export type StrokeSide = 'offensive' | 'defensive'
@@ -41,7 +41,7 @@ export type BestMark = {
 
 export type ShotTags = {
   wing?: Wing
-  /** `Attack` or `Control` from shot 2. The serve has no stroke. */
+  /** `Attack` or `Control` from shot 2 (`Defence` from phase 10). The serve has no stroke. */
   stroke?: string
   /** Serve length: `Short` or `Long`. */
   depth?: string
