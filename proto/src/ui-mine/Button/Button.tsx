@@ -1,7 +1,8 @@
-import { forwardRef, type ButtonHTMLAttributes } from 'react'
-import { cva, type VariantProps } from 'class-variance-authority'
+import { forwardRef } from 'react'
+import { cva } from 'class-variance-authority'
 import { cn } from '@/helpers/utils'
-import { buttonKindClass, type ButtonKind } from '@/ui-mine/buttonKinds'
+import { buttonKindClass } from '@/ui-mine/buttonKinds'
+import type { ButtonProps } from './types'
 
 const buttonVariants = cva(
   `inline-flex items-center justify-center gap-1.5 font-semibold
@@ -34,14 +35,6 @@ const buttonVariants = cva(
 /** Applied after variants so disabled colors beat text-on-accent / text-primary. */
 const disabledSurface =
   'disabled:bg-disabled-bg disabled:text-disabled-text disabled:border-disabled-border'
-
-export interface ButtonProps
-  extends ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {
-  fullWidth?: boolean
-  /** Item 14 height — tapPad, main, or control (device decides finger vs mouse). */
-  kind?: ButtonKind
-}
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, kind, fullWidth, children, ...props }, ref) => (
