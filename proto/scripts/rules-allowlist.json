@@ -1,6 +1,5 @@
 {
   "entries": [
-    { "rule": "thin-pages", "file": "src/pages/AccountPage.tsx" },
-    { "rule": "thin-pages", "file": "src/pages/MatchesPage.tsx" }
+    { "rule": "thin-pages", "file": "src/pages/AccountPage.tsx" }
   ]
 }
