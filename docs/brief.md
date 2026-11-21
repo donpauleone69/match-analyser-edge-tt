@@ -2,7 +2,7 @@
 
 Edge TT Match Analyser lets a table tennis player tag their own match video quickly, then read the tags as insights and short reels. Players come first, then coaches. Input and review are phone first. Tagging has to be fast and accurate. A blank is not an answer: leave a fact out rather than collect it badly.
 
-The visible version is v0.17.28 (`app/src/version.ts`). The app is local. Nothing is uploaded.
+The visible version is v0.17.29 (`app/src/version.ts`). The app is local. Nothing is uploaded.
 
 ## Two jobs
 
