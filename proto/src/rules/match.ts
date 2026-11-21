@@ -252,10 +252,9 @@ export function calculateSetRalliesWithoutVideo(match: MatchRecord, s: SetData):
 }
 
 /** Today as the date field holds it. A new match starts with it. */
-export function formatTodayDate(): string {
-  const d = new Date()
+export function formatTodayDate(today = new Date()): string {
   const two = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${two(d.getMonth() + 1)}-${two(d.getDate())}`
+  return `${today.getFullYear()}-${two(today.getMonth() + 1)}-${two(today.getDate())}`
 }
 
 /** A new match nobody has put anything into. Discarded when left. */
