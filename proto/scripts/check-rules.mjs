@@ -25,6 +25,7 @@ const RULES = {
   R14: 'file-names',
   R15: 'rules-tested',
   R16: 'alias-imports',
+  R17: 'raw-button',
 }
 
 const args = process.argv.slice(2)
@@ -342,6 +343,12 @@ function scanLayers(file, src, findings) {
       const resolved = resolveRel(file, item.spec)
       if (!under(resolved, unit)) push(findings, RULES.R16, file, src, item.index, `import '${item.spec}' leaves ${unit}, use @/`)
     }
+  }
+
+  if (tsx && (file.startsWith('src/features/') || file.startsWith('src/pages/'))) {
+    const rawButtonRe = /<button\b/g
+    let rawHit
+    while ((rawHit = rawButtonRe.exec(src))) push(findings, RULES.R17, file, src, rawHit.index, '<button')
   }
 }
 

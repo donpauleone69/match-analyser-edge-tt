@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { Button, Card, CardDescription, CardTitle, Icon } from '@/ui-mine'
 import { BrandMark } from '@/layout/BrandMark'
-import { WfBadge, WfField } from '@/layout/Wireframe'
+import { WfBadge, WfField } from '@/ui-mine'
 
 /** Pre-Home gate stubs. */
 export function GateComposer() {

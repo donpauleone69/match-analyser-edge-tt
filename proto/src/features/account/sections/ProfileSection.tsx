@@ -1,5 +1,5 @@
 import { Button, Card, CardDescription, CardTitle, Icon } from '@/ui-mine'
-import { WfBadge, WfField, WfRow } from '@/layout/Wireframe'
+import { WfBadge, WfField, WfRow } from '@/ui-mine'
 
 export function ProfileSection({ empty }: { empty: boolean }) {
   return empty ? (

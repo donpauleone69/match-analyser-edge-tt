@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { Button, Icon } from '@/ui-mine'
+import { Pressable, Button, Icon } from '@/ui-mine'
 import { DEFAULT_INSIGHTS_FILTERS, activeFilterLabels, type InsightsFilters } from '@/rules/filters'
 import type { MatchRecord } from '@/types/match'
 import { FilterPickersBlock } from '../blocks/FilterPickersBlock'
@@ -82,7 +82,7 @@ export function InsightFilterSection({
   }
 
   const button = (
-    <button
+    <Pressable
       type="button"
       data-filter-surface
       data-filter-count={n}
@@ -100,7 +100,7 @@ export function InsightFilterSection({
           {n}
         </span>
       ) : null}
-    </button>
+    </Pressable>
   )
 
   return (
@@ -109,7 +109,7 @@ export function InsightFilterSection({
       {active.length > 0 ? (
         <div className="flex flex-wrap items-center gap-2 px-3 pt-2">
           {active.map((label) => (
-            <button
+            <Pressable
               key={label}
               type="button"
               onClick={() => clearOne(label)}
@@ -118,7 +118,7 @@ export function InsightFilterSection({
             >
               {label}
               <span aria-hidden>×</span>
-            </button>
+            </Pressable>
           ))}
         </div>
       ) : null}
@@ -143,7 +143,7 @@ export function InsightFilterSection({
         ) : null}
         {open && !desktop ? (
           <div className="fixed inset-0 z-50" data-filter-surface role="dialog" aria-label="Filters">
-            <button
+            <Pressable
               type="button"
               className="absolute inset-0 bg-neutral-50/60"
               aria-label="Close filters"

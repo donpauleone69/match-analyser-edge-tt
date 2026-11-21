@@ -1,6 +1,6 @@
 import type { NavigateFunction } from 'react-router-dom'
 import { Button, Icon } from '@/ui-mine'
-import { WfEmpty } from '@/layout/Wireframe'
+import { WfEmpty } from '@/ui-mine'
 import type { MatchRecord } from '@/types/match'
 import { MatchRowBlock } from '../blocks/MatchRowBlock'
 

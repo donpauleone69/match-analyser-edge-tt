@@ -1,4 +1,4 @@
-import { Icon } from '@/ui-mine'
+import { Pressable, Icon } from '@/ui-mine'
 
 export function FilterButtonBlock({
   n,
@@ -10,7 +10,7 @@ export function FilterButtonBlock({
   onClick: () => void
 }) {
   return (
-    <button
+    <Pressable
       type="button"
       data-filter-surface
       data-filter-count={n}
@@ -25,6 +25,6 @@ export function FilterButtonBlock({
           {n}
         </span>
       ) : null}
-    </button>
+    </Pressable>
   )
 }

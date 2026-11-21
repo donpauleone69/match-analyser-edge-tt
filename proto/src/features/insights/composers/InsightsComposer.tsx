@@ -1,6 +1,6 @@
 import { PageHeader } from '@/layout/PageHeader'
 import { StickyChrome } from '@/layout/StickyChrome'
-import { WfEmpty } from '@/layout/Wireframe'
+import { WfEmpty } from '@/ui-mine'
 import { hasTaggedRallies } from '@/rules/match'
 import { sceneAt } from '@/data/seed/script'
 import { useMatchStore } from '@/stores/matchStore'

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { cn } from '@/helpers/utils'
-import { Icon } from '@/ui-mine'
+import { Pressable, Icon } from '@/ui-mine'
 import type { Grade, InsightCardModel } from '@/rules/insights'
 
 function gradeClass(grade: Grade | null | undefined): string {
@@ -81,25 +81,25 @@ export function InsightCardBlock({
           )}
           {card.playlist ? (
             <div className="flex items-center gap-2 border-t border-border pt-2">
-              <button
+              <Pressable
                 type="button"
                 aria-label={`Play ${card.playlist.name}`}
                 className="btn-kind-control btn-kind-square inline-flex shrink-0 items-center justify-center text-primary"
                 onClick={onPlay}
               >
                 <Icon name="play" size="sm" />
-              </button>
+              </Pressable>
               <span className="min-w-0 flex-1 truncate text-sm text-primary">
                 {card.playlist.name} · {card.playlist.items.length}
               </span>
-              <button
+              <Pressable
                 type="button"
                 disabled
                 aria-label="Download"
                 className="btn-kind-control btn-kind-square inline-flex shrink-0 items-center justify-center text-muted"
               >
                 <Icon name="download" size="sm" />
-              </button>
+              </Pressable>
             </div>
           ) : null}
         </div>
@@ -139,7 +139,7 @@ function FaceHead({
       <h3 className="text-base font-semibold text-primary">{title}</h3>
       <span className="flex shrink-0 items-center gap-1">
         {value ? <span className="text-2xl font-bold tabular-nums text-primary">{value}</span> : null}
-        <button
+        <Pressable
           type="button"
           aria-label={flipped ? `Back to ${title}` : `About ${title}`}
           aria-pressed={flipped}
@@ -151,7 +151,7 @@ function FaceHead({
           }}
         >
           <Icon name="info" size="sm" />
-        </button>
+        </Pressable>
       </span>
     </div>
   )

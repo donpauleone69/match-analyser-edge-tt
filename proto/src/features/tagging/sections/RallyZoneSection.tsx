@@ -1,4 +1,4 @@
-import { Icon } from '@/ui-mine'
+import { Pressable, Icon } from '@/ui-mine'
 import { cn } from '@/helpers/utils'
 import { bestOpener, cellMark, partsOf } from '@/rules/bestFa'
 import { PartLabel } from '../blocks/PartLabelBlock'
@@ -70,7 +70,7 @@ export function RallyZoneSection({
     <div data-rally-zone data-rally-state={state} data-best-rail data-best-saved={saved ? '' : undefined} className="flex min-w-0 flex-col gap-1">
       <div className="flex h-8 min-w-0 items-center gap-1.5">
         {onServer ? (
-          <button
+          <Pressable
             type="button"
             data-rally-head
             data-best-server={server ?? undefined}
@@ -81,7 +81,7 @@ export function RallyZoneSection({
             onClick={onServer}
           >
             {head}
-          </button>
+          </Pressable>
         ) : (
           <span
             data-rally-head
@@ -103,17 +103,17 @@ export function RallyZoneSection({
         ) : null}
         <span className="ml-auto flex items-center gap-1">
           {onDiscard ? (
-            <button type="button" data-rally-discard className={zoneButton} style={zoneRest()} onClick={onDiscard}>
+            <Pressable type="button" data-rally-discard className={zoneButton} style={zoneRest()} onClick={onDiscard}>
               Discard
-            </button>
+            </Pressable>
           ) : null}
           {onCancel ? (
-            <button type="button" data-insert-cancel className={zoneButton} style={zoneRest()} onClick={onCancel}>
+            <Pressable type="button" data-insert-cancel className={zoneButton} style={zoneRest()} onClick={onCancel}>
               Cancel
-            </button>
+            </Pressable>
           ) : null}
           {onStar ? (
-            <button
+            <Pressable
               type="button"
               data-best-star="rally"
               data-guard={starDim ? '' : undefined}
@@ -127,10 +127,10 @@ export function RallyZoneSection({
               }}
             >
               <Icon name="star" size="xs" />
-            </button>
+            </Pressable>
           ) : null}
           {onEdit ? (
-            <button
+            <Pressable
               type="button"
               data-best-check
               aria-pressed={pressed}
@@ -140,7 +140,7 @@ export function RallyZoneSection({
               onClick={onEdit}
             >
               Edit Rally
-            </button>
+            </Pressable>
           ) : null}
         </span>
       </div>
@@ -150,7 +150,7 @@ export function RallyZoneSection({
               const marked = Boolean(draft.best?.review?.includes(p.part))
               const focused = reviewFocus === p.part
               return (
-                <button
+                <Pressable
                   key={p.part}
                   type="button"
                   data-review-chip={p.part}
@@ -174,7 +174,7 @@ export function RallyZoneSection({
                   onClick={() => onReviewPart?.(p.part)}
                 >
                   <PartLabel part={p.part} />
-                </button>
+                </Pressable>
               )
             })
           : null}

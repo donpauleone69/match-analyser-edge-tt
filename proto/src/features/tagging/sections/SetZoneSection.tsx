@@ -1,3 +1,4 @@
+import { Pressable } from '@/ui-mine'
 import { SetPillsBlock } from '../blocks/SetPillsBlock'
 import type { SetZoneView } from '../models'
 import { zoneButton, zonePressed, zoneRest } from '../styles'
@@ -33,7 +34,7 @@ export function SetZoneSection({
         onGap={onGap}
         onRally={onRally}
       />
-      <button
+      <Pressable
         type="button"
         data-edit-set
         data-edit-dim={dim ? '' : undefined}
@@ -43,7 +44,7 @@ export function SetZoneSection({
         onClick={onEdit}
       >
         Edit Set
-      </button>
+      </Pressable>
     </div>
   )
 }

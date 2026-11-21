@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { Button, Icon } from '@/ui-mine'
-import { WfEmpty } from '@/layout/Wireframe'
+import { WfEmpty } from '@/ui-mine'
 import { emptySet } from '@/rules/match'
 import { useArchiveStep, useMatchRecord, useMatchStore } from '@/stores/matchStore'
 import type { MatchRecord, SetData } from '@/types/match'

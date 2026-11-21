@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { derivePhase } from '@/rules/match'
-import { WfEmpty } from '@/layout/Wireframe'
+import { WfEmpty } from '@/ui-mine'
 import { Button } from '@/ui-mine'
 import type { MatchInsightsModel, PlayItem } from '@/rules/insights'
 import type { MatchRecord } from '@/types/match'

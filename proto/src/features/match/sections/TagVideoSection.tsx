@@ -20,7 +20,7 @@ import {
 } from '@/rules/marks'
 import { formatClock, segmentsOf } from '@/rules/timeline'
 import { cn } from '@/helpers/utils'
-import { Button, Card, CardTitle, Icon, buttonKindField, buttonKindTextLink } from '@/ui-mine'
+import { Pressable, Button, Card, CardTitle, Icon, buttonKindField, buttonKindTextLink } from '@/ui-mine'
 
 type Drag = { setId: number; edge: WingEdge; local: number }
 
@@ -115,7 +115,7 @@ export function TagVideoSection({
         {many ? (
           <>
             {index > 0 ? (
-              <button
+              <Pressable
                 type="button"
                 className="btn-kind-control btn-kind-square shrink-0 rounded-md text-primary"
                 aria-label={`Move video ${index + 1} up`}
@@ -123,10 +123,10 @@ export function TagVideoSection({
                 onClick={() => onMove(-1)}
               >
                 <Icon name="chevron-up" size="sm" />
-              </button>
+              </Pressable>
             ) : null}
             {index < match.videos.length - 1 ? (
-              <button
+              <Pressable
                 type="button"
                 className="btn-kind-control btn-kind-square shrink-0 rounded-md text-primary"
                 aria-label={`Move video ${index + 1} down`}
@@ -134,7 +134,7 @@ export function TagVideoSection({
                 onClick={() => onMove(1)}
               >
                 <Icon name="chevron-down" size="sm" />
-              </button>
+              </Pressable>
             ) : null}
           </>
         ) : null}
@@ -279,7 +279,7 @@ function SetRow({
       <div className={cn('flex h-11 items-center gap-1 rounded-md px-1', selected && 'bg-brand-primary/10')}>
         {selected && !locked && numbers.length > 1 ? (
           <div className="flex min-w-0 items-center gap-2 text-sm font-semibold text-primary">
-            <button
+            <Pressable
               type="button"
               className={cn(buttonKindTextLink, 'shrink-0 text-sm font-semibold')}
               data-set-label
@@ -287,7 +287,7 @@ function SetRow({
               onClick={toggle}
             >
               Set
-            </button>
+            </Pressable>
             <select
               aria-label={`Set ${s.setId} number`}
               className={cn(buttonKindField, 'rounded-md border border-border bg-bg-card px-2 text-sm text-primary')}
@@ -302,7 +302,7 @@ function SetRow({
             </select>
           </div>
         ) : (
-          <button
+          <Pressable
             type="button"
             className={cn(
               buttonKindTextLink,
@@ -314,7 +314,7 @@ function SetRow({
             onClick={toggle}
           >
             {line}
-          </button>
+          </Pressable>
         )}
         {selected && !locked ? (
           <Button kind="control" variant="ghost" data-delete-set={s.setId} onClick={() => setAsking(true)}>

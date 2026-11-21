@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Icon } from '@/ui-mine'
+import { Pressable, Icon } from '@/ui-mine'
 import { PageHeader } from '@/layout/PageHeader'
 import { StickyChrome } from '@/layout/StickyChrome'
 import { useMatchStore } from '@/stores/matchStore'
@@ -76,14 +76,14 @@ export function MatchesComposer() {
               {hasMatches ? (
                 <FilterButtonBlock n={n} open={open} onClick={() => setOpen((v) => !v)} />
               ) : null}
-              <button
+              <Pressable
                 type="button"
                 onClick={onNew}
                 className="btn-kind-control inline-flex shrink-0 items-center gap-1 px-3 text-sm font-semibold text-brand"
               >
                 <Icon name="plus" size="xs" />
                 New
-              </button>
+              </Pressable>
             </div>
           }
         />
