@@ -32,6 +32,7 @@ import {
   type MatchRecord,
   type RallyData,
   type SetData,
+  STROKES,
   type ShotTags,
   type Side,
 } from '../lib/app'
@@ -172,7 +173,7 @@ function formulaParts(n: number, shots: ShotTags[]): Part[] | 'unknown' {
   let opener: number | 'none' | 'unknown' = 'none'
   for (let shot = 2; shot <= n; shot++) {
     const stroke = shots[shot - 1]?.stroke
-    if (stroke !== 'Attack' && stroke !== 'Control') {
+    if (!STROKES.includes(stroke as (typeof STROKES)[number])) {
       opener = 'unknown'
       break
     }
@@ -400,7 +401,7 @@ function shotRules(r: RallyData, say: (what: string) => string): string[] {
     for (let i = 1; i < n; i++) {
       const shot = r.shots[i]
       if (!shot || !sameKeys(shot, ['stroke', 'wing'])) bad.push(say(`shot ${i + 1} keys ${keys(shot ?? {}).join(',')}`))
-      else if ((shot.wing !== 'BH' && shot.wing !== 'FH') || (shot.stroke !== 'Attack' && shot.stroke !== 'Control')) {
+      else if ((shot.wing !== 'BH' && shot.wing !== 'FH') || !STROKES.includes(shot.stroke as (typeof STROKES)[number])) {
         bad.push(say(`shot ${i + 1} ${shot.wing} ${shot.stroke}`))
       }
     }
@@ -519,7 +520,7 @@ export const INVARIANTS: Invariant[] = [
   },
   {
     id: 'I-6',
-    text: 'shots follow the Best + FA key sets',
+    text: 'shots follow the Best + FA key sets, and a stroke is Attack, Control or Defence',
     kind: 'data',
     reads: ['shots'],
     check: checkRally((m, s, r, n, bad) => {
