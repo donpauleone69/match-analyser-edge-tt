@@ -186,3 +186,56 @@ export { buildSeed } from '@/data/seed/buildSeed'
 
 // -> @/stores/matchStore
 export { SEED, createMatchStore, selectMatch } from '@/stores/matchStore'
+export { useSettingsStore } from '@/stores/settingsStore'
+
+// -> @/types/db, @/rules/dbRows, @/rules/dbValidate
+export {
+  CATEGORIES,
+  DB_TABLES,
+  HANDEDNESS,
+  IMPORTANCES,
+  MY_ENDS,
+  OPPONENT_STYLES,
+  OUTCOMES,
+  RANKING_STATUSES,
+  ROUNDS,
+  SCHEMA_VERSION,
+  STAGES,
+  STROKES,
+} from '@/types/db'
+export type {
+  DbError,
+  DbRows,
+  DraftRow,
+  EventRow,
+  MatchRow,
+  OpponentRow,
+  RallyRow,
+  SetRow,
+  ShotRow,
+  VideoRow,
+} from '@/types/db'
+export {
+  BYTES_PER_MB,
+  CHECK_THE_POINT,
+  EMPTY_ROWS,
+  deriveDbRows,
+  deriveMatchChildRows,
+  deriveMatchRecords,
+  deriveOutcome,
+  deriveRallyData,
+} from '@/rules/dbRows'
+export type { RowContext } from '@/rules/dbRows'
+export {
+  validateDbRows,
+  validateDraftRow,
+  validateEventRow,
+  validateMatchRow,
+  validateOpponentRow,
+  validateRallyRow,
+  validateSetRow,
+  validateShotRow,
+  validateUniqueNames,
+  validateVideoRow,
+} from '@/rules/dbValidate'
+export type { RemovedVideo } from '@/types/match'
