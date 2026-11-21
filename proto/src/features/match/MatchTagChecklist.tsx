@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Card } from '@/ui-mine'
-import { matchSetsWon, taggedScore } from '@/rules/match'
+import { calculateMatchSetsWon, calculateTaggedScore } from '@/rules/match'
 import { useDemo } from '@/data/demoStore'
 import type { MatchRecord, SetMark, VideoAsset } from '@/types/match'
 import { AddVideoChoice } from '@/features/match/AddVideoChoice'
@@ -263,7 +263,7 @@ export function MatchTagChecklist() {
 }
 
 function scoreBug(match: MatchRecord, time: number) {
-  const sets = matchSetsWon(match)
+  const sets = calculateMatchSetsWon(match)
   let setId = match.sets[0]?.setId ?? 1
   let points = { me: 0, them: 0 }
   let server: Side = 'me'
@@ -273,7 +273,7 @@ function scoreBug(match: MatchRecord, time: number) {
     if (!b) continue
     if (time >= b.start - 0.05 && time <= b.end + 0.05) {
       setId = s.setId
-      points = taggedScore(s) ?? points
+      points = calculateTaggedScore(s) ?? points
       server = s.firstServer
       break
     }

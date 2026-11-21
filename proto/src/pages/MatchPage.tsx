@@ -2,9 +2,9 @@ import { Navigate, Outlet, useMatch, useParams } from 'react-router-dom'
 import { PageHeader } from '@/layout/PageHeader'
 import { StickyChrome } from '@/layout/StickyChrome'
 import { WfEmpty } from '@/layout/Wireframe'
-import { defaultMatchTab, derivePhase } from '@/rules/match'
+import { deriveDefaultMatchTab, derivePhase } from '@/rules/match'
 import { useDemo } from '@/data/demoStore'
-import { matchDiffers, matchName } from '@/rules/matchStatus'
+import { matchDiffers, formatMatchName } from '@/rules/matchStatus'
 
 export function MatchPage() {
   const { matchId = '' } = useParams()
@@ -46,7 +46,7 @@ export function MatchPage() {
             },
             { to: `${base}/tag`, label: 'Tag' },
           ]}
-          end={<span className="top-row-name px-3 text-sm text-muted">{matchName(match)}</span>}
+          end={<span className="top-row-name px-3 text-sm text-muted">{formatMatchName(match)}</span>}
         />
       </StickyChrome>
       <div className="match-body">
@@ -61,7 +61,7 @@ export function MatchIndexRedirect() {
   const { getMatch } = useDemo()
   const match = getMatch(matchId)
   if (!match) return <Navigate to="/matches" replace />
-  const tab = defaultMatchTab(derivePhase(match))
+  const tab = deriveDefaultMatchTab(derivePhase(match))
   return <Navigate to={`/matches/${matchId}/${tab}`} replace />
 }
 

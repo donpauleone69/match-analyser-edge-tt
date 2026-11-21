@@ -4,12 +4,12 @@ import {
   derivePhase,
   formatScore,
   isArchived,
-  lastTaggedSetId,
-  matchSetsWon,
-  matchTitle,
+  deriveLastTaggedSetId,
+  calculateMatchSetsWon,
+  formatMatchTitle,
   parseEntered,
   resultDiffers,
-  resultSetCount,
+  calculateResultSetCount,
   setScoresDiffer,
   setSettled,
 } from './match'
@@ -39,7 +39,7 @@ export function isRealResult(score: Score): boolean {
 }
 
 /** Sets won by each side, counted from the entered set scores. */
-export function enteredSetsWon(match: MatchRecord): Score {
+export function calculateEnteredSetsWon(match: MatchRecord): Score {
   const won = { me: 0, them: 0 }
   for (const s of match.sets) {
     const score = parseEntered(s.entered)
@@ -52,8 +52,8 @@ export function enteredSetsWon(match: MatchRecord): Score {
 /** The entered set scores cannot add up to the entered result. */
 export function enteredScoresMissResult(match: MatchRecord): boolean {
   const { me, them } = match.result
-  if (me === null || them === null || resultSetCount(match) === null) return false
-  const won = enteredSetsWon(match)
+  if (me === null || them === null || calculateResultSetCount(match) === null) return false
+  const won = calculateEnteredSetsWon(match)
   return won.me > me || won.them > them
 }
 
@@ -79,14 +79,14 @@ function hasEntered(s: SetData): boolean {
  * Sets a new result would stop listing that hold an entered score or a
  * Not filmed mark. Tagged sets are never dropped, so they are not in here.
  */
-export function setsLostByResult(match: MatchRecord, next: MatchResult): SetData[] {
+export function deriveSetsLostByResult(match: MatchRecord, next: MatchResult): SetData[] {
   if (next.me === null || next.them === null || next.me + next.them === 0) return []
-  const keep = Math.max(next.me + next.them, lastTaggedSetId(match))
+  const keep = Math.max(next.me + next.them, deriveLastTaggedSetId(match))
   return match.sets.filter((s) => s.setId > keep && (hasEntered(s) || s.skipped))
 }
 
 /** Saved rallies that were tagged on this video. An open rally is not counted. */
-export function videoRallyCount(match: MatchRecord, videoId: string): number {
+export function calculateVideoRallyCount(match: MatchRecord, videoId: string): number {
   return match.sets.reduce(
     (n, s) => n + s.rallies.filter((r) => r.videoId === videoId).length,
     0
@@ -99,15 +99,15 @@ export function needsOpponent(match: MatchRecord): boolean {
 }
 
 /** "New match" stops being true once there is video or tagging. */
-export function matchLabel(match: MatchRecord): string {
-  const title = matchTitle(match)
+export function formatMatchLabel(match: MatchRecord): string {
+  const title = formatMatchTitle(match)
   return title === 'New match' && derivePhase(match) !== 'new' ? 'Unnamed match' : title
 }
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 /** vs Sam, else the event, else New match until the match has video or tagging. */
-export function matchName(match: MatchRecord): string {
+export function formatMatchName(match: MatchRecord): string {
   const opponent = match.opponent.trim()
   if (opponent) return `vs ${opponent}`
   const event = match.event.trim()
@@ -125,7 +125,7 @@ export function formatMatchDate(date: string, today = new Date()): string {
 }
 
 /** Won 3 - 1 or Lost 1 - 3, your sets first. Empty when no result is entered. */
-export function matchResultLine(match: MatchRecord): string {
+export function formatMatchResultLine(match: MatchRecord): string {
   const { me, them } = match.result
   if (me === null || them === null) return ''
   const score = formatScore({ me, them })
@@ -135,9 +135,9 @@ export function matchResultLine(match: MatchRecord): string {
 }
 
 /** Date, result, then the event when the name is the opponent. The event is last so it truncates. */
-export function matchRowLine(match: MatchRecord): string {
+export function formatMatchRowLine(match: MatchRecord): string {
   const event = match.opponent.trim() ? match.event.trim() : ''
-  return [formatMatchDate(match.date), matchResultLine(match), event].filter(Boolean).join(' · ')
+  return [formatMatchDate(match.date), formatMatchResultLine(match), event].filter(Boolean).join(' · ')
 }
 
 /**
@@ -145,7 +145,7 @@ export function matchRowLine(match: MatchRecord): string {
  * Every set up to the deciding one is settled, and none of them is incomplete.
  */
 export function taggedResultReady(match: MatchRecord): boolean {
-  const fromTagging = matchSetsWon(match)
+  const fromTagging = calculateMatchSetsWon(match)
   if (!isRealResult(fromTagging)) return false
   const deciding = fromTagging.me + fromTagging.them
   return Array.from({ length: deciding }, (_, i) => match.sets.find((s) => s.setId === i + 1)).every(
@@ -161,7 +161,7 @@ export type MatchRowStatus = {
 }
 
 /** The one thing in the row's status slot, and where the row opens. */
-export function matchRowStatus(match: MatchRecord): MatchRowStatus {
+export function deriveMatchRowStatus(match: MatchRecord): MatchRowStatus {
   const phase = derivePhase(match)
   if (phase === 'new') return { kind: 'no-video', text: 'No video', setId: null, tab: 'tag' }
   if (phase === 'ready') return { kind: 'not-tagged', text: 'Not tagged', setId: null, tab: 'tag' }

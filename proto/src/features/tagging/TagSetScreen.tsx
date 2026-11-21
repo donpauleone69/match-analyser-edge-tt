@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Button, Icon } from '@/ui-mine'
 import { WfEmpty } from '@/layout/Wireframe'
-import { emptySet, formatScore, matchSetsWon, taggedScore } from '@/rules/match'
+import { emptySet, formatScore, calculateMatchSetsWon, calculateTaggedScore } from '@/rules/match'
 import { useDemo } from '@/data/demoStore'
 import type { MatchRecord, Points, SetData } from '@/types/match'
 import type { BestPart, Draft, Mark, RallyData, Side, Stage, Wing } from '@/types/rally'
@@ -277,7 +277,7 @@ function TagSet({
   /** Best + FA, contacts closed, this rally's steps open. An edit opens them on a finished set too. */
   const bestOn = !shotEdit && (!set.finished || editOf !== null || inserting) && !draftGone && Boolean(live?.closed)
   /** End is on screen with no result, and whenever a press has opened it. */
-  const score = taggedScore(set) ?? ZERO
+  const score = calculateTaggedScore(set) ?? ZERO
   /** Who should serve next goes by what was tagged before the place the rally goes in. */
   const expected = expectedServer(set.rallies, set.firstServer, gap ? gap.index : set.rallies.length)
   const nextServer = serverPick ?? expected
@@ -1025,7 +1025,7 @@ function TagSet({
       const reopened = before.finished && !after.finished
       withUndo(
         reopened
-          ? `Set ${set.setId} is open again at ${formatScore(taggedScore(after) ?? ZERO)}`
+          ? `Set ${set.setId} is open again at ${formatScore(calculateTaggedScore(after) ?? ZERO)}`
           : `Rally ${n} added`,
         before,
         () => {
@@ -1094,7 +1094,7 @@ function TagSet({
     setEditOf(null)
     setEndBack(null)
     if (set.finished && !after.finished) {
-      setToast({ text: `Set ${set.setId} is open again at ${formatScore(taggedScore(after) ?? ZERO)}` })
+      setToast({ text: `Set ${set.setId} is open again at ${formatScore(calculateTaggedScore(after) ?? ZERO)}` })
     }
     if (editPick !== null) loopPick(next)
     else parkLive(after)
@@ -1293,7 +1293,7 @@ function TagSet({
     const reopened = set.finished && !after.finished
     withUndo(
       reopened
-        ? `Set ${set.setId} is open again at ${formatScore(taggedScore(after) ?? ZERO)}`
+        ? `Set ${set.setId} is open again at ${formatScore(calculateTaggedScore(after) ?? ZERO)}`
         : `Rally ${rally.n} deleted`,
       before,
       () => {
@@ -1638,7 +1638,7 @@ function TagSet({
   const shownScore = score
   const serverKnown = set.rallies.length > 0 || Boolean(live?.serveChecked)
   const shownServer = !serverKnown ? null : (live?.server ?? nextServer)
-  const setsWon = matchSetsWon(match)
+  const setsWon = calculateMatchSetsWon(match)
   const atEnd = player.atEnd && (mode === 'watch' || mode === 'setPoint')
   const tapped = live && !live.closed ? live.contacts.length : 0
   /** Set over: Edit and Save set, as soon as the winning rally is saved. */

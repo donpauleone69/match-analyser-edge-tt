@@ -4,7 +4,7 @@ import { Button, Icon } from '@/ui-mine'
 import { PageHeader } from '@/layout/PageHeader'
 import { StickyChrome } from '@/layout/StickyChrome'
 import { WfEmpty } from '@/layout/Wireframe'
-import { matchName, matchRowLine, matchRowStatus } from '@/rules/matchStatus'
+import { formatMatchName, formatMatchRowLine, deriveMatchRowStatus } from '@/rules/matchStatus'
 import { derivePhase } from '@/rules/match'
 import { useDemo } from '@/data/demoStore'
 import type { MatchRecord } from '@/types/match'
@@ -301,8 +301,8 @@ export function MatchesPage() {
       ) : (
         <ul>
           {shown.map((m) => {
-            const status = matchRowStatus(m)
-            const line = matchRowLine(m)
+            const status = deriveMatchRowStatus(m)
+            const line = formatMatchRowLine(m)
             const to =
               status.tab === 'details'
                 ? `/matches/${m.id}/details#result`
@@ -314,7 +314,7 @@ export function MatchesPage() {
                   className="flex min-h-[62px] min-w-0 flex-1 items-center px-4 py-3 hover:bg-bg-elevated sm:px-6 lg:px-8"
                 >
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-semibold text-primary">{matchName(m)}</span>
+                    <span className="block truncate text-sm font-semibold text-primary">{formatMatchName(m)}</span>
                     <span className="mt-0.5 block h-4 truncate text-xs text-muted">{line}</span>
                   </span>
                   {status.kind === 'continue' ? null : (

@@ -5,7 +5,7 @@
 import { derivePhase } from './match'
 import { bestParts, partWindow } from './bestFa'
 import { hitterOf, isAttackStroke, isError, rallyEnd, rallyStart } from './rally'
-import { leader, scoreAtSetEnd } from './score'
+import { deriveLeader, calculateScoreAtSetEnd } from './score'
 import type { MatchRecord, Points, SetData } from '@/types/match'
 import type { BestPart, Draft, Ending, RallyData, ShotTags, Side } from '@/types/rally'
 
@@ -284,8 +284,8 @@ function place(match: MatchRecord): Placed[] {
       points = { me: points.me + (rally.winner === 'me' ? 1 : 0), them: points.them + (rally.winner === 'them' ? 1 : 0) }
     }
     if (set.finished && !set.skipped) {
-      const at = scoreAtSetEnd(set.rallies.map((r) => r.winner))
-      const side = at ? leader(at) : null
+      const at = calculateScoreAtSetEnd(set.rallies.map((r) => r.winner))
+      const side = at ? deriveLeader(at) : null
       if (side) setsWon = { ...setsWon, [side]: setsWon[side] + 1 }
     }
   }

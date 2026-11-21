@@ -11,13 +11,13 @@ import { WfWarnBadge } from '@/layout/Wireframe'
 import {
   formatScore,
   isUntouched,
-  lastTaggedSetId,
-  matchSetsWon,
+  deriveLastTaggedSetId,
+  calculateMatchSetsWon,
   resultDiffers,
-  resultSetCount,
+  calculateResultSetCount,
   setScoresDiffer,
-  setState,
-  taggedScore,
+  deriveSetState,
+  calculateTaggedScore,
 } from '@/rules/match'
 import { useDemo } from '@/data/demoStore'
 import type { MatchRecord, MatchResult, SetData } from '@/types/match'
@@ -25,10 +25,10 @@ import { applyTaggedScore, applyTaggedScores } from '@/rules/matchOps'
 import { useArchiveStep } from '@/features/match/archiveJobs'
 import {
   enteredScoresMissResult,
-  enteredSetsWon,
+  calculateEnteredSetsWon,
   isRealResult,
   REAL_RESULTS,
-  setsLostByResult,
+  deriveSetsLostByResult,
   taggedResultReady,
 } from '@/rules/matchStatus'
 import { cn } from '@/helpers/utils'
@@ -199,8 +199,8 @@ function TaggedCell({
   tagHref: string
   onUseTagged: () => void
 }) {
-  const state = setState(set)
-  const tagged = taggedScore(set)
+  const state = deriveSetState(set)
+  const tagged = calculateTaggedScore(set)
   if (state === 'skipped') return <span className="text-muted">Not filmed</span>
   if (state === 'none') return <span className="text-muted">Not tagged</span>
   if (!tagged) return <span className="text-muted">Started</span>
@@ -244,11 +244,11 @@ function setList(sets: SetData[]): string {
  */
 function ResultCard({ match }: { match: MatchRecord }) {
   const { setResult, setEnteredScore, mutateMatch } = useDemo()
-  const count = resultSetCount(match)
-  const lastTagged = lastTaggedSetId(match)
+  const count = calculateResultSetCount(match)
+  const lastTagged = deriveLastTaggedSetId(match)
   const differing = match.sets.filter(setScoresDiffer).length
   const them = match.opponent.trim() || 'Opponent'
-  const fromTagging = matchSetsWon(match)
+  const fromTagging = calculateMatchSetsWon(match)
   const taggedReady = taggedResultReady(match)
   const saved =
     match.result.me !== null && match.result.them !== null
@@ -259,7 +259,7 @@ function ResultCard({ match }: { match: MatchRecord }) {
   // not in the match, until it is confirmed.
   const [pending, setPending] = useState<{ base: MatchResult; next: MatchResult } | null>(null)
   const waiting = pending && pending.base === match.result ? pending.next : null
-  const lost = waiting ? setsLostByResult(match, waiting) : []
+  const lost = waiting ? deriveSetsLostByResult(match, waiting) : []
 
   // Links that say "enter the result" land on the picker.
   const { hash } = useLocation()
@@ -271,7 +271,7 @@ function ResultCard({ match }: { match: MatchRecord }) {
   }, [hash])
 
   const pick = (next: MatchResult) => {
-    if (setsLostByResult(match, next).length > 0) {
+    if (deriveSetsLostByResult(match, next).length > 0) {
       setPending({ base: match.result, next })
     } else {
       setResult(match.id, next)
@@ -351,7 +351,7 @@ function ResultCard({ match }: { match: MatchRecord }) {
       </div>
     ) : saved && enteredScoresMissResult(match) && !resultDiffers(match) ? (
       <p className={flagClass}>
-        Entered set scores add up to {formatScore(enteredSetsWon(match))}, not {formatScore(saved)}.
+        Entered set scores add up to {formatScore(calculateEnteredSetsWon(match))}, not {formatScore(saved)}.
       </p>
     ) : null
 

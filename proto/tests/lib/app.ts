@@ -11,8 +11,8 @@ export {
   firstServerForSet,
   isLegalEnd,
   isSetWon,
-  leader,
-  scoreAtSetEnd,
+  deriveLeader as leader,
+  calculateScoreAtSetEnd as scoreAtSetEnd,
   serverAt,
   setEndIndex,
   setOverOnRule,
@@ -37,7 +37,7 @@ export {
 } from '@/rules/rally'
 export type { Draft, Ending, RallyData, ShotTags, Side } from '@/types/rally'
 
-// -> @/rules/best
+// -> @/rules/bestFa
 export {
   bestAdvance,
   bestAt,
@@ -55,7 +55,7 @@ export {
 export type { BestEnd, BestPartSpan } from '@/rules/bestFa'
 export type { BestPart } from '@/types/rally'
 
-// -> @/rules/mark
+// -> @/rules/marks
 export {
   clampWing,
   endedEarly,
@@ -78,7 +78,7 @@ export {
   wingLimits,
 } from '@/rules/marks'
 
-// -> @/rules/match
+// -> @/rules/matchOps
 export {
   deleteRally,
   deleteTags,
@@ -116,7 +116,7 @@ export { firstContactG, segmentsOf, toGlobal } from '@/rules/timeline'
 
 // -> @/rules/match
 export {
-  defaultMatchTab,
+  deriveDefaultMatchTab as defaultMatchTab,
   derivePhase,
   formatScore,
   formatSize,
@@ -125,35 +125,35 @@ export {
   isMatchTagged,
   isSpareSet,
   isUntouched,
-  matchSetsWon,
-  matchTitle,
-  missingVideoIds,
+  calculateMatchSetsWon as matchSetsWon,
+  formatMatchTitle as matchTitle,
+  deriveMissingVideoIds as missingVideoIds,
   parseEntered,
   resultDiffers,
-  resultSetCount,
+  calculateResultSetCount as resultSetCount,
   setHasTagProgress,
-  setRalliesWithoutVideo,
+  calculateSetRalliesWithoutVideo as setRalliesWithoutVideo,
   setScoresDiffer,
   setSettled,
-  setState,
-  taggedResult,
-  taggedScore,
-  taggedSetIds,
-  todayDate,
+  deriveSetState as setState,
+  deriveTaggedResult as taggedResult,
+  calculateTaggedScore as taggedScore,
+  deriveTaggedSetIds as taggedSetIds,
+  formatTodayDate as todayDate,
 } from '@/rules/match'
 export type { MatchRecord, SetData, SetMark, VideoAsset } from '@/types/match'
 
-// -> @/rules/match
+// -> @/rules/matchStatus
 export {
   formatMatchDate,
   isRealResult,
   matchDiffers,
-  matchName,
-  matchRowLine,
-  matchResultLine,
-  matchRowStatus,
+  formatMatchName as matchName,
+  formatMatchRowLine as matchRowLine,
+  formatMatchResultLine as matchResultLine,
+  deriveMatchRowStatus as matchRowStatus,
   taggedResultReady,
-  videoRallyCount,
+  calculateVideoRallyCount as videoRallyCount,
 } from '@/rules/matchStatus'
 
 // -> @/rules/insights

@@ -6,10 +6,10 @@ import { emptySet } from '../src/rules/match'
 import type { MatchRecord, SetData, VideoAsset } from '../src/types/match'
 import {
   formatMatchDate,
-  matchName,
-  matchResultLine,
-  matchRowLine,
-  matchRowStatus,
+  formatMatchName,
+  formatMatchResultLine,
+  formatMatchRowLine,
+  deriveMatchRowStatus,
   taggedResultReady,
 } from '../src/rules/matchStatus'
 
@@ -60,10 +60,10 @@ const today = new Date(2026, 10, 20)
 ok('date this year', formatMatchDate('2026-11-11', today) === '11 Nov')
 ok('date another year', formatMatchDate('2025-10-04', today) === '4 Oct 2025')
 ok('no date', formatMatchDate('', today) === '')
-ok('won', matchResultLine(match({ result: { me: 3, them: 1 } })) === 'Won 3 - 1')
-ok('lost', matchResultLine(match({ result: { me: 1, them: 3 } })) === 'Lost 1 - 3')
-ok('level', matchResultLine(match({ result: { me: 2, them: 2 } })) === '2 - 2')
-ok('no result line', matchResultLine(match()) === '')
+ok('won', formatMatchResultLine(match({ result: { me: 3, them: 1 } })) === 'Won 3 - 1')
+ok('lost', formatMatchResultLine(match({ result: { me: 1, them: 3 } })) === 'Lost 1 - 3')
+ok('level', formatMatchResultLine(match({ result: { me: 2, them: 2 } })) === '2 - 2')
+ok('no result line', formatMatchResultLine(match()) === '')
 
 const named = match({
   opponent: 'Sam',
@@ -71,18 +71,18 @@ const named = match({
   date: '2026-11-11',
   result: { me: 3, them: 1 },
 })
-ok('name is the opponent', matchName(named) === 'vs Sam')
-ok('event is last', matchRowLine(named) === '11 Nov · Won 3 - 1 · Club night', matchRowLine(named))
-ok('event is the name', matchName(match({ event: 'Club night' })) === 'Club night')
-ok('event stays off line 2', matchRowLine(match({ event: 'Club night', date: '2026-11-11' })) === '11 Nov')
-ok('new match', matchName(match()) === 'New match')
-ok('unnamed once there is video', matchName(match({ videos: [video('v')] })) === 'Unnamed match')
+ok('name is the opponent', formatMatchName(named) === 'vs Sam')
+ok('event is last', formatMatchRowLine(named) === '11 Nov · Won 3 - 1 · Club night', formatMatchRowLine(named))
+ok('event is the name', formatMatchName(match({ event: 'Club night' })) === 'Club night')
+ok('event stays off line 2', formatMatchRowLine(match({ event: 'Club night', date: '2026-11-11' })) === '11 Nov')
+ok('new match', formatMatchName(match()) === 'New match')
+ok('unnamed once there is video', formatMatchName(match({ videos: [video('v')] })) === 'Unnamed match')
 
 const fresh = match()
-ok('no video', matchRowStatus(fresh).text === 'No video' && matchRowStatus(fresh).tab === 'tag')
+ok('no video', deriveMatchRowStatus(fresh).text === 'No video' && deriveMatchRowStatus(fresh).tab === 'tag')
 
 const ready = match({ opponent: 'Kim', videos: [video('v')] })
-ok('not tagged', matchRowStatus(ready).text === 'Not tagged' && matchRowStatus(ready).tab === 'tag')
+ok('not tagged', deriveMatchRowStatus(ready).text === 'Not tagged' && deriveMatchRowStatus(ready).tab === 'tag')
 
 const tagging = match({
   opponent: 'Sam',
@@ -90,7 +90,7 @@ const tagging = match({
   sets: [won(1), open(2)],
   result: { me: 3, them: 1 },
 })
-const taggingStatus = matchRowStatus(tagging)
+const taggingStatus = deriveMatchRowStatus(tagging)
 ok('continue wins', taggingStatus.kind === 'continue' && taggingStatus.text === 'Continue set 2' && taggingStatus.setId === 2 && taggingStatus.tab === 'tag')
 
 const readyResult = match({
@@ -98,20 +98,20 @@ const readyResult = match({
   sets: [won(1), won(2)],
 })
 ok('tagged result ready', taggedResultReady(readyResult))
-const noResult = matchRowStatus(readyResult)
+const noResult = deriveMatchRowStatus(readyResult)
 ok('no result', noResult.text === 'No result' && noResult.tab === 'details' && noResult.kind === 'no-result')
 
 const stillOpen = match({
   videos: [video('v')],
   sets: [won(1), won(2), open(3)],
 })
-ok('continue before no result', matchRowStatus(stillOpen).kind === 'continue' && matchRowStatus(stillOpen).setId === 3)
+ok('continue before no result', deriveMatchRowStatus(stillOpen).kind === 'continue' && deriveMatchRowStatus(stillOpen).setId === 3)
 
 const archived = match({
   videos: [video('v', true)],
   sets: [won(1), won(2), open(3)],
 })
-ok('archived has no continue', matchRowStatus(archived).kind === 'no-result')
+ok('archived has no continue', deriveMatchRowStatus(archived).kind === 'no-result')
 
 const part = match({
   videos: [video('v')],
@@ -123,7 +123,7 @@ const part = match({
     },
   ],
 })
-ok('part tagged', matchRowStatus(part).text === 'Part tagged' && matchRowStatus(part).tab === 'tag')
+ok('part tagged', deriveMatchRowStatus(part).text === 'Part tagged' && deriveMatchRowStatus(part).tab === 'tag')
 
 const tagged = match({
   opponent: 'Pat',
@@ -132,7 +132,7 @@ const tagged = match({
   result: { me: 2, them: 0 },
   tagDone: true,
 })
-ok('tagged', matchRowStatus(tagged).text === 'Tagged' && matchRowStatus(tagged).tab === 'insights')
+ok('tagged', deriveMatchRowStatus(tagged).text === 'Tagged' && deriveMatchRowStatus(tagged).tab === 'insights')
 
 if (fails.length) {
   console.log(`\n${fails.length} failed`)

@@ -12,10 +12,10 @@ import { matchScript } from '@/features/tagging/script'
 import {
   emptySet,
   isUntouched,
-  missingVideoIds,
+  deriveMissingVideoIds,
   normalizeMatch,
   parseEntered,
-  todayDate,
+  formatTodayDate,
 } from '@/rules/match'
 import type {
   DemoMode,
@@ -186,7 +186,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
       id: `m-new-${Date.now()}`,
       opponent: '',
       event: '',
-      date: todayDate(),
+      date: formatTodayDate(),
       result: { me: null, them: null },
       videos: [],
       sets: [emptySet(1)],
@@ -248,7 +248,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
   const addVideo = useCallback(
     (matchId: string, file?: LocalVideo) =>
       change(matchId, (m) => {
-        const lostId = missingVideoIds(m)[0]
+        const lostId = deriveMissingVideoIds(m)[0]
         const lost = lostId ? removedVideos.current.get(lostId) : undefined
         const id = lostId ?? `v-${matchId}-${Date.now()}`
         const video: VideoAsset = file

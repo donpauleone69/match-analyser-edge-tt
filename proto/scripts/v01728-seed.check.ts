@@ -2,7 +2,7 @@
  * v0.17.28 demo seed. Fails on the first broken rule, naming the match, set and rally.
  * Run: npm run check:v01728-seed
  */
-import { derivePhase, matchSetsWon, setScoresDiffer } from '../src/rules/match'
+import { derivePhase, calculateMatchSetsWon, setScoresDiffer } from '../src/rules/match'
 import { SEED } from '../src/data/demoStore'
 import { bestOpener, bestParts } from '../src/rules/bestFa'
 import { isError, winnerOf } from '../src/rules/rally'
@@ -234,7 +234,7 @@ for (const match of SEED) {
     }
   }
   if (want.phase === 'complete') {
-    const won = matchSetsWon(match)
+    const won = calculateMatchSetsWon(match)
     say(`${match.id} result`, won.me === match.result.me && won.them === match.result.them, `${won.me}-${won.them}`)
   }
 }

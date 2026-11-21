@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { emptySet } from '@/rules/match'
 import { useDemo } from '@/data/demoStore'
 import type { MatchRecord, SetData, SetMark, VideoAsset } from '@/types/match'
-import { videoRallyCount } from '@/rules/matchStatus'
+import { calculateVideoRallyCount } from '@/rules/matchStatus'
 import { deleteTags, moveSet, unmarkSet } from '@/rules/matchOps'
 import {
   allowedMarkNumbers,
@@ -81,7 +81,7 @@ export function TagVideoCard({
   const segs = segmentsOf(match.videos)
   const offset = segs.find((s) => s.id === video.id)?.offset ?? 0
   const duration = video.durationS > 0 ? video.durationS : 1
-  const tagged = videoRallyCount(match, video.id) > 0
+  const tagged = calculateVideoRallyCount(match, video.id) > 0
   const editable = !locked
 
   const clampEdge = (setId: number, edge: WingEdge, local: number) => {
