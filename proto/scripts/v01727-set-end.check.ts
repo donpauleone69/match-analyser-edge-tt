@@ -3,10 +3,10 @@
  * Run: npm run check:v01727
  */
 import { readFileSync } from 'node:fs'
-import { emptySet, isMatchTagged, matchSetsWon, setSettled } from '../src/data/demoStore'
+import { emptySet, isMatchTagged, calculateMatchSetsWon, setSettled } from '../src/rules/match'
 import type { MatchRecord, Points, SetData } from '../src/types/match'
 import { overrunLabels, tagRegions } from '../src/features/tagging/inputModes'
-import { settleFinished } from '../src/features/tagging/matchOps'
+import { settleFinished } from '../src/rules/matchOps'
 import type { Side } from '../src/types/rally'
 import {
   canSaveEarly,
@@ -15,8 +15,8 @@ import {
   isSetWon,
   setEndIndex,
   setOverOnRule,
-} from '../src/features/tagging/score'
-import { endedEarly, lineAction, setIncomplete, setLineLabel } from '../src/features/tagging/setMark'
+} from '../src/rules/score'
+import { endedEarly, lineAction, setIncomplete, setLineLabel } from '../src/rules/marks'
 
 const fails: string[] = []
 const ok = (name: string, cond: boolean, detail = '') => {
@@ -185,7 +185,7 @@ const levelDetails = { ...levelOne, entered: { me: '11', them: '9' } }
 ok('details settles a saved level set', setSettled(levelDetails) && !endedEarly(levelDetails) && setIncomplete(levelDetails))
 ok(
   'a settled level set tags the match',
-  isMatchTagged(matchOf(levelDetails, { me: 1, them: 0 })) && matchSetsWon(matchOf(levelDetails)).me === 1,
+  isMatchTagged(matchOf(levelDetails, { me: 1, them: 0 })) && calculateMatchSetsWon(matchOf(levelDetails)).me === 1,
 )
 ok('a result alone does not settle it', !isMatchTagged(matchOf(levelOne, { me: 1, them: 0 })))
 ok(
@@ -193,7 +193,7 @@ ok(
   !setSettled({ ...placed(1, level, false), entered: { me: '11', them: '9' } }),
 )
 ok('overrun is not ended early', !endedEarly(overrunSet) && lineAction(overrunSet) === 'Open')
-ok('early set counts for the leader', matchSetsWon(matchOf(earlySet)).me === 1 && matchSetsWon(matchOf(earlySet)).them === 0)
+ok('early set counts for the leader', calculateMatchSetsWon(matchOf(earlySet)).me === 1 && calculateMatchSetsWon(matchOf(earlySet)).them === 0)
 
 ok('early save stays finished', settleFinished(matchOf(earlySet), 2).sets[0]?.finished === true)
 ok('level save reopens', settleFinished(matchOf(levelSet), 2).sets[0]?.finished === false)

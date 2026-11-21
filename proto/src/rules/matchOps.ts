@@ -1,12 +1,12 @@
 /** Pure changes tagging makes to a match. Applied through the store's mutateMatch. */
 
-import { emptySet, resultSetCount, setScoresDiffer, taggedScore } from '@/data/demoStore'
+import { emptySet, calculateResultSetCount, setScoresDiffer, calculateTaggedScore } from './match'
 import type { MatchRecord, Points, SetData, SetMark } from '@/types/match'
 import type { Draft, MarkKind, RallyData } from '@/types/rally'
 import { otherSide, pointRally, swapPlayers } from './rally'
-import { ZERO, addPoint, firstServerAt, isSetWon, scoreAtSetEnd, serverAt, setEndIndex } from './score'
+import { ZERO, addPoint, firstServerAt, isSetWon, calculateScoreAtSetEnd, serverAt, setEndIndex } from './score'
 import { LONG_GAP_S, serveBands } from './continuity'
-import { endedEarly, markBounds } from './setMark'
+import { endedEarly, markBounds } from './marks'
 import { firstContactG, insertIndex, lastContactG, segmentsOf, toGlobal, type Segment } from './timeline'
 
 /** A set number that is not listed yet (a skipped set 1, say) is added when it is first written. */
@@ -104,7 +104,7 @@ export const flipFirstServer = (m: MatchRecord, setId: number) =>
   inSet(m, setId, (s) => ({ ...s, firstServer: otherSide(s.firstServer) }))
 
 function scoreText(s: SetData) {
-  const t = taggedScore(s)
+  const t = calculateTaggedScore(s)
   return t ? { me: String(t.me), them: String(t.them) } : s.entered
 }
 
@@ -237,7 +237,7 @@ export function setInProgress(m: MatchRecord): SetData | null {
 export const MAX_SETS = 7
 
 export function maxSetNumber(m: MatchRecord): number {
-  return resultSetCount(m) ?? MAX_SETS
+  return calculateResultSetCount(m) ?? MAX_SETS
 }
 
 /** The set's floor: the last contact of its last saved rally. `fallback` before it has one. */
@@ -358,7 +358,7 @@ export function saveMark(m: MatchRecord, setId: number, mark: SetMark): MatchRec
     const was = s.mark ? toGlobal(segs, s.mark.to.videoId, s.mark.to.t) : null
     const now = toGlobal(segs, mark.to.videoId, mark.to.t)
     const later = was !== null && now !== null && now > was + 0.05
-    const atEnd = scoreAtSetEnd(s.rallies.map((r) => r.winner))
+    const atEnd = calculateScoreAtSetEnd(s.rallies.map((r) => r.winner))
     const won = atEnd !== null && isSetWon(atEnd)
     const reopen = s.finished && later && !won
     return { ...s, mark, skipped: false, ...(reopen ? { finished: false } : {}) }

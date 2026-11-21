@@ -1,5 +1,5 @@
 import type { MatchRecord, SetData, SetMark, VideoAsset } from '@/types/match'
-import { countPoints, isLegalEnd, isSetWon, leader, scoreAtSetEnd } from '@/features/tagging/score'
+import { countPoints, isLegalEnd, isSetWon, deriveLeader, calculateScoreAtSetEnd } from './score'
 import {
   firstContactG,
   lastContactG,
@@ -8,7 +8,7 @@ import {
   toGlobal,
   totalDuration,
   type Segment,
-} from '@/features/tagging/timeline'
+} from './timeline'
 
 /** Old rallies grow a mark this far past the first and last contact. New marks have none. */
 export const MARK_PAD_S = 5
@@ -133,7 +133,7 @@ export function markCrosses(s: SetData): boolean {
 
 function taggedNow(s: SetData) {
   const winners = s.rallies.map((r) => r.winner)
-  return scoreAtSetEnd(winners) ?? countPoints(winners)
+  return calculateScoreAtSetEnd(winners) ?? countPoints(winners)
 }
 
 /**
@@ -144,7 +144,7 @@ function taggedNow(s: SetData) {
 export function endedEarly(s: SetData): boolean {
   if (!s.finished || s.rallies.length === 0) return false
   const score = taggedNow(s)
-  return leader(score) !== null && !isLegalEnd(score)
+  return deriveLeader(score) !== null && !isLegalEnd(score)
 }
 
 /** Set 2, or Set 2 · Saved · 9 - 7 · ended early. */
@@ -162,7 +162,7 @@ export function setLineLabel(s: SetData): string {
 export function setIncomplete(s: SetData): boolean {
   if (!s.finished || s.rallies.length === 0) return false
   if (endedEarly(s)) return false
-  const atEnd = scoreAtSetEnd(s.rallies.map((r) => r.winner))
+  const atEnd = calculateScoreAtSetEnd(s.rallies.map((r) => r.winner))
   return atEnd === null || !isSetWon(atEnd)
 }
 

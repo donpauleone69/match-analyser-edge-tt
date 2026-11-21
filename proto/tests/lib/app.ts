@@ -11,12 +11,12 @@ export {
   firstServerForSet,
   isLegalEnd,
   isSetWon,
-  leader,
-  scoreAtSetEnd,
+  deriveLeader as leader,
+  calculateScoreAtSetEnd as scoreAtSetEnd,
   serverAt,
   setEndIndex,
   setOverOnRule,
-} from '@/features/tagging/score'
+} from '@/rules/score'
 export type { Points } from '@/types/match'
 
 // -> @/rules/rally
@@ -34,10 +34,10 @@ export {
   rallyStart,
   shotWindow,
   winnerOf,
-} from '@/features/tagging/rally'
+} from '@/rules/rally'
 export type { Draft, Ending, RallyData, ShotTags, Side } from '@/types/rally'
 
-// -> @/rules/best
+// -> @/rules/bestFa
 export {
   bestAdvance,
   bestAt,
@@ -51,11 +51,11 @@ export {
   routeAfter,
   setDepth,
   setWingStroke,
-} from '@/features/tagging/bestFlow'
-export type { BestEnd, BestPartSpan } from '@/features/tagging/bestFlow'
+} from '@/rules/bestFa'
+export type { BestEnd, BestPartSpan } from '@/rules/bestFa'
 export type { BestPart } from '@/types/rally'
 
-// -> @/rules/mark
+// -> @/rules/marks
 export {
   clampWing,
   endedEarly,
@@ -76,9 +76,9 @@ export {
   videoMoveBreaks,
   videoStatus,
   wingLimits,
-} from '@/features/tagging/setMark'
+} from '@/rules/marks'
 
-// -> @/rules/match
+// -> @/rules/matchOps
 export {
   deleteRally,
   deleteTags,
@@ -88,7 +88,7 @@ export {
   saveMark,
   settleFinished,
   startSet,
-} from '@/features/tagging/matchOps'
+} from '@/rules/matchOps'
 
 // -> @/rules/continuity
 export {
@@ -98,59 +98,67 @@ export {
   openReview,
   pressReview,
   serveBands,
-} from '@/features/tagging/continuity'
-export type { ReviewPress, ServeRally } from '@/features/tagging/continuity'
+} from '@/rules/continuity'
+export type { ReviewPress, ServeRally } from '@/rules/continuity'
 
 // -> @/rules/input-modes
 export { overrunLabels, tagRegions } from '@/features/tagging/inputModes'
 
 // -> @/rules/timeline
-export { lastContactG, totalDuration } from '@/features/tagging/timeline'
+export { formatClock, insertIndex, lastContactG, segmentAt, totalDuration } from '@/rules/timeline'
 
 // -> @/rules/script
 export { tagsFromPlay } from '@/features/tagging/script'
 export type { ScriptRally } from '@/types/video'
 
 // -> @/rules/timeline
-export { firstContactG, segmentsOf, toGlobal } from '@/features/tagging/timeline'
+export { firstContactG, segmentsOf, toGlobal } from '@/rules/timeline'
 
 // -> @/rules/match
 export {
-  defaultMatchTab,
+  deriveDefaultMatchTab as defaultMatchTab,
   derivePhase,
+  formatScore,
+  formatSize,
   hasTaggedRallies,
   isArchived,
   isMatchTagged,
   isSpareSet,
-  matchSetsWon,
-  matchTitle,
-  missingVideoIds,
+  isUntouched,
+  calculateMatchSetsWon as matchSetsWon,
+  formatMatchTitle as matchTitle,
+  deriveMissingVideoIds as missingVideoIds,
   parseEntered,
   resultDiffers,
+  calculateResultSetCount as resultSetCount,
+  setHasTagProgress,
+  calculateSetRalliesWithoutVideo as setRalliesWithoutVideo,
   setScoresDiffer,
   setSettled,
-  setState,
-  taggedResult,
-  taggedScore,
-} from '@/data/demoStore'
+  deriveSetState as setState,
+  deriveTaggedResult as taggedResult,
+  calculateTaggedScore as taggedScore,
+  deriveTaggedSetIds as taggedSetIds,
+  formatTodayDate as todayDate,
+} from '@/rules/match'
 export type { MatchRecord, SetData, SetMark, VideoAsset } from '@/types/match'
 
-// -> @/rules/match
+// -> @/rules/matchStatus
 export {
   formatMatchDate,
   isRealResult,
   matchDiffers,
-  matchName,
-  matchRowLine,
-  matchResultLine,
-  matchRowStatus,
+  formatMatchName as matchName,
+  formatMatchRowLine as matchRowLine,
+  formatMatchResultLine as matchResultLine,
+  deriveMatchRowStatus as matchRowStatus,
   taggedResultReady,
-  videoRallyCount,
-} from '@/features/match/matchChecks'
+  calculateVideoRallyCount as videoRallyCount,
+} from '@/rules/matchStatus'
 
 // -> @/rules/insights
-export { gradeOf, insightRules, insightsFor, matchInsights, phaseOf } from '@/features/insights/insightCounts'
-export type { InsightCardModel, InsightRow } from '@/features/insights/insightCounts'
+export { gradeOf, insightRules, insightsFor, matchInsights, phaseOf } from '@/rules/insights'
+export type { InsightCardModel, InsightRow } from '@/rules/insights'
 
 // -> @/rules/filters
 export {
@@ -161,9 +169,10 @@ export {
   filterIsSet,
   filterMatches,
   migrateFilters,
-} from '@/features/insights/insightsFilterContext'
+} from '@/rules/filters'
 export type { InsightsFilters } from '@/features/insights/models'
 
 // -> @/data/seed
-export { emptySet, SEED } from '@/data/demoStore'
+export { emptySet } from '@/rules/match'
+export { SEED } from '@/data/demoStore'
 export { buildSeed, isoDaysBefore } from '@/data/buildSeed'

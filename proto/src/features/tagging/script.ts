@@ -6,7 +6,7 @@
 import type { Points } from '@/types/match'
 import type { BestPart, Ending, RallyData, ShotTags, Side, Wing } from '@/types/rally'
 import type { ScriptRally, ShotPlay, Spot, VideoScript } from '@/types/video'
-import { bestParts } from './bestFlow'
+import { bestParts } from '@/rules/bestFa'
 import {
   ATTACK_STROKES,
   DEFENSIVE_STROKES_ROW,
@@ -17,8 +17,8 @@ import {
   hitterOf,
   isAttackStroke,
   otherSide,
-} from './rally'
-import { addPoint, serverAt, ZERO } from './score'
+} from '@/rules/rally'
+import { addPoint, serverAt, ZERO } from '@/rules/score'
 
 export type ScriptSet = { firstServer: Side; winners: Side[]; setNo?: number }
 

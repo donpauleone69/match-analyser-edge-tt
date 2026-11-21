@@ -1,10 +1,10 @@
 import { Icon } from '@/ui-mine'
 import { cn } from '@/helpers/utils'
 import { restStyle } from './AnswerCells'
-import { bestOpener, cellMark, partsOf, type BestAt } from './bestFlow'
+import { bestOpener, cellMark, partsOf, type BestAt } from '@/rules/bestFa'
 import { PartLabel, railCell, shotPaint } from './BestPanel'
 import type { BestPart, Draft, Side } from '@/types/rally'
-import { hitterOf } from './rally'
+import { hitterOf } from '@/rules/rally'
 import type { RallyState } from './models'
 import { zoneButton, zonePressed, zoneRest } from './zoneButton'
 

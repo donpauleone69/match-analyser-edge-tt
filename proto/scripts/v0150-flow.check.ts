@@ -3,7 +3,7 @@
  * Serve, each shot, then End. The winner comes from the server, the count and End.
  * One contact asks End: Winner is an ace, an error a serve fault. Run: npm run check:v0150
  */
-import { taggedScore } from '../src/data/demoStore'
+import { calculateTaggedScore } from '../src/rules/match'
 import type { MatchRecord, Points, SetData } from '../src/types/match'
 import {
   BEST_ENDS,
@@ -24,10 +24,10 @@ import {
   setDepth,
   setWingStroke,
   type BestEnd,
-} from '../src/features/tagging/bestFlow'
-import { saveRally } from '../src/features/tagging/matchOps'
-import { addContact, emptyDraft, otherSide, winnerOf } from '../src/features/tagging/rally'
-import { addPoint, serverAt, ZERO } from '../src/features/tagging/score'
+} from '../src/rules/bestFa'
+import { saveRally } from '../src/rules/matchOps'
+import { addContact, emptyDraft, otherSide, winnerOf } from '../src/rules/rally'
+import { addPoint, serverAt, ZERO } from '../src/rules/score'
 import type { Draft, Side, Wing } from '../src/types/rally'
 
 const fails: string[] = []
@@ -212,7 +212,7 @@ eq('switch on a reopened rally re-derives the point', switched.draft.best?.point
 let match = blankMatch()
 let score: Points = ZERO
 const runSave = (n: number, end: BestEnd) => {
-  const server = serverAt(match.sets[0].firstServer, taggedScore(match.sets[0]) ?? ZERO)
+  const server = serverAt(match.sets[0].firstServer, calculateTaggedScore(match.sets[0]) ?? ZERO)
   const w = walk(n, end, server)
   const winner = w.draft.best?.point
   if (!winner) throw new Error('no winner')

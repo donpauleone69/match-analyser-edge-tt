@@ -5,7 +5,7 @@
 import type { MatchRecord, Points, SetData, SetMark, VideoAsset } from '@/types/match'
 import type { RallyData, Side } from '@/types/rally'
 import type { VideoScript } from '@/types/video'
-import { otherSide, pointRally } from '@/features/tagging/rally'
+import { otherSide, pointRally } from '@/rules/rally'
 import {
   addPoint,
   firstServerForSet,
@@ -14,7 +14,7 @@ import {
   isSetWon,
   serverAt,
   setOverOnRule,
-} from '@/features/tagging/score'
+} from '@/rules/score'
 import {
   buildScripts,
   matchScript,
@@ -30,7 +30,7 @@ import {
   toGlobal,
   totalDuration,
   type Segment,
-} from '@/features/tagging/timeline'
+} from '@/rules/timeline'
 
 const round = (v: number) => Math.round(v * 100) / 100
 

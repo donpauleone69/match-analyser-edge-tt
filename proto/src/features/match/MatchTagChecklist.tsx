@@ -2,18 +2,19 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Card } from '@/ui-mine'
-import { matchSetsWon, taggedScore, useDemo } from '@/data/demoStore'
+import { calculateMatchSetsWon, calculateTaggedScore } from '@/rules/match'
+import { useDemo } from '@/data/demoStore'
 import type { MatchRecord, SetMark, VideoAsset } from '@/types/match'
 import { AddVideoChoice } from '@/features/match/AddVideoChoice'
 import { useArchiveStep } from '@/features/match/archiveJobs'
 import { TagVideoCard } from '@/features/match/TagVideoCard'
-import { reopenSet, saveMark } from '@/features/tagging/matchOps'
+import { reopenSet, saveMark } from '@/rules/matchOps'
 import type { Side } from '@/types/rally'
-import { lineAction, markBounds, newMarkAt, setIncomplete, videoMoveBreaks, type WingEdge } from '@/features/tagging/setMark'
+import { lineAction, markBounds, newMarkAt, setIncomplete, videoMoveBreaks, type WingEdge } from '@/rules/marks'
 import { useActionGuard } from '@/features/tagging/pressGuard'
 import { TAG_LOCK_LINE, useTagLock } from '@/features/tagging/tagLock'
 import { PictureSeek, VideoStage } from '@/features/tagging/VideoStage'
-import { segmentsOf } from '@/features/tagging/timeline'
+import { segmentsOf } from '@/rules/timeline'
 import { usePlayer } from '@/features/tagging/usePlayer'
 
 /**
@@ -262,7 +263,7 @@ export function MatchTagChecklist() {
 }
 
 function scoreBug(match: MatchRecord, time: number) {
-  const sets = matchSetsWon(match)
+  const sets = calculateMatchSetsWon(match)
   let setId = match.sets[0]?.setId ?? 1
   let points = { me: 0, them: 0 }
   let server: Side = 'me'
@@ -272,7 +273,7 @@ function scoreBug(match: MatchRecord, time: number) {
     if (!b) continue
     if (time >= b.start - 0.05 && time <= b.end + 0.05) {
       setId = s.setId
-      points = taggedScore(s) ?? points
+      points = calculateTaggedScore(s) ?? points
       server = s.firstServer
       break
     }

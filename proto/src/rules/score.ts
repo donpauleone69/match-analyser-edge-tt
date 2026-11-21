@@ -41,10 +41,10 @@ export function isLegalEnd(score: Points): boolean {
 
 /** One side is ahead, so a short set is saved as ended early. A level score is not. */
 export function canSaveEarly(score: Points): boolean {
-  return leader(score) !== null
+  return deriveLeader(score) !== null
 }
 
-export function leader(score: Points): Side | null {
+export function deriveLeader(score: Points): Side | null {
   if (score.me === score.them) return null
   return score.me > score.them ? 'me' : 'them'
 }
@@ -78,7 +78,7 @@ export function setOverOnRule(winners: Side[]): boolean {
  * The score at the rally that first wins the set. Null when the rallies never
  * get there. Rallies after that win do not change it.
  */
-export function scoreAtSetEnd(winners: Side[]): Points | null {
+export function calculateScoreAtSetEnd(winners: Side[]): Points | null {
   const end = setEndIndex(winners)
   if (end < 0) return null
   return countPoints(winners.slice(0, end + 1))

@@ -3,8 +3,8 @@
  * Run: npm run check:v0179
  */
 import type { MatchRecord, SetData, SetMark, VideoAsset } from '../src/data/demoStore'
-import { saveMark } from '../src/features/tagging/matchOps'
-import { clampWing, lineAction, newMarkAt, spanBack, spanOnto, videoStatus, wingLimits } from '../src/features/tagging/setMark'
+import { saveMark } from '../src/rules/matchOps'
+import { clampWing, lineAction, newMarkAt, spanBack, spanOnto, videoStatus, wingLimits } from '../src/rules/marks'
 
 const fails: string[] = []
 const ok = (name: string, cond: boolean, detail = '') => {

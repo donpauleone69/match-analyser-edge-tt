@@ -1,9 +1,9 @@
 import {
   breakIndexes, serveBands, bandLine, openReview, pressReview, breakForReview, leaveIds, reviewSwapLine, walkServes, expectedServer, checkSet, gapMarks,
   type ServeRally, type ReviewPress,
-} from '@/features/tagging/continuity'
-import { deleteRally, restoreRally, confirmServe, insertRallyAt, leaveMark, saveRally } from '@/features/tagging/matchOps'
-import { pointRally } from '@/features/tagging/rally'
+} from '@/rules/continuity'
+import { deleteRally, restoreRally, confirmServe, insertRallyAt, leaveMark, saveRally } from '@/rules/matchOps'
+import { pointRally } from '@/rules/rally'
 import type { RallyData, Side } from '@/types/rally'
 
 const Y: Side = 'me', S: Side = 'them'

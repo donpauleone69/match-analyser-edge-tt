@@ -1,7 +1,1 @@
-export type InsightsFilters = {
-  dates: string
-  from: string
-  to: string
-  opponent: string
-  event: string
-}
+export type { InsightsFilters } from '@/rules/filters'

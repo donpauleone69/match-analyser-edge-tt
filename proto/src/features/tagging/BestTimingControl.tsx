@@ -2,7 +2,7 @@ import { useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Icon } from '@/ui-mine'
 import { APP_VERSION } from '@/version'
-import type { BestTiming } from './bestFlow'
+import type { BestTiming } from '@/rules/bestFa'
 
 const FIELDS: { key: keyof BestTiming; label: string }[] = [
   { key: 'reaction', label: 'Reaction' },
