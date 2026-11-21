@@ -1,0 +1,122 @@
+/*
+  scorebook. Load after tokens/base.css.
+  One [data-theme="scorebook"] rule. Overrides theme-contract literals only.
+  Derived tokens (soft, hover, pressed, aliases) recompute from these.
+
+  A paper scorebook: warm stock, carbon ink, ruled edges, no shadow.
+  Source Sans 3, tabular figures by default. Uppercase column labels.
+  Action is table green. The review mark is a deep ochre with light text,
+  dark enough to clear 3:1 as a line on the page and on the sunken track.
+
+  Preview pages load Source Sans 3 at 400, 600 and 700.
+*/
+
+[data-theme="scorebook"] {
+  --font-ui: "Source Sans 3", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-display: "Source Sans 3", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-numeric: "Source Sans 3", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-numeric-variant: tabular-nums lining-nums;
+
+  --font-weight-regular: 400;
+  --font-weight-strong: 600;
+  --font-weight-heavy: 700;
+
+  --label-transform: uppercase;
+  --label-tracking: 0.04em;
+  --display-tracking: -0.02em;
+
+  /* Tight reading sizes. The stat is the loudest type on the page. */
+  --type-micro-size: 0.75rem; /* 12 */
+  --type-micro-line: 1rem;
+  --type-meta-size: 0.8125rem; /* 13 */
+  --type-meta-line: 1.125rem;
+  --type-body-size: 0.9375rem; /* 15 */
+  --type-body-line: 1.375rem;
+  --type-title-size: 1.125rem; /* 18 */
+  --type-title-line: 1.5rem;
+  --type-display-size: 2rem; /* 32 */
+  --type-display-line: 2.25rem;
+
+  --surface-page: #f6f1e4;
+  --surface-nav: #ebe4d4;
+  --surface-raised: #fbf7ef;
+  --surface-sunken: #e4dcc8;
+  --surface-inverse: #241c14;
+  --surface-video: #000000;
+  --scrim: rgb(36 28 20 / 0.52);
+
+  --ink: #241c14;
+  --ink-muted: #5e5548;
+  --ink-disabled: #6a6154;
+  --ink-inverse: #fbf7ef;
+  --ink-on-accent: #fbf7ef;
+
+  --line: #d5ccb8;
+  --line-strong: #6e6558;
+  --border-width: 1px;
+
+  --accent: #1f6b38;
+  --accent-on-video: #5dcea0;
+
+  --positive: #1f7a42;
+  --positive-ink: #146338;
+  --warning: #8a4e08;
+  --warning-ink: #7a4506;
+  --danger: #b42318;
+  --danger-ink: #9a1c14;
+  --info: #1c4e8a;
+  --info-ink: #1a4578;
+
+  --control-line: var(--line-strong);
+  --control-disabled-bg: #e8e0cc;
+  --control-disabled-ink: #655c50;
+  --control-disabled-line: #cdc3ae;
+
+  --focus-ring-color-on-video: #ffffff;
+  --press-scale: 1;
+  --press-dim: 0.92;
+
+  /* You and Them stay blue and clay. Wings are a deeper indigo and a brick,
+     so a backhand region is not the same fill as a You cell. */
+  --player-a: #4d8aec;
+  --player-b: #ef8a38;
+  --ink-on-player: #1a140e;
+  --player-a-ink: #1a4faf;
+  --player-b-ink: #9a3d0c;
+
+  --mark: #8a4e08;
+  --ink-on-mark: #fbf7ef;
+
+  --region-step: #3c342c;
+  --region-other: #5c554b;
+  --region-destructive: #8e1c16;
+
+  --wing-bh: #1b3f78;
+  --wing-bh-soft: #d5e2f5;
+  --wing-fh: #7a3014;
+  --wing-fh-soft: #f6d4c4;
+
+  --video-chrome-bg: rgb(0 0 0 / 0.72);
+  --video-chrome-bg-hover: rgb(0 0 0 / 0.88);
+  --video-chrome-ink: #ffffff;
+  --video-chrome-ink-muted: #f2f2f2;
+  --video-seek-track: rgb(0 0 0 / 0.72);
+  --video-seek-span: #f4f0e6;
+  --video-seek-span-on: #5dcea0;
+
+  --radius-control: 2px;
+  --radius-cell: 2px;
+  --radius-surface: 2px;
+  --radius-region: 4px;
+  --radius-overlay: 4px;
+  --radius-round: 999px;
+
+  --shadow-raised: none;
+  --shadow-overlay: none;
+  --card-line: var(--line-strong);
+
+  --pad-card: 0.75rem; /* 12 */
+  --gap-stack: 0.5rem; /* 8 */
+  --row-min: 3.5rem; /* 56 */
+  --pad-row-y: 0.5rem; /* 8 */
+}

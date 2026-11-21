@@ -1,0 +1,123 @@
+/*
+  daylight. Load after tokens/base.css.
+  One [data-theme="daylight"] rule. Overrides theme-contract literals only.
+  Derived tokens (soft, hover, pressed, aliases) recompute from these.
+
+  An afternoon session: cool stone, open type, room to read.
+  Figtree. Sentence-case labels. One quiet shadow, modest radii.
+  Action is a sea teal. You and Them keep the proto blue and orange,
+  and the wings stay in those same hues so the mapping does not have to be relearned.
+  The review mark is a deep ochre with light text.
+
+  Preview pages load Figtree at 400, 600 and 700.
+*/
+
+[data-theme="daylight"] {
+  --font-ui: "Figtree", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-display: "Figtree", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-numeric: "Figtree", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-numeric-variant: tabular-nums lining-nums;
+
+  --font-weight-regular: 400;
+  --font-weight-strong: 600;
+  --font-weight-heavy: 700;
+
+  --label-transform: none;
+  --label-tracking: 0;
+  --display-tracking: -0.02em;
+
+  /* The top of each role's range. Built for a long read, not a dense sheet. */
+  --type-micro-size: 0.75rem; /* 12 */
+  --type-micro-line: 1rem;
+  --type-meta-size: 0.875rem; /* 14 */
+  --type-meta-line: 1.25rem;
+  --type-body-size: 1rem; /* 16 */
+  --type-body-line: 1.5rem;
+  --type-title-size: 1.25rem; /* 20 */
+  --type-title-line: 1.75rem;
+  --type-display-size: 1.75rem; /* 28 */
+  --type-display-line: 2rem;
+
+  --surface-page: #e7eef3;
+  --surface-nav: #dce6ee;
+  --surface-raised: #f8fbfc;
+  --surface-sunken: #d3dee7;
+  --surface-inverse: #122430;
+  --surface-video: #000000;
+  --scrim: rgb(18 36 48 / 0.5);
+
+  --ink: #122430;
+  --ink-muted: #3d5160;
+  --ink-disabled: #516474;
+  --ink-inverse: #ffffff;
+  --ink-on-accent: #ffffff;
+
+  --line: #c3d0db;
+  --line-strong: #5c7080;
+  --border-width: 1px;
+
+  --accent: #0f6772;
+  --accent-on-video: #3ec8c4;
+
+  --positive: #187848;
+  --positive-ink: #14633c;
+  --warning: #8a560c;
+  --warning-ink: #7a4c0a;
+  --danger: #c0271e;
+  --danger-ink: #a11d16;
+  --info: #0f5c86;
+  --info-ink: #0d5176;
+
+  --control-line: transparent;
+  --control-disabled-bg: #e0e8ee;
+  --control-disabled-ink: #4d6270;
+  --control-disabled-line: #c9d5de;
+
+  --focus-ring-color-on-video: #ffffff;
+  --press-scale: 0.98;
+  --press-dim: 0.9;
+
+  /* Same hue families as the proto: blue is You and backhand, orange is Them and forehand.
+     The wing fills are the deep step; the cells are the bright step. */
+  --player-a: #3b82f6;
+  --player-b: #f08438;
+  --ink-on-player: #101820;
+  --player-a-ink: #1d4ed8;
+  --player-b-ink: #9a3c0a;
+
+  --mark: #8a560c;
+  --ink-on-mark: #ffffff;
+
+  --region-step: #243646;
+  --region-other: #4a6070;
+  --region-destructive: #9f1d1d;
+
+  --wing-bh: #1d4ed8;
+  --wing-bh-soft: #d6e6fc;
+  --wing-fh: #c2410c;
+  --wing-fh-soft: #fde0c8;
+
+  --video-chrome-bg: rgb(0 0 0 / 0.72);
+  --video-chrome-bg-hover: rgb(0 0 0 / 0.88);
+  --video-chrome-ink: #ffffff;
+  --video-chrome-ink-muted: #f2f2f2;
+  --video-seek-track: rgb(0 0 0 / 0.72);
+  --video-seek-span: #f4f7f8;
+  --video-seek-span-on: #3ec8c4;
+
+  --radius-control: 8px;
+  --radius-cell: 6px;
+  --radius-surface: 12px;
+  --radius-region: 10px;
+  --radius-overlay: 16px;
+  --radius-round: 999px;
+
+  --shadow-raised: 0 1px 2px rgb(18 36 48 / 0.06);
+  --shadow-overlay: 0 12px 28px rgb(18 36 48 / 0.16);
+  --card-line: var(--line-strong);
+
+  --pad-card: 1.25rem; /* 20 */
+  --gap-stack: 1rem; /* 16 */
+  --row-min: 4.25rem; /* 68 */
+  --pad-row-y: 0.75rem; /* 12 */
+}
