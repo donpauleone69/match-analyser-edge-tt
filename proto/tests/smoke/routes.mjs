@@ -1,7 +1,4 @@
-/**
- * Route tour and the legacy addresses. Phase 5 deletes LEGACY_REDIRECTS
- * together with the routes those addresses used to be.
- */
+/** Route tour for page smoke screenshots and URL assertions. */
 
 export const VIEWPORTS = [
   { name: '393x660', width: 393, height: 660 },
@@ -27,18 +24,9 @@ export const ROUTES = [
   { id: '16', slug: 'account', path: '/account' },
 ]
 
-export const LEGACY_REDIRECTS = [
-  { from: '/home', pathname: '/matches', search: '' },
-  { from: '/find', pathname: '/matches', search: '' },
-  { from: '/insights/story', pathname: '/insights', search: '' },
-  { from: '/matches/m-complete/insights/serve', pathname: '/matches/m-complete/insights', search: '' },
-  { from: '/matches/m-partial/mark/v-club-2?set=2', pathname: '/matches/m-partial/tag', search: '?video=v-club-2&set=2' },
-]
-
 export const URL_ASSERTIONS = [
   { from: '/matches/m-complete', pathname: '/matches/m-complete/insights', search: '' },
   { from: '/matches/m-new', pathname: '/matches/m-new/tag', search: '' },
-  ...LEGACY_REDIRECTS,
   { from: '/no-such-route', pathname: '/', search: '' },
 ]
 
