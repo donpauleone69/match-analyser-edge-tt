@@ -21,7 +21,7 @@ import {
   rallyFromScript,
   setWinners,
   type ScriptSet,
-} from '@/features/tagging/script'
+} from './script'
 import {
   firstContactG,
   lastContactG,

@@ -7,8 +7,8 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { buildSeed } from '@/data/buildSeed'
-import { matchScript } from '@/features/tagging/script'
+import { buildSeed } from '@/data/seed/buildSeed'
+import { matchScript } from '@/data/seed/script'
 import {
   emptySet,
   isUntouched,

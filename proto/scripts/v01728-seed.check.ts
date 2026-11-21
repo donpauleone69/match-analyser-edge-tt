@@ -17,7 +17,7 @@ import {
   setOverOnRule,
 } from '../src/rules/score'
 import { endedEarly, gapsOf, MIN_SET_S, rallyOutside, spansOnVideo } from '../src/rules/marks'
-import { tagsFromPlay } from '../src/features/tagging/script'
+import { tagsFromPlay } from '../src/data/seed/script'
 import type { ScriptRally } from '../src/types/video'
 import { firstContactG, lastContactG, segmentsOf, toGlobal, totalDuration } from '../src/rules/timeline'
 
