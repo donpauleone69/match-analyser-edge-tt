@@ -1,19 +1,16 @@
 import { cn } from '@/helpers/utils'
-import type { AreaRegion } from './models'
+import { RegionButtonBlock } from '../blocks/RegionButtonBlock'
+import type { InputAreaView } from '../models'
 
 /**
  * Two columns in portrait. In landscape, one column of a wing: pass `column`
  * and the same list, and a spanning control is drawn in both wings.
  */
-export function InputArea({
+export function InputAreaSection({
   regions,
   column,
   attrs,
-}: {
-  regions: AreaRegion[]
-  column?: 1 | 2
-  attrs?: Record<string, string | undefined>
-}) {
+}: InputAreaView & { column?: 1 | 2 }) {
   const rows = [...new Set(regions.map((r) => r.row))].sort((a, b) => a - b)
   if (column) {
     // Both wings share these row heights, so a missing control keeps its row
@@ -33,7 +30,7 @@ export function InputArea({
           const short = regions.some((r) => r.row === row && r.short)
           return (
             <div key={row} className="flex h-full min-h-0">
-              {region ? <RegionButton region={region} short={short} /> : null}
+              {region ? <RegionButtonBlock region={region} short={short} /> : null}
             </div>
           )
         })}
@@ -48,7 +45,7 @@ export function InputArea({
         if (span) {
           return (
             <div key={row} className={cn('min-h-0', short ? 'h-11 shrink-0' : 'flex flex-1')}>
-              <RegionButton region={span} short={short} />
+              <RegionButtonBlock region={span} short={short} />
             </div>
           )
         }
@@ -56,8 +53,8 @@ export function InputArea({
         const right = regions.find((r) => r.row === row && r.column === 2)
         return (
           <div key={row} className={cn('grid grid-cols-2 gap-1.5', short ? 'h-11 shrink-0' : 'min-h-0 flex-1')}>
-            {left ? <RegionButton region={left} short={short} /> : <div />}
-            {right ? <RegionButton region={right} short={short} /> : <div />}
+            {left ? <RegionButtonBlock region={left} short={short} /> : <div />}
+            {right ? <RegionButtonBlock region={right} short={short} /> : <div />}
           </div>
         )
       })}
@@ -74,34 +71,3 @@ function attrProps(attrs?: Record<string, string | undefined>) {
   return out
 }
 
-function RegionButton({ region, short }: { region: AreaRegion; short: boolean }) {
-  return (
-    <button
-      type="button"
-      {...region.data}
-      data-guard={region.dim ? '' : undefined}
-      aria-pressed={region.pressed ? true : undefined}
-      aria-label={region.label}
-      onClick={() => {
-        if (region.dim) return
-        region.onClick()
-      }}
-      className={cn(
-        'pad-region flex w-full touch-manipulation select-none items-center justify-center rounded-md px-2 text-center text-[22px] font-bold leading-tight active:brightness-90',
-        short ? 'input-short h-full' : 'h-full min-h-0 w-full',
-        region.dim && 'opacity-60',
-      )}
-      style={{
-        backgroundColor: region.bg,
-        color: region.fg,
-        boxShadow: region.pressed
-          ? 'inset 0 0 0 4px #fff'
-          : region.outline
-            ? 'inset 0 0 0 1px var(--color-border)'
-            : undefined,
-      }}
-    >
-      {region.label}
-    </button>
-  )
-}

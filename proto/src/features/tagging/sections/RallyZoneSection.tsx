@@ -1,11 +1,10 @@
 import { Icon } from '@/ui-mine'
 import { cn } from '@/helpers/utils'
-import { bestOpener, cellMark, partsOf, type BestAt } from '@/rules/bestFa'
-import { PartLabel } from './blocks/PartLabelBlock'
-import { railCell, restStyle, shotPaint, zoneButton, zonePressed, zoneRest } from './styles'
-import type { BestPart, Draft, Side } from '@/types/rally'
+import { bestOpener, cellMark, partsOf } from '@/rules/bestFa'
+import { PartLabel } from '../blocks/PartLabelBlock'
+import { railCell, restStyle, shotPaint, zoneButton, zonePressed, zoneRest } from '../styles'
 import { hitterOf } from '@/rules/rally'
-import type { RallyState } from './models'
+import type { RallyZoneView } from '../models'
 
 /**
  * The Rally Zone. One layout for every state: a head, the score before the
@@ -13,7 +12,7 @@ import type { RallyState } from './models'
  * shot row and the part lines sit under it. Review fills the shot row with
  * part chips. A mode only changes what fills those places.
  */
-export function RallyZone({
+export function RallyZoneSection({
   state,
   draft,
   at,
@@ -37,39 +36,7 @@ export function RallyZone({
   onDiscard,
   onCancel,
   onServer,
-}: {
-  state: RallyState
-  draft: Draft | null
-  at: BestAt | null
-  rallyOne: boolean
-  saved: boolean
-  focus: number | 'end' | null
-  flash: number
-  rallyNo: number
-  /** The head names a rally with nothing tapped yet, while the row still shows the last saved one. */
-  headDashed?: boolean
-  names: Record<Side, string>
-  /** Null before the first serve is picked. The head is then grey and numbered. */
-  server: Side | null
-  /** Score before this point, already formatted, such as "6 - 4". */
-  score: string
-  /** "Gap 7 s", "Gap, overlap", or "Insert". Empty on a rally. */
-  word: string | null
-  tight: boolean
-  pressed: boolean
-  /** The part the review pad is on. Ringed while review mode is on. */
-  reviewFocus?: BestPart | null
-  /** Set over's hold: the star is shown, dim, and ignored. */
-  starDim?: boolean
-  /** A part chip jumps there. Review stays on. */
-  onReviewPart?: (part: BestPart) => void
-  onEdit?: () => void
-  onStar?: () => void
-  onDiscard?: () => void
-  onCancel?: () => void
-  /** The insert head switches the server. */
-  onServer?: () => void
-}) {
+}: RallyZoneView) {
   const n = draft?.contacts.length ?? 0
   const closed = Boolean(draft?.closed && n > 0)
   const parts = closed && draft ? partsOf(draft) : []

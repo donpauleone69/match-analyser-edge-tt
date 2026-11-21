@@ -48,11 +48,11 @@ import {
 } from '@/rules/rally'
 import { ZERO, addPoint, canSaveEarly, countPoints, isSetWon, setEndIndex, setOverOnRule } from '@/rules/score'
 import { bestPadRegions, editRallyRegions } from './BestPanel'
-import { InputArea } from './InputArea'
+import { InputAreaSection } from './sections/InputAreaSection'
 import { tagRegions } from './inputModes'
-import { RallyZone } from './RallyZone'
+import { RallyZoneSection } from './sections/RallyZoneSection'
 import type { RallyState } from './models'
-import { SetZone } from './SetZone'
+import { SetZoneSection } from './sections/SetZoneSection'
 import { BestTimingBlock } from './blocks/BestTimingBlock'
 import { useSettingsStore } from '@/stores/settingsStore'
 import {
@@ -1679,7 +1679,7 @@ function TagSet({
     >
       {landscape ? (
         <div className="pad-wing" data-pad-wing="left">
-          <InputArea regions={area.regions} column={1} attrs={area.attrs} />
+          <InputAreaSection regions={area.regions} column={1} attrs={area.attrs} />
         </div>
       ) : null}
       <div className="tag-flow">
@@ -1730,7 +1730,7 @@ function TagSet({
           }
         />
       </div>
-      <SetZone
+      <SetZoneSection
         rallies={set.rallies}
         picked={pickedId}
         gaps={editPick?.kind === 'gap' ? stops.gaps : null}
@@ -1771,7 +1771,7 @@ function TagSet({
             className="tag-idle-bar pointer-events-none absolute bottom-0 left-0 right-0 z-10 h-1.5 bg-brand-primary/50"
           />
         ) : null}
-        <RallyZone
+        <RallyZoneSection
           state={atEndPad ? 'before' : reviewDraftNow ? 'review' : rallyState}
           draft={atEndPad ? null : rowDraft}
           at={atEndPad || pickDraft || shotEdit ? null : bestQ}
@@ -1833,11 +1833,11 @@ function TagSet({
         />
       </div>
 
-      {landscape ? null : <InputArea regions={area.regions} attrs={area.attrs} />}
+      {landscape ? null : <InputAreaSection regions={area.regions} attrs={area.attrs} />}
       </div>
       {landscape ? (
         <div className="pad-wing" data-pad-wing="right">
-          <InputArea regions={area.regions} column={2} />
+          <InputAreaSection regions={area.regions} column={2} />
         </div>
       ) : null}
     </div>

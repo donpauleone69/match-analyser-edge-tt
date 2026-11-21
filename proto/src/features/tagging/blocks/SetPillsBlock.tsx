@@ -1,17 +1,11 @@
 import { Fragment, useLayoutEffect, useRef } from 'react'
 import { cn } from '@/helpers/utils'
 import { formatScore } from '@/rules/match'
-import type { SetData } from '@/types/match'
-import type { RallyData, Side } from '@/types/rally'
-import { countPoints, setEndIndex } from '@/rules/score'
 import type { EditGapStop } from '@/rules/matchOps'
-import { zoneButton, zonePressed, zoneRest } from './styles'
+import { countPoints, setEndIndex } from '@/rules/score'
+import type { RallyData, Side } from '@/types/rally'
 
-/**
- * The Set Zone. One row: the pills, then Edit Set in the star's box.
- * The set number is not repeated here.
- */
-export function SetZone({
+export function SetPillsBlock({
   rallies,
   picked,
   gaps,
@@ -21,66 +15,8 @@ export function SetZone({
   serveBreaks,
   onGap,
   onRally,
-  editing,
-  dim,
-  onEdit,
 }: {
   rallies: RallyData[]
-  picked: string | null
-  gaps: EditGapStop[] | null
-  pickedGap: number | null
-  /** Null hides the next pill: Edit Set, a finished set, and Set over. */
-  open: { n: number; server: Side | null } | null
-  insert: { index: number; n: number; server: Side } | null
-  serveBreaks: number[]
-  onGap: (index: number) => void
-  /** While review is on, a rally pill jumps there and the star stays on. */
-  onRally?: (id: string) => void
-  editing: boolean
-  /** No saved rally yet. A press still runs, so the hint can say so. */
-  dim: boolean
-  onEdit: () => void
-}) {
-  return (
-    <div className="tag-setzone" data-set-zone>
-      <SetPills
-        rallies={rallies}
-        picked={picked}
-        gaps={gaps}
-        pickedGap={pickedGap}
-        open={open}
-        insert={insert}
-        serveBreaks={serveBreaks}
-        onGap={onGap}
-        onRally={onRally}
-      />
-      <button
-        type="button"
-        data-edit-set
-        data-edit-dim={dim ? '' : undefined}
-        aria-pressed={editing}
-        className={zoneButton}
-        style={editing ? zonePressed() : { ...zoneRest(), opacity: dim ? 0.45 : 1 }}
-        onClick={onEdit}
-      >
-        Edit Set
-      </button>
-    </div>
-  )
-}
-
-function SetPills({
-  rallies,
-  picked,
-  gaps,
-  pickedGap,
-  open,
-  insert,
-  serveBreaks,
-  onGap,
-  onRally,
-}: {
-  rallies: SetData['rallies']
   picked: string | null
   gaps: EditGapStop[] | null
   pickedGap: number | null
