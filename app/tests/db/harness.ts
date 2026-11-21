@@ -14,9 +14,11 @@ import {
   SETTINGS_STORAGE_KEYS,
   TABLES,
   USER_DB_NAME,
+  VIDEO_DIR,
   cleanupOldStorage,
   createMatchDb,
   deleteMatch,
+  deleteVideoFiles,
   deriveListRows,
   deriveSetRowId,
   deriveShotRowId,
@@ -25,10 +27,15 @@ import {
   exportMatchFile,
   importMatchFile,
   isEmpty,
+  listVideoFiles,
   loadAll,
   openMatchDb,
+  openMode,
+  pruneVideoFiles,
   readAllRows,
+  readFileFacts,
   readStorageInfo,
+  readVideoFile,
   removeOpponent,
   renameOpponent,
   requestPersistentStorage,
@@ -36,6 +43,7 @@ import {
   saveDraft,
   saveMatch,
   saveRally,
+  saveVideoFile,
   serializeMatchFile,
   stableJson,
   type DbRows,
@@ -136,6 +144,7 @@ async function run() {
   const demo = openMatchDb('demo')
   let demoRows: DbRows | null = null
   let storage: unknown = null
+  let usageGrowth: number | null = null
 
   await check('schema opens at version 1 with the eight tables and their indexes', async (bad) => {
     for (const db of [user, demo]) {
@@ -505,6 +514,50 @@ async function run() {
     await deleteDb('someone-elses-db')
   })
 
+  await check('video copies: same bytes back, one folder per database, delete and prune; cleanup keeps them; usage counts them', async (bad) => {
+    const bytes = new Uint8Array(4 * 1024 * 1024 + 123)
+    for (let i = 0; i < bytes.length; i++) bytes[i] = (i * 31 + (i >> 11)) & 255
+    const file = new File([bytes], 'clip.mp4', { type: 'video/mp4', lastModified: 1_700_000_000_000 })
+    const before = (await readStorageInfo()).usage ?? 0
+    if (!(await saveVideoFile('user', 'v-a', file))) bad('user copy failed')
+    if (!(await saveVideoFile('demo', 'v-b', file))) bad('demo copy failed')
+    const back = await readVideoFile('user', 'v-a')
+    if (!back) bad('user copy not read back')
+    else {
+      const got = new Uint8Array(await back.arrayBuffer())
+      if (got.length !== bytes.length || got.some((b, i) => b !== bytes[i])) bad(`bytes differ (${got.length} vs ${bytes.length})`)
+    }
+    const after = (await readStorageInfo()).usage ?? 0
+    if (after - before < file.size) bad(`usage grew ${after - before} bytes for two copies of ${file.size}`)
+    usageGrowth = after - before
+
+    const facts = await readFileFacts(file)
+    if (!/^[0-9a-f]{64}$/.test(facts.fingerprint ?? '')) bad(`fingerprint ${facts.fingerprint}`)
+    if (facts.lastModifiedMs !== 1_700_000_000_000 || facts.sizeBytes !== file.size || facts.fileName !== 'clip.mp4') bad(`facts ${JSON.stringify(facts)}`)
+    if (back && (await readFileFacts(back)).fingerprint !== facts.fingerprint) bad('the copy has another fingerprint')
+    const tail = bytes.slice()
+    tail[tail.length - 1] ^= 1
+    if ((await readFileFacts(new File([tail], 'clip.mp4'))).fingerprint === facts.fingerprint) bad('a changed last byte kept the fingerprint')
+
+    if (stableJson(await listVideoFiles('user')) !== stableJson(['v-a'])) bad(`user folder ${await listVideoFiles('user')}`)
+    if (stableJson(await listVideoFiles('demo')) !== stableJson(['v-b'])) bad(`demo folder ${await listVideoFiles('demo')}`)
+    await cleanupOldStorage()
+    if (!(await readVideoFile('user', 'v-a'))) bad(`cleanupOldStorage removed ${VIDEO_DIR}`)
+
+    if ((await pruneVideoFiles('user', ['v-a'])).length !== 0) bad('prune removed a kept copy')
+    await deleteVideoFiles('demo', ['v-b', 'v-none'])
+    if ((await listVideoFiles('demo')).length !== 0) bad('demo copy not deleted')
+    if (await readVideoFile('demo', 'v-b')) bad('deleted copy still read')
+    if (stableJson(await pruneVideoFiles('user', [])) !== stableJson(['v-a'])) bad('prune did not remove the unclaimed copy')
+
+    await saveVideoFile('demo', 'v-c', file)
+    await saveVideoFile('user', 'v-d', file)
+    value(await openMode('filled', SEED, true), 'reseed demo')
+    if ((await listVideoFiles('demo')).length !== 0) bad('reseeding the demo left a copy')
+    if (stableJson(await listVideoFiles('user')) !== stableJson(['v-d'])) bad('reseeding the demo touched the user folder')
+    await pruneVideoFiles('user', [])
+  })
+
   await check('persistent storage and quota helpers return values', async (bad) => {
     const granted = await requestPersistentStorage()
     if (typeof granted !== 'boolean') bad(`persist ${granted}`)
@@ -513,7 +566,7 @@ async function run() {
     if (typeof info.usage !== 'number' || info.usage < 0) bad(`usage ${info.usage}`)
     if (typeof info.quota !== 'number' || info.quota <= 0) bad(`quota ${info.quota}`)
     if (granted !== null && info.persisted !== granted) bad(`persisted ${info.persisted} after persist ${granted}`)
-    storage = { granted, ...info }
+    storage = { granted, ...info, videoCopyUsageGrowth: usageGrowth }
   })
 
   return { checks, rows: demoRows, storage }

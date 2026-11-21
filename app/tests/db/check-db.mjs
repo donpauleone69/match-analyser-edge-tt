@@ -1,7 +1,9 @@
 /**
  * Database check. Serves the test-only harness (tests/db/harness.html, not in
  * the build) with a Vite dev server on 127.0.0.1:4319, runs it in Chrome, then
- * runs the invariants and golden outputs in node over the rows Chrome read back.
+ * the on-device video copy through the app on the same server
+ * (tests/db/video-flow.mjs), then the invariants and golden outputs in node
+ * over the rows Chrome read back.
  *
  *   npm run check:db
  */
@@ -11,6 +13,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright-core'
 import { createServer } from 'vite'
+import { runVideoFlow } from './video-flow.mjs'
 
 const CHROME = '/usr/local/bin/google-chrome'
 const PORT = 4319
@@ -35,7 +38,7 @@ async function main() {
     configFile: path.join(appDir, 'vite.config.ts'),
     logLevel: 'warn',
     server: { host: '127.0.0.1', port: PORT, strictPort: true, hmr: false },
-    optimizeDeps: { entries: ['tests/db/harness.html'] },
+    optimizeDeps: { entries: ['tests/db/harness.html', 'index.html'] },
   })
   await server.listen()
   console.log(`harness ${BASE}/tests/db/harness.html`)
@@ -63,6 +66,14 @@ async function main() {
     for (const problem of check.problems) console.log(`     ${problem}`)
     if (!check.ok) browserPass = false
   }
+  console.log('video copy through the app')
+  const flow = await runVideoFlow(browser, BASE)
+  for (const check of flow) {
+    console.log(`${check.ok ? 'ok  ' : 'FAIL'} ${check.name}`)
+    for (const problem of check.problems) console.log(`     ${problem}`)
+    if (!check.ok) browserPass = false
+  }
+  result.checks.push(...flow)
   console.log(`storage ${JSON.stringify(result.storage)}`)
   if (!result.rows) throw new Error('the harness returned no rows')
   writeFileSync(rowsFile, JSON.stringify(result.rows))
