@@ -1,6 +1,7 @@
 import { Link, type NavigateFunction } from 'react-router-dom'
 import { Button } from '@/ui-mine'
-import { formatMatchName, formatMatchRowLine, deriveMatchRowStatus } from '@/rules/matchStatus'
+import { formatMatchRowLine } from '@/rules/format'
+import { formatMatchName, deriveMatchRowStatus } from '@/rules/matchStatus'
 import type { MatchRecord } from '@/types/match'
 
 export function MatchRowBlock({ m, navigate }: { m: MatchRecord; navigate: NavigateFunction }) {

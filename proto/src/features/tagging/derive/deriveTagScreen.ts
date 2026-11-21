@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
-import { formatScore, calculateMatchSetsWon } from '@/rules/match'
+import { formatScore } from '@/rules/format'
+import { calculateMatchSetsWon } from '@/rules/match'
 import { expectedServer } from '@/rules/continuity'
 import { rallyEnd, rallyStart, winnerOf } from '@/rules/rally'
 import { countPoints } from '@/rules/score'

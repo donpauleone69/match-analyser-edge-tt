@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom'
 import { Button, buttonKindTextLink } from '@/ui-mine'
 import { WfWarnBadge } from '@/ui-mine'
-import { formatScore, setScoresDiffer, deriveSetState, calculateTaggedScore } from '@/rules/match'
+import { formatScore } from '@/rules/format'
+import { setScoresDiffer, deriveSetState, calculateTaggedScore } from '@/rules/match'
 import type { SetData } from '@/types/match'
 import { cn } from '@/helpers/utils'
 

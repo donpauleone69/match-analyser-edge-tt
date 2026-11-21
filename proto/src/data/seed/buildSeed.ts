@@ -5,6 +5,7 @@
 import type { MatchRecord, Points, SetData, SetMark, VideoAsset } from '@/types/match'
 import type { RallyData, Side } from '@/types/rally'
 import type { VideoScript } from '@/types/video'
+import { isoDaysBefore } from '@/rules/format'
 import { otherSide, pointRally } from '@/rules/rally'
 import {
   addPoint,
@@ -33,12 +34,6 @@ import {
 } from '@/rules/timeline'
 
 const round = (v: number) => Math.round(v * 100) / 100
-
-export function isoDaysBefore(today: Date, days: number): string {
-  const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - days)
-  const two = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${two(d.getMonth() + 1)}-${two(d.getDate())}`
-}
 
 function videoOf(id: string, fileName: string, script: VideoScript, archived = false): VideoAsset {
   const sizeMb = Math.round(script.duration * 6)

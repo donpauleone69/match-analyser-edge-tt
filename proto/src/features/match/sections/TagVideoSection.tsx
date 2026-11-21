@@ -18,7 +18,8 @@ import {
   wingLimits,
   type WingEdge,
 } from '@/rules/marks'
-import { formatClock, segmentsOf } from '@/rules/timeline'
+import { formatClock } from '@/rules/format'
+import { segmentsOf } from '@/rules/timeline'
 import { cn } from '@/helpers/utils'
 import { Pressable, Button, Card, CardTitle, buttonKindField, buttonKindTextLink } from '@/ui-mine'
 import { ConfirmBlock } from '../blocks/ConfirmBlock'

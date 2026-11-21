@@ -1,5 +1,6 @@
 /** Match and set state worked out from what was tagged and entered. Pure. */
 
+import { formatTodayDate } from './format'
 import { countPoints, firstServerForSet, deriveLeader, calculateScoreAtSetEnd } from './score'
 import { markState, migrateSetMark, setIncomplete } from './marks'
 import type { EnteredScore, MatchPhase, MatchRecord, Score, SetData, SetState } from '@/types/match'
@@ -167,25 +168,6 @@ export function hasTaggedRallies(match: MatchRecord): boolean {
   return match.sets.some((s) => !s.skipped && s.rallies.length > 0)
 }
 
-/**
- * The title is made from event and opponent; there is no separate name.
- * "Club night vs Sam". With no event it reads "Match vs Sam".
- */
-export function formatMatchTitle(match: MatchRecord): string {
-  const event = match.event.trim()
-  const opponent = match.opponent.trim()
-  if (!opponent) return event || 'New match'
-  return `${event || 'Match'} vs ${opponent}`
-}
-
-export function formatScore(score: Score): string {
-  return `${score.me} - ${score.them}`
-}
-
-export function formatSize(sizeMb: number): string {
-  return sizeMb >= 1000 ? `${(sizeMb / 1000).toFixed(1)} GB` : `${sizeMb} MB`
-}
-
 export function parseEntered(entered: EnteredScore): Score | null {
   if (entered.me === '' || entered.them === '') return null
   return { me: Number(entered.me), them: Number(entered.them) }
@@ -249,12 +231,6 @@ export function calculateSetRalliesWithoutVideo(match: MatchRecord, s: SetData):
     s.rallies.filter((r) => !have.has(r.videoId)).length +
     (s.draft && !have.has(s.draft.videoId) ? 1 : 0)
   )
-}
-
-/** Today as the date field holds it. A new match starts with it. */
-export function formatTodayDate(today = new Date()): string {
-  const two = (n: number) => String(n).padStart(2, '0')
-  return `${today.getFullYear()}-${two(today.getMonth() + 1)}-${two(today.getDate())}`
 }
 
 /** A new match nobody has put anything into. Discarded when left. */

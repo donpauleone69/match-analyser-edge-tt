@@ -1,6 +1,6 @@
 import type { AreaRegion } from '../models'
 import { PART_LABEL, type BestAt } from '@/rules/bestFa'
-import { formatScore } from '@/rules/match'
+import { formatScore } from '@/rules/format'
 import { gapFitsRally } from '@/rules/matchOps'
 import type { ActionGuard } from '../hooks/useActionGuard'
 import type { TagSetFlow } from '../hooks/useTagSetFlow'
