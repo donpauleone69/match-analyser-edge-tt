@@ -92,6 +92,10 @@ it('bad fixtures fire every layer rule', () => {
   expect(hit('one-filter-sheet', 'src/features/x/sections/SheetSection.tsx', 'hover:bg-bg-elevated')).toBe(true)
   expect(hit('one-filter-sheet', 'src/features/x/sections/SheetSection.tsx', 'bg-neutral-' + '50/60')).toBe(true)
   expect(hit('section-navigate', 'src/features/x/sections/NavSection.tsx', 'useNavigate')).toBe(true)
+  expect(hit('score-bug', 'src/helpers/scoreBug.ts', 'function ' + 'scoreBug')).toBe(true)
+  expect(hit('one-player', 'src/features/x/sections/ClipSection.tsx', '<' + 'video')).toBe(true)
+  expect(hit('css-color-utils', 'src/index.css', '.text-extra')).toBe(true)
+  expect(hit('css-color-utils', 'src/index.css', 'missing .text-brand')).toBe(true)
 })
 
 it('good fixtures are clean', () => {

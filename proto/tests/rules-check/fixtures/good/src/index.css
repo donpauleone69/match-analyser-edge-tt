@@ -1,0 +1,6 @@
+.text-primary { color: var(--color-text); }
+.text-muted { color: var(--color-text-muted); }
+.text-brand { color: var(--color-brand-primary); }
+.text-on-accent { color: var(--color-text-on-accent); }
+.tag-pill-wait { color: var(--color-text-muted); }
+.tag-pill-start { background: transparent; color: var(--color-text-muted); }

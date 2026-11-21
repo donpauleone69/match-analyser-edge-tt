@@ -2,13 +2,12 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { Card } from '@/ui-mine'
-import { calculateMatchSetsWon, calculateTaggedScore } from '@/rules/match'
+import { deriveScoreBug } from '@/rules/match'
 import { useArchiveStep, useMatchRecord, useMatchStore } from '@/stores/matchStore'
-import type { MatchRecord, SetMark, VideoAsset } from '@/types/match'
+import type { SetMark, VideoAsset } from '@/types/match'
 import { AddVideoSection } from '../sections/AddVideoSection'
 import { TagVideoSection } from '../sections/TagVideoSection'
 import { reopenSet, saveMark } from '@/rules/matchOps'
-import type { Side } from '@/types/rally'
 import { lineAction, markBounds, newMarkAt, isIncomplete, videoMoveBreaks, type WingEdge } from '@/rules/marks'
 import { useActionGuard } from '@/features/tagging/hooks/useActionGuard'
 import { TAG_LOCK_LINE, useTagLock } from '@/features/tagging/hooks/useTagLock'
@@ -199,7 +198,7 @@ export function MatchTagComposer({ matchId }: { matchId: string }) {
             player={player}
             videos={match.videos}
             names={names}
-            bug={scoreBug(match, player.time)}
+            bug={deriveScoreBug(match, player.time)}
             hint={wingHint}
             onSeek={(g) => player.seek(g)}
             onRate={player.setRate}
@@ -265,23 +264,4 @@ export function MatchTagComposer({ matchId }: { matchId: string }) {
       </div>
     </div>
   )
-}
-
-function scoreBug(match: MatchRecord, time: number) {
-  const sets = calculateMatchSetsWon(match)
-  let setId = match.sets[0]?.setId ?? 1
-  let points = { me: 0, them: 0 }
-  let server: Side = 'me'
-  for (const s of match.sets) {
-    if (!s.mark) continue
-    const b = markBounds(match.videos, s.mark)
-    if (!b) continue
-    if (time >= b.start - 0.05 && time <= b.end + 0.05) {
-      setId = s.setId
-      points = calculateTaggedScore(s) ?? points
-      server = s.firstServer
-      break
-    }
-  }
-  return { sets, points, server, setId }
 }
