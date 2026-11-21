@@ -1,12 +1,11 @@
 /** Pure checks on a match that Details, Home and the match header share. */
 
+import { formatMatchTitle } from './format'
 import {
   derivePhase,
-  formatScore,
   isArchived,
   deriveLastTaggedSetId,
   calculateMatchSetsWon,
-  formatMatchTitle,
   parseEntered,
   resultDiffers,
   calculateResultSetCount,
@@ -104,8 +103,6 @@ export function formatMatchLabel(match: MatchRecord): string {
   return title === 'New match' && derivePhase(match) !== 'new' ? 'Unnamed match' : title
 }
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-
 /** vs Sam, else the event, else New match until the match has video or tagging. */
 export function formatMatchName(match: MatchRecord): string {
   const opponent = match.opponent.trim()
@@ -113,31 +110,6 @@ export function formatMatchName(match: MatchRecord): string {
   const event = match.event.trim()
   if (event) return event
   return derivePhase(match) === 'new' ? 'New match' : 'Unnamed match'
-}
-
-/** 11 Nov. The year is added when it is not this year. Empty when there is no date. */
-export function formatMatchDate(date: string, today = new Date()): string {
-  if (!date) return ''
-  const [year, month, day] = date.split('-').map(Number)
-  if (!year || !month || !day || month < 1 || month > 12) return ''
-  const text = `${day} ${MONTHS[month - 1]}`
-  return year === today.getFullYear() ? text : `${text} ${year}`
-}
-
-/** Won 3 - 1 or Lost 1 - 3, your sets first. Empty when no result is entered. */
-export function formatMatchResultLine(match: MatchRecord): string {
-  const { me, them } = match.result
-  if (me === null || them === null) return ''
-  const score = formatScore({ me, them })
-  if (me > them) return `Won ${score}`
-  if (them > me) return `Lost ${score}`
-  return score
-}
-
-/** Date, result, then the event when the name is the opponent. The event is last so it truncates. */
-export function formatMatchRowLine(match: MatchRecord): string {
-  const event = match.opponent.trim() ? match.event.trim() : ''
-  return [formatMatchDate(match.date), formatMatchResultLine(match), event].filter(Boolean).join(' · ')
 }
 
 /**

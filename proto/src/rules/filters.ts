@@ -1,5 +1,6 @@
 /** Which matches a filter keeps, and the labels for that filter. Pure. */
 
+import { formatChipDate } from './format'
 import type { MatchRecord } from '@/types/match'
 
 export type InsightsFilters = {
@@ -108,20 +109,11 @@ export function filterChoices(matches: MatchRecord[]): { opponents: string[]; ev
   }
 }
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-
-function chipDate(iso: string, today: Date): string {
-  const [year, month, day] = iso.split('-').map(Number)
-  if (!year || !month || !day) return iso
-  const text = `${day} ${MONTHS[month - 1]}`
-  return year === today.getFullYear() ? text : `${text} ${year}`
-}
-
 export function datesChip(filters: InsightsFilters, today = new Date()): string | null {
   if (filters.dates === 'Any') return null
   if (filters.dates !== 'From and to') return `Dates: ${filters.dates}`
-  const from = filters.from ? chipDate(filters.from, today) : ''
-  const to = filters.to ? chipDate(filters.to, today) : ''
+  const from = filters.from ? formatChipDate(filters.from, today) : ''
+  const to = filters.to ? formatChipDate(filters.to, today) : ''
   if (from && to) return `Dates: ${from} to ${to}`
   if (from) return `Dates: from ${from}`
   if (to) return `Dates: to ${to}`

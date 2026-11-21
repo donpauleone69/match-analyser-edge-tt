@@ -32,6 +32,7 @@ const RULES = {
   R21: 'zone-paint',
   R22: 'one-badge',
   R23: 'card-head',
+  R24: 'format-home',
 }
 
 const args = process.argv.slice(2)
@@ -273,6 +274,7 @@ function scanFile(file, src0) {
   scanZonePaint(file, src, findings)
   scanOneBadge(file, src, findings)
   scanCardHead(file, src, findings)
+  scanFormatHome(file, src, findings)
 
   return findings
 }
@@ -372,6 +374,19 @@ function scanImportType(file, src, findings) {
   while ((hit = re.exec(src))) {
     if (!inlineImportAllTypes(hit[1])) continue
     push(findings, RULES.R18, file, src, hit.index, 'import { type … }')
+  }
+}
+
+const FORMAT_STAYS = new Set(['formatMatchLabel', 'formatMatchName'])
+
+/** `export function format…` only in rules/format.ts. Phase formatters stay in matchStatus. */
+function scanFormatHome(file, src, findings) {
+  if (file === 'src/rules/format.ts') return
+  const re = /\bexport\s+function\s+(format[A-Za-z0-9_]*)/g
+  let hit
+  while ((hit = re.exec(src))) {
+    if (FORMAT_STAYS.has(hit[1])) continue
+    push(findings, RULES.R24, file, src, hit.index, `export function ${hit[1]}`)
   }
 }
 

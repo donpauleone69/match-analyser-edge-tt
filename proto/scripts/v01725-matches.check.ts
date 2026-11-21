@@ -6,12 +6,10 @@ import { emptySet } from '../src/rules/match'
 import type { MatchRecord, SetData, VideoAsset } from '../src/types/match'
 import {
   formatMatchDate,
-  formatMatchName,
   formatMatchResultLine,
   formatMatchRowLine,
-  deriveMatchRowStatus,
-  taggedResultReady,
-} from '../src/rules/matchStatus'
+} from '../src/rules/format'
+import { formatMatchName, deriveMatchRowStatus, taggedResultReady } from '../src/rules/matchStatus'
 
 const fails: string[] = []
 const ok = (name: string, cond: boolean, detail = '') => {

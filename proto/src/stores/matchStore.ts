@@ -7,10 +7,10 @@
 import { create, createStore, type StateCreator } from 'zustand'
 import { buildSeed } from '@/data/seed/buildSeed'
 import { matchScript } from '@/data/seed/script'
+import { formatTodayDate } from '@/rules/format'
 import {
   deriveMissingVideoIds,
   emptySet,
-  formatTodayDate,
   isUntouched,
   mergeMatches,
   normalizeMatch,

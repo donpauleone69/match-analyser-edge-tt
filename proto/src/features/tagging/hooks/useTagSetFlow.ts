@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { NavigateFunction } from 'react-router-dom'
-import { formatScore, calculateTaggedScore } from '@/rules/match'
+import { formatScore } from '@/rules/format'
+import { calculateTaggedScore } from '@/rules/match'
 import type { MatchRecord, SetData } from '@/types/match'
 import type { BestPart, Draft, Mark, RallyData, Side, Wing } from '@/types/rally'
 import { leaveIds } from '@/rules/continuity'

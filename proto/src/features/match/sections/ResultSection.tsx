@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { Button, Card, CardTitle } from '@/ui-mine'
 import { WfWarnBadge } from '@/ui-mine'
+import { formatScore } from '@/rules/format'
 import {
-  formatScore,
   deriveLastTaggedSetId,
   calculateMatchSetsWon,
   resultDiffers,

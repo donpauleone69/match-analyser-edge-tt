@@ -105,7 +105,7 @@ export type { ReviewPress, ServeRally } from '@/rules/continuity'
 export { overrunLabels, tagRegions } from '@/features/tagging/derive/deriveInputArea'
 
 // -> @/rules/timeline
-export { formatClock, insertIndex, lastContactG, segmentAt, totalDuration } from '@/rules/timeline'
+export { insertIndex, lastContactG, segmentAt, totalDuration } from '@/rules/timeline'
 
 // -> @/data/seed/script
 export { tagsFromPlay } from '@/data/seed/script'
@@ -118,15 +118,12 @@ export { firstContactG, segmentsOf, toGlobal } from '@/rules/timeline'
 export {
   deriveDefaultMatchTab as defaultMatchTab,
   derivePhase,
-  formatScore,
-  formatSize,
   hasTaggedRallies,
   isArchived,
   isMatchTagged,
   isSpareSet,
   isUntouched,
   calculateMatchSetsWon as matchSetsWon,
-  formatMatchTitle as matchTitle,
   deriveMissingVideoIds as missingVideoIds,
   parseEntered,
   resultDiffers,
@@ -139,18 +136,28 @@ export {
   deriveTaggedResult as taggedResult,
   calculateTaggedScore as taggedScore,
   deriveTaggedSetIds as taggedSetIds,
-  formatTodayDate as todayDate,
 } from '@/rules/match'
 export type { MatchRecord, SetData, SetMark, VideoAsset } from '@/types/match'
 
+// -> @/rules/format
+export {
+  formatChipDate,
+  formatClock,
+  formatMatchDate,
+  formatScore,
+  formatSize,
+  isoDaysBefore,
+  formatMatchTitle as matchTitle,
+  formatMatchRowLine as matchRowLine,
+  formatMatchResultLine as matchResultLine,
+  formatTodayDate as todayDate,
+} from '@/rules/format'
+
 // -> @/rules/matchStatus
 export {
-  formatMatchDate,
   isRealResult,
   matchDiffers,
   formatMatchName as matchName,
-  formatMatchRowLine as matchRowLine,
-  formatMatchResultLine as matchResultLine,
   deriveMatchRowStatus as matchRowStatus,
   taggedResultReady,
   calculateVideoRallyCount as videoRallyCount,
@@ -174,7 +181,7 @@ export type { InsightsFilters } from '@/features/insights/models'
 
 // -> @/data/seed
 export { emptySet } from '@/rules/match'
-export { buildSeed, isoDaysBefore } from '@/data/seed/buildSeed'
+export { buildSeed } from '@/data/seed/buildSeed'
 
 // -> @/stores/matchStore
 export { SEED, createMatchStore, selectMatch } from '@/stores/matchStore'

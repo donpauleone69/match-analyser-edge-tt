@@ -1,7 +1,7 @@
 import { Pressable } from '@/ui-mine'
 import { Fragment, useLayoutEffect, useRef } from 'react'
 import { cn } from '@/helpers/utils'
-import { formatScore } from '@/rules/match'
+import { formatScore } from '@/rules/format'
 import type { EditGapStop } from '@/rules/matchOps'
 import { countPoints, setEndIndex } from '@/rules/score'
 import type { RallyData, Side } from '@/types/rally'

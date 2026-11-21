@@ -1,5 +1,5 @@
 import { buttonKindField } from '@/ui-mine'
-import { formatScore } from '@/rules/match'
+import { formatScore } from '@/rules/format'
 import { REAL_RESULTS } from '@/rules/matchStatus'
 import type { MatchResult } from '@/types/match'
 import { cn } from '@/helpers/utils'
