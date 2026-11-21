@@ -3,11 +3,17 @@ import {
   STROKE_GRID,
   bestEndOf,
   padFocus,
+  setDepth,
+  setWingStroke,
   stepShot,
   type BestAt,
   type PadBack,
   type BestEnd,
 } from '@/rules/bestFa'
+import { serveBands } from '@/rules/continuity'
+import type { ActionGuard } from '../hooks/useActionGuard'
+import type { TagSetFlow } from '../hooks/useTagSetFlow'
+import { useDeriveTagScreen } from './deriveTagScreen'
 import type { AreaRegion } from '../models'
 import type { Draft, Side, Wing } from '@/types/rally'
 import { hitterOf, otherSide, winnerOf } from '@/rules/rally'
@@ -378,4 +384,87 @@ export function editRallyRegions({
     }
   }
   return regions
+}
+
+type TagScreen = ReturnType<typeof useDeriveTagScreen>
+
+export function useDeriveBestPanel({
+  flow,
+  screen,
+  tapGuard,
+}: {
+  flow: TagSetFlow
+  screen: TagScreen
+  tapGuard: ActionGuard
+}) {
+  const {
+    set,
+    shotEdit,
+    endBack,
+    names,
+    shotGuard,
+    stepShot,
+    onShotDelete,
+    onShotKim,
+    onShotOut,
+    keepShot,
+    onShotEnd,
+    onShotPoint,
+    onBestServer,
+    onNotAShot,
+    onBestEnd,
+    onBestPoint,
+    onBestStroke,
+    onBestServe,
+    live,
+    readOnly,
+    bestOn,
+  } = flow
+  const {
+    shotAt,
+    bestRallyOne,
+    bestQ,
+    coverTaps,
+  } = screen
+  const bestRegions =
+    bestOn && live?.best && bestQ && live.contacts.length > 0
+      ? bestPadRegions({
+          draft: live,
+          names,
+          at: bestQ,
+          rallyOne: bestRallyOne,
+          back: endBack,
+          dim: tapGuard.waiting || coverTaps,
+          notShotDim: shotGuard.waiting,
+          onServer: onBestServer,
+          onEnd: onBestEnd,
+          onPoint: onBestPoint,
+          onNotShot: onNotAShot,
+          onServe: onBestServe,
+          onStroke: onBestStroke,
+        })
+      : []
+  const editRegions =
+    shotEdit && live && live.contacts.length > 0
+      ? editRallyRegions({
+          draft: live,
+          names,
+          stop: shotEdit.stop,
+          rallyOne: shotAt <= 0,
+          breakRally:
+            shotAt >= 0 && serveBands(set.rallies, set.firstServer).some((band) => band.breaks[0] === shotAt),
+          dim: shotGuard.waiting || readOnly,
+          onBack: () => stepShot(-1),
+          onForward: () => stepShot(1),
+          onDelete: onShotDelete,
+          onKim: onShotKim,
+          onOut: onShotOut,
+          onServe: (depth, wing) => keepShot(setDepth(live, depth, wing)),
+          onStroke: (shot, wing, stroke) => keepShot(setWingStroke(live, shot, wing, stroke)),
+          onEnd: onShotEnd,
+          onPointTo: onShotPoint,
+        })
+      : []
+
+  return { bestRegions, editRegions }
 }

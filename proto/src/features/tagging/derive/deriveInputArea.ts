@@ -1,5 +1,11 @@
 import type { AreaRegion } from '../models'
-import type { BestAt } from '@/rules/bestFa'
+import { PART_LABEL, type BestAt } from '@/rules/bestFa'
+import { formatScore } from '@/rules/match'
+import { gapFitsRally } from '@/rules/matchOps'
+import type { ActionGuard } from '../hooks/useActionGuard'
+import type { TagSetFlow } from '../hooks/useTagSetFlow'
+import { useDeriveBestPanel } from './deriveBestPanel'
+import { useDeriveTagScreen } from './deriveTagScreen'
 
 const SLATE = '#334155'
 const BRAND = 'var(--color-brand-primary)'
@@ -338,4 +344,136 @@ export function tagRegions(p: {
     }
   }
   return { regions: [], attrs: { 'data-input-empty': '' } }
+}
+
+type TagScreen = ReturnType<typeof useDeriveTagScreen>
+type BestPanel = ReturnType<typeof useDeriveBestPanel>
+
+export function useDeriveInputArea({
+  flow,
+  screen,
+  panel,
+  tapGuard,
+  overGuard,
+  editGuard,
+  removeGuard,
+}: {
+  flow: TagSetFlow
+  screen: TagScreen
+  panel: BestPanel
+  tapGuard: ActionGuard
+  overGuard: ActionGuard
+  editGuard: ActionGuard
+  removeGuard: ActionGuard
+}) {
+  const {
+    set,
+    boundNote,
+    gap,
+    reviewFocus,
+    shotEdit,
+    editPick,
+    onPad,
+    flipKind,
+    stepList,
+    stepAt,
+    onPickEdit,
+    stepPick,
+    onDeletePicked,
+    onOverEdit,
+    onDropAfter,
+    onOverrunEdit,
+    stepReview,
+    onReviewMark,
+    onAddRally,
+    readyToFinish,
+    onFinishSet,
+    readOnly,
+    bestOn,
+    viewedGap,
+    running,
+    endIndex,
+    saveEarly,
+    mode,
+    editIndex,
+  } = flow
+  const {
+    finishCard,
+    zoneOn,
+    zoneTitle,
+    bestQ,
+    coverTaps,
+    showRemove,
+    reviewDraftNow,
+    reviewParts,
+    reviewMarked,
+  } = screen
+  const {
+    bestRegions,
+    editRegions,
+  } = panel
+  const guarded = (guard: ActionGuard, fn: () => void) => () => {
+    if (!guard.allow()) return
+    fn()
+  }
+  const area = tagRegions({
+    mode,
+    bestOn,
+    bestQ,
+    best: bestRegions,
+    shotEdit: Boolean(shotEdit),
+    editRally: editRegions,
+    editStop: shotEdit ? (shotEdit.stop === 'end' ? 'end' : String(shotEdit.stop)) : '',
+    zoneOn,
+    padTitle: zoneTitle,
+    tapDim: tapGuard.waiting || coverTaps,
+    overDim: overGuard.waiting || readOnly,
+    removeDim: removeGuard.waiting || readOnly,
+    showRemove,
+    removeAfter: endIndex + 1,
+    removeLast: set.rallies.length,
+    endPad: Boolean(
+      !showRemove &&
+        (finishCard || (readyToFinish && boundNote && mode !== 'setPoint' && mode !== 'edit' && !set.finished)),
+    ),
+    saveEarly,
+    saveLabel: `Save at ${formatScore(running)}`,
+    onOverrunEdit: guarded(removeGuard, onOverrunEdit),
+    editing: mode === 'edit' && editPick !== null && !gap,
+    editKind: editPick?.kind ?? null,
+    editName: editPick?.kind === 'gap' ? String(viewedGap?.n ?? '') : String(editIndex + 1),
+    rallyOn: editPick?.kind !== 'gap',
+    saveOn: readyToFinish,
+    saveDim: tapGuard.waiting || editGuard.waiting || readOnly,
+    backDim: stepAt <= 0,
+    forwardDim: stepAt >= stepList.length - 1,
+    insertDim: readOnly || editGuard.waiting || Boolean(viewedGap && !gapFitsRally(viewedGap)),
+    onPad: guarded(tapGuard, onPad),
+    onFinish: () => {
+      if (mode === 'setPoint' && !overGuard.allow()) return
+      onFinishSet()
+    },
+    onOverEdit: guarded(overGuard, onOverEdit),
+    onRemove: guarded(removeGuard, onDropAfter),
+    onRallies: () => flipKind('rally'),
+    onGaps: () => flipKind('gap'),
+    onBack: () => stepPick(-1),
+    onForward: () => stepPick(1),
+    onEditRally: guarded(editGuard, onPickEdit),
+    onDeleteRally: guarded(editGuard, onDeletePicked),
+    onInsert: guarded(editGuard, () => {
+      if (viewedGap) onAddRally(viewedGap.index)
+    }),
+    review: Boolean(reviewDraftNow),
+    reviewPart: reviewFocus ? PART_LABEL[reviewFocus] : '',
+    reviewMarked,
+    reviewBackDim: reviewParts.length < 2,
+    reviewForwardDim: reviewParts.length < 2,
+    onReviewBack: () => stepReview(-1),
+    onReviewForward: () => stepReview(1),
+    onReviewMark,
+  })
+
+
+  return area
 }

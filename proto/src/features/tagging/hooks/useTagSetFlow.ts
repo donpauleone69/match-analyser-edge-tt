@@ -1309,6 +1309,8 @@ export function useTagSetFlow({
   useTagKeys({ playerRef, latest, handlers: { onPad, onUndoTap, onSave, seekTo } })
 
   return {
+    match,
+    set,
     selected,
     setSelected,
     tight,

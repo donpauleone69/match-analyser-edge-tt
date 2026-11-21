@@ -85,7 +85,7 @@ ok(
 ok('details differ still sets over on the rule', setOverOnRule(legal))
 
 const state = readFileSync('src/features/tagging/derive/deriveTagState.ts', 'utf8')
-const screen = readFileSync('src/features/tagging/TagSetScreen.tsx', 'utf8')
+const screen = readFileSync('src/features/tagging/derive/deriveInputArea.ts', 'utf8')
 ok('screen uses the rule', state.includes('setOverOnRule('))
 ok(
   'details clause is gone',

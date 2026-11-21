@@ -5,7 +5,7 @@ import { GatePage } from '@/pages/GatePage'
 import { MatchesPage } from '@/pages/MatchesPage'
 import { MatchPage, MatchIndexRedirect } from '@/pages/MatchPage'
 import { MatchInsights } from '@/features/insights/MatchInsights'
-import { TagSetScreen } from '@/features/tagging/TagSetScreen'
+import { TagSetComposer } from '@/features/tagging/composers/TagSetComposer'
 import { MatchDetails } from '@/features/match/MatchDetails'
 import { MatchTagChecklist } from '@/features/match/MatchTagChecklist'
 import { ArchiveRunner } from '@/features/match/archiveJobs'
@@ -49,7 +49,7 @@ export default function App() {
             <Route path="insights/:section" element={<MatchInsightsRedirect />} />
             <Route path="details" element={<MatchDetails />} />
             <Route path="tag" element={<MatchTagChecklist />} />
-            <Route path="tag/:setId" element={<TagSetScreen />} />
+            <Route path="tag/:setId" element={<TagSetComposer />} />
             <Route path="mark/:videoId" element={<MarkRedirect />} />
           </Route>
           <Route path="/insights" element={<InsightsPage />} />
