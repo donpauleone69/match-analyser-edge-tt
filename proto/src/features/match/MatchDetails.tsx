@@ -19,10 +19,9 @@ import {
   deriveSetState,
   calculateTaggedScore,
 } from '@/rules/match'
-import { useMatchRecord, useMatchStore } from '@/stores/matchStore'
+import { useArchiveStep, useMatchRecord, useMatchStore } from '@/stores/matchStore'
 import type { MatchRecord, MatchResult, SetData } from '@/types/match'
 import { applyTaggedScore, applyTaggedScores } from '@/rules/matchOps'
-import { useArchiveStep } from '@/features/match/archiveJobs'
 import {
   enteredScoresMissResult,
   calculateEnteredSetsWon,

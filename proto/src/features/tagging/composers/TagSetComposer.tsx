@@ -3,7 +3,7 @@ import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-route
 import { Button, Icon } from '@/ui-mine'
 import { WfEmpty } from '@/layout/Wireframe'
 import { emptySet } from '@/rules/match'
-import { useMatchRecord, useMatchStore } from '@/stores/matchStore'
+import { useArchiveStep, useMatchRecord, useMatchStore } from '@/stores/matchStore'
 import type { MatchRecord, SetData } from '@/types/match'
 import { maxSetNumber } from '@/rules/matchOps'
 import { markState } from '@/rules/marks'
@@ -33,7 +33,8 @@ export function TagSetComposer() {
   const location = useLocation()
   const { matchId = '', setId = '1' } = useParams()
   const match = useMatchRecord(matchId)
-  const lock = useTagLock(matchId, match)
+  const archiveStep = useArchiveStep(matchId)
+  const lock = useTagLock(match, archiveStep)
   const n = Number(setId)
   // A set number not listed yet (a skipped set 1, say) can still be started. It is added on its first write.
   const set =

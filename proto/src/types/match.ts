@@ -85,3 +85,6 @@ export type SetState = 'skipped' | 'finished' | 'progress' | 'none'
 
 /** A local file picked by the user. Held in memory only; never uploaded. */
 export type LocalVideo = { fileName: string; sizeMb: number; durationS: number; src: string }
+
+/** Archive job labels, in order. A running job's step is an index into this list. */
+export const ARCHIVE_STEPS = ['Making archive', 'Checking archive', 'Removing original'] as const

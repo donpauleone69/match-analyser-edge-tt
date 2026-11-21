@@ -3,10 +3,9 @@ import { createPortal } from 'react-dom'
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Card } from '@/ui-mine'
 import { calculateMatchSetsWon, calculateTaggedScore } from '@/rules/match'
-import { useMatchRecord, useMatchStore } from '@/stores/matchStore'
+import { useArchiveStep, useMatchRecord, useMatchStore } from '@/stores/matchStore'
 import type { MatchRecord, SetMark, VideoAsset } from '@/types/match'
 import { AddVideoChoice } from '@/features/match/AddVideoChoice'
-import { useArchiveStep } from '@/features/match/archiveJobs'
 import { TagVideoCard } from '@/features/match/TagVideoCard'
 import { reopenSet, saveMark } from '@/rules/matchOps'
 import type { Side } from '@/types/rally'
@@ -52,8 +51,9 @@ export function MatchTagChecklist() {
   const updateVideoPosition = useMatchStore((s) => s.updateVideoPosition)
   const mutateMatch = useMatchStore((s) => s.mutateMatch)
   const player = usePlayer(match?.videos ?? [])
-  const lock = useTagLock(matchId, match)
-  const running = useArchiveStep(matchId) !== null
+  const archiveStep = useArchiveStep(matchId)
+  const lock = useTagLock(match, archiveStep)
+  const running = archiveStep !== null
   const [picked, setPicked] = useState<number | null>(null)
   const [wingHint, setWingHint] = useState<string | null>(null)
   const [stick, setStick] = useState(0)
