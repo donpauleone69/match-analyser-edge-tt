@@ -64,3 +64,4 @@ videos/
 # Page smoke output and font cache (glob paths; no app/ prefix so they survive folder renames).
 **/tests/smoke/out/
 **/tests/smoke/.cache/
+**/tests/db/out/

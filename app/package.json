@@ -11,6 +11,7 @@
     "check:rules": "node scripts/check-rules.mjs",
     "check:docs": "node scripts/check-docs.mjs",
     "smoke": "node tests/smoke/smoke.mjs",
+    "check:db": "node tests/db/check-db.mjs"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",
