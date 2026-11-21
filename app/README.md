@@ -1,12 +1,10 @@
 # Match Analyser — IA shell proto
 
 Clickable **nav/layout wireframe** for the proposed MVP shell (Gate · Home · Match · Insights · Account).  
-**Not** the product app — `../app/` stays untouched. No real tagging, stores, or video.
-
 ## Run
 
 ```bash
-cd proto
+cd app
 npm install --legacy-peer-deps
 npm run dev
 ```
@@ -34,7 +32,7 @@ Nav (shell): **Matches · Insights · Account**. A bottom bar in portrait, a lef
 
 ## Theme tokens
 
-Light default. CSS variables in `src/index.css` (`@theme`), aligned with `app/src/index.css`:
+Light default. CSS variables in `src/index.css` (`@theme`):
 
 | Token | Role |
 |-------|------|

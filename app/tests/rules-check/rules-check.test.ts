@@ -2,12 +2,12 @@ import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { expect, it } from 'vitest'
 
-const proto = fileURLToPath(new URL('../..', import.meta.url))
+const appRoot = fileURLToPath(new URL('../..', import.meta.url))
 
 function run(args: string[]): { status: number; out: string } {
   try {
     const out = execFileSync(process.execPath, ['scripts/check-rules.mjs', ...args], {
-      cwd: proto,
+      cwd: appRoot,
       encoding: 'utf8',
     })
     return { status: 0, out }

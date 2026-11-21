@@ -92,7 +92,7 @@ Colours: player colours for You and Kim, brand for Save set and Save at 9 - 7, s
 
 ## 7. Where it lives
 
-All under `proto/src/features/tagging/`. Pure rules (no React) sit beside the components.
+All under `app/src/features/tagging/`. Pure rules (no React) sit beside the components.
 
 | File | Holds |
 |---|---|

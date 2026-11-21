@@ -29,7 +29,7 @@ const PAGE_SCRIPTS = [
 ]
 
 const smokeDir = path.dirname(fileURLToPath(import.meta.url))
-const protoDir = path.resolve(smokeDir, '../..')
+const appDir = path.resolve(smokeDir, '../..')
 const outDir = path.join(smokeDir, 'out')
 const cacheDir = path.join(smokeDir, '.cache', 'fonts')
 const baselineDir = process.env.SMOKE_BASELINE || DEFAULT_BASELINE
@@ -95,7 +95,7 @@ function directoryEmpty(dir) {
 }
 
 function gitCommit() {
-  const run = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: protoDir, encoding: 'utf8' })
+  const run = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: appDir, encoding: 'utf8' })
   if (run.status !== 0) throw new Error('git rev-parse HEAD failed')
   return run.stdout.trim()
 }
@@ -149,7 +149,7 @@ async function openContext(vp) {
 function runPageScript(script) {
   return new Promise((resolve) => {
     const child = spawn(process.execPath, [path.join(smokeDir, script)], {
-      cwd: protoDir,
+      cwd: appDir,
       env: { ...process.env, BASE },
       stdio: 'inherit',
     })
@@ -198,14 +198,14 @@ async function main() {
   }
 
   console.log('vite build')
-  const build = spawnSync(path.join(protoDir, 'node_modules', '.bin', 'vite'), ['build'], {
-    cwd: protoDir,
+  const build = spawnSync(path.join(appDir, 'node_modules', '.bin', 'vite'), ['build'], {
+    cwd: appDir,
     stdio: 'inherit',
   })
   if (build.status !== 0) throw new Error(`vite build exited ${build.status}`)
 
-  preview = spawn(path.join(protoDir, 'node_modules', '.bin', 'vite'), ['preview', '--port', String(PORT), '--strictPort', '--host', '127.0.0.1'], {
-    cwd: protoDir,
+  preview = spawn(path.join(appDir, 'node_modules', '.bin', 'vite'), ['preview', '--port', String(PORT), '--strictPort', '--host', '127.0.0.1'], {
+    cwd: appDir,
     detached: true,
     stdio: ['ignore', 'pipe', 'pipe'],
   })

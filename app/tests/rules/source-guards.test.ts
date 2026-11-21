@@ -3,8 +3,8 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { expect, it } from 'vitest'
 
-const protoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
-const srcRoot = path.join(protoRoot, 'src')
+const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
+const srcRoot = path.join(appRoot, 'src')
 
 function walkTs(dir: string): string[] {
   const out: string[] = []

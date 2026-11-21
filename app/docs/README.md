@@ -1,6 +1,6 @@
 # Proto docs
 
-A handful of short, current docs for the prototype in `proto/`. Older plans, reviews and ideation are in git history and in the Project's Context (Cursor store), along with canvases and media.
+A handful of short, current docs for the product in `app/`. Older plans, reviews and ideation are in git history and in the Project's Context (Cursor store), along with canvases and media.
 
 | Doc | What it is |
 |-----|------------|
