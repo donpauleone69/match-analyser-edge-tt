@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Edge TT Match Analyser — design previews</title>
+  <link rel="stylesheet" href="fonts.css">
+  <link rel="stylesheet" href="preview.css">
+  <script src="themes.js"></script>
+</head>
+<body>
+  <header class="chrome">
+    <div class="brand">
+      <strong>Edge TT Match Analyser</strong>
+      <span>Design previews. The frame is the app. These controls are not.</span>
+    </div>
+    <div class="controls">
+      <fieldset id="screens">
+        <legend>Screen</legend>
+      </fieldset>
+      <fieldset id="themes">
+        <legend>Theme</legend>
+        <select id="theme" aria-label="Theme"></select>
+      </fieldset>
+      <fieldset id="devices">
+        <legend>Device</legend>
+      </fieldset>
+      <fieldset id="moments">
+        <legend>Tagger moment</legend>
+      </fieldset>
+      <label class="fit"><input type="checkbox" id="fit" checked> Fit to window</label>
+    </div>
+    <p class="note" id="note"></p>
+  </header>
+  <div class="stage">
+    <div class="device" id="device">
+      <div class="scale" id="scale">
+        <div class="bezel" id="bezel">
+          <iframe id="frame" title="App preview"></iframe>
+        </div>
+      </div>
+      <p class="device-label" id="label"></p>
+    </div>
+  </div>
+  <script>
+    const SCREENS = [
+      ["tagger", "Set Tagger"],
+      ["matches", "Matches"],
+      ["details", "Details"],
+      ["insights", "Insights"],
+    ];
+    const DEVICES = [
+      ["phone-portrait", "Phone portrait", 390, 844, "coarse"],
+      ["phone-landscape", "Phone landscape", 844, 390, "coarse"],
+      ["tablet-portrait", "Tablet portrait", 820, 1180, "coarse"],
+      ["tablet-landscape", "Tablet landscape", 1180, 820, "coarse"],
+      ["desktop", "Desktop", 1440, 900, "fine"],
+    ];
+    const MOMENTS = [
+      ["answer", "Answering"],
+      ["review", "Review"],
+      ["watch", "Watch"],
+      ["edit", "Edit set"],
+      ["saved", "Saved set"],
+    ];
+    const NOTES = {
+      tagger: "Set 2 vs Sam, Club night, at 4–3, You to serve. Answering shows the stroke questions. Review, Watch, Edit set and Saved set are the other moments of the same screen. Saved set is set 1, 11–7, with the empty Input Area the product keeps. Taps are simulated and are not saved. The picture is a still.",
+      matches: "The fourteen seed matches, 21 Nov 2026. Continue set 2 opens the tagger. A row opens Details. The focus ring is pinned on Continue set 2.",
+      details: "Pat, League final, 9 Nov 2026. Set 2 was entered 9–11 and tagged 8–11, so the row carries Differs and Use tagged. The focus ring is pinned on Opponent. Delete and a shorter result ask before scores are dropped. Nothing is saved.",
+      insights: "The 12 tagged matches: 825 points. Phases and Serve use the figures from the app. Receive shows the verified total only; its four row counts were below the fold in the audit shots, so they are not invented. Download stays disabled. Play opens the playlist layout. Flip a card with the info control.",
+    };
+
+    const q = new URLSearchParams(location.search);
+    let screen = q.get("screen") || "tagger";
+    let device = q.get("device") || "phone-portrait";
+    let theme = q.get("theme") || "";
+    let mode = q.get("mode") || "answer";
+
+    const screens = document.getElementById("screens");
+    const devices = document.getElementById("devices");
+    const moments = document.getElementById("moments");
+    const themeSel = document.getElementById("theme");
+    const frame = document.getElementById("frame");
+    const bezel = document.getElementById("bezel");
+    const scale = document.getElementById("scale");
+    const deviceEl = document.getElementById("device");
+    const label = document.getElementById("label");
+    const note = document.getElementById("note");
+    const fit = document.getElementById("fit");
+
+    function button(parent, id, text, pressed, onpick) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.textContent = text;
+      b.setAttribute("aria-pressed", pressed ? "true" : "false");
+      b.addEventListener("click", () => onpick(id));
+      parent.appendChild(b);
+      return b;
+    }
+
+    SCREENS.forEach(([id, text]) => button(screens, id, text, id === screen, (next) => { screen = next; sync(); load(); }));
+    DEVICES.forEach(([id, text]) => button(devices, id, text, id === device, (next) => { device = next; sync(); load(); }));
+    MOMENTS.forEach(([id, text]) => button(moments, id, text, id === mode, (next) => { mode = next; sync(); load(); }));
+
+    const themes = [{ id: "", name: "Baseline" }].concat(
+      (window.PREVIEW_THEMES || []).map((id) => ({ id, name: id.charAt(0).toUpperCase() + id.slice(1) }))
+    );
+    themes.forEach((item) => {
+      const o = document.createElement("option");
+      o.value = item.id;
+      o.textContent = item.name;
+      themeSel.appendChild(o);
+    });
+    themeSel.value = themes.some((t) => t.id === theme) ? theme : "";
+    themeSel.addEventListener("change", () => { theme = themeSel.value; load(); });
+
+    function sync() {
+      [...screens.querySelectorAll("button")].forEach((b, i) => b.setAttribute("aria-pressed", SCREENS[i][0] === screen ? "true" : "false"));
+      [...devices.querySelectorAll("button")].forEach((b, i) => b.setAttribute("aria-pressed", DEVICES[i][0] === device ? "true" : "false"));
+      [...moments.querySelectorAll("button")].forEach((b, i) => b.setAttribute("aria-pressed", MOMENTS[i][0] === mode ? "true" : "false"));
+      moments.hidden = screen !== "tagger";
+      note.textContent = NOTES[screen] || NOTES.tagger;
+    }
+
+    function load() {
+      const spec = DEVICES.find((d) => d[0] === device) || DEVICES[0];
+      const [, name, w, h, pointer] = spec;
+      const src = `frame.html?screen=${encodeURIComponent(screen)}&pointer=${pointer}&mode=${encodeURIComponent(mode)}&theme=${encodeURIComponent(themeSel.value)}&focus=1`;
+      frame.style.width = w + "px";
+      frame.style.height = h + "px";
+      frame.src = src;
+      bezel.style.width = (w + 20) + "px";
+      bezel.style.height = (h + 20) + "px";
+      label.textContent = `${name} · ${w} × ${h} · ${pointer} pointer`;
+      frame.title = `${SCREENS.find((s) => s[0] === screen)[1]} at ${name}`;
+      requestAnimationFrame(applyFit);
+      const url = new URL(location.href);
+      url.searchParams.set("screen", screen);
+      url.searchParams.set("device", device);
+      url.searchParams.set("mode", mode);
+      if (themeSel.value) url.searchParams.set("theme", themeSel.value);
+      else url.searchParams.delete("theme");
+      history.replaceState(null, "", url);
+    }
+
+    function applyFit() {
+      const spec = DEVICES.find((d) => d[0] === device) || DEVICES[0];
+      const w = spec[2] + 20;
+      const h = spec[3] + 20;
+      const chrome = document.querySelector(".chrome").offsetHeight;
+      const availW = window.innerWidth - 40;
+      const availH = window.innerHeight - chrome - 80;
+      const s = fit.checked ? Math.min(1, availW / w, availH / h) : 1;
+      scale.style.width = w + "px";
+      scale.style.height = h + "px";
+      scale.style.transform = `scale(${s})`;
+      deviceEl.style.width = Math.ceil(w * s) + "px";
+      deviceEl.style.height = Math.ceil(h * s) + "px";
+    }
+
+    fit.addEventListener("change", applyFit);
+    window.addEventListener("resize", applyFit);
+    window.addEventListener("message", (event) => {
+      const data = event.data;
+      if (!data || data.type !== "preview-nav") return;
+      if (data.screen && data.screen !== screen && SCREENS.some((s) => s[0] === data.screen)) {
+        screen = data.screen;
+      }
+      if (data.mode && MOMENTS.some((m) => m[0] === data.mode)) mode = data.mode;
+      sync();
+    });
+
+    sync();
+    load();
+  </script>
+</body>
+</html>

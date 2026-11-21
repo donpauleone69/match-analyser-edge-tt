@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Preview frame</title>
+  <link rel="stylesheet" href="fonts.css">
+  <link rel="stylesheet" href="../tokens/base.css">
+  <script>
+    (function () {
+      var q = new URLSearchParams(location.search);
+      var pointer = q.get("pointer") === "coarse" ? "coarse" : "fine";
+      document.documentElement.dataset.pointer = pointer;
+      var theme = q.get("theme") || "";
+      if (/^[a-z0-9-]+$/.test(theme)) {
+        document.documentElement.dataset.theme = theme;
+        document.write('<link rel="stylesheet" href="../themes/' + theme + '.css">');
+      }
+    })();
+  </script>
+  <link rel="stylesheet" href="system.css">
+</head>
+<body>
+  <div id="app"></div>
+  <script src="frame.js"></script>
+</body>
+</html>
