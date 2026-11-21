@@ -26,6 +26,7 @@ const RULES = {
   R15: 'rules-tested',
   R16: 'alias-imports',
   R17: 'raw-button',
+  R18: 'import-type',
 }
 
 const args = process.argv.slice(2)
@@ -261,6 +262,7 @@ function scanFile(file, src0) {
   }
 
   if (inSrc) scanLayers(file, src, findings)
+  scanImportType(file, src, findings)
 
   return findings
 }
@@ -350,6 +352,28 @@ function scanLayers(file, src, findings) {
     let rawHit
     while ((rawHit = rawButtonRe.exec(src))) push(findings, RULES.R17, file, src, rawHit.index, '<button')
   }
+
+}
+
+/** An import whose bindings are all types must be `import type`, not `import { type … }`. */
+function scanImportType(file, src, findings) {
+  const re = /\bimport\s+([\s\S]*?)\s+from\s*['"][^'"]+['"]/g
+  let hit
+  while ((hit = re.exec(src))) {
+    if (!inlineImportAllTypes(hit[1])) continue
+    push(findings, RULES.R18, file, src, hit.index, 'import { type … }')
+  }
+}
+
+function inlineImportAllTypes(clause) {
+  const trimmed = clause.trim()
+  if (/^type\b/.test(trimmed)) return false
+  if (!trimmed.startsWith('{')) return false
+  const brace = trimmed.match(/^\{([^}]*)\}/)
+  if (!brace) return false
+  const parts = brace[1].split(',').map((part) => part.trim()).filter(Boolean)
+  if (parts.length === 0) return false
+  return parts.every((part) => /^type\s+[A-Za-z_$][\w$]*(?:\s+as\s+[A-Za-z_$][\w$]*)?$/.test(part))
 }
 
 function scanned(file) {

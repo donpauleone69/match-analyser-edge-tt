@@ -3,7 +3,7 @@
  */
 
 import { forwardRef } from 'react'
-import { type LucideIcon } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { cn } from '@/helpers/utils'
 import { icons } from './icons'
 import type { IconProps } from './types'
