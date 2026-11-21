@@ -44,11 +44,10 @@ const ids = [
   'I-57',
 ]
 
-it('the catalog lists I-1 to I-57, and skips only the second half of I-52', () => {
+it('the catalog lists I-1 to I-57, and skips none', () => {
   expect(INVARIANTS.map((inv) => inv.id)).toEqual(ids)
   const skipped = INVARIANTS.filter((inv) => inv.kind === 'skip')
-  expect(skipped.map((inv) => inv.id)).toEqual(['I-52'])
-  expect(skipped[0]?.reason).toMatch(/matchStore/)
+  expect(skipped.map((inv) => inv.id)).toEqual([])
 })
 
 for (const inv of INVARIANTS) {

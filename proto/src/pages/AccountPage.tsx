@@ -2,12 +2,13 @@ import { Button, Card, CardDescription, CardTitle, Icon } from '@/ui-mine'
 import { APP_VERSION } from '@/version'
 import { ThemeSwitcher } from '@/theme/ThemeSwitcher'
 import { WfBadge, WfField, WfRow } from '@/layout/Wireframe'
-import { useDemo } from '@/data/demoStore'
+import { useMatchStore } from '@/stores/matchStore'
 import type { DemoMode } from '@/types/match'
 import { cn } from '@/helpers/utils'
 
 export function AccountPage() {
-  const { mode, setMode } = useDemo()
+  const mode = useMatchStore((s) => s.mode)
+  const setMode = useMatchStore((s) => s.setDemoMode)
   const empty = mode === 'empty'
 
   return (

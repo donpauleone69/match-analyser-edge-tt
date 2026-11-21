@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Card } from '@/ui-mine'
 import { calculateMatchSetsWon, calculateTaggedScore } from '@/rules/match'
-import { useDemo } from '@/data/demoStore'
+import { useMatchRecord, useMatchStore } from '@/stores/matchStore'
 import type { MatchRecord, SetMark, VideoAsset } from '@/types/match'
 import { AddVideoChoice } from '@/features/match/AddVideoChoice'
 import { useArchiveStep } from '@/features/match/archiveJobs'
@@ -46,8 +46,9 @@ export function MatchTagChecklist() {
       document.removeEventListener('click', swallow, true)
     }
   }, [arrive.waiting])
-  const { getMatch, moveVideo, mutateMatch } = useDemo()
-  const match = getMatch(matchId)
+  const match = useMatchRecord(matchId)
+  const updateVideoPosition = useMatchStore((s) => s.updateVideoPosition)
+  const mutateMatch = useMatchStore((s) => s.mutateMatch)
   const player = usePlayer(match?.videos ?? [])
   const lock = useTagLock(matchId, match)
   const running = useArchiveStep(matchId) !== null
@@ -232,7 +233,7 @@ export function MatchTagChecklist() {
             pickedId={picked}
             onMove={(by) => {
               if (videoMoveBreaks(match, video.id, by)) flash('That breaks the set order')
-              else moveVideo(match.id, video.id, by)
+              else updateVideoPosition(match.id, video.id, by)
             }}
             onRemove={() => dropVideo(video)}
             onOpen={openSet}

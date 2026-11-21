@@ -107,8 +107,8 @@ export { overrunLabels, tagRegions } from '@/features/tagging/inputModes'
 // -> @/rules/timeline
 export { formatClock, insertIndex, lastContactG, segmentAt, totalDuration } from '@/rules/timeline'
 
-// -> @/rules/script
-export { tagsFromPlay } from '@/features/tagging/script'
+// -> @/data/seed/script
+export { tagsFromPlay } from '@/data/seed/script'
 export type { ScriptRally } from '@/types/video'
 
 // -> @/rules/timeline
@@ -174,5 +174,7 @@ export type { InsightsFilters } from '@/features/insights/models'
 
 // -> @/data/seed
 export { emptySet } from '@/rules/match'
-export { SEED } from '@/data/demoStore'
-export { buildSeed, isoDaysBefore } from '@/data/buildSeed'
+export { buildSeed, isoDaysBefore } from '@/data/seed/buildSeed'
+
+// -> @/stores/matchStore
+export { SEED, createMatchStore, selectMatch } from '@/stores/matchStore'

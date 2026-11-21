@@ -1,7 +1,7 @@
 /** Pure changes tagging makes to a match. Applied through the store's mutateMatch. */
 
 import { emptySet, calculateResultSetCount, setScoresDiffer, calculateTaggedScore } from './match'
-import type { MatchRecord, Points, SetData, SetMark } from '@/types/match'
+import type { MatchRecord, Points, SetData, SetMark, VideoAsset } from '@/types/match'
 import type { Draft, MarkKind, RallyData } from '@/types/rally'
 import { otherSide, pointRally, swapPlayers } from './rally'
 import { ZERO, addPoint, firstServerAt, isSetWon, calculateScoreAtSetEnd, serverAt, setEndIndex } from './score'
@@ -411,3 +411,41 @@ export function moveSet(m: MatchRecord, from: number, to: number): MatchRecord {
   )
   return clearSet(moved, from)
 }
+
+/** Details edits: the fields go onto the set as typed. A set not listed stays unlisted. */
+export const patchSet = (m: MatchRecord, setId: number, patch: Partial<SetData>): MatchRecord => ({
+  ...m,
+  sets: m.sets.map((s) => (s.setId === setId ? { ...s, ...patch } : s)),
+})
+
+/** One place earlier or later in the match's video list. Off either end does nothing. */
+export function moveVideo(m: MatchRecord, videoId: string, by: -1 | 1): MatchRecord {
+  const from = m.videos.findIndex((v) => v.id === videoId)
+  const to = from + by
+  if (from < 0 || to < 0 || to >= m.videos.length) return m
+  const videos = [...m.videos]
+  ;[videos[from], videos[to]] = [videos[to], videos[from]]
+  return { ...m, videos }
+}
+
+export const withoutVideo = (m: MatchRecord, videoId: string): MatchRecord => ({
+  ...m,
+  videos: m.videos.filter((v) => v.id !== videoId),
+})
+
+/** At an index (held to the end of the list), or at the end when null. */
+export function insertVideo(m: MatchRecord, video: VideoAsset, at: number | null): MatchRecord {
+  const videos = [...m.videos]
+  videos.splice(at === null ? videos.length : Math.min(at, videos.length), 0, video)
+  return { ...m, videos }
+}
+
+/** An archived copy is about this share of the original's size. */
+export const ARCHIVE_RATIO = 0.12
+
+export const archiveVideos = (m: MatchRecord): MatchRecord => ({
+  ...m,
+  videos: m.videos.map((v) =>
+    v.archived ? v : { ...v, archived: true, sizeMb: Math.round(v.sizeMb * ARCHIVE_RATIO) }
+  ),
+})

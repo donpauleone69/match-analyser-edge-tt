@@ -1,10 +1,11 @@
-import { THEME_PACKS } from './packs'
-import { useTheme } from './ThemeProvider'
+import { THEME_PACKS } from '@/types/theme'
+import { useSettingsStore } from '@/stores/settingsStore'
 import { cn } from '@/helpers/utils'
 
 /** Stub switcher — Account (or Home) control to flip proto token packs. */
 export function ThemeSwitcher() {
-  const { theme, setTheme } = useTheme()
+  const theme = useSettingsStore((s) => s.theme)
+  const setTheme = useSettingsStore((s) => s.setTheme)
 
   return (
     <div className="space-y-2" role="group" aria-label="Theme packs">

@@ -1,6 +1,7 @@
 import {
   bestOpener,
   bestParts,
+  createMatchStore,
   deleteTags,
   derivePhase,
   finishSet,
@@ -10,10 +11,12 @@ import {
   markState,
   matchSetsWon,
   migrateSetMark,
+  missingVideoIds,
   newMarkAt,
   rallyOutside,
   resultDiffers,
   segmentsOf,
+  selectMatch,
   serveBands,
   serverAt,
   setEndIndex,
@@ -1047,10 +1050,51 @@ export const INVARIANTS: Invariant[] = [
   {
     id: 'I-52',
     text: 'a re-added video takes the missing id and position',
-    kind: 'skip',
-    reads: ['DemoProvider.addVideo'],
-    reason:
-      'it lives in DemoProvider.addVideo (React state, useRef); enable it when phase 3 step 3 moves it to a matchStore action',
+    kind: 'probe',
+    reads: ['matchStore.removeVideo', 'matchStore.addVideo', 'missingVideoIds'],
+    check: (ctx) => {
+      const bad: string[] = []
+      let probes = 0
+      for (const m of ctx.matches) {
+        m.videos.forEach((video, index) => {
+          const used = m.sets.some((s) => s.rallies.some((r) => r.videoId === video.id) || s.draft?.videoId === video.id)
+          if (!used) return
+          const file = { fileName: 'same-footage.mp4', sizeMb: 1, durationS: video.durationS, src: 'blob:same-footage' }
+          for (const pick of [undefined, file]) {
+            probes += 1
+            const how = pick ? 'file' : 'demo'
+            const store = createMatchStore(ctx.matches, 'filled')
+            store.getState().removeVideo(m.id, video.id)
+            const gone = selectMatch(store.getState(), m.id)
+            const missing = gone ? missingVideoIds(gone) : []
+            if (missing.length !== 1 || missing[0] !== video.id) {
+              bad.push(place(m.id, 0, 0, '-', `removing ${video.id} leaves missing [${missing.join(', ')}]`))
+              continue
+            }
+            store.getState().addVideo(m.id, pick)
+            const back = selectMatch(store.getState(), m.id)
+            if (!back) {
+              bad.push(place(m.id, 0, 0, '-', `match gone after re-adding ${video.id} (${how})`))
+              continue
+            }
+            const at = back.videos.findIndex((v) => v.id === video.id)
+            if (at !== index) bad.push(place(m.id, 0, 0, '-', `${video.id} (${how}) came back at ${at}, was at ${index}`))
+            if (back.videos.length !== m.videos.length) bad.push(place(m.id, 0, 0, '-', `${back.videos.length} videos after re-adding ${video.id} (${how})`))
+            const still = missingVideoIds(back)
+            if (still.length > 0) bad.push(place(m.id, 0, 0, '-', `still missing [${still.join(', ')}] after re-adding ${video.id} (${how})`))
+            const added = back.videos[at]
+            if (pick && (added?.kind !== 'file' || added.fileName !== pick.fileName)) {
+              bad.push(place(m.id, 0, 0, '-', `${video.id} re-added from a file is ${added?.kind} ${added?.fileName}`))
+            }
+            if (!pick && video.kind === 'demo' && JSON.stringify(added) !== JSON.stringify({ ...video, archived: false })) {
+              bad.push(place(m.id, 0, 0, '-', `${video.id} demo video did not come back as it was`))
+            }
+          }
+        })
+      }
+      if (probes !== 26) bad.push(place('seed', 0, 0, '-', `${probes} probes, expected 26`))
+      return bad
+    },
   },
   {
     id: 'I-53',

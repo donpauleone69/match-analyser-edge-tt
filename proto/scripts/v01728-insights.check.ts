@@ -3,7 +3,7 @@
  * that differ from a single match.
  */
 import { hasTaggedRallies } from '../src/rules/match'
-import { SEED } from '../src/data/demoStore'
+import { SEED } from '../src/stores/matchStore'
 import type { MatchRecord } from '../src/types/match'
 import {
   insightRules,

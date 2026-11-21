@@ -3,7 +3,7 @@ import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-route
 import { Button, Icon } from '@/ui-mine'
 import { WfEmpty } from '@/layout/Wireframe'
 import { emptySet, formatScore, calculateMatchSetsWon, calculateTaggedScore } from '@/rules/match'
-import { useDemo } from '@/data/demoStore'
+import { useMatchRecord, useMatchStore } from '@/stores/matchStore'
 import type { MatchRecord, Points, SetData } from '@/types/match'
 import type { BestPart, Draft, Mark, RallyData, Side, Stage, Wing } from '@/types/rally'
 import { SERVE_AFTER_S, SERVE_BEFORE_S, serveBands, expectedServer, leaveIds } from '@/rules/continuity'
@@ -59,7 +59,7 @@ import { RallyZone } from './RallyZone'
 import type { RallyState } from './models'
 import { SetZone } from './SetZone'
 import { BestTimingControl } from './BestTimingControl'
-import { loadBestTiming, saveBestTiming } from '@/stores/bestTimingStorage'
+import { useSettingsStore } from '@/stores/settingsStore'
 import {
   BEST_SHOT_RATE,
   bestAdvance,
@@ -91,7 +91,6 @@ import {
   type BestAt,
   type BestEnd,
   type BestLoopWhat,
-  type BestTiming,
 } from '@/rules/bestFa'
 import { useActionGuard, type ActionGuard } from './pressGuard'
 import { TAG_LOCK_LINE, useTagLock, type TagLock } from './tagLock'
@@ -106,8 +105,7 @@ export function TagSetScreen() {
   const navigate = useNavigate()
   const location = useLocation()
   const { matchId = '', setId = '1' } = useParams()
-  const { getMatch } = useDemo()
-  const match = getMatch(matchId)
+  const match = useMatchRecord(matchId)
   const lock = useTagLock(matchId, match)
   const n = Number(setId)
   // A set number not listed yet (a skipped set 1, say) can still be started. It is added on its first write.
@@ -190,7 +188,7 @@ function TagSet({
   const navigate = useNavigate()
   /** The address no longer picks a flow. Every rally is Best + FA. */
   const flowWanted: FlowName = 'bestfa'
-  const { mutateMatch } = useDemo()
+  const mutateMatch = useMatchStore((s) => s.mutateMatch)
   const player = usePlayer(match.videos)
   const playerRef = useRef(player)
   const segs = player.segs
@@ -215,7 +213,8 @@ function TagSet({
    */
   const [flowLock, setFlowLock] = useState<FlowName | null>(null)
   /** Best + FA: loop timings, contact check, and add. */
-  const [timing, setTiming] = useState(loadBestTiming)
+  const timing = useSettingsStore((s) => s.bestTiming)
+  const setBestTiming = useSettingsStore((s) => s.setBestTiming)
   const landscape = useLandscape()
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [bestSpan, setBestSpan] = useState<{ a: number; b: number } | null>(null)
@@ -225,10 +224,6 @@ function TagSet({
   const reviewRef = useRef(false)
   const reviewPlay = useRef<{ d: Draft; part: BestPart } | null>(null)
   const loopWhat = useRef<{ what: BestLoopWhat; rate: number } | null>(null)
-  const setBestTiming = (next: BestTiming) => {
-    setTiming(next)
-    saveBestTiming(next)
-  }
   const [bestLook, setBestLook] = useState(false)
   /** Edit Rally: the stop on screen, and where Done returns. */
   const [shotEdit, setShotEdit] = useState<{

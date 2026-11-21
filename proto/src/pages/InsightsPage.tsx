@@ -4,7 +4,7 @@ import { StickyChrome } from '@/layout/StickyChrome'
 import { WfEmpty } from '@/layout/Wireframe'
 import { Button, Icon } from '@/ui-mine'
 import { hasTaggedRallies } from '@/rules/match'
-import { useDemo } from '@/data/demoStore'
+import { useMatchStore } from '@/stores/matchStore'
 import type { MatchRecord, VideoAsset } from '@/types/match'
 import { InsightCard } from '@/features/insights/InsightCard'
 import { insightRules, insightsFor, type PlayItem } from '@/rules/insights'
@@ -17,7 +17,7 @@ import {
   filterIsSet,
   filterMatches,
 } from '@/rules/filters'
-import { InsightsFilterProvider, useInsightsFilters } from '@/features/insights/insightsFilterContext'
+import { useSettingsStore } from '@/stores/settingsStore'
 import type { InsightsFilters } from '@/features/insights/models'
 
 function countActive(f: InsightsFilters): number {
@@ -103,7 +103,8 @@ function InsightsFilter({
   tagged: MatchRecord[]
   renderRow: (end: ReactNode) => ReactNode
 }) {
-  const { filters, setFilters } = useInsightsFilters()
+  const filters = useSettingsStore((s) => s.insightsFilters)
+  const setFilters = useSettingsStore((s) => s.setInsightsFilters)
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState<InsightsFilters>(filters)
   const [desktop, setDesktop] = useState(() => window.matchMedia('(min-width: 768px)').matches)
@@ -271,7 +272,8 @@ function videosOf(matches: MatchRecord[]): VideoAsset[] {
 }
 
 function GlobalCards({ tagged }: { tagged: MatchRecord[] }) {
-  const { filters, setFilters } = useInsightsFilters()
+  const filters = useSettingsStore((s) => s.insightsFilters)
+  const setFilters = useSettingsStore((s) => s.setInsightsFilters)
   const kept = useMemo(() => filterMatches(tagged, filters), [tagged, filters])
   const opponent = filters.opponent === 'Any' ? '' : filters.opponent
   const model = useMemo(
@@ -352,11 +354,11 @@ function GlobalCards({ tagged }: { tagged: MatchRecord[] }) {
  * matches the filter keeps. Empty until some match has tagged rallies.
  */
 export function InsightsPage() {
-  const { matches } = useDemo()
+  const matches = useMatchStore((s) => s.matches)
   const tagged = matches.filter(hasTaggedRallies)
 
   return (
-    <InsightsFilterProvider>
+    <>
       {tagged.length === 0 ? (
         <>
           <StickyChrome>
@@ -379,6 +381,6 @@ export function InsightsPage() {
           <GlobalCards tagged={tagged} />
         </div>
       )}
-    </InsightsFilterProvider>
+    </>
   )
 }

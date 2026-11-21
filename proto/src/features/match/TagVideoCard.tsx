@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { emptySet } from '@/rules/match'
-import { useDemo } from '@/data/demoStore'
+import { useMatchStore } from '@/stores/matchStore'
 import type { MatchRecord, SetData, SetMark, VideoAsset } from '@/types/match'
 import { calculateVideoRallyCount } from '@/rules/matchStatus'
 import { deleteTags, moveSet, unmarkSet } from '@/rules/matchOps'
@@ -71,7 +71,7 @@ export function TagVideoCard({
   onHint: (text: string) => void
   onAdd: () => void
 }) {
-  const { mutateMatch } = useDemo()
+  const mutateMatch = useMatchStore((s) => s.mutateMatch)
   const [removing, setRemoving] = useState(false)
   const [drag, setDrag] = useState<Drag | null>(null)
   const many = match.videos.length > 1

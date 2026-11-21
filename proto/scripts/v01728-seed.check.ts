@@ -3,7 +3,7 @@
  * Run: npm run check:v01728-seed
  */
 import { derivePhase, calculateMatchSetsWon, setScoresDiffer } from '../src/rules/match'
-import { SEED } from '../src/data/demoStore'
+import { SEED } from '../src/stores/matchStore'
 import { bestOpener, bestParts } from '../src/rules/bestFa'
 import { isError, winnerOf } from '../src/rules/rally'
 import type { MatchRecord, SetData } from '../src/types/match'
@@ -17,7 +17,7 @@ import {
   setOverOnRule,
 } from '../src/rules/score'
 import { endedEarly, gapsOf, MIN_SET_S, rallyOutside, spansOnVideo } from '../src/rules/marks'
-import { tagsFromPlay } from '../src/features/tagging/script'
+import { tagsFromPlay } from '../src/data/seed/script'
 import type { ScriptRally } from '../src/types/video'
 import { firstContactG, lastContactG, segmentsOf, toGlobal, totalDuration } from '../src/rules/timeline'
 
