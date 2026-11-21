@@ -39,7 +39,7 @@ export function isLegalEnd(score: Points): boolean {
   return lo >= 10 && hi - lo === 2
 }
 
-/** One side is ahead, so a short set can be saved. A level score cannot. */
+/** One side is ahead, so a short set is saved as ended early. A level score is not. */
 export function canSaveEarly(score: Points): boolean {
   return leader(score) !== null
 }

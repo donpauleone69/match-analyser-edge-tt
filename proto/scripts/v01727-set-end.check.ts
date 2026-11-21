@@ -3,7 +3,7 @@
  * Run: npm run check:v01727
  */
 import { readFileSync } from 'node:fs'
-import { emptySet, matchSetsWon, type MatchRecord, type SetData } from '../src/data/demoStore'
+import { emptySet, isMatchTagged, matchSetsWon, setSettled, type MatchRecord, type SetData } from '../src/data/demoStore'
 import { overrunLabels, tagRegions } from '../src/features/tagging/inputModes'
 import { settleFinished } from '../src/features/tagging/matchOps'
 import type { Side } from '../src/features/tagging/rally'
@@ -48,16 +48,16 @@ function placed(setId: number, winners: Side[], finished: boolean): SetData {
   }
 }
 
-function matchOf(s: SetData): MatchRecord {
+function matchOf(s: SetData, result: MatchRecord['result'] = { me: null, them: null }): MatchRecord {
   return {
     id: 'm',
     opponent: 'Kim',
     event: '',
     date: '',
-    result: { me: null, them: null },
+    result,
     videos: [],
     sets: [s],
-    tagDone: true,
+    tagDone: false,
   }
 }
 
@@ -92,9 +92,10 @@ ok(
 )
 
 const labels = overrunLabels(18, 20)
-ok('edit leads', labels.edit === 'Edit rally 18')
+ok('edit leads', labels.edit === 'Edit Rally 18')
 ok('remove is second', labels.remove === 'Remove 19 to 20')
-ok('one rally still names both ends', overrunLabels(18, 19).remove === 'Remove 19 to 19')
+ok('one rally names that rally', overrunLabels(11, 12).remove === 'Remove 12')
+ok('one rally edit is capitalised', overrunLabels(11, 12).edit === 'Edit Rally 11')
 
 const noop = () => {}
 function pad(over: Partial<Parameters<typeof tagRegions>[0]> = {}) {
@@ -151,18 +152,23 @@ function pad(over: Partial<Parameters<typeof tagRegions>[0]> = {}) {
 }
 
 const overrunPad = pad({ showRemove: true, endPad: true, saveEarly: true })
-ok('overrun leads with edit', overrunPad.regions[0]?.label === 'Edit rally 18' && overrunPad.regions[0]?.column === 1)
+ok('overrun leads with edit', overrunPad.regions[0]?.label === 'Edit Rally 18' && overrunPad.regions[0]?.column === 1)
 ok('overrun remove is second', overrunPad.regions[1]?.label === 'Remove 19 to 20' && overrunPad.regions[1]?.column === 2)
 ok('overrun hides save', overrunPad.attrs['data-overrun'] === '' && !overrunPad.regions.some((r) => r.key === 'save'))
+const oneAfter = pad({ showRemove: true, removeAfter: 11, removeLast: 12 })
+ok('one rally pad says Remove 12', oneAfter.regions[1]?.label === 'Remove 12' && oneAfter.regions[0]?.label === 'Edit Rally 11')
 
 const earlyPad = pad({ endPad: true, saveEarly: true, saveLabel: 'Save at 9 - 7' })
 ok('save at the score', earlyPad.regions.length === 1 && earlyPad.regions[0]?.label === 'Save at 9 - 7')
 ok('early save is marked', earlyPad.regions[0]?.data?.['data-save-early'] === '')
-ok('level has no save', pad({ endPad: true, saveEarly: false }).regions.length === 0)
-ok('level pad is still the end', pad({ endPad: true, saveEarly: false }).attrs['data-end-pad'] === '')
-ok('9 - 7 can be saved', canSaveEarly(score(early)))
-ok('5 - 5 cannot be saved', !canSaveEarly(score(level)))
-ok('10 - 10 cannot be saved', !canSaveEarly({ me: 10, them: 10 }))
+const levelPad = pad({ endPad: true, saveEarly: false })
+ok('level end keeps Save set', levelPad.regions.length === 1 && levelPad.regions[0]?.label === 'Save set' && levelPad.regions[0]?.column === 2)
+ok('level save is not ended early', levelPad.regions[0]?.data?.['data-save-level'] === '' && !('data-save-early' in (levelPad.regions[0]?.data ?? {})))
+ok('level pad is still the end', levelPad.attrs['data-end-pad'] === '')
+ok('9 - 7 can be saved early', canSaveEarly(score(early)))
+ok('5 - 5 is not an early save', !canSaveEarly(score(level)))
+ok('10 - 10 is not an early save', !canSaveEarly({ me: 10, them: 10 }))
+ok('edit set can save a level score', screen.includes('saveOn: readyToFinish') && !screen.includes('|| !saveEarly'))
 
 const earlySet = placed(2, early, true)
 const levelSet = placed(2, level, true)
@@ -173,6 +179,19 @@ ok('ended early flag', endedEarly(earlySet) && !setIncomplete(earlySet) && lineA
 ok('a win is not ended early', setLineLabel(wonSet) === 'Set 1' && !endedEarly(wonSet))
 ok('level is not ended early', setLineLabel(levelSet) === 'Set 2' && !endedEarly(levelSet))
 ok('level stays incomplete', setIncomplete(levelSet) && lineAction(levelSet) === 'Continue')
+const levelOne = placed(1, level, true)
+ok('level save is not settled yet', !setSettled(levelOne))
+const levelDetails = { ...levelOne, entered: { me: '11', them: '9' } }
+ok('details settles a saved level set', setSettled(levelDetails) && !endedEarly(levelDetails) && setIncomplete(levelDetails))
+ok(
+  'a settled level set tags the match',
+  isMatchTagged(matchOf(levelDetails, { me: 1, them: 0 })) && matchSetsWon(matchOf(levelDetails)).me === 1,
+)
+ok('a result alone does not settle it', !isMatchTagged(matchOf(levelOne, { me: 1, them: 0 })))
+ok(
+  'details does not settle an unsaved level set',
+  !setSettled({ ...placed(1, level, false), entered: { me: '11', them: '9' } }),
+)
 ok('overrun is not ended early', !endedEarly(overrunSet) && lineAction(overrunSet) === 'Open')
 ok('early set counts for the leader', matchSetsWon(matchOf(earlySet)).me === 1 && matchSetsWon(matchOf(earlySet)).them === 0)
 
@@ -181,7 +200,7 @@ ok('level save reopens', settleFinished(matchOf(levelSet), 2).sets[0]?.finished 
 ok('overrun edit reopens', settleFinished(matchOf(overrunSet), 2).sets[0]?.finished === false)
 ok('a won set stays finished', settleFinished(matchOf(wonSet), 1).sets[0]?.finished === true)
 
-const words = [labels.edit, labels.remove, 'Save at 9 - 7', setLineLabel(earlySet)].join('\n')
+const words = [labels.edit, labels.remove, overrunLabels(11, 12).edit, overrunLabels(11, 12).remove, 'Save at 9 - 7', 'Save set', setLineLabel(earlySet)].join('\n')
 ok('no clip', !/\bclip\b/i.test(words))
 ok('no long dash', !words.includes('—') && !words.includes('–'))
 ok('no arrow', !words.includes('→') && !words.includes('➔'))

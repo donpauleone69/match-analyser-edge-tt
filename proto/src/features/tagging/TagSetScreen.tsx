@@ -309,7 +309,7 @@ function TagSet({
   const overrun = endIndex >= 0 && endIndex < set.rallies.length - 1
   /** Set over is the rule only. Matching the Details score does not finish a broken set. */
   const setWon = setOverOnRule(winners)
-  /** A level score cannot be saved at the mark or the video end. */
+  /** A leader at the end is ended early. A level score still saves, as incomplete. */
   const saveEarly = canSaveEarly(running)
   const mode = set.finished && !editing
     ? 'finished'
@@ -1235,7 +1235,7 @@ function TagSet({
     editPick?.kind === 'gap'
       ? stops.gaps.findIndex((g) => g.index === editPick.index)
       : stops.rallies.findIndex((r) => r.id === pickedId)
-  /** The pad's Edit rally N opens Edit Rally on shot 1. */
+  /** The pad's Edit Rally N opens Edit Rally on shot 1. */
   const onPickEdit = () => {
     const r = pickable.find((row) => row.id === pickedId)
     if (r) beginShotEdit(r.id, 'set')
@@ -1542,11 +1542,11 @@ function TagSet({
     setServerPick(null)
   }
 
-  /** A set can be saved once it has a rally and nothing is open. A level score cannot. */
+  /** A set can be saved once it has a rally and nothing is open, level score included. */
   const readyToFinish = !set.finished && !live && !draftGone && set.rallies.length > 0
 
   const onFinishSet = () => {
-    if (!readyToFinish || readOnly || !saveEarly) return
+    if (!readyToFinish || readOnly) return
     playerRef.current.pause()
     mutateMatch(match.id, (m) => finishSet(m, set.setId))
     navigate(`/matches/${match.id}/tag?from=${set.setId}`, { replace: true, state: { saved: set.setId } })
@@ -1890,7 +1890,7 @@ function TagSet({
     editKind: editPick?.kind ?? null,
     editName: editPick?.kind === 'gap' ? String(viewedGap?.n ?? '') : String(editIndex + 1),
     rallyOn: editPick?.kind !== 'gap',
-    saveOn: readyToFinish && saveEarly,
+    saveOn: readyToFinish,
     saveDim: tapGuard.waiting || editGuard.waiting || readOnly,
     backDim: stepAt <= 0,
     forwardDim: stepAt >= stepList.length - 1,

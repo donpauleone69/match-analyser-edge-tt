@@ -10,11 +10,12 @@ function region(part: AreaRegion): AreaRegion {
   return part
 }
 
-/** Overrun pad. Edit rally N leads. Remove N+1 to M is second. */
+/** Overrun pad. Edit Rally N leads. One rally after is Remove N. A run is Remove N+1 to M. */
 export function overrunLabels(endRally: number, lastRally: number): { edit: string; remove: string } {
+  const from = endRally + 1
   return {
-    edit: `Edit rally ${endRally}`,
-    remove: `Remove ${endRally + 1} to ${lastRally}`,
+    edit: `Edit Rally ${endRally}`,
+    remove: from === lastRally ? `Remove ${from}` : `Remove ${from} to ${lastRally}`,
   }
 }
 
@@ -297,18 +298,21 @@ export function tagRegions(p: {
   }
   if (p.endPad) {
     attrs['data-end-pad'] = ''
-    if (!p.saveEarly) return { regions: [], attrs }
+    // A leader is Save at 9 - 7. A level score is Save set, and stays incomplete.
+    const level = !p.saveEarly
     return {
       regions: [
         region({
           key: 'save',
-          label: p.saveLabel,
+          label: level ? 'Save set' : p.saveLabel,
           column: 2,
           row: 0,
           bg: BRAND,
           fg: '#fff',
           onClick: p.onFinish,
-          data: { 'data-save-set': '', 'data-save-early': '' },
+          data: level
+            ? { 'data-save-set': '', 'data-save-level': '' }
+            : { 'data-save-set': '', 'data-save-early': '' },
         }),
       ],
       attrs,

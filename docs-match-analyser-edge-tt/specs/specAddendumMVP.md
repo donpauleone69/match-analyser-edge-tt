@@ -6,6 +6,18 @@
 
 ## Change Log
 
+### 2026-11-21: Set over and early save (proto v0.17.27)
+
+**Change Type:** Set Tagger. Proto only.
+
+**What Changed:**
+- Set over fires only when the last rally is the first winning score. A Details score no longer finishes a broken set.
+- An overrun pad leads with Edit Rally N. One rally after the win reads Remove N. More than one reads Remove N+1 to M.
+- At the mark or the video end, a score with a leader is Save at 9 - 7. The set line reads ended early, and the set counts for the side ahead.
+- A level score at that end is Save set, as before. It saves as incomplete. A Details score then settles the set, so the match can reach Tagged.
+
+**Decision Rationale:** Paul approved decisions 8, 7 and 6, then chose to keep Save on a level score so Details can still settle the match.
+
 ### 2026-11-21: Match Insights (proto v0.17.26)
 
 **Change Type:** Match Insights page. Proto only.

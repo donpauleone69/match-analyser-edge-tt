@@ -138,7 +138,7 @@ function taggedNow(s: SetData) {
 
 /**
  * Saved on purpose before a legal end, with one side ahead.
- * A level score is not this: it cannot be saved.
+ * A level score is not this: it saves as incomplete, and Details settles it.
  * An overrun is not this: the tagged score is the legal end it already reached.
  */
 export function endedEarly(s: SetData): boolean {
