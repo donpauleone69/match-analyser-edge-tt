@@ -1,10 +1,10 @@
 # Changelog
 
-Visible version: v0.17.28 in `app/src/version.ts`. The old reference app's v3.x log left with that app in phase 5. This file is the proto line that became `app/`, condensed from the version notes, the tags, and that removed log's proto entries.
+Visible version: v0.17.29 in `app/src/version.ts`. The old reference app's v3.x log left with that app in phase 5. This file is the proto line that became `app/`, condensed from the version notes, the tags, and that removed log's proto entries.
 
 ## Unreleased: refactor phases 0 to 6
 
-No tagging or scoring change. The version stays v0.17.28.
+No tagging or scoring change. Settings shows v0.17.29 for the phase 6 (`refactor-p6`) phone publish off `cursor/refactor-run-1886`; behaviour matches v0.17.28.
 
 - Phase 0. Save point. Tag `pre-refactor-v0.17.28`. `main` is that commit.
 - Phase 1. Vitest. Rules tests, invariants I-1 to I-57, golden JSON, page smoke. Tag `refactor-p1`.

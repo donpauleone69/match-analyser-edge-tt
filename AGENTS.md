@@ -2,7 +2,7 @@
 
 Table tennis match video tagging and insights. This is not the club session app called Edge TT.
 
-The product is `app/` (Vite 7, React 19, React Router 7, Tailwind 4, TypeScript 5.9, Zustand, Vitest). The visible version is v0.17.28 in `app/src/version.ts`. Match data lives in memory and resets on reload. Device preferences persist through `app/src/stores/settingsStore.ts`. There is no database yet.
+The product is `app/` (Vite 7, React 19, React Router 7, Tailwind 4, TypeScript 5.9, Zustand, Vitest). The visible version is v0.17.29 in `app/src/version.ts`. Match data lives in memory and resets on reload. Device preferences persist through `app/src/stores/settingsStore.ts`. There is no database yet.
 
 ## Run and test
 
