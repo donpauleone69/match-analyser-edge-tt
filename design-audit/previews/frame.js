@@ -357,6 +357,23 @@
     return `<button type="button" class="btn" data-act="${act}" data-chip="${esc(text)}" aria-label="Remove ${esc(text)}">${esc(text)} ${icon("close", 16)}</button>`;
   }
 
+  function filterMarkup(fieldsHtml, clearAct, applyAct) {
+    return `<div class="fields">${fieldsHtml}</div><div class="actions-split filter-actions"><button type="button" class="btn btn-lg btn-quiet" data-act="${clearAct}">Clear</button><button type="button" class="btn btn-lg btn-primary" data-act="${applyAct}">Apply</button></div>`;
+  }
+
+  function filterChrome(fieldsHtml, clearAct, applyAct) {
+    const body = filterMarkup(fieldsHtml, clearAct, applyAct);
+    if (!state.filterOpen) return { inline: "", overlay: "" };
+    const narrow = window.matchMedia("(max-width: 639px)").matches;
+    if (narrow) {
+      return {
+        inline: "",
+        overlay: `<div class="overlay" data-filter-surface><button type="button" class="scrim" data-act="filter" aria-label="Close filters"></button><div class="sheet" role="dialog" aria-label="Filters"><h2>Filter</h2>${body}</div></div>`,
+      };
+    }
+    return { inline: `<div class="card filter-panel stack" data-filter-surface>${body}</div>`, overlay: "" };
+  }
+
   function selectField(id, label, value, options, act) {
     const opts = options
       .map((o) => {
@@ -539,7 +556,7 @@
       .map((part, i) => {
         const current = i === state.reviewAt ? " is-current" : "";
         const marked = part === "Attack" && state.marked ? " is-marked" : "";
-        return `<button type="button" class="chip${current}${marked}" data-act="part" data-i="${i}">${part}</button><span class="part-line${marked}"></span>`;
+        return `<button type="button" class="chip-hit" data-act="part" data-i="${i}"><span class="chip${current}${marked}">${part}</span></button><span class="part-line${marked}"></span>`;
       })
       .join("")}</div>`;
   }
@@ -550,7 +567,7 @@
       .map((part, i) => {
         const current = i === state.reviewAt ? " is-current" : "";
         const marked = part === "Attack" && state.marked ? " is-marked" : "";
-        return `<button type="button" class="chip${current}${marked}" data-act="part" data-i="${i}">${part}</button>`;
+        return `<button type="button" class="chip-hit" data-act="part" data-i="${i}"><span class="chip${current}${marked}">${part}</span></button>`;
       })
       .join("");
   }
@@ -715,28 +732,16 @@
           .join("")}</div>`
       : `<div class="callout callout-empty"><p>Nothing fits this filter.</p><button type="button" class="btn btn-primary btn-lg" data-act="clear-filters">Clear filter</button></div>`;
     const draft = state.draft || f;
-    const panel = `<div class="card filter-panel stack" data-filter-surface>
-        ${selectField("f-opp", "Opponent", draft.opponent, choices(MATCHES, "opponent"), "draft")}
+    const surface = filterChrome(
+      `${selectField("f-opp", "Opponent", draft.opponent, choices(MATCHES, "opponent"), "draft")}
         ${selectField("f-event", "Event", draft.event, choices(MATCHES, "event"), "draft")}
-        ${selectField("f-status", "Status", draft.status, ["Any", "Not tagged", "Part tagged", "Tagged"], "draft")}
-        <div class="actions"><button type="button" class="btn btn-quiet" data-act="clear-filters">Clear</button><button type="button" class="btn btn-primary" data-act="apply">Apply</button></div>
-      </div>`;
-    const narrow = window.matchMedia("(max-width: 639px)").matches;
-    const inline = state.filterOpen && !narrow ? panel : "";
+        ${selectField("f-status", "Status", draft.status, ["Any", "Not tagged", "Part tagged", "Tagged"], "draft")}`,
+      "clear-filters",
+      "apply",
+    );
+    const inline = surface.inline;
     const chips = labels.length ? `<div class="chips">${labels.map((label) => chip(label, "unchip")).join("")}</div>` : "";
-    let overlay = "";
-    if (state.filterOpen && narrow) {
-      overlay = `<div class="overlay" data-filter-surface><button type="button" class="scrim" data-act="filter" aria-label="Close filters"></button>
-        <div class="sheet" role="dialog" aria-label="Filters">
-          <h2>Filter</h2>
-          <div class="stack">
-            ${selectField("f-opp", "Opponent", draft.opponent, choices(MATCHES, "opponent"), "draft")}
-            ${selectField("f-event", "Event", draft.event, choices(MATCHES, "event"), "draft")}
-            ${selectField("f-status", "Status", draft.status, ["Any", "Not tagged", "Part tagged", "Tagged"], "draft")}
-            <div class="actions-split"><button type="button" class="btn btn-lg btn-quiet" data-act="clear-filters">Clear</button><button type="button" class="btn btn-lg btn-primary" data-act="apply">Apply</button></div>
-          </div>
-        </div></div>`;
-    }
+    const overlay = surface.overlay;
     const body = `${topRow(
       "page-list",
       `<h1 class="top-title">Matches</h1><div class="top-end">${filterButton(n)}<button type="button" class="btn btn-quiet" data-act="new">${icon("plus", 16)} New</button></div>`,
@@ -798,7 +803,7 @@
         const badThem = s.them === "" && s.me !== "";
         const flag = differs(s);
         const tagged = flag
-          ? `<span class="num">${esc(s.tagged)}</span><span class="badge badge-flag">Differs</span><button type="button" class="btn" data-act="use-tagged" data-set="${s.id}">Use tagged</button><button type="button" class="link" data-act="open-set" data-set="${s.id}">Open set ${s.id}</button>`
+          ? `<span class="num">${esc(s.tagged)}</span><span class="badge badge-flag">Differs</span><button type="button" class="btn" data-act="use-tagged" data-set="${s.id}">Use tagged</button><button type="button" class="btn btn-quiet" data-act="open-set" data-set="${s.id}">Open set ${s.id}</button>`
           : `<span class="${s.tagged.includes("-") || s.tagged.includes("so far") ? "" : "row-meta"}">${esc(s.tagged)}</span>`;
         const err = badMe || badThem ? `<p class="help is-error" id="err-${s.id}">Enter both scores</p>` : "";
         return `<tr>
@@ -817,7 +822,7 @@
       .join("");
     const deleteHtml = state.confirmDelete
       ? `<div class="callout callout-warning" role="alertdialog" aria-label="Delete match"><p>Delete this match and its tagging? This cannot be undone.</p><div class="actions"><button type="button" class="btn btn-danger" data-act="do-delete">Delete</button><button type="button" class="btn btn-quiet" data-act="cancel-delete">Cancel</button></div></div>`
-      : `<button type="button" class="btn btn-quiet" data-act="delete">Delete match</button>`;
+      : `<button type="button" class="btn btn-quiet is-danger" data-act="delete">Delete match</button>`;
     const body = `${topRow(
       "page-form",
       `<button type="button" class="btn btn-icon btn-quiet" data-act="nav" data-screen="matches" aria-label="Back">${icon("back", 20)}</button>
@@ -908,19 +913,18 @@
     const filtered = labels.length > 0;
     const draft = state.iDraft || f;
     const dates = ["Any", "Last 5 matches", "Last 30 days", "Last 3 months", "Last 12 months", "From and to"];
-    const panelFields = `<div class="stack">
-      ${selectField("i-dates", "Dates", draft.dates, dates, "idraft")}
-      ${draft.dates === "From and to" ? `<div class="fields"><label class="field-row"><span class="lbl">From</span><input class="field" type="date" data-act="idates" data-field="from" value="${esc(draft.from)}"></label><label class="field-row"><span class="lbl">To</span><input class="field" type="date" data-act="idates" data-field="to" value="${esc(draft.to)}"></label></div>` : ""}
-      ${selectField("i-opp", "Opponent", draft.opponent, choices(taggedPool(), "opponent"), "idraft")}
-      ${selectField("i-event", "Event", draft.event, choices(taggedPool(), "event"), "idraft")}
-      <div class="actions"><button type="button" class="btn btn-quiet" data-act="clear-i">Clear</button><button type="button" class="btn btn-primary" data-act="apply-i">Apply</button></div>
-    </div>`;
-    const narrow = window.matchMedia("(max-width: 639px)").matches;
-    const inline = state.filterOpen && !narrow ? `<div class="card filter-panel">${panelFields}</div>` : "";
-    let overlay = "";
-    if (state.filterOpen && narrow) {
-      overlay = `<div class="overlay"><button type="button" class="scrim" data-act="filter" aria-label="Close filters"></button><div class="sheet" role="dialog" aria-label="Filters"><h2>Filter</h2>${panelFields.replace("btn btn-primary", "btn btn-lg btn-primary").replace("btn btn-quiet", "btn btn-lg btn-quiet")}</div></div>`;
-    }
+    const range = draft.dates === "From and to"
+      ? `<label class="field-row"><span class="lbl">From</span><input class="field" type="date" data-act="idates" data-field="from" value="${esc(draft.from)}"></label><label class="field-row"><span class="lbl">To</span><input class="field" type="date" data-act="idates" data-field="to" value="${esc(draft.to)}"></label>`
+      : "";
+    const surface = filterChrome(
+      `${selectField("i-dates", "Dates", draft.dates, dates, "idraft")}${range}
+        ${selectField("i-opp", "Opponent", draft.opponent, choices(taggedPool(), "opponent"), "idraft")}
+        ${selectField("i-event", "Event", draft.event, choices(taggedPool(), "event"), "idraft")}`,
+      "clear-i",
+      "apply-i",
+    );
+    const inline = surface.inline;
+    const overlay = surface.overlay;
     let content = "";
     if (!kept.length) {
       content = `<div class="callout callout-empty"><p>Nothing fits this filter.</p><button type="button" class="btn btn-primary btn-lg" data-act="clear-i">Clear filter</button></div>`;

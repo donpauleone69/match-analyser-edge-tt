@@ -12,10 +12,11 @@
       var pointer = q.get("pointer") === "coarse" ? "coarse" : "fine";
       document.documentElement.dataset.pointer = pointer;
       var theme = q.get("theme") || "";
-      if (/^[a-z0-9-]+$/.test(theme)) {
+      if (theme && theme !== "baseline" && /^[a-z0-9-]+$/.test(theme)) {
         document.documentElement.dataset.theme = theme;
         document.write('<link rel="stylesheet" href="../themes/' + theme + '.css">');
       }
+      if (q.get("strips") === "option") document.documentElement.dataset.strips = "option";
     })();
   </script>
   <link rel="stylesheet" href="system.css">

@@ -38,6 +38,7 @@ fieldset {
   gap: 6px;
   align-items: center;
 }
+fieldset[hidden] { display: none; }
 legend {
   font-size: 12px;
   font-weight: 600;

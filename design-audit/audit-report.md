@@ -1,8 +1,8 @@
 # UI audit — stage 1
 
-Read-only audit of what is on screen and in source. No new system and no theme is proposed here.
+Stage 1 record of what was on screen and in source. The system, the themes and the previews came after it. Start at `README.md`.
 
-Two interfaces live in this repo. Screenshots are under `design-audit/screenshots/current/`.
+Two interfaces were in the repo for this pass. Screenshots of them are under `design-audit/screenshots/current/`.
 
 | Tree | What it is | Shot prefix |
 |---|---|---|

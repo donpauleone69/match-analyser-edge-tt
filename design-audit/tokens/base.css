@@ -146,7 +146,7 @@
   --video-chrome-bg-hover: rgb(0 0 0 / 0.8);
   --video-chrome-ink: #ffffff;
   --video-chrome-ink-muted: rgb(255 255 255 / 0.7);
-  --video-seek-track: rgb(0 0 0 / 0.55);
+  --video-seek-track: rgb(255 255 255 / 0.45); /* light groove, so it shows on the black band */
   --video-seek-span: rgb(255 255 255 / 0.88); /* a saved rally on the seek bar */
   --video-seek-span-on: var(--accent-on-video); /* the picked rally */
 

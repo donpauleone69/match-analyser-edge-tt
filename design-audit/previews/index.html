@@ -28,7 +28,10 @@
       <fieldset id="moments">
         <legend>Tagger moment</legend>
       </fieldset>
-      <label class="fit"><input type="checkbox" id="fit" checked> Fit to window</label>
+      <fieldset id="strips">
+        <legend>Zone strips</legend>
+      </fieldset>
+      <label class="fit"><input type="checkbox" id="fit"> Fit to window</label>
     </div>
     <p class="note" id="note"></p>
   </header>
@@ -48,6 +51,7 @@
       ["matches", "Matches"],
       ["details", "Details"],
       ["insights", "Insights"],
+      ["account", "Account"],
     ];
     const DEVICES = [
       ["phone-portrait", "Phone portrait", 390, 844, "coarse"],
@@ -68,18 +72,25 @@
       matches: "The fourteen seed matches, 21 Nov 2026. Continue set 2 opens the tagger. A row opens Details. The focus ring is pinned on Continue set 2.",
       details: "Pat, League final, 9 Nov 2026. Set 2 was entered 9–11 and tagged 8–11, so the row carries Differs and Use tagged. The focus ring is pinned on Opponent. Delete and a shorter result ask before scores are dropped. Nothing is saved.",
       insights: "The 12 tagged matches: 825 points. Phases and Serve use the figures from the app. Receive shows the verified total only; its four row counts were below the fold in the audit shots, so they are not invented. Download stays disabled. Play opens the playlist layout. Flip a card with the info control.",
+      account: "Profile, role and the empty-data switch. Save profile and Sign out stay disabled.",
     };
+    const STRIPS = [
+      ["doc", "Documented 40/64"],
+      ["option", "Option 48/80"],
+    ];
 
     const q = new URLSearchParams(location.search);
     let screen = q.get("screen") || "tagger";
     let device = q.get("device") || "phone-portrait";
-    let theme = q.get("theme") || "";
+    let theme = q.get("theme") || "scorebook";
     let mode = q.get("mode") || "answer";
+    let strips = q.get("strips") === "option" ? "option" : "doc";
 
     const screens = document.getElementById("screens");
     const devices = document.getElementById("devices");
     const moments = document.getElementById("moments");
     const themeSel = document.getElementById("theme");
+    const stripsEl = document.getElementById("strips");
     const frame = document.getElementById("frame");
     const bezel = document.getElementById("bezel");
     const scale = document.getElementById("scale");
@@ -101,8 +112,9 @@
     SCREENS.forEach(([id, text]) => button(screens, id, text, id === screen, (next) => { screen = next; sync(); load(); }));
     DEVICES.forEach(([id, text]) => button(devices, id, text, id === device, (next) => { device = next; sync(); load(); }));
     MOMENTS.forEach(([id, text]) => button(moments, id, text, id === mode, (next) => { mode = next; sync(); load(); }));
+    STRIPS.forEach(([id, text]) => button(stripsEl, id, text, id === strips, (next) => { strips = next; sync(); load(); }));
 
-    const themes = [{ id: "", name: "Baseline" }].concat(
+    const themes = [{ id: "baseline", name: "Baseline" }].concat(
       (window.PREVIEW_THEMES || []).map((id) => ({ id, name: id.charAt(0).toUpperCase() + id.slice(1) }))
     );
     themes.forEach((item) => {
@@ -111,7 +123,8 @@
       o.textContent = item.name;
       themeSel.appendChild(o);
     });
-    themeSel.value = themes.some((t) => t.id === theme) ? theme : "";
+    themeSel.value = themes.some((t) => t.id === theme) ? theme : "scorebook";
+    theme = themeSel.value;
     themeSel.addEventListener("change", () => { theme = themeSel.value; load(); });
 
     function sync() {
@@ -119,13 +132,14 @@
       [...devices.querySelectorAll("button")].forEach((b, i) => b.setAttribute("aria-pressed", DEVICES[i][0] === device ? "true" : "false"));
       [...moments.querySelectorAll("button")].forEach((b, i) => b.setAttribute("aria-pressed", MOMENTS[i][0] === mode ? "true" : "false"));
       moments.hidden = screen !== "tagger";
+      [...stripsEl.querySelectorAll("button")].forEach((b, i) => b.setAttribute("aria-pressed", STRIPS[i][0] === strips ? "true" : "false"));
       note.textContent = NOTES[screen] || NOTES.tagger;
     }
 
     function load() {
       const spec = DEVICES.find((d) => d[0] === device) || DEVICES[0];
       const [, name, w, h, pointer] = spec;
-      const src = `frame.html?screen=${encodeURIComponent(screen)}&pointer=${pointer}&mode=${encodeURIComponent(mode)}&theme=${encodeURIComponent(themeSel.value)}&focus=1`;
+      const src = `frame.html?screen=${encodeURIComponent(screen)}&pointer=${pointer}&mode=${encodeURIComponent(mode)}&theme=${encodeURIComponent(themeSel.value)}&strips=${encodeURIComponent(strips)}&focus=1`;
       frame.style.width = w + "px";
       frame.style.height = h + "px";
       frame.src = src;
@@ -138,8 +152,8 @@
       url.searchParams.set("screen", screen);
       url.searchParams.set("device", device);
       url.searchParams.set("mode", mode);
-      if (themeSel.value) url.searchParams.set("theme", themeSel.value);
-      else url.searchParams.delete("theme");
+      url.searchParams.set("theme", themeSel.value);
+      url.searchParams.set("strips", strips);
       history.replaceState(null, "", url);
     }
 

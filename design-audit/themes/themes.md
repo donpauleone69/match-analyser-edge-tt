@@ -50,7 +50,7 @@ Trade-off: short and control wings stay light pastels. `--ink-on-player` is one 
 
 Checked by resolving every colour token, including `color-mix(in srgb)` and `var()`, then measuring WCAG against the pairs in `design-system.md` section 2.3. Text at 4.5:1, including disabled text and the 12px mark label. UI marks, field edges, the focus ring, the card edge, and the first-attack edge at 3:1. Video chrome and the seek bar were composited over both a black frame and a white frame.
 
-Chrome painted a swatch of all three (`tokens/base.css` plus the three files) and its computed `color-mix` for the sampled soft tokens matched the script. Source Sans 3 is on this machine and drew. Figtree and IBM Plex Sans are not installed here, so those two columns fell back to the system sans; the faces themselves were measured in the design system and both pass the wing-width and x-height tests.
+Chrome painted a swatch of all three (`tokens/base.css` plus the three files) and its computed `color-mix` for the sampled soft tokens matched the script. Source Sans 3, Figtree and IBM Plex Sans are vendored for the previews in `previews/fonts/`, so the theme frames draw those faces. The wing-width and x-height figures are the measurements in `design-system.md`.
 
 All required pairs pass. The tightest:
 

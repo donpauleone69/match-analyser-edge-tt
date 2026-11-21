@@ -1,6 +1,6 @@
 # UI inventory
 
-Disposition is what a later design pass should do with the element: **keep**, **refine**, **consolidate**, or **remove**. This file does not design the replacement.
+Disposition is what a later design pass should do with the element: **keep**, **refine**, **consolidate**, or **remove**. This file does not design the replacement. The existing-to-proposed mapping is in `design-system.md` section 7.
 
 Source roots: `app/src/` (shipping) and `proto/src/` (zone tagger). Shots: `design-audit/screenshots/current/`.
 

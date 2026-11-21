@@ -101,7 +101,7 @@
   --video-chrome-bg-hover: rgb(0 0 0 / 0.88);
   --video-chrome-ink: #ffffff;
   --video-chrome-ink-muted: #f2f2f2;
-  --video-seek-track: rgb(0 0 0 / 0.72);
+  --video-seek-track: rgb(255 255 255 / 0.45);
   --video-seek-span: #f4f7f8;
   --video-seek-span-on: #3ec8c4;
 

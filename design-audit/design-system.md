@@ -1,6 +1,6 @@
 # Design system — stage 2
 
-The smallest reusable system that covers every screen in `audit-report.md` and `inventory.md`. Tokens ship in `tokens/base.css`. No theme and no preview is defined here.
+The smallest reusable system that covers every screen in `audit-report.md` and `inventory.md`. Tokens ship in `tokens/base.css`. Themes are in `themes/`. Previews are in `previews/`. Start at `README.md`.
 
 "Today" columns are facts from code or stage 1 measurements. Everything else is a proposal.
 
@@ -8,15 +8,7 @@ The smallest reusable system that covers every screen in `audit-report.md` and `
 
 **Decision: the system targets `proto/`. `app/` is the frozen predecessor and gets no parts of its own.**
 
-| Evidence | Source |
-|---|---|
-| The deployed product is proto: the Live app row reads "v0.17.27 live (9c4efff). v0.17.28 merged on proto", and `9c4efff` is a proto merge | `proto/docs/key-documents.md`, Latest builds |
-| All 270 commits that touch `proto/` are later than the last commit to `app/` (14 Nov, `d83deee`) | `git log -- proto`, `git log -1 -- app` |
-| The only documented Zones are proto's, and the doc calls itself the reference | `proto/docs/ui-zones.md` |
-| The product brief describes proto's flows (Tag page, Set Tagger, Insights), not Pass 1 or Simple | `proto/docs/product-brief.md` |
-| The next planned step, after the proto refactor, is "One `ui-mine` set on every screen, then light and dark theme" | `key-documents.md`, Theme and style |
-| Against: `proto/README.md` says proto is not the product app and should stop at clickable stubs | Stale. The tree holds a 2,113-line Set Tagger, a video file input and Insights computed from saved rallies |
-| Against: `.cursorrules`, `Architecture.md` and `DesignSystem.md` describe `app/` | Not updated since proto took over |
+Evidence, in one line: the live app is proto (v0.17.28), every later commit is on proto rather than `app/` (last touched 14 Nov, `d83deee`), and the zone doc, the product brief and the planned `ui-mine` pass all describe proto.
 
 Consequences:
 
@@ -60,18 +52,7 @@ Requirements for any theme font:
 3. 400, 600 and 700 in one family, self-hostable.
 4. x-height at least 0.70 of cap height, for 12px labels.
 
-Measured in Chrome, px:
-
-| Font | BH Control 22/700 | Tap shot 12 22/700 | 0–9 at 15/600 | Tabular | x / cap |
-|---|---|---|---|---|---|
-| Plus Jakarta Sans (base) | 116.6 | 115.5 | 89.5 | `tnum` | 0.72 |
-| Figtree | 111.8 | 113.3 | 85.5 | `tnum` | 0.71 |
-| Instrument Sans (has a width axis) | 114.2 | 114.6 | 86.5 | `tnum` | 0.71 |
-| Inter | 115.6 | 121.0 | 91.5 | `tnum` | 0.74 |
-| IBM Plex Sans | 111.9 | 118.9 | 90.0 | default | 0.75 |
-| Source Sans 3 | 105.6 | 109.4 | 77.0 | default | 0.74 |
-| Barlow (static weights) | 103.6 | 108.4 | 77.5 | `tnum` | 0.73 |
-| DM Sans | 115.8 | 117.4 | 87.8 | none: fails | 0.72 |
+Measured in Chrome, in one line: Plus Jakarta Sans, Figtree, Instrument Sans, Inter, IBM Plex Sans, Source Sans 3 and Barlow each fit “BH Control” and “Tap shot 12” inside 124px at 22/700 and clear an x-height of 0.70; DM Sans has no tabular figures, so it is out.
 
 ### 2.2 Type scale
 
@@ -318,6 +299,7 @@ Why this is the largest usable picture: in portrait the picture already spans th
 | Edit Set, Discard, Cancel, Edit Rally, star | 32 high (doc), star 40 wide | 40 high | No. The Set Zone is 40 |
 | Rally pill, gap slot | 24 | 40 high, 28 wide | No. A set is 11 or more pills in one scrolling row |
 | Part chip (review) | 16 | 28 high | No. Kept as built |
+| Shot cell | 16 high, 36 wide | 36×16 | No. The shot row is 16px inside the 64px Rally Zone |
 
 ### 6.4 Deviations from the docs and the code
 
@@ -336,7 +318,7 @@ Why this is the largest usable picture: in portrait the picture already spans th
 | 11 | Side safe areas | Reference frame 734×310 is the safe area | Wing pads its content by the inset | Region fill runs to the screen edge, the label stays inside the safe area. The 144 minimum counts the inset, as the code does | Addition |
 | 12 | Landscape trigger | Not given | `(orientation: landscape), (min-aspect-ratio: 1/1)` | Same, written down | Kept |
 | 13 | Countdown | 2s, bottom edge, no space | 6px, brand at 50% | Same, `--zone-countdown` | Kept |
-| 14 | Saved set, opened | Input Area empty | Empty | Unchanged. See open question 3 | Kept |
+| 14 | Saved set, opened | Input Area empty | Empty | Unchanged. See section 8 | Kept |
 | 15 | File list | Names `CornerPad.tsx` | No such file | Doc is stale | Finding |
 
 ## 7. Existing to proposed
@@ -381,16 +363,26 @@ Why this is the largest usable picture: in portrait the picture already spans th
 | `TrainingLibraryComposer` | app | Page cards with Fields. Not in proto, so no part of its own |
 | SVG table-tennis buttons, 3×3 grids, Phase 1 kit, data viewer | app | None. Removed, as stage 1 found them unused |
 
-## 8. Open questions
+## 8. Decisions, and what is still open
 
-1. Is proto the target? If `app/` is still meant to ship, the Clips, Training and storage screens need a decision about whether they are previewed.
-2. On tablets and desktop the middle column has spare height: 214px at 1180×820, 148px at 1440×900. This spec leaves it as bands around the picture. The Set and Rally Zones could instead grow to 48 and 80 there, with 44px buttons, at no cost to the picture. That breaks the doc's fixed 40 and 64.
-3. A saved set opens with an empty Input Area: 521px blank on a phone. That is documented behaviour, so it is unchanged. What should fill it is a product decision.
-4. BH and FH answers use the same blue and orange as You and Them. The tokens are separate (`--wing-*`, `--player-*`) so a theme can split them. Should it?
-5. Landscape always means wings. A near-square window (900×800) gets a 612×344 picture where the stacked layout would give 811×456. A 12.9" iPad in landscape would gain 12% width stacked. Keep wings for thumb reach, or pick the larger picture when the pointer is a mouse?
-6. The 144 wing minimum counts the safe-area inset. On an installed iPhone 15 that leaves 129 clear of the inset in a 188 wing. Counting only clear width would cost 30px of picture.
-7. Self-hosting the font needs files outside `design-audit/`, so it is left for implementation.
-8. The proto Gate is three stub cards. The real sign-in content is not defined anywhere.
+Decided:
+
+- The system targets `proto/`. `app/` is mapped in section 7 and is not previewed.
+- Themes may split backhand and forehand from You and Them. Each theme decides.
+- Landscape always uses wings, so the tagging reach stays the same.
+- The 144px wing minimum counts the safe-area inset, as the code does.
+- Preview fonts are vendored in `previews/fonts/`. Production self-hosting is out of scope.
+- Every theme replaces the base amber so the mark clears contrast, and a marked part also draws a 1px ink edge.
+
+Still open for Paul:
+
+On tablet landscape and desktop the middle column has spare height (about 214px at 1180×820, 148px at 1440×900), and this spec leaves it as bands around the picture. Set and Rally stay 40 and 64. Growing them to 48 and 80 there would take 24px from the band and would not change the picture width. The preview toggle “Zone strips” shows both. The default stays 40/64. This is an open choice.
+
+A saved set opens with an empty Input Area (about 521px on a phone). That matches the documented behaviour. What should fill it is a product decision.
+
+A near-square window (900×800) gets a smaller picture with wings than it would stacked. Wings stay, including for a mouse. A stacked picture when the pointer is a mouse is an option, not the default.
+
+The proto Gate is three stub cards. Real sign-in content is not defined, and a gate preview is not a priority screen.
 
 ## 9. Corrections to stage 1
 
