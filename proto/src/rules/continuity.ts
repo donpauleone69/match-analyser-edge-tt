@@ -192,9 +192,6 @@ export function checkSet(
 /** How much of the serve Review serves plays: 1s before the contact, 0.5s after. */
 export const SERVE_BEFORE_S = 1
 export const SERVE_AFTER_S = 0.5
-/** Check gaps and the two gaps at the end of a review play at this rate. */
-export const GAP_REVIEW_RATE = 2
-
 export type ServeRally = Pick<RallyData, 'id' | 'server' | 'winner'> & {
   serveChecked?: boolean
   left?: MarkKind[]

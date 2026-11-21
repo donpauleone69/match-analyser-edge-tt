@@ -51,7 +51,7 @@ function area(
 }
 
 /** The question pad as Input Area regions. Rally 1 opens on who served, and never asks Point to. */
-export function bestPadRegions({
+function bestPadRegions({
   draft,
   names,
   at,
@@ -182,7 +182,7 @@ export function bestPadRegions({
 }
 
 /** Edit Rally as regions. Blank slots are omitted, so they are space. Point to is not on rally 1. */
-export function editRallyRegions({
+function editRallyRegions({
   draft,
   names,
   stop,

@@ -272,7 +272,7 @@ export function buildScripts(seed: number, sets: ScriptSet[], cuts: number[] = [
 }
 
 /** One listed set of a match, as far as the demo video needs to know it. */
-export type SetPlan = {
+type SetPlan = {
   firstServer: Side
   /** The entered score, when it is one a set can end on. */
   score: Points | null
@@ -391,16 +391,6 @@ export function rallyFromScript(videoId: string, s: ScriptRally, index: number):
       ...(marked ? { review: [marked] } : {}),
     },
   }
-}
-
-/** Saved rallies made from scripted ones, for seeded matches. */
-export function ralliesFromScript(
-  videoId: string,
-  script: VideoScript,
-  from: number,
-  count: number
-): RallyData[] {
-  return script.rallies.slice(from, from + count).map((s, i) => rallyFromScript(videoId, s, from + i))
 }
 
 const TOSS_S = 1

@@ -1,14 +1,11 @@
-/**
- * Rally, shot and Best + FA types. `ENDINGS` and `WINGS` are the vocabularies
- * those types are named from. They have no other readers.
- */
+/** Rally, shot and Best + FA types. */
 
 export type Side = 'me' | 'them'
 
-export const ENDINGS = ['Winner', 'Net', 'Long', 'Wide'] as const
+const ENDINGS = ['Winner', 'Net', 'Long', 'Wide'] as const
 export type Ending = (typeof ENDINGS)[number]
 
-export const WINGS = ['BH', 'FH'] as const
+const WINGS = ['BH', 'FH'] as const
 export type Wing = (typeof WINGS)[number]
 
 export type StrokeSide = 'offensive' | 'defensive'
