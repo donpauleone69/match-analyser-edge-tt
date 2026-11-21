@@ -22,7 +22,6 @@ export function BackupSection({
   onKeep: () => void
 }) {
   const input = useRef<HTMLInputElement>(null)
-  if (empty) return null
 
   const onFiles = (e: ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files ? [...e.target.files] : []
@@ -35,6 +34,7 @@ export function BackupSection({
       <Card className="space-y-3">
         <CardHead icon="upload" title="Import / export / backup" badge={<WfBadge>data</WfBadge>} />
         <CardDescription>Bundle and sync. Reel download stays on Insights.</CardDescription>
+        <p className="text-sm text-muted">{empty ? 'Your matches on this device.' : 'Demo matches.'}</p>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
           <Button kind="control" onClick={() => input.current?.click()}>
             <Icon name="upload" size="xs" />

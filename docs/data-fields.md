@@ -124,7 +124,7 @@ Data the app keeps that the plan's columns did not store. G1 to G4 are fixed in 
 - G4. Removed videos (`removedVideos` in the store). Fix: the row stays with `removedAt` and its place.
 - G5. Done. `AddVideoSection` writes `File.size` into `sizeBytes`. A whole-MB size still round-trips with no extra field.
 - G6. Entered scores are kept as typed strings; the row keeps a whole number, so a typed `07` reads back as `7`. Call for Paul. Recommended: keep numbers (the box takes digits only, and the score reads the same). Reverse: make both columns text.
-- G7. Done. Filled uses `edge-tt-matches-demo` (seeded by `reseedDemo` when empty, and again when Account chooses Filled). Empty uses `edge-tt-matches`. The Prototype card is unchanged.
+- G7. Done. Filled uses `edge-tt-matches-demo` (seeded by `reseedDemo` when empty, and again when Account chooses Filled). Empty uses `edge-tt-matches`. Import and Export show in both and use the open database.
 - G8. Archive jobs (`archiveSteps`) run in memory. Fix: none; a reload mid job leaves the videos as they were.
 - G9. Done. `createMatch` writes no row. The first `saveMatch` runs when the match is touched. `removeUntouchedMatches` still drops one nobody filled in.
 - G10. Done. Opponent and event commit on blur or Enter (`MatchFieldsSection`). `saveMatch` links the name and drops a row that save unlinked when nothing else uses it.
