@@ -11,7 +11,7 @@ const FIELDS: { key: keyof BestTiming; label: string }[] = [
 ]
 
 /** Loop timings, in the playback row, remembered on this device. */
-export function BestTimingControl({
+export function BestTimingBlock({
   timing,
   onChange,
   open,

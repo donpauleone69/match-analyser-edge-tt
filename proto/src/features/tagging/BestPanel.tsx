@@ -1,6 +1,5 @@
-import { useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
+import type { CSSProperties } from 'react'
 import {
-  PART_LABEL,
   STROKE_GRID,
   bestEndOf,
   padFocus,
@@ -10,80 +9,8 @@ import {
   type BestEnd,
 } from '@/rules/bestFa'
 import type { AreaRegion } from './models'
-import type { BestPart, Draft, Side, Wing } from '@/types/rally'
+import type { Draft, Side, Wing } from '@/types/rally'
 import { hitterOf, otherSide, winnerOf } from '@/rules/rally'
-
-export const railCell =
-  'btn-kind-control relative w-full px-1 rounded-md border text-sm font-bold tabular-nums inline-flex items-center justify-center'
-
-/** Player token, or that token at 15%. Open is the solid token. */
-export function shotPaint(side: Side, open: boolean, fa: boolean, dim: boolean): CSSProperties {
-  const token = side === 'me' ? 'var(--color-tag-player-a)' : 'var(--color-tag-player-b)'
-  const fill = open ? token : `color-mix(in srgb, ${token} 15%, transparent)`
-  const line = open
-    ? token
-    : fa
-      ? 'var(--color-tag-first-attack)'
-      : side === 'me'
-        ? 'var(--tag-shot-line-a)'
-        : 'var(--tag-shot-line-b)'
-  const ink = open ? 'var(--color-tag-on-solid)' : 'var(--color-text)'
-  return {
-    backgroundColor: fill,
-    borderColor: line,
-    color: ink,
-    ['--shot-fill' as string]: fill,
-    ['--shot-line' as string]: line,
-    ['--shot-ink' as string]: ink,
-    ['--shot-fade' as string]: dim ? '0.6' : '1',
-  }
-}
-
-const PART_SHORT: Record<BestPart, string> = { opening: 'Open', rally: 'Rally', attack: 'Att', end: 'End' }
-
-/** Longest label that fits its chip, then smaller type, then shorter words. Never spills. */
-export function PartLabel({ part }: { part: BestPart }) {
-  const ref = useRef<HTMLSpanElement>(null)
-  const tries: { text: string; size: number }[] = [
-    { text: PART_LABEL[part], size: 10 },
-    { text: PART_LABEL[part], size: 9 },
-    { text: PART_LABEL[part], size: 8 },
-    { text: PART_SHORT[part], size: 9 },
-    { text: PART_SHORT[part], size: 8 },
-    { text: PART_SHORT[part].slice(0, 1), size: 9 },
-  ]
-  const [pick, setPick] = useState(0)
-  const key = part
-  useLayoutEffect(() => {
-    const el = ref.current
-    const box = el?.parentElement
-    if (!el || !box) return
-    const fit = () => {
-      const room = box.clientWidth - 4
-      let i = 0
-      for (; i < tries.length - 1; i++) {
-        el.textContent = tries[i].text
-        el.style.fontSize = `${tries[i].size}px`
-        if (el.scrollWidth <= room) break
-      }
-      el.textContent = tries[i].text
-      el.style.fontSize = `${tries[i].size}px`
-      setPick(i)
-    }
-    fit()
-    const watch = new ResizeObserver(fit)
-    watch.observe(box)
-    return () => watch.disconnect()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key])
-  const shown = tries[Math.min(pick, tries.length - 1)]
-  return (
-    <span ref={ref} className="inline-block whitespace-nowrap" style={{ fontSize: shown.size }}>
-      {shown.text}
-    </span>
-  )
-}
-
 
 /** BH left, FH right. Attack is the strong colour, Control the light one. */
 const PAD_STROKE: Record<string, { bg: string; fg: string }> = {

@@ -5,7 +5,7 @@ import type { SetData } from '@/types/match'
 import type { RallyData, Side } from '@/types/rally'
 import { countPoints, setEndIndex } from '@/rules/score'
 import type { EditGapStop } from '@/rules/matchOps'
-import { zoneButton, zonePressed, zoneRest } from './zoneButton'
+import { zoneButton, zonePressed, zoneRest } from './styles'
 
 /**
  * The Set Zone. One row: the pills, then Edit Set in the star's box.

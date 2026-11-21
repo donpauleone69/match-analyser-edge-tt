@@ -53,7 +53,7 @@ import { tagRegions } from './inputModes'
 import { RallyZone } from './RallyZone'
 import type { RallyState } from './models'
 import { SetZone } from './SetZone'
-import { BestTimingControl } from './BestTimingControl'
+import { BestTimingBlock } from './blocks/BestTimingBlock'
 import { useSettingsStore } from '@/stores/settingsStore'
 import {
   bestAdvance,
@@ -1702,7 +1702,7 @@ function TagSet({
             </Link>
           }
           settings={
-            <BestTimingControl
+            <BestTimingBlock
                 timing={timing}
                 onChange={setBestTiming}
                 open={settingsOpen}

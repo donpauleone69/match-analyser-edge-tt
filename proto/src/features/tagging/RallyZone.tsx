@@ -1,12 +1,11 @@
 import { Icon } from '@/ui-mine'
 import { cn } from '@/helpers/utils'
-import { restStyle } from './AnswerCells'
 import { bestOpener, cellMark, partsOf, type BestAt } from '@/rules/bestFa'
-import { PartLabel, railCell, shotPaint } from './BestPanel'
+import { PartLabel } from './blocks/PartLabelBlock'
+import { railCell, restStyle, shotPaint, zoneButton, zonePressed, zoneRest } from './styles'
 import type { BestPart, Draft, Side } from '@/types/rally'
 import { hitterOf } from '@/rules/rally'
 import type { RallyState } from './models'
-import { zoneButton, zonePressed, zoneRest } from './zoneButton'
 
 /**
  * The Rally Zone. One layout for every state: a head, the score before the
