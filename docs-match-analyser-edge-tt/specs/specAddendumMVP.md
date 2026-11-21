@@ -6,6 +6,83 @@
 
 ## Change Log
 
+### 2026-11-21: Global Insights and the demo reseed (proto v0.17.28)
+
+**Change Type:** Global Insights. Proto only.
+
+**What Changed:**
+- Insights pools every tagged match the filter keeps into the same five cards as a match: Phases, Serve, Receive, Attack, End, then Marked for review. A rate is the pooled points, not an average of match percentages. Summary, Serve, Receive and Improve, and the old section routes, redirect to Insights.
+- The filter is Dates, Opponent and Event. Dates are Any, Last 5 matches, Last 30 days, Last 3 months, Last 12 months, and From and to. They count back from today. A match with no date is kept only by Any and by Last 5 matches. An old saved Tournament reads as Event. An old Matches value of Last 3 or This month reads as Last 5 matches or Last 30 days.
+- A percentage, a tier word and Elite need 30 points on this page. A grade needs 100 of your points in the row. A weak row needs 30 points, and it has to sit under the card by 10 points and by more than its own margin. Under 30 the card shows counts. End is errors per 100 points, to one decimal, once the page has 100 points.
+- Usual is your rate across every tagged match. It shows when a filter is set, that rate has 100 rallies, and the gap is 10 points, or 3 errors per 100 on End. On a match page, Usual is your rate in the other tagged matches, on the same rule, and it sits between the opponent and Elite. End on a match stays a count. Usual there is the count that rate gives over this match.
+- The coverage line reads "12 matches · 825 points", and adds "· 1 part tagged" when a kept match is only partly tagged. A removed video says so. The filter that keeps nothing uses the Matches empty state.
+- A playlist pools newest match first. The bar names the match, and the score is that match's score. The same player sticks under the top row.
+- The demo seed is fourteen matches, twelve of them tagged, 825 points. Pat's matches are arranged so Usual shows on Serve for Opponent: Pat, and on Receive for the League final. Club night set 2 is under way at 4 - 3 and the rest of its video is a 9 - 11 to Sam, with the mark running onto the second video. Set 3 is on that video, still to tag.
+
+**Rationale:** Global Insights is the last page in this proto round. The thresholds and Usual are the trust rules settled on 21 Nov, and the seed is large enough for those rules to show.
+
+### 2026-11-21: Set over and early save (proto v0.17.27)
+
+**Change Type:** Set Tagger. Proto only.
+
+**What Changed:**
+- Set over fires only when the last rally is the first winning score. A Details score no longer finishes a broken set.
+- An overrun pad leads with Edit Rally N. One rally after the win reads Remove N. More than one reads Remove N+1 to M.
+- At the mark or the video end, a score with a leader is Save at 9 - 7. The set line reads ended early, and the set counts for the side ahead.
+- A level score at that end is Save set, as before. It saves as incomplete. A Details score then settles the set, so the match can reach Tagged.
+
+**Decision Rationale:** Paul approved decisions 8, 7 and 6, then chose to keep Save on a level score so Details can still settle the match.
+
+### 2026-11-21: Match Insights (proto v0.17.26)
+
+**Change Type:** Match Insights page. Proto only.
+
+**What Changed:**
+- Match Insights counts the saved rallies. The page is Phases, Serve, Receive, Attack and End, then Marked for review when a part is starred. The old Summary, Serve and Receive pills, the sample numbers and the opponent prompt are gone. Global Insights is unchanged.
+- Phases grades you only, from the China team marks (Zhang 2004). The grade needs 20 of your points in that row. Pat's rate sits beside yours. Serve to 5th, Receive to 4th and Rally follow the decisive stroke: the player who misses is charged on that ball, and the player who wins is credited on the ball before.
+- Serve and Receive are the first three balls. Elite 51% and Elite 49% are Djokic 2020. Attack is the reply to the first attack. Elite 48% is Fuchs and Lames 2021. A blocked fast serve counts as Control here. End counts your errors after the serve, and a free ball is one where the shot before was Control.
+- Each card has an info icon that turns the card over. The back says what is counted, how the point is credited, and where the mark comes from. Tap the icon or the back to return. Reduced motion swaps the faces at once.
+- Every playlist row has Play and a disabled Download. Download all is not on this page. A playing list sticks under the match row and steps through the points.
+- Lets are not tagged. A let tapped by mistake is deleted on Tag. There is no let button. Attack is a flick, loop, drive or smash. Control is a push, chop, touch, block or lob.
+- Elite stays on the compare line even when the opponent has no points in that card ("Pat none yet · Elite 51%"). A grade uses the rounded percentage on the card. A rate cell with no rallies shows a dash. Nothing tagged uses the existing empty card. The card flip keeps the front in view until it is side on, and the card keeps its height.
+
+**Rationale:** The match page was still sample numbers. These five cards use the tags the Set Tagger already saves, with the published marks that count the same way.
+
+### 2026-11-20: Matches page (proto v0.17.25)
+
+**Change Type:** Matches list. Proto only.
+
+**What Changed:**
+- Each row is the opponent (vs Sam), or the event when there is no opponent, or New match until the match has video or tagging, then Unnamed match. The match top row uses the same name.
+- Line 2 is the date (11 Nov, with the year when it is not this year), the entered result (Won 3 - 1, your sets first), then the event when the name is the opponent. The event is last so it truncates.
+- The right of the row is one status. No video and Not tagged open Tag. Continue set N opens that set, and the row still opens Tag. No result opens Details at the result, when the tagged sets make a real result and none is entered. Part tagged opens Tag. Tagged opens Insights.
+- Filter is Opponent, Event and Status. Dates leave Matches. Filter hides when there are no matches. An empty filter has Clear filter. The empty list says No matches yet.
+- Details no longer has Open match Insights. Delete match stays. Use tagged result uses the same ready test as the No result row. Opening No result scrolls the Result card to the top of the page, under the sticky row, so the picker is on screen.
+- Order stays newest match date first, with no date at the top. There is no sort control.
+
+**Decision Rationale:** Paul approved the Matches page plan, including date order, one status slot, and the opponent as the name. Insights moves to v0.17.26.
+
+### 2026-11-20: Set Tagger score at once (proto v0.17.24)
+
+**Change Type:** Set Tagger. Proto only.
+
+**What Changed:**
+- When the rally-ending answer saves the rally, the Rally Zone head shows the next rally number, its server and the new score at once. Before, it kept the saved rally's server and the score before that point until the next serve tap. The saved rally's cells, star and Edit Rally stay until then.
+- The 2 second countdown bar after the last contact runs along the bottom edge of the Rally Zone instead of the top. The zone stays 64px.
+
+**Decision Rationale:** Paul tested v0.17.22 on a phone and asked for both.
+
+### 2026-11-20: Tag page cards (proto v0.17.23)
+
+**Change Type:** Tag page layout. Proto only.
+
+**What Changed:**
+- Tag shows one card per video. A set row expands in place to change its number or delete it. Scores and the result stay on Details.
+- Details shows "Use tagged result" whenever no result is entered, the tagged sets make a real result, and every set up to that result is settled. Finish match and Reopen match leave Tag. An archived match can still be opened, and Continue and Tag stay off.
+- Touching a video's bar, a set row, a span, or Add set puts that video in the player. One video element swaps its source, and play() starts inside the tap.
+
+**Decision Rationale:** Paul approved the tag page cards plan. Tag places sets. Details holds the result.
+
 ### 2026-11-14: MA-157 — De-frame Clips / Pass 1 / Settings (v3.186.0)
 
 **Change Type:** UX hotfix — last thin nested-border pass; then stop

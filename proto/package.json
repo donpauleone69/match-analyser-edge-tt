@@ -1,0 +1,42 @@
+{
+  "name": "match-analyser-proto",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 5174",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview --port 5174",
+    "check:item14": "node scripts/item14-heights.mjs",
+    "check:v0150": "esbuild scripts/v0150-flow.check.ts --bundle --platform=node --format=esm --alias:@=./src --outfile=/tmp/v0150-flow.check.mjs && node /tmp/v0150-flow.check.mjs",
+    "check:v0179": "esbuild scripts/v0179-status.check.ts --bundle --platform=node --format=esm --alias:@=./src --outfile=/tmp/v0179-status.check.mjs && node /tmp/v0179-status.check.mjs",
+    "check:v01723": "node scripts/v01723-tag-page.check.mjs",
+    "check:v01725": "esbuild scripts/v01725-matches.check.ts --bundle --platform=node --format=esm --alias:@=./src --outfile=/tmp/v01725-matches.check.mjs && node /tmp/v01725-matches.check.mjs",
+    "check:v01725-page": "node scripts/v01725-matches-page.check.mjs",
+    "check:v01726": "esbuild scripts/v01726-insights.check.ts --bundle --platform=node --format=esm --alias:@=./src --outfile=/tmp/v01726-insights.check.mjs && node /tmp/v01726-insights.check.mjs",
+    "check:v01726-page": "node scripts/v01726-insights-page.check.mjs",
+    "check:v01727": "esbuild scripts/v01727-set-end.check.ts --bundle --platform=node --format=esm --alias:@=./src --outfile=/tmp/v01727-set-end.check.mjs && node /tmp/v01727-set-end.check.mjs",
+    "check:v01728-seed": "esbuild scripts/v01728-seed.check.ts --bundle --platform=node --format=esm --alias:@=./src --outfile=/tmp/v01728-seed.check.mjs && node /tmp/v01728-seed.check.mjs",
+    "check:v01728": "esbuild scripts/v01728-insights.check.ts --bundle --platform=node --format=esm --alias:@=./src --outfile=/tmp/v01728-insights.check.mjs && node /tmp/v01728-insights.check.mjs"
+  },
+  "dependencies": {
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.555.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router-dom": "^7.9.6",
+    "tailwind-merge": "^3.4.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.17",
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.5",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.1",
+    "playwright-core": "^1.65.1",
+    "tailwindcss": "^4.1.17",
+    "typescript": "~5.9.3",
+    "vite": "^7.2.4"
+  }
+}
