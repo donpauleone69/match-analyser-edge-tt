@@ -94,7 +94,13 @@ ok('tagging button', lineAction(setOf(2, mark('v1', 0, 10, true), 'tagging')) ==
 ok('saved button', lineAction(setOf(1, mark('v1', 0, 10, true), 'saved')) === 'Open')
 ok(
   'incomplete button',
-  lineAction({ ...setOf(3, mark('v1', 0, 10, true), 'saved'), rallies: [{ winner: 'me' } as SetData['rallies'][number]] }) === 'Continue',
+  lineAction({
+    ...setOf(3, mark('v1', 0, 10, true), 'saved'),
+    rallies: [
+      { winner: 'me' } as SetData['rallies'][number],
+      { winner: 'them' } as SetData['rallies'][number],
+    ],
+  }) === 'Continue',
 )
 
 const brief = match([v1], [{ ...setOf(2, mark('v1', 0, 10, true), 'saved'), rallies: [{ winner: 'me' } as SetData['rallies'][number]] }])

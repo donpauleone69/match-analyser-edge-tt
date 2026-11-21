@@ -23,9 +23,25 @@ export function serverAt(firstServer: Side, score: Points): Side {
   return Math.floor(total / 2) % 2 === 0 ? firstServer : otherSide(firstServer)
 }
 
-/** 11 or more, two clear. */
+/** 11 or more, two clear. Also true of a score play has already passed, such as 12 - 9. */
 export function isSetWon(score: Points): boolean {
   return Math.max(score.me, score.them) >= 11 && Math.abs(score.me - score.them) >= 2
+}
+
+/**
+ * A score a set is allowed to end on.
+ * 11 with the other on 9 or less, or both on 10 or more and exactly two clear.
+ */
+export function isLegalEnd(score: Points): boolean {
+  const hi = Math.max(score.me, score.them)
+  const lo = Math.min(score.me, score.them)
+  if (hi === 11 && lo <= 9) return true
+  return lo >= 10 && hi - lo === 2
+}
+
+/** One side is ahead, so a short set can be saved. A level score cannot. */
+export function canSaveEarly(score: Points): boolean {
+  return leader(score) !== null
 }
 
 export function leader(score: Points): Side | null {
@@ -46,6 +62,16 @@ export function setEndIndex(winners: Side[]): number {
     if (isSetWon(score)) return i
   }
   return -1
+}
+
+/**
+ * Set over fires on the rule only: the last rally is the first winning score.
+ * Counted one point at a time, that score is always a legal end.
+ * A Details score is not consulted.
+ */
+export function setOverOnRule(winners: Side[]): boolean {
+  if (winners.length === 0) return false
+  return setEndIndex(winners) === winners.length - 1
 }
 
 /**

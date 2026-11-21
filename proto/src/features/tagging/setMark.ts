@@ -1,5 +1,5 @@
 import type { MatchRecord, SetData, SetMark, VideoAsset } from '@/data/demoStore'
-import { isSetWon, scoreAtSetEnd } from '@/features/tagging/score'
+import { countPoints, isLegalEnd, isSetWon, leader, scoreAtSetEnd } from '@/features/tagging/score'
 import {
   firstContactG,
   lastContactG,
@@ -131,12 +131,37 @@ export function markCrosses(s: SetData): boolean {
   return Boolean(s.mark && s.mark.from.videoId !== s.mark.to.videoId)
 }
 
+function taggedNow(s: SetData) {
+  const winners = s.rallies.map((r) => r.winner)
+  return scoreAtSetEnd(winners) ?? countPoints(winners)
+}
+
 /**
- * Finished, with rallies, and the tagged score is not a win. Derived.
- * A Details score is what makes it count. Continue reopens it.
+ * Saved on purpose before a legal end, with one side ahead.
+ * A level score is not this: it cannot be saved.
+ * An overrun is not this: the tagged score is the legal end it already reached.
+ */
+export function endedEarly(s: SetData): boolean {
+  if (!s.finished || s.rallies.length === 0) return false
+  const score = taggedNow(s)
+  return leader(score) !== null && !isLegalEnd(score)
+}
+
+/** Set 2, or Set 2 · Saved · 9 - 7 · ended early. */
+export function setLineLabel(s: SetData): string {
+  if (!endedEarly(s)) return `Set ${s.setId}`
+  const score = taggedNow(s)
+  return `Set ${s.setId} · Saved · ${score.me} - ${score.them} · ended early`
+}
+
+/**
+ * Finished, but it cannot stand: the score is level, or there is no score.
+ * A short set with a leader is ended early and stays saved.
+ * Continue reopens an incomplete set.
  */
 export function setIncomplete(s: SetData): boolean {
   if (!s.finished || s.rallies.length === 0) return false
+  if (endedEarly(s)) return false
   const atEnd = scoreAtSetEnd(s.rallies.map((r) => r.winner))
   return atEnd === null || !isSetWon(atEnd)
 }

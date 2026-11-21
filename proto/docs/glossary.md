@@ -25,7 +25,7 @@ Words used in the proto, the brief and reviews. Screen areas are in [ui-zones.md
 | Input Area | The controls under the Rally Zone in portrait, and the two wings in landscape. 2 columns of full colour regions. See [ui-zones.md](./ui-zones.md). |
 | Review mode | The star pressed: the Rally Zone shows the rally's parts, and Back, Forward and Review [part] mark parts to look at again. |
 | Not a shot | Removes a contact that was not a shot, such as a toss. |
-| Save set | Ends a won set and returns to the Tag page. |
+| Save set | Ends a won set and returns to the Tag page. Save at 9 - 7 does the same for a short set that is not level, and the set line reads ended early. |
 
 ## Tagging questions
 
