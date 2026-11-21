@@ -86,6 +86,29 @@ describe('seed to rows and back', () => {
     const { src: _src, ...noSrc } = file
     expect(back.matches[0].videos).toEqual([noSrc, demo])
   })
+
+  it('a file copied onto the device keeps its flag, fingerprint and last modified; a demo video writes none', () => {
+    const file = {
+      ...video('f'),
+      kind: 'file' as const,
+      sizeMb: 0.123457,
+      storedOnDevice: true,
+      lastModifiedMs: 1_700_000_000_000,
+      fingerprint: 'ab12',
+    }
+    const demo = { ...video('d'), script: { duration: 600, rallies: [], breaks: [] } }
+    const { rows, back } = roundTrip([matchRecord({ videos: [file, demo] })])
+    expect(rows.videos.map((v) => [v.storedOnDevice, v.fingerprint, v.lastModifiedMs])).toEqual([
+      [true, 'ab12', 1_700_000_000_000],
+      [false, null, null],
+    ])
+    expect(back.matches[0].videos).toEqual([file, demo])
+    const { storedOnDevice: _s, fingerprint: _f, lastModifiedMs: _l, ...bare } = file
+    const kept = deriveDbRows([matchRecord({ videos: [bare, demo] })], { now: NOW, prev: rows })
+    expect(kept.videos[0]).toEqual(rows.videos[0])
+    const gone = deriveDbRows([matchRecord({ videos: [{ ...bare, storedOnDevice: false }, demo] })], { now: NOW, prev: rows })
+    expect([gone.videos[0].storedOnDevice, gone.videos[0].fingerprint]).toEqual([false, 'ab12'])
+  })
 })
 
 describe('stamps', () => {

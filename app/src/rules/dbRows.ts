@@ -125,9 +125,9 @@ function videoRow(
     fileName: v.fileName,
     sizeBytes: v.sizeBytes ?? Math.round(v.sizeMb * BYTES_PER_MB),
     durationS: v.durationS,
-    lastModifiedMs: prev?.lastModifiedMs ?? null,
-    fingerprint: prev?.fingerprint ?? null,
-    storedOnDevice: prev?.storedOnDevice ?? false,
+    lastModifiedMs: v.lastModifiedMs ?? prev?.lastModifiedMs ?? null,
+    fingerprint: v.fingerprint ?? prev?.fingerprint ?? null,
+    storedOnDevice: v.storedOnDevice ?? prev?.storedOnDevice ?? false,
     archivedAt: v.archived ? (prev?.archivedAt ?? now) : null,
     myEnd: v.myEnd ?? null,
     removedAt,
@@ -404,6 +404,9 @@ function videoAsset(row: VideoRow): VideoAsset {
     durationS: row.durationS,
     ...(row.demoScript ? { script: row.demoScript } : {}),
     ...(row.myEnd !== null ? { myEnd: row.myEnd } : {}),
+    ...(row.storedOnDevice ? { storedOnDevice: true } : {}),
+    ...(row.lastModifiedMs !== null ? { lastModifiedMs: row.lastModifiedMs } : {}),
+    ...(row.fingerprint !== null ? { fingerprint: row.fingerprint } : {}),
   }
 }
 

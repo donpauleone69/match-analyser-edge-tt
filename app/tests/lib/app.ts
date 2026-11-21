@@ -248,6 +248,10 @@ export type { MatchFile, RepoResult } from '@/types/db'
 export { deriveSetRowId, deriveShotRowId, stableJson } from '@/rules/dbRows'
 export { SETTINGS_STORAGE_KEYS } from '@/stores/settingsStore'
 
+// -> @/rules/videoFile, @/data/videoFiles
+export { calculateLastModifiedMs, isSameVideoFile } from '@/rules/videoFile'
+export type { VideoFileFacts } from '@/rules/videoFile'
+
 // -> @/data (phase 8 database layer; the browser check runs these)
 export { DEMO_DB_NAME, MatchDb, SCHEMA_V1_STORES, USER_DB_NAME, createMatchDb, openMatchDb } from '@/data/db'
 export { createRowId } from '@/data/ids'
@@ -265,6 +269,17 @@ export {
 export { removeEvent, removeOpponent, renameEvent, renameOpponent } from '@/data/nameRepo'
 export { deriveMatchFileName, exportMatchFile, importMatchFile, serializeMatchFile } from '@/data/matchFile'
 export { readStorageInfo, requestPersistentStorage } from '@/data/storage'
+export {
+  VIDEO_DIR,
+  deleteVideoFiles,
+  fingerprintFile,
+  listVideoFiles,
+  pruneVideoFiles,
+  readFileFacts,
+  readVideoFile,
+  saveVideoFile,
+} from '@/data/videoFiles'
+export { openMode } from '@/data/boot'
 export {
   OLD_DATABASES,
   OLD_LOCAL_KEYS,
