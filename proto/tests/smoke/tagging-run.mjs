@@ -75,6 +75,23 @@ function assertUrl(page, pathname, search) {
   if (got !== want) fail(`url ${got}, expected ${want}`)
 }
 
+/**
+ * The stand-in is painted from requestAnimationFrame timestamps, and the
+ * end-question shot is taken while that loop is still playing at 0.75x.
+ * Playwright's paused clock leaves performance.now() a few real milliseconds
+ * off the 16ms frame boundary: the gap between install and pauseAt, plus every
+ * runFor already logged on the context. Phases 8–11 and 13–15 move the ball
+ * and the near player on the phone shot; 0–7 and 12 match the baseline on
+ * both viewports. Snap to the next boundary before the run. The bad frame is
+ * already stable, so comparing two paused screenshots does not catch it.
+ */
+async function snapStandInClock(page) {
+  const now = await page.evaluate(() => performance.now())
+  const phase = now % 16
+  if (phase < 0.01) return
+  await page.clock.runFor(16 - phase)
+}
+
 export async function runTagging(page, base, vp, prepare, shoot) {
   const name = (leaf) => `${vp.name}/${leaf}.png`
   const names = []
@@ -87,6 +104,7 @@ export async function runTagging(page, base, vp, prepare, shoot) {
 
   await page.goto(`${base}/matches/m-partial/tag/2`, { waitUntil: 'load' })
   await prepare(page)
+  await snapStandInClock(page)
   await page.clock.runFor(1000)
   await take('t01-set2-start')
 
