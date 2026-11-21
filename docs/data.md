@@ -1,6 +1,6 @@
 # Data model
 
-Two shapes. In memory, one nested `MatchRecord` per match in `app/src/stores/matchStore.ts`; it resets on reload. In the database, schema v1: eight tables in `app/src/types/db.ts`, mapped from memory and back by `app/src/rules/dbRows.ts`, checked before every write by `app/src/rules/dbValidate.ts`, and stored in the browser by `app/src/data/` (Dexie). Until phase 8.2 wires the stores to it, nothing on screen reads or writes the database. Every column with its type, allowed values, writer and reader, plus the gaps, is in `docs/data-fields.md`. "You" is `me`. Invariants are `app/tests/invariants/catalog.ts` and `app/tests/invariants/rows.ts`.
+Two shapes. In memory, one nested `MatchRecord` per match in `app/src/stores/matchStore.ts`. The screen reads the store. `bootMatches` opens the database for the current mode and loads it before the first paint (`app/src/data/boot.ts`). Every store action then writes through `saveMatch`, `saveDraft` or `deleteMatch` in `app/src/data/matchRepo.ts`. A refused write rolls the store back. In the database, schema v1: eight tables in `app/src/types/db.ts`, mapped from memory and back by `app/src/rules/dbRows.ts`, checked before every write by `app/src/rules/dbValidate.ts`, and stored in the browser by `app/src/data/` (Dexie). Every column with its type, allowed values, writer and reader, plus the gaps, is in `docs/data-fields.md`. "You" is `me`. Invariants are `app/tests/invariants/catalog.ts` and `app/tests/invariants/rows.ts`.
 
 ## In memory
 
@@ -87,7 +87,7 @@ On render means every time a screen or selector reads it; nothing is cached in t
 | Set state, mark state, video status | See the two tables below | On render | `app/src/rules/match.ts`, `app/src/rules/marks.ts` |
 | Sets won, tagged result, Differs | Leaders and entered scores | On render | `app/src/rules/match.ts` |
 | Match phase, Tagged | Sets and result | On render | `derivePhase`, `isMatchTagged` |
-| Set list | Result count, or used sets plus a spare | Every store write and catalog build (`mergeMatches`) | `normalizeMatch` |
+| Set list | Result count, or used sets plus a spare | Every store write, and again on load | `normalizeMatch` |
 | Mark from rallies | First and last contact | Every store write and catalog build | `migrateSetMark` |
 | Continuity marks | Serve order, gaps of 9 s | On render | `app/src/rules/continuity.ts` |
 | Insight cards and reels | Saved rallies of the filtered matches | On render | `app/src/rules/insights.ts` |
@@ -95,9 +95,10 @@ On render means every time a screen or selector reads it; nothing is cached in t
 | `idea.flow`, `serve`, `result` | Kind, serve depth, ending and count | On load | `deriveRallyData` |
 | Check the point | `pointKept` | On load | `deriveRallyData` |
 | `outcome` | `resultMe` greater than `resultThem` | On row write | `deriveOutcome` |
-| Opponent and event ids | Typed name, ignoring case and outer spaces | On row write | `deriveDbRows` |
+| Opponent and event ids | Typed name, ignoring case and outer spaces | On leaving the box (blur or Enter), not per keystroke | `saveMatch` |
 | Row times | `createdAt`, `updatedAt`, `finishedAt`, `archivedAt`, `deletedAt`, `removedAt` | On row write; a stored time is kept | `deriveDbRows` |
-| Video kind, size in MB | `demoScript`, `sizeBytes` | On load | `deriveMatchRecords` |
+| Video kind, size in MB | `demoScript`, `sizeBytes` | On load. An exact `File.size` is kept on the video; a whole-MB size is not | `deriveMatchRecords` |
+| Filter opponent and event | Stored id, or `Any` | On render. The chip and the comparison use the row's name | `resolveNameFilters` |
 | Event start date | Earliest `playedOn` of its matches | Phase 10 reader; no code yet | |
 | Your end at a rally | `myEnd`, swap per set and at 5 in the deciding set | Phase 10, `deriveMyEnd`; no code yet | |
 

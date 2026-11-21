@@ -2,7 +2,7 @@
 
 Table tennis match video tagging and insights. This is not the club session app called Edge TT.
 
-The product is `app/` (Vite 7, React 19, React Router 7, Tailwind 4, TypeScript 5.9, Zustand, Vitest). The visible version is v0.17.29 in `app/src/version.ts`. Match data lives in memory and resets on reload. Device preferences persist through `app/src/stores/settingsStore.ts`. The browser database (Dexie, schema v1 in `app/src/types/db.ts`) and its repositories are in `app/src/data/`; phase 8.2 wires the stores to them.
+The product is `app/` (Vite 7, React 19, React Router 7, Tailwind 4, TypeScript 5.9, Zustand, Vitest). The visible version is v0.18.0 in `app/src/version.ts`. Match data is in the browser database (Dexie, schema v1 in `app/src/types/db.ts`, repositories in `app/src/data/`). The store loads it before the first paint and writes every change through. Device preferences persist through `app/src/stores/settingsStore.ts`.
 
 ## Run and test
 
@@ -22,16 +22,17 @@ Every command after that `cd` runs from `app/`. Dev server: http://localhost:517
 | `npm run check:rules` | Layer rules in `app/scripts/check-rules.mjs` |
 | `npm run check:docs` | Cited repo paths exist, and each scanned doc is at most 200 lines |
 | `npm run check:db` | The database layer in Chrome (`app/tests/db/check-db.mjs`), then invariants and golden outputs over the rows read back |
+| `npm run check:persist` | Six rallies, export, reload, export again (`app/tests/persist/check-persist.mjs`). Rows and the matches shot match. Then invariants and golden derivation over those rows |
 | `npm run smoke` | Every route at 393x660 and 1440x912, plus a six-rally tagging run. Pass is 0 differing pixels |
 
-`npm run smoke` builds and serves its own copy. No dev server is needed. It compares shots to a baseline. The default folder is `/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/media/refactor/baseline-v0.17.29` (see `app/tests/smoke/smoke.mjs`). Point at another folder with `SMOKE_BASELINE=/path/to/shots npm run smoke`. If that folder has no `manifest.json`, smoke throws `baseline manifest missing`. Agents outside this setup run build, test, and the checks, and skip smoke or pass their own baseline. Smoke and `check:db` need Chrome at `/usr/local/bin/google-chrome`. Do not pass `--write-baseline` unless a visible change is named and agreed.
+`npm run smoke` builds and serves its own copy. No dev server is needed. It compares shots to a baseline. The default folder is `/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/media/refactor/baseline-v0.18.0` (see `app/tests/smoke/smoke.mjs`). Point at another folder with `SMOKE_BASELINE=/path/to/shots npm run smoke`. If that folder has no `manifest.json`, smoke throws `baseline manifest missing`. Agents outside this setup run build, test, and the checks, and skip smoke or pass their own baseline. Smoke, `check:db` and `check:persist` need Chrome at `/usr/local/bin/google-chrome`. Do not pass `--write-baseline` unless a visible change is named and agreed.
 
 ## Gate before merge
 
 From `app/`:
 
 ```bash
-npm run build && npm test && npm run check:rules && npm run check:docs && npm run check:db && npm run smoke
+npm run build && npm test && npm run check:rules && npm run check:docs && npm run check:db && npm run check:persist && npm run smoke
 ```
 
 Smoke must be 0 differing pixels. Also look at changed surfaces in a browser. Lint is not a gate.

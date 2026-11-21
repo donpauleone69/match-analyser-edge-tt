@@ -99,10 +99,22 @@ async function captureScroll(page, baseName, prepare, shoot) {
   return names
 }
 
+/** The database opens before render, and the load event does not wait for it. */
+export async function waitForApp(page) {
+  const deadline = Date.now() + 15000
+  while (Date.now() < deadline) {
+    const ready = await page.evaluate(() => (document.getElementById('root')?.childElementCount ?? 0) > 0)
+    if (ready) return
+    await new Promise((resolve) => setTimeout(resolve, 50))
+  }
+  throw new Error('app did not render')
+}
+
 export async function captureRoutes(page, base, vp, prepare, shoot) {
   const names = []
   for (const route of ROUTES) {
     await page.goto(`${base}${route.path}`, { waitUntil: 'load' })
+    await waitForApp(page)
     await prepare(page)
     await page.clock.runFor(1000)
     const taken = await captureScroll(page, `${vp.name}/${route.id}-${route.slug}`, prepare, shoot)
@@ -115,6 +127,7 @@ export async function captureRoutes(page, base, vp, prepare, shoot) {
 export async function assertUrls(page, base) {
   for (const item of URL_ASSERTIONS) {
     await page.goto(`${base}${item.from}`, { waitUntil: 'load' })
+    await waitForApp(page)
     await page.clock.runFor(200)
     const url = new URL(page.url())
     const got = `${url.pathname}${url.search}`
