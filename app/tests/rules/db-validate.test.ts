@@ -211,6 +211,15 @@ table<R>('validateRallyRow on a point', point, checkRally, [
   { rule: 'a point is not kept', ok: () => {}, bad: (r) => (r.row.pointKept = true), field: 'pointKept' },
 ])
 
+describe('validateRallyRow with no shot list', () => {
+  for (const missing of [null, undefined, 'shots']) {
+    it(`${String(missing)}: refused, not thrown`, () => {
+      const errors = validateRallyRow(point().row, missing as unknown as ShotRow[])
+      expect(fields(errors)).toEqual(['shots'])
+    })
+  }
+})
+
 table<DraftRow>('validateDraftRow', draft, validateDraftRow, [
   { rule: 'setId is an id', ok: (r) => (r.setId = 's'), bad: (r) => (r.setId = ''), field: 'setId' },
   { rule: 'the open rally is an object', ok: () => {}, bad: (r) => ((r as { rally: unknown }).rally = null), field: 'rally' },

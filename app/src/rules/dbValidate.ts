@@ -199,8 +199,10 @@ export function validateShotRow(row: ShotRow): DbError[] {
 }
 
 /** One rally and its shots. Shots from 1 to n, contacts apart, the winner, review parts. */
-export function validateRallyRow(row: RallyRow, shots: readonly ShotRow[]): DbError[] {
+export function validateRallyRow(row: RallyRow, shotList: readonly ShotRow[] | null | undefined): DbError[] {
   const { out, say } = collector('rallies', String(row.id))
+  if (!Array.isArray(shotList)) say('shots', 'a list of shots')
+  const shots: readonly ShotRow[] = Array.isArray(shotList) ? shotList : []
   need(say, 'id', isText(row.id), 'an id')
   need(say, 'setId', isText(row.setId), 'an id')
   need(say, 'videoId', isText(row.videoId), 'an id')
