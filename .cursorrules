@@ -70,7 +70,7 @@ Names are the target; a builder may adjust a name but keeps the layer. `App.tsx`
 - **stores/**: Zustand `create` without persist middleware. Actions are the only way to change state: an action reads state, runs a pure `rules/` op and sets the result (the `mutateMatch(fn)` pattern). Actions do not throw. Device preferences live in `settingsStore`, which reads and writes browser storage itself. No `.tsx`, no feature, page, layout or ui-mine imports.
 - **data/**: plain TypeScript; no React, Zustand, stores, features, pages, layout or ui-mine. The seed is deterministic for a given today. From phase 8: Dexie, `schemaVersion` 1, additive upgrades only; repositories; a rally and its shots save in one transaction.
 - **Storage** (`localStorage`, `sessionStorage`, `indexedDB`) is used only in `stores/` and `data/`.
-- **ui-mine/**: visual only. One folder per component (`Button/Button.tsx`, `Button/types.ts`, `Button/index.ts`). The only place that imports `lucide-react` or shadcn primitives; features import from `@/ui-mine`.
+- **ui-mine/**: visual only. One folder per component (`<Component>/<Component>.tsx`, its prop types in `<Component>/types.ts`, `<Component>/index.ts`). The only place that imports `lucide-react` or shadcn primitives; features import from `@/ui-mine`.
 - No types exported from `.tsx` files: use `models.ts`, `types/` or the component's `types.ts`.
 - Imports across folders use `@/` aliases (`@/rules/score`, `@/stores/matchStore`). Relative imports stay inside one feature or one top-level folder.
 
