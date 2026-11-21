@@ -1,0 +1,2971 @@
+{
+  "archived": false,
+  "date": "21 Sep",
+  "defaultTab": "insights",
+  "insights": {
+    "cards": [
+      {
+        "about": [
+          "Points you won, split the way China's coaches split a match.",
+          "The player who misses is charged on that ball. The player who wins is credited on the ball before.",
+          "Serve to 5th is your 1st, 3rd and 5th when you served. Receive to 4th is your receive, 2nd and 4th when they served. Rally is the rest.",
+          "The grade is the China team marks from Zhang 2004. It needs 20 of your points in that row. Only you are graded.",
+          "Usual is your rate in your other tagged matches. It shows when today differs by 10 points or more."
+        ],
+        "columns": [
+          "You",
+          "Alex",
+          "Grade"
+        ],
+        "compare": null,
+        "counts": {
+          "points": 74,
+          "themN": 74,
+          "themWon": 34,
+          "youN": 74,
+          "youWon": 40
+        },
+        "empty": null,
+        "id": "phases",
+        "playlist": {
+          "caption": "name",
+          "items": [
+            {
+              "a": 54.49,
+              "b": 61.51,
+              "id": "phases-v-h7-a-r5-0",
+              "matchId": "m-h7",
+              "note": "",
+              "points": {
+                "me": 3,
+                "them": 2
+              },
+              "rallyId": "v-h7-a-r5",
+              "server": "me",
+              "setId": 1,
+              "sets": {
+                "me": 0,
+                "them": 0
+              },
+              "versus": "vs Alex",
+              "videoId": "v-h7-a"
+            },
+            {
+              "a": 203.39,
+              "b": 210.11,
+              "id": "phases-v-h7-a-r19-1",
+              "matchId": "m-h7",
+              "note": "",
+              "points": {
+                "me": 2,
+                "them": 0
+              },
+              "rallyId": "v-h7-a-r19",
+              "server": "me",
+              "setId": 2,
+              "sets": {
+                "me": 1,
+                "them": 0
+              },
+              "versus": "vs Alex",
+              "videoId": "v-h7-a"
+            },
+            {
+              "a": 212.21,
+              "b": 216.12,
+              "id": "phases-v-h7-a-r20-2",
+              "matchId": "m-h7",
+              "note": "",
+              "points": {
+                "me": 2,
+                "them": 1
+              },
+              "rallyId": "v-h7-a-r20",
+              "server": "me",
+              "setId": 2,
+              "sets": {
+                "me": 1,
+                "them": 0
+              },
+              "versus": "vs Alex",
+              "videoId": "v-h7-a"
+            },
+            {
+              "a": 247.29,
+              "b": 253.24,
+              "id": "phases-v-h7-a-r24-3",
+              "matchId": "m-h7",
+              "note": "",
+              "points": {
+                "me": 4,
+                "them": 3
+              },
+              "rallyId": "v-h7-a-r24",
+              "server": "me",
+              "setId": 2,
+              "sets": {
+                "me": 1,
+                "them": 0
+              },
+              "versus": "vs Alex",
+              "videoId": "v-h7-a"
+            },
+            {
+              "a": 392.18,
+              "b": 398.79,
+              "id": "phases-v-h7-a-r38-4",
+              "matchId": "m-h7",
+              "note": "",
+              "points": {
+                "me": 1,
+                "them": 0
+              },
+              "rallyId": "v-h7-a-r38",
+              "server": "me",
+              "setId": 3,
+              "sets": {
+                "me": 2,
+                "them": 0
+              },
+              "versus": "vs Alex",
+              "videoId": "v-h7-a"
+            },
+            {
+              "a": 432.98,
+              "b": 439.73,
+              "id": "phases-v-h7-a-r42-5",
+              "matchId": "m-h7",
+              "note": "",
+              "points": {
+                "me": 1,
+                "them": 4
+              },
+              "rallyId": "v-h7-a-r42",
+              "server": "me",
+              "setId": 3,
+              "sets": {
+                "me": 2,
+                "them": 0
+              },
+              "versus": "vs Alex",
+              "videoId": "v-h7-a"
+            },
+            {
+              "a": 75.81,
+              "b": 80.56,
+              "id": "phases-v-h7-b-r53-6",
+              "matchId": "m-h7",
+              "note": "",
+              "points": {
+                "me": 7,
+                "them": 9
+              },
+              "rallyId": "v-h7-b-r53",
+              "server": "me",
+              "setId": 3,
+              "sets": {
+                "me": 2,
+                "them": 0
+              },
+              "versus": "vs Alex",
+              "videoId": "v-h7-b"
+            },
+            {
+              "a": 127.27,
+              "b": 134.43,
+              "id": "phases-v-h7-b-r58-7",
+              "matchId": "m-h7",
+              "note": "",
+              "points": {
+                "me": 3,
+                "them": 0
+              },
+              "rallyId": "v-h7-b-r58",
+              "server": "me",
+              "setId": 4,
+              "sets": {
+                "me": 2,
+                "them": 1
+              },
+              "versus": "vs Alex",
+              "videoId": "v-h7-b"
+            },
+            {
+              "a": 151.68,
+              "b": 158.38,
+              "id": "phases-v-h7-b-r61-8",
+              "matchId": "m-h7",
+              "note": "",
+              "points": {
+                "me": 4,
+                "them": 2
+              },
+              "rallyId": "v-h7-b-r61",
+              "server": "me",
+              "setId": 4,
+              "sets": {
+                "me": 2,
+                "them": 1
+              },
+              "versus": "vs Alex",
+              "videoId": "v-h7-b"
+            },
+            {
+              "a": 204.77,
+              "b": 209.72,
+              "id": "phases-v-h7-b-r66-9",
+              "matchId": "m-h7",
+              "note": "",
+              "points": {
+                "me": 7,
+                "them": 4
+              },
+              "rallyId": "v-h7-b-r66",
+              "server": "me",
+              "setId": 4,
+              "sets": {
+                "me": 2,
+                "them": 1
+              },
+              "versus": "vs Alex",
+              "videoId": "v-h7-b"
+            }
+          ],
+          "name": "Lost on serve to 5th"
+        },
+        "rows": [
+          {
+            "grade": "Pass",
+            "label": "Serve to 5th",
+            "them": {
+              "of": "of 25",
+              "text": "64%"
+            },
+            "themN": 25,
+            "themWon": 16,
+            "weak": true,
+            "you": {
+              "of": "of 25",
+              "text": "60%"
+            },
+            "youN": 25,
+            "youWon": 15
+          },
+          {
+            "grade": null,
+            "label": "Receive to 4th",
+            "them": {
+              "of": "of 19",
+              "text": "53%"
+            },
+            "themN": 19,
+            "themWon": 10,
+            "weak": false,
+            "you": {
+              "of": "of 19",
+              "text": "47%"
+            },
+            "youN": 19,
+            "youWon": 9
+          },
+          {
+            "grade": "Excellent",
+            "label": "Rally",
+            "them": {
+              "of": "of 30",
+              "text": "27%"
+            },
+            "themN": 30,
+            "themWon": 8,
+            "weak": false,
+            "you": {
+              "of": "of 30",
+              "text": "53%"
+            },
+            "youN": 30,
+            "youWon": 16
+          }
+        ],
+        "sub": "Won 40 of 74 · China team marks",
+        "title": "Phases",
+        "value": "54%"
+      },
+      {
+        "about": [
+          "Every point you served, including aces and faults.",
+          "The rows are the first three shots: their attack on the receive, your attack on the 3rd ball, or neither.",
+          "Elite 51% is elite men on serve, from Djokic 2020. Lets are not counted.",
+          "Usual is your rate in your other tagged matches. It shows when today differs by 10 points or more."
+        ],
+        "columns": null,
+        "compare": "Alex 47% · Elite 51%",
+        "counts": {
+          "points": 38,
+          "themN": 36,
+          "themWon": 17,
+          "youN": 38,
+          "youWon": 21
+        },
+        "empty": null,
+        "id": "serve",
+        "playlist": {
+          "caption": "name",
+          "items": [
+            {
+              "a": 247.29,
+              "b": 253.24,
+              "id": "serve-v-h7-a-r24-0",
+              "matchId": "m-h7",
+              "note": "",
+              "points": {
+                "me": 4,
+                "them": 3
+              },
+              "rallyId": "v-h7-a-r24",
+              "server": "me",
+              "setId": 2,
+              "sets": {
+                "me": 1,
+                "them": 0
+              },
+              "versus": "vs Alex",
+              "videoId": "v-h7-a"
+            },
+            {
+              "a": 432.98,
+              "b": 439.73,
+              "id": "serve-v-h7-a-r42-1",
+              "matchId": "m-h7",
+              "note": "",
+              "points": {
+                "me": 1,
+                "them": 4
+              },
+              "rallyId": "v-h7-a-r42",
+              "server": "me",
+              "setId": 3,
+              "sets": {
+                "me": 2,
+                "them": 0
+              },
+              "versus": "vs Alex",
+              "videoId": "v-h7-a"
+            },
+            {
+              "a": 75.81,
+              "b": 80.56,
+              "id": "serve-v-h7-b-r53-2",
+              "matchId": "m-h7",
+              "note": "",
+              "points": {
+                "me": 7,
+                "them": 9
+              },
+              "rallyId": "v-h7-b-r53",
+              "server": "me",
+              "setId": 3,
+              "sets": {
+                "me": 2,
+                "them": 0
+              },
+              "versus": "vs Alex",
+              "videoId": "v-h7-b"
+            },
+            {
+              "a": 151.68,
+              "b": 158.38,
+              "id": "serve-v-h7-b-r61-3",
+              "matchId": "m-h7",
+              "note": "",
+              "points": {
+                "me": 4,
+                "them": 2
+              },
+              "rallyId": "v-h7-b-r61",
+              "server": "me",
+              "setId": 4,
+              "sets": {
+                "me": 2,
+                "them": 1
+              },
+              "versus": "vs Alex",
+              "videoId": "v-h7-b"
+            }
+          ],
+          "name": "Lost when Alex attacked your serve"
+        },
+        "rows": [
+          {
+            "label": "Ace or fault",
+            "single": {
+              "detail": null,
+              "main": "won 2 of 2"
+            },
+            "themN": 0,
+            "themWon": 0,
+            "weak": false,
+            "youN": 2,
+            "youWon": 2
+          },
+          {
+            "label": "Alex attacked",
+            "single": {
+              "detail": "43%",
+              "main": "won 3 of 7"
+            },
+            "themN": 0,
+            "themWon": 0,
+            "weak": true,
+            "youN": 7,
+            "youWon": 3
+          },
+          {
+            "label": "You attacked 3rd",
+            "single": {
+              "detail": "67%",
+              "main": "won 4 of 6"
+            },
+            "themN": 0,
+            "themWon": 0,
+            "weak": false,
+            "youN": 6,
+            "youWon": 4
+          },
+          {
+            "label": "No attack by 3rd",
+            "single": {
+              "detail": "52%",
+              "main": "won 12 of 23"
+            },
+            "themN": 0,
+            "themWon": 0,
+            "weak": false,
+            "youN": 23,
+            "youWon": 12
+          }
+        ],
+        "sub": "Won 21 of 38 on your serve",
+        "title": "Serve",
+        "value": "55%"
+      },
+      {
+        "about": [
+          "Every point they served.",
+          "The rows show whether you attacked the receive, they attacked the 3rd ball, or neither.",
+          "Elite 49% is the same study, Djokic 2020, from the receiver's side.",
+          "Usual is your rate in your other tagged matches. It shows when today differs by 10 points or more."
+        ],
+        "columns": null,
+        "compare": "Alex 45% · Elite 49%",
+        "counts": {
+          "points": 36,
+          "themN": 38,
+          "themWon": 17,
+          "youN": 36,
+          "youWon": 19
+        },
+        "empty": null,
+        "id": "receive",
+        "playlist": {
+          "caption": "name",
+          "items": [
+            {
+              "a": 22.78,
+              "b": 30.66,
+              "id": "receive-v-h7-a-r2-0",
+              "matchId": "m-h7",
+              "note": "",
+              "points": {
+                "me": 2,
+                "them": 0
+              },
+              "rallyId": "v-h7-a-r2",
+              "server": "them",
+              "setId": 1,
+              "sets": {
+                "me": 0,
+                "them": 0
+              },
+              "versus": "vs Alex",
+              "videoId": "v-h7-a"
+            },
+            {
+              "a": 64.79,
+              "b": 70.41,
+              "id": "receive-v-h7-a-r6-1",
+              "matchId": "m-h7",
+              "note": "",
+              "points": {
+                "me": 3,
+                "them": 3
+              },
+              "rallyId": "v-h7-a-r6",
+              "server": "them",
+              "setId": 1,
+              "sets": {
+                "me": 0,
+                "them": 0
+              },
+              "versus": "vs Alex",
+              "videoId": "v-h7-a"
+            },
+            {
+              "a": 150.03,
+              "b": 158.06,
+              "id": "receive-v-h7-a-r14-2",
+              "matchId": "m-h7",
+              "note": "",
+              "points": {
+                "me": 10,
+                "them": 4
+              },
+              "rallyId": "v-h7-a-r14",
+              "server": "them",
+              "setId": 1,
+              "sets": {
+                "me": 0,
+                "them": 0
+              },
+              "versus": "vs Alex",
+              "videoId": "v-h7-a"
+            },
+            {
+              "a": 161.29,
+              "b": 167.45,
+              "id": "receive-v-h7-a-r15-3",
+              "matchId": "m-h7",
+              "note": "",
+              "points": {
+                "me": 10,
+                "them": 5
+              },
+              "rallyId": "v-h7-a-r15",
+              "server": "them",
+              "setId": 1,
+              "sets": {
+                "me": 0,
+                "them": 0
+              },
+              "versus": "vs Alex",
+              "videoId": "v-h7-a"
+            },
+            {
+              "a": 226.95,
+              "b": 232.85,
+              "id": "receive-v-h7-a-r22-4",
+              "matchId": "m-h7",
+              "note": "",
+              "points": {
+                "me": 3,
+                "them": 2
+              },
+              "rallyId": "v-h7-a-r22",
+              "server": "them",
+              "setId": 2,
+              "sets": {
+                "me": 1,
+                "them": 0
+              },
+              "versus": "vs Alex",
+              "videoId": "v-h7-a"
+            },
+            {
+              "a": 255.97,
+              "b": 262.49,
+              "id": "receive-v-h7-a-r25-5",
+              "matchId": "m-h7",
+              "note": "",
+              "points": {
+                "me": 4,
+                "them": 4
+              },
+              "rallyId": "v-h7-a-r25",
+              "server": "them",
+              "setId": 2,
+              "sets": {
+                "me": 1,
+                "them": 0
+              },
+              "versus": "vs Alex",
+              "videoId": "v-h7-a"
+            },
+            {
+              "a": 264.44,
+              "b": 270.26,
+              "id": "receive-v-h7-a-r26-6",
+              "matchId": "m-h7",
+              "note": "",
+              "points": {
+                "me": 4,
+                "them": 5
+              },
+              "rallyId": "v-h7-a-r26",
+              "server": "them",
+              "setId": 2,
+              "sets": {
+                "me": 1,
+                "them": 0
+              },
+              "versus": "vs Alex",
+              "videoId": "v-h7-a"
+            },
+            {
+              "a": 327.47,
+              "b": 338.99,
+              "id": "receive-v-h7-a-r33-7",
+              "matchId": "m-h7",
+              "note": "",
+              "points": {
+                "me": 9,
+                "them": 7
+              },
+              "rallyId": "v-h7-a-r33",
+              "server": "them",
+              "setId": 2,
+              "sets": {
+                "me": 1,
+                "them": 0
+              },
+              "versus": "vs Alex",
+              "videoId": "v-h7-a"
+            },
+            {
+              "a": 342.19,
+              "b": 349.71,
+              "id": "receive-v-h7-a-r34-8",
+              "matchId": "m-h7",
+              "note": "",
+              "points": {
+                "me": 9,
+                "them": 8
+              },
+              "rallyId": "v-h7-a-r34",
+              "server": "them",
+              "setId": 2,
+              "sets": {
+                "me": 1,
+                "them": 0
+              },
+              "versus": "vs Alex",
+              "videoId": "v-h7-a"
+            },
+            {
+              "a": 401.34,
+              "b": 407.18,
+              "id": "receive-v-h7-a-r39-9",
+              "matchId": "m-h7",
+              "note": "",
+              "points": {
+                "me": 1,
+                "them": 1
+              },
+              "rallyId": "v-h7-a-r39",
+              "server": "them",
+              "setId": 3,
+              "sets": {
+                "me": 2,
+                "them": 0
+              },
+              "versus": "vs Alex",
+              "videoId": "v-h7-a"
+            },
+            {
+              "a": 409.77,
+              "b": 417.35,
+              "id": "receive-v-h7-a-r40-10",
+              "matchId": "m-h7",
+              "note": "",
+              "points": {
+                "me": 1,
+                "them": 2
+              },
+              "rallyId": "v-h7-a-r40",
+              "server": "them",
+              "setId": 3,
+              "sets": {
+                "me": 2,
+                "them": 0
+              },
+              "versus": "vs Alex",
+              "videoId": "v-h7-a"
+            },
+            {
+              "a": 15.26,
+              "b": 19.15,
+              "id": "receive-v-h7-b-r47-11",
+              "matchId": "m-h7",
+              "note": "",
+              "points": {
+                "me": 3,
+                "them": 7
+              },
+              "rallyId": "v-h7-b-r47",
+              "server": "them",
+              "setId": 3,
+              "sets": {
+                "me": 2,
+                "them": 0
+              },
+              "versus": "vs Alex",
+              "videoId": "v-h7-b"
+            },
+            {
+              "a": 136.29,
+              "b": 140.19,
+              "id": "receive-v-h7-b-r59-12",
+              "matchId": "m-h7",
+              "note": "",
+              "points": {
+                "me": 3,
+                "them": 1
+              },
+              "rallyId": "v-h7-b-r59",
+              "server": "them",
+              "setId": 4,
+              "sets": {
+                "me": 2,
+                "them": 1
+              },
+              "versus": "vs Alex",
+              "videoId": "v-h7-b"
+            },
+            {
+              "a": 185.42,
+              "b": 193.2,
+              "id": "receive-v-h7-b-r64-13",
+              "matchId": "m-h7",
+              "note": "",
+              "points": {
+                "me": 6,
+                "them": 3
+              },
+              "rallyId": "v-h7-b-r64",
+              "server": "them",
+              "setId": 4,
+              "sets": {
+                "me": 2,
+                "them": 1
+              },
+              "versus": "vs Alex",
+              "videoId": "v-h7-b"
+            },
+            {
+              "a": 221.55,
+              "b": 227.21,
+              "id": "receive-v-h7-b-r68-14",
+              "matchId": "m-h7",
+              "note": "",
+              "points": {
+                "me": 8,
+                "them": 5
+              },
+              "rallyId": "v-h7-b-r68",
+              "server": "them",
+              "setId": 4,
+              "sets": {
+                "me": 2,
+                "them": 1
+              },
+              "versus": "vs Alex",
+              "videoId": "v-h7-b"
+            },
+            {
+              "a": 252.02,
+              "b": 255.02,
+              "id": "receive-v-h7-b-r71-15",
+              "matchId": "m-h7",
+              "note": "",
+              "points": {
+                "me": 10,
+                "them": 6
+              },
+              "rallyId": "v-h7-b-r71",
+              "server": "them",
+              "setId": 4,
+              "sets": {
+                "me": 2,
+                "them": 1
+              },
+              "versus": "vs Alex",
+              "videoId": "v-h7-b"
+            },
+            {
+              "a": 258.57,
+              "b": 264.7,
+              "id": "receive-v-h7-b-r72-16",
+              "matchId": "m-h7",
+              "note": "",
+              "points": {
+                "me": 10,
+                "them": 7
+              },
+              "rallyId": "v-h7-b-r72",
+              "server": "them",
+              "setId": 4,
+              "sets": {
+                "me": 2,
+                "them": 1
+              },
+              "versus": "vs Alex",
+              "videoId": "v-h7-b"
+            }
+          ],
+          "name": "Lost on Alex's serve"
+        },
+        "rows": [
+          {
+            "label": "Ace or fault",
+            "single": {
+              "detail": null,
+              "main": "won 2 of 3"
+            },
+            "themN": 0,
+            "themWon": 0,
+            "weak": false,
+            "youN": 3,
+            "youWon": 2
+          },
+          {
+            "label": "You attacked",
+            "single": {
+              "detail": "67%",
+              "main": "won 4 of 6"
+            },
+            "themN": 0,
+            "themWon": 0,
+            "weak": false,
+            "youN": 6,
+            "youWon": 4
+          },
+          {
+            "label": "Alex attacked 3rd",
+            "single": {
+              "detail": null,
+              "main": "won 0 of 2"
+            },
+            "themN": 0,
+            "themWon": 0,
+            "weak": false,
+            "youN": 2,
+            "youWon": 0
+          },
+          {
+            "label": "No attack by 3rd",
+            "single": {
+              "detail": "52%",
+              "main": "won 13 of 25"
+            },
+            "themN": 0,
+            "themWon": 0,
+            "weak": false,
+            "youN": 25,
+            "youWon": 13
+          }
+        ],
+        "sub": "Won 19 of 36 on Alex's serve",
+        "title": "Receive",
+        "value": "53%"
+      },
+      {
+        "about": [
+          "Points where they made the first attack, and how you answered: a counter, a block, or no reply.",
+          "Their number is how often they win when you attack first.",
+          "Elite 48% is the defender's rate, from Fuchs and Lames 2021.",
+          "A blocked fast serve counts as Control here, and as a first attack in that study. That case is rare.",
+          "Usual is your rate in your other tagged matches. It shows when today differs by 10 points or more."
+        ],
+        "columns": [
+          "You",
+          "Alex"
+        ],
+        "compare": "Alex 42% · Elite 48%",
+        "counts": {
+          "points": 25,
+          "themN": 24,
+          "themWon": 10,
+          "youN": 25,
+          "youWon": 12
+        },
+        "empty": null,
+        "id": "attack",
+        "playlist": {
+          "caption": "name",
+          "items": [
+            {
+              "a": 22.78,
+              "b": 30.66,
+              "id": "attack-v-h7-a-r2-0",
+              "matchId": "m-h7",
+              "note": "",
+              "points": {
+                "me": 2,
+                "them": 0
+              },
+              "rallyId": "v-h7-a-r2",
+              "server": "them",
+              "setId": 1,
+              "sets": {
+                "me": 0,
+                "them": 0
+              },
+              "versus": "vs Alex",
+              "videoId": "v-h7-a"
+            },
+            {
+              "a": 43.43,
+              "b": 51.87,
+              "id": "attack-v-h7-a-r4-1",
+              "matchId": "m-h7",
+              "note": "",
+              "points": {
+                "me": 3,
+                "them": 1
+              },
+              "rallyId": "v-h7-a-r4",
+              "server": "me",
+              "setId": 1,
+              "sets": {
+                "me": 0,
+                "them": 0
+              },
+              "versus": "vs Alex",
+              "videoId": "v-h7-a"
+            },
+            {
+              "a": 150.03,
+              "b": 158.06,
+              "id": "attack-v-h7-a-r14-2",
+              "matchId": "m-h7",
+              "note": "",
+              "points": {
+                "me": 10,
+                "them": 4
+              },
+              "rallyId": "v-h7-a-r14",
+              "server": "them",
+              "setId": 1,
+              "sets": {
+                "me": 0,
+                "them": 0
+              },
+              "versus": "vs Alex",
+              "videoId": "v-h7-a"
+            },
+            {
+              "a": 203.39,
+              "b": 210.11,
+              "id": "attack-v-h7-a-r19-3",
+              "matchId": "m-h7",
+              "note": "",
+              "points": {
+                "me": 2,
+                "them": 0
+              },
+              "rallyId": "v-h7-a-r19",
+              "server": "me",
+              "setId": 2,
+              "sets": {
+                "me": 1,
+                "them": 0
+              },
+              "versus": "vs Alex",
+              "videoId": "v-h7-a"
+            },
+            {
+              "a": 247.29,
+              "b": 253.24,
+              "id": "attack-v-h7-a-r24-4",
+              "matchId": "m-h7",
+              "note": "",
+              "points": {
+                "me": 4,
+                "them": 3
+              },
+              "rallyId": "v-h7-a-r24",
+              "server": "me",
+              "setId": 2,
+              "sets": {
+                "me": 1,
+                "them": 0
+              },
+              "versus": "vs Alex",
+              "videoId": "v-h7-a"
+            },
+            {
+              "a": 327.47,
+              "b": 338.99,
+              "id": "attack-v-h7-a-r33-5",
+              "matchId": "m-h7",
+              "note": "",
+              "points": {
+                "me": 9,
+                "them": 7
+              },
+              "rallyId": "v-h7-a-r33",
+              "server": "them",
+              "setId": 2,
+              "sets": {
+                "me": 1,
+                "them": 0
+              },
+              "versus": "vs Alex",
+              "videoId": "v-h7-a"
+            },
+            {
+              "a": 432.98,
+              "b": 439.73,
+              "id": "attack-v-h7-a-r42-6",
+              "matchId": "m-h7",
+              "note": "",
+              "points": {
+                "me": 1,
+                "them": 4
+              },
+              "rallyId": "v-h7-a-r42",
+              "server": "me",
+              "setId": 3,
+              "sets": {
+                "me": 2,
+                "them": 0
+              },
+              "versus": "vs Alex",
+              "videoId": "v-h7-a"
+            },
+            {
+              "a": 3.49,
+              "b": 13.22,
+              "id": "attack-v-h7-b-r46-7",
+              "matchId": "m-h7",
+              "note": "",
+              "points": {
+                "me": 3,
+                "them": 6
+              },
+              "rallyId": "v-h7-b-r46",
+              "server": "me",
+              "setId": 3,
+              "sets": {
+                "me": 2,
+                "them": 0
+              },
+              "versus": "vs Alex",
+              "videoId": "v-h7-b"
+            },
+            {
+              "a": 75.81,
+              "b": 80.56,
+              "id": "attack-v-h7-b-r53-8",
+              "matchId": "m-h7",
+              "note": "",
+              "points": {
+                "me": 7,
+                "them": 9
+              },
+              "rallyId": "v-h7-b-r53",
+              "server": "me",
+              "setId": 3,
+              "sets": {
+                "me": 2,
+                "them": 0
+              },
+              "versus": "vs Alex",
+              "videoId": "v-h7-b"
+            },
+            {
+              "a": 151.68,
+              "b": 158.38,
+              "id": "attack-v-h7-b-r61-9",
+              "matchId": "m-h7",
+              "note": "",
+              "points": {
+                "me": 4,
+                "them": 2
+              },
+              "rallyId": "v-h7-b-r61",
+              "server": "me",
+              "setId": 4,
+              "sets": {
+                "me": 2,
+                "them": 1
+              },
+              "versus": "vs Alex",
+              "videoId": "v-h7-b"
+            },
+            {
+              "a": 185.42,
+              "b": 193.2,
+              "id": "attack-v-h7-b-r64-10",
+              "matchId": "m-h7",
+              "note": "",
+              "points": {
+                "me": 6,
+                "them": 3
+              },
+              "rallyId": "v-h7-b-r64",
+              "server": "them",
+              "setId": 4,
+              "sets": {
+                "me": 2,
+                "them": 1
+              },
+              "versus": "vs Alex",
+              "videoId": "v-h7-b"
+            }
+          ],
+          "name": "Lost after you blocked"
+        },
+        "rows": [
+          {
+            "label": "Countered",
+            "them": {
+              "of": null,
+              "text": "0 of 3"
+            },
+            "themN": 3,
+            "themWon": 0,
+            "weak": false,
+            "you": {
+              "of": null,
+              "text": "2 of 3"
+            },
+            "youN": 3,
+            "youWon": 2
+          },
+          {
+            "label": "Blocked",
+            "them": {
+              "of": "of 14",
+              "text": "43%"
+            },
+            "themN": 14,
+            "themWon": 6,
+            "weak": true,
+            "you": {
+              "of": "of 17",
+              "text": "35%"
+            },
+            "youN": 17,
+            "youWon": 6
+          },
+          {
+            "label": "No reply",
+            "them": {
+              "of": "of 7",
+              "text": "57%"
+            },
+            "themN": 7,
+            "themWon": 4,
+            "weak": false,
+            "you": {
+              "of": "of 5",
+              "text": "80%"
+            },
+            "youN": 5,
+            "youWon": 4
+          }
+        ],
+        "sub": "Won 12 of 25 when Alex attacked first",
+        "title": "Attack",
+        "value": "48%"
+      },
+      {
+        "about": [
+          "Your errors after the serve.",
+          "A free ball is one where the shot before was Control. Under attack means the shot before was Attack. On the receive is a missed return of serve.",
+          "There is no elite mark for this.",
+          "Usual is your rate in your other tagged matches. It shows when today differs by 3 errors per 100 points or more."
+        ],
+        "columns": [
+          "You",
+          "Alex"
+        ],
+        "compare": "Alex 24",
+        "counts": {
+          "points": 74,
+          "themN": 24,
+          "themWon": 0,
+          "youN": 28,
+          "youWon": 0
+        },
+        "empty": null,
+        "id": "end",
+        "playlist": {
+          "caption": "name",
+          "items": [
+            {
+              "a": 150.03,
+              "b": 158.06,
+              "id": "end-v-h7-a-r14-0",
+              "matchId": "m-h7",
+              "note": "Wide",
+              "points": {
+                "me": 10,
+                "them": 4
+              },
+              "rallyId": "v-h7-a-r14",
+              "server": "them",
+              "setId": 1,
+              "sets": {
+                "me": 0,
+                "them": 0
+              },
+              "versus": "vs Alex",
+              "videoId": "v-h7-a"
+            },
+            {
+              "a": 161.29,
+              "b": 167.45,
+              "id": "end-v-h7-a-r15-1",
+              "matchId": "m-h7",
+              "note": "Long",
+              "points": {
+                "me": 10,
+                "them": 5
+              },
+              "rallyId": "v-h7-a-r15",
+              "server": "them",
+              "setId": 1,
+              "sets": {
+                "me": 0,
+                "them": 0
+              },
+              "versus": "vs Alex",
+              "videoId": "v-h7-a"
+            },
+            {
+              "a": 226.95,
+              "b": 232.85,
+              "id": "end-v-h7-a-r22-2",
+              "matchId": "m-h7",
+              "note": "Wide",
+              "points": {
+                "me": 3,
+                "them": 2
+              },
+              "rallyId": "v-h7-a-r22",
+              "server": "them",
+              "setId": 2,
+              "sets": {
+                "me": 1,
+                "them": 0
+              },
+              "versus": "vs Alex",
+              "videoId": "v-h7-a"
+            },
+            {
+              "a": 313.26,
+              "b": 316.54,
+              "id": "end-v-h7-a-r31-3",
+              "matchId": "m-h7",
+              "note": "Wide",
+              "points": {
+                "me": 8,
+                "them": 6
+              },
+              "rallyId": "v-h7-a-r31",
+              "server": "me",
+              "setId": 2,
+              "sets": {
+                "me": 1,
+                "them": 0
+              },
+              "versus": "vs Alex",
+              "videoId": "v-h7-a"
+            },
+            {
+              "a": 346.38,
+              "b": 349.71,
+              "id": "end-v-h7-a-r34-4",
+              "matchId": "m-h7",
+              "note": "Net",
+              "points": {
+                "me": 9,
+                "them": 8
+              },
+              "rallyId": "v-h7-a-r34",
+              "server": "them",
+              "setId": 2,
+              "sets": {
+                "me": 1,
+                "them": 0
+              },
+              "versus": "vs Alex",
+              "videoId": "v-h7-a"
+            },
+            {
+              "a": 395.59,
+              "b": 398.79,
+              "id": "end-v-h7-a-r38-5",
+              "matchId": "m-h7",
+              "note": "Wide",
+              "points": {
+                "me": 1,
+                "them": 0
+              },
+              "rallyId": "v-h7-a-r38",
+              "server": "me",
+              "setId": 3,
+              "sets": {
+                "me": 2,
+                "them": 0
+              },
+              "versus": "vs Alex",
+              "videoId": "v-h7-a"
+            },
+            {
+              "a": 409.77,
+              "b": 417.35,
+              "id": "end-v-h7-a-r40-6",
+              "matchId": "m-h7",
+              "note": "Wide",
+              "points": {
+                "me": 1,
+                "them": 2
+              },
+              "rallyId": "v-h7-a-r40",
+              "server": "them",
+              "setId": 3,
+              "sets": {
+                "me": 2,
+                "them": 0
+              },
+              "versus": "vs Alex",
+              "videoId": "v-h7-a"
+            },
+            {
+              "a": 207.15,
+              "b": 209.72,
+              "id": "end-v-h7-b-r66-7",
+              "matchId": "m-h7",
+              "note": "Wide",
+              "points": {
+                "me": 7,
+                "them": 4
+              },
+              "rallyId": "v-h7-b-r66",
+              "server": "me",
+              "setId": 4,
+              "sets": {
+                "me": 2,
+                "them": 1
+              },
+              "versus": "vs Alex",
+              "videoId": "v-h7-b"
+            },
+            {
+              "a": 261.12,
+              "b": 264.7,
+              "id": "end-v-h7-b-r72-8",
+              "matchId": "m-h7",
+              "note": "Long",
+              "points": {
+                "me": 10,
+                "them": 7
+              },
+              "rallyId": "v-h7-b-r72",
+              "server": "them",
+              "setId": 4,
+              "sets": {
+                "me": 2,
+                "them": 1
+              },
+              "versus": "vs Alex",
+              "videoId": "v-h7-b"
+            }
+          ],
+          "name": "FH errors on a free ball"
+        },
+        "rows": [
+          {
+            "label": "Free ball, FH",
+            "them": {
+              "of": null,
+              "text": "6"
+            },
+            "themN": 6,
+            "themWon": 0,
+            "weak": true,
+            "you": {
+              "of": null,
+              "text": "9"
+            },
+            "youN": 9,
+            "youWon": 0
+          },
+          {
+            "label": "Free ball, BH",
+            "them": {
+              "of": null,
+              "text": "8"
+            },
+            "themN": 8,
+            "themWon": 0,
+            "weak": false,
+            "you": {
+              "of": null,
+              "text": "8"
+            },
+            "youN": 8,
+            "youWon": 0
+          },
+          {
+            "label": "Under attack",
+            "them": {
+              "of": null,
+              "text": "8"
+            },
+            "themN": 8,
+            "themWon": 0,
+            "weak": false,
+            "you": {
+              "of": null,
+              "text": "9"
+            },
+            "youN": 9,
+            "youWon": 0
+          },
+          {
+            "label": "On the receive",
+            "them": {
+              "of": null,
+              "text": "2"
+            },
+            "themN": 2,
+            "themWon": 0,
+            "weak": false,
+            "you": {
+              "of": null,
+              "text": "2"
+            },
+            "youN": 2,
+            "youWon": 0
+          }
+        ],
+        "sub": "17 on a free ball",
+        "title": "End",
+        "value": "28"
+      }
+    ],
+    "coverage": "Sets 1 to 4",
+    "empty": false,
+    "marked": {
+      "about": [
+        "Parts you starred while tagging: Opening, Attack, Rally and End.",
+        "Each one plays that part of the rally. There is no benchmark."
+      ],
+      "columns": null,
+      "compare": null,
+      "counts": {
+        "points": 7,
+        "themN": 0,
+        "themWon": 0,
+        "youN": 7,
+        "youWon": 0
+      },
+      "empty": null,
+      "id": "marked",
+      "playlist": {
+        "caption": "note",
+        "items": [
+          {
+            "a": 2.5,
+            "b": 8.36,
+            "id": "marked-v-h7-a-r0-opening-0",
+            "matchId": "m-h7",
+            "note": "Opening",
+            "points": {
+              "me": 0,
+              "them": 0
+            },
+            "rallyId": "v-h7-a-r0",
+            "server": "me",
+            "setId": 1,
+            "sets": {
+              "me": 0,
+              "them": 0
+            },
+            "versus": "vs Alex",
+            "videoId": "v-h7-a"
+          },
+          {
+            "a": 129.32,
+            "b": 130.87,
+            "id": "marked-v-h7-a-r12-opening-1",
+            "matchId": "m-h7",
+            "note": "Opening",
+            "points": {
+              "me": 8,
+              "them": 4
+            },
+            "rallyId": "v-h7-a-r12",
+            "server": "me",
+            "setId": 1,
+            "sets": {
+              "me": 0,
+              "them": 0
+            },
+            "versus": "vs Alex",
+            "videoId": "v-h7-a"
+          },
+          {
+            "a": 248.29,
+            "b": 250.07,
+            "id": "marked-v-h7-a-r24-opening-2",
+            "matchId": "m-h7",
+            "note": "Opening",
+            "points": {
+              "me": 4,
+              "them": 3
+            },
+            "rallyId": "v-h7-a-r24",
+            "server": "me",
+            "setId": 2,
+            "sets": {
+              "me": 1,
+              "them": 0
+            },
+            "versus": "vs Alex",
+            "videoId": "v-h7-a"
+          },
+          {
+            "a": 364.25,
+            "b": 370.63,
+            "id": "marked-v-h7-a-r36-opening-3",
+            "matchId": "m-h7",
+            "note": "Opening",
+            "points": {
+              "me": 10,
+              "them": 9
+            },
+            "rallyId": "v-h7-a-r36",
+            "server": "me",
+            "setId": 2,
+            "sets": {
+              "me": 1,
+              "them": 0
+            },
+            "versus": "vs Alex",
+            "videoId": "v-h7-a"
+          },
+          {
+            "a": 23.54,
+            "b": 25.04,
+            "id": "marked-v-h7-b-r48-opening-4",
+            "matchId": "m-h7",
+            "note": "Opening",
+            "points": {
+              "me": 3,
+              "them": 8
+            },
+            "rallyId": "v-h7-b-r48",
+            "server": "them",
+            "setId": 3,
+            "sets": {
+              "me": 2,
+              "them": 0
+            },
+            "versus": "vs Alex",
+            "videoId": "v-h7-b"
+          },
+          {
+            "a": 144.05,
+            "b": 147.86,
+            "id": "marked-v-h7-b-r60-opening-5",
+            "matchId": "m-h7",
+            "note": "Opening",
+            "points": {
+              "me": 3,
+              "them": 2
+            },
+            "rallyId": "v-h7-b-r60",
+            "server": "them",
+            "setId": 4,
+            "sets": {
+              "me": 2,
+              "them": 1
+            },
+            "versus": "vs Alex",
+            "videoId": "v-h7-b"
+          },
+          {
+            "a": 259.57,
+            "b": 261.32,
+            "id": "marked-v-h7-b-r72-opening-6",
+            "matchId": "m-h7",
+            "note": "Opening",
+            "points": {
+              "me": 10,
+              "them": 7
+            },
+            "rallyId": "v-h7-b-r72",
+            "server": "them",
+            "setId": 4,
+            "sets": {
+              "me": 2,
+              "them": 1
+            },
+            "versus": "vs Alex",
+            "videoId": "v-h7-b"
+          }
+        ],
+        "name": "Marked for review"
+      },
+      "rows": [],
+      "sub": null,
+      "title": "Marked for review",
+      "value": null
+    },
+    "videoLine": null
+  },
+  "matchDiffers": false,
+  "missingVideoIds": [],
+  "name": "vs Alex",
+  "phase": "complete",
+  "resultDiffers": false,
+  "rowLine": "21 Sep · Won 3 - 1 · Nationals",
+  "rowStatus": {
+    "kind": "tagged",
+    "setId": null,
+    "tab": "insights",
+    "text": "Tagged"
+  },
+  "sets": [
+    {
+      "editStops": {
+        "gaps": [
+          {
+            "a": 0.5,
+            "b": 3.5,
+            "index": 0,
+            "kind": "gap",
+            "likely": false,
+            "n": 1,
+            "overlap": false
+          },
+          {
+            "a": 10.39,
+            "b": 16.74,
+            "index": 1,
+            "kind": "gap",
+            "likely": false,
+            "n": 2,
+            "overlap": false
+          },
+          {
+            "a": 18.64,
+            "b": 24.78,
+            "index": 2,
+            "kind": "gap",
+            "likely": false,
+            "n": 3,
+            "overlap": false
+          },
+          {
+            "a": 29.66,
+            "b": 35.26,
+            "index": 3,
+            "kind": "gap",
+            "likely": false,
+            "n": 4,
+            "overlap": false
+          },
+          {
+            "a": 39.87,
+            "b": 45.43,
+            "index": 4,
+            "kind": "gap",
+            "likely": false,
+            "n": 5,
+            "overlap": false
+          },
+          {
+            "a": 50.87,
+            "b": 56.49,
+            "index": 5,
+            "kind": "gap",
+            "likely": false,
+            "n": 6,
+            "overlap": false
+          },
+          {
+            "a": 60.51,
+            "b": 66.79,
+            "index": 6,
+            "kind": "gap",
+            "likely": false,
+            "n": 7,
+            "overlap": false
+          },
+          {
+            "a": 69.41,
+            "b": 74.86,
+            "index": 7,
+            "kind": "gap",
+            "likely": false,
+            "n": 8,
+            "overlap": false
+          },
+          {
+            "a": 79.73,
+            "b": 85.97,
+            "index": 8,
+            "kind": "gap",
+            "likely": false,
+            "n": 9,
+            "overlap": false
+          },
+          {
+            "a": 89.04,
+            "b": 95.55,
+            "index": 9,
+            "kind": "gap",
+            "likely": false,
+            "n": 10,
+            "overlap": false
+          },
+          {
+            "a": 99.55,
+            "b": 104.96,
+            "index": 10,
+            "kind": "gap",
+            "likely": false,
+            "n": 11,
+            "overlap": false
+          },
+          {
+            "a": 110.35,
+            "b": 116.05,
+            "index": 11,
+            "kind": "gap",
+            "likely": false,
+            "n": 12,
+            "overlap": false
+          },
+          {
+            "a": 123.67,
+            "b": 130.32,
+            "index": 12,
+            "kind": "gap",
+            "likely": false,
+            "n": 13,
+            "overlap": false
+          },
+          {
+            "a": 131.17,
+            "b": 136.89,
+            "index": 13,
+            "kind": "gap",
+            "likely": false,
+            "n": 14,
+            "overlap": false
+          },
+          {
+            "a": 146.33,
+            "b": 152.03,
+            "index": 14,
+            "kind": "gap",
+            "likely": false,
+            "n": 15,
+            "overlap": false
+          },
+          {
+            "a": 157.06,
+            "b": 163.29,
+            "index": 15,
+            "kind": "gap",
+            "likely": false,
+            "n": 16,
+            "overlap": false
+          },
+          {
+            "a": 166.45,
+            "b": 172.5,
+            "index": 16,
+            "kind": "gap",
+            "likely": false,
+            "n": 17,
+            "overlap": false
+          }
+        ],
+        "rallies": [
+          {
+            "id": "v-h7-a-r0",
+            "index": 0,
+            "kind": "rally",
+            "n": 1
+          },
+          {
+            "id": "v-h7-a-r1",
+            "index": 1,
+            "kind": "rally",
+            "n": 2
+          },
+          {
+            "id": "v-h7-a-r2",
+            "index": 2,
+            "kind": "rally",
+            "n": 3
+          },
+          {
+            "id": "v-h7-a-r3",
+            "index": 3,
+            "kind": "rally",
+            "n": 4
+          },
+          {
+            "id": "v-h7-a-r4",
+            "index": 4,
+            "kind": "rally",
+            "n": 5
+          },
+          {
+            "id": "v-h7-a-r5",
+            "index": 5,
+            "kind": "rally",
+            "n": 6
+          },
+          {
+            "id": "v-h7-a-r6",
+            "index": 6,
+            "kind": "rally",
+            "n": 7
+          },
+          {
+            "id": "v-h7-a-r7",
+            "index": 7,
+            "kind": "rally",
+            "n": 8
+          },
+          {
+            "id": "v-h7-a-r8",
+            "index": 8,
+            "kind": "rally",
+            "n": 9
+          },
+          {
+            "id": "v-h7-a-r9",
+            "index": 9,
+            "kind": "rally",
+            "n": 10
+          },
+          {
+            "id": "v-h7-a-r10",
+            "index": 10,
+            "kind": "rally",
+            "n": 11
+          },
+          {
+            "id": "v-h7-a-r11",
+            "index": 11,
+            "kind": "rally",
+            "n": 12
+          },
+          {
+            "id": "v-h7-a-r12",
+            "index": 12,
+            "kind": "rally",
+            "n": 13
+          },
+          {
+            "id": "v-h7-a-r13",
+            "index": 13,
+            "kind": "rally",
+            "n": 14
+          },
+          {
+            "id": "v-h7-a-r14",
+            "index": 14,
+            "kind": "rally",
+            "n": 15
+          },
+          {
+            "id": "v-h7-a-r15",
+            "index": 15,
+            "kind": "rally",
+            "n": 16
+          },
+          {
+            "id": "v-h7-a-r16",
+            "index": 16,
+            "kind": "rally",
+            "n": 17
+          }
+        ]
+      },
+      "endedEarly": false,
+      "incomplete": false,
+      "lineAction": "Open",
+      "lineLabel": "Set 1",
+      "markBounds": {
+        "end": 179.14,
+        "start": 0.5
+      },
+      "markState": "saved",
+      "overOnRule": true,
+      "rallies": [
+        "1 v-h7-a-r0 srv=me win=me pre=0-0 exp=me n=8 end=Net fa=null parts=opening:1-5,end:6-8 phase=rally",
+        "2 v-h7-a-r1 srv=me win=me pre=1-0 exp=me n=3 end=Winner fa=3 parts=opening:1-2,attack:3-3 phase=serve",
+        "3 v-h7-a-r2 srv=them win=them pre=2-0 exp=them n=6 end=Wide fa=5 parts=opening:1-4,attack:5-6 phase=rally",
+        "4 v-h7-a-r3 srv=them win=me pre=2-1 exp=them n=6 end=Winner fa=5 parts=opening:1-4,attack:5-6 phase=rally",
+        "5 v-h7-a-r4 srv=me win=them pre=3-1 exp=me n=7 end=Wide fa=6 parts=opening:1-5,attack:6-7 phase=rally",
+        "6 v-h7-a-r5 srv=me win=them pre=3-2 exp=me n=5 end=Net fa=3 parts=opening:1-2,attack:3-5 phase=serve",
+        "7 v-h7-a-r6 srv=them win=them pre=3-3 exp=them n=4 end=Net fa=4 parts=opening:1-3,attack:4-4 phase=receive",
+        "8 v-h7-a-r7 srv=them win=me pre=3-4 exp=them n=6 end=Winner fa=5 parts=opening:1-4,attack:5-6 phase=rally",
+        "9 v-h7-a-r8 srv=me win=me pre=4-4 exp=me n=4 end=Wide fa=4 parts=opening:1-3,attack:4-4 phase=serve",
+        "10 v-h7-a-r9 srv=me win=me pre=5-4 exp=me n=5 end=Winner fa=3 parts=opening:1-2,attack:3-5 phase=serve",
+        "11 v-h7-a-r10 srv=them win=me pre=6-4 exp=them n=7 end=Net fa=7 parts=opening:1-6,attack:7-7 phase=rally",
+        "12 v-h7-a-r11 srv=them win=me pre=7-4 exp=them n=9 end=Long fa=7 parts=opening:1-6,attack:7-9 phase=rally",
+        "13 v-h7-a-r12 srv=me win=me pre=8-4 exp=me n=2 end=Wide fa=null parts=opening:1-1,end:2-2 phase=serve",
+        "14 v-h7-a-r13 srv=me win=me pre=9-4 exp=me n=11 end=Winner fa=9 parts=opening:1-8,attack:9-11 phase=rally",
+        "15 v-h7-a-r14 srv=them win=them pre=10-4 exp=them n=6 end=Wide fa=3 parts=opening:1-2,attack:3-6 phase=rally",
+        "16 v-h7-a-r15 srv=them win=them pre=10-5 exp=them n=4 end=Long fa=2 parts=opening:1-1,attack:2-4 phase=receive",
+        "17 v-h7-a-r16 srv=me win=me pre=10-6 exp=me n=1 end=Winner fa=null parts=opening:1-1 phase=serve"
+      ],
+      "scoresDiffer": false,
+      "serveBands": [],
+      "serveBreaks": [],
+      "setEndIndex": 16,
+      "setId": 1,
+      "settled": true,
+      "spare": false,
+      "state": "finished",
+      "taggedScore": {
+        "me": 11,
+        "them": 6
+      }
+    },
+    {
+      "editStops": {
+        "gaps": [
+          {
+            "a": 180.14,
+            "b": 186.78,
+            "index": 0,
+            "kind": "gap",
+            "likely": false,
+            "n": 1,
+            "overlap": false
+          },
+          {
+            "a": 188.53,
+            "b": 194.86,
+            "index": 1,
+            "kind": "gap",
+            "likely": false,
+            "n": 2,
+            "overlap": false
+          },
+          {
+            "a": 200.54,
+            "b": 205.39,
+            "index": 2,
+            "kind": "gap",
+            "likely": false,
+            "n": 3,
+            "overlap": false
+          },
+          {
+            "a": 209.11,
+            "b": 214.21,
+            "index": 3,
+            "kind": "gap",
+            "likely": false,
+            "n": 4,
+            "overlap": false
+          },
+          {
+            "a": 215.12,
+            "b": 220.54,
+            "index": 4,
+            "kind": "gap",
+            "likely": false,
+            "n": 5,
+            "overlap": false
+          },
+          {
+            "a": 223.21,
+            "b": 228.95,
+            "index": 5,
+            "kind": "gap",
+            "likely": false,
+            "n": 6,
+            "overlap": false
+          },
+          {
+            "a": 231.85,
+            "b": 236.7,
+            "index": 6,
+            "kind": "gap",
+            "likely": false,
+            "n": 7,
+            "overlap": false
+          },
+          {
+            "a": 243.61,
+            "b": 249.29,
+            "index": 7,
+            "kind": "gap",
+            "likely": false,
+            "n": 8,
+            "overlap": false
+          },
+          {
+            "a": 252.24,
+            "b": 257.97,
+            "index": 8,
+            "kind": "gap",
+            "likely": false,
+            "n": 9,
+            "overlap": false
+          },
+          {
+            "a": 261.49,
+            "b": 266.44,
+            "index": 9,
+            "kind": "gap",
+            "likely": false,
+            "n": 10,
+            "overlap": false
+          },
+          {
+            "a": 269.26,
+            "b": 274.52,
+            "index": 10,
+            "kind": "gap",
+            "likely": false,
+            "n": 11,
+            "overlap": false
+          },
+          {
+            "a": 278.31,
+            "b": 285.1,
+            "index": 11,
+            "kind": "gap",
+            "likely": false,
+            "n": 12,
+            "overlap": false
+          },
+          {
+            "a": 289.68,
+            "b": 294.64,
+            "index": 12,
+            "kind": "gap",
+            "likely": false,
+            "n": 13,
+            "overlap": false
+          },
+          {
+            "a": 298.72,
+            "b": 304.36,
+            "index": 13,
+            "kind": "gap",
+            "likely": false,
+            "n": 14,
+            "overlap": false
+          },
+          {
+            "a": 304.36,
+            "b": 310.05,
+            "index": 14,
+            "kind": "gap",
+            "likely": false,
+            "n": 15,
+            "overlap": false
+          },
+          {
+            "a": 315.54,
+            "b": 320.44,
+            "index": 15,
+            "kind": "gap",
+            "likely": false,
+            "n": 16,
+            "overlap": false
+          },
+          {
+            "a": 323.34,
+            "b": 329.47,
+            "index": 16,
+            "kind": "gap",
+            "likely": false,
+            "n": 17,
+            "overlap": false
+          },
+          {
+            "a": 337.99,
+            "b": 344.19,
+            "index": 17,
+            "kind": "gap",
+            "likely": false,
+            "n": 18,
+            "overlap": false
+          },
+          {
+            "a": 348.71,
+            "b": 355.37,
+            "index": 18,
+            "kind": "gap",
+            "likely": false,
+            "n": 19,
+            "overlap": false
+          },
+          {
+            "a": 358.96,
+            "b": 365.25,
+            "index": 19,
+            "kind": "gap",
+            "likely": false,
+            "n": 20,
+            "overlap": false
+          }
+        ],
+        "rallies": [
+          {
+            "id": "v-h7-a-r17",
+            "index": 0,
+            "kind": "rally",
+            "n": 1
+          },
+          {
+            "id": "v-h7-a-r18",
+            "index": 1,
+            "kind": "rally",
+            "n": 2
+          },
+          {
+            "id": "v-h7-a-r19",
+            "index": 2,
+            "kind": "rally",
+            "n": 3
+          },
+          {
+            "id": "v-h7-a-r20",
+            "index": 3,
+            "kind": "rally",
+            "n": 4
+          },
+          {
+            "id": "v-h7-a-r21",
+            "index": 4,
+            "kind": "rally",
+            "n": 5
+          },
+          {
+            "id": "v-h7-a-r22",
+            "index": 5,
+            "kind": "rally",
+            "n": 6
+          },
+          {
+            "id": "v-h7-a-r23",
+            "index": 6,
+            "kind": "rally",
+            "n": 7
+          },
+          {
+            "id": "v-h7-a-r24",
+            "index": 7,
+            "kind": "rally",
+            "n": 8
+          },
+          {
+            "id": "v-h7-a-r25",
+            "index": 8,
+            "kind": "rally",
+            "n": 9
+          },
+          {
+            "id": "v-h7-a-r26",
+            "index": 9,
+            "kind": "rally",
+            "n": 10
+          },
+          {
+            "id": "v-h7-a-r27",
+            "index": 10,
+            "kind": "rally",
+            "n": 11
+          },
+          {
+            "id": "v-h7-a-r28",
+            "index": 11,
+            "kind": "rally",
+            "n": 12
+          },
+          {
+            "id": "v-h7-a-r29",
+            "index": 12,
+            "kind": "rally",
+            "n": 13
+          },
+          {
+            "id": "v-h7-a-r30",
+            "index": 13,
+            "kind": "rally",
+            "n": 14
+          },
+          {
+            "id": "v-h7-a-r31",
+            "index": 14,
+            "kind": "rally",
+            "n": 15
+          },
+          {
+            "id": "v-h7-a-r32",
+            "index": 15,
+            "kind": "rally",
+            "n": 16
+          },
+          {
+            "id": "v-h7-a-r33",
+            "index": 16,
+            "kind": "rally",
+            "n": 17
+          },
+          {
+            "id": "v-h7-a-r34",
+            "index": 17,
+            "kind": "rally",
+            "n": 18
+          },
+          {
+            "id": "v-h7-a-r35",
+            "index": 18,
+            "kind": "rally",
+            "n": 19
+          },
+          {
+            "id": "v-h7-a-r36",
+            "index": 19,
+            "kind": "rally",
+            "n": 20
+          }
+        ]
+      },
+      "endedEarly": false,
+      "incomplete": false,
+      "lineAction": "Open",
+      "lineLabel": "Set 2",
+      "markBounds": {
+        "end": 374.75,
+        "start": 180.14
+      },
+      "markState": "saved",
+      "overOnRule": true,
+      "rallies": [
+        "1 v-h7-a-r17 srv=them win=me pre=0-0 exp=them n=3 end=Net fa=2 parts=opening:1-1,attack:2-3 phase=receive",
+        "2 v-h7-a-r18 srv=them win=me pre=1-0 exp=them n=7 end=Net fa=null parts=opening:1-4,end:5-7 phase=rally",
+        "3 v-h7-a-r19 srv=me win=them pre=2-0 exp=me n=5 end=Wide fa=4 parts=opening:1-3,attack:4-5 phase=serve",
+        "4 v-h7-a-r20 srv=me win=them pre=2-1 exp=me n=2 end=Winner fa=null parts=opening:1-1,end:2-2 phase=serve",
+        "5 v-h7-a-r21 srv=them win=me pre=2-2 exp=them n=4 end=Winner fa=4 parts=opening:1-3,attack:4-4 phase=receive",
+        "6 v-h7-a-r22 srv=them win=them pre=3-2 exp=them n=4 end=Wide fa=4 parts=opening:1-3,attack:4-4 phase=receive",
+        "7 v-h7-a-r23 srv=me win=me pre=3-3 exp=me n=8 end=Net fa=2 parts=opening:1-1,attack:2-4,rally:5-5,end:6-8 phase=rally",
+        "8 v-h7-a-r24 srv=me win=them pre=4-3 exp=me n=4 end=Winner fa=2 parts=opening:1-1,attack:2-4 phase=serve",
+        "9 v-h7-a-r25 srv=them win=them pre=4-4 exp=them n=5 end=Winner fa=5 parts=opening:1-4,attack:5-5 phase=rally",
+        "10 v-h7-a-r26 srv=them win=them pre=4-5 exp=them n=4 end=Wide fa=3 parts=opening:1-2,attack:3-4 phase=receive",
+        "11 v-h7-a-r27 srv=me win=me pre=4-6 exp=me n=5 end=Winner fa=3 parts=opening:1-2,attack:3-5 phase=serve",
+        "12 v-h7-a-r28 srv=me win=me pre=5-6 exp=me n=6 end=Long fa=2 parts=opening:1-1,attack:2-6 phase=serve",
+        "13 v-h7-a-r29 srv=them win=me pre=6-6 exp=them n=5 end=Wide fa=null parts=opening:1-2,end:3-5 phase=receive",
+        "14 v-h7-a-r30 srv=them win=me pre=7-6 exp=them n=1 end=Net fa=null parts=opening:1-1 phase=receive",
+        "15 v-h7-a-r31 srv=me win=them pre=8-6 exp=me n=7 end=Wide fa=null parts=opening:1-4,end:5-7 phase=rally",
+        "16 v-h7-a-r32 srv=me win=me pre=8-7 exp=me n=4 end=Wide fa=3 parts=opening:1-2,attack:3-4 phase=serve",
+        "17 v-h7-a-r33 srv=them win=them pre=9-7 exp=them n=10 end=Long fa=9 parts=opening:1-8,attack:9-10 phase=rally",
+        "18 v-h7-a-r34 srv=them win=them pre=9-8 exp=them n=6 end=Net fa=null parts=opening:1-3,end:4-6 phase=rally",
+        "19 v-h7-a-r35 srv=me win=me pre=9-9 exp=me n=5 end=Winner fa=4 parts=opening:1-3,attack:4-5 phase=serve",
+        "20 v-h7-a-r36 srv=me win=me pre=10-9 exp=me n=8 end=Long fa=7 parts=opening:1-6,attack:7-8 phase=rally"
+      ],
+      "scoresDiffer": false,
+      "serveBands": [],
+      "serveBreaks": [],
+      "setEndIndex": 19,
+      "setId": 2,
+      "settled": true,
+      "spare": false,
+      "state": "finished",
+      "taggedScore": {
+        "me": 11,
+        "them": 9
+      }
+    },
+    {
+      "editStops": {
+        "gaps": [
+          {
+            "a": 382,
+            "b": 385,
+            "index": 0,
+            "kind": "gap",
+            "likely": false,
+            "n": 1,
+            "overlap": false
+          },
+          {
+            "a": 389.06,
+            "b": 394.18,
+            "index": 1,
+            "kind": "gap",
+            "likely": false,
+            "n": 2,
+            "overlap": false
+          },
+          {
+            "a": 397.79,
+            "b": 403.34,
+            "index": 2,
+            "kind": "gap",
+            "likely": false,
+            "n": 3,
+            "overlap": false
+          },
+          {
+            "a": 406.18,
+            "b": 411.77,
+            "index": 3,
+            "kind": "gap",
+            "likely": false,
+            "n": 4,
+            "overlap": false
+          },
+          {
+            "a": 416.35,
+            "b": 423.1,
+            "index": 4,
+            "kind": "gap",
+            "likely": false,
+            "n": 5,
+            "overlap": false
+          },
+          {
+            "a": 428.34,
+            "b": 434.98,
+            "index": 5,
+            "kind": "gap",
+            "likely": false,
+            "n": 6,
+            "overlap": false
+          },
+          {
+            "a": 438.73,
+            "b": 445.19,
+            "index": 6,
+            "kind": "gap",
+            "likely": false,
+            "n": 7,
+            "overlap": false
+          },
+          {
+            "a": 450.72,
+            "b": 457.01,
+            "index": 7,
+            "kind": "gap",
+            "likely": false,
+            "n": 8,
+            "overlap": false
+          },
+          {
+            "a": 457.01,
+            "b": 463.72,
+            "index": 8,
+            "kind": "gap",
+            "likely": false,
+            "n": 9,
+            "overlap": false
+          },
+          {
+            "a": 470.61,
+            "b": 479.4,
+            "index": 9,
+            "kind": "gap",
+            "likely": false,
+            "n": 10,
+            "overlap": false
+          },
+          {
+            "a": 486.13,
+            "b": 491.17,
+            "index": 10,
+            "kind": "gap",
+            "likely": false,
+            "n": 11,
+            "overlap": false
+          },
+          {
+            "a": 492.06,
+            "b": 498.45,
+            "index": 11,
+            "kind": "gap",
+            "likely": false,
+            "n": 12,
+            "overlap": false
+          },
+          {
+            "a": 500.13,
+            "b": 505.66,
+            "index": 12,
+            "kind": "gap",
+            "likely": false,
+            "n": 13,
+            "overlap": false
+          },
+          {
+            "a": 511.19,
+            "b": 517.32,
+            "index": 13,
+            "kind": "gap",
+            "likely": false,
+            "n": 14,
+            "overlap": false
+          },
+          {
+            "a": 522.02,
+            "b": 528.17,
+            "index": 14,
+            "kind": "gap",
+            "likely": false,
+            "n": 15,
+            "overlap": false
+          },
+          {
+            "a": 533.56,
+            "b": 539.61,
+            "index": 15,
+            "kind": "gap",
+            "likely": false,
+            "n": 16,
+            "overlap": false
+          },
+          {
+            "a": 545.27,
+            "b": 551.72,
+            "index": 16,
+            "kind": "gap",
+            "likely": false,
+            "n": 17,
+            "overlap": false
+          },
+          {
+            "a": 553.47,
+            "b": 558.71,
+            "index": 17,
+            "kind": "gap",
+            "likely": false,
+            "n": 18,
+            "overlap": false
+          }
+        ],
+        "rallies": [
+          {
+            "id": "v-h7-a-r37",
+            "index": 0,
+            "kind": "rally",
+            "n": 1
+          },
+          {
+            "id": "v-h7-a-r38",
+            "index": 1,
+            "kind": "rally",
+            "n": 2
+          },
+          {
+            "id": "v-h7-a-r39",
+            "index": 2,
+            "kind": "rally",
+            "n": 3
+          },
+          {
+            "id": "v-h7-a-r40",
+            "index": 3,
+            "kind": "rally",
+            "n": 4
+          },
+          {
+            "id": "v-h7-a-r41",
+            "index": 4,
+            "kind": "rally",
+            "n": 5
+          },
+          {
+            "id": "v-h7-a-r42",
+            "index": 5,
+            "kind": "rally",
+            "n": 6
+          },
+          {
+            "id": "v-h7-a-r43",
+            "index": 6,
+            "kind": "rally",
+            "n": 7
+          },
+          {
+            "id": "v-h7-a-r44",
+            "index": 7,
+            "kind": "rally",
+            "n": 8
+          },
+          {
+            "id": "v-h7-a-r45",
+            "index": 8,
+            "kind": "rally",
+            "n": 9
+          },
+          {
+            "id": "v-h7-b-r46",
+            "index": 9,
+            "kind": "rally",
+            "n": 10
+          },
+          {
+            "id": "v-h7-b-r47",
+            "index": 10,
+            "kind": "rally",
+            "n": 11
+          },
+          {
+            "id": "v-h7-b-r48",
+            "index": 11,
+            "kind": "rally",
+            "n": 12
+          },
+          {
+            "id": "v-h7-b-r49",
+            "index": 12,
+            "kind": "rally",
+            "n": 13
+          },
+          {
+            "id": "v-h7-b-r50",
+            "index": 13,
+            "kind": "rally",
+            "n": 14
+          },
+          {
+            "id": "v-h7-b-r51",
+            "index": 14,
+            "kind": "rally",
+            "n": 15
+          },
+          {
+            "id": "v-h7-b-r52",
+            "index": 15,
+            "kind": "rally",
+            "n": 16
+          },
+          {
+            "id": "v-h7-b-r53",
+            "index": 16,
+            "kind": "rally",
+            "n": 17
+          },
+          {
+            "id": "v-h7-b-r54",
+            "index": 17,
+            "kind": "rally",
+            "n": 18
+          }
+        ]
+      },
+      "endedEarly": false,
+      "incomplete": false,
+      "lineAction": "Open",
+      "lineLabel": "Set 3",
+      "markBounds": {
+        "end": 569.65,
+        "start": 382
+      },
+      "markState": "saved",
+      "overOnRule": true,
+      "rallies": [
+        "1 v-h7-a-r37 srv=me win=me pre=0-0 exp=me n=5 end=Winner fa=null parts=opening:1-2,end:3-5 phase=serve",
+        "2 v-h7-a-r38 srv=me win=them pre=1-0 exp=me n=5 end=Wide fa=null parts=opening:1-2,end:3-5 phase=serve",
+        "3 v-h7-a-r39 srv=them win=them pre=1-1 exp=them n=4 end=Long fa=null parts=opening:1-1,end:2-4 phase=receive",
+        "4 v-h7-a-r40 srv=them win=them pre=1-2 exp=them n=6 end=Wide fa=6 parts=opening:1-5,attack:6-6 phase=rally",
+        "5 v-h7-a-r41 srv=me win=them pre=1-3 exp=me n=7 end=Net fa=5 parts=opening:1-4,attack:5-7 phase=rally",
+        "6 v-h7-a-r42 srv=me win=them pre=1-4 exp=me n=5 end=Long fa=2 parts=opening:1-1,attack:2-5 phase=serve",
+        "7 v-h7-a-r43 srv=them win=me pre=1-5 exp=them n=7 end=Wide fa=5 parts=opening:1-4,attack:5-7 phase=rally",
+        "8 v-h7-a-r44 srv=them win=me pre=2-5 exp=them n=1 end=Net fa=null parts=opening:1-1 phase=receive",
+        "9 v-h7-a-r45 srv=me win=them pre=3-5 exp=me n=8 end=Winner fa=5 parts=opening:1-4,attack:5-8 phase=rally",
+        "10 v-h7-b-r46 srv=me win=them pre=3-6 exp=me n=8 end=Winner fa=4 parts=opening:1-3,attack:4-8 phase=rally",
+        "11 v-h7-b-r47 srv=them win=them pre=3-7 exp=them n=2 end=Net fa=2 parts=opening:1-1,attack:2-2 phase=receive",
+        "12 v-h7-b-r48 srv=them win=me pre=3-8 exp=them n=3 end=Net fa=2 parts=opening:1-1,attack:2-3 phase=receive",
+        "13 v-h7-b-r49 srv=me win=them pre=4-8 exp=me n=7 end=Long fa=3 parts=opening:1-2,attack:3-7 phase=rally",
+        "14 v-h7-b-r50 srv=me win=me pre=4-9 exp=me n=6 end=Wide fa=null parts=opening:1-3,end:4-6 phase=serve",
+        "15 v-h7-b-r51 srv=them win=me pre=5-9 exp=them n=7 end=Net fa=null parts=opening:1-4,end:5-7 phase=rally",
+        "16 v-h7-b-r52 srv=them win=me pre=6-9 exp=them n=7 end=Long fa=4 parts=opening:1-3,attack:4-7 phase=rally",
+        "17 v-h7-b-r53 srv=me win=them pre=7-9 exp=me n=3 end=Wide fa=2 parts=opening:1-1,attack:2-3 phase=serve",
+        "18 v-h7-b-r54 srv=me win=them pre=7-10 exp=me n=9 end=Net fa=7 parts=opening:1-6,attack:7-9 phase=rally"
+      ],
+      "scoresDiffer": false,
+      "serveBands": [],
+      "serveBreaks": [],
+      "setEndIndex": 17,
+      "setId": 3,
+      "settled": true,
+      "spare": false,
+      "state": "finished",
+      "taggedScore": {
+        "me": 7,
+        "them": 11
+      }
+    },
+    {
+      "editStops": {
+        "gaps": [
+          {
+            "a": 576.68,
+            "b": 579.68,
+            "index": 0,
+            "kind": "gap",
+            "likely": false,
+            "n": 1,
+            "overlap": false
+          },
+          {
+            "a": 581.51,
+            "b": 587.47,
+            "index": 1,
+            "kind": "gap",
+            "likely": false,
+            "n": 2,
+            "overlap": false
+          },
+          {
+            "a": 591.56,
+            "b": 597.7,
+            "index": 2,
+            "kind": "gap",
+            "likely": false,
+            "n": 3,
+            "overlap": false
+          },
+          {
+            "a": 597.7,
+            "b": 603.18,
+            "index": 3,
+            "kind": "gap",
+            "likely": false,
+            "n": 4,
+            "overlap": false
+          },
+          {
+            "a": 607.34,
+            "b": 612.2,
+            "index": 4,
+            "kind": "gap",
+            "likely": false,
+            "n": 5,
+            "overlap": false
+          },
+          {
+            "a": 613.1,
+            "b": 618.96,
+            "index": 5,
+            "kind": "gap",
+            "likely": false,
+            "n": 6,
+            "overlap": false
+          },
+          {
+            "a": 622.07,
+            "b": 627.59,
+            "index": 6,
+            "kind": "gap",
+            "likely": false,
+            "n": 7,
+            "overlap": false
+          },
+          {
+            "a": 631.29,
+            "b": 637.43,
+            "index": 7,
+            "kind": "gap",
+            "likely": false,
+            "n": 8,
+            "overlap": false
+          },
+          {
+            "a": 643.82,
+            "b": 649.45,
+            "index": 8,
+            "kind": "gap",
+            "likely": false,
+            "n": 9,
+            "overlap": false
+          },
+          {
+            "a": 656.11,
+            "b": 661.33,
+            "index": 9,
+            "kind": "gap",
+            "likely": false,
+            "n": 10,
+            "overlap": false
+          },
+          {
+            "a": 666.11,
+            "b": 671.38,
+            "index": 10,
+            "kind": "gap",
+            "likely": false,
+            "n": 11,
+            "overlap": false
+          },
+          {
+            "a": 674.14,
+            "b": 680.68,
+            "index": 11,
+            "kind": "gap",
+            "likely": false,
+            "n": 12,
+            "overlap": false
+          },
+          {
+            "a": 682.63,
+            "b": 687.5,
+            "index": 12,
+            "kind": "gap",
+            "likely": false,
+            "n": 13,
+            "overlap": false
+          },
+          {
+            "a": 692.29,
+            "b": 697.46,
+            "index": 13,
+            "kind": "gap",
+            "likely": false,
+            "n": 14,
+            "overlap": false
+          },
+          {
+            "a": 700.12,
+            "b": 705.97,
+            "index": 14,
+            "kind": "gap",
+            "likely": false,
+            "n": 15,
+            "overlap": false
+          },
+          {
+            "a": 708.81,
+            "b": 715.5,
+            "index": 15,
+            "kind": "gap",
+            "likely": false,
+            "n": 16,
+            "overlap": false
+          },
+          {
+            "a": 722.13,
+            "b": 727.93,
+            "index": 16,
+            "kind": "gap",
+            "likely": false,
+            "n": 17,
+            "overlap": false
+          },
+          {
+            "a": 727.93,
+            "b": 734.48,
+            "index": 17,
+            "kind": "gap",
+            "likely": false,
+            "n": 18,
+            "overlap": false
+          },
+          {
+            "a": 737.61,
+            "b": 743.11,
+            "index": 18,
+            "kind": "gap",
+            "likely": false,
+            "n": 19,
+            "overlap": false
+          }
+        ],
+        "rallies": [
+          {
+            "id": "v-h7-b-r55",
+            "index": 0,
+            "kind": "rally",
+            "n": 1
+          },
+          {
+            "id": "v-h7-b-r56",
+            "index": 1,
+            "kind": "rally",
+            "n": 2
+          },
+          {
+            "id": "v-h7-b-r57",
+            "index": 2,
+            "kind": "rally",
+            "n": 3
+          },
+          {
+            "id": "v-h7-b-r58",
+            "index": 3,
+            "kind": "rally",
+            "n": 4
+          },
+          {
+            "id": "v-h7-b-r59",
+            "index": 4,
+            "kind": "rally",
+            "n": 5
+          },
+          {
+            "id": "v-h7-b-r60",
+            "index": 5,
+            "kind": "rally",
+            "n": 6
+          },
+          {
+            "id": "v-h7-b-r61",
+            "index": 6,
+            "kind": "rally",
+            "n": 7
+          },
+          {
+            "id": "v-h7-b-r62",
+            "index": 7,
+            "kind": "rally",
+            "n": 8
+          },
+          {
+            "id": "v-h7-b-r63",
+            "index": 8,
+            "kind": "rally",
+            "n": 9
+          },
+          {
+            "id": "v-h7-b-r64",
+            "index": 9,
+            "kind": "rally",
+            "n": 10
+          },
+          {
+            "id": "v-h7-b-r65",
+            "index": 10,
+            "kind": "rally",
+            "n": 11
+          },
+          {
+            "id": "v-h7-b-r66",
+            "index": 11,
+            "kind": "rally",
+            "n": 12
+          },
+          {
+            "id": "v-h7-b-r67",
+            "index": 12,
+            "kind": "rally",
+            "n": 13
+          },
+          {
+            "id": "v-h7-b-r68",
+            "index": 13,
+            "kind": "rally",
+            "n": 14
+          },
+          {
+            "id": "v-h7-b-r69",
+            "index": 14,
+            "kind": "rally",
+            "n": 15
+          },
+          {
+            "id": "v-h7-b-r70",
+            "index": 15,
+            "kind": "rally",
+            "n": 16
+          },
+          {
+            "id": "v-h7-b-r71",
+            "index": 16,
+            "kind": "rally",
+            "n": 17
+          },
+          {
+            "id": "v-h7-b-r72",
+            "index": 17,
+            "kind": "rally",
+            "n": 18
+          },
+          {
+            "id": "v-h7-b-r73",
+            "index": 18,
+            "kind": "rally",
+            "n": 19
+          }
+        ]
+      },
+      "endedEarly": false,
+      "incomplete": false,
+      "lineAction": "Open",
+      "lineLabel": "Set 4",
+      "markBounds": {
+        "end": 747.1,
+        "start": 576.68
+      },
+      "markState": "saved",
+      "overOnRule": true,
+      "rallies": [
+        "1 v-h7-b-r55 srv=them win=me pre=0-0 exp=them n=3 end=Wide fa=2 parts=opening:1-1,attack:2-3 phase=receive",
+        "2 v-h7-b-r56 srv=them win=me pre=1-0 exp=them n=5 end=Wide fa=2 parts=opening:1-1,attack:2-5 phase=receive",
+        "3 v-h7-b-r57 srv=me win=me pre=2-0 exp=me n=1 end=Winner fa=null parts=opening:1-1 phase=serve",
+        "4 v-h7-b-r58 srv=me win=them pre=3-0 exp=me n=5 end=Wide fa=null parts=opening:1-2,end:3-5 phase=serve",
+        "5 v-h7-b-r59 srv=them win=them pre=3-1 exp=them n=2 end=Net fa=null parts=opening:1-1,end:2-2 phase=receive",
+        "6 v-h7-b-r60 srv=them win=me pre=3-2 exp=them n=4 end=Winner fa=4 parts=opening:1-3,attack:4-4 phase=receive",
+        "7 v-h7-b-r61 srv=me win=them pre=4-2 exp=me n=5 end=Net fa=2 parts=opening:1-1,attack:2-5 phase=serve",
+        "8 v-h7-b-r62 srv=me win=me pre=4-3 exp=me n=8 end=Long fa=8 parts=opening:1-7,attack:8-8 phase=rally",
+        "9 v-h7-b-r63 srv=them win=me pre=5-3 exp=them n=8 end=Winner fa=null parts=opening:1-5,end:6-8 phase=rally",
+        "10 v-h7-b-r64 srv=them win=them pre=6-3 exp=them n=6 end=Long fa=5 parts=opening:1-4,attack:5-6 phase=rally",
+        "11 v-h7-b-r65 srv=me win=me pre=6-4 exp=me n=4 end=Long fa=4 parts=opening:1-3,attack:4-4 phase=serve",
+        "12 v-h7-b-r66 srv=me win=them pre=7-4 exp=me n=3 end=Wide fa=null parts=opening:1-1,end:2-3 phase=serve",
+        "13 v-h7-b-r67 srv=them win=me pre=7-5 exp=them n=6 end=Winner fa=4 parts=opening:1-3,attack:4-6 phase=rally",
+        "14 v-h7-b-r68 srv=them win=them pre=8-5 exp=them n=4 end=Net fa=null parts=opening:1-1,end:2-4 phase=receive",
+        "15 v-h7-b-r69 srv=me win=me pre=8-6 exp=me n=4 end=Net fa=2 parts=opening:1-1,attack:2-4 phase=serve",
+        "16 v-h7-b-r70 srv=me win=me pre=9-6 exp=me n=8 end=Long fa=null parts=opening:1-5,end:6-8 phase=rally",
+        "17 v-h7-b-r71 srv=them win=them pre=10-6 exp=them n=1 end=Winner fa=null parts=opening:1-1 phase=receive",
+        "18 v-h7-b-r72 srv=them win=them pre=10-7 exp=them n=4 end=Long fa=null parts=opening:1-1,end:2-4 phase=receive",
+        "19 v-h7-b-r73 srv=me win=me pre=10-8 exp=me n=2 end=Net fa=null parts=opening:1-1,end:2-2 phase=serve"
+      ],
+      "scoresDiffer": false,
+      "serveBands": [],
+      "serveBreaks": [],
+      "setEndIndex": 18,
+      "setId": 4,
+      "settled": true,
+      "spare": false,
+      "state": "finished",
+      "taggedScore": {
+        "me": 11,
+        "them": 8
+      }
+    }
+  ],
+  "setsWon": {
+    "me": 3,
+    "them": 1
+  },
+  "tagged": true,
+  "taggedResult": {
+    "me": 3,
+    "them": 1
+  },
+  "taggedResultReady": true,
+  "title": "Nationals vs Alex",
+  "videos": [
+    {
+      "id": "v-h7-a",
+      "locked": true,
+      "rallies": 46,
+      "status": "Done"
+    },
+    {
+      "id": "v-h7-b",
+      "locked": true,
+      "rallies": 28,
+      "status": "Done"
+    }
+  ]
+}

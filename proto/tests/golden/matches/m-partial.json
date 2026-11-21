@@ -1,0 +1,1374 @@
+{
+  "archived": false,
+  "date": "15 Nov",
+  "defaultTab": "tag",
+  "insights": {
+    "cards": [
+      {
+        "about": [
+          "Points you won, split the way China's coaches split a match.",
+          "The player who misses is charged on that ball. The player who wins is credited on the ball before.",
+          "Serve to 5th is your 1st, 3rd and 5th when you served. Receive to 4th is your receive, 2nd and 4th when they served. Rally is the rest.",
+          "The grade is the China team marks from Zhang 2004. It needs 20 of your points in that row. Only you are graded.",
+          "Usual is your rate in your other tagged matches. It shows when today differs by 10 points or more."
+        ],
+        "columns": [
+          "You",
+          "Sam",
+          "Grade"
+        ],
+        "compare": null,
+        "counts": {
+          "points": 25,
+          "themN": 25,
+          "themWon": 10,
+          "youN": 25,
+          "youWon": 15
+        },
+        "empty": null,
+        "id": "phases",
+        "playlist": {
+          "caption": "name",
+          "items": [
+            {
+              "a": 21.9,
+              "b": 29.34,
+              "id": "phases-v-club-1-r2-0",
+              "matchId": "m-partial",
+              "note": "",
+              "points": {
+                "me": 1,
+                "them": 1
+              },
+              "rallyId": "v-club-1-r2",
+              "server": "them",
+              "setId": 1,
+              "sets": {
+                "me": 0,
+                "them": 0
+              },
+              "versus": "vs Sam",
+              "videoId": "v-club-1"
+            },
+            {
+              "a": 51.59,
+              "b": 60.49,
+              "id": "phases-v-club-1-r5-1",
+              "matchId": "m-partial",
+              "note": "",
+              "points": {
+                "me": 3,
+                "them": 2
+              },
+              "rallyId": "v-club-1-r5",
+              "server": "me",
+              "setId": 1,
+              "sets": {
+                "me": 0,
+                "them": 0
+              },
+              "versus": "vs Sam",
+              "videoId": "v-club-1"
+            },
+            {
+              "a": 205.07,
+              "b": 214.46,
+              "id": "phases-v-club-1-r20-2",
+              "matchId": "m-partial",
+              "note": "",
+              "points": {
+                "me": 2,
+                "them": 0
+              },
+              "rallyId": "v-club-1-r20",
+              "server": "me",
+              "setId": 2,
+              "sets": {
+                "me": 1,
+                "them": 0
+              },
+              "versus": "vs Sam",
+              "videoId": "v-club-1"
+            },
+            {
+              "a": 233.7,
+              "b": 241.39,
+              "id": "phases-v-club-1-r23-3",
+              "matchId": "m-partial",
+              "note": "",
+              "points": {
+                "me": 3,
+                "them": 2
+              },
+              "rallyId": "v-club-1-r23",
+              "server": "them",
+              "setId": 2,
+              "sets": {
+                "me": 1,
+                "them": 0
+              },
+              "versus": "vs Sam",
+              "videoId": "v-club-1"
+            }
+          ],
+          "name": "Lost in the rally"
+        },
+        "rows": [
+          {
+            "grade": null,
+            "label": "Serve to 5th",
+            "them": {
+              "of": "of 9",
+              "text": "44%"
+            },
+            "themN": 9,
+            "themWon": 4,
+            "weak": false,
+            "you": {
+              "of": "of 11",
+              "text": "64%"
+            },
+            "youN": 11,
+            "youWon": 7
+          },
+          {
+            "grade": null,
+            "label": "Receive to 4th",
+            "them": {
+              "of": "of 9",
+              "text": "44%"
+            },
+            "themN": 9,
+            "themWon": 4,
+            "weak": false,
+            "you": {
+              "of": "of 7",
+              "text": "71%"
+            },
+            "youN": 7,
+            "youWon": 5
+          },
+          {
+            "grade": null,
+            "label": "Rally",
+            "them": {
+              "of": "of 7",
+              "text": "29%"
+            },
+            "themN": 7,
+            "themWon": 2,
+            "weak": true,
+            "you": {
+              "of": "of 7",
+              "text": "43%"
+            },
+            "youN": 7,
+            "youWon": 3
+          }
+        ],
+        "sub": "Won 15 of 25 · China team marks",
+        "title": "Phases",
+        "value": "60%"
+      },
+      {
+        "about": [
+          "Every point you served, including aces and faults.",
+          "The rows are the first three shots: their attack on the receive, your attack on the 3rd ball, or neither.",
+          "Elite 51% is elite men on serve, from Djokic 2020. Lets are not counted.",
+          "Usual is your rate in your other tagged matches. It shows when today differs by 10 points or more."
+        ],
+        "columns": null,
+        "compare": "Sam 33% · Elite 51%",
+        "counts": {
+          "points": 13,
+          "themN": 12,
+          "themWon": 4,
+          "youN": 13,
+          "youWon": 7
+        },
+        "empty": null,
+        "id": "serve",
+        "playlist": {
+          "caption": "name",
+          "items": [
+            {
+              "a": 11.67,
+              "b": 18.26,
+              "id": "serve-v-club-1-r1-0",
+              "matchId": "m-partial",
+              "note": "",
+              "points": {
+                "me": 1,
+                "them": 0
+              },
+              "rallyId": "v-club-1-r1",
+              "server": "me",
+              "setId": 1,
+              "sets": {
+                "me": 0,
+                "them": 0
+              },
+              "versus": "vs Sam",
+              "videoId": "v-club-1"
+            },
+            {
+              "a": 79.02,
+              "b": 85.85,
+              "id": "serve-v-club-1-r8-1",
+              "matchId": "m-partial",
+              "note": "",
+              "points": {
+                "me": 5,
+                "them": 3
+              },
+              "rallyId": "v-club-1-r8",
+              "server": "me",
+              "setId": 1,
+              "sets": {
+                "me": 0,
+                "them": 0
+              },
+              "versus": "vs Sam",
+              "videoId": "v-club-1"
+            },
+            {
+              "a": 130.88,
+              "b": 137.75,
+              "id": "serve-v-club-1-r13-2",
+              "matchId": "m-partial",
+              "note": "",
+              "points": {
+                "me": 8,
+                "them": 5
+              },
+              "rallyId": "v-club-1-r13",
+              "server": "me",
+              "setId": 1,
+              "sets": {
+                "me": 0,
+                "them": 0
+              },
+              "versus": "vs Sam",
+              "videoId": "v-club-1"
+            }
+          ],
+          "name": "Lost when Sam attacked your serve"
+        },
+        "rows": [
+          {
+            "label": "Sam attacked",
+            "single": {
+              "detail": "40%",
+              "main": "won 2 of 5"
+            },
+            "themN": 0,
+            "themWon": 0,
+            "weak": true,
+            "youN": 5,
+            "youWon": 2
+          },
+          {
+            "label": "No attack by 3rd",
+            "single": {
+              "detail": "63%",
+              "main": "won 5 of 8"
+            },
+            "themN": 0,
+            "themWon": 0,
+            "weak": false,
+            "youN": 8,
+            "youWon": 5
+          }
+        ],
+        "sub": "Won 7 of 13 on your serve",
+        "title": "Serve",
+        "value": "54%"
+      },
+      {
+        "about": [
+          "Every point they served.",
+          "The rows show whether you attacked the receive, they attacked the 3rd ball, or neither.",
+          "Elite 49% is the same study, Djokic 2020, from the receiver's side.",
+          "Usual is your rate in your other tagged matches. It shows when today differs by 10 points or more."
+        ],
+        "columns": null,
+        "compare": "Sam 46% · Usual 54% · Elite 49%",
+        "counts": {
+          "points": 12,
+          "themN": 13,
+          "themWon": 6,
+          "youN": 12,
+          "youWon": 8
+        },
+        "empty": null,
+        "id": "receive",
+        "playlist": {
+          "caption": "name",
+          "items": [
+            {
+              "a": 21.9,
+              "b": 29.34,
+              "id": "receive-v-club-1-r2-0",
+              "matchId": "m-partial",
+              "note": "",
+              "points": {
+                "me": 1,
+                "them": 1
+              },
+              "rallyId": "v-club-1-r2",
+              "server": "them",
+              "setId": 1,
+              "sets": {
+                "me": 0,
+                "them": 0
+              },
+              "versus": "vs Sam",
+              "videoId": "v-club-1"
+            },
+            {
+              "a": 150.41,
+              "b": 156.22,
+              "id": "receive-v-club-1-r15-1",
+              "matchId": "m-partial",
+              "note": "",
+              "points": {
+                "me": 9,
+                "them": 6
+              },
+              "rallyId": "v-club-1-r15",
+              "server": "them",
+              "setId": 1,
+              "sets": {
+                "me": 0,
+                "them": 0
+              },
+              "versus": "vs Sam",
+              "videoId": "v-club-1"
+            },
+            {
+              "a": 225.56,
+              "b": 231.38,
+              "id": "receive-v-club-1-r22-2",
+              "matchId": "m-partial",
+              "note": "",
+              "points": {
+                "me": 3,
+                "them": 1
+              },
+              "rallyId": "v-club-1-r22",
+              "server": "them",
+              "setId": 2,
+              "sets": {
+                "me": 1,
+                "them": 0
+              },
+              "versus": "vs Sam",
+              "videoId": "v-club-1"
+            },
+            {
+              "a": 233.7,
+              "b": 241.39,
+              "id": "receive-v-club-1-r23-3",
+              "matchId": "m-partial",
+              "note": "",
+              "points": {
+                "me": 3,
+                "them": 2
+              },
+              "rallyId": "v-club-1-r23",
+              "server": "them",
+              "setId": 2,
+              "sets": {
+                "me": 1,
+                "them": 0
+              },
+              "versus": "vs Sam",
+              "videoId": "v-club-1"
+            }
+          ],
+          "name": "Lost on Sam's serve"
+        },
+        "rows": [
+          {
+            "label": "You attacked",
+            "single": {
+              "detail": null,
+              "main": "won 2 of 3"
+            },
+            "themN": 0,
+            "themWon": 0,
+            "weak": false,
+            "youN": 3,
+            "youWon": 2
+          },
+          {
+            "label": "Sam attacked 3rd",
+            "single": {
+              "detail": null,
+              "main": "won 2 of 2"
+            },
+            "themN": 0,
+            "themWon": 0,
+            "weak": false,
+            "youN": 2,
+            "youWon": 2
+          },
+          {
+            "label": "No attack by 3rd",
+            "single": {
+              "detail": "57%",
+              "main": "won 4 of 7"
+            },
+            "themN": 0,
+            "themWon": 0,
+            "weak": false,
+            "youN": 7,
+            "youWon": 4
+          }
+        ],
+        "sub": "Won 8 of 12 on Sam's serve",
+        "title": "Receive",
+        "value": "67%"
+      },
+      {
+        "about": [
+          "Points where they made the first attack, and how you answered: a counter, a block, or no reply.",
+          "Their number is how often they win when you attack first.",
+          "Elite 48% is the defender's rate, from Fuchs and Lames 2021.",
+          "A blocked fast serve counts as Control here, and as a first attack in that study. That case is rare.",
+          "Usual is your rate in your other tagged matches. It shows when today differs by 10 points or more."
+        ],
+        "columns": [
+          "You",
+          "Sam"
+        ],
+        "compare": "Sam 4 of 9 · Elite 48%",
+        "counts": {
+          "points": 10,
+          "themN": 9,
+          "themWon": 4,
+          "youN": 10,
+          "youWon": 6
+        },
+        "empty": null,
+        "id": "attack",
+        "playlist": {
+          "caption": "name",
+          "items": [
+            {
+              "a": 11.67,
+              "b": 18.26,
+              "id": "attack-v-club-1-r1-0",
+              "matchId": "m-partial",
+              "note": "",
+              "points": {
+                "me": 1,
+                "them": 0
+              },
+              "rallyId": "v-club-1-r1",
+              "server": "me",
+              "setId": 1,
+              "sets": {
+                "me": 0,
+                "them": 0
+              },
+              "versus": "vs Sam",
+              "videoId": "v-club-1"
+            },
+            {
+              "a": 79.02,
+              "b": 85.85,
+              "id": "attack-v-club-1-r8-1",
+              "matchId": "m-partial",
+              "note": "",
+              "points": {
+                "me": 5,
+                "them": 3
+              },
+              "rallyId": "v-club-1-r8",
+              "server": "me",
+              "setId": 1,
+              "sets": {
+                "me": 0,
+                "them": 0
+              },
+              "versus": "vs Sam",
+              "videoId": "v-club-1"
+            },
+            {
+              "a": 120.36,
+              "b": 127.28,
+              "id": "attack-v-club-1-r12-2",
+              "matchId": "m-partial",
+              "note": "",
+              "points": {
+                "me": 8,
+                "them": 4
+              },
+              "rallyId": "v-club-1-r12",
+              "server": "me",
+              "setId": 1,
+              "sets": {
+                "me": 0,
+                "them": 0
+              },
+              "versus": "vs Sam",
+              "videoId": "v-club-1"
+            },
+            {
+              "a": 130.88,
+              "b": 137.75,
+              "id": "attack-v-club-1-r13-3",
+              "matchId": "m-partial",
+              "note": "",
+              "points": {
+                "me": 8,
+                "them": 5
+              },
+              "rallyId": "v-club-1-r13",
+              "server": "me",
+              "setId": 1,
+              "sets": {
+                "me": 0,
+                "them": 0
+              },
+              "versus": "vs Sam",
+              "videoId": "v-club-1"
+            }
+          ],
+          "name": "Lost when Sam attacked first"
+        },
+        "rows": [
+          {
+            "label": "Countered",
+            "them": {
+              "of": null,
+              "text": "1 of 2"
+            },
+            "themN": 2,
+            "themWon": 1,
+            "weak": false,
+            "you": {
+              "of": null,
+              "text": "0 of 1"
+            },
+            "youN": 1,
+            "youWon": 0
+          },
+          {
+            "label": "Blocked",
+            "them": {
+              "of": "of 6",
+              "text": "33%"
+            },
+            "themN": 6,
+            "themWon": 2,
+            "weak": false,
+            "you": {
+              "of": "of 7",
+              "text": "57%"
+            },
+            "youN": 7,
+            "youWon": 4
+          },
+          {
+            "label": "No reply",
+            "them": {
+              "of": null,
+              "text": "1 of 1"
+            },
+            "themN": 1,
+            "themWon": 1,
+            "weak": false,
+            "you": {
+              "of": null,
+              "text": "2 of 2"
+            },
+            "youN": 2,
+            "youWon": 2
+          }
+        ],
+        "sub": "Won 6 of 10 when Sam attacked first",
+        "title": "Attack",
+        "value": "60%"
+      },
+      {
+        "about": [
+          "Your errors after the serve.",
+          "A free ball is one where the shot before was Control. Under attack means the shot before was Attack. On the receive is a missed return of serve.",
+          "There is no elite mark for this.",
+          "Usual is your rate in your other tagged matches. It shows when today differs by 3 errors per 100 points or more."
+        ],
+        "columns": [
+          "You",
+          "Sam"
+        ],
+        "compare": "Sam 14",
+        "counts": {
+          "points": 25,
+          "themN": 14,
+          "themWon": 0,
+          "youN": 9,
+          "youWon": 0
+        },
+        "empty": null,
+        "id": "end",
+        "playlist": {
+          "caption": "name",
+          "items": [
+            {
+              "a": 26.05,
+              "b": 29.34,
+              "id": "end-v-club-1-r2-0",
+              "matchId": "m-partial",
+              "note": "Net",
+              "points": {
+                "me": 1,
+                "them": 1
+              },
+              "rallyId": "v-club-1-r2",
+              "server": "them",
+              "setId": 1,
+              "sets": {
+                "me": 0,
+                "them": 0
+              },
+              "versus": "vs Sam",
+              "videoId": "v-club-1"
+            },
+            {
+              "a": 51.59,
+              "b": 60.49,
+              "id": "end-v-club-1-r5-1",
+              "matchId": "m-partial",
+              "note": "Wide",
+              "points": {
+                "me": 3,
+                "them": 2
+              },
+              "rallyId": "v-club-1-r5",
+              "server": "me",
+              "setId": 1,
+              "sets": {
+                "me": 0,
+                "them": 0
+              },
+              "versus": "vs Sam",
+              "videoId": "v-club-1"
+            },
+            {
+              "a": 233.7,
+              "b": 241.39,
+              "id": "end-v-club-1-r23-2",
+              "matchId": "m-partial",
+              "note": "Long",
+              "points": {
+                "me": 3,
+                "them": 2
+              },
+              "rallyId": "v-club-1-r23",
+              "server": "them",
+              "setId": 2,
+              "sets": {
+                "me": 1,
+                "them": 0
+              },
+              "versus": "vs Sam",
+              "videoId": "v-club-1"
+            }
+          ],
+          "name": "FH errors on a free ball"
+        },
+        "rows": [
+          {
+            "label": "Free ball, FH",
+            "them": {
+              "of": null,
+              "text": "3"
+            },
+            "themN": 3,
+            "themWon": 0,
+            "weak": true,
+            "you": {
+              "of": null,
+              "text": "3"
+            },
+            "youN": 3,
+            "youWon": 0
+          },
+          {
+            "label": "Free ball, BH",
+            "them": {
+              "of": null,
+              "text": "5"
+            },
+            "themN": 5,
+            "themWon": 0,
+            "weak": false,
+            "you": {
+              "of": null,
+              "text": "3"
+            },
+            "youN": 3,
+            "youWon": 0
+          },
+          {
+            "label": "Under attack",
+            "them": {
+              "of": null,
+              "text": "6"
+            },
+            "themN": 6,
+            "themWon": 0,
+            "weak": false,
+            "you": {
+              "of": null,
+              "text": "3"
+            },
+            "youN": 3,
+            "youWon": 0
+          }
+        ],
+        "sub": "6 on a free ball",
+        "title": "End",
+        "value": "9"
+      }
+    ],
+    "coverage": "Set 1, part of set 2",
+    "empty": false,
+    "marked": {
+      "about": [
+        "Parts you starred while tagging: Opening, Attack, Rally and End.",
+        "Each one plays that part of the rally. There is no benchmark."
+      ],
+      "columns": null,
+      "compare": null,
+      "counts": {
+        "points": 3,
+        "themN": 0,
+        "themWon": 0,
+        "youN": 3,
+        "youWon": 0
+      },
+      "empty": null,
+      "id": "marked",
+      "playlist": {
+        "caption": "note",
+        "items": [
+          {
+            "a": 2.77,
+            "b": 7.36,
+            "id": "marked-v-club-1-r0-opening-0",
+            "matchId": "m-partial",
+            "note": "Opening",
+            "points": {
+              "me": 0,
+              "them": 0
+            },
+            "rallyId": "v-club-1-r0",
+            "server": "me",
+            "setId": 1,
+            "sets": {
+              "me": 0,
+              "them": 0
+            },
+            "versus": "vs Sam",
+            "videoId": "v-club-1"
+          },
+          {
+            "a": 121.36,
+            "b": 125.07,
+            "id": "marked-v-club-1-r12-opening-1",
+            "matchId": "m-partial",
+            "note": "Opening",
+            "points": {
+              "me": 8,
+              "them": 4
+            },
+            "rallyId": "v-club-1-r12",
+            "server": "me",
+            "setId": 1,
+            "sets": {
+              "me": 0,
+              "them": 0
+            },
+            "versus": "vs Sam",
+            "videoId": "v-club-1"
+          },
+          {
+            "a": 244.82,
+            "b": 246.37,
+            "id": "marked-v-club-1-r24-opening-2",
+            "matchId": "m-partial",
+            "note": "Opening",
+            "points": {
+              "me": 3,
+              "them": 3
+            },
+            "rallyId": "v-club-1-r24",
+            "server": "me",
+            "setId": 2,
+            "sets": {
+              "me": 1,
+              "them": 0
+            },
+            "versus": "vs Sam",
+            "videoId": "v-club-1"
+          }
+        ],
+        "name": "Marked for review"
+      },
+      "rows": [],
+      "sub": null,
+      "title": "Marked for review",
+      "value": null
+    },
+    "videoLine": null
+  },
+  "matchDiffers": false,
+  "missingVideoIds": [],
+  "name": "vs Sam",
+  "phase": "partial",
+  "resultDiffers": false,
+  "rowLine": "15 Nov · Won 3 - 1 · Club night",
+  "rowStatus": {
+    "kind": "continue",
+    "setId": 2,
+    "tab": "tag",
+    "text": "Continue set 2"
+  },
+  "sets": [
+    {
+      "editStops": {
+        "gaps": [
+          {
+            "a": 0.77,
+            "b": 3.77,
+            "index": 0,
+            "kind": "gap",
+            "likely": false,
+            "n": 1,
+            "overlap": false
+          },
+          {
+            "a": 8.75,
+            "b": 13.67,
+            "index": 1,
+            "kind": "gap",
+            "likely": false,
+            "n": 2,
+            "overlap": false
+          },
+          {
+            "a": 17.26,
+            "b": 23.9,
+            "index": 2,
+            "kind": "gap",
+            "likely": false,
+            "n": 3,
+            "overlap": false
+          },
+          {
+            "a": 28.34,
+            "b": 33.43,
+            "index": 3,
+            "kind": "gap",
+            "likely": false,
+            "n": 4,
+            "overlap": false
+          },
+          {
+            "a": 39.07,
+            "b": 45.02,
+            "index": 4,
+            "kind": "gap",
+            "likely": false,
+            "n": 5,
+            "overlap": false
+          },
+          {
+            "a": 48.54,
+            "b": 53.59,
+            "index": 5,
+            "kind": "gap",
+            "likely": false,
+            "n": 6,
+            "overlap": false
+          },
+          {
+            "a": 59.49,
+            "b": 65.29,
+            "index": 6,
+            "kind": "gap",
+            "likely": false,
+            "n": 7,
+            "overlap": false
+          },
+          {
+            "a": 67.43,
+            "b": 72.38,
+            "index": 7,
+            "kind": "gap",
+            "likely": false,
+            "n": 8,
+            "overlap": false
+          },
+          {
+            "a": 76.05,
+            "b": 81.02,
+            "index": 8,
+            "kind": "gap",
+            "likely": false,
+            "n": 9,
+            "overlap": false
+          },
+          {
+            "a": 84.85,
+            "b": 91.14,
+            "index": 9,
+            "kind": "gap",
+            "likely": false,
+            "n": 10,
+            "overlap": false
+          },
+          {
+            "a": 93.8,
+            "b": 99.94,
+            "index": 10,
+            "kind": "gap",
+            "likely": false,
+            "n": 11,
+            "overlap": false
+          },
+          {
+            "a": 109.47,
+            "b": 114.84,
+            "index": 11,
+            "kind": "gap",
+            "likely": false,
+            "n": 12,
+            "overlap": false
+          },
+          {
+            "a": 116.65,
+            "b": 122.36,
+            "index": 12,
+            "kind": "gap",
+            "likely": false,
+            "n": 13,
+            "overlap": false
+          },
+          {
+            "a": 126.28,
+            "b": 132.88,
+            "index": 13,
+            "kind": "gap",
+            "likely": false,
+            "n": 14,
+            "overlap": false
+          },
+          {
+            "a": 136.75,
+            "b": 143.38,
+            "index": 14,
+            "kind": "gap",
+            "likely": false,
+            "n": 15,
+            "overlap": false
+          },
+          {
+            "a": 147.22,
+            "b": 152.41,
+            "index": 15,
+            "kind": "gap",
+            "likely": false,
+            "n": 16,
+            "overlap": false
+          },
+          {
+            "a": 155.22,
+            "b": 161.81,
+            "index": 16,
+            "kind": "gap",
+            "likely": false,
+            "n": 17,
+            "overlap": false
+          },
+          {
+            "a": 164.57,
+            "b": 169.92,
+            "index": 17,
+            "kind": "gap",
+            "likely": false,
+            "n": 18,
+            "overlap": false
+          }
+        ],
+        "rallies": [
+          {
+            "id": "v-club-1-r0",
+            "index": 0,
+            "kind": "rally",
+            "n": 1
+          },
+          {
+            "id": "v-club-1-r1",
+            "index": 1,
+            "kind": "rally",
+            "n": 2
+          },
+          {
+            "id": "v-club-1-r2",
+            "index": 2,
+            "kind": "rally",
+            "n": 3
+          },
+          {
+            "id": "v-club-1-r3",
+            "index": 3,
+            "kind": "rally",
+            "n": 4
+          },
+          {
+            "id": "v-club-1-r4",
+            "index": 4,
+            "kind": "rally",
+            "n": 5
+          },
+          {
+            "id": "v-club-1-r5",
+            "index": 5,
+            "kind": "rally",
+            "n": 6
+          },
+          {
+            "id": "v-club-1-r6",
+            "index": 6,
+            "kind": "rally",
+            "n": 7
+          },
+          {
+            "id": "v-club-1-r7",
+            "index": 7,
+            "kind": "rally",
+            "n": 8
+          },
+          {
+            "id": "v-club-1-r8",
+            "index": 8,
+            "kind": "rally",
+            "n": 9
+          },
+          {
+            "id": "v-club-1-r9",
+            "index": 9,
+            "kind": "rally",
+            "n": 10
+          },
+          {
+            "id": "v-club-1-r10",
+            "index": 10,
+            "kind": "rally",
+            "n": 11
+          },
+          {
+            "id": "v-club-1-r11",
+            "index": 11,
+            "kind": "rally",
+            "n": 12
+          },
+          {
+            "id": "v-club-1-r12",
+            "index": 12,
+            "kind": "rally",
+            "n": 13
+          },
+          {
+            "id": "v-club-1-r13",
+            "index": 13,
+            "kind": "rally",
+            "n": 14
+          },
+          {
+            "id": "v-club-1-r14",
+            "index": 14,
+            "kind": "rally",
+            "n": 15
+          },
+          {
+            "id": "v-club-1-r15",
+            "index": 15,
+            "kind": "rally",
+            "n": 16
+          },
+          {
+            "id": "v-club-1-r16",
+            "index": 16,
+            "kind": "rally",
+            "n": 17
+          },
+          {
+            "id": "v-club-1-r17",
+            "index": 17,
+            "kind": "rally",
+            "n": 18
+          }
+        ]
+      },
+      "endedEarly": false,
+      "incomplete": false,
+      "lineAction": "Open",
+      "lineLabel": "Set 1",
+      "markBounds": {
+        "end": 175.68,
+        "start": 0.77
+      },
+      "markState": "saved",
+      "overOnRule": true,
+      "rallies": [
+        "1 v-club-1-r0 srv=me win=me pre=0-0 exp=me n=6 end=Net fa=5 parts=opening:1-4,attack:5-6 phase=serve",
+        "2 v-club-1-r1 srv=me win=them pre=1-0 exp=me n=5 end=Net fa=2 parts=opening:1-1,attack:2-5 phase=serve",
+        "3 v-club-1-r2 srv=them win=them pre=1-1 exp=them n=6 end=Net fa=null parts=opening:1-3,end:4-6 phase=rally",
+        "4 v-club-1-r3 srv=them win=me pre=1-2 exp=them n=7 end=Wide fa=4 parts=opening:1-3,attack:4-7 phase=rally",
+        "5 v-club-1-r4 srv=me win=me pre=2-2 exp=me n=5 end=Winner fa=null parts=opening:1-2,end:3-5 phase=serve",
+        "6 v-club-1-r5 srv=me win=them pre=3-2 exp=me n=7 end=Wide fa=5 parts=opening:1-4,attack:5-7 phase=rally",
+        "7 v-club-1-r6 srv=them win=me pre=3-3 exp=them n=3 end=Net fa=null parts=opening:1-1,end:2-3 phase=receive",
+        "8 v-club-1-r7 srv=them win=me pre=4-3 exp=them n=5 end=Long fa=3 parts=opening:1-2,attack:3-5 phase=receive",
+        "9 v-club-1-r8 srv=me win=them pre=5-3 exp=me n=5 end=Net fa=2 parts=opening:1-1,attack:2-5 phase=serve",
+        "10 v-club-1-r9 srv=me win=me pre=5-4 exp=me n=4 end=Wide fa=4 parts=opening:1-3,attack:4-4 phase=serve",
+        "11 v-club-1-r10 srv=them win=me pre=6-4 exp=them n=11 end=Long fa=2 parts=opening:1-1,attack:2-4,rally:5-8,end:9-11 phase=rally",
+        "12 v-club-1-r11 srv=them win=me pre=7-4 exp=them n=3 end=Long fa=null parts=opening:1-1,end:2-3 phase=receive",
+        "13 v-club-1-r12 srv=me win=them pre=8-4 exp=me n=5 end=Wide fa=4 parts=opening:1-3,attack:4-5 phase=serve",
+        "14 v-club-1-r13 srv=me win=them pre=8-5 exp=me n=5 end=Long fa=2 parts=opening:1-1,attack:2-5 phase=serve",
+        "15 v-club-1-r14 srv=them win=me pre=8-6 exp=them n=5 end=Long fa=2 parts=opening:1-1,attack:2-5 phase=receive",
+        "16 v-club-1-r15 srv=them win=them pre=9-6 exp=them n=4 end=Long fa=2 parts=opening:1-1,attack:2-4 phase=receive",
+        "17 v-club-1-r16 srv=me win=me pre=9-7 exp=me n=4 end=Wide fa=4 parts=opening:1-3,attack:4-4 phase=serve",
+        "18 v-club-1-r17 srv=me win=me pre=10-7 exp=me n=4 end=Net fa=null parts=opening:1-1,end:2-4 phase=serve"
+      ],
+      "scoresDiffer": false,
+      "serveBands": [],
+      "serveBreaks": [],
+      "setEndIndex": 17,
+      "setId": 1,
+      "settled": true,
+      "spare": false,
+      "state": "finished",
+      "taggedScore": {
+        "me": 11,
+        "them": 7
+      }
+    },
+    {
+      "editStops": {
+        "gaps": [
+          {
+            "a": 182.85,
+            "b": 185.85,
+            "index": 0,
+            "kind": "gap",
+            "likely": false,
+            "n": 1,
+            "overlap": false
+          },
+          {
+            "a": 189.47,
+            "b": 194.98,
+            "index": 1,
+            "kind": "gap",
+            "likely": false,
+            "n": 2,
+            "overlap": false
+          },
+          {
+            "a": 200.86,
+            "b": 207.07,
+            "index": 2,
+            "kind": "gap",
+            "likely": false,
+            "n": 3,
+            "overlap": false
+          },
+          {
+            "a": 213.46,
+            "b": 219.43,
+            "index": 3,
+            "kind": "gap",
+            "likely": false,
+            "n": 4,
+            "overlap": false
+          },
+          {
+            "a": 222.02,
+            "b": 227.56,
+            "index": 4,
+            "kind": "gap",
+            "likely": false,
+            "n": 5,
+            "overlap": false
+          },
+          {
+            "a": 230.38,
+            "b": 235.7,
+            "index": 5,
+            "kind": "gap",
+            "likely": false,
+            "n": 6,
+            "overlap": false
+          },
+          {
+            "a": 240.39,
+            "b": 245.82,
+            "index": 6,
+            "kind": "gap",
+            "likely": false,
+            "n": 7,
+            "overlap": false
+          }
+        ],
+        "rallies": [
+          {
+            "id": "v-club-1-r18",
+            "index": 0,
+            "kind": "rally",
+            "n": 1
+          },
+          {
+            "id": "v-club-1-r19",
+            "index": 1,
+            "kind": "rally",
+            "n": 2
+          },
+          {
+            "id": "v-club-1-r20",
+            "index": 2,
+            "kind": "rally",
+            "n": 3
+          },
+          {
+            "id": "v-club-1-r21",
+            "index": 3,
+            "kind": "rally",
+            "n": 4
+          },
+          {
+            "id": "v-club-1-r22",
+            "index": 4,
+            "kind": "rally",
+            "n": 5
+          },
+          {
+            "id": "v-club-1-r23",
+            "index": 5,
+            "kind": "rally",
+            "n": 6
+          },
+          {
+            "id": "v-club-1-r24",
+            "index": 6,
+            "kind": "rally",
+            "n": 7
+          }
+        ]
+      },
+      "endedEarly": false,
+      "incomplete": false,
+      "lineAction": "Continue",
+      "lineLabel": "Set 2",
+      "markBounds": {
+        "end": 374.26,
+        "start": 182.85
+      },
+      "markState": "tagging",
+      "overOnRule": false,
+      "rallies": [
+        "1 v-club-1-r18 srv=them win=me pre=0-0 exp=them n=5 end=Wide fa=4 parts=opening:1-3,attack:4-5 phase=receive",
+        "2 v-club-1-r19 srv=them win=me pre=1-0 exp=them n=7 end=Net fa=3 parts=opening:1-2,attack:3-7 phase=rally",
+        "3 v-club-1-r20 srv=me win=them pre=2-0 exp=me n=8 end=Winner fa=5 parts=opening:1-4,attack:5-8 phase=rally",
+        "4 v-club-1-r21 srv=me win=me pre=2-1 exp=me n=4 end=Wide fa=2 parts=opening:1-1,attack:2-4 phase=serve",
+        "5 v-club-1-r22 srv=them win=them pre=3-1 exp=them n=4 end=Net fa=null parts=opening:1-1,end:2-4 phase=receive",
+        "6 v-club-1-r23 srv=them win=them pre=3-2 exp=them n=6 end=Long fa=6 parts=opening:1-5,attack:6-6 phase=rally",
+        "7 v-club-1-r24 srv=me win=me pre=3-3 exp=me n=4 end=Long fa=2 parts=opening:1-1,attack:2-4 phase=serve"
+      ],
+      "scoresDiffer": false,
+      "serveBands": [],
+      "serveBreaks": [],
+      "setEndIndex": -1,
+      "setId": 2,
+      "settled": false,
+      "spare": false,
+      "state": "progress",
+      "taggedScore": {
+        "me": 4,
+        "them": 3
+      }
+    },
+    {
+      "editStops": {
+        "gaps": [],
+        "rallies": []
+      },
+      "endedEarly": false,
+      "incomplete": false,
+      "lineAction": null,
+      "lineLabel": "Set 3",
+      "markBounds": null,
+      "markState": "off",
+      "overOnRule": false,
+      "rallies": [],
+      "scoresDiffer": false,
+      "serveBands": [],
+      "serveBreaks": [],
+      "setEndIndex": -1,
+      "setId": 3,
+      "settled": true,
+      "spare": false,
+      "state": "none",
+      "taggedScore": null
+    },
+    {
+      "editStops": {
+        "gaps": [],
+        "rallies": []
+      },
+      "endedEarly": false,
+      "incomplete": false,
+      "lineAction": null,
+      "lineLabel": "Set 4",
+      "markBounds": null,
+      "markState": "off",
+      "overOnRule": false,
+      "rallies": [],
+      "scoresDiffer": false,
+      "serveBands": [],
+      "serveBreaks": [],
+      "setEndIndex": -1,
+      "setId": 4,
+      "settled": true,
+      "spare": false,
+      "state": "none",
+      "taggedScore": null
+    }
+  ],
+  "setsWon": {
+    "me": 3,
+    "them": 0
+  },
+  "tagged": false,
+  "taggedResult": null,
+  "taggedResultReady": false,
+  "title": "Club night vs Sam",
+  "videos": [
+    {
+      "id": "v-club-1",
+      "locked": true,
+      "rallies": 25,
+      "status": "Tagging"
+    },
+    {
+      "id": "v-club-2",
+      "locked": true,
+      "rallies": 0,
+      "status": "Tagging"
+    }
+  ]
+}

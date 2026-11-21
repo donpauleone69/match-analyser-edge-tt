@@ -1,0 +1,329 @@
+[
+  {
+    "name": "n=1 Winner",
+    "rally": {
+      "contacts": [
+        10
+      ],
+      "end": 11,
+      "ending": "Winner",
+      "fa": null,
+      "id": "r-x",
+      "idea": {
+        "flow": "bestfa",
+        "result": "Ace"
+      },
+      "serveChecked": true,
+      "server": "me",
+      "shots": [
+        {}
+      ],
+      "start": 8,
+      "videoId": "v",
+      "winner": "me"
+    }
+  },
+  {
+    "name": "n=1 Net",
+    "rally": {
+      "contacts": [
+        10
+      ],
+      "end": 11,
+      "ending": "Net",
+      "fa": null,
+      "id": "r-x",
+      "idea": {
+        "flow": "bestfa",
+        "result": "Serve fault"
+      },
+      "serveChecked": true,
+      "server": "me",
+      "shots": [
+        {}
+      ],
+      "start": 8,
+      "videoId": "v",
+      "winner": "them"
+    }
+  },
+  {
+    "name": "n=2",
+    "rally": {
+      "contacts": [
+        10,
+        10.4
+      ],
+      "end": 11.4,
+      "ending": "Winner",
+      "fa": null,
+      "id": "r-x",
+      "idea": {
+        "flow": "bestfa",
+        "result": "Winner",
+        "serve": "Short"
+      },
+      "serveChecked": true,
+      "server": "me",
+      "shots": [
+        {
+          "depth": "Short",
+          "wing": "BH"
+        },
+        {
+          "stroke": "Control",
+          "wing": "FH"
+        }
+      ],
+      "start": 8,
+      "videoId": "v",
+      "winner": "them"
+    }
+  },
+  {
+    "name": "n=4 FA at 3",
+    "rally": {
+      "contacts": [
+        10,
+        10.4,
+        10.8,
+        11.2
+      ],
+      "end": 12.2,
+      "ending": "Winner",
+      "fa": 3,
+      "id": "r-x",
+      "idea": {
+        "flow": "bestfa",
+        "result": "Winner",
+        "serve": "Short"
+      },
+      "serveChecked": true,
+      "server": "me",
+      "shots": [
+        {
+          "depth": "Short",
+          "wing": "BH"
+        },
+        {
+          "stroke": "Control",
+          "wing": "FH"
+        },
+        {
+          "stroke": "Attack",
+          "wing": "BH"
+        },
+        {
+          "stroke": "Control",
+          "wing": "FH"
+        }
+      ],
+      "start": 8,
+      "videoId": "v",
+      "winner": "them"
+    }
+  },
+  {
+    "name": "n=6 no attack",
+    "rally": {
+      "contacts": [
+        10,
+        10.4,
+        10.8,
+        11.2,
+        11.6,
+        12
+      ],
+      "end": 13,
+      "ending": "Winner",
+      "fa": null,
+      "id": "r-x",
+      "idea": {
+        "flow": "bestfa",
+        "result": "Winner",
+        "serve": "Short"
+      },
+      "serveChecked": true,
+      "server": "me",
+      "shots": [
+        {
+          "depth": "Short",
+          "wing": "BH"
+        },
+        {
+          "stroke": "Control",
+          "wing": "FH"
+        },
+        {
+          "stroke": "Control",
+          "wing": "BH"
+        },
+        {
+          "stroke": "Control",
+          "wing": "FH"
+        },
+        {
+          "stroke": "Control",
+          "wing": "BH"
+        },
+        {
+          "stroke": "Control",
+          "wing": "FH"
+        }
+      ],
+      "start": 8,
+      "videoId": "v",
+      "winner": "them"
+    }
+  },
+  {
+    "name": "n=9 FA at 2",
+    "rally": {
+      "contacts": [
+        10,
+        10.4,
+        10.8,
+        11.2,
+        11.6,
+        12,
+        12.4,
+        12.8,
+        13.2
+      ],
+      "end": 14.2,
+      "ending": "Winner",
+      "fa": 2,
+      "id": "r-x",
+      "idea": {
+        "flow": "bestfa",
+        "result": "Winner",
+        "serve": "Short"
+      },
+      "serveChecked": true,
+      "server": "me",
+      "shots": [
+        {
+          "depth": "Short",
+          "wing": "BH"
+        },
+        {
+          "stroke": "Attack",
+          "wing": "FH"
+        },
+        {
+          "stroke": "Control",
+          "wing": "BH"
+        },
+        {
+          "stroke": "Control",
+          "wing": "FH"
+        },
+        {
+          "stroke": "Control",
+          "wing": "BH"
+        },
+        {
+          "stroke": "Control",
+          "wing": "FH"
+        },
+        {
+          "stroke": "Control",
+          "wing": "BH"
+        },
+        {
+          "stroke": "Control",
+          "wing": "FH"
+        },
+        {
+          "stroke": "Control",
+          "wing": "BH"
+        }
+      ],
+      "start": 8,
+      "videoId": "v",
+      "winner": "me"
+    }
+  },
+  {
+    "name": "rally one server them",
+    "rally": {
+      "contacts": [
+        10,
+        10.4,
+        10.8
+      ],
+      "end": 11.8,
+      "ending": "Winner",
+      "fa": null,
+      "id": "r-x",
+      "idea": {
+        "flow": "bestfa",
+        "result": "Winner",
+        "serve": "Short"
+      },
+      "serveChecked": true,
+      "server": "them",
+      "shots": [
+        {
+          "depth": "Short",
+          "wing": "BH"
+        },
+        {
+          "stroke": "Control",
+          "wing": "FH"
+        },
+        {
+          "stroke": "Control",
+          "wing": "BH"
+        }
+      ],
+      "start": 8,
+      "videoId": "v",
+      "winner": "them"
+    }
+  },
+  {
+    "name": "Point to against End",
+    "rally": {
+      "contacts": [
+        10,
+        10.4,
+        10.8,
+        11.2
+      ],
+      "end": 12.2,
+      "ending": "Winner",
+      "fa": 3,
+      "id": "r-x",
+      "idea": {
+        "check": "Check the point",
+        "flow": "bestfa",
+        "result": "Winner",
+        "serve": "Short"
+      },
+      "serveChecked": true,
+      "server": "me",
+      "shots": [
+        {
+          "depth": "Short",
+          "wing": "BH"
+        },
+        {
+          "stroke": "Control",
+          "wing": "FH"
+        },
+        {
+          "stroke": "Attack",
+          "wing": "BH"
+        },
+        {
+          "stroke": "Control",
+          "wing": "FH"
+        }
+      ],
+      "start": 8,
+      "videoId": "v",
+      "winner": "me"
+    }
+  }
+]

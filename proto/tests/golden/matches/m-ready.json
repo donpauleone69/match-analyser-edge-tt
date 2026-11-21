@@ -1,0 +1,65 @@
+{
+  "archived": false,
+  "date": "18 Nov",
+  "defaultTab": "tag",
+  "insights": {
+    "cards": [],
+    "coverage": null,
+    "empty": true,
+    "marked": null,
+    "videoLine": null
+  },
+  "matchDiffers": false,
+  "missingVideoIds": [],
+  "name": "vs Kim",
+  "phase": "ready",
+  "resultDiffers": false,
+  "rowLine": "18 Nov · County open",
+  "rowStatus": {
+    "kind": "not-tagged",
+    "setId": null,
+    "tab": "tag",
+    "text": "Not tagged"
+  },
+  "sets": [
+    {
+      "editStops": {
+        "gaps": [],
+        "rallies": []
+      },
+      "endedEarly": false,
+      "incomplete": false,
+      "lineAction": null,
+      "lineLabel": "Set 1",
+      "markBounds": null,
+      "markState": "off",
+      "overOnRule": false,
+      "rallies": [],
+      "scoresDiffer": false,
+      "serveBands": [],
+      "serveBreaks": [],
+      "setEndIndex": -1,
+      "setId": 1,
+      "settled": false,
+      "spare": true,
+      "state": "none",
+      "taggedScore": null
+    }
+  ],
+  "setsWon": {
+    "me": 0,
+    "them": 0
+  },
+  "tagged": false,
+  "taggedResult": null,
+  "taggedResultReady": false,
+  "title": "County open vs Kim",
+  "videos": [
+    {
+      "id": "v-county",
+      "locked": false,
+      "rallies": 0,
+      "status": "No sets yet"
+    }
+  ]
+}
