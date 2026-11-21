@@ -5,7 +5,7 @@
 import { readFileSync } from 'node:fs'
 import { emptySet, isMatchTagged, calculateMatchSetsWon, setSettled } from '../src/rules/match'
 import type { MatchRecord, Points, SetData } from '../src/types/match'
-import { overrunLabels, tagRegions } from '../src/features/tagging/inputModes'
+import { overrunLabels, tagRegions } from '../src/features/tagging/derive/deriveInputArea'
 import { settleFinished } from '../src/rules/matchOps'
 import type { Side } from '../src/types/rally'
 import {
@@ -84,11 +84,17 @@ ok(
 )
 ok('details differ still sets over on the rule', setOverOnRule(legal))
 
-const screen = readFileSync('src/features/tagging/TagSetScreen.tsx', 'utf8')
-ok('screen uses the rule', screen.includes('setOverOnRule('))
+const state = readFileSync('src/features/tagging/derive/deriveTagState.ts', 'utf8')
+const screen = readFileSync('src/features/tagging/derive/deriveInputArea.ts', 'utf8')
+ok('screen uses the rule', state.includes('setOverOnRule('))
 ok(
   'details clause is gone',
-  !screen.includes('reachedEntered') && !screen.includes('atEntered') && !screen.includes('isSetWon(entered)'),
+  !state.includes('reachedEntered') &&
+    !state.includes('atEntered') &&
+    !state.includes('isSetWon(entered)') &&
+    !screen.includes('reachedEntered') &&
+    !screen.includes('atEntered') &&
+    !screen.includes('isSetWon(entered)'),
 )
 
 const labels = overrunLabels(18, 20)

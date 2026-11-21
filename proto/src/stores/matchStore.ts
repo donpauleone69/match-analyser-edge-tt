@@ -18,14 +18,15 @@ import {
   sortNewestFirst,
 } from '@/rules/match'
 import { archiveVideos, insertVideo, moveVideo, patchSet, withoutVideo } from '@/rules/matchOps'
-import type {
-  DemoMode,
-  EnteredScore,
-  LocalVideo,
-  MatchRecord,
-  MatchResult,
-  SetData,
-  VideoAsset,
+import {
+  ARCHIVE_STEPS,
+  type DemoMode,
+  type EnteredScore,
+  type LocalVideo,
+  type MatchRecord,
+  type MatchResult,
+  type SetData,
+  type VideoAsset,
 } from '@/types/match'
 import type { VideoScript } from '@/types/video'
 import { useSettingsStore } from './settingsStore'
@@ -71,7 +72,13 @@ export type MatchState = {
   removeVideo: (matchId: string, videoId: string) => void
   setVideosArchived: (matchId: string) => void
   updateSet: (matchId: string, setId: number, patch: Partial<SetData>) => void
+  /** matchId maps to the step that is running. Absent means no job. */
+  archiveSteps: Record<string, number>
+  /** Starts an archive job. A second call for the same match does nothing. */
+  addArchiveJob: (matchId: string) => void
 }
+
+const ARCHIVE_STEP_MS = 1100
 
 /** Use demo video: a whole decided match that follows what Details says. */
 function demoScriptFor(m: MatchRecord): VideoScript {
@@ -161,6 +168,36 @@ function matchState(seed: MatchRecord[], initialMode: DemoMode): StateCreator<Ma
       seedIds,
       ...lists(null, initialMode, [], []),
       removedVideos: {},
+      archiveSteps: {},
+
+      addArchiveJob: (matchId) => {
+        if (get().archiveSteps[matchId] !== undefined) return
+        set((s) => ({ archiveSteps: { ...s.archiveSteps, [matchId]: 0 } }))
+        const tick = () => {
+          setTimeout(() => {
+            const step = get().archiveSteps[matchId]
+            if (step === undefined) return
+            const next = step + 1
+            if (next < ARCHIVE_STEPS.length) {
+              set((s) =>
+                s.archiveSteps[matchId] === undefined
+                  ? s
+                  : { archiveSteps: { ...s.archiveSteps, [matchId]: next } }
+              )
+              tick()
+            } else {
+              get().setVideosArchived(matchId)
+              set((s) => {
+                if (s.archiveSteps[matchId] === undefined) return s
+                const archiveSteps = { ...s.archiveSteps }
+                delete archiveSteps[matchId]
+                return { archiveSteps }
+              })
+            }
+          }, ARCHIVE_STEP_MS)
+        }
+        tick()
+      },
 
       setDemoMode: (next) => {
         // Filled restores the seed matches, including any that were deleted.
@@ -262,4 +299,13 @@ export const useMatchStore = create<MatchState>()(matchState(SEED, useSettingsSt
 /** The match with this id, re-read whenever it changes. */
 export function useMatchRecord(id: string): MatchRecord | undefined {
   return useMatchStore((s) => selectMatch(s, id))
+}
+
+/** The archive step running for this match, or null when none is. */
+export function useArchiveStep(matchId: string): number | null {
+  return useMatchStore((s) => {
+    const step = s.archiveSteps[matchId]
+    // A finished job reads as its last step until the last tick writes it.
+    return step === undefined ? null : Math.min(step, ARCHIVE_STEPS.length - 1)
+  })
 }

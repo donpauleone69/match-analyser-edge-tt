@@ -3,12 +3,12 @@ import { AppShell } from '@/layout/AppShell'
 import { ScrollToTop } from '@/layout/ScrollToTop'
 import { GatePage } from '@/pages/GatePage'
 import { MatchesPage } from '@/pages/MatchesPage'
-import { MatchPage, MatchIndexRedirect } from '@/pages/MatchPage'
-import { MatchInsights } from '@/features/insights/MatchInsights'
-import { TagSetScreen } from '@/features/tagging/TagSetScreen'
-import { MatchDetails } from '@/features/match/MatchDetails'
-import { MatchTagChecklist } from '@/features/match/MatchTagChecklist'
-import { ArchiveRunner } from '@/features/match/archiveJobs'
+import { MatchPage } from '@/pages/MatchPage'
+import { MatchIndexPage } from '@/pages/MatchIndexPage'
+import { MatchInsightsPage } from '@/pages/MatchInsightsPage'
+import { TagSetPage } from '@/pages/TagSetPage'
+import { MatchDetailsPage } from '@/pages/MatchDetailsPage'
+import { MatchTagPage } from '@/pages/MatchTagPage'
 import { DiscardUntouched } from '@/layout/DiscardUntouched'
 import { InsightsPage } from '@/pages/InsightsPage'
 import { AccountPage } from '@/pages/AccountPage'
@@ -36,7 +36,6 @@ export default function App() {
     <>
       <ScrollToTop />
       <DiscardUntouched />
-      <ArchiveRunner />
       <Routes>
         <Route path="/" element={<GatePage />} />
         <Route element={<AppShell />}>
@@ -44,12 +43,12 @@ export default function App() {
           <Route path="/find" element={<Navigate to="/matches" replace />} />
           <Route path="/matches" element={<MatchesPage />} />
           <Route path="/matches/:matchId" element={<MatchPage />}>
-            <Route index element={<MatchIndexRedirect />} />
-            <Route path="insights" element={<MatchInsights />} />
+            <Route index element={<MatchIndexPage />} />
+            <Route path="insights" element={<MatchInsightsPage />} />
             <Route path="insights/:section" element={<MatchInsightsRedirect />} />
-            <Route path="details" element={<MatchDetails />} />
-            <Route path="tag" element={<MatchTagChecklist />} />
-            <Route path="tag/:setId" element={<TagSetScreen />} />
+            <Route path="details" element={<MatchDetailsPage />} />
+            <Route path="tag" element={<MatchTagPage />} />
+            <Route path="tag/:setId" element={<TagSetPage />} />
             <Route path="mark/:videoId" element={<MarkRedirect />} />
           </Route>
           <Route path="/insights" element={<InsightsPage />} />
