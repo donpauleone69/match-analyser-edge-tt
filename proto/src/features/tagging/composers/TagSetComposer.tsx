@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { Button, Icon } from '@/ui-mine'
 import { WfEmpty } from '@/layout/Wireframe'
 import { emptySet } from '@/rules/match'
@@ -28,10 +28,9 @@ import { PictureSeekBlock } from '../blocks/PictureSeekBlock'
 import { VideoSection } from '../sections/VideoSection'
 
 /** Route entry: checks the set can be shown, then mounts the tagger per set. */
-export function TagSetComposer() {
+export function TagSetComposer({ matchId, setId }: { matchId: string; setId: string }) {
   const navigate = useNavigate()
   const location = useLocation()
-  const { matchId = '', setId = '1' } = useParams()
   const match = useMatchRecord(matchId)
   const archiveStep = useArchiveStep(matchId)
   const lock = useTagLock(match, archiveStep)

@@ -3,9 +3,10 @@ import { AppShell } from '@/layout/AppShell'
 import { ScrollToTop } from '@/layout/ScrollToTop'
 import { GatePage } from '@/pages/GatePage'
 import { MatchesPage } from '@/pages/MatchesPage'
-import { MatchPage, MatchIndexRedirect } from '@/pages/MatchPage'
+import { MatchPage } from '@/pages/MatchPage'
+import { MatchIndexPage } from '@/pages/MatchIndexPage'
 import { MatchInsights } from '@/features/insights/MatchInsights'
-import { TagSetComposer } from '@/features/tagging/composers/TagSetComposer'
+import { TagSetPage } from '@/pages/TagSetPage'
 import { MatchDetailsPage } from '@/pages/MatchDetailsPage'
 import { MatchTagPage } from '@/pages/MatchTagPage'
 import { DiscardUntouched } from '@/layout/DiscardUntouched'
@@ -42,12 +43,12 @@ export default function App() {
           <Route path="/find" element={<Navigate to="/matches" replace />} />
           <Route path="/matches" element={<MatchesPage />} />
           <Route path="/matches/:matchId" element={<MatchPage />}>
-            <Route index element={<MatchIndexRedirect />} />
+            <Route index element={<MatchIndexPage />} />
             <Route path="insights" element={<MatchInsights />} />
             <Route path="insights/:section" element={<MatchInsightsRedirect />} />
             <Route path="details" element={<MatchDetailsPage />} />
             <Route path="tag" element={<MatchTagPage />} />
-            <Route path="tag/:setId" element={<TagSetComposer />} />
+            <Route path="tag/:setId" element={<TagSetPage />} />
             <Route path="mark/:videoId" element={<MarkRedirect />} />
           </Route>
           <Route path="/insights" element={<InsightsPage />} />
