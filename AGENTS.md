@@ -23,7 +23,7 @@ Every command after that `cd` runs from `app/`. Dev server: http://localhost:517
 | `npm run check:docs` | Cited repo paths exist, and each scanned doc is at most 200 lines |
 | `npm run smoke` | Every route at 393x660 and 1440x912, plus a six-rally tagging run. Pass is 0 differing pixels |
 
-`npm run smoke` builds and serves its own copy. No dev server is needed. It compares shots to a baseline. The default folder is `/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/media/refactor/before` (see `app/tests/smoke/smoke.mjs`). Point at another folder with `SMOKE_BASELINE=/path/to/shots npm run smoke`. If that folder has no `manifest.json`, smoke throws `baseline manifest missing`. Agents outside this setup run build, test, and the two checks, and skip smoke or pass their own baseline. Smoke needs Chrome at `/usr/local/bin/google-chrome`. Do not pass `--write-baseline` unless a visible change is named and agreed.
+`npm run smoke` builds and serves its own copy. No dev server is needed. It compares shots to a baseline. The default folder is `/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/media/refactor/baseline-v0.17.29` (see `app/tests/smoke/smoke.mjs`). Point at another folder with `SMOKE_BASELINE=/path/to/shots npm run smoke`. If that folder has no `manifest.json`, smoke throws `baseline manifest missing`. Agents outside this setup run build, test, and the two checks, and skip smoke or pass their own baseline. Smoke needs Chrome at `/usr/local/bin/google-chrome`. Do not pass `--write-baseline` unless a visible change is named and agreed.
 
 ## Gate before merge
 

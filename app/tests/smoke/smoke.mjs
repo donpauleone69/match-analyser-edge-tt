@@ -21,7 +21,7 @@ const PAUSE_AT = new Date(NOW.getTime() + 1000)
 const CHROME = '/usr/local/bin/google-chrome'
 const PORT = 4318
 const BASE = `http://127.0.0.1:${PORT}`
-const DEFAULT_BASELINE = '/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/media/refactor/before'
+const DEFAULT_BASELINE = '/cursor/stores/bc-70b48325-77a8-467c-a22a-db08ba6aeabb/media/refactor/baseline-v0.17.29'
 const PAGE_SCRIPTS = [
   'checks/v01723-tag-page.check.mjs',
   'checks/v01725-matches-page.check.mjs',
